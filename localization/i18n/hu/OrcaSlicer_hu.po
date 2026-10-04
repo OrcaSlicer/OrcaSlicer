@@ -729,8 +729,9 @@ msgstr "Átméretezés"
 msgid "Volume operations"
 msgstr "Térfogat műveletek"
 
+# AI Translated
 msgid "Translate"
-msgstr "Fordítás"
+msgstr "Mozgatás"
 
 msgid "Group operations"
 msgstr "Csoportos műveletek"

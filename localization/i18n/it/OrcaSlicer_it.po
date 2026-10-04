@@ -1143,8 +1143,9 @@ msgstr "Riconoscimento faccia"
 msgid "Perform Recognition"
 msgstr "Esegui riconoscimento"
 
+# AI Translated
 msgid "Enforce seam"
-msgstr "Rinforza cucitura"
+msgstr "Forza cucitura"
 
 msgid "Block seam"
 msgstr "Blocca cucitura"

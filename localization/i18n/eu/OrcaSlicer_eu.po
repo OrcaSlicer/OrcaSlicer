@@ -4148,8 +4148,9 @@ msgstr "Fluxu-Dinamiken Kalibrazioaren faktoreak"
 msgid "Wiki Guide"
 msgstr "Wiki Gida"
 
+# AI Translated
 msgid "PA Profile"
-msgstr "Presio Linealaren Aitzinapenaren profila"
+msgstr "PA profila"
 
 msgid "Factor K"
 msgstr "K faktorea"
@@ -4688,8 +4689,9 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "Filamentu mota honetarako gomendatutako pitaren tenperatura [%d, %d] gradu zentigradukoa da."
 
+# AI Translated
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr "Presio-aurrerapen egokigarriraren modeloaren baliozkotzeak huts egin du:\n"
+msgstr "Pressure Advance egokigarriaren modeloaren baliozkotzeak huts egin du:\n"
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -5382,8 +5384,9 @@ msgstr "Geruza-denbora"
 msgid "Layer Time (log)"
 msgstr "Geruza-denbora (log)"
 
+# AI Translated
 msgid "Pressure Advance"
-msgstr "Presio linealaren aitzinapena"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr "Eragiketarik ez"
@@ -6522,8 +6525,9 @@ msgstr "Tenperaturaren kalibrazioa"
 msgid "Max flowrate"
 msgstr "Fluxu maximoaren testa"
 
+# AI Translated
 msgid "Pressure advance"
-msgstr "Presio linealaren aitzinapena"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "Fluxu-ratioa"
@@ -11441,8 +11445,9 @@ msgstr "Gomendatutako pitaren tenperatura"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Filamentu honetarako gomendatutako pitaren tenperatura-tartea. 0 balioak ez dagoela ezarrita esan nahi du"
 
+# AI Translated
 msgid "Flow ratio and Pressure Advance"
-msgstr "Fluxu-ratioa eta presio-aurrerapena"
+msgstr "Fluxu-ratioa eta Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "Inprimatzeko ganberako tenperatura"
@@ -13163,7 +13168,7 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "Horma zehatza aukera ezikusi egingo da kanpo-barru edo barru-kanpo-barru horma-sekuentzietan."
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Estrusore baten edo gehiagoren presio-aurrerapen egokigarriaren modeloak balio baliogabeak izan ditzake."
+msgstr "Estrusore baten edo gehiagoren Pressure Advance egokigarriaren modeloak balio baliogabeak izan ditzake."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Filamentuaren uzkurdura ez da erabiliko, erabilitako filamentuen uzkurdura-balioak ez datozelako bat."
@@ -14622,17 +14627,20 @@ msgstr ""
 "\n"
 "Azken objektuaren fluxu-erlazioa balio hau filamentuaren fluxu-erlazioarekin biderkatuta da."
 
+# AI Translated
 msgid "Enable pressure advance"
-msgstr "Gaitu presio-aurrerapena"
+msgstr "Gaitu Pressure Advance"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "Gaitu presio-aurrerapena; gaitzean, kalibrazio automatikoaren emaitza gainidatziko da."
+msgstr "Gaitu Pressure Advance; gaitzean, kalibrazio automatikoaren emaitza gainidatziko da."
 
+# AI Translated
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "Presio-aurrerapena (Klipper), edo aurrerapen linealaren faktorea (Marlin)."
+msgstr "Pressure Advance (Klipper), edo Linear Advance faktorea (Marlin)."
 
+# AI Translated
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Gaitu presio-aurrerapen egokigarria (beta)"
+msgstr "Gaitu Pressure Advance egokigarria (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -16542,9 +16550,9 @@ msgstr ""
 "\n"
 "0 balioak funtzioa desgaitzen du.\n"
 "\n"
-"Abiadura handiko eta fluxu handiko trakzioko zuzeneko inprimagailu baterako (Bambu lab edo Voron bezalakoak), balio hau normalean ez da beharrezkoa. Hala ere, abantaila marjinal batzuk eman ditzake funtzioen abiadurak asko aldatzen diren kasu batzuetan. Adibidez, irtenguneengatik moteltze bortitzak daudenean. Kasu hauetan, 300-350 mm³/s² inguruko balio altua gomendatzen da, horrek presio-aurrerapenak fluxu-trantsizio leunagoa lortzen laguntzeko nahikoa leuntzea ahalbidetzen baitu.\n"
+"Abiadura handiko eta fluxu handiko trakzioko zuzeneko inprimagailu baterako (Bambu lab edo Voron bezalakoak), balio hau normalean ez da beharrezkoa. Hala ere, abantaila marjinal batzuk eman ditzake funtzioen abiadurak asko aldatzen diren kasu batzuetan. Adibidez, irtenguneengatik moteltze bortitzak daudenean. Kasu hauetan, 300-350 mm³/s² inguruko balio altua gomendatzen da, horrek Pressure Advance funtzioak fluxu-trantsizio leunagoa lortzen laguntzeko nahikoa leuntzea ahalbidetzen baitu.\n"
 "\n"
-"Presio-aurrerapenik gabeko inprimagailu motelagoetarako, balioa askoz txikiagoa ezarri behar da. 10-15 mm³/s²-ko balioa abiapuntu ona da trakzio zuzeneko estrusoreetarako eta 5-10 mm³/s² Bowden estilokoetarako.\n"
+"Pressure Advance funtziorik gabeko inprimagailu motelagoetarako, balioa askoz txikiagoa ezarri behar da. 10-15 mm³/s²-ko balioa abiapuntu ona da trakzio zuzeneko estrusoreetarako eta 5-10 mm³/s² Bowden estilokoetarako.\n"
 "\n"
 "Funtzio hau Presio Berdintzailea bezala ezagutzen da Prusa slicer-ean.\n"
 "\n"

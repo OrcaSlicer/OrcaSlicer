@@ -489,8 +489,9 @@ msgstr "Блокувати підтримки"
 msgid "Erase"
 msgstr "Стерти"
 
+# AI Translated
 msgid "Mouse wheel"
-msgstr "Колісок миші"
+msgstr "Коліщатко миші"
 
 msgid "Auto support threshold angle: "
 msgstr "Поріг кута автоматичної підтримки: "

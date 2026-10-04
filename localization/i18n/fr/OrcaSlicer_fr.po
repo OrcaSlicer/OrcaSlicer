@@ -6428,8 +6428,9 @@ msgstr "Quitter"
 msgid "Undo"
 msgstr "Annuler"
 
+# AI Translated
 msgid "Redo"
-msgstr "Recommencer"
+msgstr "Rétablir"
 
 msgid "Cut"
 msgstr "Couper"

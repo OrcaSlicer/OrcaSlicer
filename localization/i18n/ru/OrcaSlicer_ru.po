@@ -2508,7 +2508,7 @@ msgid "Ongoing uploads"
 msgstr "Текущие загрузки"
 
 msgid "Select a G-code file:"
-msgstr "Выберите файл G-кода:"
+msgstr "Выберите файл G-code:"
 
 msgid "Could not start URL download. Destination folder is not set. Please choose destination folder in Configuration Wizard."
 msgstr "Не удалось запустить загрузку по URL-адресу. Не задана папка назначения. Пожалуйста, задайте папку назначения в мастере настройки."
@@ -3502,16 +3502,16 @@ msgid "Pause:"
 msgstr "Пауза:"
 
 msgid "Custom Template:"
-msgstr "Шаблон пользовательского G-кода:"
+msgstr "Шаблон пользовательского G-code:"
 
 msgid "Custom G-code:"
-msgstr "Пользовательский G-код:"
+msgstr "Пользовательский G-code:"
 
 msgid "Custom G-code"
-msgstr "Пользовательский G-код"
+msgstr "Пользовательский G-code"
 
 msgid "Enter Custom G-code used on current layer:"
-msgstr "Введите пользовательский G-код для текущего слоя:"
+msgstr "Введите пользовательский G-code для текущего слоя:"
 
 msgid "Jump to layer"
 msgstr "Перейти к слою"
@@ -3527,16 +3527,16 @@ msgid "Insert a pause command at the beginning of this layer."
 msgstr "Вставить команду паузы в начале этого слоя."
 
 msgid "Add Custom G-code"
-msgstr "Добавить G-код"
+msgstr "Добавить G-code"
 
 msgid "Insert custom G-code at the beginning of this layer."
-msgstr "Вставить пользовательский G-код в начале этого слоя."
+msgstr "Вставить пользовательский G-code в начале этого слоя."
 
 msgid "Add Custom Template"
 msgstr "Добавить шаблон"
 
 msgid "Insert template custom G-code at the beginning of this layer."
-msgstr "Вставить шаблон пользовательского G-кода в начале этого слоя."
+msgstr "Вставить шаблон пользовательского G-code в начале этого слоя."
 
 msgid "Filament "
 msgstr "Пруток "
@@ -3548,13 +3548,13 @@ msgid "Delete Pause"
 msgstr "Удалить паузу печати"
 
 msgid "Delete Custom Template"
-msgstr "Удалить шаблон пользовательского G-кода"
+msgstr "Удалить шаблон пользовательского G-code"
 
 msgid "Edit Custom G-code"
-msgstr "Изменить пользовательский G-код"
+msgstr "Изменить пользовательский G-code"
 
 msgid "Delete Custom G-code"
-msgstr "Удалить пользовательский G-код"
+msgstr "Удалить пользовательский G-code"
 
 msgid "Delete Filament Change"
 msgstr "Удалить команду смены прутка"
@@ -4047,10 +4047,10 @@ msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr "Обнаружена неизвестная ошибка состояния хранилища данных. Попробуйте ещё раз."
 
 msgid "Sending G-code file over LAN"
-msgstr "Отправка G-код файла по локальной сети"
+msgstr "Отправка G-code файла по локальной сети"
 
 msgid "Sending G-code file to SD card"
-msgstr "Отправка G-код файла на SD-карту"
+msgstr "Отправка G-code файла на SD-карту"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -4620,7 +4620,7 @@ msgid "Please save your project and restart the application."
 msgstr "Пожалуйста, сохраните проект и перезапустите программу."
 
 msgid "Processing G-Code from previous file…"
-msgstr "Обработка G-кода из предыдущего файла…"
+msgstr "Обработка G-code из предыдущего файла…"
 
 msgid "Slicing complete"
 msgstr "Нарезка завершена"
@@ -4653,14 +4653,14 @@ msgid "Successfully executed post-processing script"
 msgstr "Скрипт постобработки успешно выполнен"
 
 msgid "Unknown error occurred during exporting G-code."
-msgstr "При экспорте в G-код произошла неизвестная ошибка."
+msgstr "При экспорте в G-code произошла неизвестная ошибка."
 
 #, boost-format
 msgid ""
 "Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\n"
 "Error message: %1%"
 msgstr ""
-"Не удалось скопировать временный G-код в целевое расположение. Возможно, накопитель защищён от записи?\n"
+"Не удалось скопировать временный G-code в целевое расположение. Возможно, накопитель защищён от записи?\n"
 "Сообщение об ошибке: %1%"
 
 # AI Translated
@@ -4669,31 +4669,31 @@ msgid ""
 "Copying of the temporary G-code to the output G-code failed.\n"
 "Error message: %1%"
 msgstr ""
-"Не удалось скопировать временный G-код в выходной G-код.\n"
+"Не удалось скопировать временный G-code в выходной G-code.\n"
 "Сообщение об ошибке: %1%"
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
-msgstr "Не удалось скопировать временный G-код в целевое расположение. Возможно, проблема с устройством хранения, попробуйте выполнить экспорт снова или использовать другое устройство. Повреждённый выходной файл G-кода находится в %1%.tmp."
+msgstr "Не удалось скопировать временный G-code в целевое расположение. Возможно, проблема с устройством хранения, попробуйте выполнить экспорт снова или использовать другое устройство. Повреждённый выходной файл G-code находится в %1%.tmp."
 
 #, boost-format
 msgid "Renaming of the G-code after copying to the selected destination folder has failed. Current path is %1%.tmp. Please try exporting again."
-msgstr "Не удалось переименовать G-код после копирования в выбранную папку назначения. Текущий путь %1%.tmp. Пожалуйста, попробуйте экспортировать ещё раз."
+msgstr "Не удалось переименовать G-code после копирования в выбранную папку назначения. Текущий путь %1%.tmp. Пожалуйста, попробуйте экспортировать ещё раз."
 
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the original code at %1% couldn't be opened during copy check. The output G-code is at %2%.tmp."
-msgstr "Копирование временного G-кода завершено, но исходный код в %1% не удалось открыть во время проверки копии. Выходной G-код находится в %2%.tmp."
+msgstr "Копирование временного G-code завершено, но исходный код в %1% не удалось открыть во время проверки копии. Выходной G-code находится в %2%.tmp."
 
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the exported code couldn't be opened during copy check. The output G-code is at %1%.tmp."
-msgstr "Копирование временного G-кода завершено, но экспортированный код не удалось открыть во время проверки копии. Выходной G-код находится в %1%.tmp."
+msgstr "Копирование временного G-code завершено, но экспортированный код не удалось открыть во время проверки копии. Выходной G-code находится в %1%.tmp."
 
 #, boost-format
 msgid "G-code file exported to %1%"
-msgstr "Файл G-кода экспортирован в %1%"
+msgstr "Файл G-code экспортирован в %1%"
 
 msgid "Unknown error with G-code export"
-msgstr "Неизвестная ошибка при экспорте G-кода"
+msgstr "Неизвестная ошибка при экспорте G-code"
 
 #, boost-format
 msgid ""
@@ -4701,12 +4701,12 @@ msgid ""
 "Error message: %1%.\n"
 "Source file %2%."
 msgstr ""
-"Не удалось сохранить файл G-кода.\n"
+"Не удалось сохранить файл G-code.\n"
 "Сообщение об ошибке: %1%.\n"
 "Исходный файл %2%."
 
 msgid "Copying of the temporary G-code to the output G-code failed."
-msgstr "Не удалось скопировать временный G-код в расположение выходного файла."
+msgstr "Не удалось скопировать временный G-code в расположение выходного файла."
 
 #, boost-format
 msgid "Scheduling upload to `%1%`. See Window -> Print Host Upload Queue"
@@ -5232,7 +5232,7 @@ msgid "Selected diameter and machine diameter do not match"
 msgstr "Выбранный диаметр и диаметр профиля принтера не совпадают"
 
 msgid "Failed to generate cali G-code"
-msgstr "Не удалось сгенерировать калибровочный G-код"
+msgstr "Не удалось сгенерировать калибровочный G-code"
 
 msgid "Calibration error"
 msgstr "Ошибка калибровки"
@@ -5335,7 +5335,7 @@ msgstr "по умолчанию"
 
 #, boost-format
 msgid "Edit Custom G-code (%1%)"
-msgstr "Изменение пользовательского G-кода (%1%)"
+msgstr "Изменение пользовательского G-code (%1%)"
 
 # в конце добавляется двоеточие
 msgid "Built-in placeholders (Double click item to add to G-code)"
@@ -5345,7 +5345,7 @@ msgid "Search G-code placeholders"
 msgstr "Поиск переменных"
 
 msgid "Add selected placeholder to G-code"
-msgstr "Добавить переменную в G-код"
+msgstr "Добавить переменную в G-code"
 
 msgid "Select placeholder"
 msgstr "Выберите переменную"
@@ -6159,16 +6159,16 @@ msgstr "Размер:"
 
 #, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr "В G-коде на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
+msgstr "В G-code на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
 msgstr "Модель выходить за границы области печати."
 
 msgid "A G-code path goes beyond the max print height."
-msgstr "Траектория перемещения в G-коде превышает высоту области печати."
+msgstr "Траектория перемещения в G-code превышает высоту области печати."
 
 msgid "A G-code path goes beyond plate boundaries."
-msgstr "Траектория перемещения в G-коде выходит за границы области печати."
+msgstr "Траектория перемещения в G-code выходит за границы области печати."
 
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "Печать двумя и более прутками TPU не поддерживается."
@@ -6182,14 +6182,14 @@ msgstr "%d"
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
 msgstr ""
-"Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"Материал %s назначен на %s экструдер, но итоговый G-code выходит за его предел высоты печати.\n"
 "\n"
 "%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
 msgstr ""
-"Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"Материалы %s назначены на %s экструдер, но итоговый G-code выходит за его предел высоты печати.\n"
 "\n"
 "%s экструдер:"
 
@@ -6199,14 +6199,14 @@ msgstr ""
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
 msgstr ""
-"Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"Материал %s назначен на %s экструдер, но итоговый G-code выходит за его предел высоты печати.\n"
 "\n"
 "%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
 msgstr ""
-"Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"Материалы %s назначены на %s экструдер, но итоговый G-code выходит за его предел высоты печати.\n"
 "\n"
 "%s экструдер:"
 
@@ -6384,7 +6384,7 @@ msgid "Export all sliced file"
 msgstr "Экспорт всех столов в файл проекта"
 
 msgid "Export G-code file"
-msgstr "Экспорт в G-код"
+msgstr "Экспорт в G-code"
 
 # Запустить печать/Отправить на печать
 msgctxt "Verb"
@@ -6560,10 +6560,10 @@ msgid "Export all plate sliced file"
 msgstr "Экспорт всех нарезанных столов в файл"
 
 msgid "Export G-code"
-msgstr "Экспорт в G-код"
+msgstr "Экспорт в G-code"
 
 msgid "Export current plate as G-code"
-msgstr "Экспортировать текущие модели со стола в G-код"
+msgstr "Экспортировать текущие модели со стола в G-code"
 
 msgid "Export toolpaths as OBJ"
 msgstr "Экспортировать траекторию инструмента в OBJ"
@@ -6646,10 +6646,10 @@ msgid "Automatically switch between orthographic and perspective when changing f
 msgstr "Автоматическое переключение между ортогональной и перспективной проекцией при смене вида сверху/снизу/сбоку."
 
 msgid "Show &G-code Window"
-msgstr "&Показать панель G-кода"
+msgstr "&Показать панель G-code"
 
 msgid "Show G-code window in Preview scene."
-msgstr "Показать панель G-кода в окне предпросмотра."
+msgstr "Показать панель G-code в окне предпросмотра."
 
 msgid "Show 3D Navigator"
 msgstr "Показать навигационный куб"
@@ -6761,10 +6761,10 @@ msgid "Calibration Guide"
 msgstr "Руководство по калибровкам"
 
 msgid "&Open G-code"
-msgstr "&Открыть файл G-кода"
+msgstr "&Открыть файл G-code"
 
 msgid "Open a G-code file"
-msgstr "Выберите файл G-кода"
+msgstr "Выберите файл G-code"
 
 msgid "Re&load from Disk"
 msgstr "Пере&загрузить с диска"
@@ -7061,7 +7061,7 @@ msgid "Failed to parse model information."
 msgstr "Не удалось обработать информацию о модели."
 
 msgid "The .gcode.3mf file contains no G-code data. Please slice it with Orca Slicer and export a new .gcode.3mf file."
-msgstr "Файл .gcode.3mf не содержит данных G-кода. Используя Orca Slicer нарежьте его и экспортируйте в новый файл .gcode.3mf."
+msgstr "Файл .gcode.3mf не содержит данных G-code. Используя Orca Slicer нарежьте его и экспортируйте в новый файл .gcode.3mf."
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -8061,7 +8061,7 @@ msgid "Your model needs support! Please enable support material."
 msgstr "Вашей модели нужна поддержка! Пожалуйста, включите поддержку."
 
 msgid "G-code path overlap"
-msgstr "Перекрытие пути G-кода"
+msgstr "Перекрытие пути G-code"
 
 msgid "Cut connectors"
 msgstr "Вырезанные соединения"
@@ -8638,19 +8638,19 @@ msgid "Please correct them in the Param tabs"
 msgstr "Пожалуйста, исправьте их в настройках"
 
 msgid "The 3MF has the following modified G-code in filament or printer presets:"
-msgstr "В профиле материала или принтера этого 3MF файла содержится следующий модифицированный G-код:"
+msgstr "В профиле материала или принтера этого 3MF файла содержится следующий модифицированный G-code:"
 
 msgid "Please confirm that all modified G-code is safe to prevent any damage to the machine!"
-msgstr "Во избежание повреждения принтера убедитесь, что весь модифицированный G-код в этих профилях безопасен!"
+msgstr "Во избежание повреждения принтера убедитесь, что весь модифицированный G-code в этих профилях безопасен!"
 
 msgid "Modified G-code"
-msgstr "Модифицированный G-код"
+msgstr "Модифицированный G-code"
 
 msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "В этом 3MF файле содержатся следующие пользовательские профили материалов или принтера:"
 
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
-msgstr "Во избежание повреждения принтера убедитесь, что G-код в этих профилях безопасен!"
+msgstr "Во избежание повреждения принтера убедитесь, что G-code в этих профилях безопасен!"
 
 # Проверить, где используется (кроме окна сохранения профиля) – может лучше
 # переименовать в "Новый профиль"? Чтобы упростить понимание действия
@@ -8911,7 +8911,7 @@ msgid ""
 "The loaded file contains G-code only, cannot enter the Prepare page."
 msgstr ""
 "Режим только предпросмотра:\n"
-"Загруженный файл является G-кодом, переход на страницу «Подготовка» невозможен."
+"Загруженный файл является G-code, переход на страницу «Подготовка» невозможен."
 
 msgid ""
 "The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
@@ -9014,10 +9014,10 @@ msgid "The selected file"
 msgstr "В выбранном файле"
 
 msgid "Does not contain valid G-code."
-msgstr "не содержится правильного G-кода."
+msgstr "не содержится правильного G-code."
 
 msgid "An Error has occurred while loading the G-code file."
-msgstr "Ошибка при загрузке файла G-кода"
+msgstr "Ошибка при загрузке файла G-code"
 
 #. TRN %1% is archive path
 #, boost-format
@@ -9046,13 +9046,13 @@ msgid "Import geometry only"
 msgstr "Импортировать только геометрию"
 
 msgid "Only one G-code file can be opened at a time."
-msgstr "Одновременно можно открыть только один файл G-кода."
+msgstr "Одновременно можно открыть только один файл G-code."
 
 msgid "G-code loading"
-msgstr "Загрузка G-кода"
+msgstr "Загрузка G-code"
 
 msgid "G-code files and models cannot be loaded together!"
-msgstr "Одновременная загрузка файла G-кода и модели невозможна."
+msgstr "Одновременная загрузка файла G-code и модели невозможна."
 
 msgid "Unable to add models in preview mode"
 msgstr "В режиме предпросмотра добавление моделей недоступно."
@@ -9070,7 +9070,7 @@ msgid "Copies of the selected object"
 msgstr "Количество экземпляров"
 
 msgid "Save G-code file as:"
-msgstr "Сохранить файл G-кода как:"
+msgstr "Сохранить файл G-code как:"
 
 msgid "Save SLA file as:"
 msgstr "Сохранить SLA файл как:"
@@ -9156,7 +9156,7 @@ msgstr ""
 "Рекомендуется использовать автоматическую расстановку, чтобы избежать столкновений при печати."
 
 msgid "Send G-code"
-msgstr "Отправить G-код"
+msgstr "Отправить G-code"
 
 msgid "Send to printer"
 msgstr "Отправить на принтер"
@@ -9500,7 +9500,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr "Сохранять STL/STEP в списке последних"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "Не предупреждать при загрузке 3MF с модифицированным G-кодом"
+msgstr "Не предупреждать при загрузке 3MF с модифицированным G-code"
 
 msgid "Show options when importing STEP file"
 msgstr "Показывать настройки импорта STEP"
@@ -9704,7 +9704,7 @@ msgstr "Запоминать последнее действие печати"
 
 # AI Translated
 msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Если включено, OrcaSlicer запоминает последний выбранный вариант в выпадающем меню кнопки печати (например, «Печать», «Экспорт стола в файл проекта», «Экспорт в G-код») и использует его по умолчанию при следующем запуске."
+msgstr "Если включено, OrcaSlicer запоминает последний выбранный вариант в выпадающем меню кнопки печати (например, «Печать», «Экспорт стола в файл проекта», «Экспорт в G-code») и использует его по умолчанию при следующем запуске."
 
 msgid "Touchpad"
 msgstr "Тачпад"
@@ -11654,11 +11654,11 @@ msgid "Special mode"
 msgstr "Специальные режимы"
 
 msgid "G-code output"
-msgstr "Выходной G-код"
+msgstr "Выходной G-code"
 
 # G-код смены типа линии
 msgid "Change extrusion role G-code"
-msgstr "G-код при смене типа линии"
+msgstr "G-code при смене типа линии"
 
 msgid "Post-processing Scripts"
 msgstr "Скрипты постобработки"
@@ -11685,13 +11685,13 @@ msgid_plural ""
 "Please remove them, or G-code visualization and print time estimation will be broken."
 msgstr[0] ""
 "Следующая строка %s содержит зарезервированные ключевые слова.\n"
-"Удалите их, иначе могут возникнуть проблемы при визуализации G-кода и оценка времени печати."
+"Удалите их, иначе могут возникнуть проблемы при визуализации G-code и оценка времени печати."
 msgstr[1] ""
 "Следующие строки %s содержат зарезервированные ключевые слова.\n"
-"Удалите их, иначе могут возникнуть проблемы при визуализации G-кода и оценка времени печати."
+"Удалите их, иначе могут возникнуть проблемы при визуализации G-code и оценка времени печати."
 msgstr[2] ""
 "Следующие строки %s содержат зарезервированные ключевые слова.\n"
-"Удалите их, иначе могут возникнуть проблемы при визуализации G-кода и оценка времени печати."
+"Удалите их, иначе могут возникнуть проблемы при визуализации G-code и оценка времени печати."
 
 msgid "Reserved keywords found"
 msgstr "Найдены зарезервированные ключевые слова"
@@ -11816,10 +11816,10 @@ msgid "Complete print"
 msgstr "Скорость вентилятора после завершения печати"
 
 msgid "Filament start G-code"
-msgstr "G-код перед началом печати материалом"
+msgstr "G-code перед началом печати материалом"
 
 msgid "Filament end G-code"
-msgstr "G-код после завершения печати материалом"
+msgstr "G-code после завершения печати материалом"
 
 msgid "Wipe tower parameters"
 msgstr "Черновая башня"
@@ -11858,7 +11858,7 @@ msgid "Invalid value provided for parameter %1%: %2%"
 msgstr "Указано недопустимое значение параметра %1%: %2%"
 
 msgid "G-code flavor is switched"
-msgstr "Тип G-кода переключён"
+msgstr "Тип G-code переключён"
 
 msgid "Cooling Fan"
 msgstr "Вентилятор обдува модели"
@@ -11876,40 +11876,40 @@ msgid "Accessory"
 msgstr "Аксессуары"
 
 msgid "Machine G-code"
-msgstr "Вставка G-кода"
+msgstr "Вставка G-code"
 
 msgid "File header G-code"
-msgstr "G-код заголовка файла"
+msgstr "G-code заголовка файла"
 
 msgid "Machine start G-code"
-msgstr "G-код перед началом печати"
+msgstr "G-code перед началом печати"
 
 msgid "Machine end G-code"
-msgstr "G-код после завершения печати"
+msgstr "G-code после завершения печати"
 
 msgid "Printing by object G-code"
-msgstr "G-код между моделями (для печати по очереди)"
+msgstr "G-code между моделями (для печати по очереди)"
 
 msgid "Before layer change G-code"
-msgstr "G-код перед сменой слоя"
+msgstr "G-code перед сменой слоя"
 
 msgid "Layer change G-code"
-msgstr "G-код после смены слоя"
+msgstr "G-code после смены слоя"
 
 msgid "Timelapse G-code"
-msgstr "G-код таймлапса"
+msgstr "G-code таймлапса"
 
 msgid "Clumping Detection G-code"
-msgstr "G-код при обнаружении налипания пластика"
+msgstr "G-code при обнаружении налипания пластика"
 
 msgid "Change filament G-code"
-msgstr "G-код смены материала"
+msgstr "G-code смены материала"
 
 msgid "Pause G-code"
-msgstr "G-код паузы печати"
+msgstr "G-code паузы печати"
 
 msgid "Template Custom G-code"
-msgstr "Шаблон пользовательского G-кода"
+msgstr "Шаблон пользовательского G-code"
 
 msgid "Motion ability"
 msgstr "Ограничения"
@@ -13041,7 +13041,7 @@ msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Перед обновлением профилей необходимо проверить несохранённые изменения."
 
 msgid "Open G-code file:"
-msgstr "Выберите G-код файл:"
+msgstr "Выберите G-code файл:"
 
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Одна модель имеет пустой начальный слой и не может быть напечатана. Пожалуйста, обрежьте нижнюю часть или включите поддержку."
@@ -13058,10 +13058,10 @@ msgid "Parts of the object at these heights may be too thin or the object may ha
 msgstr "Возможно, части модели на этой высоте слишком тонкие, или она имеет дефектную сетку"
 
 msgid "Process change extrusion role G-code"
-msgstr "G-код при смене типа линии с этими настройками печати"
+msgstr "G-code при смене типа линии с этими настройками печати"
 
 msgid "Filament change extrusion role G-code"
-msgstr "G-код при смене типа линии с этим материалом"
+msgstr "G-code при смене типа линии с этим материалом"
 
 msgid "No object can be printed. It may be too small."
 msgstr "Печать моделей невозможна. Возможно, они слишком маленькие."
@@ -13073,15 +13073,15 @@ msgid ""
 "Failed to generate G-code for invalid custom G-code.\n"
 "\n"
 msgstr ""
-"Не удалось сгенерировать G-код из-за недопустимого пользовательского G-кода.\n"
+"Не удалось сгенерировать G-code из-за недопустимого пользовательского G-code.\n"
 "\n"
 
 msgid "Please check the custom G-code or use the default custom G-code."
-msgstr "Пожалуйста, проверьте пользовательский G-код или используйте пользовательский G-код по умолчанию."
+msgstr "Пожалуйста, проверьте пользовательский G-code или используйте пользовательский G-code по умолчанию."
 
 #, boost-format
 msgid "Generating G-code: layer %1%"
-msgstr "Генерация G-кода: слой %1%"
+msgstr "Генерация G-code: слой %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
 msgstr "Матрица объёмов прочистки не соответствует правильному размеру!"
@@ -13094,7 +13094,7 @@ msgid ""
 "Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Input Shaping поддерживается только в Marlin 2.1.2 и новее.\n"
-"Обновите прошивку и установите тип G-кода на «Marlin 2»."
+"Обновите прошивку и установите тип G-code на «Marlin 2»."
 
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping поддерживается только в Klipper, RepRapFirmware и Marlin 2."
@@ -13338,7 +13338,7 @@ msgid "Ooze prevention is only supported with the wipe tower when 'single_extrud
 msgstr "Предотвращение течи материала с помощью черновой башни возможно только при отключении печати через общий экструдер (Настройки принтера → Многоцвет → Общий экструдер)"
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "В настоящее время режим черновой башни поддерживается только следующими типами G-кода: Marlin, Klipper, RepRap/Sprinter, RepRapFirmware и Repetier."
+msgstr "В настоящее время режим черновой башни поддерживается только следующими типами G-code: Marlin, Klipper, RepRap/Sprinter, RepRapFirmware и Repetier."
 
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Черновая башня не поддерживается при печати в режиме «По очереди»."
@@ -13411,20 +13411,20 @@ msgid "Bridge line width must not exceed nozzle diameter"
 msgstr "Ширина линии моста не может превышать диаметр сопла"
 
 msgid "\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not uppercase. Please change them to the exact uppercase \"G92 E0\"."
-msgstr "В G-коде перед сменой слоя обнаружена команда «G92 E0» с неправильным регистром. Измените регистр «G92 E0» на заглавные буквы."
+msgstr "В G-code перед сменой слоя обнаружена команда «G92 E0» с неправильным регистром. Измените регистр «G92 E0» на заглавные буквы."
 
 msgid "\"G92 E0\" was found in layer_change_gcode, but the G or E are not uppercase. Please change them to the exact uppercase \"G92 E0\"."
-msgstr "В G-коде после смены слоя обнаружена команда «G92 E0» с неправильным регистром. Измените регистр «G92 E0» на заглавные буквы."
+msgstr "В G-code после смены слоя обнаружена команда «G92 E0» с неправильным регистром. Измените регистр «G92 E0» на заглавные буквы."
 
 msgid "Relative extruder addressing requires resetting the extruder position at each layer to prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."
-msgstr "При относительной адресации экструдера его положение необходимо корректировать на каждом слое, чтобы предотвратить потерю точности с плавающей запятой. Добавьте \"G92 E0\" в G-код выполняемый при смене слоя (layer_gcode)."
+msgstr "При относительной адресации экструдера его положение необходимо корректировать на каждом слое, чтобы предотвратить потерю точности с плавающей запятой. Добавьте \"G92 E0\" в G-code выполняемый при смене слоя (layer_gcode)."
 
 # на самом деле, вполне совместима и часто используется в самих прошивках при сбросе координат
 msgid "\"G92 E0\" was found in before_layer_change_gcode, which is incompatible with absolute extruder addressing."
-msgstr "В G-коде перед сменой слоя обнаружена команда «G92 E0», которая несовместима с абсолютными координатами экструдера."
+msgstr "В G-code перед сменой слоя обнаружена команда «G92 E0», которая несовместима с абсолютными координатами экструдера."
 
 msgid "\"G92 E0\" was found in layer_change_gcode, which is incompatible with absolute extruder addressing."
-msgstr "В G-коде после смены слоя обнаружена команда «G92 E0», которая несовместима с абсолютными координатами экструдера."
+msgstr "В G-code после смены слоя обнаружена команда «G92 E0», которая несовместима с абсолютными координатами экструдера."
 
 #, c-format, boost-format
 msgid "Plate %d: %s does not support filament %s"
@@ -13491,10 +13491,10 @@ msgstr ""
 "Попробуйте увеличить отступ между моделями, уменьшить размер юбки/каймы, использовать совместный тип юбки или печатать модели послойно."
 
 msgid "Exporting G-code"
-msgstr "Экспорт в G-код"
+msgstr "Экспорт в G-code"
 
 msgid "Generating G-code"
-msgstr "Генерация G-кода"
+msgstr "Генерация G-code"
 
 msgid "Processing of the filename_format template failed."
 msgstr "Ошибка обработки шаблона filename_format."
@@ -13593,7 +13593,7 @@ msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "Позволяет управлять принтером BambuLab через сторонние хосты печати."
 
 msgid "Use 3MF instead of G-code"
-msgstr "Сжатие G-кода перед отправкой"
+msgstr "Сжатие G-code перед отправкой"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Рекомендуется для принтеров, поддерживающих печать из архивов 3MF. Файлы печати будут отправляться с расширением \".gcode.3mf\"."
@@ -13608,7 +13608,7 @@ msgid "Hostname, IP or URL"
 msgstr "Имя хоста, IP/URL-адрес"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the hostname, IP address or URL of the printer host instance. Print host behind HAProxy with basic auth enabled can be accessed by putting the user name and password into the URL in the following format: https://username:password@your-octopi-address/"
-msgstr "Orca Slicer может загружать файлы G-кода на хост принтера. В этом поле нужно указать имя хоста, IP-адрес или URL-адрес хоста принтера. Доступ к узлу печати на основе HAProxy с включённой базовой аутентификацией можно получить, указав имя пользователя и пароль в URL-адресе в следующем формате: https://имя_пользователя:пароль@адрес/"
+msgstr "Orca Slicer может загружать файлы G-code на хост принтера. В этом поле нужно указать имя хоста, IP-адрес или URL-адрес хоста принтера. Доступ к узлу печати на основе HAProxy с включённой базовой аутентификацией можно получить, указав имя пользователя и пароль в URL-адресе в следующем формате: https://имя_пользователя:пароль@адрес/"
 
 msgid "Device UI"
 msgstr "URL-адрес хоста"
@@ -13620,7 +13620,7 @@ msgid "API Key / Password"
 msgstr "API-ключ / пароль"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the API Key or the password required for authentication."
-msgstr "Orca Slicer может загружать файл G-кода на хост принтера. Это поле должно содержать API-ключ или пароль, необходимые для проверки подлинности."
+msgstr "Orca Slicer может загружать файл G-code на хост принтера. Это поле должно содержать API-ключ или пароль, необходимые для проверки подлинности."
 
 msgid "Serial Number"
 msgstr "Серийный номер"
@@ -13747,7 +13747,7 @@ msgid "Other layers filament sequence"
 msgstr "Очерёдность материалов на других слоях"
 
 msgid "This G-code is inserted at every layer change before the Z lift."
-msgstr "Команды в G-коде, которые выполняются каждый раз перед сменой слоя, то есть перед поднятием оси Z."
+msgstr "Команды в G-code, которые выполняются каждый раз перед сменой слоя, то есть перед поднятием оси Z."
 
 msgid "Bottom shell layers"
 msgstr "Сплошных слоёв снизу"
@@ -14494,11 +14494,11 @@ msgstr "Вкл. вытяжной вентилятор"
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Включение вытяжного вентилятора для лучшего охлаждения внутренней области принтера.\n"
-"Команда G-кода: M106 P3 S(0-255)"
+"Команда G-code: M106 P3 S(0-255)"
 
 # Сломано и не отображается, портировано для X2D
 msgid "Enable this to override the fan speed set in custom G-code during print."
-msgstr "Заменять процент скорости вентилятора во время печати, указанную через пользовательский G-код."
+msgstr "Заменять процент скорости вентилятора во время печати, указанную через пользовательский G-code."
 
 # Сломано и не отображается, портировано для X2D
 msgid "On completion"
@@ -14506,10 +14506,10 @@ msgstr "По завершении"
 
 # Сломано и не отображается, портировано для X2D
 msgid "Enable this to override the fan speed set in custom G-code after print completion."
-msgstr "Заменить процент скорости вентилятора после завершения печати, указанную через пользовательский G-код."
+msgstr "Заменить процент скорости вентилятора после завершения печати, указанную через пользовательский G-code."
 
 msgid "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code."
-msgstr "Скорость вытяжного вентилятора во время печати. Эта скорость переопределяет скорость в пользовательском G-коде материала."
+msgstr "Скорость вытяжного вентилятора во время печати. Эта скорость переопределяет скорость в пользовательском G-code материала."
 
 msgid "Speed of exhaust fan after printing completes."
 msgstr "Скорость вытяжного вентилятора после завершения печати."
@@ -14628,13 +14628,13 @@ msgid "This is the maximum length of bridges that don't need support. Set it to 
 msgstr "Максимальный интервал между опорами для поддержки мостов. Установите 0 для поддержки всего моста или очень большое значение для отключения поддержки мостов."
 
 msgid "End G-code"
-msgstr "Завершающий G-код"
+msgstr "Завершающий G-code"
 
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Команды, которые выполняются в самом конце печати."
 
 msgid "Between Object G-code"
-msgstr "G-код между моделями"
+msgstr "G-code между моделями"
 
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "Команды, которые выполняются каждый раз перед сменой модели. Действует только при печати моделей «По очереди»."
@@ -16188,7 +16188,7 @@ msgid "Add line number"
 msgstr "Нумеровать строки"
 
 msgid "Enable this to add line number(Nx) at the beginning of each G-code line."
-msgstr "Добавлять в начало каждой строки G-кода её номер (Nx)."
+msgstr "Добавлять в начало каждой строки G-code её номер (Nx)."
 
 msgid "Scan first layer"
 msgstr "Проверка первого слоя"
@@ -16258,7 +16258,7 @@ msgstr "Наилучшее расположение модели при авто
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
 msgstr ""
 "Включить управление вспомогательным вентилятором из настроек материала.\n"
-"Команда G-кода: M106 P2 S(0-255)."
+"Команда G-code: M106 P2 S(0-255)."
 
 msgid "Fan direction"
 msgstr "Направление вентилятора"
@@ -16278,7 +16278,7 @@ msgid ""
 msgstr ""
 "Сместить управление вентилятором на заданное время для его запуска заранее. Можно указать дробное количество секунд.\n"
 "\n"
-"Примечание: расчёт смещения не учитывает ускорения, команды движения по дуге (аппроксимацию дугами) и пользовательский G-код."
+"Примечание: расчёт смещения не учитывает ускорения, команды движения по дуге (аппроксимацию дугами) и пользовательский G-code."
 
 msgid "Only overhangs"
 msgstr "Только на нависаниях"
@@ -16330,7 +16330,7 @@ msgid ""
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Если принтер поддерживает контроль температуры внутри термокамеры принтера, включите эту опцию.\n"
-"Команда G-кода: M141 S(0-255)"
+"Команда G-code: M141 S(0-255)"
 
 msgid "Support air filtration"
 msgstr "Вытяжной вентилятор"
@@ -16340,7 +16340,7 @@ msgid ""
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Включить управление вытяжным вентилятором из настроек материала.\n"
-"Команда G-кода: M106 P3 S(0-255)"
+"Команда G-code: M106 P3 S(0-255)"
 
 # Из ченжлогов Bambu: Added a filtering option with cooling mode for the adaptive air circulation system. This option can be enabled via the slicer or the printer UI, and it's mainly used to filter the air when exhausting the air for low-temperature filaments
 msgid "Use cooling filter"
@@ -16350,10 +16350,10 @@ msgid "Enable this if printer support cooling filter"
 msgstr "Включить управление вытяжным вентилятором."
 
 msgid "G-code flavor"
-msgstr "Тип G-кода"
+msgstr "Тип G-code"
 
 msgid "What kind of G-code the printer is compatible with."
-msgstr "Выбор типа G-кода для совместимости с прошивкой вашего принтера."
+msgstr "Выбор типа G-code для совместимости с прошивкой вашего принтера."
 
 msgid "Klipper"
 msgstr "Klipper"
@@ -16385,19 +16385,19 @@ msgid "Enable this to add comments into the G-code labeling print moves with wha
 msgstr ""
 "Отвечает за присвоение уникальных меток или названий каждой модели или элементу, что позволяет отменять печать любого из них по вашему выбору.\n"
 "\n"
-"Включите эту опцию, чтобы добавить комментарии в G-код с указанием того, к какой модели он принадлежит, что полезно для плагина Octoprint CancelObject. Эта настройка не совместима с настройкой «Одиночный мультиматериальный экструдер» и «Очистка в модель» / «Очистка в заполнение модели»."
+"Включите эту опцию, чтобы добавить комментарии в G-code с указанием того, к какой модели он принадлежит, что полезно для плагина Octoprint CancelObject. Эта настройка не совместима с настройкой «Одиночный мультиматериальный экструдер» и «Очистка в модель» / «Очистка в заполнение модели»."
 
 msgid "Exclude objects"
 msgstr "Исключение объектов"
 
 msgid "Enable this option to add EXCLUDE OBJECT command in G-code."
-msgstr "Включите эту опцию, чтобы добавить команду EXCLUDE OBJECT (исключение объектов) в G-код для печати на принтере с прошивкой Klipper."
+msgstr "Включите эту опцию, чтобы добавить команду EXCLUDE OBJECT (исключение объектов) в G-code для печати на принтере с прошивкой Klipper."
 
 msgid "Verbose G-code"
-msgstr "Подробный G-код"
+msgstr "Подробный G-code"
 
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Включите эту опцию, чтобы в каждой строке файла G-кода, присутствовал комментарий с поясняющим текстом. При печати с SD-карты, скорость чтение данных вашей прошивкой может снизится за счёт увеличения размера файла."
+msgstr "Включите эту опцию, чтобы в каждой строке файла G-code, присутствовал комментарий с поясняющим текстом. При печати с SD-карты, скорость чтение данных вашей прошивкой может снизится за счёт увеличения размера файла."
 
 msgid "Infill combination"
 msgstr "Объединение слоёв заполнения"
@@ -16789,10 +16789,10 @@ msgstr ""
 "• h: линии не могут опускаться, но могут иметь удвоенную высоту."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
-msgstr "Команды в G-коде, которые выполняются каждый раз после смены слоя, то есть после поднятия оси Z."
+msgstr "Команды в G-code, которые выполняются каждый раз после смены слоя, то есть после поднятия оси Z."
 
 msgid "Clumping detection G-code"
-msgstr "G-код при обнаружении налипшего пластика"
+msgstr "G-code при обнаружении налипшего пластика"
 
 msgid "Silent Mode"
 msgstr "Поддержка тихого режима"
@@ -16801,7 +16801,7 @@ msgid "Whether the machine supports silent mode in which machine uses lower acce
 msgstr "Поддерживает ли принтер тихий режим, для подавления шума в котором используются сниженные ускорения печати."
 
 msgid "Emit limits to G-code"
-msgstr "Отправлять в G-код"
+msgstr "Отправлять в G-code"
 
 msgid "Machine limits"
 msgstr "Ограничения принтера"
@@ -16810,15 +16810,15 @@ msgid ""
 "If enabled, the machine limits will be emitted to G-code file.\n"
 "This option will be ignored if the G-code flavor is set to Klipper."
 msgstr ""
-"Если включено, ограничения принтера будут передаваться в файл G-кода.\n"
-"Опция будет игнорироваться, если в качестве типа G-кода выбран Klipper."
+"Если включено, ограничения принтера будут передаваться в файл G-code.\n"
+"Опция будет игнорироваться, если в качестве типа G-code выбран Klipper."
 
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
-msgstr "Команды в G-коде, которые выполняются при ручной постановке печати на паузу. Пользователь может вставить его в окне предпросмотра нарезки, нажав правой кнопкой мыши на ползунок выбора слоя."
+msgstr "Команды в G-code, которые выполняются при ручной постановке печати на паузу. Пользователь может вставить его в окне предпросмотра нарезки, нажав правой кнопкой мыши на ползунок выбора слоя."
 
 # используется для пользовательского шаблона
 msgid "This G-code will be used as a custom code."
-msgstr "Пользовательский шаблон команд, которые выполняются при ручной вставке этого G-кода в окне предпросмотра нарезки, нажав правой кнопкой мыши на ползунок выбора слоя."
+msgstr "Пользовательский шаблон команд, которые выполняются при ручной вставке этого G-code в окне предпросмотра нарезки, нажав правой кнопкой мыши на ползунок выбора слоя."
 
 msgid "Small area flow compensation (beta)"
 msgstr "Компенсация потока небольших областей (beta)"
@@ -17156,7 +17156,7 @@ msgid ""
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
-"Меньшее значение приводит к более плавному изменению расхода, однако может значительно увеличить размер файла G-кода и количество инструкций для обработки прошивкой принтера.\n"
+"Меньшее значение приводит к более плавному изменению расхода, однако может значительно увеличить размер файла G-code и количество инструкций для обработки прошивкой принтера.\n"
 "\n"
 "Значение по умолчанию (3) подходит для большинства случаев. Если принтер печатает рывками, увеличьте это значение для снижения количества корректировок.\n"
 "\n"
@@ -17179,7 +17179,7 @@ msgid ""
 msgstr ""
 "Процент скорости вспомогательного вентилятора для охлаждения моделей. Используется на протяжении всей печати (кроме слоёв, указанных в разделе «Охлаждение начала печати»).\n"
 "Для работы этой настройки необходимо включить поддержку вспомогательного вентилятора на стороне принтера в его профиле.\n"
-"Команда G-кода: M106 P2 S(0-255)."
+"Команда G-code: M106 P2 S(0-255)."
 
 msgid "For the first"
 msgstr "Для первых"
@@ -17221,13 +17221,13 @@ msgid "Configuration notes"
 msgstr "Примечания к конфигурации"
 
 msgid "You can put here your personal notes. This text will be added to the G-code header comments."
-msgstr "Здесь вы можете написать свои заметки для текущего профиля. Этот текст будет добавлен к комментариям в заголовок G-кода."
+msgstr "Здесь вы можете написать свои заметки для текущего профиля. Этот текст будет добавлен к комментариям в заголовок G-code."
 
 msgid "Host Type"
 msgstr "Тип хоста"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field must contain the kind of the host."
-msgstr "Orca Slicer может загружать файл G-кода на хост принтера. Это поле должно содержать тип хоста."
+msgstr "Orca Slicer может загружать файл G-code на хост принтера. Это поле должно содержать тип хоста."
 
 msgid "Nozzle volume"
 msgstr "Объём сопла"
@@ -17286,7 +17286,7 @@ msgstr "Откат только при пересечении периметро
 
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
-"Отключает откат (и подъём по Z), когда перемещения совершаются полностью над заполнением (где любые подтёки, вероятно, будут скрыты). Это поможет снизить количество откатов при печати сложных моделей и немного сэкономить время, но увеличит время нарезки и генерации G-кода.\n"
+"Отключает откат (и подъём по Z), когда перемещения совершаются полностью над заполнением (где любые подтёки, вероятно, будут скрыты). Это поможет снизить количество откатов при печати сложных моделей и немного сэкономить время, но увеличит время нарезки и генерации G-code.\n"
 "\n"
 "Внимание: при недостаточной скорости перемещения подтёки приводят к недоэкструзии на шве. Отключите эту настройку, если на поверхности детали присутствуют дефекты локальной недоэкструзии."
 
@@ -17386,13 +17386,13 @@ msgstr ""
 "Использование шаблона заполнения «Молния» вместе с этой опцией не рекомендуется, поскольку количество заполнения, к которому можно прикрепить дополнительные периметры, ограничено."
 
 msgid "If you want to process the output G-code through custom scripts, just list their absolute paths here. Separate multiple scripts with a semicolon. Scripts will be passed the absolute path to the G-code file as the first argument, and they can access the Orca Slicer config settings by reading environment variables."
-msgstr "Если вы хотите обработать выходной G-код с помощью пользовательских скриптов, просто перечислите здесь абсолютные пути к ним. Разделяйте скрипты точкой с запятой. Скриптам будет передан абсолютный путь к файлу G-кода в качестве первого аргумента, и они смогут получить доступ к настройкам конфигурации Orca Slicer, читая переменные окружения."
+msgstr "Если вы хотите обработать выходной G-code с помощью пользовательских скриптов, просто перечислите здесь абсолютные пути к ним. Разделяйте скрипты точкой с запятой. Скриптам будет передан абсолютный путь к файлу G-code в качестве первого аргумента, и они смогут получить доступ к настройкам конфигурации Orca Slicer, читая переменные окружения."
 
 msgid "Change extrusion role G-code (process)"
-msgstr "G-код при смене типа линии (настройки печати)"
+msgstr "G-code при смене типа линии (настройки печати)"
 
 msgid "This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code."
-msgstr "Команды в G-коде, которые выполняются между печатью разных элементов структуры (например, при переходе от периметра к заполнению). Выполняются после команд смены типа линии из настроек принтера и материала."
+msgstr "Команды в G-code, которые выполняются между печатью разных элементов структуры (например, при переходе от периметра к заполнению). Выполняются после команд смены типа линии из настроек принтера и материала."
 
 msgid "Plugins Used"
 msgstr "Используемые плагины"
@@ -17402,7 +17402,7 @@ msgid "Plugin capabilities referenced by this preset, stored as name;uuid;capabi
 msgstr "Функционал плагинов, на который ссылается этот профиль, указывается как name;uuid;capability."
 
 msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
-msgstr "Python-плагины, вызываемые на каждом этапе нарезки для чтения и изменения промежуточных её данных (включая финальную постобработку G-кода). Тестовая/экспериментальная функция."
+msgstr "Python-плагины, вызываемые на каждом этапе нарезки для чтения и изменения промежуточных её данных (включая финальную постобработку G-code). Тестовая/экспериментальная функция."
 
 msgid "Printer type"
 msgstr "Тип принтера"
@@ -17454,7 +17454,7 @@ msgid "The G-code path is generated after simplifying the contour of models to a
 msgstr ""
 "Максимальное отклонение планируемой траектории движения экструдера от среза модели. Повышение отклонения снижает время нарезки и нагрузку на электронику принтера, а понижение – позволяет устранить артефакты упрощения геометрии модели.\n"
 "\n"
-"Внимание: для нарезки и визуализации G-кода с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
+"Внимание: для нарезки и визуализации G-code с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
 
 msgid "Travel distance threshold"
 msgstr "Порог перемещения"
@@ -17687,7 +17687,7 @@ msgid "Disable set remaining print time"
 msgstr "Не отмечать прогресс"
 
 msgid "Disable generating of the M73: Set remaining print time in the final G-code."
-msgstr "Отключить вставку в G-код команд для вывода прогресса печати и оставшегося времени."
+msgstr "Отключить вставку в G-code команд для вывода прогресса печати и оставшегося времени."
 
 # "Позиция швов"? Технически швов бывает несколько – внешний, внутренний,
 # комбинации обычного/косого и несколько отдельных швов на моделях со сложной
@@ -17997,7 +17997,7 @@ msgstr ""
 "0 – отключить автоматический расчёт."
 
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
-msgstr "Скорость печати в экспортированном G-коде будет замедлена, если расчётное время печати слоя меньше заданного здесь значения, для обеспечения лучшего охлаждения этих слоёв."
+msgstr "Скорость печати в экспортированном G-code будет замедлена, если расчётное время печати слоя меньше заданного здесь значения, для обеспечения лучшего охлаждения этих слоёв."
 
 msgid "Minimum sparse infill threshold"
 msgstr "Заполнять области менее"
@@ -18112,16 +18112,16 @@ msgstr "Задание нескольких команд преднагрева 
 
 # AI Translated
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
-msgstr "G-код, записываемый в самое начало выходного файла перед любым другим содержимым. Полезно для добавления метаданных, которые прошивка принтера считывает из первых строк файла (например, расчётное время печати, расход материала). Поддерживает переменные, такие как {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} и {used_filament_length}."
+msgstr "G-code, записываемый в самое начало выходного файла перед любым другим содержимым. Полезно для добавления метаданных, которые прошивка принтера считывает из первых строк файла (например, расчётное время печати, расход материала). Поддерживает переменные, такие как {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} и {used_filament_length}."
 
 msgid "Start G-code"
-msgstr "Стартовый G-код"
+msgstr "Стартовый G-code"
 
 msgid "G-code added when starting a print."
-msgstr "Команды в G-коде, которые выполняются в самом начале печати."
+msgstr "Команды в G-code, которые выполняются в самом начале печати."
 
 msgid "G-code added when the printer starts using this filament"
-msgstr "Команды в G-коде, которые выполняются при запуске печати этим материалом."
+msgstr "Команды в G-code, которые выполняются при запуске печати этим материалом."
 
 # было Одиночный мультиматериальный экструдер
 msgid "Single Extruder Multi Material"
@@ -18134,7 +18134,7 @@ msgid "Manual Filament Change"
 msgstr "Ручная смена прутка"
 
 msgid "Enable this option to omit the custom Change filament G-code only at the beginning of the print. The tool change command (e.g., T0) will be skipped throughout the entire print. This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action."
-msgstr "Полезно для смены материала вручную при совместной печати через общий экструдер, где для этого используются команды M600/PAUSE. Отключает выполнение «G-кода смены материала» в самом начале печати (обычно это не требуется, так как пруток уже заправлен). Команда смены инструмента (например, T0) будет пропускаться на протяжении всей печати."
+msgstr "Полезно для смены материала вручную при совместной печати через общий экструдер, где для этого используются команды M600/PAUSE. Отключает выполнение «G-code смены материала» в самом начале печати (обычно это не требуется, так как пруток уже заправлен). Команда смены инструмента (например, T0) будет пропускаться на протяжении всей печати."
 
 msgid "Wipe tower type"
 msgstr "Тип черновой башни"
@@ -18279,7 +18279,7 @@ msgid "Z offset"
 msgstr "Смещение координат оси Z"
 
 msgid "This value will be added (or subtracted) from all the Z coordinates in the output G-code. It is used to compensate for bad Z endstop position: for example, if your endstop zero actually leaves the nozzle 0.3mm far from the print bed, set this to -0.3 (or fix your endstop)."
-msgstr "Это значение будет прибавлено ко всем координатам оси Z в выходном G-код файле, тем самым смещая всю печатаемую деталь выше (если значение положительное, например 0.3) или ниже (если значение отрицательное, например -0.3) относительно стола 3D принтера. Используется для компенсации слишком малого или слишком большого расстояния от сопла до стола на первом слое, вне зависимости от причины."
+msgstr "Это значение будет прибавлено ко всем координатам оси Z в выходном G-code файле, тем самым смещая всю печатаемую деталь выше (если значение положительное, например 0.3) или ниже (если значение отрицательное, например -0.3) относительно стола 3D принтера. Используется для компенсации слишком малого или слишком большого расстояния от сопла до стола на первом слое, вне зависимости от причины."
 
 msgid "Enable support"
 msgstr "Включить поддержку"
@@ -18663,7 +18663,7 @@ msgid ""
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Для автоматического поддержания температуры внутри термокамеры принтера включите эту опцию. Эта опция активирует отправку команды M191 перед стартовым G-кодом принтера (machine_start_gcode)\", которая устанавливает температуру внутри термокамеры и ждёт её достижения. Так же, она отправляет команду M141 в конце печати, чтобы отключить нагреватель камеры, если он есть.\n"
+"Для автоматического поддержания температуры внутри термокамеры принтера включите эту опцию. Эта опция активирует отправку команды M191 перед стартовым G-code принтера (machine_start_gcode)\", которая устанавливает температуру внутри термокамеры и ждёт её достижения. Так же, она отправляет команду M141 в конце печати, чтобы отключить нагреватель камеры, если он есть.\n"
 "\n"
 "Эта опция зависит от поддержки прошивкой команд M191 и M141, либо через макросы, либо нативно, и обычно используется, когда имеется активный нагреватель камеры."
 
@@ -18693,7 +18693,7 @@ msgstr ""
 "\n"
 "Доступ к значению можно получить через переменную с именем chamber_minimal_temperature. Её можно использовать в макросах начала печати или прогрева термокамеры, например:\n"
 "PRINT_START <...> CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
-"В отличие от целевой температуры не приводит к автоматической генерации команд M141/M191 и нужна только для использования в секции G-кода."
+"В отличие от целевой температуры не приводит к автоматической генерации команд M141/M191 и нужна только для использования в секции G-code."
 
 msgid "Chamber minimal temperature"
 msgstr "Стартовая температура термокамеры"
@@ -18711,16 +18711,16 @@ msgstr ""
 "Внимание: эта настройка не влияет на поведение генератора Arachne."
 
 msgid "This G-code is inserted when filament is changed, including T commands to trigger tool change."
-msgstr "Команды в G-коде, которые выполняются при ручной смене материала, включая команду T для запуска смены инструмента. Также этот шаблон можно вставить вручную в окне просмотра нарезки, нажав правой кнопкой мыши на ползунок выбора слоя."
+msgstr "Команды в G-code, которые выполняются при ручной смене материала, включая команду T для запуска смены инструмента. Также этот шаблон можно вставить вручную в окне просмотра нарезки, нажав правой кнопкой мыши на ползунок выбора слоя."
 
 msgid "This G-code is inserted when the extrusion role is changed."
-msgstr "Команды в G-коде, которые выполняются между печатью разных элементов структуры (например, при переходе от периметра к заполнению)."
+msgstr "Команды в G-code, которые выполняются между печатью разных элементов структуры (например, при переходе от периметра к заполнению)."
 
 msgid "Change extrusion role G-code (filament)"
-msgstr "G-код при смене типа линии (настройки материала)"
+msgstr "G-code при смене типа линии (настройки материала)"
 
 msgid "This G-code is inserted when the extrusion role is changed for the active filament."
-msgstr "Команды в G-коде, которые выполняются между печатью разных элементов структуры этим материалом (например, при переходе от периметра к заполнению)."
+msgstr "Команды в G-code, которые выполняются между печатью разных элементов структуры этим материалом (например, при переходе от периметра к заполнению)."
 
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линий заполнения верхней поверхности. Можно указать процент от диаметра сопла."
@@ -19083,7 +19083,7 @@ msgid ""
 msgstr "Число граней многогранника при включённых многогранных отверстиях."
 
 msgid "G-code thumbnails"
-msgstr "Эскизы в G-коде"
+msgstr "Эскизы в G-code"
 
 msgid "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the following format: \"XxY, XxY, ...\""
 msgstr ""
@@ -19093,10 +19093,10 @@ msgstr ""
 # Легаси, сейчас формат задаётся отдельно для каждого отдельного изображения
 # внутри файла.
 msgid "Format of G-code thumbnails"
-msgstr "Формат эскизов G-кода"
+msgstr "Формат эскизов G-code"
 
 msgid "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI for low memory firmware."
-msgstr "Формат эскизов G-кода: PNG для наилучшего качества, JPG для наименьшего размера, QOI для прошивки с малым объёмом памяти."
+msgstr "Формат эскизов G-code: PNG для наилучшего качества, JPG для наименьшего размера, QOI для прошивки с малым объёмом памяти."
 
 msgid "Use relative E distances"
 msgstr "Относительные координаты экструдера"
@@ -19356,7 +19356,7 @@ msgid "No check"
 msgstr "Без проверки"
 
 msgid "Do not run any validity checks, such as G-code path conflicts check."
-msgstr "Не запускать никакие проверки валидности, такие как проверка на конфликт путей в G-коде."
+msgstr "Не запускать никакие проверки валидности, такие как проверка на конфликт путей в G-code."
 
 # AI Translated
 msgid "Strict mode"
@@ -19594,10 +19594,10 @@ msgid "If enabled, this slicing will be considered using timelapse."
 msgstr "Выполнять нарезку с учётом записи таймлапса."
 
 msgid "Load custom G-code"
-msgstr "Загрузить пользовательский G-код"
+msgstr "Загрузить пользовательский G-code"
 
 msgid "Load custom G-code from json."
-msgstr "Загрузить G-код из json."
+msgstr "Загрузить G-code из json."
 
 # назначить идентификаторы
 msgid "Load filament IDs"
@@ -19633,10 +19633,10 @@ msgid "If enabled, Arrange will avoid extrusion calibrate region when placing ob
 msgstr "Если включено, то при расстановки моделей будет избегаться зона калибровки экструзии."
 
 msgid "Skip modified G-code in 3MF"
-msgstr "Пропуск модифицированного G-кода в 3MF-файле"
+msgstr "Пропуск модифицированного G-code в 3MF-файле"
 
 msgid "Skip the modified G-code in 3MF from printer or filament presets."
-msgstr "Пропуск модифицированного G-кода в 3MF-файле в профиле принтера или материала."
+msgstr "Пропуск модифицированного G-code в 3MF-файле в профиле принтера или материала."
 
 msgid "MakerLab name"
 msgstr "Имя MakerLab"
@@ -19672,13 +19672,13 @@ msgid "Current Z-hop"
 msgstr "Подъём оси Z"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Содержит текущее значение вертикального подъёма оси Z, заданное в начале пользовательского G-кода."
+msgstr "Содержит текущее значение вертикального подъёма оси Z, заданное в начале пользовательского G-code."
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
-msgstr "Положение экструдера в начале пользовательского G-кода. Если пользовательский G-код перемещает экструдер в другое место, то информация о его новом положении должна записываться в данную переменную, чтобы OrcaSlicer знал, откуда он перемещается, когда управление возвращается назад."
+msgstr "Положение экструдера в начале пользовательского G-code. Если пользовательский G-code перемещает экструдер в другое место, то информация о его новом положении должна записываться в данную переменную, чтобы OrcaSlicer знал, откуда он перемещается, когда управление возвращается назад."
 
 msgid "Retraction state at the beginning of the custom G-code block. If the custom G-code moves the extruder axis, it should write to this variable so OrcaSlicer de-retracts correctly when it gets control back."
-msgstr "Статус отката в начале пользовательского G-кода. Если пользовательский G-код перемещает ось экструдера, то информация о статусе отката должна записываться в данную переменную, чтобы программа корректно совершала подачу, при возврате контроля над процессом печати."
+msgstr "Статус отката в начале пользовательского G-code. Если пользовательский G-code перемещает ось экструдера, то информация о статусе отката должна записываться в данную переменную, чтобы программа корректно совершала подачу, при возврате контроля над процессом печати."
 
 msgid "Extra de-retraction"
 msgstr "Дополнительная подача"
@@ -19824,7 +19824,7 @@ msgstr "Время печати (всего секунд)"
 # процессит после генерации кода до его парсинга и визуализации, не нужно этим
 # перегружать людей. Пусть будет просто генерация кода.
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
-msgstr "Оценка полного времени печати (в секундах). Заменяется числом при генерации G-кода."
+msgstr "Оценка полного времени печати (в секундах). Заменяется числом при генерации G-code."
 
 # AI Translated
 msgid "Print time (days component)"
@@ -19832,7 +19832,7 @@ msgstr "Время печати (дни)"
 
 # AI Translated
 msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
-msgstr "Количество дней в расчётном времени печати (обычный режим). Заменяется числом при генерации G-кода."
+msgstr "Количество дней в расчётном времени печати (обычный режим). Заменяется числом при генерации G-code."
 
 # AI Translated
 msgid "Print time (hours component)"
@@ -19840,7 +19840,7 @@ msgstr "Время печати (часы)"
 
 # AI Translated
 msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
-msgstr "Количество часов в расчётном времени печати (обычный режим). Заменяется числом при генерации G-кода."
+msgstr "Количество часов в расчётном времени печати (обычный режим). Заменяется числом при генерации G-code."
 
 # AI Translated
 msgid "Print time (minutes component)"
@@ -19848,7 +19848,7 @@ msgstr "Время печати (минуты)"
 
 # AI Translated
 msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
-msgstr "Количество минут в расчётном времени печати (обычный режим). Заменяется числом при генерации G-кода."
+msgstr "Количество минут в расчётном времени печати (обычный режим). Заменяется числом при генерации G-code."
 
 # AI Translated
 msgid "Print time (seconds component)"
@@ -19856,14 +19856,14 @@ msgstr "Время печати (секунды)"
 
 # AI Translated
 msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
-msgstr "Количество секунд в расчётном времени печати (обычный режим). Заменяется числом при генерации G-кода."
+msgstr "Количество секунд в расчётном времени печати (обычный режим). Заменяется числом при генерации G-code."
 
 msgid "Filament length (meters)"
 msgstr "Длина материала (в метрах)"
 
 # Общая длина прутка (в метрах). При ... заменяется на ...
 msgid "Total filament length used in meters. Replaced with actual value during post-processing."
-msgstr "Общая длина прутка (в метрах). Заменяется числом при генерации G-кода."
+msgstr "Общая длина прутка (в метрах). Заменяется числом при генерации G-code."
 
 msgid "Number of objects"
 msgstr "Количество моделей"
@@ -20979,7 +20979,7 @@ msgid "Only materials of the same type can be selected."
 msgstr "Можно выбрать материал только того же типа."
 
 msgid "Send G-code to printer host"
-msgstr "Отправить G-код на хост принтера"
+msgstr "Отправить G-code на хост принтера"
 
 msgid "Upload to Printer Host with the following filename:"
 msgstr "Загрузить на хост принтера со следующим именем:"
@@ -26238,7 +26238,7 @@ msgid "Show/Hide wireframe"
 msgstr "Показать/скрыть сетку"
 
 msgid "On/Off G-code window"
-msgstr "Показать/скрыть окно отображения G-кода"
+msgstr "Показать/скрыть окно отображения G-code"
 
 msgid "On/Off one layer mode of the vertical slider"
 msgstr "Включение/отключение функции «Режим одного слоя» у вертикального ползунка"
@@ -26345,8 +26345,8 @@ msgid ""
 "G-code window\n"
 "You can turn on/off the G-code window by pressing the <b>C</b> key."
 msgstr ""
-"Окно G-кода\n"
-"Вы можете отобразить/скрыть окно G-кода, нажав клавишу <b>C</b>."
+"Окно G-code\n"
+"Вы можете отобразить/скрыть окно G-code, нажав клавишу <b>C</b>."
 
 #: resources/data/hints.ini: [hint:Switch workspaces]
 msgid ""

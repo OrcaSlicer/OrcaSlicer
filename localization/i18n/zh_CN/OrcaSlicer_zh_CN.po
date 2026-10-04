@@ -4657,7 +4657,7 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "该耗材的推荐喷嘴温度是[%d, %d]摄氏度"
 
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr "自适应压力提前模型验证失败：\n"
+msgstr "自适应 Pressure Advance 模型验证失败：\n"
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -5359,8 +5359,9 @@ msgstr "层时间"
 msgid "Layer Time (log)"
 msgstr "层时间（对数）"
 
+# AI Translated
 msgid "Pressure Advance"
-msgstr "压力提前"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr "努普"
@@ -6505,8 +6506,9 @@ msgstr "温度校准"
 msgid "Max flowrate"
 msgstr "最大体积流量"
 
+# AI Translated
 msgid "Pressure advance"
-msgstr "压力提前"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "流量比例"
@@ -7483,7 +7485,7 @@ msgstr "最大体积流量校准"
 
 # AI Translated
 msgid "Pressure Advance Calibration"
-msgstr "压力提前校准"
+msgstr "Pressure Advance 校准"
 
 msgid "Flow Ratio Calibration"
 msgstr "流量比校准"
@@ -11409,7 +11411,7 @@ msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "该材料的建议喷嘴温度范围。0表示未设置"
 
 msgid "Flow ratio and Pressure Advance"
-msgstr "流量和压力提前"
+msgstr "流量和 Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "打印仓温度"
@@ -13146,7 +13148,7 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "当壁序列为外内或内外内时，精确墙壁选项将被忽略。"
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "一个或多个挤出机的自适应压力提前模型可能包含无效值。"
+msgstr "一个或多个挤出机的自适应 Pressure Advance 模型可能包含无效值。"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "不会使用耗材收缩率，因为所用耗材的耗材收缩率不匹配。"
@@ -13880,10 +13882,10 @@ msgstr ""
 "\n"
 "通常建议开启此选项，除非您的打印机冷却足够强劲，或打印速度足够慢，以至于不会发生墙壁翘曲。\n"
 "如果以较高的外墙速度打印，此参数在减速时可能会引入墙面瑕疵，因为打印速度的差异可能过大，导致挤出机无法跟上所需的流量变化。\n"
-"这些瑕疵的根本原因很可能是压力提前 (PA) 调校略有偏差，尤其是在搭配较长的 PA 平滑时间时。\n"
+"这些瑕疵的根本原因很可能是 Pressure Advance (PA) 调校略有偏差，尤其是在搭配较长的 PA 平滑时间时。\n"
 "\n"
 "启用此选项时的建议：\n"
-"1. 将压力提前的平滑时间降低到 0.015 - 0.02，使挤出机能够快速响应速度变化。\n"
+"1. 将 Pressure Advance 的平滑时间降低到 0.015 - 0.02，使挤出机能够快速响应速度变化。\n"
 "2. 提高最低打印速度，以限制减速的幅度并减小快慢段之间的差异。\n"
 "3. 如果仍出现瑕疵，启用挤出速率平滑 (ERS) 以进一步平滑流量过渡。\n"
 "\n"
@@ -14577,16 +14579,17 @@ msgstr ""
 "最终的对象流量比率是此值乘以耗材流量比率。"
 
 msgid "Enable pressure advance"
-msgstr "启用压力提前"
+msgstr "启用 Pressure Advance"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "启用压力提前，一旦启用会覆盖自动检测的结果"
+msgstr "启用 Pressure Advance，一旦启用会覆盖自动检测的结果"
 
+# AI Translated
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "压力提前(Klipper)或者线性提前(Marlin)"
+msgstr "Pressure Advance（Klipper），即 Marlin 中的 Linear Advance 系数。"
 
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "启用自适应压力提前（试验）"
+msgstr "启用自适应 Pressure Advance（试验）"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -14596,10 +14599,10 @@ msgid ""
 "\n"
 "When enabled, the pressure advance value above is overridden. However, a reasonable default value above is strongly recommended to act as a fallback and for when tool changing.\n"
 "\n"
-msgstr "With increasing print speeds (and hence increasing volumetric flow through the nozzle) and increasing accelerations, it has been observed that the effective PA value typically decreases.这意味着单个 PA 值并不总是对所有特征都是 100% 最佳的，并且通常使用折衷值，该折衷值不会在具有较低流速和加速度的特征上造成过多的凸出，同时也不会在较快的特征上造成间隙。 此功能旨在通过根据打印时的体积流速和加速度对打印机挤出系统的响应进行建模来解决此限制。在内部，它生成一个拟合模型，可以推断出任何给定体积流速和加速度所需的压力提前，然后根据当前的打印条件将其发送到打印机。 启用后，上面的压力提前值将被覆盖。然而，强烈建议使用上述合理的默认值作为后备以及更换工具时的选择。\n"
+msgstr "With increasing print speeds (and hence increasing volumetric flow through the nozzle) and increasing accelerations, it has been observed that the effective PA value typically decreases.这意味着单个 PA 值并不总是对所有特征都是 100% 最佳的，并且通常使用折衷值，该折衷值不会在具有较低流速和加速度的特征上造成过多的凸出，同时也不会在较快的特征上造成间隙。 此功能旨在通过根据打印时的体积流速和加速度对打印机挤出系统的响应进行建模来解决此限制。在内部，它生成一个拟合模型，可以推断出任何给定体积流速和加速度所需的 Pressure Advance，然后根据当前的打印条件将其发送到打印机。 启用后，上面的 Pressure Advance 值将被覆盖。然而，强烈建议使用上述合理的默认值作为后备以及更换工具时的选择。\n"
 
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "自适应压力提前参数（试验）"
+msgstr "自适应 Pressure Advance 参数（试验）"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -14614,18 +14617,18 @@ msgid ""
 "2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile."
 msgstr ""
-"添加压力提前 (PA) 值组、测量时的体积流速和加速度，并用逗号分隔。每行一组值。例如\n"
+"添加 Pressure Advance (PA) 值组、测量时的体积流速和加速度，并用逗号分隔。每行一组值。例如\n"
 "0.04,3.96,3000\n"
 "0.033,3.96,10000\n"
 "0.029,7.91,3000\n"
 "0.026,7.91,10000 如何校准：\n"
-"1. 每个加速度值至少以 3 个速度运行压力提前测试。建议至少针对外部周边的速度、内部周边的速度以及配置文件中的最快特征打印速度（通常是稀疏或实心填充）运行测试。然后以相同的速度运行它们，以获得最慢和最快的打印加速度，并且不超过 Klipper 输入整形器给出的建议最大加速度\n"
+"1. 每个加速度值至少以 3 个速度运行 Pressure Advance 测试。建议至少针对外部周边的速度、内部周边的速度以及配置文件中的最快特征打印速度（通常是稀疏或实心填充）运行测试。然后以相同的速度运行它们，以获得最慢和最快的打印加速度，并且不超过 Klipper 输入整形器给出的建议最大加速度\n"
 "2. 记下每个体积流速和加速度的最佳 PA 值。您可以通过从配色方案下拉列表中选择流量并将水平滑块移动到 PA 图案线上来找到流量编号。该数字应该在页面底部可见。理想的 PA 值应该随着体积流量的增加而减小。如果不是，请确认您的挤出机运行正常。打印速度越慢且加速度越小，可接受的 PA 值范围就越大。如果没有明显差异，请使用更快测试中的 PA 值\n"
 "3. 在此处的文本框中输入 PA 值、流量和加速度的三元组并保存耗材丝配置文件"
 
 # AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "在特征内启用自适应压力提前 (beta)"
+msgstr "在特征内启用自适应 Pressure Advance (beta)"
 
 # AI Translated
 msgid ""
@@ -14643,7 +14646,7 @@ msgstr ""
 
 # AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "桥接的静态压力提前"
+msgstr "桥接的静态 Pressure Advance"
 
 # AI Translated
 msgid ""
@@ -14652,8 +14655,8 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"桥接的静态压力提前值。设为 0 可应用与 \n"
-"等效墙相同的压力提前（如果启用，则使用自适应设置）。\n"
+"桥接的静态 Pressure Advance 值。设为 0 可应用与 \n"
+"等效墙相同的 Pressure Advance（如果启用，则使用自适应设置）。\n"
 "\n"
 "打印桥接时较低的 PA 值有助于减少桥接之后紧接着出现的轻微欠挤出现象。这是由于在空中打印时喷嘴内压力下降所致，较低的 PA 有助于抵消这种情况。"
 
@@ -16511,9 +16514,9 @@ msgstr ""
 "\n"
 "值为0将禁用该功能。\n"
 "\n"
-"对于高速、高流量的近程挤出机（如Bambu或Voron）通常不需要该值。但是，在特征速度变化很大的某些情况下，它可以提供一些边际收益。例如，当由于悬垂而出现严重的减速时。在这些情况下，建议使用一个大的值大约300-350 mm³/s²的，因为这刚好允许足够的平滑，以帮助压力提前实现更平滑的流量过渡。\n"
+"对于高速、高流量的近程挤出机（如Bambu或Voron）通常不需要该值。但是，在特征速度变化很大的某些情况下，它可以提供一些边际收益。例如，当由于悬垂而出现严重的减速时。在这些情况下，建议使用一个大的值大约300-350 mm³/s²的，因为这刚好允许足够的平滑，以帮助 Pressure Advance 实现更平滑的流量过渡。\n"
 "\n"
-"对于没有压力提前的较慢打印机，该值应该设置得非常低。对于近程挤出机来说10-15 mm³/s²是一个很好值的起点，而对于远程挤出机来说是5-10 mm³/s²。\n"
+"对于没有 Pressure Advance 的较慢打印机，该值应该设置得非常低。对于近程挤出机来说10-15 mm³/s²是一个很好值的起点，而对于远程挤出机来说是5-10 mm³/s²。\n"
 "\n"
 "这个功能在Prusa切片机中被称为压力均衡器。\n"
 "\n"
@@ -19683,8 +19686,9 @@ msgstr ""
 "启用缩放选项后（推荐），模型会根据当前喷嘴直径和合适的层高动态调整尺寸，使测试既准确又易于读取。\n"
 "只有当您希望完全按原样打印参考模型时，才关闭缩放。"
 
+# AI Translated
 msgid "PA Calibration"
-msgstr "压力提前/PA校准"
+msgstr "PA 校准"
 
 msgid "Extruder type"
 msgstr "挤出机类型"
