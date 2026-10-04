@@ -488,12 +488,6 @@ std::vector<std::string> role_sequence(const std::string &gcode, const std::vect
 #include <catch2/catch_all.hpp>
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Arrange.hpp"
-#include "libslic3r/Model.hpp"
-#include "libslic3r/Arrange.hpp"
-#include "libslic3r/Model.hpp"
-#include "libslic3r/Arrange.hpp"
-#include "libslic3r/Model.hpp"
 
 SCENARIO("init_print functionality", "[test_helpers]") {
 	GIVEN("A default config") {

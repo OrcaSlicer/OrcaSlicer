@@ -10,9 +10,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
-#include "libslic3r/Point.hpp"
-#include "libslic3r/Polygon.hpp"
-#include <catch2/catch_test_macros.hpp>
 
 using namespace Slic3r;
 

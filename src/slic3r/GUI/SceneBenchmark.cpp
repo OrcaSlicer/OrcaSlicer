@@ -55,16 +55,10 @@
 #include <memory>
 #include <numeric>
 #include <sstream>
-#include "libslic3r/BoundingBox.hpp"
-#include "libslic3r/Point.hpp"
-#include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "slic3r/GUI/FrameProfiler.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
-#include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
-#include "libslic3r_version.h"
 
 class wxWindow;
 

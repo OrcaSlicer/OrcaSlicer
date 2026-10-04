@@ -73,7 +73,6 @@
 #include <chrono>
 
 #include "Geometry/ArcWelder.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 
 static const float DEFAULT_TOOLPATH_WIDTH = 0.4f;

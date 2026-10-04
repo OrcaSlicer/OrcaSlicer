@@ -12,7 +12,6 @@
 #include "libslic3r/libslic3r.h"
 #include <algorithm>
 #include <functional>
-#include "libslic3r/Fill/FillLightning.hpp"
 
 namespace Slic3r::FillLightning {
 

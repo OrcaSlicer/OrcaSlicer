@@ -21,7 +21,6 @@
 #include "libslic3r/Exception.hpp"
 #include "fast_float/fast_float.h"
 #include "GCodeWriter.hpp"
-#include "libslic3r/GCode/PressureEqualizer.hpp"
 #include "libslic3r/Config.hpp"
 
 namespace Slic3r {

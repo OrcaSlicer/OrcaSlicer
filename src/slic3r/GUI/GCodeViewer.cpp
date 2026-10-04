@@ -92,7 +92,6 @@
 #include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
-#include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 
 namespace Slic3r { class PrintBase; }
