@@ -3410,6 +3410,7 @@ void GLCanvas3D::bind_event_handlers()
         m_canvas->Bind(wxEVT_MIDDLE_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Bind(wxEVT_RIGHT_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Bind(wxEVT_PAINT, &GLCanvas3D::on_paint, this);
+        m_canvas->Bind(wxEVT_MOUSE_CAPTURE_LOST, &GLCanvas3D::on_mouse_capture_lost, this);
         m_canvas->Bind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
         m_canvas->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& evt) {
                 // The key-up that would commit a keyboard edit goes to whatever took the focus.
@@ -3455,6 +3456,7 @@ void GLCanvas3D::unbind_event_handlers()
         m_canvas->Unbind(wxEVT_MIDDLE_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Unbind(wxEVT_RIGHT_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Unbind(wxEVT_PAINT, &GLCanvas3D::on_paint, this);
+        m_canvas->Unbind(wxEVT_MOUSE_CAPTURE_LOST, &GLCanvas3D::on_mouse_capture_lost, this);
         m_canvas->Unbind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
         m_event_handlers_bound = false;
 
@@ -5005,6 +5007,29 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 	if (on_enter_workaround)
 		m_mouse.position = Vec2d(-1., -1.);
 #endif /* __WXMSW__ */
+}
+
+void GLCanvas3D::on_mouse_capture_lost(wxMouseCaptureLostEvent&)
+{
+    mouse_up_cleanup();
+    m_main_toolbar.reset_mouse_capture();
+    m_assemble_view_toolbar.reset_mouse_capture();
+    if (m_gizmos.is_dragging()) {
+        wxMouseEvent evt(wxEVT_LEFT_UP);
+        m_gizmos.on_mouse(evt);
+    }
+    m_rectangle_selection.stop_dragging();
+    m_navigator_dragging = false;
+    if (m_layers_editing.state == LayersEditing::Editing)
+        m_layers_editing.state = LayersEditing::Unknown;
+    if (GImGui != nullptr) {
+        ImGuiIO& io = ImGui::GetIO();
+        io.MouseDown[0] = false;
+        io.MouseDown[1] = false;
+        io.MouseDown[2] = false;
+        ImGui::ClearActiveID();
+    }
+    render();
 }
 
 void GLCanvas3D::on_paint(wxPaintEvent& evt)

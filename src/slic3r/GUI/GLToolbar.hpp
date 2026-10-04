@@ -396,6 +396,7 @@ public:
     bool is_item_visible(const std::string& name) const;
 
     bool is_any_item_pressed() const;
+    void reset_mouse_capture() { m_mouse_capture.reset(); }
 
     unsigned int get_items_count() const { return (unsigned int)m_items.size(); }
     int get_item_id(const std::string& name) const;

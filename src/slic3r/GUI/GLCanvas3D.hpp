@@ -1185,6 +1185,7 @@ public:
     void on_set_color_timer(wxTimerEvent& evt);
     void on_fps_overlay_timer(wxTimerEvent& evt);
     void on_mouse(wxMouseEvent& evt);
+    void on_mouse_capture_lost(wxMouseCaptureLostEvent& evt);
     void on_gesture(wxGestureEvent& evt);
     void on_paint(wxPaintEvent& evt);
     void on_set_focus(wxFocusEvent& evt);
