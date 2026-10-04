@@ -4,8 +4,26 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 
+#include <cstddef>
+#include <exception>
+#include "libslic3r/Config.hpp"
+#include <cstdint>
+#include <functional>
 #include <libslic3r/Exception.hpp>
+#include <utility>
+#include <string>
+#include <vector>
+#include <new>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Zipper.hpp"
+#include <mutex>
+#include "libslic3r/PrintBase.hpp"
+#include <ostream>
+#include <memory>
+#include "libslic3r/Polygon.hpp"
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/stdpaths.h>
 
@@ -36,6 +54,7 @@
 #include "I18N.hpp"
 // #include "RemovableDriveManager.hpp"
 
+#include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
@@ -848,7 +867,9 @@ void BackgroundSlicingProcess::finalize_gcode()
     case CopyFileResult::SUCCESS: break; // no error
     case CopyFileResult::FAIL_COPY_FILE:
         throw Slic3r::ExportError(GUI::format(
-            _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%"),
+            m_export_path_on_removable_media ?
+                _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%") :
+                _L("Copying of the temporary G-code to the output G-code failed.\nError message: %1%"),
             error_message));
         break;
     case CopyFileResult::FAIL_FILES_DIFFERENT:

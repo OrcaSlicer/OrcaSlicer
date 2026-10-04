@@ -1,10 +1,18 @@
 #ifndef slic3r_GUI_wxExtensions_hpp_
 #define slic3r_GUI_wxExtensions_hpp_
 
+#include <string>
+#include <wx/anybutton.h>
+#include <cstddef>
 #include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/colourdata.h>
 #include <wx/combo.h>
 #include <wx/dataview.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/rtti.h>
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/bmpcbox.h>
@@ -17,6 +25,7 @@
 
 #include <vector>
 #include <functional>
+#include <wx/string.h>
 #include "BitmapCache.hpp"
 #include "Widgets/PopupWindow.hpp"
 
@@ -75,7 +84,10 @@ wxBitmap create_scaled_bitmap(const std::string& bmp_name, wxWindow *win = nullp
 wxBitmap* get_default_extruder_color_icon(bool thin_icon = false);
 std::vector<wxBitmap *> get_extruder_color_icons(bool thin_icon = false);
 wxBitmap * get_extruder_color_icon(std::string color, std::string label, int icon_width, int icon_height);
-wxBitmap * get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height);
+// A non-null ramp draws the slot as a gradient mixed filament instead: it holds the colours the
+// slot actually prints, bottom entry first, and is drawn bottom to top rather than from colors.
+wxBitmap * get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
+                                   const std::vector<wxColour> *ramp = nullptr);
 std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> color_pack);
 wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data);
 

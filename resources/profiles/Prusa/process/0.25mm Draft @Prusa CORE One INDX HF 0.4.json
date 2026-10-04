@@ -1,0 +1,30 @@
+{
+	"type": "process",
+	"name": "0.25mm Draft @Prusa CORE One INDX HF 0.4",
+	"inherits": "fdm_process_coreone_indx",
+	"from": "system",
+	"setting_id": "7qwPN6huygzcl8dp",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"inner_wall_acceleration": [
+		"7000"
+	],
+	"inner_wall_line_width": "0.5",
+	"outer_wall_line_width": "0.5",
+	"sparse_infill_line_width": "0.5",
+	"internal_solid_infill_line_width": "0.5",
+	"support_top_z_distance": "0.25",
+	"support_interface_speed": [
+		"80"
+	],
+	"layer_height": "0.25",
+	"top_shell_layers": "4",
+	"min_bead_width": "90%",
+	"internal_solid_infill_acceleration": [
+		"6000"
+	]
+}

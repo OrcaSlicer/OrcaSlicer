@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/timer.h>
 #include <wx/wx.h>
 #include <wx/dialog.h>
 #include <wx/stattext.h>
@@ -31,7 +35,6 @@ private:
     wxStaticText   *m_remaining_time_label;
     wxStaticText   *m_explanation_label;
     wxButton       *m_ok_button;
-    wxStaticBitmap *m_title_bitmap;
 
     DECLARE_EVENT_TABLE()
 };

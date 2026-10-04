@@ -14,7 +14,7 @@
 	],
 	"default_print_profile": "0.20mm Standard @Anycubic Kobra Neo 0.4 nozzle",
 	"default_filament_profile": [
-		"Anycubic Generic PLA"
+		"Generic PLA @Anycubic"
 	],
 	"disable_m73": "1",
 	"gcode_flavor": "marlin2",
@@ -201,7 +201,6 @@
 		"100"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",

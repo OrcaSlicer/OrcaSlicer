@@ -3,6 +3,7 @@
 #include "slic3r/Utils/json_diff.hpp"
 
 #include <nlohmann/json.hpp>
+#include <string>
 #include <wx/string.h>
 #include "slic3r/Utils/json_diff.hpp"
 
@@ -64,7 +65,7 @@ public:
     DevFirmware(MachineObject* obj) : m_owner(obj) {}
 
 private:
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 };
 
 } // namespace Slic3r

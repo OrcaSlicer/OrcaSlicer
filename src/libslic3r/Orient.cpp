@@ -1,10 +1,30 @@
 #include "Orient.hpp"
 #include "Geometry.hpp"
+#include <Eigen/Core>
+#include <ios>
+#include <iomanip>
+#include "TriangleMesh.hpp"
+#include "Point.hpp"
+#include <functional>
+#include <cmath>
+#include "libslic3r.h"
+#include <cstddef>
+#include <iostream>
+#include <algorithm>
+#include <cstdlib>
+#include "Model.hpp"
+#include "PrintConfig.hpp"
 #include <numeric>
 #include <ClipperUtils.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <sstream>
+#include <ostream>
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <unordered_map>
+#include <utility>
 
 #if defined(_MSC_VER) && defined(__clang__)
 #define BOOST_NO_CXX17_HDR_STRING_VIEW
@@ -39,7 +59,6 @@ namespace orientation {
         float height_to_bottom_hull_ratio = 0;  // affects stability, the lower the better
         float unprintability = 0;
         Eigen::VectorXf areas_cooling;
-        CostItems(CostItems const & other) = default;
         CostItems() = default;
         static std::string field_names() {
             return "                                      overhang, bottom, bothull, contour, A_laf, A_prj, unprintability";

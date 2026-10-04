@@ -1,5 +1,6 @@
 #include "Process.hpp"
 
+#include <cstdlib>
 #include <libslic3r/AppConfig.hpp>
 
 #include "../GUI/GUI.hpp"
@@ -13,6 +14,11 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <string>
+#include <wx/utils.h>
+#include <wx/filedlg.h>
+#include <wx/string.h>
 
 // For starting another OrcaSlicer instance on OSX.
 // Fails to compile on Windows on the build server.
@@ -21,6 +27,7 @@
     #include <boost/process/args.hpp>
 #endif
 
+#include <wx/filename.h>
 #include <wx/stdpaths.h>
 
 namespace Slic3r {

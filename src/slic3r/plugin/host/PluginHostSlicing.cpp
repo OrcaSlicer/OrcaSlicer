@@ -1,4 +1,7 @@
 #include "PluginHostBindings.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
@@ -10,8 +13,12 @@
 #include "libslic3r/Layer.hpp"      // LayerRegion, Layer, SupportLayer
 #include "libslic3r/Print.hpp"      // PrintRegion, PrintObject, Print
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Model.hpp"
 #include <pybind11/stl.h>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace py = pybind11;

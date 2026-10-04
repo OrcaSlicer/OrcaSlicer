@@ -3,6 +3,29 @@
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/timer.h>
+#include <wx/event.h>
+#include <wx/notebook.h>
+#include <wx/colour.h>
+#include <wx/bookctrl.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/scrolwin.h>
+#include <vector>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include <string>
+#include <algorithm>
 
 namespace Slic3r {
 namespace GUI {
@@ -11,6 +34,7 @@ namespace GUI {
 MultiMachinePage::MultiMachinePage(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
     : wxPanel(parent, id, pos, size, style)
 {
+    SetBackgroundColour(*wxWHITE);
     init_tabpanel();
     m_main_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxLEFT, 0);
@@ -80,7 +104,7 @@ void MultiMachinePage::init_tabpanel()
     sizer_side_tools->Add(m_side_tools, 1, wxEXPAND, 0);
     m_tabpanel = new Tabbook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, sizer_side_tools, wxNB_LEFT | wxTAB_TRAVERSAL | wxNB_NOPAGETHEME);
     m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF"));
-    m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {; });
+    m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [](wxBookCtrlEvent& e) {; });
 
     m_local_task_manager = new LocalTaskManagerPage(m_tabpanel);
     m_cloud_task_manager = new CloudTaskManagerPage(m_tabpanel);
@@ -322,7 +346,7 @@ MultiMachinePickPage::MultiMachinePickPage(Plater* plater /*= nullptr*/)
     scroll_macine_list->SetMinSize(wxSize(FromDIP(400), FromDIP(10 * 30)));
     scroll_macine_list->SetMaxSize(wxSize(FromDIP(400), FromDIP(10 * 30)));
     scroll_macine_list->SetBackgroundColour(*wxWHITE);
-    scroll_macine_list->SetScrollRate(0, 5);
+    scroll_macine_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
 
     sizer_machine_list = new wxBoxSizer(wxVERTICAL);
     scroll_macine_list->SetSizer(sizer_machine_list);

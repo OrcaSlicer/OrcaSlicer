@@ -11,9 +11,26 @@
 #include "libslic3r/Utils.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/process.hpp>
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include <optional>
+#include <vector>
+#include <memory>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <cstddef>
+#include <functional>
+#include <boost/process/pipe.hpp>
+#include <boost/process/args.hpp>
+#include <boost/process/io.hpp>
+#include <system_error>
 #ifdef _WIN32
 #include <boost/process/windows.hpp>
 #endif
@@ -280,7 +297,7 @@ bool load(const PluginDescriptor&                          descriptor,
     // (while the active plugin key is set), then instantiates each registered capability and caches
     // its get_name(). Returns one entry per capability.
     std::string bridge_error;
-    auto        capabilities_found = bridge.finalize_plugin_capture(descriptor.entry_path, bridge_error);
+    auto        capabilities_found = bridge.finalize_plugin_capture(descriptor.entry_path, descriptor.plugin_key, bridge_error);
     if (!bridge_error.empty()) {
         capabilities_found.clear();
         error = "Plugin registration failed: " + bridge_error;

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PC-FR @0.2 nozzle",
-	"inherits": "Elegoo PC @base",
+	"inherits": "Elegoo PC-FR @base",
 	"from": "system",
 	"setting_id": "Q6LfquCFYpzmrILa",
 	"instantiation": "true",

@@ -214,9 +214,9 @@ function ShowModelInfo( pModel )
 	
 	SendWXDebugInfo("Model Name:  "+sModelName);
 	
-	$('#ModelName').html(sModelName);
+	$('#ModelName').text(sModelName);
 	$('#ModelName').attr('title',sModelName);
-    $('#ModelAuthorName').html(sModelAuthor);
+    $('#ModelAuthorName').text(sModelAuthor);
 	
 	switch(UploadType)
 	{
@@ -268,7 +268,7 @@ function ShowModelInfo( pModel )
 			break;
 	}
 	
-	$('#Model_Desc').html( html_decode(sModelDesc) );
+	$('#Model_Desc').empty().append( SanitizeDescHtml( html_decode(sModelDesc) ) );
 			
 	let ModelPreviewList=pModel.preview_img;				
     let TotalPreview=ModelPreviewList.length;
@@ -281,16 +281,15 @@ function ShowModelInfo( pModel )
 	
     if(TotalPreview>0)
 	{
-		let htmlPreview='';
+		$('#ModelPreviewList').empty();
 		for(let pn=0;pn<TotalPreview;pn++)			
 		{	
 			//let FTmpPath=decodeURIComponent(ModelPreviewList[pn]);
 			let FTmpPath=ModelPreviewList[pn]['filepath'];
 			
-			htmlPreview+='<div class="swiper-slide"><img class="Model_PrevImg" src="'+FTmpPath+'" /></div>';
+			$('#ModelPreviewList').append( $('<div class="swiper-slide"></div>').append( $('<img class="Model_PrevImg" />').attr('src',FTmpPath) ) );
 		}
 			
-	    $('#ModelPreviewList').html(htmlPreview);
 		$('#Model_Preview_Image').viewer({
 			title: false,
 		    fullsreen: false,
@@ -410,7 +409,8 @@ function ConstructFileHtml( ID, pItem )
 {
 	let fTotal=pItem.length;
 	
-	let strHtml='';
+	let pBoard=$('#'+ID+'  .FileListBoard');
+	pBoard.empty();
 	for( let f=0;f<fTotal;f++ )
 	{
 		let pOne=pItem[f];
@@ -443,38 +443,138 @@ function ConstructFileHtml( ID, pItem )
 			ImgPath='img/default.png';			
 		}		
 			
-		//Add html
+		//Add html. File names come from the 3MF, so build the nodes rather than concatenating markup.
+		let pIconImg=$('<img />').attr('src',ImgPath);
+		let pMenu=$('<div class="FileMenu"><img src="img/s.svg" /></div>');
 		if( strClass!='ImageIcon' )
 		{
-		strHtml+='<div class="FileItem">'+
-				 '	<div class="'+strClass+'"><img src="'+ImgPath+'" /></div>'+
-				 '	<div class="FileText">'+
-			     '		<div class="FileName">'+tName+'</div>'+
-				 '	</div>'+
-				 '	<div class="FileMenu" onClick="OnClickOpenFile(\''+tPath+'\')"><img src="img/s.svg" /></div>'+
-				 '</div>';
+			pMenu.on('click', function(){ OnClickOpenFile(tPath); });
 		}
 		else
 		{
 			ImgID++;
 			let TmpImgID="AF"+ImgID;
 			
-		strHtml+='<div class="FileItem">'+
-				 '	<div class="'+strClass+'"><img id="'+TmpImgID+'" src="'+ImgPath+'" /></div>'+
-				 '	<div class="FileText">'+
-			     '		<div class="FileName">'+tName+'</div>'+
-				 '	</div>'+
-				 '	<div class="FileMenu" onClick="OnClickOpenImage(\''+TmpImgID+'\')"><img src="img/s.svg" /></div>'+
-				 '</div>';			
+			pIconImg.attr('id',TmpImgID);
+			pMenu.on('click', function(){ OnClickOpenImage(TmpImgID); });
 		}
+		
+		let pFileItem=$('<div class="FileItem"></div>');
+		pFileItem.append( $('<div></div>').addClass(strClass).append(pIconImg) );
+		pFileItem.append( $('<div class="FileText"></div>').append( $('<div class="FileName"></div>').text(tName).attr('title',tName) ) );
+		pFileItem.append( pMenu );
+		pBoard.append( pFileItem );
 	}
-	
-	$('#'+ID+'  .FileListBoard').html(strHtml);
 	
     if( fTotal>0 )
 		$('#'+ID).show();
 }
 
+
+// Descriptions are untrusted 3MF metadata that may carry rich-text HTML (e.g. from MakerWorld).
+// Rebuild them from an inert parse, keeping only plain formatting tags and http(s) links and images.
+var DescAllowedTags=['P','BR','B','STRONG','I','EM','U','S','STRIKE','DEL','INS','SUB','SUP','SMALL','MARK',
+	'Q','ABBR','KBD','WBR','H1','H2','H3','H4','H5','H6','UL','OL','LI','DL','DT','DD','BLOCKQUOTE','PRE','CODE',
+	'HR','SPAN','DIV','FIGURE','FIGCAPTION','TABLE','CAPTION','THEAD','TBODY','TFOOT','TR','TH','TD','A','IMG'];
+// Plain attributes kept per tag; the numeric ones must be plain non-negative integers.
+var DescAllowedAttrs={'IMG':['alt','title','width','height'],'TD':['colspan','rowspan'],'TH':['colspan','rowspan'],'OL':['start']};
+var DescNumericAttrs=['width','height','colspan','rowspan','start'];
+// Dropped together with their content; any other unknown tag is unwrapped to its children.
+var DescDroppedTags=['SCRIPT','STYLE','TEMPLATE','NOSCRIPT','TEXTAREA','TITLE','IFRAME','FRAME','OBJECT','EMBED','SVG','MATH'];
+
+function IsHttpUrl( strUrl )
+{
+	// The scheme must be written as is, so nothing the URL parser would strip can precede or split it.
+	if( typeof strUrl!='string' || !/^https?:/i.test(strUrl) )
+		return false;
+	try
+	{
+		let sProtocol=new URL(strUrl).protocol;
+		return sProtocol=='http:' || sProtocol=='https:';
+	}
+	catch(e)
+	{
+		return false;
+	}
+}
+
+// Images load as soon as the page opens, so only https sources are kept: no plain-http requests to the local network.
+function IsHttpsUrl( strUrl )
+{
+	return IsHttpUrl(strUrl) && new URL(strUrl).protocol=='https:';
+}
+
+// Embedded YouTube players become a plain link to the video.
+function GetYouTubeEmbedUrl( pNode )
+{
+	let sSrc=pNode.getAttribute('src');
+	if( !IsHttpUrl(sSrc) )
+		return null;
+	let pUrl=new URL(sSrc);
+	return ( pUrl.origin=='https://www.youtube.com' && pUrl.pathname.indexOf('/embed/')==0 ) ? pUrl.href : null;
+}
+
+function CopyDescNodes( pSrc, pDst )
+{
+	for( let pNode=pSrc.firstChild;pNode!=null;pNode=pNode.nextSibling )
+	{
+		if( pNode.nodeType==Node.TEXT_NODE )
+		{
+			pDst.appendChild( document.createTextNode(pNode.nodeValue) );
+			continue;
+		}
+		if( pNode.nodeType!=Node.ELEMENT_NODE )
+			continue;
+		
+		let sTag=pNode.nodeName.toUpperCase();
+		if( sTag=='IFRAME' )
+		{
+			let sVideoUrl=GetYouTubeEmbedUrl(pNode);
+			if( sVideoUrl!=null )
+			{
+				let pLink=document.createElement('A');
+				pLink.setAttribute('href',sVideoUrl);
+				pLink.textContent=sVideoUrl;
+				pDst.appendChild(pLink);
+			}
+			continue;
+		}
+		if( $.inArray(sTag,DescDroppedTags)>=0 )
+			continue;
+		if( $.inArray(sTag,DescAllowedTags)<0 )
+		{
+			CopyDescNodes(pNode,pDst);
+			continue;
+		}
+		
+		let pElem=document.createElement(sTag);
+		if( sTag=='A' && IsHttpUrl(pNode.getAttribute('href')) )
+			pElem.setAttribute('href',pNode.getAttribute('href'));
+		else if( sTag=='IMG' )
+		{
+			if( !IsHttpsUrl(pNode.getAttribute('src')) )
+				continue;
+			pElem.setAttribute('src',pNode.getAttribute('src'));
+		}
+		$.each( DescAllowedAttrs[sTag]||[], function(i,sAttr){
+			let sValue=pNode.getAttribute(sAttr);
+			if( sValue!=null && ( $.inArray(sAttr,DescNumericAttrs)<0 || /^\d+$/.test(sValue) ) )
+				pElem.setAttribute(sAttr,sValue);
+		});
+		CopyDescNodes(pNode,pElem);
+		pDst.appendChild(pElem);
+	}
+}
+
+function SanitizeDescHtml( strHtml )
+{
+	let pFragment=document.createDocumentFragment();
+	// A DOMParser document is inert: it runs no scripts and loads no resources.
+	let pDoc=new DOMParser().parseFromString(strHtml,'text/html');
+	if( pDoc && pDoc.body )
+		CopyDescNodes(pDoc.body,pFragment);
+	return pFragment;
+}
 
 function ShowProfilelInfo( pProfile )
 {
@@ -483,10 +583,10 @@ function ShowProfilelInfo( pProfile )
 	let sProfileAuthor=decodeURIComponent(pProfile.author);
 	let sProfileDesc=decodeURIComponent(pProfile.description);
 	
-	$('#ProfileName').html(sProfileName);
-    $('#ProfileAuthor').html(sProfileAuthor);
+	$('#ProfileName').text(sProfileName);
+    $('#ProfileAuthor').text(sProfileAuthor);
 		
-	$('#Profile_Desc').html( html_decode(sProfileDesc) );
+	$('#Profile_Desc').empty().append( SanitizeDescHtml( html_decode(sProfileDesc) ) );
 			
 	let ProfilePreviewList=pProfile.preview_img;				
     let TotalPreview=ProfilePreviewList.length;
@@ -499,15 +599,14 @@ function ShowProfilelInfo( pProfile )
 	
     if(TotalPreview>0)
 	{
-		let htmlPreview='';
+		$('#ProfilePreviewList').empty();
 		for(let pn=0;pn<TotalPreview;pn++)			
 		{	
 			let FTmpPath=ProfilePreviewList[pn]['filepath'];
 			
-			htmlPreview+='<div class="swiper-slide"><img class="Model_PrevImg" src="'+FTmpPath+'" /></div>';
+			$('#ProfilePreviewList').append( $('<div class="swiper-slide"></div>').append( $('<img class="Model_PrevImg" />').attr('src',FTmpPath) ) );
 		}
 			
-		$('#ProfilePreviewList').html(htmlPreview);
 		$('#Profile_Preview_Image').viewer({
 			title: false,
 		    fullsreen: false,

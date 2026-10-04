@@ -1,13 +1,24 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
+#include "MoonrakerPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 #include <cctype>
+#include "libslic3r/Preset.hpp"
+#include <map>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -38,7 +49,7 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
     return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
-bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
+bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::string error;
 

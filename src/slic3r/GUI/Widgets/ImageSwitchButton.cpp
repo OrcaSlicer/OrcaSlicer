@@ -4,8 +4,16 @@
 #include "../wxExtensions.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <utility>
+#include <wx/checklst.h>
+#include <wx/dc.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/event.h>
 
 BEGIN_EVENT_TABLE(ImageSwitchButton, StaticBox)
 

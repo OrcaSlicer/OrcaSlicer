@@ -4,8 +4,44 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/RadioBox.hpp"
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/event.h>
+#include <utility>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/MultiMachineManagerPage.hpp"
+#include <boost/algorithm/string/predicate.hpp>
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <vector>
+#include <map>
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include <string>
+#include "slic3r/GUI/TaskManager.hpp"
+#include <algorithm>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <chrono>
+#include <wx/datetime.h>
+#include <cmath>
 #include <wx/listimpl.cpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/tglbtn.h>
+#include <wx/scrolwin.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/timer.h>
 
 #include "DeviceCore/DevManager.h"
 
@@ -675,7 +711,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
 
     m_task_list = new wxScrolledWindow(m_main_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_task_list->SetBackgroundColour(*wxWHITE);
-    m_task_list->SetScrollRate(0, 5);
+    m_task_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
     m_task_list->SetMinSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_task_list->SetMaxSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
 
@@ -783,7 +819,7 @@ void LocalTaskManagerPage::refresh_user_device(bool clear)
             mtitem->m_send_time = task_state_info->get_sent_time();
             mtitem->state_local_task = task_state_info->state();
 
-            task_state_info->set_state_changed_fn([this, mtitem](TaskState state, int percent) {
+            task_state_info->set_state_changed_fn([mtitem](TaskState state, int percent) {
                 mtitem->state_local_task = state;
                 if (state == TaskState::TS_SEND_COMPLETED) {
 
@@ -1056,7 +1092,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
 
     m_task_list = new wxScrolledWindow(m_main_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_task_list->SetBackgroundColour(*wxWHITE);
-    m_task_list->SetScrollRate(0, 5);
+    m_task_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
     m_task_list->SetMinSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_task_list->SetMaxSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
 

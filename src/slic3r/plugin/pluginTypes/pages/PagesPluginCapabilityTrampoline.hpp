@@ -3,8 +3,14 @@
 #include "PagesPluginCapability.hpp"
 #include "../../PluginFsUtils.hpp"
 #include "../../PyPluginTrampoline.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/pybind11.h>
 
 #include <nlohmann/json.hpp>
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
+#include <stdexcept>
 
 namespace Slic3r {
 
@@ -16,7 +22,6 @@ public:
     std::string get_icon() override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            ::Slic3r::PluginAuditManager::AuditMode::Loading,
             [] {},
             PYBIND11_OVERRIDE,
             std::string,
@@ -27,7 +32,6 @@ public:
     std::string get_ui() override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            ::Slic3r::PluginAuditManager::AuditMode::Loading,
             [] {},
             PYBIND11_OVERRIDE_PURE,
             std::string,
@@ -42,7 +46,7 @@ public:
         if (!gil)
             throw std::runtime_error("Python interpreter is shutting down");
 
-        ORCA_PY_AUDIT_SCOPE(::Slic3r::PluginAuditManager::AuditMode::Loading);
+        ORCA_PY_AUDIT_SCOPE();
 
         pybind11::function override = pybind11::get_override(static_cast<PagesPluginCapability*>(this), "on_message");
         if (!override)

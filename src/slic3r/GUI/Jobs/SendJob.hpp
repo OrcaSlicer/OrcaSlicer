@@ -3,6 +3,10 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <functional>
+#include <string>
+#include <wx/string.h>
+#include <exception>
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 
 #include "Job.hpp"
 #include "PrintJob.hpp"
@@ -22,6 +26,8 @@ class SendJob : public Job
     PrintPrepareData    job_data;
     std::string         m_dev_id;
     bool                m_job_finished{ false };
+    bool                m_lifecycle_started{ false };
+    bool                m_lifecycle_finished{ false };
     int                 m_print_job_completed_id = 0;
     bool                m_is_check_mode{false};
     bool                m_check_and_continue{false};

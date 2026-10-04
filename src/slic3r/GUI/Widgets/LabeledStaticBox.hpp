@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_LabeledStaticBox_hpp_
 #define slic3r_GUI_LabeledStaticBox_hpp_
 
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/window.h>
 #include <wx/dc.h>
 #include <wx/dcgraph.h>
@@ -42,7 +45,7 @@ public:
 
     void SetBorderColor(StateColor const &color);
 
-    void SetFont(wxFont set_font);
+    bool SetFont(const wxFont &set_font) override;
 
     bool Enable(bool enable) override;
 

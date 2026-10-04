@@ -7,6 +7,7 @@
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
 
+#include "json_diff.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/Print.hpp"
 
@@ -16,8 +17,18 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 
+#include <algorithm>
 #include <boost/lexical_cast.hpp>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <cassert>
+#include <exception>
+#include "libslic3r/PrintConfig.hpp"
 #include <nlohmann/json.hpp>
+#include <vector>
+#include <string>
+#include <unordered_set>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 using namespace nlohmann;
 
 namespace Slic3r {

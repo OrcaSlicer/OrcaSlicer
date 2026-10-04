@@ -1,5 +1,7 @@
 #pragma once
 
+#include <slic3r/GUI/LazyPage.hpp>
+#include <slic3r/GUI/WebPanel.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/pages/PagesPluginCapability.hpp>
 
@@ -11,14 +13,14 @@
 #include <vector>
 
 #include <wx/bitmap.h>
-#include <wx/panel.h>
+#include <wx/string.h>
 #include <wx/webview.h>
 
 class Notebook;
 
 namespace Slic3r {
 
-class PluginPage : public wxPanel
+class PluginPage : public GUI::WebPanel
 {
 public:
     PluginPage(wxWindow* parent, std::shared_ptr<PagesPluginCapability> capability);
@@ -26,25 +28,18 @@ public:
 
     PluginPage() = delete;
 
-    bool is_valid() const { return m_browser != nullptr && m_cap != nullptr; }
     void detach_capability();
-    void on_bootstrap_event(wxWebViewEvent& event);
-    void on_new_window(wxWebViewEvent& event);
-    void on_script_message(wxWebViewEvent& event);
     void push_message(const std::string& message);
-    void set_icon(const wxBitmap& icon) { m_icon = icon; }
-    const wxBitmap& icon() const { return m_icon; }
+
+protected:
+    std::optional<std::string> page_html() override;
+    bool on_page_message(const std::string& kind, const nlohmann::json& data) override;
 
 private:
-    void load_plugin_content();
-    wxString bootstrap_url() const;
-    wxString web_base_url() const;
+    void on_new_window(wxWebViewEvent& event);
 
-    wxWebView* m_browser{nullptr};
     std::shared_ptr<PagesPluginCapability> m_cap;
     std::shared_ptr<std::atomic<PluginPage*>> m_lifetime;
-    bool m_content_loaded{false};
-    wxBitmap m_icon;
 };
 
 class PluginPages
@@ -76,7 +71,13 @@ private:
     void show_overflow_menu();
     static wxString page_tab_id(const PluginCapabilityId& id);
 
-    std::map<PluginCapabilityId, PluginPage*> m_pages;
+    struct Page
+    {
+        GUI::LazyPage<PluginPage>* page{nullptr};
+        wxBitmap                   icon;
+    };
+
+    std::map<PluginCapabilityId, Page> m_pages;
     std::vector<PluginCapabilityId> m_order;
     Notebook* m_parent{nullptr};
 

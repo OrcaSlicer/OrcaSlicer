@@ -25,6 +25,12 @@
 	"hot_plate_temp_initial_layer": [
 		"80"
 	],
+	"supertack_plate_temp": [
+		"60"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"60"
+	],
 	"slow_down_for_layer_cooling": [
 		"1"
 	],

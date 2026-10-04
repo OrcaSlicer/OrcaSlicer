@@ -9,9 +9,20 @@
 #include "wxExtensions.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
+#include <string>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/collpane.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
 
 #define BORDER_W     FromDIP(20)
 #define TEXT_WRAP    FromDIP(400)
@@ -156,14 +167,14 @@ void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& 
 
     auto daa_chk = new CheckBox(this);
     daa_chk->SetValue(cfg->is_network_update_prompt_disabled());
-    daa_chk->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e){
+    daa_chk->Bind(wxEVT_TOGGLEBUTTON, [](wxCommandEvent& e){
         auto cfg = wxGetApp().app_config;
         cfg->set_network_update_prompt_disabled(e.IsChecked());
         cfg->save();
     });
 
     auto daa_str = new Label(this, _L("Don't Ask Again"));
-    auto on_toggle = [this, daa_chk]() {
+    auto on_toggle = [daa_chk]() {
         daa_chk->SetValue(!daa_chk->GetValue());
         wxCommandEvent evt(wxEVT_TOGGLEBUTTON, daa_chk->GetId());
         evt.SetEventObject(daa_chk);

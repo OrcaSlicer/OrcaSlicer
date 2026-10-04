@@ -1,7 +1,11 @@
 #ifndef SLA_SUPPORTPOINT_HPP
 #define SLA_SUPPORTPOINT_HPP
 
+#include <Eigen/Core>
+#include <cstdlib>
+#include "libslic3r/libslic3r.h"
 #include <libslic3r/Point.hpp>
+#include <vector>
 
 namespace Slic3r { namespace sla {
 

@@ -1,13 +1,26 @@
 #ifndef PLATERWORKER_HPP
 #define PLATERWORKER_HPP
 
+#include <future>
+#include <functional>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <ios>
 #include <map>
 #include <chrono>
 
 #include "Worker.hpp"
 #include "BusyCursorJob.hpp"
 
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <wx/app.h>
+#include <wx/event.h>
+
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -79,9 +92,12 @@ class PlaterWorker: public Worker {
             steady_clock::time_point finalize_end = steady_clock::now();
             long long finalize_duration = duration_cast<milliseconds>(finalize_end - finalize_start).count();
 
+            // Bound first so typeid's operand is not a call. typeid evaluates it for a
+            // polymorphic type, which clang reports as -Wpotentially-evaluated-expression.
+            const Job &job = *m_job;
             BOOST_LOG_TRIVIAL(info)
                 << std::fixed // do not use scientific notations
-                << "Job '" << typeid(*m_job).name() << "' "
+                << "Job '" << typeid(job).name() << "' "
                 << "spend " << m_process_duration + finalize_duration << "ms "
                 << "(process " << m_process_duration << "ms + finalize " << finalize_duration << "ms)";
 

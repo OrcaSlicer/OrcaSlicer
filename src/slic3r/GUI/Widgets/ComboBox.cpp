@@ -1,7 +1,19 @@
 #include "ComboBox.hpp"
 #include "Label.hpp"
 
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <wx/clntdata.h>
+#include <vector>
+#include <wx/arrstr.h>
+#include <cstddef>
+#include <wx/containr.h>
 #include <wx/dcgraph.h>
+#include <wx/textctrl.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 
 BEGIN_EVENT_TABLE(ComboBox, TextInput)
 
@@ -87,10 +99,18 @@ void ComboBox::SetSelection(int n)
         return;
     drop.SetSelection(n);
     SetLabel(drop.GetValue());
-    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk())
-        SetIcon(items[drop.selection].icon_textctrl);
-    else
+    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk()) {
+        if (m_keep_drop_arrow) {
+            SetIcon("drop_down");
+            SetIcon_1(items[drop.selection].icon_textctrl);
+        } else {
+            SetIcon(items[drop.selection].icon_textctrl);
+        }
+    } else {
         SetIcon("drop_down");
+        if (m_keep_drop_arrow)
+            SetIcon_1(wxNullBitmap);
+    }
 
     if (drop.selection >= 0) {
         SetStaticTips(items[drop.selection].text_static_tips, wxNullBitmap);
@@ -120,10 +140,18 @@ void ComboBox::SetValue(const wxString &value)
 {
     drop.SetValue(value);
     SetLabel(value);
-    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk())
-        SetIcon(items[drop.selection].icon_textctrl);
-    else
+    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk()) {
+        if (m_keep_drop_arrow) {
+            SetIcon("drop_down");
+            SetIcon_1(items[drop.selection].icon_textctrl);
+        } else {
+            SetIcon(items[drop.selection].icon_textctrl);
+        }
+    } else {
         SetIcon("drop_down");
+        if (m_keep_drop_arrow)
+            SetIcon_1(wxNullBitmap);
+    }
 
     if (drop.selection >= 0) {
         SetStaticTips(items[drop.selection].text_static_tips, wxNullBitmap);
@@ -192,7 +220,7 @@ bool ComboBox::SetFont(wxFont const& font)
 
 int ComboBox::Append(const wxString &item, const wxBitmap &bitmap, int style)
 {
-    if (&bitmap && bitmap.IsOk()) {
+    if (bitmap.IsOk()) {
         return Append(item, bitmap, nullptr, style);
     }
     return Append(item, wxNullBitmap, nullptr, style);
@@ -203,7 +231,7 @@ int ComboBox::Append(const wxString &text,
                      void *          clientData,
                      int style)
 {
-    if (&bitmap && bitmap.IsOk()) {
+    if (bitmap.IsOk()) {
         return Append(text, bitmap, wxString{}, clientData, style);
     }
     return Append(text, wxNullBitmap, wxString{}, clientData, style);
@@ -221,7 +249,7 @@ int ComboBox::Append(const wxString &text,
                      void *clientData,
                      int style)
 {
-    auto valid_bit_map = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
+    auto valid_bit_map = bitmap.IsOk() ? bitmap : wxNullBitmap;
     Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, clientData, group_key, group_label};
     item.style = style;
     items.push_back(item);
@@ -317,7 +345,7 @@ wxBitmap ComboBox::GetItemBitmap(unsigned int n) { return items[n].icon; }
 void ComboBox::SetItemBitmap(unsigned int n, wxBitmap const &bitmap)
 {
     if (n >= items.size()) return;
-    items[n].icon = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
+    items[n].icon = bitmap.IsOk() ? bitmap : wxNullBitmap;
     drop.Invalidate();
 }
 

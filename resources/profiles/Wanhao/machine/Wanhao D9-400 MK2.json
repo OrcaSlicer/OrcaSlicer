@@ -1,0 +1,9 @@
+{
+	"type": "machine_model",
+	"name": "Wanhao D9-400 MK2",
+	"model_id": "Wanhao-D9-400-MK2",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Wanhao",
+	"default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System"
+}

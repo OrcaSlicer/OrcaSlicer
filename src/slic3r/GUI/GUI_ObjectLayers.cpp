@@ -14,6 +14,23 @@
 
 #include "I18N.hpp"
 
+#include "slic3r/GUI/GUI_ObjectSettings.hpp"
+#include <wx/sizer.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/Field.hpp"
+#include <cmath>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cstddef>
+#include <functional>
+#include <wx/types.h>
+#include <wx/textctrl.h>
+#include <wx/utils.h>
+#include "libslic3r/LocalesUtils.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include <wx/wupdlock.h>
 
 namespace Slic3r
@@ -48,7 +65,7 @@ void ObjectLayers::select_editor(LayerRangeEditor* editor, const bool is_last_ed
      * And as a result we couldn't edit this control.
      * */
 #ifdef __WXOSX__
-        wxTheApp->CallAfter([editor]() {
+        wxTheApp->CallAfter([]() {
 #endif
         //editor->SetFocus();
         //editor->SelectAll();
@@ -223,7 +240,7 @@ void ObjectLayers::update_layers_list()
 
     // only call sizer->Clear(true) via CallAfter, otherwise crash happens in Linux when press enter in Height Range
     // because an element cannot be destroyed while there are pending events for this element.(https://github.com/wxWidgets/Phoenix/issues/1854)
-    wxGetApp().CallAfter([this, type, objects_ctrl, range]() {
+    wxGetApp().CallAfter([this, type, range]() {
         m_og->ctrl_parent()->Freeze();
 
         // Delete all controls from options group

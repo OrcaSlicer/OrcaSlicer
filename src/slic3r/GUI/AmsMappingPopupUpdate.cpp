@@ -21,6 +21,17 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 
+#include <list>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <string>
+#include <cstdlib>
+#include <exception>
+#include <map>
+#include "libslic3r/Config.hpp"
+#include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
@@ -28,6 +39,7 @@
 #include <miniz.h>
 #include <algorithm>
 #include <optional>
+#include <wx/wx.h>
 #include "Plater.hpp"
 #include "BitmapCache.hpp"
 
@@ -406,7 +418,7 @@ void AmsMapingPopup::update_ams_data_multi_machines()
         int ams_type = 1;
         int nozzle_id = 0;
 
-        if (ams_type >= 1 || ams_type <= 3) { // 1:ams 2:ams-lite 3:n3f
+        if (ams_type >= 1 && ams_type <= 3) { // 1:ams 2:ams-lite 3:n3f
 
             auto sizer_mapping_list = new wxBoxSizer(wxHORIZONTAL);
             auto ams_mapping_item_container = new MappingContainer(nozzle_id == 0 ? m_right_marea_panel : m_left_marea_panel, "AMS-1", 4);

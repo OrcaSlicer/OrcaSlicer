@@ -1,5 +1,6 @@
 #include "test_helpers.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Config.hpp"
@@ -7,11 +8,23 @@
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/STL.hpp"
 
+#include <algorithm>
 #include <cstdlib>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <initializer_list>
+#include "libslic3r/Point.hpp"
+#include <fstream>
+#include <iterator>
+#include <set>
 #include <string>
 
 #include <boost/filesystem.hpp>
 #include <libslic3r/ModelArrange.hpp>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "test_utils.hpp"
 
@@ -225,7 +238,7 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 }
 
 void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r::Model &model, const DynamicPrintConfig &config_in,
-                const std::vector<std::vector<ConfigBase::SetDeserializeItem>> *per_object_overrides, bool arrange)
+                const std::vector<std::vector<ConfigBase::SetDeserializeItem>> *per_object_overrides, bool arrange, size_t instances)
 {
 	DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.apply(config_in);
@@ -236,7 +249,8 @@ void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r
 		ModelObject *object = model.add_object();
 		object->name += "object.stl";
 		object->add_volume(std::move(t));
-		object->add_instance();
+		for (size_t i = 0; i < instances; ++i)
+			object->add_instance();
 
 		if (per_object_overrides && object_idx < per_object_overrides->size() && !(*per_object_overrides)[object_idx].empty()) {
 			DynamicPrintConfig oc;

@@ -1,14 +1,38 @@
 #include "SeamPlacer.hpp"
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/AABBTreeIndirect.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "Polygon.hpp"
+#include "libslic3r/PrintBase.hpp"
 #include "PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 #include "tbb/parallel_reduce.h"
+#include <atomic>
 #include <boost/log/trivial.hpp>
+#include <cmath>
+#include <cstdlib>
+#include <cstddef>
+#include <igl/Hit.h>
+#include <optional>
+#include <cassert>
+#include <functional>
+#include <numeric>
+#include <memory>
 #include <random>
 #include <algorithm>
 #include <queue>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/KDTreeIndirect.hpp"
@@ -19,10 +43,12 @@
 #include "libslic3r/Layer.hpp"
 
 #include "libslic3r/Geometry/Curves.hpp"
+#include "libslic3r/I18N.hpp"
 #include "libslic3r/ShortEdgeCollapse.hpp"
 #include "libslic3r/TriangleSetSampling.hpp"
 
 #include "libslic3r/Utils.hpp"
+#include "PreciseSeam.hpp"
 
 //#define DEBUG_FILES
 
@@ -303,6 +329,16 @@ struct GlobalModelInfo {
   AABBTreeIndirect::Tree<3, float> enforcers_tree;
   AABBTreeIndirect::Tree<3, float> blockers_tree;
 
+  // Precise Seam modifiers: strong modifiers (CENTER/LEFT/RIGHT) determine exact seam placement
+  std::vector<const ModelVolume*> precise_seam_strong_volumes;
+  // Precise Seam modifiers: weak modifiers (ENFORCED/BLOCKED/NEUTRAL) provide hints for seam placement
+  std::vector<const ModelVolume*> precise_seam_weak_volumes;
+
+  // Pre-sliced modifier polygons, keyed by ModelVolume pointer.
+  // Populated once in SeamPlacer::init() to avoid re-slicing on every perimeter.
+  // Each value is a per-layer vector of Polygons for that modifier volume.
+  std::unordered_map<const ModelVolume*, std::vector<Polygons>> precise_seam_slices;
+
   bool is_enforced(const Vec3f &position, float radius) const {
     if (enforcers.empty()) {
       return false;
@@ -403,7 +439,8 @@ struct GlobalModelInfo {
 ;
 
 //Extract perimeter polygons of the given layer
-Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerRegion*> &corresponding_regions_out) {
+Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerRegion*> &corresponding_regions_out,
+                                   bool has_precise_seam_modifiers) {
   Polygons polygons;
   for (const LayerRegion *layer_region : layer->regions()) {
     for (const ExtrusionEntity *ex_entity : layer_region->perimeters.entities) {
@@ -440,6 +477,18 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
     }
   }
 
+  if (has_precise_seam_modifiers) {
+    // Extrusion loops repeat their start point; Polygon closes the contour implicitly.
+    // Normalize here for Precise Seam without changing ordinary seam candidates.
+    for (Polygon &polygon : polygons) {
+      // Adjacent extrusion paths share endpoints; zero-length edges would prevent refinement at their junctions.
+      // Remove only consecutive duplicates, preserving distinct visits to a self-touching contour point.
+      polygon.points.erase(std::unique(polygon.points.begin(), polygon.points.end()), polygon.points.end());
+      while (polygon.size() > 1 && polygon.points.front() == polygon.points.back())
+        polygon.points.pop_back();
+    }
+  }
+
   if (polygons.empty()) { // If there are no perimeter polygons for whatever reason (disabled perimeters .. ) insert dummy point
     // it is easier than checking everywhere if the layer is not emtpy, no seam will be placed to this layer anyway
     polygons.emplace_back(Points{ { 0, 0 } });
@@ -449,17 +498,42 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
   return polygons;
 }
 
-// Insert SeamCandidates created from perimeter polygons in to the result vector.
-// Compute its type (Enfrocer,Blocker), angle, and position
-//each SeamCandidate also contains pointer to shared Perimeter structure representing the polygon
-// if Custom Seam modifiers are present, oversamples the polygon if necessary to better fit user intentions
+// Build SeamCandidates for each vertex of the perimeter polygon and attach them to a shared Perimeter.
+// For each vertex: computes position, angle, and type (Enforcer / Blocker / Neutral).
+// When Precise Seam modifiers are present: inserts strong seam point,
+// oversamples enforcer edges, applies weak modifiers, marks one enforced point as central for alignment.
 void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const LayerRegion *region,
-                               const GlobalModelInfo &global_model_info, PrintObjectSeamData::LayerSeams &result) {
+                               const GlobalModelInfo &global_model_info, PrintObjectSeamData::LayerSeams &result,
+                               PreciseSeam::PreciseSeamWarnings* warnings = nullptr) {
   if (orig_polygon.size() == 0) {
     return;
   }
   Polygon polygon = orig_polygon;
   bool was_clockwise = polygon.make_counter_clockwise();
+
+  // Process Precise Seam modifiers to find seam placement
+  const Layer* layer = region ? region->layer() : nullptr;
+
+  // Use pre-computed Precise Seam volumes from global_model_info (computed once in init)
+  const auto& strong_volumes = global_model_info.precise_seam_strong_volumes;
+  const auto& weak_volumes = global_model_info.precise_seam_weak_volumes;
+
+  // Use pre-sliced cache from global_model_info instead of re-slicing on every call
+  auto seam_point = PreciseSeam::insert_strong_seam_point(strong_volumes, polygon, layer, global_model_info.precise_seam_slices, warnings);
+
+  // Store the inserted point position for marking as central_enforcer later
+  std::optional<Vec3f> inserted_seam_position;
+  if (seam_point.has_value()) {
+    Vec2f unscaled_p = unscale(seam_point.value()).cast<float>();
+    inserted_seam_position = Vec3f(unscaled_p.x(), unscaled_p.y(), z_coord);
+  }
+
+  // Process weak modifiers (ENFORCED/BLOCKED/NEUTRAL) only if no strong modifier was inserted
+  std::vector<PreciseSeam::WeakModifierSegment> weak_segments;
+  if (!inserted_seam_position.has_value()) {
+    weak_segments = PreciseSeam::collect_weak_modifier_segments(weak_volumes, polygon, layer, global_model_info.precise_seam_slices, warnings);
+  }
+
   float angle_arm_len = region != nullptr ? region->flow(FlowRole::frExternalPerimeter).nozzle_diameter() : 0.5f;
 
   std::vector<float> lengths { };
@@ -528,10 +602,15 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
 
   perimeter.end_index = result.points.size();
 
+  // Apply weak modifiers if no strong modifier was inserted
+  if (!inserted_seam_position.has_value() && !weak_segments.empty()) {
+    PreciseSeam::apply_weak_modifiers_to_perimeter(
+        weak_segments, result, perimeter, some_point_enforced);
+  }
+
   if (some_point_enforced) {
-    // We will patches of enforced points (patch: continuous section of enforced points), choose
-    // the longest patch, and select the middle point or sharp point (depending on the angle)
-    // this point will have high priority on this perimeter
+    // Choose the continuous enforced patch with the most candidates, then select its middle
+    // candidate or a sharp corner. Patch length here is a point count, not geometric distance.
     size_t perimeter_size = perimeter.end_index - perimeter.start_index;
     const auto next_index = [&](size_t idx) {
       return perimeter.start_index + Slic3r::next_idx_modulo(idx - perimeter.start_index, perimeter_size);
@@ -562,7 +641,9 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
       std::pair<size_t, size_t> longest_patch { 0, 0 };
       auto patch_len = [perimeter_size](const std::pair<size_t, size_t> &start_end) {
         if (start_end.second < start_end.first) {
-          return start_end.first + (perimeter_size - start_end.second);
+          // Count [start, end) across the closing edge, independently of the contour's start.
+          // Subtract indices first: they are offsets in the layer, not local perimeter indices.
+          return perimeter_size - (start_end.first - start_end.second);
         } else {
           return start_end.second - start_end.first;
         }
@@ -595,30 +676,24 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
     }
   }
 
-}
-
-// Get index of previous and next perimeter point of the layer. Because SeamCandidates of all polygons of the given layer
-// are sequentially stored in the vector, each perimeter contains info about start and end index. These vales are used to
-// deduce index of previous and next neigbour in the corresponding perimeter.
-std::pair<size_t, size_t> find_previous_and_next_perimeter_point(const std::vector<SeamCandidate> &perimeter_points,
-                                                                 size_t point_index) {
-  const SeamCandidate &current = perimeter_points[point_index];
-  int prev = point_index - 1; //for majority of points, it is true that neighbours lie behind and in front of them in the vector
-  int next = point_index + 1;
-
-  if (point_index == current.perimeter.start_index) {
-    // if point_index is equal to start, it means that the previous neighbour is at the end
-    prev = current.perimeter.end_index;
+  // Apply precise seam point if it was inserted
+  if (inserted_seam_position.has_value()) {
+    // Set single point as Enforced, block all others
+    for (size_t i = perimeter.start_index; i < perimeter.end_index; ++i) {
+      if (result.points[i].position == inserted_seam_position.value()) {
+        // Mark as the single enforced point with highest priority
+        result.points[i].type = EnforcedBlockedSeamPoint::Enforced;
+        result.points[i].central_enforcer = true;
+        perimeter.precise_seam_point = inserted_seam_position;
+        perimeter.precise_seam_index = i;
+      } else {
+        // Block all other points
+        result.points[i].type = EnforcedBlockedSeamPoint::Blocked;
+        result.points[i].central_enforcer = false;
+      }
+    }
   }
 
-  if (point_index == current.perimeter.end_index - 1) {
-    // if point_index is equal to end, than next neighbour is at the start
-    next = current.perimeter.start_index;
-  }
-
-  assert(prev >= 0);
-  assert(next >= 0);
-  return {size_t(prev),size_t(next)};
 }
 
 // Computes all global model info - transforms object, performs raycasting
@@ -636,7 +711,9 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
         || model_volume->type() == ModelVolumeType::NEGATIVE_VOLUME) {
       auto model_transformation = model_volume->get_matrix();
       indexed_triangle_set model_its = model_volume->mesh().its;
-      // ORCA: Mirrored transforms flip winding, keep normals outward
+      // ORCA fix (not related to Precise Seam, discovered during its development):
+      // Mirror transforms have negative determinant which flips triangle winding.
+      // fix_left_handed=true swaps indices to keep normals pointing outward.
       its_transform(model_its, model_transformation, true);
       if (model_volume->type() == ModelVolumeType::MODEL_PART) {
         its_merge(triangle_set, model_its);
@@ -657,7 +734,10 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
 
   size_t negative_volumes_start_index = triangle_set.indices.size();
   its_merge(triangle_set, negative_volumes_set);
-  // ORCA: Mirroring flips normals, keep them outward for visibility sampling
+  // ORCA fix (not related to Precise Seam, discovered during its development):
+  // Object-level transform may include mirroring (negative determinant),
+  // which inverts triangle winding. fix_left_handed=true corrects this
+  // so visibility ray sampling sees outward-facing normals.
   its_transform(triangle_set, obj_transform, true);
   BOOST_LOG_TRIVIAL(debug)
       << "SeamPlacer: decimate: end";
@@ -719,12 +799,12 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
       auto model_transformation = obj_transform * mv->get_matrix();
 
       indexed_triangle_set enforcers = mv->seam_facets.get_facets(*mv, EnforcerBlockerType::ENFORCER);
-      // ORCA: Keep normals outward when mirroring seam enforcers
+      // ORCA fix (not related to Precise Seam): fix winding for mirrored transforms
       its_transform(enforcers, model_transformation, true);
       its_merge(result.enforcers, enforcers);
 
       indexed_triangle_set blockers = mv->seam_facets.get_facets(*mv, EnforcerBlockerType::BLOCKER);
-      // ORCA: Keep normals outward when mirroring seam blockers
+      // ORCA fix (not related to Precise Seam): fix winding for mirrored transforms
       its_transform(blockers, model_transformation, true);
       its_merge(result.blockers, blockers);
     }
@@ -1011,13 +1091,14 @@ void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, 
 // Parallel process and extract each perimeter polygon of the given print object.
 // Gather SeamCandidates of each layer into vector and build KDtree over them
 // Store results in the SeamPlacer variables m_seam_per_object
-void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info) {
+void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info,
+                                        PreciseSeam::PreciseSeamWarnings* warnings) {
   using namespace SeamPlacerImpl;
   PrintObjectSeamData &seam_data = m_seam_per_object.emplace(po, PrintObjectSeamData { }).first->second;
   seam_data.layers.resize(po->layer_count());
 
   tbb::parallel_for(tbb::blocked_range<size_t>(0, po->layers().size()),
-                    [po, &global_model_info, &seam_data]
+                    [po, &global_model_info, &seam_data, warnings]
                     (tbb::blocked_range<size_t> r) {
                       for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
                         PrintObjectSeamData::LayerSeams &layer_seams = seam_data.layers[layer_idx];
@@ -1025,10 +1106,13 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
                         auto unscaled_z = layer->slice_z;
                         std::vector<const LayerRegion*> regions;
                         //NOTE corresponding region ptr may be null, if the layer has zero perimeters
-                        Polygons polygons = extract_perimeter_polygons(layer, regions);
+                        const bool has_precise_seam_modifiers = !global_model_info.precise_seam_strong_volumes.empty() ||
+                                                               !global_model_info.precise_seam_weak_volumes.empty();
+                        Polygons polygons = extract_perimeter_polygons(layer, regions, has_precise_seam_modifiers);
                         for (size_t poly_index = 0; poly_index < polygons.size(); ++poly_index) {
                           process_perimeter_polygon(polygons[poly_index], unscaled_z,
-                                                    regions[poly_index], global_model_info, layer_seams);
+                                                    regions[poly_index], global_model_info, layer_seams,
+                                                    warnings);
                         }
                         auto functor = SeamCandidateCoordinateFunctor { layer_seams.points };
                         seam_data.layers[layer_idx].points_tree =
@@ -1424,9 +1508,12 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
 
 }
 
-void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_canceled_func) {
+void SeamPlacer::init(Print &print, std::function<void(void)> throw_if_canceled_func) {
   using namespace SeamPlacerImpl;
   m_seam_per_object.clear();
+
+  // Warning flags for Precise Seam processing — shared across all objects
+  PreciseSeam::PreciseSeamWarnings precise_seam_warnings;
 
   for (const PrintObject *po : print.objects()) {
     throw_if_canceled_func();
@@ -1436,14 +1523,29 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
     {
       GlobalModelInfo global_model_info { };
       gather_enforcers_blockers(global_model_info, po);
+      PreciseSeam::init_precise_seam_data(
+          global_model_info.precise_seam_strong_volumes,
+          global_model_info.precise_seam_weak_volumes,
+          m_seam_per_object[po].has_precise_seam_strong_volumes,
+          po->model_object());
+
+      // Pre-slice all precise seam modifier volumes once per object.
+      // Without this cache, slice_single_volume() would be called for every
+      // modifier × every perimeter × every layer — thousands of redundant slicing operations.
+      for (const ModelVolume* vol : global_model_info.precise_seam_strong_volumes)
+          global_model_info.precise_seam_slices[vol] = po->slice_single_volume(vol);
+      for (const ModelVolume* vol : global_model_info.precise_seam_weak_volumes)
+          global_model_info.precise_seam_slices[vol] = po->slice_single_volume(vol);
+
       throw_if_canceled_func();
       if (configured_seam_preference == spAligned || configured_seam_preference == spNearest || configured_seam_preference == spAlignedBack) {
         compute_global_occlusion(global_model_info, po, throw_if_canceled_func, configured_seam_preference);
       }
       throw_if_canceled_func();
+
       BOOST_LOG_TRIVIAL(debug)
           << "SeamPlacer: gather_seam_candidates: start";
-      gather_seam_candidates(po, global_model_info);
+      gather_seam_candidates(po, global_model_info, &precise_seam_warnings);
       BOOST_LOG_TRIVIAL(debug)
           << "SeamPlacer: gather_seam_candidates: end";
       throw_if_canceled_func();
@@ -1491,9 +1593,48 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
           << "SeamPlacer: align_seam_points : end";
     }
 
+    // Restore precise seam positions that were potentially modified
+    if (m_seam_per_object[po].has_precise_seam_strong_volumes) {
+      PreciseSeam::restore_precise_seam_positions(m_seam_per_object[po].layers);
+    }
+
 #ifdef DEBUG_FILES
     debug_export_points(m_seam_per_object[po].layers, po->bounding_box(), comparator);
 #endif
+  }
+
+  // Show Precise Seam warnings (once for all objects).
+  // Only ONE active_step_add_warning() call — multiple calls generate multiple UI events,
+  // each re-pushing ALL current warnings via Plater handler, causing NotificationManager::append()
+  // to duplicate text within each popup.
+  {
+      const bool mi = precise_seam_warnings.multiple_intersections.load(std::memory_order_relaxed);
+      const bool tb = precise_seam_warnings.through_body.load(std::memory_order_relaxed);
+      const bool mc = precise_seam_warnings.multiply_connected.load(std::memory_order_relaxed);
+      const bool fc = precise_seam_warnings.full_containment.load(std::memory_order_relaxed);
+      std::vector<std::string> parts;
+      if (mi)
+          parts.push_back(_u8L("multiple intersections with a perimeter detected"));
+      if (tb)
+          parts.push_back(_u8L("modifier fully crosses the printable perimeter"));
+      if (mc)
+          parts.push_back(_u8L("modifier shape is not solid (has holes inside) and was ignored"));
+      if (fc)
+          parts.push_back(_u8L("perimeter is fully contained inside modifier and was ignored"));
+      if (!parts.empty()) {
+          // One line: the export warnings dialog shows only the first line of each warning.
+          std::string warning_text = _u8L("Precise Seam") + ": ";
+          for (size_t i = 0; i < parts.size(); ++i) {
+              if (i > 0) warning_text += "; ";
+              warning_text += parts[i];
+          }
+          warning_text += ". ";
+          warning_text += _u8L("Seam placement may differ from expected.");
+          print.active_step_add_warning(
+              PrintStateBase::WarningLevel::NON_CRITICAL,
+              warning_text,
+              PrintStateBase::SlicingPreciseSeamWarning);
+      }
   }
 }
 

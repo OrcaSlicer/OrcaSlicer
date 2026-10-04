@@ -1,5 +1,9 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/FilamentGroupUtils.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -11,7 +15,12 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCode/ToolOrderUtils.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include <cstddef>
 #include <map>
+#include <memory>
 #include <set>
 #include <unordered_map>
 #include <vector>
@@ -160,6 +169,50 @@ TEST_CASE("H2C multi-nozzle: filaments get distinct nozzles on the 6-nozzle extr
         REQUIRE(first.has_value());
         REQUIRE(first->extruder_id == 1);
         REQUIRE(first->group_id == group.get_nozzle_id(f));
+    }
+}
+
+TEST_CASE("Grouping context spans the filament count with mis-sized config arrays", "[ToolOrdering][H2C]")
+{
+    // FilamentGroup indexes the grouping context's filament_info by filament id, so a short
+    // per-filament array must not shorten it: the reads run off the end.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    // Single 6-nozzle extruder: opens the grouping engine without needing a BBL multi-extruder.
+    config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4};
+    config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count", true)->values = {6};
+    config.option<ConfigOptionStrings>("extruder_nozzle_stats", true)->values = {"Standard#6"};
+
+    // Four filaments, with filament_type / filament_is_support left short on purpose.
+    config.option<ConfigOptionStrings>("filament_colour", true)->values = {"#FF0000", "#00FF00", "#0000FF", "#FFFF00"};
+    config.option<ConfigOptionStrings>("filament_type", true)->values = {"PLA"};
+    config.option<ConfigOptionBools>("filament_is_support", true)->values = {0};
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values = {1.75, 1.75, 1.75, 1.75};
+    config.option<ConfigOptionInts>("filament_map", true)->values = {1, 1, 1, 1};
+    config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values = std::vector<double>(16, 140.);
+    config.option<ConfigOptionFloats>("flush_multiplier", true)->values = {1.};
+
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+
+    Print print;
+    print.apply(model, config);
+    // apply() does not pad the per-filament arrays, so the mis-sizing survives into the engine.
+    REQUIRE(print.config().filament_type.values.size() < print.config().filament_colour.values.size());
+
+    std::vector<std::vector<unsigned int>> layer_filaments = {{0, 1}, {1, 2}, {2, 3}};
+
+    SECTION("short per-filament arrays still yield one entry per filament") {
+        auto result = ToolOrdering::get_recommended_filament_maps(layer_filaments, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
+        REQUIRE(result.get_extruder_map(false).size() == 4);
+        for (int f = 0; f < 4; ++f)
+            REQUIRE(result.get_extruder_id(f) == 0);
+    }
+
+    SECTION("filament_ids longer than the filament count is truncated, not paired past the end") {
+        config.option<ConfigOptionStrings>("filament_ids", true)->values = {"a", "b", "c", "d", "e", "f"};
+        print.apply(model, config);
+        auto result = ToolOrdering::get_recommended_filament_maps(layer_filaments, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
+        REQUIRE(result.get_extruder_map(false).size() == 4);
     }
 }
 
@@ -464,6 +517,22 @@ TEST_CASE("Print config-index resolvers pick per-filament Hybrid slots", "[Print
         REQUIRE(print.get_nozzle_config_index(1, 0) == 1);
         REQUIRE(print.get_nozzle_config_index(2, 0) == 1); // extruder slot, not the High Flow slot
     }
+}
+
+TEST_CASE("Regrouping or rewriting the filament maps changes the config-index generation", "[Print][H2C]")
+{
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, DynamicPrintConfig::full_print_config());
+
+    size_t generation = print.config_index_generation();
+    print.set_nozzle_group_result(nullptr);
+    REQUIRE(print.config_index_generation() != generation);
+
+    generation = print.config_index_generation();
+    print.update_filament_maps_to_config({1}, {(int) nvtStandard}, {0});
+    REQUIRE(print.config_index_generation() != generation);
 }
 
 TEST_CASE("Re-applying an unchanged config after slicing keeps the result valid", "[Print][H2C]")
@@ -904,6 +973,9 @@ TEST_CASE("Filaments ordered after a migrator shift columns and the resolver tra
     config.option<ConfigOptionInts>("nozzle_temperature", true)->values = {200, 210, 220, 230, 240, 250};
     config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = {0.5, 0.5, 0.7, 0.9, 1.4, 1.4};
     config.option<ConfigOptionFloats>("retraction_length", true)->values = {0.8, 0.9, 1.0, 1.1};
+    config.option<ConfigOptionFloats>("fan_max_speed", true)->values = {10, 10, 20, 60, 30, 30};
+    config.option<ConfigOptionInts>("additional_cooling_fan_speed", true)->values = {1, 1, 2, 6, 3, 3};
+    config.option<ConfigOptionInts>("nozzle_temperature_range_high", true)->values = {230, 230, 240, 280, 250, 250};
 
     Model model;
     model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
@@ -944,6 +1016,21 @@ TEST_CASE("Filaments ordered after a migrator shift columns and the resolver tra
     REQUIRE(merged.size() == 4);
     REQUIRE_THAT(merged[3], Catch::Matchers::WithinAbs(1.4, 1e-9));
     REQUIRE_THAT(merged[2], Catch::Matchers::WithinAbs(0.9, 1e-9));
+
+    // The cooling and temperature range options follow the variant as well.
+    const PrintConfig &resolved = print.config();
+    REQUIRE(resolved.fan_max_speed.values == std::vector<double>{10, 20, 60, 30});
+    CHECK(resolved.fan_max_speed.get_at(print.get_filament_config_indx(1, 0)) == 20);
+    CHECK(resolved.fan_max_speed.get_at(print.get_filament_config_indx(1, 1)) == 60);
+    CHECK(resolved.additional_cooling_fan_speed.get_at(print.get_filament_config_indx(2, 1)) == 3);
+    CHECK(resolved.nozzle_temperature_range_high.get_at(print.get_filament_config_indx(2, 1)) == 250);
+    // The auxiliary fan maximum takes every variant of the filaments used, and only theirs.
+    ToolOrdering ordering;
+    ordering.layer_tools().emplace_back(0.2);
+    ordering.layer_tools().back().extruders = {0, 2};
+    CHECK(ordering.cal_max_additional_fan(resolved) == 3);
+    ordering.layer_tools().back().extruders = {1};
+    CHECK(ordering.cal_max_additional_fan(resolved) == 6);
 }
 
 TEST_CASE("Selector slicing keeps the result valid across re-apply", "[Print][H2C][Dynamic]")
@@ -980,4 +1067,42 @@ TEST_CASE("Selector slicing keeps the result valid across re-apply", "[Print][H2
     auto status = print.apply(model, config);
     REQUIRE(status != PrintBase::APPLY_STATUS_INVALIDATED);
     REQUIRE(print.is_step_done(psSlicingFinished));
+}
+
+TEST_CASE("parse_cyclic_order parses user cyclic toolchange sequences", "[ToolOrdering][Cyclic]")
+{
+    // Filament numbers are 1-based in the UI; the parser returns 0-based indices.
+    SECTION("well-formed sequence") {
+        REQUIRE(parse_cyclic_order("3,2,1,4", 4) == std::vector<unsigned int>({2, 1, 0, 3}));
+    }
+
+    SECTION("surrounding whitespace is tolerated") {
+        REQUIRE(parse_cyclic_order(" 3 , 2 ,1, 4 ", 4) == std::vector<unsigned int>({2, 1, 0, 3}));
+    }
+
+    SECTION("out-of-range and non-positive entries are dropped") {
+        // 0 is below the 1-based range, 5 is above it for a 4-filament setup, -1 is invalid.
+        REQUIRE(parse_cyclic_order("0,5,-1,2", 4) == std::vector<unsigned int>({1}));
+    }
+
+    SECTION("duplicates keep only the first occurrence") {
+        REQUIRE(parse_cyclic_order("2,2,1,2", 4) == std::vector<unsigned int>({1, 0}));
+    }
+
+    SECTION("garbage tokens are ignored") {
+        REQUIRE(parse_cyclic_order("3,abc,,2,x1", 4) == std::vector<unsigned int>({2, 1}));
+    }
+
+    SECTION("tokens that only start with a number are ignored") {
+        // "2x" must be dropped rather than parsed as filament 2.
+        REQUIRE(parse_cyclic_order("3,2x,1", 4) == std::vector<unsigned int>({2, 0}));
+    }
+
+    SECTION("empty string yields an empty order") {
+        REQUIRE(parse_cyclic_order("", 4).empty());
+    }
+
+    SECTION("a partial sequence only names the filaments it lists") {
+        REQUIRE(parse_cyclic_order("3,1", 4) == std::vector<unsigned int>({2, 0}));
+    }
 }

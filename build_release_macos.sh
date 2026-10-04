@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 SECONDS=0
 
-while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
+while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -38,8 +38,8 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
     i )
         export CMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH:+$CMAKE_IGNORE_PREFIX_PATH;}$OPTARG"
         ;;
-    1 )
-        export CMAKE_BUILD_PARALLEL_LEVEL=1
+    j )
+        export CMAKE_BUILD_PARALLEL_LEVEL="$OPTARG"
         ;;
     T )
         export BUILD_TESTS="1"
@@ -53,12 +53,12 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
         echo "   -s: Build slicer only"
         echo "   -u: Build universal app only (requires existing arm64 and x86_64 app bundles)"
         echo "   -n: Nightly build"
-        echo "   -t: Specify minimum version of the target platform, default is 11.3"
+        echo "   -t: Specify minimum version of the target platform, default is 12.0"
         echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode"
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
-        echo "   -1: Use single job for building"
+        echo "   -j: Set the number of parallel build jobs (CMAKE_BUILD_PARALLEL_LEVEL)"
         echo "   -T: Build and run tests (set ORCA_TESTS_BUILD_ONLY=1 to build without running)"
         exit 0
         ;;
@@ -95,7 +95,7 @@ if [ -z "$DEPS_CMAKE_GENERATOR" ]; then
 fi
 
 if [ -z "$OSX_DEPLOYMENT_TARGET" ]; then
-  export OSX_DEPLOYMENT_TARGET="11.3"
+  export OSX_DEPLOYMENT_TARGET="12.0"
 fi
 
 if [ -z "$CMAKE_IGNORE_PREFIX_PATH" ]; then

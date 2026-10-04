@@ -3,6 +3,12 @@
 // MultiMaterialSegmentation.hpp declares boost::polygon traits for ColoredLine, so its
 // geometry/boost dependencies must be included first.
 #include <boost/polygon/polygon.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <string>
+#include <vector>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/MultiMaterialSegmentation.hpp"

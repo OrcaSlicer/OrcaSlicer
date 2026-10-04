@@ -120,6 +120,7 @@
 		"15"
 	],
 	"machine_max_junction_deviation": [
+		"0.01",
 		"0.01"
 	],
 	"machine_max_speed_e": [
@@ -312,7 +313,6 @@
 		"60"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "0",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",

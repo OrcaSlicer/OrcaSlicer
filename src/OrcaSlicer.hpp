@@ -1,8 +1,18 @@
 #ifndef SLIC3R_HPP
 #define SLIC3R_HPP
 
+#include <map>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <set>
+#include <string>
+#include <vector>
+
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Format/AssembleList.hpp"
 
 namespace Slic3r {
 
@@ -16,64 +26,6 @@ namespace IO {
         Gcode
     };
 }
-
-#define JSON_ASSEMPLE_PLATES                   "plates"
-#define JSON_ASSEMPLE_PLATE_PARAMS             "plate_params"
-#define JSON_ASSEMPLE_PLATE_NAME               "plate_name"
-#define JSON_ASSEMPLE_PLATE_NEED_ARRANGE       "need_arrange"
-#define JSON_ASSEMPLE_OBJECTS                  "objects"
-#define JSON_ASSEMPLE_OBJECT_PATH              "path"
-#define JSON_ASSEMPLE_OBJECT_COUNT             "count"
-#define JSON_ASSEMPLE_OBJECT_FILAMENTS         "filaments"
-#define JSON_ASSEMPLE_OBJECT_POS_X             "pos_x"
-#define JSON_ASSEMPLE_OBJECT_POS_Y             "pos_y"
-#define JSON_ASSEMPLE_OBJECT_POS_Z             "pos_z"
-#define JSON_ASSEMPLE_OBJECT_ASSEMBLE_INDEX    "assemble_index"
-#define JSON_ASSEMPLE_OBJECT_PRINT_PARAMS      "print_params"
-#define JSON_ASSEMPLE_ASSEMBLE_PARAMS         "assembled_params"
-
-
-#define JSON_ASSEMPLE_OBJECT_MIN_Z              "min_z"
-#define JSON_ASSEMPLE_OBJECT_MAX_Z              "max_z"
-#define JSON_ASSEMPLE_OBJECT_HEIGHT_RANGES      "height_ranges"
-#define JSON_ASSEMPLE_OBJECT_RANGE_PARAMS       "range_params"
-
-typedef struct _height_range_info {
-    float         min_z;
-    float         max_z;
-
-    std::map<std::string, std::string> range_params;
-}height_range_info_t;
-
-typedef struct _assembled_param_info {
-    std::map<std::string, std::string> print_params;
-    std::vector<height_range_info_t> height_ranges;
-}assembled_param_info_t;
-
-typedef struct _assemble_object_info {
-    std::string         path;
-    int                 count;
-
-    std::vector<int>    filaments;
-    std::vector<int>    assemble_index;
-    std::vector<float>  pos_x;
-    std::vector<float>  pos_y;
-    std::vector<float>  pos_z;
-    std::map<std::string, std::string> print_params;
-    std::vector<height_range_info_t> height_ranges;
-}assemble_object_info_t;
-
-typedef struct _assemble_plate_info {
-    std::string         plate_name;
-    bool                need_arrange {false};
-    int                 filaments_count {0};
-
-    std::map<std::string, std::string> plate_params;
-    std::vector<assemble_object_info_t> assemble_obj_list;
-    std::vector<ModelObject *> loaded_obj_list;
-    std::map<int, assembled_param_info_t> assembled_param_list;
-}assemble_plate_info_t;
-
 
 typedef struct _printer_plate_info {
     std::string         printer_name;
@@ -113,6 +65,8 @@ private:
     std::vector<std::string>    m_input_files;
     std::vector<std::string>    m_actions;
     std::vector<std::string>    m_transforms;
+    // Options the user typed; setup() fills the CLI's own options with defaults afterwards.
+    std::set<std::string>       m_given_option_keys;
     std::vector<Model>          m_models;
 
     bool setup(int argc, char **argv);

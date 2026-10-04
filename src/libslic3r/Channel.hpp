@@ -1,6 +1,9 @@
 #ifndef slic3r_Channel_hpp_
 #define slic3r_Channel_hpp_
 
+#include <boost/optional/optional.hpp>
+#include <boost/none.hpp>
+#include <cstddef>
 #include <memory>
 #include <deque>
 #include <condition_variable>

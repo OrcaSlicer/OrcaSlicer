@@ -3,6 +3,15 @@
 #include "../GUI.hpp"
 #include "../GUI_Utils.hpp"
 #include "Label.hpp"
+#include <utility>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dc.h>
+#include <wx/peninfobase.h>
+#include <algorithm>
 
 LabeledStaticBox::LabeledStaticBox()
     : state_handler(this)
@@ -98,7 +107,7 @@ void LabeledStaticBox::SetBorderColor(StateColor const &color)
     Refresh();
 }
 
-void LabeledStaticBox::SetFont(wxFont set_font)
+bool LabeledStaticBox::SetFont(const wxFont &set_font)
 {
     m_font = set_font;
 
@@ -109,6 +118,7 @@ void LabeledStaticBox::SetFont(wxFont set_font)
     m_label_width  = tW;
 
     Refresh();
+    return true;
 }
 
 bool LabeledStaticBox::Enable(bool enable)

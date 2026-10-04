@@ -1,6 +1,11 @@
 #ifndef slic3r_GUI_ParamsDialog_hpp_
 #define slic3r_GUI_ParamsDialog_hpp_
 
+#include <wx/event.h>
+#include "slic3r/GUI/Event.hpp"
+#include <wx/object.h>
+#include <string>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
@@ -38,6 +43,7 @@ protected:
 
 private:
     std::string       m_editing_filament_id;
+    bool              m_initial_multi_bed_types = false;
     ParamsPanel * m_panel;
     wxWindowDisabler *m_winDisabler = nullptr;
 };
