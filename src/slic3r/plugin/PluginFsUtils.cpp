@@ -754,7 +754,14 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     // truth for a cloud plugin's installed version: it records the version fetched from
     // the cloud at install time, independent of the (possibly stale) manifest/PEP723
     // header that scan_directory parses into entry.version.
-    if (!state.installed_version.empty())
+    //
+    // A local plugin has no cloud copy to diverge from: the entry file's own header is the only
+    // source of truth for its version. Trusting the sidecar there would pin the version shown
+    // in the UI to whatever it was at first install, even after the file is edited.
+    const bool is_local_install = state.installed_from == "local" && state.cloud_uuid.empty();
+    if (is_local_install && !entry.version.empty())
+        entry.installed_version = entry.version;
+    else if (!state.installed_version.empty())
         entry.installed_version = state.installed_version;
     if (!state.cloud_uuid.empty())
         entry.cloud = CloudPluginState{state.cloud_uuid, true, false, false};
