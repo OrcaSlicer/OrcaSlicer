@@ -1,7 +1,13 @@
 #ifndef slic3r_Preset_hpp_
 #define slic3r_Preset_hpp_
 
+#include <cstddef>
+#include <cassert>
+#include <cmath>
+#include <algorithm>
 #include <deque>
+#include <map>
+#include <limits>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -12,10 +18,14 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <vector>
+#include <utility>
 
+#include "Config.hpp"
 #include "PrintConfig.hpp"
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
+#include "libslic3r.h"
 
 //BBS: change system directories
 #define PRESET_SYSTEM_DIR      "system"

@@ -1,11 +1,20 @@
 #ifndef slic3r_SVG_hpp_
 #define slic3r_SVG_hpp_
 
+#include "Point.hpp"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
+#include "MultiPoint.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "Line.hpp"
 #include "TriangleMesh.hpp"
 #include "Surface.hpp"
+#include <string>
+#include <cstddef>
+#include <cstdio>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

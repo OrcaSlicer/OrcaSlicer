@@ -2,12 +2,31 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::partition_copy and std::min_element.
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <cassert>
+#include <cmath>
+#include <math.h>
+#include <limits>
 #include <unordered_set>
 
 #include "WallToolPaths.hpp"
 
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Arachne/utils/PolygonsPointIndex.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategyFactory.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/Arachne/utils/SparsePointGrid.hpp"
+#include "libslic3r/Arachne/utils/SquareGrid.hpp"
 #include "SkeletalTrapezoidation.hpp"
 #include "../ClipperUtils.hpp"
+#include "libslic3r/libslic3r.h"
 #include "utils/linearAlg2D.hpp"
 #include "EdgeGrid.hpp"
 #include "utils/SparseLineGrid.hpp"
@@ -17,6 +36,8 @@
 #include "Utils.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
 
 //#define ARACHNE_STITCH_PATCH_DEBUG
 

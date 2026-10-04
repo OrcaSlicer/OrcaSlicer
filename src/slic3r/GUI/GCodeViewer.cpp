@@ -28,6 +28,8 @@
 #include "libslic3r/Layer.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
+#include <boost/container_hash/hash.hpp>
+#include "slic3r/GUI/MeshUtils.hpp"
 #include <string>
 #include "libvgcode/include/Types.hpp"
 #include <vector>

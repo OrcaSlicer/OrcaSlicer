@@ -1,7 +1,16 @@
+#include <algorithm>
+#include <cassert>
+#include <cfloat>
+#include <math.h>
+#include <limits>
+#include <cstdint>
 #include <stdio.h>
 #include <numeric>
 
 #include <cmath>
+#include <string>
+#include <vector>
+#include <utility>
 #include "../ClipperUtils.hpp"
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
@@ -13,6 +22,12 @@
 #include "../VariableWidth.hpp"
 
 #include "FillBase.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "FillConcentric.hpp"
 #include "FillSpiralInset.hpp"
 #include "FillHoneycomb.hpp"
@@ -28,6 +43,11 @@
 // BBS: new infill pattern header
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/ShortestPath.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Utils.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {

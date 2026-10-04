@@ -80,9 +80,14 @@ private:
     AuxiliaryPanel*   m_auxiliary{nullptr};
     wxString   m_project_home_url;
     wxString   m_root_dir;
+    // Last show_3mf_info script, also sent whenever the page asks for it.
+    std::string m_info_script;
+    bool       m_reset_on_show{false};
     static inline std::atomic<int> m_sequence_id{8000};
 
     void show_info_editor(bool show);
+    void create_browser();
+    void reset_browser();
     
 
 public:

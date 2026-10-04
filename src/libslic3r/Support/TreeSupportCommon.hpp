@@ -11,10 +11,28 @@
 
 #include "../libslic3r.h"
 #include "../Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Support/SupportLayer.hpp"
 #include "SupportCommon.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <math.h>
+#include <cmath>
+#include <limits>
+#include <cassert>
+#include <cstdio>
+#include <iterator>
+#include <mutex>
 #include <string_view>
+#include <vector>
+#include <utility>
 
 namespace Slic3r
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/filesystem/path.hpp>
 #include <libslic3r/Utils.hpp>
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>

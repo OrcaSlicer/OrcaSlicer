@@ -1,22 +1,48 @@
 #include "ClipperUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "ExtrusionEntity.hpp"
 #include "ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "Layer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "Print.hpp"
 #include "SupportMaterial.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/Support/SupportLayer.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "SupportCommon.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
 #include "MutablePolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
+#include <agg/agg_rendering_buffer.h>
+#include <agg/agg_renderer_base.h>
+#include <algorithm>
+#include <cfloat>
 #include <cmath>
+#include <iterator>
+#include <cstdint>
+#include <cstddef>
+#include <deque>
+#include <initializer_list>
+#include <limits>
+#include <map>
 #include <memory>
 #include <boost/log/trivial.hpp>
 #include <boost/container/static_vector.hpp>
 
+#include <set>
+#include <numeric>
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
 #include <tbb/task_group.h>
+#include <vector>
+#include <utility>
+#include <tuple>
 
 #define SUPPORT_USE_AGG_RASTERIZER
 

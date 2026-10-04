@@ -1,12 +1,28 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 
 #include <cmath>
+#include <cstddef>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PrintConfig.hpp"
 #include <map>
+#include <math.h>
 #include <mutex>
 #include <set>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "test_helpers.hpp" // get access to init_print, etc

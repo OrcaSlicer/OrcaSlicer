@@ -1,9 +1,28 @@
 #include "Arrange.hpp"
+#include "ExPolygon.hpp"
+#include "Point.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
+#include "PrintConfig.hpp"
 #include "libslic3r.h"
 
+#include <Eigen/Core>
+#include <boost/geometry/index/parameters.hpp>
+#include <functional>
+#include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <cstddef>
+#include <boost/geometry/algorithms/convert.hpp>
+#include <array>
+#include <boost/geometry/index/predicates.hpp>
+#include <iterator>
+#include <exception>
 #include <libnest2d/backends/libslic3r/geometries.hpp>
+#include "libnest2d/common.hpp"
+#include "libnest2d/geometry_traits_nfp.hpp"
+#include "libnest2d/nester.hpp"
+#include "libnest2d/geometry_traits.hpp"
 #include <libnest2d/optimizers/nlopt/subplex.hpp>
 #include <libnest2d/placers/nfpplacer.hpp>
 #include <libnest2d/selections/firstfit.hpp>
@@ -13,6 +32,11 @@
 #include <ClipperUtils.hpp>
 
 #include <boost/geometry/index/rtree.hpp>
+#include <utility>
+#include <vector>
+#include <tuple>
+#include <set>
+#include <string>
 
 #if defined(_MSC_VER) && defined(__clang__)
 #define BOOST_NO_CXX17_HDR_STRING_VIEW

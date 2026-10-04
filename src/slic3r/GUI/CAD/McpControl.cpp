@@ -27,7 +27,7 @@
 
 #include <nlohmann/json.hpp>
 #include <boost/log/trivial.hpp>
-#include <Standard_Failure.hxx>   // OCCT base error (not a std::exception)
+#include <Standard_Failure.hxx>   // OCCT base error
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
@@ -637,9 +637,9 @@ json slice_body(DesignPanel* panel, const json& params)
              : plane_name == "YZ" ? gp_Dir(1, 0, 0)
                                   : gp_Dir(0, 0, 1);
     gp_Pnt o(n.X() * offset, n.Y() * offset, n.Z() * offset);
-    BRepAlgoAPI_Section sect(shape, gp_Pln(o, n), Standard_False);
-    sect.ComputePCurveOn1(Standard_False);
-    sect.Approximation(Standard_True);
+    BRepAlgoAPI_Section sect(shape, gp_Pln(o, n), false);
+    sect.ComputePCurveOn1(false);
+    sect.Approximation(true);
     sect.Build();
     if (!sect.IsDone()) throw std::runtime_error("section failed");
     std::vector<std::vector<Vec3d>> segs;
@@ -751,7 +751,7 @@ ShapeMetrics shape_metrics(const TopoDS_Shape& s)
     GProp_GProps vp; BRepGProp::VolumeProperties(s, vp);
     gp_Pnt c = vp.CentreOfMass();
     Bnd_Box bb; BRepBndLib::Add(s, bb);
-    Standard_Real x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
+    double x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
     return {vp.Mass(), Vec3d(c.X(), c.Y(), c.Z()), Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)};
 }
 
@@ -2095,8 +2095,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "mate")          return rpc_result(id, action_mate(panel, params));
         if (method == "check_interference") return rpc_result(id, action_check_interference(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
-    } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
-        return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));
+    } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
+        return rpc_error(id, -32000, std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"));
     } catch (const std::exception& ex) {
         return rpc_error(id, -32000, ex.what());
     }

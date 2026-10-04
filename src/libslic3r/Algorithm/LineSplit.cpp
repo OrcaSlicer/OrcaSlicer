@@ -1,8 +1,20 @@
 #include "LineSplit.hpp"
 
 #include "AABBTreeLines.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ClipperZUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "SVG.hpp"
 #include "Utils.hpp"
+#include <limits>
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <vector>
+#include <utility>
 
 //#define DEBUG_SPLIT_LINE
 

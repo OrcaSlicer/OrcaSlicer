@@ -3,6 +3,10 @@
 
 #include "../libslic3r.h"
 #include "../GCodeReader.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <string>
+#include <vector>
 
 namespace Slic3r {
 

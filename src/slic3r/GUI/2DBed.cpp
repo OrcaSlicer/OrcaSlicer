@@ -18,6 +18,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/wx.h>
 #include <wx/gdicmn.h>

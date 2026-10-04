@@ -1,14 +1,17 @@
 #ifndef EXECUTIONTBB_HPP
 #define EXECUTIONTBB_HPP
 
+#include <cstddef>
 #include <mutex>
 
 #include <tbb/spin_mutex.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
 #include <tbb/task_arena.h>
+#include <type_traits>
 
 #include "Execution.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r {
 

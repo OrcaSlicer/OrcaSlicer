@@ -13,11 +13,27 @@
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <math.h>
+#include <initializer_list>
 #include <tbb/parallel_for.h>
+#include <utility>
+#include <vector>
+#include <unordered_map>
 
 #include "SupportCommon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Utils.hpp"
 
 // #define SLIC3R_DEBUG
 

@@ -4,7 +4,9 @@
 // interpreter (test_plugin_host_api.cpp, test_slicing_pipeline_bindings.cpp, ...).
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <memory.h>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <pybind11/embed.h>

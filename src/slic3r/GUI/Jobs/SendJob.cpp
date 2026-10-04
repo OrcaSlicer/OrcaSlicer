@@ -20,6 +20,9 @@
 #include <wx/event.h>
 #include <functional>
 #include <exception>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {

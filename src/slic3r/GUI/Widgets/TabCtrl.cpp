@@ -1,6 +1,7 @@
 #include "TabCtrl.hpp"
 
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <cstddef>
 #include <utility>

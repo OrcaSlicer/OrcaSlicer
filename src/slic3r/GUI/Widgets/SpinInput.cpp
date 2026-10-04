@@ -6,6 +6,7 @@
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/containr.h>
 #include <wx/dcclient.h>
 #include <wx/dc.h>
 #include <wx/dcgraph.h>

@@ -1,9 +1,23 @@
 #include "PreciseSeam.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "SeamPlacer.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
 #include <algorithm>
+#include <atomic>
 #include <boost/log/trivial.hpp>
+#include <optional>
+#include <cstddef>
+#include <limits>
+#include <iterator>
+#include <cassert>
+#include <cmath>
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace PreciseSeam {

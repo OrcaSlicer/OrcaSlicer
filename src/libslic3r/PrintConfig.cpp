@@ -1,14 +1,35 @@
 #include "PrintConfig.hpp"
+#include "CommonDefs.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "PrintConfigConstants.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
 #include "FilamentMixer.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
+#include "enum_bitmask.hpp"
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
 #include <numeric>
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <map>
+#include <boost/algorithm/string/classification.hpp>
+#include <iterator>
+#include <cstdlib>
+#include "libslic3r.h"
+#include <boost/algorithm/string/predicate.hpp>
+#include <cmath>
+#include <boost/algorithm/string/constants.hpp>
+#include <limits>
+#include <memory>
+#include <boost/preprocessor/cat.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/tuple/to_seq.hpp>
+#include <cstdint>
 #include <set>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -19,6 +40,11 @@
 #include <boost/log/trivial.hpp>
 #include <boost/thread.hpp>
 #include <float.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <sstream>
+#include <unordered_map>
 
 namespace {
 std::set<std::string> SplitStringAndRemoveDuplicateElement(const std::string &str, const std::string &separator)

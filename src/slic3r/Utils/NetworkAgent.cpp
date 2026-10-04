@@ -1,11 +1,24 @@
 #include "NetworkAgent.hpp"
 
+#include <map>
+#include <memory>
+#include <cstdint>
+#include <exception>
+#include <functional>
+#include "libslic3r/ProjectTask.hpp"
 #include <stdlib.h>
 
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <vector>
+#include <utility>
+#include "CloudProvider.hpp"
+#include "ICloudServiceAgent.hpp"
+#include "ICameraSignalingChannel.hpp"
 #include "IPrinterAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "bambu_networking.hpp"
 
 namespace Slic3r {
 

@@ -12,6 +12,7 @@
 #include "Widgets/CheckBox.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
 #include <wx/dialog.h>

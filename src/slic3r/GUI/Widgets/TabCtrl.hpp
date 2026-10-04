@@ -2,6 +2,7 @@
 #define slic3r_GUI_TabCtrl_hpp_
 
 #include "Button.hpp"
+#include <wx/anybutton.h>
 #include <wx/event.h>
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <vector>

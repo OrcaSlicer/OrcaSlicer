@@ -16,6 +16,7 @@
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 
+#include <wx/containr.h>
 #include <wx/event.h>
 #include <map>
 #include <string>
@@ -76,6 +77,9 @@
 #include "DeviceCore/DevStorage.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r {

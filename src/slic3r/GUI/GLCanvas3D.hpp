@@ -4,6 +4,7 @@
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <cstdlib>
+#include <imgui.h>
 #include <map>
 #include <cmath>
 #include "libslic3r/Geometry.hpp"
@@ -912,7 +913,7 @@ public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
-    void reset_gcode_toolpaths() { m_gcode_viewer.reset(); }
+    void reset_gcode_toolpaths() { _set_shown_canvas_current(); m_gcode_viewer.reset(); }
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
     void update_gcode_sequential_view_current(unsigned int first, unsigned int last) { m_gcode_viewer.update_sequential_view_current(first, last); }
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_gcode_viewer.get_gcode_view_full_range(); }

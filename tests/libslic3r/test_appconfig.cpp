@@ -1,5 +1,7 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../slic3rutils/plugin_test_utils.hpp"
@@ -143,6 +145,31 @@ TEST_CASE("BBL credential clearing removes legacy fallback without changing fore
     REQUIRE(config.get_local_machines().at(saved.dev_id) == saved);
     REQUIRE(config.get("access_code", saved.dev_id).empty());
     REQUIRE(config.get("user_access_code", saved.dev_id).empty());
+}
+
+TEST_CASE("Remembered checkbox settings retain both selections", "[AppConfig][Regression]") {
+    AppConfig config;
+    const bool checked = GENERATE(false, true);
+
+    config.set("recent", "checkbox", checked ? "1" : "0");
+    CHECK(config.get("recent", "checkbox") == (checked ? "1" : "0"));
+}
+
+TEST_CASE("Boolean setters retain their established encoding", "[AppConfig][Regression]") {
+    AppConfig config;
+    const bool value = GENERATE(false, true);
+
+    config.set("recent", "flag", value);
+    CHECK(config.get("recent", "flag") == (value ? "true" : "false"));
+}
+
+TEST_CASE("Boolean reads use only the requested section", "[AppConfig][Regression]") {
+    AppConfig config;
+    const bool value = GENERATE(false, true);
+    config.set("recent", "flag", std::string(value ? "1" : "0"));
+    config.set("app", "flag", std::string(value ? "0" : "1"));
+
+    CHECK(config.get_bool("recent", "flag") == value);
 }
 
 TEST_CASE("AppConfig Speed Dial recent count defaults, clamps and parses", "[AppConfig]") {

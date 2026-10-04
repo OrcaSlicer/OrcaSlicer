@@ -5,7 +5,7 @@ How wx 3.3.2 popups and menus behave on each port, and the Orca wrappers built o
 `append_menu_item`, `Plater::PopupMenu` and the macOS menubar versus `BBLTopbar`. Read it before you add
 or change anything that opens over other UI and must close by itself, or any context menu or menubar item.
 
-wx cites are relative to the wx tree root (`deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets`).
+wx cites are relative to the wx tree root (located as in `SKILL.md` §Ground truth).
 **[source]** marks behaviour derived from the implementation that the wx docs do not state or contradict.
 Orca builds wx with `wxBUILD_DEBUG_LEVEL=0`, so every "asserts" below means "fails silently in Orca".
 "GTK" means wxGTK3 (X11 and Wayland), the default Linux build; GTK2 is only an opt-out (`-DDEP_WX_GTK3=OFF`).
