@@ -2129,11 +2129,6 @@ void ModelVolume::reset_extra_facets()
     this->seam_facets.reset();
     this->mmu_segmentation_facets.reset();
     this->fuzzy_skin_facets.reset();
-    // Texture-displacement paint data has no remap-across-topology-change support yet (see
-    // build_texture_displacement()'s documented limitation), so it must be dropped here rather
-    // than left referring to a mesh that no longer matches it.
-    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
-        this->texture_displacement_facet(i).reset();
 }
 
 std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const
@@ -2695,16 +2690,22 @@ std::vector<int> ModelVolume::get_extruders() const
         return std::vector<int>();
 
     if (mmu_segmentation_facets.timestamp() != mmuseg_ts) {
-        std::vector<indexed_triangle_set> its_per_type;
         mmuseg_extruders.clear();
         mmuseg_ts = mmu_segmentation_facets.timestamp();
-        mmu_segmentation_facets.get_facets(*this, its_per_type);
-        for (int idx = 1; idx < its_per_type.size(); idx++) {
-            indexed_triangle_set& its = its_per_type[idx];
-            if (its.indices.empty())
-                continue;
+        // ORCA: without painting data every facet keeps its default (NONE) state, so no extruder
+        // other than the volume's own one can be painted on it. Skip get_facets() then: it builds a
+        // TriangleSelector with one node per facet over the whole mesh (tens of MiB on a dense one)
+        // only to hand back empty sets for every extruder.
+        if (! mmu_segmentation_facets.empty()) {
+            std::vector<indexed_triangle_set> its_per_type;
+            mmu_segmentation_facets.get_facets(*this, its_per_type);
+            for (int idx = 1; idx < its_per_type.size(); idx++) {
+                indexed_triangle_set& its = its_per_type[idx];
+                if (its.indices.empty())
+                    continue;
 
-            mmuseg_extruders.push_back(idx);
+                mmuseg_extruders.push_back(idx);
+            }
         }
     }
 
@@ -3036,11 +3037,6 @@ void ModelVolume::assign_new_unique_ids_recursive()
     seam_facets.set_new_unique_id();
     mmu_segmentation_facets.set_new_unique_id();
     fuzzy_skin_facets.set_new_unique_id();
-    // As set_new_unique_id() already does: the undo/redo stack stores FacetsAnnotation contents keyed
-    // by ObjectID, so a clone left sharing these ids with its source can be handed the source's mask
-    // on an undo - after which a paint mask and the mesh it was recorded against no longer match.
-    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
-        texture_displacement_facet(i).set_new_unique_id();
 }
 
 void ModelVolume::rotate(double angle, Axis axis)
@@ -3678,6 +3674,11 @@ ModelInstanceEPrintVolumeState ModelInstance::calc_print_volume_state(const Buil
 
 indexed_triangle_set FacetsAnnotation::get_facets(const ModelVolume& mv, EnforcerBlockerType type) const
 {
+    // ORCA: nothing is painted, so only the NONE state can have facets. Answering for any other
+    // state needs no TriangleSelector (one node per facet of the whole mesh) at all.
+    if (this->empty() && type != EnforcerBlockerType::NONE)
+        return {};
+
     TriangleSelector selector(mv.mesh());
     // Reset of TriangleSelector is done inside TriangleSelector's constructor, so we don't need it to perform it again in deserialize().
     selector.deserialize(m_data, false);
