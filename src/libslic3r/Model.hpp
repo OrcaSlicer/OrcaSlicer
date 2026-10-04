@@ -370,7 +370,6 @@ enum class ModelVolumeType : int {
 };
 
 // Free functions for checking ModelVolumeType without a ModelVolume object.
-// Keep in sync with ModelVolume::is_precise_seam*() methods below.
 inline bool is_precise_seam(ModelVolumeType t)       { return t >= ModelVolumeType::PRECISE_SEAM_CENTER && t <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
 inline bool is_precise_seam_strong(ModelVolumeType t) { return t >= ModelVolumeType::PRECISE_SEAM_CENTER && t <= ModelVolumeType::PRECISE_SEAM_RIGHT; }
 inline bool is_precise_seam_weak(ModelVolumeType t)   { return t >= ModelVolumeType::PRECISE_SEAM_ENFORCED && t <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
@@ -1007,13 +1006,13 @@ public:
 	bool                is_support_blocker()    const { return m_type == ModelVolumeType::SUPPORT_BLOCKER; }
 	bool                is_support_modifier()   const { return m_type == ModelVolumeType::SUPPORT_BLOCKER || m_type == ModelVolumeType::SUPPORT_ENFORCER; }
 	// Check if this volume is any of the precise seam modifier subtypes
-	bool                is_precise_seam()       const { return m_type >= ModelVolumeType::PRECISE_SEAM_CENTER && m_type <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
+	bool                is_precise_seam()       const { return Slic3r::is_precise_seam(m_type); }
 	// Helper to check if volume is a "strong" Precise Seam type (center, left, right)
 	// Strong modifiers have priority and always appear above weak modifiers in UI
-	bool                is_precise_seam_strong() const { return m_type >= ModelVolumeType::PRECISE_SEAM_CENTER && m_type <= ModelVolumeType::PRECISE_SEAM_RIGHT; }
+	bool                is_precise_seam_strong() const { return Slic3r::is_precise_seam_strong(m_type); }
 	// Helper to check if volume is a "weak" Precise Seam type (enforced, blocked, neutral)
 	// Weak modifiers always appear below strong modifiers in UI
-	bool                is_precise_seam_weak()   const { return m_type >= ModelVolumeType::PRECISE_SEAM_ENFORCED && m_type <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
+	bool                is_precise_seam_weak()   const { return Slic3r::is_precise_seam_weak(m_type); }
     bool                is_text()               const { return text_configuration.has_value(); }
     bool                is_svg() const { return emboss_shape.has_value()  && !text_configuration.has_value(); }
     bool                is_the_only_one_part() const; // behave like an object
