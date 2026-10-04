@@ -5135,13 +5135,13 @@ msgid "AMS temperature is too high, which may cause the filament to soften. Plea
 msgstr "อุณหภูมิ AMS สูงเกินไป ซึ่งอาจทำให้เส้นพลาสติกอ่อนตัวลง โปรดรอจนกว่าอุณหภูมิ AMS จะลดลงต่ำกว่า %d℃"
 
 msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded."
-msgstr "อุณหภูมิห้องปัจจุบันหรืออุณหภูมิห้องเป้าหมายเกิน 45°C เพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้น ไม่อนุญาตให้โหลดเส้นพลาสติกที่มีอุณหภูมิต่ำ (PLA/PETG/TPU)"
+msgstr "อุณหภูมิห้องปัจจุบันหรืออุณหภูมิห้องเป้าหมายเกิน 45℃ เพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้น ไม่อนุญาตให้โหลดเส้นพลาสติกที่มีอุณหภูมิต่ำ (PLA/PETG/TPU)"
 
 msgid "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr "โหลดเส้นพลาสติกอุณหภูมิต่ำ (PLA/PETG/TPU) ลงในชุดดันเส้น เพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้น ไม่อนุญาตให้ตั้งอุณหภูมิห้องเพาะเลี้ยง"
 
 msgid "When you set the chamber temperature below 40℃, the chamber temperature control will not be activated, and the target chamber temperature will automatically be set to 0℃."
-msgstr "เมื่อคุณตั้งอุณหภูมิห้องเพาะเลี้ยงให้ต่ำกว่า 40°C การควบคุมอุณหภูมิห้องเพาะเลี้ยงจะไม่ทำงาน และอุณหภูมิห้องเพาะเลี้ยงเป้าหมายจะถูกตั้งค่าเป็น 0°C โดยอัตโนมัติ"
+msgstr "เมื่อคุณตั้งอุณหภูมิห้องเพาะเลี้ยงให้ต่ำกว่า 40℃ การควบคุมอุณหภูมิห้องเพาะเลี้ยงจะไม่ทำงาน และอุณหภูมิห้องเพาะเลี้ยงเป้าหมายจะถูกตั้งค่าเป็น 0℃ โดยอัตโนมัติ"
 
 msgid "Failed to start print job"
 msgstr "ไม่สามารถเริ่มงานพิมพ์ได้"
@@ -7206,13 +7206,13 @@ msgid "Layer: %d/%d"
 msgstr "เลเยอร์: %d/%d"
 
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
-msgstr "กรุณาตั้งอุณหภูมิหัวฉีดให้สูงกว่า 170°C ก่อนที่จะบรรจุหรือขนถ่ายเส้นพลาสติก"
+msgstr "กรุณาตั้งอุณหภูมิหัวฉีดให้สูงกว่า 170℃ ก่อนที่จะบรรจุหรือขนถ่ายเส้นพลาสติก"
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "อุณหภูมิห้องเพาะเลี้ยงไม่สามารถเปลี่ยนแปลงได้ในโหมดทำความเย็นขณะพิมพ์"
 
 msgid "If the chamber temperature exceeds 40℃, the system will automatically switch to heating mode. Please confirm whether to switch."
-msgstr "หากอุณหภูมิห้องเพาะเกิน 40°C ระบบจะเปลี่ยนเป็นโหมดทำความร้อนโดยอัตโนมัติ โปรดยืนยันว่าจะสลับหรือไม่"
+msgstr "หากอุณหภูมิห้องเพาะเกิน 40℃ ระบบจะเปลี่ยนเป็นโหมดทำความร้อนโดยอัตโนมัติ โปรดยืนยันว่าจะสลับหรือไม่"
 
 msgid "Please select an AMS slot before calibration"
 msgstr "โปรดเลือกช่อง AMS ก่อนการสอบเทียบ"
@@ -21759,13 +21759,13 @@ msgstr "อบแห้ง-ลดความชื้น"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "อุณหภูมิอบแห้งสูงสุดของ %s คือ %d°C"
+msgid "%s maximum drying temperature is %d℃."
+msgstr "อุณหภูมิอบแห้งสูงสุดของ %s คือ %d℃"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "อุณหภูมิอบแห้งต่ำสุดของ %s คือ %d°C"
+msgid "%s minimum drying temperature is %d℃."
+msgstr "อุณหภูมิอบแห้งต่ำสุดของ %s คือ %d℃"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24972,9 +24972,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "การเว้นวรรคที่ให้กับ Flow::with_spacing() ไม่ถูกต้อง โปรดตรวจสอบความสูงของเลเยอร์และความกว้างของการอัดขึ้นรูป"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "แสดงเงาแบบทอดบนเพลตในมุมมองแบบสมจริง"

@@ -5568,7 +5568,7 @@ msgid "Fan speed (%)"
 msgstr "Haizagailuaren abiadura (%)"
 
 msgid "Temperature (℃)"
-msgstr "Tenperatura (°C)"
+msgstr "Tenperatura (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Fluxu-tasa bolumetrikoa (mm³/s)"
@@ -21454,13 +21454,13 @@ msgstr "Lehortzen-Hezetasuna kentzen"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "%s: gehieneko lehortze-tenperatura %d°C da."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "%s: gehieneko lehortze-tenperatura %d℃ da."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "%s: gutxieneko lehortze-tenperatura %d°C da."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "%s: gutxieneko lehortze-tenperatura %d℃ da."
 
 msgid "This filament may not be completely dried."
 msgstr "Baliteke filamentu hau erabat lehortuta ez egotea."
@@ -25121,9 +25121,6 @@ msgstr ""
 #~ msgid "The selected file contains several disjoint areas. This is not supported."
 #~ msgstr "Hautatutako fitxategiak hainbat eremu disjuntu ditu. Hori ez da bateragarria."
 
-#~ msgid "The recommended minimum temperature is less than 190°C or the recommended maximum temperature is greater than 300°C.\n"
-#~ msgstr "Gomendatutako gutxieneko tenperatura 190 ºC baino txikiagoa da edo gomendatutako gehieneko tenperatura 300 ºC baino handiagoa.\n"
-
 #~ msgid ""
 #~ "Nozzle may be blocked when the temperature is out of recommended range.\n"
 #~ "Please make sure whether to use the temperature to print.\n"
@@ -25300,9 +25297,6 @@ msgstr ""
 
 #~ msgid "Fan Speed (%)"
 #~ msgstr "Haizagailuaren abiadura (%)"
-
-#~ msgid "Temperature (°C)"
-#~ msgstr "Tenperatura (°C)"
 
 #~ msgid "Filament Changes"
 #~ msgstr "Filamentu aldaketak"
@@ -25525,9 +25519,6 @@ msgstr ""
 #, c-format, boost-format
 #~ msgid "In Cloud Slicing Queue, there are %s tasks ahead."
 #~ msgstr "Hodeiko xerratze-ilaran, %s zeregin daude aurretik."
-
-#~ msgid "Please heat the nozzle to above 170°C before loading or unloading filament."
-#~ msgstr "Berotu pita 170 °C-tik gora filamentua kargatu edo deskargatu aurretik."
 
 #~ msgid "Still unload"
 #~ msgstr "Oraindik deskargatu gabe"

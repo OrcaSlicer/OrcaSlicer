@@ -24143,13 +24143,13 @@ msgstr "Drogen - ontvochtigen"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "De maximale droogtemperatuur van %s is %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "De maximale droogtemperatuur van %s is %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "De minimale droogtemperatuur van %s is %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "De minimale droogtemperatuur van %s is %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -27349,9 +27349,6 @@ msgstr ""
 #, boost-format
 #~ msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
 #~ msgstr "Kan de lijndikte van %1% niet berekenen omdat de waarde van \"%2%\" niet opgehaald kan worden"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

@@ -4710,7 +4710,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
-msgstr "Die empfohlene Düsentemperatur für diesen Filamenttyp beträgt [%d, %d] °C."
+msgstr "Die empfohlene Düsentemperatur für diesen Filamenttyp beträgt [%d, %d] ℃."
 
 # AI Translated
 msgid "Adaptive Pressure Advance model validation failed:\n"
@@ -17615,7 +17615,7 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
-"Dies ist die Druckraumtemperatur, bei der der Druckvorgang beginnen soll, während der Druckraum weiterhin auf die \"Ziel\"-Druckraumtemperatur erhitzt wird. Zum Beispiel: Setzen Sie das Ziel auf 60 und das Minimum auf 50, um mit dem Drucken zu beginnen, sobald der Druckraum 50°C erreicht hat, ohne auf die vollen 60°C zu warten.\n"
+"Dies ist die Druckraumtemperatur, bei der der Druckvorgang beginnen soll, während der Druckraum weiterhin auf die \"Ziel\"-Druckraumtemperatur erhitzt wird. Zum Beispiel: Setzen Sie das Ziel auf 60 und das Minimum auf 50, um mit dem Drucken zu beginnen, sobald der Druckraum 50℃ erreicht hat, ohne auf die vollen 60℃ zu warten.\n"
 "\n"
 "Es wird eine G-Code-Variable namens chamber_minimal_temperature gesetzt, die an Ihr Druckstart-Makro oder ein Wärmespeicher-Makro übergeben werden kann, wie z.B.: PRINT_START (andere Variablen) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
@@ -21685,13 +21685,13 @@ msgstr "Trocknung – Entfeuchten"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Die maximale Trocknungstemperatur von %s beträgt %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Die maximale Trocknungstemperatur von %s beträgt %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Die minimale Trocknungstemperatur von %s beträgt %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Die minimale Trocknungstemperatur von %s beträgt %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24902,9 +24902,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Ungültiger Abstand für Flow::with_spacing() übergeben, überprüfen Sie Ihre Schichthöhe und Extrusionsbreite"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Zeigt geworfene Schatten auf der Platte in der realistischen Ansicht an."

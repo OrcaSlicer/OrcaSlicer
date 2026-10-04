@@ -21200,11 +21200,11 @@ msgid "Drying-Dehumidifying"
 msgstr "Secando-Desumidificando"
 
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
+msgid "%s maximum drying temperature is %d℃."
 msgstr "A temperatura máxima de secagem de %s é %d℃."
 
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
+msgid "%s minimum drying temperature is %d℃."
 msgstr "A temperatura mínima de secagem de %s é %d℃."
 
 msgid "This filament may not be completely dried."

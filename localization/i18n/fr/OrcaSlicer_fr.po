@@ -17511,7 +17511,7 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
-"Il s’agit de la température du caisson à laquelle l’impression doit démarrer, tandis que le caisson continue de chauffer vers la température « Cible » du caisson. Par exemple, réglez la Cible sur 60 et la Minimale sur 50 pour commencer à imprimer dès que le caisson atteint 50 °C, sans attendre les 60 °C complets.\n"
+"Il s’agit de la température du caisson à laquelle l’impression doit démarrer, tandis que le caisson continue de chauffer vers la température « Cible » du caisson. Par exemple, réglez la Cible sur 60 et la Minimale sur 50 pour commencer à imprimer dès que le caisson atteint 50 ℃, sans attendre les 60 ℃ complets.\n"
 "\n"
 "Elle définit une variable G-code nommée chamber_minimal_temperature, qui peut être transmise à votre macro de démarrage d’impression ou à une macro de préchauffage, comme ceci : PRINT_START (autres variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
@@ -21576,13 +21576,13 @@ msgstr "Séchage - Déshumidification"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "La température de séchage maximale de %s est de %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "La température de séchage maximale de %s est de %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "La température de séchage minimale de %s est de %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "La température de séchage minimale de %s est de %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24790,9 +24790,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Espacement non valide fourni à Flow::with_spacing(), vérifiez la hauteur de votre couche et la largeur d’extrusion"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Affiche les ombres portées sur la plaque dans la vue réaliste."
