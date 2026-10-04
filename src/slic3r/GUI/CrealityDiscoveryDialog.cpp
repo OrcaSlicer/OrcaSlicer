@@ -1,5 +1,6 @@
 #include "CrealityDiscoveryDialog.hpp"
 #include "slic3r/Utils/CrealityHostDiscovery.hpp"
+#include "slic3r/Utils/CrealityPrint.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -86,8 +87,9 @@ void CrealityDiscoveryDialog::run_discovery()
 
     for (const auto& h : hosts) {
         Row row;
-        row.ip       = h.ip;
-        row.hostname = h.hostname;
+        row.ip           = h.ip;
+        row.hostname     = h.hostname;
+        row.is_k2_family = Slic3r::CrealityPrint::model_is_k2_platform(h.model_code);
         if (!h.model_name.empty())
             row.model = h.model_name;
         else if (h.cfs_capable)
@@ -119,7 +121,8 @@ void CrealityDiscoveryDialog::on_ok()
 {
     auto sel = m_list->GetFirstSelected();
     if (sel >= 0 && sel < int(m_rows.size())) {
-        m_selected_ip = m_rows[sel].ip;
+        m_selected_ip           = m_rows[sel].ip;
+        m_selected_is_k2_family = m_rows[sel].is_k2_family;
     }
 }
 
