@@ -133,6 +133,8 @@ using namespace std::literals::string_view_literals;
 
 #include <assert.h>
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r {
 
     //! macro used to mark string used at localization,
@@ -806,13 +808,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         GCodeReader parser;
         parser.parse_buffer(gcode, [&changes](GCodeReader &parser, const GCodeReader::GCodeLine &line) {
             const std::string_view cmd = line.cmd();
-            if (boost::iequals(cmd, "M204") || boost::iequals(cmd, "M201") ||
-                boost::iequals(cmd, "M202"))
+            if (ascii_iequals(cmd, "M204") || ascii_iequals(cmd, "M201") ||
+                ascii_iequals(cmd, "M202"))
                 changes.acceleration = true;
-            else if ((boost::iequals(cmd, "M205") || boost::iequals(cmd, "M207") || boost::iequals(cmd, "M566")) &&
+            else if ((ascii_iequals(cmd, "M205") || ascii_iequals(cmd, "M207") || ascii_iequals(cmd, "M566")) &&
                      custom_gcode_line_has_xy_parameter(line.raw()))
                 changes.jerk = true;
-            else if (boost::iequals(cmd, "SET_VELOCITY_LIMIT")) {
+            else if (ascii_iequals(cmd, "SET_VELOCITY_LIMIT")) {
                 changes.acceleration |= boost::icontains(line.raw(), "ACCEL=");
                 changes.jerk         |= boost::icontains(line.raw(), "SQUARE_CORNER_VELOCITY=");
             }
@@ -4404,6 +4406,70 @@ size_t GCode::get_nozzle_config_index(int filament_id) const
     return get_extruder_id(filament_id);
 }
 
+namespace {
+struct PrecomputedLayer
+{
+    size_t                                    index{size_t(-1)}; // size_t(-1) for the empty layer after the last
+    std::vector<PrecomputedOverhangLayer>     overhang_layers;
+};
+} // namespace
+
+// Whether process_layer() prepares the overhang estimator for `layer`.
+template<typename OverhangSpeed>
+static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan, OverhangSpeed overhang_speed)
+{
+    const LayerRegionPtrs &regions = layer.regions();
+    return std::any_of(regions.begin(), regions.end(), [overhang_fan, &overhang_speed](const LayerRegion *region) {
+        return region->has_extrusions() && (overhang_fan || overhang_speed(*region));
+    });
+}
+
+std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan)
+{
+    // Any filament may print the layer, so a region's overhang speed counts if it is enabled for any.
+    auto overhang_speed = [](const LayerRegion &region) { return any_enabled(region.region().config().enable_overhang_speed); };
+    std::vector<PrecomputedOverhangLayer> out;
+    for (const GCode::LayerToPrint &layer : layers)
+        if (layer.object_layer != nullptr && layer.object_layer->lower_layer != nullptr &&
+            prepares_overhang_estimator(*layer.object_layer, overhang_fan, overhang_speed)) {
+            const LayerRegionPtrs &regions = layer.object_layer->regions();
+            const bool curled_lines = std::any_of(regions.begin(), regions.end(), [](const LayerRegion *region) {
+                return any_enabled(region->region().config().slowdown_for_curled_perimeters);
+            });
+            out.push_back(precompute_overhang_layer(layer.original_object, *layer.object_layer, curled_lines));
+        }
+    return out;
+}
+
+// Hands out the index of each layer to process_layers(), then computes the layers' overhang data in parallel.
+template<typename LayersAt>
+static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bool nop_layer, bool overhang_fan, LayersAt layers_at)
+{
+    return tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
+               [&next_index, layer_count, nop_layer](tbb::flow_control &fc) -> PrecomputedLayer {
+                   if (next_index < layer_count)
+                       return {next_index++};
+                   // The pressure equalizer returns one layer back, so it gets an empty layer after the last.
+                   if (next_index == layer_count + (nop_layer ? 1 : 0))
+                       fc.stop();
+                   else
+                       ++next_index;
+                   return {};
+               }) &
+           tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
+               [layers_at, overhang_fan](PrecomputedLayer layer) -> PrecomputedLayer {
+                   if (layer.index != size_t(-1))
+                       layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan);
+                   return layer;
+               });
+}
+
+// Whether the overhang fan can switch on for any filament.
+static bool overhang_fan_enabled(const PrintConfig &config, bool cooling_markers)
+{
+    return cooling_markers && any_enabled(config.enable_overhang_bridge_fan);
+}
+
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
 // and export G-code into file.
@@ -4416,29 +4482,23 @@ void GCode::process_layers(
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
-    const auto generator = tbb::make_filter<void, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print, &layer_to_print_idx](tbb::flow_control& fc) -> LayerResult {
-            if (layer_to_print_idx >= layers_to_print.size()) {
-                if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0)) {
-                    fc.stop();
-                    return {};
-                } else {
-                    // Pressure equalizer need insert empty input. Because it returns one layer back.
-                    // Insert NOP (no operation) layer;
-                    ++layer_to_print_idx;
-                    return LayerResult::make_nop_layer_result();
-                }
-            } else {
-                const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[layer_to_print_idx++];
-                const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
-                print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(layer_to_print_idx)));
-                if (m_wipe_tower && layer_tools.has_wipe_tower)
-                    m_wipe_tower->next_layer();
-                //BBS
-                check_placeholder_parser_failed();
-                print.throw_if_canceled();
-                return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
-            }
+    const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
+        overhang_fan_enabled(print.config(), m_enable_cooling_markers),
+        [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
+    const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
+        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
+            if (precomputed.index == size_t(-1))
+                return LayerResult::make_nop_layer_result();
+            const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
+            const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
+            print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
+            if (m_wipe_tower && layer_tools.has_wipe_tower)
+                m_wipe_tower->next_layer();
+            //BBS
+            check_placeholder_parser_failed();
+            print.throw_if_canceled();
+            m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
+            return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -4496,13 +4556,15 @@ void GCode::process_layers(
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-    	tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
+    	tbb::parallel_pipeline(12, source & generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, source & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-    	tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+    	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
+    // The estimator's precomputed data points into this print's layers.
+    m_extrusion_quality_estimator.set_precomputed_layers({});
 
 }
 
@@ -4520,26 +4582,20 @@ void GCode::process_layers(
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
-    const auto generator = tbb::make_filter<void, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &layers_to_print, &layer_to_print_idx, single_object_idx, prime_extruder](tbb::flow_control& fc) -> LayerResult {
-            if (layer_to_print_idx >= layers_to_print.size()) {
-                if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0)) {
-                    fc.stop();
-                    return {};
-                } else {
-                    // Pressure equalizer need insert empty input. Because it returns one layer back.
-                    // Insert NOP (no operation) layer;
-                    ++layer_to_print_idx;
-                    return LayerResult::make_nop_layer_result();
-                }
-            } else {
-                LayerToPrint &layer = layers_to_print[layer_to_print_idx ++];
-                print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(layer_to_print_idx)));
-                //BBS
-                check_placeholder_parser_failed();
-                print.throw_if_canceled();
-                return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
-            }
+    const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
+        overhang_fan_enabled(print.config(), m_enable_cooling_markers),
+        [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
+    const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
+        [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
+            if (precomputed.index == size_t(-1))
+                return LayerResult::make_nop_layer_result();
+            LayerToPrint &layer = layers_to_print[precomputed.index];
+            print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
+            //BBS
+            check_placeholder_parser_failed();
+            print.throw_if_canceled();
+            m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
+            return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -4594,13 +4650,15 @@ void GCode::process_layers(
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-    	tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
+    	tbb::parallel_pipeline(12, source & generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, source & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-    	tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+    	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
+    // The estimator's precomputed data points into this print's layers.
+    m_extrusion_quality_estimator.set_precomputed_layers({});
 }
 
 std::string GCode::placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override)
@@ -5143,7 +5201,8 @@ namespace Skirt {
 // Orca: Klipper can't parse object names with spaces and other spetical characters
 std::string sanitize_instance_name(const std::string& name) {
     // Replace sequences of non-word characters with an underscore
-    std::string result = std::regex_replace(name, std::regex("[ !@#$%^&*()=+\\[\\]{};:\",']+"), "_");
+    static const std::regex non_word_characters("[ !@#$%^&*()=+\\[\\]{};:\",']+");
+    std::string result = std::regex_replace(name, non_word_characters, "_");
     // Remove leading and trailing underscores
     if (!result.empty() && result.front() == '_') {
         result.erase(result.begin());
@@ -5157,12 +5216,16 @@ std::string sanitize_instance_name(const std::string& name) {
 
 inline std::string get_instance_name(const PrintObject *object, size_t inst_id) {
     auto obj_name = sanitize_instance_name(object->model_object()->name);
-    auto name = (boost::format("%1%_id_%2%_copy_%3%") % obj_name % object->get_id() % inst_id).str();
+    auto name = obj_name + "_id_" + std::to_string(object->get_id()) + "_copy_" + std::to_string(inst_id);
     return sanitize_instance_name(name);
 }
 
-inline std::string get_instance_name(const PrintObject *object, const PrintInstance &inst) {
-    return get_instance_name(object, inst.id);
+const std::string& GCode::instance_name(const PrintInstance &instance)
+{
+    auto [it, inserted] = m_instance_names.try_emplace(&instance);
+    if (inserted)
+        it->second = get_instance_name(instance.print_object, instance.id);
+    return it->second;
 }
 
 std::string GCode::generate_skirt(const Print &print,
@@ -5960,25 +6023,13 @@ LayerResult GCode::process_layer(
         return next_extruder;
     };
     
-    for (const auto &layer_to_print : layers) {
-        if (layer_to_print.object_layer) {
-            const auto& regions = layer_to_print.object_layer->regions();
-            const bool has_extrusions = std::any_of(regions.begin(), regions.end(), [](const LayerRegion* r) {
-                return r->has_extrusions();
-            });
-            const bool enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
-                return r->has_extrusions() && r->region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id()));
-            });
-            const bool enable_overhang_fan = m_enable_cooling_markers && has_extrusions &&
-                std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
-                            m_config.enable_overhang_bridge_fan.values.end(),
-                            [](unsigned char value) { return value != 0; });
-            if (enable_overhang_speed || enable_overhang_fan) {
-                m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
-                                                                    layer_to_print.object_layer);
-            }
-        }
-    }
+    const bool overhang_fan   = overhang_fan_enabled(m_config, m_enable_cooling_markers);
+    auto       overhang_speed = [this](const LayerRegion &region) {
+        return bool(region.region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id())));
+    };
+    for (const auto &layer_to_print : layers)
+        if (layer_to_print.object_layer && prepares_overhang_estimator(*layer_to_print.object_layer, overhang_fan, overhang_speed))
+            m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object, layer_to_print.object_layer);
 
     // Group extrusions by an extruder, then by an object, an island and a region.
     std::map<unsigned int, std::vector<ObjectByExtruder>> by_extruder;
@@ -6593,7 +6644,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_start_str(std::string("EXCLUDE_OBJECT_START NAME=") +
-                                                          get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                          instance_name(inst) + "\n");
                         }
                         else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             std::string str = std::string("M486 S") + std::to_string(inst.unique_id) + "\n";
@@ -6742,7 +6793,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_end_str(std::string("EXCLUDE_OBJECT_END NAME=") +
-                                                        get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                        instance_name(inst) + "\n");
                         } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             m_writer.set_object_end_str(std::string("M486 S-1\n"));
                         }
@@ -6817,7 +6868,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_start_str(std::string("EXCLUDE_OBJECT_START NAME=") +
-                                                          get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                          instance_name(inst) + "\n");
                         } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             m_writer.set_object_start_str(std::string("M486 S") + std::to_string(inst.unique_id) + "\n");
                         }
@@ -7043,7 +7094,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_end_str(std::string("EXCLUDE_OBJECT_END NAME=") +
-                                                        get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                        instance_name(inst) + "\n");
                         } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             m_writer.set_object_end_str(std::string("M486 S-1\n"));
                         }
@@ -8035,12 +8086,12 @@ static float overhang_fan_overlap_threshold(int overhang_fan_threshold)
     }
 }
 
-std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
+std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
 {
     std::string gcode;
 
-    if (is_bridge(path.role()))
-        description += " (bridge)";
+    const std::string  bridge_description = is_bridge(path.role()) ? path_description + " (bridge)" : std::string();
+    const std::string &description        = bridge_description.empty() ? path_description : bridge_description;
 
     const ExtrusionPathSloped* sloped = dynamic_cast<const ExtrusionPathSloped*>(&path);
 
@@ -8711,7 +8762,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             // ORCA: End of adaptive PA code segment
         }
         
-        gcode += m_writer.set_speed(F, "", comment);
+        m_writer.set_speed(gcode, F, "", comment);
         {
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
@@ -8735,7 +8786,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 double saved_z      = m_writer.get_position().z();
 
                 for (const Line3& line : path.polyline.lines()) {
-                    std::string tempDescription = description;
+                    std::string flow_description;
                     const double line_length = line.length() * SCALING_FACTOR;
                     if (line_length < EPSILON)
                         continue;
@@ -8746,7 +8797,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                         if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                            tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                            flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                         }
                     }
                     if (path.z_contoured) {
@@ -8765,24 +8816,24 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         if (z < 0.1) {
                             throw RuntimeError("GCode: very low z");
                         }
-                        gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                         GCodeWriter::full_gcode_comment ? tempDescription : "");
+                        m_writer.extrude_to_xyz(gcode, Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                                flow_description.empty() ? description : flow_description);
 
                     } else if (sloped == nullptr) {
                         // Normal extrusion
-                        gcode += m_writer.extrude_to_xy(
+                        m_writer.extrude_to_xy(gcode,
                             this->point_to_gcode(line.b.to_point()),
                             dE,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                     } else {
                         // Sloped extrusion
                         const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
                         Vec2d dest2d = this->point_to_gcode(line.b.to_point());
                         Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
-                        gcode += m_writer.extrude_to_xyz(
+                        m_writer.extrude_to_xyz(gcode,
                             dest3d,
                             dE * e_ratio,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                     }
                     check_and_insert_timelapse(line.b.to_point()); // Inline farthest-point snapshot
                 }
@@ -8790,13 +8841,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 // BBS: start to generate gcode from arc fitting data which includes line and arc
                 const std::vector<PathFittingData>& fitting_result = path.polyline.fitting_result;
                 for (size_t fitting_index = 0; fitting_index < fitting_result.size(); fitting_index++) {
-                    std::string tempDescription = description;
+                    std::string flow_description;
                     switch (fitting_result[fitting_index].path_type) {
                     case EMovePathType::Linear_move: {
                         size_t start_index = fitting_result[fitting_index].start_point_index;
                         size_t end_index = fitting_result[fitting_index].end_point_index;
                         for (size_t point_index = start_index + 1; point_index < end_index + 1; point_index++) {
-                            tempDescription = description;
+                            flow_description.clear();
                             const Line line = Line(path.polyline.points[point_index - 1].to_point(), path.polyline.points[point_index].to_point());
                             const double line_length = line.length() * SCALING_FACTOR;
                             if (line_length < EPSILON)
@@ -8807,13 +8858,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                 dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                                 if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                    tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                                    flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                                 }
                             }
-                            gcode += m_writer.extrude_to_xy(
+                            m_writer.extrude_to_xy(gcode,
                                 this->point_to_gcode(line.b),
                                 dE,
-                                GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                             check_and_insert_timelapse(line.b); // Inline farthest-point snapshot
                         }
                         break;
@@ -8831,15 +8882,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             dE = m_small_area_infill_flow_compensator->modify_flow(arc_length, dE, path.role());
 
                             if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
+                                flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
-                        gcode += m_writer.extrude_arc_to_xy(
+                        m_writer.extrude_arc_to_xy(gcode,
                             this->point_to_gcode(arc.end_point),
                             center_offset,
                             dE,
                             arc.direction == ArcDirection::Arc_Dir_CCW,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                         check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
                         break;
                     }
@@ -8863,7 +8914,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             Polyline3 l(p);
             total_length = l.length() * SCALING_FACTOR;
         }
-        gcode += m_writer.set_speed(last_set_speed, "", comment);
+        m_writer.set_speed(gcode, last_set_speed, "", comment);
         Vec3d prev            = this->point_to_gcode_quantized(new_points[0].p);
         bool pre_fan_enabled = false;
         bool cur_fan_enabled = false;
@@ -8875,7 +8926,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
         double path_length = 0.;
         for (size_t i = 1; i < new_points.size(); i++) {
-            std::string tempDescription = description;
+            std::string flow_description;
             const ProcessedPoint &processed_point = new_points[i];
             const ProcessedPoint &pre_processed_point = new_points[i-1];
             Vec3d                 p                   = this->point_to_gcode_quantized(processed_point.p);
@@ -8942,10 +8993,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             // Ignore small speed variations - emit speed change if the delta between current and new is greater than 60mm/min / 1mm/sec
             // Reset speed to F if delta to F is less than 1mm/sec
             if ((std::abs(last_set_speed - new_speed) > 60)) {
-                gcode += m_writer.set_speed(new_speed, "", comment);
+                m_writer.set_speed(gcode, new_speed, "", comment);
                 last_set_speed = new_speed;
             } else if ((std::abs(F - new_speed) <= 60)) {
-                gcode += m_writer.set_speed(F, "", comment);
+                m_writer.set_speed(gcode, F, "", comment);
                 last_set_speed = F;
             }
             auto dE = e_per_mm * line_length;
@@ -8954,7 +9005,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                 if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                    tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                    flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                 }
             }
             if (path.z_contoured) {
@@ -8972,16 +9023,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 if (z < 0.1) {
                     throw RuntimeError("GCode: very low z");
                 }
-                gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                 GCodeWriter::full_gcode_comment ? tempDescription : "");
+                m_writer.extrude_to_xyz(gcode, Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                        flow_description.empty() ? description : flow_description);
             } else if (sloped == nullptr) {
                 // Normal extrusion
-                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                m_writer.extrude_to_xy(gcode, p.head<2>(), dE, flow_description.empty() ? description : flow_description);
             } else {
                 // Sloped extrusion
                 const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
                 Vec3d dest3d(p(0), p(1), get_sloped_z(z_ratio));
-                gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                m_writer.extrude_to_xyz(gcode, dest3d, dE * e_ratio, flow_description.empty() ? description : flow_description);
             }
 
             // Inline farthest-point snapshot on the variable-speed emission path. Inert unless the
@@ -10025,6 +10076,7 @@ std::string GCode::set_object_info(Print *print) {
         // PA_Line has only one object, no EXCLUDE_OBJECT_DEFINE needed
     } else {
         size_t unique_id = 0;
+        m_instance_names.clear();
         for (PrintObject* object : print->objects()) {
             object->set_id(object_id++);
             size_t inst_id = 0;
@@ -10033,7 +10085,7 @@ std::string GCode::set_object_info(Print *print) {
                 inst.id        = inst_id++;
                 auto bbox      = inst.get_bounding_box();
                 auto center    = print->translate_to_print_space(Vec2d(bbox.center().x(), bbox.center().y()));
-                auto inst_name = get_instance_name(object, inst);
+                const std::string &inst_name = instance_name(inst);
                 if (gflavor == gcfKlipper) {
                     gcode << "EXCLUDE_OBJECT_DEFINE NAME=" << inst_name << " CENTER=" << center.x() << "," << center.y()
                           << " POLYGON=" << polygon_to_string(inst.get_convex_hull_2d(), print) << "\n";

@@ -327,7 +327,6 @@ TEST_CASE("Custom bindings replace the default and survive a config round trip",
 TEST_CASE("A Global shortcut refuses a config binding that would swallow typing", "[Shortcuts]")
 {
     AppConfig config;
-    // A string literal would pick AppConfig::set's bool overload.
     config.set("shortcuts", "save_project", std::string("S"));
     config.set("shortcuts", "new_project", std::string("F9"));
     ShortcutRegistry registry;

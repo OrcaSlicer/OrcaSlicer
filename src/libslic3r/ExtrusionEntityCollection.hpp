@@ -175,6 +175,23 @@ private:
     bool is_reverse{true};
 };
 
+// Calls `f` for every ExtrusionPath in `entity`, descending into collections, loops and multi-paths.
+template<typename F> void for_each_extrusion_path(const ExtrusionEntity &entity, F &&f)
+{
+    if (auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(&entity)) {
+        for (const ExtrusionEntity *child : collection->entities)
+            for_each_extrusion_path(*child, f);
+    } else if (auto *loop = dynamic_cast<const ExtrusionLoop *>(&entity)) {
+        for (const ExtrusionPath &path : loop->paths)
+            f(path);
+    } else if (auto *multi_path = dynamic_cast<const ExtrusionMultiPath *>(&entity)) {
+        for (const ExtrusionPath &path : multi_path->paths)
+            f(path);
+    } else if (auto *path = dynamic_cast<const ExtrusionPath *>(&entity)) {
+        f(*path);
+    }
+}
+
 } // namespace Slic3r
 
 #endif

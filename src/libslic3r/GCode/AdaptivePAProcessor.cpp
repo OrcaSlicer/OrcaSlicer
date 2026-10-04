@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cctype>
 #include <string>
+#include <utility>
 
 namespace Slic3r {
 
@@ -41,6 +42,9 @@ AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen)
       m_pa_change_pattern(R"(; PA_CHANGE:T(\d+) MM3MM:([0-9]*\.[0-9]+) ACCEL:(\d+) BR:(\d+) RC:(\d+) OV:(\d+))"),
       m_g1_f_pattern(R"(G1 F([0-9]+))")
 {
+    const size_t indices = std::max(m_config.adaptive_pressure_advance.size(), m_config.enable_pressure_advance.size());
+    for (size_t i = 0; i < indices && !m_enabled; ++i)
+        m_enabled = m_config.adaptive_pressure_advance.get_at(i) && m_config.enable_pressure_advance.get_at(i);
 }
 
 // Method to get the interpolator for a specific filament config index.
@@ -66,6 +70,12 @@ AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int config
  * @return A string containing the processed G-code with adaptive pressure advance applied.
  */
 std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
+    // Without PA_CHANGE tags the loop below would only terminate the layer's last line.
+    if (!m_enabled && gcode.find("; PA_CHANGE") == std::string::npos) {
+        if (!gcode.empty() && gcode.back() != '\n')
+            gcode += '\n';
+        return std::move(gcode);
+    }
     std::istringstream stream(gcode);
     std::string line;
     std::ostringstream output;

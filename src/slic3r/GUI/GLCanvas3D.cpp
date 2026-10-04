@@ -2491,7 +2491,7 @@ void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
 
 bool GLCanvas3D::_set_shown_canvas_current()
 {
-    // Thumbnails also render outside render(), where another library's GL context (e.g. WebKitGTK's) can be current.
+    // Called before GL work outside render(), where another library's GL context (e.g. WebKitGTK's) can be current.
     // Inside render(), the shown canvas is the one already bound.
     return wxGetApp().plater()->get_current_canvas3D()->_set_current();
 }
@@ -3329,6 +3329,7 @@ void GLCanvas3D::load_shells(const Print& print, bool force_previewing)
 {
     if (m_initialized)
     {
+        _set_shown_canvas_current();
         m_gcode_viewer.load_shells(print, m_initialized, force_previewing);
         m_gcode_viewer.update_shells_color_by_extruder(m_config);
     }
@@ -3344,6 +3345,8 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
     PartPlate* plate = partplate_list.get_curr_plate();
     const std::vector<BoundingBoxf3>& exclude_bounding_box = plate->get_exclude_areas();
+
+    _set_shown_canvas_current();
 
     //BBS: init is called in GLCanvas3D.render()
     //when load gcode directly, it is too late

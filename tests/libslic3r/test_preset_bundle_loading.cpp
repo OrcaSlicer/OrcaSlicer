@@ -1617,7 +1617,7 @@ const char *kMixedKeys[] = {
 } // namespace
 
 // Mixed-color filament metadata lives in project_config as parallel per-filament arrays.
-// set_num_filaments() is the single place that grows them alongside filament_colour; if it
+// set_num_filaments() grows them alongside filament_colour; if it
 // misses them, creating a mixed slot writes past the end of the short arrays.
 TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament count", "[Preset][Bundle][FilamentMixer]")
 {
@@ -4541,6 +4541,153 @@ TEST_CASE("Published 3MF overrides each extruder slot on a similar multi-extrude
     }
 }
 
+TEST_CASE("Loading incomplete mixed metadata normalizes slots before adding a filament", "[Preset][Bundle][FilamentMixer]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const std::vector<std::string> colors = { "#000000", "#FFFFFF", "#5E5C64" };
+    config.option<ConfigOptionStrings>("filament_colour")->values = colors;
+    config.option<ConfigOptionBool>("single_extruder_multi_material")->value = true;
+    config.option<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_settings_id", true)->values = { "Test PETG", "Test PLA", "Test TPU" };
+    const std::vector<std::string> bool_keys = {
+        "filament_is_mixed", "filament_mixed_gradient", "filament_mixed_gradient_per_part"
+    };
+    const std::vector<std::string> string_keys = {
+        "filament_mixed_components", "filament_mixed_sublayer_ratios",
+        "filament_mixed_gradient_range", "filament_mixed_gradient_curve"
+    };
+    const size_t metadata_size = GENERATE(0u, 1u, 4u);
+    for (const auto &key : bool_keys) {
+        if (metadata_size == 0)
+            config.erase(key);
+        else {
+            auto &values = config.option<ConfigOptionBools>(key)->values;
+            values.assign(metadata_size, false);
+            if (metadata_size > colors.size())
+                values.back() = true;
+        }
+    }
+    for (const auto &key : string_keys) {
+        if (metadata_size == 0)
+            config.erase(key);
+        else {
+            auto &values = config.option<ConfigOptionStrings>(key)->values;
+            values.assign(metadata_size, "");
+            if (metadata_size > colors.size())
+                values.back() = "stale";
+        }
+    }
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config), Semver());
+    const auto presets = bundle.filament_presets;
+    REQUIRE(presets.size() == colors.size());
+    REQUIRE(presets[0] != presets[1]);
+    REQUIRE(presets[1] != presets[2]);
+    REQUIRE(presets[0] != presets[2]);
+    for (const auto &key : bool_keys) {
+        CAPTURE(key, metadata_size);
+        CHECK(bundle.project_config.option<ConfigOptionBools>(key)->values ==
+              std::vector<unsigned char>(colors.size(), false));
+    }
+    for (const auto &key : string_keys) {
+        CAPTURE(key, metadata_size);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>(key)->values ==
+              std::vector<std::string>(colors.size(), ""));
+    }
+    REQUIRE(bundle.num_physical_filaments() == colors.size());
+    REQUIRE(bundle.num_mixed_filaments() == 0);
+
+    bundle.set_num_filaments(bundle.num_physical_filaments() + bundle.num_mixed_filaments() + 1, "#FF0000");
+    REQUIRE(bundle.filament_presets.size() == presets.size() + 1);
+    const auto &actual_colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(actual_colors.size() == colors.size() + 1);
+    for (size_t i = 0; i < presets.size(); ++i) {
+        CHECK(bundle.filament_presets[i] == presets[i]);
+        CHECK(actual_colors[i] == colors[i]);
+    }
+    CHECK(bundle.num_physical_filaments() == colors.size() + 1);
+    CHECK_FALSE(bundle.is_mixed_filament(colors.size()));
+}
+
+TEST_CASE("Loading a project preserves existing mixed filament definitions", "[Preset][Bundle][FilamentMixer]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionBool>("single_extruder_multi_material")->value = true;
+    config.option<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_colour")->values = { "#000000", "#FFFFFF", "#808080" };
+    config.option<ConfigOptionBools>("filament_is_mixed")->values = { false, false, true };
+    config.option<ConfigOptionStrings>("filament_mixed_components")->values = { "", "", "1,2" };
+    config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values = { "", "", "1,2" };
+    config.option<ConfigOptionBools>("filament_mixed_gradient")->values = { false, false, true };
+    config.option<ConfigOptionStrings>("filament_mixed_gradient_range")->values = { "", "", "0,100" };
+    config.option<ConfigOptionStrings>("filament_mixed_gradient_curve")->values = { "", "", "0,0.1|1,0.9" };
+    config.option<ConfigOptionBools>("filament_mixed_gradient_per_part")->values = { false, false, true };
+    Preset::normalize(config);
+    const auto original = config;
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config), Semver());
+    for (const auto *key : kMixedKeys) {
+        CAPTURE(key);
+        CHECK(*bundle.project_config.option(key) == *original.option(key));
+    }
+    CHECK(bundle.num_physical_filaments() == 2);
+    CHECK(bundle.num_mixed_filaments() == 1);
+}
+
+TEST_CASE("Adding a filament preserves slots with incomplete mixed metadata", "[Preset][Bundle][FilamentMixer]")
+{
+    PresetBundle bundle;
+    bundle.set_num_filaments(3u, std::string("#000000"));
+    auto *colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour");
+    colors->values = { "#000000", "#FFFFFF", "#5E5C64" };
+    bundle.filament_presets = { "Test PETG", "Test PLA", "Test TPU" };
+    const auto original_presets = bundle.filament_presets;
+    const auto original_colors = colors->values;
+    auto *flags = bundle.project_config.option<ConfigOptionBools>("filament_is_mixed");
+    flags->values = GENERATE(std::vector<unsigned char>{}, std::vector<unsigned char>{ false },
+                            std::vector<unsigned char>{ false, false, false, true });
+    const std::vector<std::string> string_keys = {
+        "filament_mixed_components", "filament_mixed_sublayer_ratios",
+        "filament_mixed_gradient_range", "filament_mixed_gradient_curve"
+    };
+    const std::vector<std::string> bool_keys = {
+        "filament_mixed_gradient", "filament_mixed_gradient_per_part"
+    };
+    for (const auto &key : string_keys)
+        bundle.project_config.option<ConfigOptionStrings>(key)->values = { "", "", "", "stale" };
+    for (const auto &key : bool_keys)
+        bundle.project_config.option<ConfigOptionBools>(key)->values = { false, false, false, true };
+
+    REQUIRE(bundle.num_physical_filaments() == original_colors.size());
+    REQUIRE(bundle.num_mixed_filaments() == 0);
+    bundle.set_num_filaments(bundle.num_physical_filaments() + bundle.num_mixed_filaments() + 1, "#FF0000");
+
+    REQUIRE(bundle.filament_presets.size() == original_presets.size() + 1);
+    REQUIRE(colors->values.size() == original_colors.size() + 1);
+    for (size_t i = 0; i < original_presets.size(); ++i) {
+        CHECK(bundle.filament_presets[i] == original_presets[i]);
+        CHECK(colors->values[i] == original_colors[i]);
+    }
+    CHECK(colors->values.back() == "#FF0000");
+    CHECK(bundle.num_physical_filaments() == 4);
+    CHECK(bundle.num_mixed_filaments() == 0);
+    REQUIRE(flags->values.size() == 4);
+    CHECK_FALSE(bundle.is_mixed_filament(3));
+    for (const auto &key : string_keys) {
+        CAPTURE(key);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>(key)->values ==
+              std::vector<std::string>{ "", "", "", "" });
+    }
+    for (const auto &key : bool_keys) {
+        CAPTURE(key);
+        CHECK(bundle.project_config.option<ConfigOptionBools>(key)->values ==
+              std::vector<unsigned char>{ false, false, false, false });
+    }
+}
+
 // The nozzle-count top-up in update_multi_material_filament_presets() grows filament_presets on
 // its own, so a physical count derived from that list reports a slot no per-filament array has
 // yet. That is what made the extruder-count handler conclude there was nothing to add and leave
@@ -5812,6 +5959,131 @@ TEST_CASE("A system preset no vendor lists is not resolved", "[Preset][Bundle]")
     CHECK_FALSE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Unknown Printer",
                                              ForwardCompatibilitySubstitutionRule::EnableSilent, error));
     CHECK_FALSE(error.empty());
+}
+
+namespace {
+
+// Writes each vendor's preset cache into dir, then deletes its profile JSONs: what a release build installs.
+void reduce_vendors_to_caches(const fs::path &dir, const std::vector<std::string> &vendor_ids)
+{
+    const std::string lib(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    PresetBundle      library;
+    if (fs::exists(dir / (lib + ".json"))) {
+        library.set_generate_vendor_caches(true);
+        library.load_vendor_configs_from_json(dir.string(), lib, PresetBundle::LoadSystem,
+                                              ForwardCompatibilitySubstitutionRule::EnableSilent);
+    }
+    for (const std::string &vendor_id : vendor_ids) {
+        if (vendor_id == lib)
+            continue;
+        PresetBundle writer;
+        writer.set_generate_vendor_caches(true);
+        writer.load_vendor_configs_from_json(dir.string(), vendor_id, PresetBundle::LoadSystem,
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, &library);
+    }
+    for (const std::string &vendor_id : vendor_ids) {
+        REQUIRE(fs::exists(dir / (vendor_id + ".opc")));
+        fs::remove(dir / (vendor_id + ".json"));
+        fs::remove_all(dir / vendor_id);
+    }
+}
+
+// The filament library with one abstract base filament, and an "Acme" vendor whose one filament inherits it.
+void write_library_and_acme_filament(const fs::path &root)
+{
+    const std::string lib(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    fs::create_directories(root / lib / "filament");
+    std::ofstream((root / (lib + ".json")).string())
+        << R"({"version":"1.0.0","name":")" << lib << R"(",)"
+        << R"("filament_list":[{"name":"Generic PLA","sub_path":"filament/generic_pla.json"}]})";
+    std::ofstream((root / lib / "filament" / "generic_pla.json").string())
+        << R"({"type":"filament","name":"Generic PLA","from":"system","instantiation":"false","filament_id":"GFL99","filament_cost":"27"})";
+    fs::create_directories(root / "Acme" / "filament");
+    std::ofstream((root / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","filament_list":[{"name":"Acme PLA","sub_path":"filament/pla.json"}]})";
+    std::ofstream((root / "Acme" / "filament" / "pla.json").string())
+        << R"({"type":"filament","name":"Acme PLA","from":"system","instantiation":"true","inherits":"Generic PLA"})";
+}
+
+} // namespace
+
+TEST_CASE("A read-only load resolves a user preset against vendors installed as their cache alone", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     data   = temp_dir.path() / "data";
+    const fs::path     system = data / PRESET_SYSTEM_DIR;
+    ScopedDataDir      scoped_data(data);
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(system, 33.);
+    reduce_vendors_to_caches(system, {"Acme"});
+
+    fs::create_directories(data / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_PRINTER_NAME);
+    std::ofstream((data / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_PRINTER_NAME / "My Acme.json").string())
+        << R"({"type":"machine","name":"My Acme","from":"User","version":"2.3.0.0","inherits":"Acme Printer","printable_height":"123"})";
+
+    AppConfig    app_config;
+    PresetBundle bundle;
+    std::string  errors;
+    bundle.load_presets(app_config, ForwardCompatibilitySubstitutionRule::EnableSilent, PresetBundle::PresetPreferences(),
+                        &errors, true);
+    CHECK(errors.empty());
+    const Preset *preset = bundle.printers.find_preset("My Acme");
+    REQUIRE(preset != nullptr);
+    CHECK_THAT(preset->config.opt_float("printable_height"), Catch::Matchers::WithinAbs(123., 1e-6));
+    CHECK_THAT(preset->config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A read-only load writes no preset cache", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     system = temp_dir.path() / "data" / PRESET_SYSTEM_DIR;
+    ScopedDataDir      scoped_data(temp_dir.path() / "data");
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(system, 33.);
+
+    AppConfig    app_config;
+    PresetBundle bundle;
+    std::string  errors;
+    bundle.load_presets(app_config, ForwardCompatibilitySubstitutionRule::EnableSilent, PresetBundle::PresetPreferences(),
+                        &errors, true);
+    CHECK(errors.empty());
+    CHECK(bundle.printers.find_preset("Acme Printer") != nullptr);
+    CHECK_FALSE(fs::exists(system / "Acme.opc"));
+}
+
+TEST_CASE("A vendor updated over the air resolves against the library installed as its cache alone", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     system = temp_dir.path() / "data" / PRESET_SYSTEM_DIR;
+    ScopedDataDir      scoped_data(temp_dir.path() / "data");
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    // System presets are found by name through the bundled profiles.
+    write_library_and_acme_filament(temp_dir.path() / "resources" / PRESET_PROFILES_DIR);
+    // The release install, then an update that brings Acme back as JSONs while the library stays a cache.
+    write_library_and_acme_filament(system);
+    reduce_vendors_to_caches(system, {PresetBundle::ORCA_FILAMENT_LIBRARY, "Acme"});
+    write_library_and_acme_filament(temp_dir.path() / "update");
+    fs::copy_file(temp_dir.path() / "update" / "Acme.json", system / "Acme.json");
+    fs::create_directories(system / "Acme" / "filament");
+    fs::copy_file(temp_dir.path() / "update" / "Acme" / "filament" / "pla.json", system / "Acme" / "filament" / "pla.json");
+
+    SECTION("by name") {
+        PresetBundle       bundle;
+        DynamicPrintConfig config;
+        std::string        error;
+        REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_FILAMENT, "Acme PLA",
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+        CHECK_THAT(config.opt<ConfigOptionFloats>("filament_cost")->values.front(), Catch::Matchers::WithinAbs(27., 1e-6));
+    }
+    SECTION("by its source file") {
+        PresetBundle       bundle;
+        DynamicPrintConfig config;
+        config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "Generic PLA";
+        std::string error;
+        REQUIRE(bundle.resolve_preset_config(config, Preset::TYPE_FILAMENT, (system / "Acme" / "filament" / "pla.json").string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+        CHECK_THAT(config.opt<ConfigOptionFloats>("filament_cost")->values.front(), Catch::Matchers::WithinAbs(27., 1e-6));
+    }
 }
 
 namespace {

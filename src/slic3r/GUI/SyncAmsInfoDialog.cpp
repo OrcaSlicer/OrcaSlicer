@@ -78,6 +78,8 @@
 #include "DeviceCore/DevStorage.h"
 #include "FilamentBitmapUtils.hpp"
 
+namespace fs = boost::filesystem;
+
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 

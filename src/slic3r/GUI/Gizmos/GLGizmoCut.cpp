@@ -827,7 +827,7 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
 
     float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
     float slot_neck_outer_x = slot_mouth_half_width + flap_taper_offset; // lower_x extension
-    float slot_outer_x_max   = Max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
+    float slot_outer_x_max   = std::max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
 
     float slot_neck_inner_x = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
     float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing

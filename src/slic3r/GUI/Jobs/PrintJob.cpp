@@ -35,6 +35,9 @@
 #include <boost/chrono/duration.hpp>
 #include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include <wx/event.h>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {

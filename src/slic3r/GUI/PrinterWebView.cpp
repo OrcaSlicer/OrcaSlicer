@@ -9,6 +9,7 @@
 #include "libslic3r_version.h"
 
 #include <boost/filesystem/path.hpp>
+#include <utility>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
 #include <memory>

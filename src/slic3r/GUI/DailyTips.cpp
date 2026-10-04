@@ -276,8 +276,9 @@ void DailyTipsPanel::set_position(const ImVec2& pos)
 void DailyTipsPanel::set_size(const ImVec2& size)
 {
     m_width = size.x;
-    m_height = size.y;
-    m_content_height = m_height - m_footer_height;
+    //Orca: Keep the requested content height so expanding a collapsed panel restores its full size.
+    m_content_height = size.y - m_footer_height;
+    m_height = m_can_expand && !m_is_expanded ? m_footer_height : size.y;
 }
 
 void DailyTipsPanel::set_can_expand(bool can_expand)

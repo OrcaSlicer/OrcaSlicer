@@ -9,6 +9,7 @@ add_executable(${_TEST_NAME}_tests
     test_appconfig.cpp
     test_arachne_walls.cpp
     test_arrange.cpp
+    test_assemble_list.cpp
     test_bambu_networking.cpp
     test_buildvolume.cpp
     test_calib.cpp
@@ -18,6 +19,7 @@ add_executable(${_TEST_NAME}_tests
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
     test_drc.cpp
+    test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp

@@ -28,6 +28,7 @@
 #include <cstdint>
 #include <float.h>
 #include <set>
+#include "slic3r/GUI/MeshUtils.hpp"
 #include <string>
 #include <unordered_set>
 #include <utility>

@@ -25,6 +25,8 @@
 #include <initializer_list>
 #include <string_view>
 #include <regex>
+#include <string_view>
+#include <algorithm>
 
 #include <boost/system/error_code.hpp>
 #include <boost/algorithm/string.hpp>
@@ -301,6 +303,14 @@ extern bool is_absolute_path_within_root(const boost::filesystem::path &path, co
 // True if a file with this name is of a type that the desktop opens as plain content, so it cannot run code.
 // Anything unknown is not safe.
 extern bool is_safe_to_open_file_name(const std::string &file_name);
+
+// Case-insensitive compare against a fixed ASCII keyword, without boost::iequals, whose
+// std::locale() takes a lock the whole process shares in the MSVC runtime.
+inline bool ascii_iequals(std::string_view a, std::string_view b)
+{
+    auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [&lower](char x, char y) { return lower(x) == lower(y); });
+}
 
 // Orca: custom protocal support utils
 inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "orcaslicer://open"); }

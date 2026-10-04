@@ -27,9 +27,7 @@
 #include <GC_MakeArcOfEllipse.hxx>
 #include <Geom_TrimmedCurve.hxx>
 #include <Geom_BSplineCurve.hxx>
-#include <TColgp_Array1OfPnt.hxx>
-#include <TColStd_Array1OfReal.hxx>
-#include <TColStd_Array1OfInteger.hxx>
+#include <NCollection_Array1.hxx>
 #include <gp_Circ.hxx>
 #include <gp_Elips.hxx>
 #include <gp_Ax2.hxx>
@@ -179,21 +177,23 @@ TopoDS_Wire SketchProfile::to_occt_wire(const SketchPlane& plane) const
 
 // ---- SketchEngine ----
 
+TopoDS_Shape SketchEngine::make_prism(const TopoDS_Shape& base, const gp_Vec& vec)
+{
+    if (vec.Magnitude() < 1e-9) throw std::runtime_error("extrude depth is zero");
+    BRepPrimAPI_MakePrism prism(base, vec);
+    if (!prism.IsDone()) throw std::runtime_error("extrude failed");
+    return prism.Shape();
+}
+
 static TopoDS_Shape extrude_face_internal(const TopoDS_Face& face, const gp_Dir& dir, double length, bool symmetric)
 {
-    gp_Vec vec = gp_Vec(dir) * length;
     if (symmetric) {
         gp_Vec halfVec = gp_Vec(dir) * (length / 2.0);
-        BRepPrimAPI_MakePrism pos(face, halfVec);
-        BRepPrimAPI_MakePrism neg(face, -halfVec);
-        if (!pos.IsDone() || !neg.IsDone()) throw std::runtime_error("Symmetric extrude failed");
-        BRepAlgoAPI_Fuse fuse(pos.Shape(), neg.Shape());
+        BRepAlgoAPI_Fuse fuse(SketchEngine::make_prism(face, halfVec), SketchEngine::make_prism(face, -halfVec));
         if (!fuse.IsDone()) throw std::runtime_error("Fuse failed");
         return fuse.Shape();
     }
-    BRepPrimAPI_MakePrism prism(face, vec);
-    if (!prism.IsDone()) throw std::runtime_error("Extrude failed");
-    return prism.Shape();
+    return SketchEngine::make_prism(face, gp_Vec(dir) * length);
 }
 
 TopoDS_Shape SketchEngine::make_extrude(const TopoDS_Wire& wire, const SketchPlane& plane,
@@ -224,12 +224,9 @@ TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Face& face, const
 {
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
     const double u = std::abs(up), d = std::abs(down);
-    if (u < 1e-9 && d < 1e-9) return TopoDS_Shape();
-    if (d < 1e-9) { BRepPrimAPI_MakePrism p(face, gp_Vec(dir) *  u); return p.Shape(); }
-    if (u < 1e-9) { BRepPrimAPI_MakePrism p(face, gp_Vec(dir) * -d); return p.Shape(); }
-    BRepPrimAPI_MakePrism pos(face, gp_Vec(dir) *  u);
-    BRepPrimAPI_MakePrism neg(face, gp_Vec(dir) * -d);
-    BRepAlgoAPI_Fuse fuse(pos.Shape(), neg.Shape());
+    if (d < 1e-9) return make_prism(face, gp_Vec(dir) *  u);
+    if (u < 1e-9) return make_prism(face, gp_Vec(dir) * -d);
+    BRepAlgoAPI_Fuse fuse(make_prism(face, gp_Vec(dir) * u), make_prism(face, gp_Vec(dir) * -d));
     if (!fuse.IsDone()) throw std::runtime_error("two-sided extrude fuse failed");
     return fuse.Shape();
 }
@@ -240,8 +237,8 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
     auto straight = [&]() -> TopoDS_Shape {
         BRepBuilderAPI_MakeFace fm(wire);
-        BRepPrimAPI_MakePrism prism(fm.Face(), gp_Vec(dir) * length);
-        return prism.Shape();
+        if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+        return make_prism(fm.Face(), gp_Vec(dir) * length);
     };
     if (std::abs(taper_deg) >= 89.0 || std::abs(length) < 1e-9) return straight();
     const double off = length * std::tan(taper_deg * M_PI / 180.0);
@@ -258,10 +255,10 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
         if (topFlat.IsNull()) return straight();
         // 2) lift it along the normal by `length`
         gp_Trsf tr; tr.SetTranslation(gp_Vec(dir) * length);
-        BRepBuilderAPI_Transform xf(topFlat, tr, Standard_True);
+        BRepBuilderAPI_Transform xf(topFlat, tr, true);
         TopoDS_Wire topWire = TopoDS::Wire(xf.Shape());
         // 3) loft base -> top into a solid
-        BRepOffsetAPI_ThruSections loft(Standard_True /*solid*/, Standard_False /*ruled*/);
+        BRepOffsetAPI_ThruSections loft(true /*solid*/, false /*ruled*/);
         loft.AddWire(wire);
         loft.AddWire(topWire);
         loft.Build();
@@ -285,6 +282,9 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
     const std::vector<std::vector<std::vector<Vec2d>>>& regions,
     const SketchPlane& plane, double length, bool symmetric)
 {
+    // The loop below skips regions that fail, so a zero depth is rejected before it.
+    if (std::abs(length) < 1e-9) throw std::runtime_error("extrude depth is zero");
+
     // Drop consecutive coincident points and the closing duplicate. FreeType /
     // SVG flattening routinely emits repeated points which would build a
     // degenerate OCCT edge and make the wire builder throw — sanitising keeps a
@@ -406,8 +406,7 @@ TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, b
 {
     if (profiles.size() < 2)
         throw std::runtime_error("loft needs at least 2 profiles");
-    BRepOffsetAPI_ThruSections loft(Standard_True /*solid*/,
-                                    ruled ? Standard_True : Standard_False);
+    BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
@@ -424,8 +423,7 @@ TopoDS_Shape SketchEngine::make_loft_surface(const std::vector<TopoDS_Wire>& pro
 {
     if (profiles.size() < 2)
         throw std::runtime_error("loft needs at least 2 profiles");
-    BRepOffsetAPI_ThruSections loft(Standard_False /*shell, no end caps*/,
-                                    ruled ? Standard_True : Standard_False);
+    BRepOffsetAPI_ThruSections loft(false /*shell, no end caps*/, ruled);
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
@@ -597,15 +595,15 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
         const int n = int(c.ctrl.size());
         const int p = n >= 4 ? 3 : (n >= 2 ? n - 1 : 0);
         if (p < 1) return Handle(Geom_BSplineCurve)();
-        TColgp_Array1OfPnt poles(1, n);
+        NCollection_Array1<gp_Pnt> poles(1, n);
         for (int i = 0; i < n; ++i) {
             Vec3d w = plane.to_world(c.ctrl[i]);
             poles.SetValue(i + 1, gp_Pnt(w.x(), w.y(), w.z()));
         }
         const int interior = n - p - 1;        // count of single interior knots
         const int nknots   = interior + 2;
-        TColStd_Array1OfReal    knots(1, nknots);
-        TColStd_Array1OfInteger mults(1, nknots);
+        NCollection_Array1<double> knots(1, nknots);
+        NCollection_Array1<int>    mults(1, nknots);
         knots.SetValue(1, 0.0);                mults.SetValue(1, p + 1);
         for (int i = 1; i <= interior; ++i) { knots.SetValue(i + 1, double(i)); mults.SetValue(i + 1, 1); }
         knots.SetValue(nknots, double(interior + 1)); mults.SetValue(nknots, p + 1);
@@ -808,7 +806,7 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
                     wm.Add(BRepBuilderAPI_MakeEdge(va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::EllipseArc) {
                     if (e->radius <= 1e-9 || e->rminor <= 1e-9) return {};
-                    GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, Standard_True);
+                    GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, true);
                     if (!arc_maker.IsDone()) return {};
                     wm.Add(BRepBuilderAPI_MakeEdge(arc_maker.Value(), va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::Arc) {

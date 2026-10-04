@@ -79,6 +79,8 @@
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
 
+namespace fs = boost::filesystem;
+
 using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
@@ -835,7 +837,7 @@ int GuideFrame::SaveProfile()
     m_MainPtr->app_config->set_bool("stealth_mode", StealthMode);
 
     //finish
-    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", "1");
+    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", true);
 
     m_MainPtr->app_config->save();
 

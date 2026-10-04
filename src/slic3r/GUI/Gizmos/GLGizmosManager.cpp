@@ -29,6 +29,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoAssembly.hpp"
+#include <initializer_list>
 #include <wx/timer.h>
 #include <vector>
 #include <cstddef>

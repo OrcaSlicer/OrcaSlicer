@@ -509,3 +509,15 @@ TEST_CASE("is_safe_to_open_file_name rejects programs and anything it does not k
     INFO(unsafe);
     CHECK_FALSE(is_safe_to_open_file_name(unsafe));
 }
+
+TEST_CASE("ascii_iequals compares ASCII letters regardless of case", "[Utils]") {
+    CHECK(ascii_iequals("set_velocity_limit", "SET_VELOCITY_LIMIT"));
+    CHECK(ascii_iequals("G28", "g28"));
+    CHECK(ascii_iequals("", ""));
+    CHECK_FALSE(ascii_iequals("G28", "G29"));
+    CHECK_FALSE(ascii_iequals("G2", "G28"));
+    CHECK_FALSE(ascii_iequals("G28", "G2"));
+    // Non-letters 0x20 apart are not equal.
+    CHECK_FALSE(ascii_iequals("[", "{"));
+    CHECK_FALSE(ascii_iequals("@", "`"));
+}

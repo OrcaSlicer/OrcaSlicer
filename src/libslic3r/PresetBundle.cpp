@@ -626,13 +626,15 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
         return it->second.get();
 
     // The library loads with no base of its own, so the tree a vendor inherits from
-    // is the same one that resolves the library's own presets.
-    const std::string   library_file = std::string(ORCA_FILAMENT_LIBRARY);
-    const PresetBundle *library      = nullptr;
-    if (vendor_id != ORCA_FILAMENT_LIBRARY &&
-        (boost::filesystem::is_regular_file(root_dir / (library_file + ".json")) ||
-         (allow_cache && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"))))) {
-        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache);
+    // is the same one that resolves the library's own presets. It is only a base, so
+    // it comes from its cache whenever that is all that is installed, even when the
+    // vendor itself is parsed (a vendor updated over the air).
+    const std::string   library_file       = std::string(ORCA_FILAMENT_LIBRARY);
+    const bool          library_json       = boost::filesystem::is_regular_file(root_dir / (library_file + ".json"));
+    const bool          library_cache_only = !library_json && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"));
+    const PresetBundle *library            = nullptr;
+    if (vendor_id != ORCA_FILAMENT_LIBRARY && (library_json || library_cache_only)) {
+        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache || library_cache_only);
         if (library == nullptr) {
             error = "OrcaFilamentLibrary contains invalid presets";
             return nullptr;
@@ -2576,7 +2578,7 @@ void PresetBundle::clear_printer_hold_aliases()
 
 //BBS: add json related logic, load system presets from json
 std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_presets_from_json(
-    ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache)
+    ForwardCompatibilitySubstitutionRule compatibility_rule, bool write_caches)
 {
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, compatibility_rule %1%")%compatibility_rule;
@@ -2596,14 +2598,14 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     // The vendors below are loaded whole and against each other — the filament
     // library first, then every other vendor with it as the base — so each parse
     // is complete enough to be worth caching.
-    m_generate_vendor_caches = allow_cache && (m_generate_vendor_caches || !validation_mode);
+    m_generate_vendor_caches = write_caches && (m_generate_vendor_caches || !validation_mode);
 
     // Sorted, so any duplicate-preset warning comes out in the same order on every run.
     std::vector<VendorSource> vendors;
     for (const std::string& name : vendor_names_in(dir))
         if (name == ORCA_FILAMENT_LIBRARY || !(validation_mode && !vendor_to_validate.empty() && name != vendor_to_validate))
             vendors.push_back({ name, dir });
-    auto result = this->load_vendors(vendors, compatibility_rule, allow_cache);
+    auto result = this->load_vendors(vendors, compatibility_rule, true);
 
 	this->update_system_maps();
 
@@ -3596,6 +3598,24 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
+// Preserve metadata only for existing colour slots; new slots get false/empty defaults.
+static void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count)
+{
+    auto resize = [old_slot_count, new_slot_count](auto *opt) {
+        if (opt) {
+            opt->values.resize(std::min(old_slot_count, opt->values.size()));
+            opt->values.resize(new_slot_count);
+        }
+    };
+    resize(config.option<ConfigOptionBools>("filament_is_mixed"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_components"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"));
+    resize(config.option<ConfigOptionBools>("filament_mixed_gradient"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_range"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"));
+    resize(config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"));
+}
+
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
     unsigned old_filament_count = this->filament_presets.size();
@@ -3628,22 +3648,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     filament_volume_map->values.resize(n, static_cast<int>(NozzleVolumeType::nvtStandard));
     ams_multi_color_filment.resize(n);
 
-    // Mixed-color metadata is a parallel per-filament array set, so it has to grow and shrink
-    // with the filament count exactly like filament_colour above.
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"))
-        opt->values.resize(n, false);
+    resize_mixed_filament_metadata(project_config, old_slot_count, n);
 
     //BBS set new filament color to new_color
     if (!new_color.empty()) {
@@ -3755,18 +3760,19 @@ bool PresetBundle::is_mixed_filament(size_t idx) const
 
 size_t PresetBundle::num_mixed_filaments() const
 {
-    auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? 0 : size_t(std::count(opt->values.begin(), opt->values.end(), true));
+    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    if (opt == nullptr)
+        return 0;
+    const size_t slot_count = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
-// Counted off the mixed flags, not filament_presets: that list is topped up to the nozzle count on
-// its own, so it can sit a slot ahead of the arrays that describe slots. Unlike the sibling
-// physical_filament_config_indices(), which bounds by filament_presets, this ignores that top-up.
+// Colours describe actual slots; filament_presets can be topped up to the nozzle count alone.
+// Imported projects may have fewer mixed flags than slots. Missing flags mean physical filaments.
 size_t PresetBundle::num_physical_filaments() const
 {
-    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? filament_presets.size()
-                          : size_t(std::count(opt->values.begin(), opt->values.end(), false));
+    const auto *colors = project_config.option<ConfigOptionStrings>("filament_colour");
+    return colors->values.size() - num_mixed_filaments();
 }
 
 std::vector<size_t> PresetBundle::physical_filament_config_indices() const
@@ -5310,7 +5316,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
 
 
 //convert the old filament preset to new one after split
-static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
+void PresetBundle::convert_filament_preset_name(const std::string& machine_name, std::string& filament_name)
 {
     auto machine_iter = filament_preset_convert.find(machine_name);
     if (machine_iter != filament_preset_convert.end())
@@ -5602,6 +5608,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
+        // Older projects inherit one-element mixed defaults, regardless of their filament count.
+        if (!is_published)
+            resize_mixed_filament_metadata(this->project_config, num_filaments, num_filaments);
 
         break;
     }

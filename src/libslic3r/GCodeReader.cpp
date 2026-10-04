@@ -21,6 +21,7 @@
 
 #include <Shiny/Shiny.h>
 #include <fast_float/fast_float.h>
+#include <memory>
 #include <utility>
 #include <vector>
 #include <string_view>
@@ -28,14 +29,24 @@
 
 namespace Slic3r {
 
+const GCodeConfig& GCodeReader::default_config()
+{
+    static const GCodeConfig config;
+    return config;
+}
+
 void GCodeReader::apply_config(const GCodeConfig &config)
 {
-    m_config = config;
+    m_config                   = std::make_shared<const GCodeConfig>(config);
+    m_use_relative_e_distances = config.use_relative_e_distances.value;
 }
 
 void GCodeReader::apply_config(const DynamicPrintConfig &config)
 {
-    m_config.apply(config, true);
+    auto applied = std::make_shared<GCodeConfig>(m_config ? *m_config : default_config());
+    applied->apply(config, true);
+    m_use_relative_e_distances = applied->use_relative_e_distances.value;
+    m_config                   = std::move(applied);
 }
 
 const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, GCodeLine &gline, std::pair<const char*, const char*> &command)
@@ -95,7 +106,7 @@ const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, G
         }
     }
     
-    if (gline.has(E) && m_config.use_relative_e_distances)
+    if (gline.has(E) && m_use_relative_e_distances)
         m_position[E] = 0;
 
     // Skip the rest of the line.

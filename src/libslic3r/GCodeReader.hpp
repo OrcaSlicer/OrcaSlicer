@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -111,7 +112,7 @@ public:
     void reset() { memset(m_position, 0, sizeof(m_position)); }
     void apply_config(const GCodeConfig &config);
     void apply_config(const DynamicPrintConfig &config);
-    const GCodeConfig& config() { return m_config; };
+    const GCodeConfig& config() { return m_config ? *m_config : default_config(); };
 
     template<typename Callback>
     void parse_buffer(const std::string &buffer, Callback callback)
@@ -172,7 +173,7 @@ public:
 
     GCodeConfig get_config() const
     { 
-        return m_config;
+        return m_config ? *m_config : default_config();
     }
 
 private:
@@ -199,8 +200,11 @@ private:
         return c;
     }
     static const char*  axis_pos(const char *raw_str, char axis);
+    static const GCodeConfig& default_config();
 
-    GCodeConfig m_config;
+    // Set by apply_config() and shared by copies, so a reader without a config builds none.
+    std::shared_ptr<const GCodeConfig> m_config;
+    bool        m_use_relative_e_distances{ default_config().use_relative_e_distances.value };
     float       m_position[NUM_AXES];
     bool        m_verbose;
     // To be set by the callback to stop parsing.

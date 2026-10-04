@@ -337,54 +337,57 @@ class Print;
 
         //BBS: add mutex for protection of gcode result
         mutable std::mutex result_mutex;
-        GCodeProcessorResult& operator=(const GCodeProcessorResult &other)
+        GCodeProcessorResult& operator=(const GCodeProcessorResult &other) { assign(other); return *this; }
+        // Declared because the user-declared copy assignment suppresses the implicit move.
+        GCodeProcessorResult& operator=(GCodeProcessorResult &&other) { assign(std::move(other)); return *this; }
+        // Add a new member here, or neither assignment transfers it.
+        template<class Other> void assign(Other &&other)
         {
-            filename = other.filename;
-            id = other.id;
-            moves = other.moves;
-            lines_ends = other.lines_ends;
-            printable_area = other.printable_area;
-            bed_exclude_area = other.bed_exclude_area;
-            wrapping_exclude_area = other.wrapping_exclude_area;
-            toolpath_outside = other.toolpath_outside;
-            label_object_enabled = other.label_object_enabled;
-            long_retraction_when_cut = other.long_retraction_when_cut;
-            timelapse_warning_code = other.timelapse_warning_code;
-            printable_height = other.printable_height;
-            settings_ids = other.settings_ids;
-            filaments_count = other.filaments_count;
-            extruder_colors = other.extruder_colors;
-            filament_diameters = other.filament_diameters;
-            filament_densities = other.filament_densities;
-            filament_costs = other.filament_costs;
-            print_statistics = other.print_statistics;
-            custom_gcode_per_print_z = other.custom_gcode_per_print_z;
-            spiral_vase_mode = other.spiral_vase_mode;
-            warnings = other.warnings;
-            bed_type = other.bed_type;
-            gcode_check_result = other.gcode_check_result;
-            limit_filament_maps = other.limit_filament_maps;
-            filament_printable_reuslt = other.filament_printable_reuslt;
+            filename = std::forward<Other>(other).filename;
+            id = std::forward<Other>(other).id;
+            moves = std::forward<Other>(other).moves;
+            lines_ends = std::forward<Other>(other).lines_ends;
+            printable_area = std::forward<Other>(other).printable_area;
+            bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
+            wrapping_exclude_area = std::forward<Other>(other).wrapping_exclude_area;
+            toolpath_outside = std::forward<Other>(other).toolpath_outside;
+            label_object_enabled = std::forward<Other>(other).label_object_enabled;
+            long_retraction_when_cut = std::forward<Other>(other).long_retraction_when_cut;
+            timelapse_warning_code = std::forward<Other>(other).timelapse_warning_code;
+            printable_height = std::forward<Other>(other).printable_height;
+            settings_ids = std::forward<Other>(other).settings_ids;
+            filaments_count = std::forward<Other>(other).filaments_count;
+            extruder_colors = std::forward<Other>(other).extruder_colors;
+            filament_diameters = std::forward<Other>(other).filament_diameters;
+            filament_densities = std::forward<Other>(other).filament_densities;
+            filament_costs = std::forward<Other>(other).filament_costs;
+            print_statistics = std::forward<Other>(other).print_statistics;
+            custom_gcode_per_print_z = std::forward<Other>(other).custom_gcode_per_print_z;
+            spiral_vase_mode = std::forward<Other>(other).spiral_vase_mode;
+            warnings = std::forward<Other>(other).warnings;
+            bed_type = std::forward<Other>(other).bed_type;
+            gcode_check_result = std::forward<Other>(other).gcode_check_result;
+            limit_filament_maps = std::forward<Other>(other).limit_filament_maps;
+            filament_printable_reuslt = std::forward<Other>(other).filament_printable_reuslt;
             // Orca: copy the shared grouping result so a copied result keeps it (shared_ptr =>
             // memory-safe), rather than leaving a stale pointer on the target. No g-code effect either way.
-            nozzle_group_result = other.nozzle_group_result;
+            nozzle_group_result = std::forward<Other>(other).nozzle_group_result;
             // Keep the per-extruder hotend types on a copied result (injector input).
-            extruder_types = other.extruder_types;
-            printer_extruder_variant = other.printer_extruder_variant;
-            printer_extruder_id = other.printer_extruder_id;
-            layer_filaments = other.layer_filaments;
-            filament_change_sequence = other.filament_change_sequence;
-            used_mixed_filaments = other.used_mixed_filaments;
-            nozzle_change_sequence = other.nozzle_change_sequence;
-            optimal_assignment = other.optimal_assignment;
-            filament_change_count_map = other.filament_change_count_map;
+            extruder_types = std::forward<Other>(other).extruder_types;
+            printer_extruder_variant = std::forward<Other>(other).printer_extruder_variant;
+            printer_extruder_id = std::forward<Other>(other).printer_extruder_id;
+            layer_filaments = std::forward<Other>(other).layer_filaments;
+            filament_change_sequence = std::forward<Other>(other).filament_change_sequence;
+            used_mixed_filaments = std::forward<Other>(other).used_mixed_filaments;
+            nozzle_change_sequence = std::forward<Other>(other).nozzle_change_sequence;
+            optimal_assignment = std::forward<Other>(other).optimal_assignment;
+            filament_change_count_map = std::forward<Other>(other).filament_change_count_map;
             // Keep the SKIPPABLE per-type time on a copied result.
-            skippable_part_time = other.skippable_part_time;
-            initial_layer_time = other.initial_layer_time;
+            skippable_part_time = std::forward<Other>(other).skippable_part_time;
+            initial_layer_time = std::forward<Other>(other).initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
-            time = other.time;
+            time = std::forward<Other>(other).time;
 #endif
-            return *this;
         }
         void  lock() const { result_mutex.lock(); }
         void  unlock() const { result_mutex.unlock(); }
@@ -1216,6 +1219,9 @@ class Print;
         EProducer m_producer;
 
         TimeProcessor m_time_processor;
+        // calculate_time()'s map from each block's move id to its index after the actual speed moves are inserted,
+        // a member to reuse its capacity.
+        std::vector<std::pair<unsigned int, unsigned int>> m_actual_speed_id_map;
         UsedFilaments m_used_filaments;
 
         Print* m_print{ nullptr };

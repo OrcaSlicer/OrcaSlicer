@@ -871,19 +871,6 @@ ConfigSubstitutions ConfigBase::load_from_json(const std::string &file, ForwardC
     return std::move(substitutions_ctxt.substitutions);
 }
 
-// Case-insensitive compare of a JSON key against a fixed ASCII one, without
-// boost::iequals, whose std::locale() takes a lock the whole process shares in the
-// MSVC runtime.
-static bool ascii_iequals(const std::string &key, const char *literal)
-{
-    auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
-    size_t i = 0;
-    for (; i < key.size() && literal[i] != '\0'; ++ i)
-        if (lower(key[i]) != lower(literal[i]))
-            return false;
-    return i == key.size() && literal[i] == '\0';
-}
-
 int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason)
 {
     json j;

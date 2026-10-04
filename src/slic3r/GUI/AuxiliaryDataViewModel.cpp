@@ -21,6 +21,8 @@
 #include <wx/variant.h>
 #include <wx/types.h>
 
+namespace fs = boost::filesystem;
+
 const static std::array<wxString, 4> s_default_folders = {
     _L("Model Pictures"),
     _L("Bill of Materials"),

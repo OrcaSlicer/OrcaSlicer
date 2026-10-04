@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <utility>
 #include <vector>
 #include <string>
 #include "slic3r/GUI/GUI.hpp"
@@ -56,6 +57,8 @@
 #include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include <slic3r/GUI/Widgets/WebView.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
