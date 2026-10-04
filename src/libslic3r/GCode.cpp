@@ -4412,11 +4412,6 @@ struct PrecomputedLayer
 };
 } // namespace
 
-template<typename BoolsOption> static bool any_enabled(const BoolsOption &option)
-{
-    return std::any_of(option.values.begin(), option.values.end(), [](unsigned char enabled) { return enabled != 0; });
-}
-
 // Whether process_layer() prepares the overhang estimator for `layer`.
 template<typename OverhangSpeed>
 static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan, OverhangSpeed overhang_speed)
