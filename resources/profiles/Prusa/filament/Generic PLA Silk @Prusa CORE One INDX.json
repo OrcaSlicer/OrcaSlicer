@@ -147,6 +147,11 @@
 		"0"
 	],
 	"nozzle_temperature_range_high": [
+		"230",
+		"230",
+		"230",
+		"230",
+		"230",
 		"230"
 	],
 	"during_print_exhaust_fan_speed": [
