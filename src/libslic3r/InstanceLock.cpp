@@ -1,7 +1,11 @@
 #include "InstanceLock.hpp"
 
+#include <chrono>
+#include <exception>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <string>
 #include <system_error>
 #include <thread>
 

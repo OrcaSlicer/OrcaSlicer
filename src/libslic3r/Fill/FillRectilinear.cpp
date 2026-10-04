@@ -1,3 +1,8 @@
+#include <numeric>
+#include <math.h>
+#include <initializer_list>
+#include <array>
+#include <map>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -10,6 +15,9 @@
 #include <boost/log/trivial.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <vector>
+#include <utility>
+#include <string>
 
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
@@ -18,7 +26,17 @@
 #include "../ShortestPath.hpp"
 #include "../VariableWidth.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Flow.hpp"
 #include "FillRectilinear.hpp"
 
 // #define SLIC3R_DEBUG

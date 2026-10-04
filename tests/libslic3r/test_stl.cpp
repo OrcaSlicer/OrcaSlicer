@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
+#include <string>
+#include "libslic3r/Point.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/STL.hpp"
 

@@ -4,6 +4,7 @@
 #include "ExPolygon.hpp"
 #include "ExtrusionEntity.hpp"
 #include "ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
 #include "Line.hpp"
 #include "Point.hpp"
@@ -20,6 +21,7 @@
 #include "tbb/parallel_reduce.h"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>

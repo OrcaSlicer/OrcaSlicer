@@ -1,6 +1,9 @@
 #ifndef slic3r_Model_hpp_
 #define slic3r_Model_hpp_
 
+#include "BoundingBox.hpp"
+#include "Polygon.hpp"
+#include "Semver.hpp"
 #include "libslic3r.h"
 #include "enum_bitmask.hpp"
 #include "Geometry.hpp"
@@ -30,6 +33,13 @@
 #include "Format/OBJ.hpp"
 
 #include <array>
+#include <cereal/access.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cassert>
+#include <cstddef>
+#include <iterator>
+#include <initializer_list>
+#include <cereal/specialize.hpp>
 #include <map>
 #include <memory>
 #include <string>

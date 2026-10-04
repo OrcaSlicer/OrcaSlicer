@@ -7,6 +7,7 @@
 #include <utility>
 #include <cassert>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/containr.h>
 #include <wx/dc.h>
 #include <algorithm>
 #include <wx/dcclient.h>

@@ -1,5 +1,17 @@
 #include "PrintHost.hpp"
 
+#include <boost/optional/optional.hpp>
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include <utility>
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <vector>
 #include <thread>
 #include <exception>
@@ -11,6 +23,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <wx/event.h>
 #include <wx/string.h>
 #include <wx/app.h>
 #include <wx/arrstr.h>

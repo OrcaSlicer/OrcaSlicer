@@ -1,3 +1,5 @@
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "../libslic3r.h"
 #include "../Model.hpp"
@@ -6,9 +8,23 @@
 #include "svg.hpp"
 #include "nanosvg/nanosvg.h"
 
+#include <cstdlib>
+#include <cstddef>
+#include <TopAbs_ShapeEnum.hxx>
+#include <TopLoc_Location.hxx>
+#include <Standard_Handle.hxx>
+#include <Poly_Triangulation.hxx>
+#include <BRep_Tool.hxx>
+#include <cstdint>
+#include <Standard_TypeDef.hxx>
+#include <gp_Trsf.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 #include "BRepBuilderAPI_MakeWire.hxx"
 #include "BRepBuilderAPI_MakeEdge.hxx"
@@ -323,10 +339,10 @@ bool load_svg(const char *path, Model *model, std::string &message)
         std::vector<Vec3f> points;
         points.reserve(aNbNodes);
         // BBS: count faces missing triangulation
-        Standard_Integer aNbFacesNoTri = 0;
+        int aNbFacesNoTri = 0;
         // BBS: fill temporary triangulation
-        Standard_Integer aNodeOffset    = 0;
-        Standard_Integer aTriangleOffet = 0;
+        int aNodeOffset    = 0;
+        int aTriangleOffet = 0;
         for (TopExp_Explorer anExpSF(namedSolids[i].shape, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
             const TopoDS_Shape &aFace = anExpSF.Current();
             TopLoc_Location     aLoc;
@@ -337,15 +353,15 @@ bool load_svg(const char *path, Model *model, std::string &message)
             }
             // BBS: copy nodes
             gp_Trsf aTrsf = aLoc.Transformation();
-            for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
+            for (int aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                 gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                 aPnt.Transform(aTrsf);
                 points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
             }
             // BBS: copy triangles
             const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
-            Standard_Integer         anId[3];
-            for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
+            int anId[3];
+            for (int aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
                 Poly_Triangle aTri = aTriangulation->Triangle(aTriIter);
 
                 aTri.Get(anId[0], anId[1], anId[2]);

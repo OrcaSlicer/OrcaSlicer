@@ -1,6 +1,8 @@
 #include "ClipperZUtils.hpp"
+#include "ClipperUtils.hpp"
 
 #include <clipper2/clipper2_z.hpp>
+#include <cstddef>
 
 namespace Slic3r {
 namespace ClipperZUtils {

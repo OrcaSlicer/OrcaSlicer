@@ -1,14 +1,34 @@
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/SLA/IndexedMesh.hpp"
+#include "libslic3r/SLA/SupportTree.hpp"
+#include "libslic3r/SLA/SupportPointGenerator.hpp"
+#include "libslic3r/MTUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include "libslic3r/SLA/Pad.hpp"
+#include "libslic3r/SLA/RasterBase.hpp"
+#include "libslic3r/SLA/AGGRaster.hpp"
+#include <cstdlib>
+#include "libslic3r/SLA/SupportTreeBuilder.hpp"
+#include "libslic3r/Execution/Execution.hpp"
+#include "libslic3r/Execution/ExecutionTBB.hpp"
 #include <unordered_set>
 #include <unordered_map>
 #include <random>
 #include <numeric>
 #include <cstdint>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "sla_test_utils.hpp"
+#include "test_utils.hpp"
 
 #include <libslic3r/TriangleMeshSlicer.hpp>
 #include <libslic3r/SLA/SupportTreeMesher.hpp>
 #include <libslic3r/SLA/Concurrency.hpp>
+#include <vector>
 
 namespace {
 

@@ -3,6 +3,7 @@
 
 #include "TextInput.hpp"
 #include "DropDown.hpp"
+#include <wx/containr.h>
 #include <wx/ctrlsub.h>
 #include <vector>
 #include <wx/string.h>

@@ -18,6 +18,7 @@
 #include "libslic3r/ProjectTask.hpp"
 #include <string>
 #include <tuple>
+#include <wx/anybutton.h>
 #include <wx/panel.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>

@@ -3,6 +3,7 @@
 
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
+#include <wx/anybutton.h>
 #include <wx/panel.h>
 #include <wx/checklst.h>
 #include <wx/string.h>

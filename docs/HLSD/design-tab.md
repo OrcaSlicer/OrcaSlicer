@@ -51,14 +51,13 @@ widens the existing OCCT build by one module flag in `deps/OCCT/OCCT.cmake`:
 -DBUILD_MODULE_ModelingAlgorithms=${SLIC3R_CAD}
 ```
 
-Most of that module's twelve toolkits were already being built, because `DataExchange` — the
-STEP path upstream ships — depends on them. The delta is `TKFillet` (used through
-`BRepFilletAPI`), `TKOffset` (`BRepOffsetAPI`) and `TKFeat`, which nothing here references but
-which the module flag builds anyway, because OCCT's module flags are all-or-nothing. On macOS
-and Linux OCCT links statically, so an unreferenced toolkit costs build time and no shipped
-bytes; on Windows OCCT builds shared, so the cost there is real DLL bytes. That Windows figure
-has not been measured, and `OCCT.cmake` says so rather than carrying a number that was derived
-from an incomplete toolkit list.
+Most of that module's toolkits are built either way, because `DataExchange`, which the STEP
+importer uses, depends on them. With the flag on, OCCT also builds `TKFillet` (used through
+`BRepFilletAPI`), `TKOffset` (`BRepOffsetAPI`), and `TKFeat`, `TKHelix`, `TKXMesh` and
+`TKExpress`, which nothing here references but which the module flag builds anyway, because
+OCCT's module flags are all-or-nothing. On macOS and Linux OCCT links statically, so an
+unreferenced toolkit costs build time and no shipped bytes. On Windows OCCT builds shared and
+only the linked toolkits ship, so the tab adds the `TKFillet`, `TKOffset` and `TKBool` DLLs.
 
 On Windows the packaging step asserts that every linked OCCT toolkit has a shipped DLL and
 fails the configure with the name of any that is missing, because the alternative failure — a
@@ -117,6 +116,8 @@ that keep it survivable are:
 `Import` features embed the imported solid as an OCCT BRep string inside the recipe rather than
 referencing the source file, so a project opens without the STEP or mesh it was built from.
 The cost is that saved projects are coupled to an OCCT BRep revision.
+`tests/data/cad_brep_occt76.brep` holds a solid written by OCCT 7.6, and its test fails if the
+bundled OCCT can no longer read it.
 
 ## The interaction contract
 

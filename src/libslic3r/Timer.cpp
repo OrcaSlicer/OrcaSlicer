@@ -1,5 +1,7 @@
 #include "Timer.hpp"
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <chrono>
 
 using namespace std::chrono;
 

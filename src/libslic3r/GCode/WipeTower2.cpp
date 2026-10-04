@@ -1,22 +1,44 @@
 // Orca: WipeTower2 for all non bbl printers, support all MMU device and toolchanger.
 #include "WipeTower2.hpp"
 
+#include <algorithm>
+#include <Eigen/Geometry>
 #include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <cstddef>
+#include <cstdio>
 #include <iostream>
+#include <map>
+#include <string>
+#include <math.h>
+#include <limits>
+#include <utility>
 #include <vector>
 #include <numeric>
 #include <memory>
 #include <sstream>
 #include <iomanip>
 
+#include "libslic3r/Circle.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "ClipperUtils.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 #include "GCodeProcessor.hpp"
 #include "BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
 #include "LocalesUtils.hpp"
 #include "Geometry.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "PrintConfig.hpp"
 #include "Surface.hpp"
 #include "Fill/FillRectilinear.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 

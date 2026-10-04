@@ -1,10 +1,35 @@
 #include "ClipperUtils.hpp"
+#include "Geometry.hpp"
+#include "CustomGCode.hpp"
+#include "Config.hpp"
 #include "Model.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "Print.hpp"
 #include "FilamentMixer.hpp"
+#include "Slicing.hpp"
+#include "libslic3r.h"
+#include "PrintConfig.hpp"
+#include "PrintBase.hpp"
+#include "libslic3r_version.h"
+#include "TriangleSelector.hpp"
 
+#include <algorithm>
+#include <array>
 #include <boost/log/trivial.hpp>
+#include <cassert>
 #include <cfloat>
+#include <utility>
+#include <vector>
+#include <cstddef>
+#include <initializer_list>
+#include <set>
+#include <cstdlib>
+#include <functional>
+#include <memory>
+#include <unordered_set>
+#include <unordered_map>
+#include <mutex>
 
 namespace Slic3r {
 
@@ -1309,7 +1334,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         // Reproduce that exact expansion here so an unchanged config diffs empty — the expanded
         // keys invalidate the wipe tower / g-code export, and the placeholder parser aliases
         // the full config — instead of trimming back to one slot per filament.
-        auto group_result = std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(this->get_nozzle_group_result());
+        auto group_result = this->get_layered_nozzle_group_result();
         std::unordered_map<int, std::vector<FilamentVariantUse>> filament_variant_uses;
         if (group_result && group_result->is_support_dynamic_nozzle_map()
             && collect_filament_variant_uses(*group_result, m_ori_full_print_config, filament_variant_uses))

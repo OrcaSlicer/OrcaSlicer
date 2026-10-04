@@ -14,6 +14,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <string>

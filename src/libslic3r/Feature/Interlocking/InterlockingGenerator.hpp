@@ -4,8 +4,16 @@
 #ifndef INTERLOCKING_GENERATOR_HPP
 #define INTERLOCKING_GENERATOR_HPP
 
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "VoxelUtils.hpp"
+#include <functional>
+#include <cstddef>
+#include <utility>
+#include <unordered_set>
+#include <vector>
 
 namespace Slic3r {
 

@@ -1,4 +1,38 @@
 #include "CutSurface.hpp"
+#include "libslic3r/Emboss.hpp"
+#include <vector>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Surface_mesh/Surface_mesh.h>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <cstdint>
+#include <limits>
+#include <string>
+#include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
+#include "libslic3r/Polygon.hpp"
+#include <cassert>
+#include <array>
+#include <cmath>
+#include <math.h>
+#include <algorithm>
+#include <queue>
+#include <CGAL/enum.h>
+#include <CGAL/Kernel/global_functions_3.h>
+#include <CGAL/Named_function_parameters.h>
+#include "libslic3r/AABBTreeIndirect.hpp"
+#include <cstdlib>
+#include "libslic3r/libslic3r.h"
+#include <boost/property_map/property_map.hpp>
+#include <CGAL/Polygon_mesh_processing/self_intersections.h>
+#include <CGAL/AABB_face_graph_triangle_primitive.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
+#include <iterator>
+#include <optional>
+#include <CGAL/Surface_mesh/IO/OFF.h>
 
 /// models_input.obj - Check transormation of model to each others
 /// projection_center.obj - circle representing center of projection with correct distance

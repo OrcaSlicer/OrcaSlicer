@@ -40,6 +40,9 @@
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;

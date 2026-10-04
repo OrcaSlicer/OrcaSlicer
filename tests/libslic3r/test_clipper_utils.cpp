@@ -1,9 +1,18 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include <utility>
+#include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/SVG.hpp"

@@ -2,9 +2,22 @@
 #include "ClipperUtils.hpp"
 #include "Exception.hpp"
 #include "Polygon.hpp"
+#include "Line.hpp"
+#include "Point.hpp"
+#include "MultiPoint.hpp"
 #include "Polyline.hpp"
+#include "libslic3r.h"
 
+#include <cassert>
+#include <algorithm>
+#include <Eigen/Core>
 #include <cmath>
+#include <cstddef>
+#include <utility>
+#include <limits>
+#include <vector>
+#include <cstdint>
+#include <math.h>
 
 namespace Slic3r {
 

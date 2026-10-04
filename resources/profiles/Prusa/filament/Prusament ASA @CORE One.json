@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament ASA @CORE One",
+	"renamed_from": "Prusament ASA CORE One;Prusament ASA @CORE One MMU3;Prusament ASA CORE One MMU3",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "UUTjJ4Y8St3c87jD",
@@ -16,7 +17,11 @@
 		"Prusa CORE One 0.25 nozzle",
 		"Prusa CORE One 0.3 nozzle",
 		"Prusa CORE One 0.4 nozzle",
-		"Prusa CORE One 0.5 nozzle"
+		"Prusa CORE One 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"20"

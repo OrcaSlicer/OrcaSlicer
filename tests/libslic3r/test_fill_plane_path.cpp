@@ -2,9 +2,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Fill/FillBase.hpp"
+#include <cstddef>
+#include <iterator>
+#include "libslic3r/Config.hpp"
 #include <limits>
 #include <utility>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Fill/FillPlanePath.hpp"
 #include "libslic3r/PrintConfig.hpp"
 

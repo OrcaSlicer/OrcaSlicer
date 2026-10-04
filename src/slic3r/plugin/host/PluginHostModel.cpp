@@ -1,7 +1,11 @@
 #include "PluginHostBindings.hpp"
 #include "PluginHostMesh.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 
+#include <cstddef>
 #include <libslic3r/Model.hpp>
 
 #include <pybind11/stl.h>
