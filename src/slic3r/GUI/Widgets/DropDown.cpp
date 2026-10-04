@@ -31,6 +31,7 @@ wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 BEGIN_EVENT_TABLE(DropDown, PopupWindow)
 
 EVT_LEFT_DOWN(DropDown::mouseDown)
+EVT_LEFT_DCLICK(DropDown::mouseDown)
 EVT_LEFT_UP(DropDown::mouseReleased)
 EVT_MOUSE_CAPTURE_LOST(DropDown::mouseCaptureLost)
 EVT_MOTION(DropDown::mouseMove)
@@ -64,6 +65,12 @@ DropDown::DropDown(wxWindow *parent, std::vector<Item> &items, long style)
     : DropDown(items)
 {
     Create(parent, style);
+}
+
+DropDown::~DropDown()
+{
+    if (HasCapture())
+        ReleaseMouse();
 }
 
 void DropDown::Create(wxWindow *parent, long style)
@@ -697,33 +704,35 @@ void DropDown::mouseDown(wxMouseEvent& event)
     // force calc hover item again
     mouseMove(event);
     pressedDown = true;
-    CaptureMouse();
+    if (!HasCapture())
+        CaptureMouse();
     dragStart   = event.GetPosition();
 }
 
 void DropDown::mouseReleased(wxMouseEvent& event)
 {
-    if (pressedDown) {
-        dragStart = wxPoint();
-        pressedDown = false;
-        if (HasCapture())
-            ReleaseMouse();
-        if (hover_item < 0)
-            return;
-        if (hover_item >= 0 && (subDropDown == nullptr || subDropDown->group.empty())) { // not moved
-            sendDropDownEvent();
-            if (mainDropDown)
-                mainDropDown->hover_item = -1; // To Dismiss mainDropDown
-            DismissAndNotify();
-        } else if (subDropDown)
-            subDropDown->Popup(subDropDown);
-    }
+    if (HasCapture())
+        ReleaseMouse();
+    if (!pressedDown)
+        return;
+    dragStart = wxPoint();
+    pressedDown = false;
+    if (hover_item < 0)
+        return;
+    if (hover_item >= 0 && (subDropDown == nullptr || subDropDown->group.empty())) { // not moved
+        sendDropDownEvent();
+        if (mainDropDown)
+            mainDropDown->hover_item = -1; // To Dismiss mainDropDown
+        DismissAndNotify();
+    } else if (subDropDown)
+        subDropDown->Popup(subDropDown);
 }
 
 void DropDown::mouseCaptureLost(wxMouseCaptureLostEvent &event)
 {
-    wxMouseEvent evt;
-    mouseReleased(evt);
+    dragStart = wxPoint();
+    pressedDown = false;
+    Refresh();
 }
 
 void DropDown::mouseMove(wxMouseEvent &event)

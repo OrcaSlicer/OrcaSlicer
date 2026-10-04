@@ -18,9 +18,11 @@
 BEGIN_EVENT_TABLE(ImageSwitchButton, StaticBox)
 
 EVT_LEFT_DOWN(ImageSwitchButton::mouseDown)
+EVT_LEFT_DCLICK(ImageSwitchButton::mouseDown)
 EVT_ENTER_WINDOW(ImageSwitchButton::mouseEnterWindow)
 EVT_LEAVE_WINDOW(ImageSwitchButton::mouseLeaveWindow)
 EVT_LEFT_UP(ImageSwitchButton::mouseReleased)
+EVT_MOUSE_CAPTURE_LOST(ImageSwitchButton::mouseCaptureLost)
 EVT_PAINT(ImageSwitchButton::paintEvent)
 
 END_EVENT_TABLE()
@@ -28,9 +30,11 @@ END_EVENT_TABLE()
 BEGIN_EVENT_TABLE(FanSwitchButton, StaticBox)
 
 EVT_LEFT_DOWN(FanSwitchButton::mouseDown)
+EVT_LEFT_DCLICK(FanSwitchButton::mouseDown)
 EVT_ENTER_WINDOW(FanSwitchButton::mouseEnterWindow)
 EVT_LEAVE_WINDOW(FanSwitchButton::mouseLeaveWindow)
 EVT_LEFT_UP(FanSwitchButton::mouseReleased)
+EVT_MOUSE_CAPTURE_LOST(FanSwitchButton::mouseCaptureLost)
 EVT_PAINT(FanSwitchButton::paintEvent)
 
 END_EVENT_TABLE()
@@ -54,6 +58,12 @@ ImageSwitchButton::ImageSwitchButton(wxWindow *parent, ScalableBitmap &img_on, S
 
     messureSize();
     Refresh();
+}
+
+ImageSwitchButton::~ImageSwitchButton()
+{
+    if (HasCapture())
+        ReleaseMouse();
 }
 
 void ImageSwitchButton::SetLabels(wxString const &lbl_on, wxString const &lbl_off)
@@ -160,19 +170,28 @@ void ImageSwitchButton::mouseDown(wxMouseEvent &event)
     event.Skip();
     pressedDown = true;
     SetFocus();
-    CaptureMouse();
+    if (!HasCapture())
+        CaptureMouse();
+    Refresh();
 }
 
 void ImageSwitchButton::mouseReleased(wxMouseEvent &event)
 {
     event.Skip();
-    if (pressedDown) {
-        pressedDown = false;
+    if (HasCapture())
         ReleaseMouse();
-        m_on_off = !m_on_off;
-        Refresh();
-        sendButtonEvent();
-    }
+    if (!pressedDown)
+        return;
+    pressedDown = false;
+    m_on_off = !m_on_off;
+    Refresh();
+    sendButtonEvent();
+}
+
+void ImageSwitchButton::mouseCaptureLost(wxMouseCaptureLostEvent &event)
+{
+    pressedDown = false;
+    Refresh();
 }
 
 void ImageSwitchButton::mouseEnterWindow(wxMouseEvent &event)
@@ -215,6 +234,12 @@ FanSwitchButton::FanSwitchButton(wxWindow* parent, ScalableBitmap& img_on, Scala
 
     messureSize();
     Refresh();
+}
+
+FanSwitchButton::~FanSwitchButton()
+{
+    if (HasCapture())
+        ReleaseMouse();
 }
 
 void FanSwitchButton::SetLabels(wxString const& lbl_on, wxString const& lbl_off)
@@ -379,19 +404,28 @@ void FanSwitchButton::mouseDown(wxMouseEvent& event)
     event.Skip();
     pressedDown = true;
     SetFocus();
-    CaptureMouse();
+    if (!HasCapture())
+        CaptureMouse();
+    Refresh();
 }
 
 void FanSwitchButton::mouseReleased(wxMouseEvent& event)
 {
     event.Skip();
-    if (pressedDown) {
-        pressedDown = false;
+    if (HasCapture())
         ReleaseMouse();
-        //m_on_off = !m_on_off;
-        Refresh();
-        sendButtonEvent();
-    }
+    if (!pressedDown)
+        return;
+    pressedDown = false;
+    //m_on_off = !m_on_off;
+    Refresh();
+    sendButtonEvent();
+}
+
+void FanSwitchButton::mouseCaptureLost(wxMouseCaptureLostEvent& event)
+{
+    pressedDown = false;
+    Refresh();
 }
 
 void FanSwitchButton::mouseEnterWindow(wxMouseEvent& event)

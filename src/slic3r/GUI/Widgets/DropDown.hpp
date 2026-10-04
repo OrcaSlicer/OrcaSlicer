@@ -81,6 +81,7 @@ public:
     DropDown(std::vector<Item> &items);
 
     DropDown(wxWindow *parent, std::vector<Item> &items, long style = 0);
+    ~DropDown() override;
 
     void Create(wxWindow * parent, long style = 0);
 

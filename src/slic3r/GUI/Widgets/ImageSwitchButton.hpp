@@ -18,6 +18,7 @@ class ImageSwitchButton : public StaticBox
 {
 public:
     ImageSwitchButton(wxWindow *parent, ScalableBitmap &img_on, ScalableBitmap &img_off, long style = 0);
+    ~ImageSwitchButton() override;
 
 	void SetLabels(wxString const & lbl_on, wxString const & lbl_off);
     void SetImages(ScalableBitmap &img_on, ScalableBitmap &img_off);
@@ -34,6 +35,7 @@ private:
 	void render(wxDC& dc);
     void mouseDown(wxMouseEvent &event);
     void mouseReleased(wxMouseEvent &event);
+    void mouseCaptureLost(wxMouseCaptureLostEvent &event);
     void mouseEnterWindow(wxMouseEvent &event);
     void mouseLeaveWindow(wxMouseEvent &event);
     void sendButtonEvent();
@@ -59,6 +61,7 @@ class FanSwitchButton : public StaticBox
 {
 public:
     FanSwitchButton(wxWindow* parent, ScalableBitmap& img_on, ScalableBitmap& img_off, long style = 0);
+    ~FanSwitchButton() override;
     void SetLabels(wxString const& lbl_on, wxString const& lbl_off);
     void SetImages(ScalableBitmap& img_on, ScalableBitmap& img_off);
     void SetTextColor(StateColor const& color);
@@ -78,6 +81,7 @@ private:
     void render(wxDC& dc);
     void mouseDown(wxMouseEvent& event);
     void mouseReleased(wxMouseEvent& event);
+    void mouseCaptureLost(wxMouseCaptureLostEvent& event);
     void mouseEnterWindow(wxMouseEvent& event);
     void mouseLeaveWindow(wxMouseEvent& event);
     void sendButtonEvent();

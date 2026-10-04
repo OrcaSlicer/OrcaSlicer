@@ -277,6 +277,10 @@ Button *SpinInput::createButton(bool inc)
         text_ctrl->SelectAll();
         delta = 0;
     });
+    btn->Bind(wxEVT_MOUSE_CAPTURE_LOST, [=](auto &e) {
+        timer.Stop();
+        delta = 0;
+    });
     return btn;
 }
 

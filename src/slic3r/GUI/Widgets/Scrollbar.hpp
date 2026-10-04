@@ -21,6 +21,7 @@ class MyScrollbar : public wxPanel
 {
 public:
 	MyScrollbar(wxWindow *parent, wxWindowID id, wxPoint position, wxSize size, ScrolledWindow* scrolledWindow, long direction, int scrollbarWidth, int tipLength = 0);
+	~MyScrollbar() override;
 	void SetViewStart(int start);
 	void SetTipColor(wxColour color);
 	void SetMarginColor(wxColour color);
@@ -51,6 +52,7 @@ private:
 	void OnEraseBackground(wxEraseEvent & event);
 	void OnMouseLeftDown(wxMouseEvent &event);
 	void OnMouseLeftUp(wxMouseEvent &event);
+	void OnMouseCaptureLost(wxMouseCaptureLostEvent &event);
 	void OnMouseMove(wxMouseEvent &event);
 	void OnMouseWheel(wxMouseEvent &event);
 };

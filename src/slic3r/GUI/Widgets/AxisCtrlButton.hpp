@@ -50,6 +50,7 @@ class AxisCtrlButton : public wxWindow
 
 public:
     AxisCtrlButton(wxWindow *parent, ScalableBitmap &icon, long style = 0);
+    ~AxisCtrlButton() override;
 
     void SetMinSize(const wxSize& size) override;
 
@@ -74,6 +75,7 @@ private:
 
     void mouseDown(wxMouseEvent& event);
     void mouseReleased(wxMouseEvent& event);
+    void mouseCaptureLost(wxMouseCaptureLostEvent& event);
     void mouseMoving(wxMouseEvent& event);
 
     void sendButtonEvent();

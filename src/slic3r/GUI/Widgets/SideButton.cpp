@@ -14,9 +14,17 @@
 
 BEGIN_EVENT_TABLE(SideButton, wxWindow)
 EVT_LEFT_DOWN(SideButton::mouseDown)
+EVT_LEFT_DCLICK(SideButton::mouseDown)
 EVT_LEFT_UP(SideButton::mouseReleased)
+EVT_MOUSE_CAPTURE_LOST(SideButton::mouseCaptureLost)
 EVT_PAINT(SideButton::paintEvent)
 END_EVENT_TABLE()
+
+SideButton::~SideButton()
+{
+    if (HasCapture())
+        ReleaseMouse();
+}
 
 SideButton::SideButton(wxWindow* parent, wxString text, wxString icon, long stlye, int iconSize)
     : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, stlye)
@@ -329,18 +337,28 @@ void SideButton::mouseDown(wxMouseEvent& event)
     event.Skip();
     pressedDown = true;
     SetFocus();
-    CaptureMouse();
+    if (!HasCapture())
+        CaptureMouse();
+    Refresh();
 }
 
 void SideButton::mouseReleased(wxMouseEvent& event)
 {
     event.Skip();
-    if (pressedDown) {
-        pressedDown = false;
+    if (HasCapture())
         ReleaseMouse();
-        if (wxRect({0, 0}, GetSize()).Contains(event.GetPosition()))
-            sendButtonEvent();
-    }
+    if (!pressedDown)
+        return;
+    pressedDown = false;
+    Refresh();
+    if (wxRect({0, 0}, GetSize()).Contains(event.GetPosition()))
+        sendButtonEvent();
+}
+
+void SideButton::mouseCaptureLost(wxMouseCaptureLostEvent& event)
+{
+    pressedDown = false;
+    Refresh();
 }
 
 void SideButton::sendButtonEvent()

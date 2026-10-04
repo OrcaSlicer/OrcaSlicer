@@ -62,6 +62,7 @@ class ModeSwitchButton : public StaticBox
 {
 public:
     ModeSwitchButton(wxWindow* parent = nullptr, wxWindowID id = wxID_ANY);
+    ~ModeSwitchButton() override;
 
     int  GetSelection() const { return m_selection; }
     void SetSelection(int selection);

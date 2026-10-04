@@ -39,9 +39,17 @@ MyScrollbar::MyScrollbar(wxWindow *parent, wxWindowID id, wxPoint position, wxSi
 	Bind(wxEVT_SIZE, &MyScrollbar::OnSize, this);
 	Bind(wxEVT_ERASE_BACKGROUND, &MyScrollbar::OnEraseBackground, this);
 	Bind(wxEVT_LEFT_DOWN, &MyScrollbar::OnMouseLeftDown, this);
+	Bind(wxEVT_LEFT_DCLICK, &MyScrollbar::OnMouseLeftDown, this);
 	Bind(wxEVT_LEFT_UP, &MyScrollbar::OnMouseLeftUp, this);
+	Bind(wxEVT_MOUSE_CAPTURE_LOST, &MyScrollbar::OnMouseCaptureLost, this);
 	Bind(wxEVT_MOTION, &MyScrollbar::OnMouseMove, this);
 	Bind(wxEVT_MOUSEWHEEL, &MyScrollbar::OnMouseWheel, this);
+}
+
+MyScrollbar::~MyScrollbar()
+{
+	if (HasCapture())
+		ReleaseMouse();
 }
 
 void MyScrollbar::SetViewStart(int start)
@@ -213,7 +221,8 @@ void MyScrollbar::OnMouseLeftDown(wxMouseEvent &event)
 	else
 		m_mouseLocation = BEFORE_SCROLLBAR;
 
-	CaptureMouse();
+	if (!HasCapture())
+		CaptureMouse();
 }
 
 void MyScrollbar::OnMouseLeftUp(wxMouseEvent &event)
@@ -222,6 +231,11 @@ void MyScrollbar::OnMouseLeftUp(wxMouseEvent &event)
 	{
 		ReleaseMouse();
 	}
+	m_mouseLocation = NOWHERE;
+}
+
+void MyScrollbar::OnMouseCaptureLost(wxMouseCaptureLostEvent &event)
+{
 	m_mouseLocation = NOWHERE;
 }
 

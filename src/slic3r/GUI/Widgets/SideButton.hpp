@@ -28,6 +28,7 @@ public:
     };
 
     SideButton(wxWindow* parent, wxString text, wxString icon = "", long style = 0, int iconSize = 0);
+    ~SideButton() override;
 
     void SetCornerRadius(double radius);
 
@@ -92,6 +93,7 @@ private:
 
     void mouseDown(wxMouseEvent& event);
     void mouseReleased(wxMouseEvent& event);
+    void mouseCaptureLost(wxMouseCaptureLostEvent& event);
 
     void sendButtonEvent();
 

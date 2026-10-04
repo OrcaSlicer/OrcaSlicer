@@ -22,6 +22,7 @@
 BEGIN_EVENT_TABLE(Button, StaticBox)
 
 EVT_LEFT_DOWN(Button::mouseDown)
+EVT_LEFT_DCLICK(Button::mouseDown)
 EVT_LEFT_UP(Button::mouseReleased)
 EVT_MOUSE_CAPTURE_LOST(Button::mouseCaptureLost)
 EVT_KEY_DOWN(Button::keyDownUp)
@@ -50,6 +51,12 @@ Button::Button() : paddingSize(10, 8)
 
 Button::Button(wxWindow* parent, wxString text, wxString icon, long style, int iconSize, wxWindowID btn_id) : Button()
 { Create(parent, text, icon, style, iconSize, btn_id); }
+
+Button::~Button()
+{
+    if (HasCapture())
+        ReleaseMouse();
+}
 
 bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, int iconSize, wxWindowID btn_id)
 {
@@ -458,24 +465,26 @@ void Button::mouseDown(wxMouseEvent& event)
         SetFocus();
     if (!HasCapture())
         CaptureMouse();
+    Refresh();
 }
 
 void Button::mouseReleased(wxMouseEvent& event)
 {
     event.Skip();
-    if (pressedDown) {
-        pressedDown = false;
-        if (HasCapture())
-            ReleaseMouse();
-        if (wxRect({0, 0}, GetSize()).Contains(event.GetPosition()))
-            sendButtonEvent();
-    }
+    if (HasCapture())
+        ReleaseMouse();
+    if (!pressedDown)
+        return;
+    pressedDown = false;
+    Refresh();
+    if (wxRect({0, 0}, GetSize()).Contains(event.GetPosition()))
+        sendButtonEvent();
 }
 
 void Button::mouseCaptureLost(wxMouseCaptureLostEvent& event)
 {
-    wxMouseEvent evt;
-    mouseReleased(evt);
+    pressedDown = false;
+    Refresh();
 }
 
 void Button::keyDownUp(wxKeyEvent& event)

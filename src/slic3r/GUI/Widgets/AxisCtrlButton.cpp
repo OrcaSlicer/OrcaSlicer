@@ -28,10 +28,18 @@ static const double sqrt2 = std::sqrt(2);
 
 BEGIN_EVENT_TABLE(AxisCtrlButton, wxWindow)
 EVT_LEFT_DOWN(AxisCtrlButton::mouseDown)
+EVT_LEFT_DCLICK(AxisCtrlButton::mouseDown)
 EVT_LEFT_UP(AxisCtrlButton::mouseReleased)
+EVT_MOUSE_CAPTURE_LOST(AxisCtrlButton::mouseCaptureLost)
 EVT_MOTION(AxisCtrlButton::mouseMoving)
 EVT_PAINT(AxisCtrlButton::paintEvent)
 END_EVENT_TABLE()
+
+AxisCtrlButton::~AxisCtrlButton()
+{
+    if (HasCapture())
+        ReleaseMouse();
+}
 
 #define OUTER_SIZE      FromDIP(105)
 #define INNER_SIZE      FromDIP(58)
@@ -301,18 +309,28 @@ void AxisCtrlButton::mouseDown(wxMouseEvent& event)
     event.Skip();
     pressedDown = true;
     SetFocus();
-    CaptureMouse();
+    if (!HasCapture())
+        CaptureMouse();
+    Refresh();
 }
 
 void AxisCtrlButton::mouseReleased(wxMouseEvent& event)
 {
     event.Skip();
-    if (pressedDown) {
-        pressedDown = false;
+    if (HasCapture())
         ReleaseMouse();
-        if (wxRect({ 0, 0 }, GetSize()).Contains(event.GetPosition()))
-            sendButtonEvent();
-    }
+    if (!pressedDown)
+        return;
+    pressedDown = false;
+    Refresh();
+    if (wxRect({ 0, 0 }, GetSize()).Contains(event.GetPosition()))
+        sendButtonEvent();
+}
+
+void AxisCtrlButton::mouseCaptureLost(wxMouseCaptureLostEvent& event)
+{
+    pressedDown = false;
+    Refresh();
 }
 
 void AxisCtrlButton::mouseMoving(wxMouseEvent& event)

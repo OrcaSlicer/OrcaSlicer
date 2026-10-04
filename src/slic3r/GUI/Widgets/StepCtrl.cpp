@@ -18,6 +18,7 @@ wxDEFINE_EVENT( EVT_STEP_CHANGED, wxCommandEvent );
 
 BEGIN_EVENT_TABLE(StepCtrl, StepCtrlBase)
 EVT_LEFT_DOWN(StepCtrl::mouseDown)
+EVT_LEFT_DCLICK(StepCtrl::mouseDown)
 EVT_MOTION(StepCtrl::mouseMove)
 EVT_LEFT_UP(StepCtrl::mouseUp)
 EVT_MOUSE_CAPTURE_LOST(StepCtrl::mouseCaptureLost)
@@ -140,6 +141,12 @@ StepCtrl::StepCtrl(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
     bar_width = bar_width * bmp_thumb.GetBmpHeight() / 36;
 }
 
+StepCtrl::~StepCtrl()
+{
+    if (HasCapture())
+        ReleaseMouse();
+}
+
 void StepCtrl::Rescale()
 {
     bmp_thumb.msw_rescale();
@@ -193,6 +200,8 @@ void StepCtrl::mouseMove(wxMouseEvent &event)
 
 void StepCtrl::mouseUp(wxMouseEvent &event)
 {
+    if (HasCapture())
+        ReleaseMouse();
     if (pos_thumb == wxPoint{0, 0}) return;
     wxSize size      = GetSize();
     int    itemWidth = size.x / steps.size();
@@ -203,14 +212,12 @@ void StepCtrl::mouseUp(wxMouseEvent &event)
         index = steps.size() - 1;
     pos_thumb = {0, 0};
     SelectItem(index);
-    if (HasCapture())
-        ReleaseMouse();
 }
 
 void StepCtrl::mouseCaptureLost(wxMouseCaptureLostEvent &event)
 {
-    wxMouseEvent evt;
-    mouseUp(evt);
+    pos_thumb = {0, 0};
+    Refresh();
 }
 
 void StepCtrl::doRender(wxDC &dc)

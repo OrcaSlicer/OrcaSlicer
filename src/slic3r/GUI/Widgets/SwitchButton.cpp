@@ -290,6 +290,12 @@ ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
     Rescale();
 }
 
+ModeSwitchButton::~ModeSwitchButton()
+{
+    if (HasCapture())
+        ReleaseMouse();
+}
+
 void ModeSwitchButton::SetSelection(int selection)
 {
     m_selection = std::clamp(selection, 0, 2);
@@ -417,25 +423,21 @@ void ModeSwitchButton::mouseDown(wxMouseEvent& event)
 
 void ModeSwitchButton::mouseReleased(wxMouseEvent& event)
 {
-    if (m_pressed) {
-        m_pressed = false;
-        if (HasCapture())
-            ReleaseMouse();
-
-        if (GetClientRect().Contains(event.GetPosition()))
-            SelectAndNotify(hit_test_selection(event.GetPosition()));
-
-        Refresh();
-    }
-
     event.Skip();
+    if (HasCapture())
+        ReleaseMouse();
+    if (!m_pressed)
+        return;
+    m_pressed = false;
+    Refresh();
+    if (GetClientRect().Contains(event.GetPosition()))
+        SelectAndNotify(hit_test_selection(event.GetPosition()));
 }
 
 void ModeSwitchButton::mouseCaptureLost(wxMouseCaptureLostEvent& event)
 {
     m_pressed = false;
     Refresh();
-    event.Skip();
 }
 
 int ModeSwitchButton::hit_test_selection(const wxPoint& point) const
