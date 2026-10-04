@@ -6,14 +6,21 @@
 #include <string>
 #include <ios>
 
-#ifdef _WIN32
-    #include <charconv>
-#endif
+#include <charconv>
 #include <iomanip>
 #include <sstream>
-#include <stdexcept>
+#include <system_error>
 
 #include <fast_float/fast_float.h>
+
+// Defined where the floating point std::to_chars can be called, which with Apple's libc++ runtime is from macOS 13.3.
+#if defined(_LIBCPP_VERSION)
+    #if defined(_LIBCPP_AVAILABILITY_HAS_TO_CHARS_FLOATING_POINT) && _LIBCPP_AVAILABILITY_HAS_TO_CHARS_FLOATING_POINT
+        #define SLIC3R_FLOAT_TO_CHARS
+    #endif
+#elif defined(_WIN32) || defined(__cpp_lib_to_chars)
+    #define SLIC3R_FLOAT_TO_CHARS
+#endif
 
 
 namespace Slic3r {
@@ -99,9 +106,9 @@ double atof_decimal_point(std::string_view str)
 
 std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
 {
-    // Our Windows build server fully supports C++17 std::to_chars. Let's use it.
-    // Other platforms are behind, fall back to slow stringstreams for now.
-#ifdef _WIN32
+    // Every branch prints the same digits in the classic locale as the stream at the end, which takes over when a branch
+    // is compiled out or the value is too long for the buffer.
+#if defined(SLIC3R_FLOAT_TO_CHARS)
     constexpr size_t SIZE = 20;
     char out[SIZE] = "";
     std::to_chars_result res;
@@ -109,16 +116,26 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
         res = std::to_chars(out, out+SIZE, value, std::chars_format::fixed, precision);
     else
         res = std::to_chars(out, out+SIZE, value, std::chars_format::general, 6);
-    if (res.ec == std::errc::value_too_large)
-        throw std::invalid_argument("float_to_string_decimal_point conversion failed.");
-    return std::string(out, res.ptr - out);
-#else
+    if (res.ec == std::errc())
+        return std::string(out, res.ptr - out);
+#elif defined(__APPLE__)
+    // Formats in the C locale, as libc++'s stream does, switching only this thread's locale for the call.
+    static const locale_t c_locale = newlocale(LC_NUMERIC_MASK, "C", (locale_t) 0);
+    if (c_locale != (locale_t) 0) {
+        constexpr size_t SIZE = 20;
+        char           out[SIZE];
+        const locale_t previous = uselocale(c_locale);
+        const int      length   = precision >= 0 ? snprintf(out, SIZE, "%.*f", precision, value) : snprintf(out, SIZE, "%.*g", 6, value);
+        uselocale(previous);
+        if (length >= 0 && size_t(length) < SIZE)
+            return std::string(out, length);
+    }
+#endif
     std::stringstream buf;
     if (precision >= 0)
         buf << std::fixed << std::setprecision(precision);
     buf << value;
     return buf.str();
-#endif
 }
 
 

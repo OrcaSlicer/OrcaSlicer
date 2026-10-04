@@ -3453,9 +3453,9 @@ void PrintObject::bridge_over_infill()
                     if (area_to_be_bridge.empty())
                         continue;
 
-                    Polylines boundary_plines = to_polylines(expand(total_fill_area, 1.3 * flow.scaled_spacing()));
+                    Polylines boundary_plines = to_polylines(expand(total_fill_area, 1.3f * flow.scaled_spacing()));
                     {
-                        Polylines limiting_plines = to_polylines(expand(limiting_area, 0.3*flow.spacing()));
+                        Polylines limiting_plines = to_polylines(expand(limiting_area, 0.3f * flow.scaled_spacing()));
                         boundary_plines.insert(boundary_plines.end(), limiting_plines.begin(), limiting_plines.end());
                     }
 
@@ -3529,7 +3529,7 @@ void PrintObject::bridge_over_infill()
                     // Check collision with other expanded surfaces
                     {
                         bool     reconstruct       = false;
-                        Polygons tmp_expanded_area = expand(bridging_area, 3.0 * flow.scaled_spacing());
+                        Polygons tmp_expanded_area = expand(bridging_area, 3.0f * flow.scaled_spacing());
                         for (const CandidateSurface &s : expanded_surfaces) {
                             if (!intersection(s.new_polys, tmp_expanded_area).empty()) {
                                 bridging_angle = s.bridge_angle;
@@ -3546,7 +3546,7 @@ void PrintObject::bridge_over_infill()
 
                     // Orca: Keep fine details for better anchoring
                     // bridging_area         = opening(bridging_area, flow.scaled_spacing());
-                    bridging_area          = opening(bridging_area, flow.scaled_spacing() * 0.75);
+                    bridging_area          = opening(bridging_area, flow.scaled_spacing() * 0.75f);
                     bridging_area          = closing(bridging_area, flow.scaled_spacing());
                     // Orca: Opening/closing can pull rounded bridge ends away from their real
                     // supports. Restore those contacts after smoothing, preserving the cleaned
