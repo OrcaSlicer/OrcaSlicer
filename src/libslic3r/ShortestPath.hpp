@@ -1,20 +1,17 @@
 #ifndef slic3r_ShortestPath_hpp_
 #define slic3r_ShortestPath_hpp_
 
+#include "Polyline.hpp"
 #include "libslic3r.h"
 #include "ExtrusionEntity.hpp"
 #include "Point.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <utility>
 #include <vector>
 
 namespace Slic3r {
-
-	namespace ClipperLib {
-		class PolyNode;
-		using PolyNodes = std::vector<PolyNode*, PointsAllocator<PolyNode*>>;
-	}
 
 std::vector<size_t> 				 chain_points(const Points &points, const Point *start_near = nullptr);
 // Variant with post-processing (crossing removal + 2-opt) for object ordering.
@@ -49,7 +46,6 @@ template<typename T> inline void reorder_by_shortest_traverse(std::vector<T> &po
     for (size_t i:order) polylines_out.emplace_back(std::move(Temp[i]));
 }
 
-ClipperLib::PolyNodes				 chain_clipper_polynodes(const Points &points, const ClipperLib::PolyNodes &items);
 
 // Chain instances of print objects by an approximate shortest path.
 // Returns pairs of PrintObject idx and instance of that PrintObject.

@@ -1,6 +1,14 @@
 #include "AVVideoDecoder.hpp"
 
+#include <algorithm>
 #include <assert.h>
+#include "slic3r/GUI/Printer/BambuTunnel.h"
+#include <cstdio>
+#include <cstring>
+#include <cstddef>
+#include <wx/image.h>
+#include <wx/gdicmn.h>
+#include <cstdint>
 
 extern "C"
 {

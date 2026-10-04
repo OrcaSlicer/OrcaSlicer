@@ -1,12 +1,35 @@
+#include <cmath>
+#include <cassert>
+#include <algorithm>
+#include <functional>
+#include <iterator>
+#include <cstdint>
+#include <memory>
+#include <cstdio>
+#include <cctype>
+#include <limits>
+#include <math.h>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <numeric>
 #include "Emboss.hpp"
+#include <optional>
 #include <stdio.h>
 #include <numeric>
 #include <cstdlib>
 #include <boost/nowide/convert.hpp>
 #include <boost/log/trivial.hpp>
 #include <ClipperUtils.hpp> // union_ex + for boldness(polygon extend(offset))
+#include "ExPolygon.hpp"
+#include <vector>
+#include "AABBTreeIndirect.hpp"
+#include <utility>
+#include "EmbossShape.hpp"
+#include <string>
 #include "IntersectionPoints.hpp"
+#include "Polygon.hpp"
+#include "TextConfiguration.hpp"
+#include "Point.hpp"
 
 #define STB_TRUETYPE_IMPLEMENTATION // force following include to generate implementation
 #include "imgui/imstb_truetype.h" // stbtt_fontinfo
@@ -404,18 +427,89 @@ bool Emboss::divide_segments_for_close_point(ExPolygons &expolygons, double dist
     return true;
 }
 
+// Clipper1's CleanPolygon(): removes vertices closer than `distance` to a neighbour or to the line through their neighbours.
+static void clean_polygon(Points &points, double distance)
+{
+    auto points_are_close = [](const Point &a, const Point &b, double dist2) {
+        const double dx = double(a.x() - b.x()), dy = double(a.y() - b.y());
+        return dx * dx + dy * dy <= dist2;
+    };
+    auto distance_from_line2 = [](const Point &pt, const Point &ln1, const Point &ln2) {
+        const double A = double(ln1.y() - ln2.y());
+        const double B = double(ln2.x() - ln1.x());
+        const double C = A * pt.x() + B * pt.y() - (A * ln1.x() + B * ln1.y());
+        return (C * C) / (A * A + B * B);
+    };
+    auto slopes_near_collinear = [&distance_from_line2](const Point &pt1, const Point &pt2, const Point &pt3, double dist2) {
+        if (std::abs(pt1.x() - pt2.x()) > std::abs(pt1.y() - pt2.y())) {
+            if ((pt1.x() > pt2.x()) == (pt1.x() < pt3.x()))
+                return distance_from_line2(pt1, pt2, pt3) < dist2;
+            if ((pt2.x() > pt1.x()) == (pt2.x() < pt3.x()))
+                return distance_from_line2(pt2, pt1, pt3) < dist2;
+            return distance_from_line2(pt3, pt1, pt2) < dist2;
+        }
+        if ((pt1.y() > pt2.y()) == (pt1.y() < pt3.y()))
+            return distance_from_line2(pt1, pt2, pt3) < dist2;
+        if ((pt2.y() > pt1.y()) == (pt2.y() < pt3.y()))
+            return distance_from_line2(pt2, pt1, pt3) < dist2;
+        return distance_from_line2(pt3, pt1, pt2) < dist2;
+    };
+
+    size_t size = points.size();
+    if (size == 0)
+        return;
+    std::vector<size_t> next(size), prev(size);
+    std::vector<char>   done(size, 0);
+    for (size_t i = 0; i < size; ++i) {
+        next[i]       = (i + 1) % size;
+        prev[next[i]] = i;
+    }
+    auto exclude = [&next, &prev, &done](size_t op) {
+        const size_t result = prev[op];
+        next[result]        = next[op];
+        prev[next[op]]      = result;
+        done[result]        = 0;
+        return result;
+    };
+    const double dist2 = distance * distance;
+    size_t       op    = 0;
+    while (! done[op] && next[op] != prev[op]) {
+        if (points_are_close(points[op], points[prev[op]], dist2)) {
+            op = exclude(op);
+            -- size;
+        } else if (points_are_close(points[prev[op]], points[next[op]], dist2)) {
+            exclude(next[op]);
+            op = exclude(op);
+            size -= 2;
+        } else if (slopes_near_collinear(points[prev[op]], points[op], points[next[op]], dist2)) {
+            op = exclude(op);
+            -- size;
+        } else {
+            done[op] = 1;
+            op       = next[op];
+        }
+    }
+    if (size < 3)
+        size = 0;
+    Points out;
+    out.reserve(size);
+    for (size_t i = 0; i < size; ++i) {
+        out.emplace_back(points[op]);
+        op = next[op];
+    }
+    points = std::move(out);
+}
+
 HealedExPolygons Emboss::heal_polygons(const Polygons &shape, bool is_non_zero, unsigned int max_iteration)
 {
     const double clean_distance = 1.415; // little grater than sqrt(2)
-    ClipperLib::PolyFillType fill_type = is_non_zero ? 
-        ClipperLib::pftNonZero : ClipperLib::pftEvenOdd;
+    PolyFillType fill_type = is_non_zero ? pftNonZero : pftEvenOdd;
 
     // When edit this code check that font 'ALIENATE.TTF' and glyph 'i' still work
     // fix of self intersections
-    // http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/SimplifyPolygon.htm
-    ClipperLib::Paths paths = ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(shape), fill_type);
-    ClipperLib::CleanPolygons(paths, clean_distance);
-    Polygons polygons = to_polygons(paths);
+    Polygons polygons = union_(shape, fill_type);
+    for (Polygon &polygon : polygons)
+        clean_polygon(polygon.points, clean_distance);
     polygons.erase(std::remove_if(polygons.begin(), polygons.end(), 
         [](const Polygon &p) { return p.size() < 3; }), polygons.end());
     

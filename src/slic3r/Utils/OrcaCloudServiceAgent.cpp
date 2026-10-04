@@ -1,21 +1,37 @@
 #include "OrcaCloudServiceAgent.hpp"
+#include "CloudProvider.hpp"
 #include "Http.hpp"
+#include "bambu_networking.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include <atomic>
 #include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/uuid/name_generator_sha1.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <chrono>
+#include <cstdio>
 #include <exception>
+#include <functional>
 #include <iostream>
+#include <iterator>
 #include <libslic3r/Platform.hpp>
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/ProjectTask.hpp"
 #include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -32,7 +48,11 @@
 #include <sstream>
 
 #include <string>
+#include <system_error>
+#include <thread>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 #include <wx/filename.h>
 #include <wx/filefn.h>
 #include <wx/secretstore.h>
@@ -1478,15 +1498,8 @@ void OrcaCloudServiceAgent::save_sync_state()
     if (sync_state_path.empty())
         return;
 
-    try {
-        std::string tmp_path = sync_state_path + ".tmp";
-        std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc);
-        if (ofs.good()) {
-            ofs << std::to_string(sync_state.last_sync_timestamp);
-            ofs.close();
-            boost::filesystem::rename(tmp_path, sync_state_path);
-        }
-    } catch (...) {}
+    if (const std::error_code ec = write_file_atomically(sync_state_path, std::to_string(sync_state.last_sync_timestamp)))
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: failed to save the sync state: " << ec.message();
 }
 
 void OrcaCloudServiceAgent::clear_sync_state()
@@ -1575,22 +1588,10 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
             wxFileName::Mkdir(path.GetPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
         }
 
-        const std::string tmp_path = secret_fallback_path + ".tmp";
-        std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc | std::ios::binary);
-        if (ofs.good()) {
-            ofs << signed_payload;
-            ofs.flush();
-            ofs.close();
-
-            if (wxRenameFile(wxString::FromUTF8(tmp_path.c_str()), wxString::FromUTF8(secret_fallback_path.c_str()), true)) {
-                stored = true;
-            } else {
-                wxRemoveFile(wxString::FromUTF8(tmp_path.c_str()));
-                BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: failed to atomically replace user secret file";
-            }
-        } else {
-            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot open user secret file for write - " << secret_fallback_path;
-        }
+        if (const std::error_code ec = write_file_atomically(secret_fallback_path, signed_payload, /*binary=*/true))
+            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot write user secret file " << secret_fallback_path << ": " << ec.message();
+        else
+            stored = true;
     } else {
         // Use wxSecretStore only
         wxSecretStore store = wxSecretStore::GetDefault();

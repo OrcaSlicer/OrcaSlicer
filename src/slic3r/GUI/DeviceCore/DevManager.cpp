@@ -1,13 +1,29 @@
 #include "DevManager.h"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <mutex>
+#include <chrono>
+#include "libslic3r/LifecycleEvents.hpp"
+#include <map>
+#include <cstdint>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 
 #include <exception>
 
 #include <libslic3r/AppConfig.hpp>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <utility>
+#include <vector>
+#include <set>
+#include <wx/object.h>
+#include <wx/timer.h>
 #include "CloudProvider.hpp"
 #include "DevUtil.h"
 
 // TODO: remove this include
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"

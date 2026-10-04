@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_SysInfoDialog_hpp_
 #define slic3r_GUI_SysInfoDialog_hpp_
 
+#include <wx/event.h>
 #include <wx/wx.h>
 #include <wx/html/htmlwin.h>
 

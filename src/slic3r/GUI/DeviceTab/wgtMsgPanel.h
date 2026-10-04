@@ -1,10 +1,12 @@
 #pragma once
 
+#include <wx/colour.h>
 #include <wx/panel.h>
 #include <wx/hyperlink.h>
 #include <wx/sizer.h>
 
 #include <string>
+#include <wx/string.h>
 
 class Label;
 

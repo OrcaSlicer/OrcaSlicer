@@ -22,7 +22,27 @@
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
+#include <wx/colour.h>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <vector>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/TabCtrl.hpp"
 #include <wx/display.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/tglbtn.h>
+#include <wx/treebase.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/textctrl.h>
+#include <wx/stattext.h>
+#include <wx/geometry.h>
 #include <wx/utils.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcmemory.h>

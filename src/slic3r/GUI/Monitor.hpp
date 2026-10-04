@@ -2,11 +2,17 @@
 #define slic3r_Monitor_hpp_
 
 #include "Tabbook.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/event.h>
+#include <wx/bookctrl.h>
+#include "slic3r/GUI/StagedBuild.hpp"
+#include <string>
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/timer.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/artprov.h>

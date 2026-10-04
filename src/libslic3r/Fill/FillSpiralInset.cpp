@@ -3,12 +3,25 @@
 #include "../Surface.hpp"
 #include "../VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
 
 #include "FillSpiralInset.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <functional>
+#include <math.h>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

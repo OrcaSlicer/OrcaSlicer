@@ -10,6 +10,13 @@
 
 #include "libslic3r/PrintConfig.hpp"
 #include "Field.hpp"
+#include <functional>
+#include <string>
+#include <wx/string.h>
+#include <boost/any.hpp>
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <map>
 
 namespace Slic3r {
 

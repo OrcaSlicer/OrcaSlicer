@@ -7,6 +7,9 @@
 #include "DeviceManager.hpp"
 
 #include <wx/control.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 
 using namespace Slic3r::GUI;
 

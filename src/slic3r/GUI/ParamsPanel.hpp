@@ -3,11 +3,14 @@
 
 
 #include <map>
+#include <string>
+#include <utility>
 #include <vector>
 #include <memory>
 
 
 #include <wx/artprov.h>
+#include <wx/event.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/string.h>
 #include <wx/stattext.h>

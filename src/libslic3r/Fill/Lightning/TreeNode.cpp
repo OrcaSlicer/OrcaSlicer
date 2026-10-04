@@ -4,6 +4,22 @@
 #include "TreeNode.hpp"
 
 #include "../../Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <cassert>
+#include <vector>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/EdgeGrid.hpp"
+#include <functional>
+#include <optional>
+#include <algorithm>
+#include <limits>
+#include <cstdint>
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <random>
+#include <utility>
 
 namespace Slic3r::FillLightning {
 
@@ -143,14 +159,7 @@ NodeSPtr Node::closestNode(const Point& loc)
 
 bool inside(const Polygons &polygons, const Point &p)
 {
-    int poly_count_inside = 0;
-    for (const Polygon &poly : polygons) {
-        const int is_inside_this_poly = ClipperLib::PointInPolygon(p, poly.points);
-        if (is_inside_this_poly == -1)
-            return true;
-        poly_count_inside += is_inside_this_poly;
-    }
-    return (poly_count_inside % 2) == 1;
+    return contains(polygons, p, true);
 }
 
 bool lineSegmentPolygonsIntersection(const Point& a, const Point& b, const EdgeGrid::Grid& outline_locator, Point& result, const coord_t within_max_dist)

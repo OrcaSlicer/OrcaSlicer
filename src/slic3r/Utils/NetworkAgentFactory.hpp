@@ -1,6 +1,7 @@
 #ifndef __NETWORK_AGENT_FACTORY_HPP__
 #define __NETWORK_AGENT_FACTORY_HPP__
 
+#include "CloudProvider.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgent.hpp"
@@ -11,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {

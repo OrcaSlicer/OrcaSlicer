@@ -9,6 +9,23 @@
 #include "Plater.hpp"
 #include "NotificationManager.hpp"
 
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <mutex>
+#include <deque>
+#include <utility>
+#include <cassert>
+#include <string>
+#include <algorithm>
+#include <imgui.h>
+#include <chrono>
+#include <hidapi.h>
+#include <map>
+#include <boost/algorithm/string/trim.hpp>
+#include <ios>
+#include <wx/app.h>
+#include <cstdlib>
 #include <wx/glcanvas.h>
 
 #include <boost/nowide/convert.hpp>

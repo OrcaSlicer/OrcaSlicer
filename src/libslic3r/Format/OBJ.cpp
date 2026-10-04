@@ -2,15 +2,27 @@
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
 #include "../TexturePainting.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
 #include "ResourcePathUtils.hpp"
 
 #include "OBJ.hpp"
 #include "objparser.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <array>
+#include <cstring>
+#include <map>
+#include <ios>
 #include <string>
 
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <utility>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'

@@ -1,5 +1,13 @@
 #include <catch2/catch_all.hpp>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <cstdlib>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/PrintConfig.hpp"
 

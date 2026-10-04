@@ -4,15 +4,24 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/Utils.hpp"
+#include <exception>
 #include <nlohmann/json.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <string>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/chartype.h>
 #include <wx/log.h>
 #include <wx/sizer.h>
 
 #include <algorithm>
+#include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
 

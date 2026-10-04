@@ -1,10 +1,30 @@
 #include "../libslic3r.h"
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Thread.hpp"
 
 #include "STEP.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <ostream>
+#include <cstddef>
+#include <Standard_Handle.hxx>
+#include <Standard_TypeDef.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <atomic>
+#include <IFSelect_ReturnStatus.hxx>
+#include <boost/chrono/duration.hpp>
+#include <cstring>
+#include <Poly_Triangulation.hxx>
+#include <cstdint>
+#include <gp_Trsf.hxx>
+#include <gp_Pnt.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/iostream.hpp>
@@ -12,6 +32,8 @@
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <utility>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'
@@ -37,6 +59,8 @@
 #include "BRep_Tool.hxx"
 #include "BRepTools.hxx"
 #include <IMeshTools_Parameters.hxx>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r {

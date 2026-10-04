@@ -3,6 +3,7 @@
 
 #include "../Utils/Http.hpp"
 
+#include <boost/filesystem/path.hpp>
 #include <memory>
 #include <string>
 #include <wx/event.h>

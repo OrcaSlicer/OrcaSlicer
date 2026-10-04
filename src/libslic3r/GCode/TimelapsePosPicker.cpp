@@ -1,6 +1,23 @@
 #include "ClipperUtils.hpp"
 #include "TimelapsePosPicker.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "Layer.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include "libslic3r/PrintConfig.hpp"
+#include <optional>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include <utility>
+#include <algorithm>
+#include "libslic3r/Print.hpp"
+#include <cmath>
+#include <queue>
+#include <limits>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Polyline.hpp"
 
 constexpr int FILTER_THRESHOLD = 5;
 constexpr int MAX_CANDIDATE_SIZE = 5;

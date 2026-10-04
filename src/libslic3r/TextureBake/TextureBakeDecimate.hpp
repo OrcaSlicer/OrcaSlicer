@@ -10,6 +10,7 @@
 // Flat-face harvesting: the loop keeps going past the triangle target while each collapse's error
 // stays under an absolute bound, so flat faces that cost nothing to remove are not left behind.
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <vector>

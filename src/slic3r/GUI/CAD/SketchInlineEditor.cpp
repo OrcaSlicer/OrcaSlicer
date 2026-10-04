@@ -5,6 +5,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/Color.hpp"
 
+#include <functional>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>   // BringWindowToDisplayFront / GetCurrentWindow
 
@@ -12,6 +13,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <wx/gdicmn.h>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {

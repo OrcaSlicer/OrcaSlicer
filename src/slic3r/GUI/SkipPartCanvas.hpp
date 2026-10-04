@@ -1,5 +1,13 @@
 #ifndef SKIPPARTCANVAS_H
 #define SKIPPARTCANVAS_H
+#include <wx/event.h>
+#include <array>
+#include <string>
+#include <cstdint>
+#include <wx/gdicmn.h>
+#include <opencv2/core/mat.hpp>
+#include <unordered_map>
+#include <opencv2/core/types.hpp>
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 #include <opencv2/opencv.hpp>
