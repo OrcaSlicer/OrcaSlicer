@@ -196,7 +196,6 @@ src/slic3r/GUI/Tab.hpp
 src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/Auxiliary.cpp
 src/slic3r/GUI/UpdateDialogs.cpp
-src/slic3r/GUI/ObjColorDialog.cpp
 src/slic3r/GUI/SyncAmsInfoDialog.cpp
 src/slic3r/GUI/WipeTowerDialog.cpp
 src/slic3r/GUI/wxExtensions.cpp
