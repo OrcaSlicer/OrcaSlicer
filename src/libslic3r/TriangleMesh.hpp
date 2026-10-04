@@ -3,6 +3,11 @@
 
 #include "libslic3r.h"
 #include <admesh/stl.h>
+#include <cstdint>
+#include <cstddef>
+#include <cassert>
+#include <array>
+#include <cereal/specialize.hpp>
 #include <functional>
 #include <vector>
 #include "BoundingBox.hpp"

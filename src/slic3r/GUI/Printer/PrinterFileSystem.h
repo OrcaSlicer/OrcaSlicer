@@ -1,6 +1,17 @@
 #ifndef slic3r_GUI_PrinterFileSystem_h_
 #define slic3r_GUI_PrinterFileSystem_h_
 
+#include <boost/smart_ptr/enable_shared_from_this.hpp>
+#include <string>
+#include <cstddef>
+#include <wx/types.h>
+#include <ctime>
+#include <memory>
+#include <map>
+#include <vector>
+#include <istream>
+#include <utility>
+#include <boost/thread/lock_types.hpp>
 #define BAMBU_DYNAMIC
 #include "BambuTunnel.h"
 

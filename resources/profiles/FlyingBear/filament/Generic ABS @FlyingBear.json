@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @FlyingBear",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "FlyingBear Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "2aW5bka7pvQhHGqF",
 	"filament_id": "OFY9muEs",

@@ -1,12 +1,23 @@
 #include "PresetUpdater.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <exception>
 #include <functional>
 #include <atomic>
+#include "libslic3r/Exception.hpp"
+#include <map>
+#include <ios>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 #include <set>
 #include <string>
 #include <thread>
@@ -24,8 +35,10 @@
 
 #include <vector>
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/msgdlg.h>
 
+#include "json_diff.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"
@@ -339,62 +352,8 @@ bool PresetUpdater::priv::get_file(const std::string &url, const fs::path &targe
 //BBS: refine preset update logic
 bool PresetUpdater::priv::extract_file(const fs::path &source_path, const fs::path &dest_path)
 {
-    bool res = true;
-    std::string file_path = source_path.string();
-    std::string parent_path = (!dest_path.empty() ? dest_path : source_path.parent_path()).string();
-    mz_zip_archive archive;
-    mz_zip_zero_struct(&archive);
-
-    if (!open_zip_reader(&archive, file_path))
-    {
-        BOOST_LOG_TRIVIAL(error) << "Unable to open zip reader for "<<file_path;
-        return false;
-    }
-
-    mz_uint num_entries = mz_zip_reader_get_num_files(&archive);
-
-    mz_zip_archive_file_stat stat;
-    // we first loop the entries to read from the archive the .amf file only, in order to extract the version from it
-    for (mz_uint i = 0; i < num_entries; ++i)
-    {
-        if (mz_zip_reader_file_stat(&archive, i, &stat))
-        {
-            std::string dest_file = parent_path+"/"+stat.m_filename;
-            if (stat.m_is_directory) {
-                fs::path dest_path(dest_file);
-                if (!fs::exists(dest_path))
-                    fs::create_directories(dest_path);
-				continue;
-            }
-            else if (stat.m_uncomp_size == 0) {
-                BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]Unzip: invalid size for file "<<stat.m_filename;
-                continue;
-            }
-            try
-            {
-                res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
-                if (!res) {
-                    BOOST_LOG_TRIVIAL(error) << "[Orca Updater]extract file "<<stat.m_filename<<" to dest "<<dest_file<<" failed";
-                    close_zip_reader(&archive);
-                    return res;
-                }
-                BOOST_LOG_TRIVIAL(info) << "[Orca Updater]successfully extract file " << stat.m_file_index << " to "<<dest_file;
-            }
-            catch (const std::exception& e)
-            {
-                // ensure the zip archive is closed and rethrow the exception
-                close_zip_reader(&archive);
-                BOOST_LOG_TRIVIAL(error) << "[Orca Updater]Archive read exception:"<<e.what();
-                return false;
-            }
-        }
-        else {
-            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]Unzip: read file stat failed";
-        }
-    }
-    close_zip_reader(&archive);
-
-	return true;
+    const std::string parent_path = (!dest_path.empty() ? dest_path : source_path.parent_path()).string();
+    return extract_archive_confined(source_path.string(), parent_path);
 }
 
 // Remove a leftover partial archive for the vendor about to be synchronized.
@@ -1098,35 +1057,32 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
     const auto enabled_vendors = app_config->vendors();
 
     std::set<std::string> bundles;
-    // Orca: always install filament library
-    bundles.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
     // A vendor is named by its profile or, where the build ships preset caches
     // instead of the raw profile JSONs, by its cache alone.
     for (const std::string &vendor_name : vendor_names_in(rsrc_path)) {
-        if (bundles.find(vendor_name) != bundles.end())continue;
-
-        const auto is_vendor_enabled = (vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE) // always update configs from resource to vendor for ORCA_DEFAULT_BUNDLE
+        // enabled_vendors lists the vendors whose printer models the user picked, and
+        // neither of these two is ever in it.
+        const auto is_vendor_enabled = (vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE)
+                                       || (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY)
                                        || (enabled_vendors.find(vendor_name) != enabled_vendors.end());
         if (is_vendor_installed(vendor_name)) {
-            if (enabled_config_update) {
-                if (is_vendor_enabled) {
-                    // Orca: whichever form of the vendor resources ships at the newer
-                    // version is the one installing lays down, and the one to judge
-                    // what is installed against.
-                    Semver resource_ver = resource_vendor_version(vendor_name);
-                    // Orca: a vendor installed as a preset cache has no profile
-                    // beside it; the version it was installed at is in the cache.
-                    Semver vendor_ver = installed_vendor_version(vendor_name);
+            if (is_vendor_enabled) {
+                // Orca: whichever form of the vendor resources ships at the newer
+                // version is the one installing lays down, and the one to judge
+                // what is installed against.
+                Semver resource_ver = resource_vendor_version(vendor_name);
+                // Orca: a vendor installed as a preset cache has no profile
+                // beside it; the version it was installed at is in the cache.
+                Semver vendor_ver = installed_vendor_version(vendor_name);
 
-                    if (vendor_ver < resource_ver) {
-                        BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:found vendor " << vendor_name << " newer version "
-                                                << resource_ver.to_string() << " from resource, old version " << vendor_ver.to_string();
-                        bundles.insert(vendor_name);
-                    }
-                } else {
-                    // need to be removed because not installed
-                    remove_installed_vendor(vendor_name);
+                if (vendor_ver < resource_ver) {
+                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:found vendor " << vendor_name << " newer version "
+                                            << resource_ver.to_string() << " from resource, old version " << vendor_ver.to_string();
+                    bundles.insert(vendor_name);
                 }
+            } else {
+                // need to be removed because not installed
+                remove_installed_vendor(vendor_name);
             }
         } else if (is_vendor_enabled) {
             bundles.insert(vendor_name);

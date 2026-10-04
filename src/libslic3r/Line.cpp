@@ -1,8 +1,13 @@
 #include "Geometry.hpp"
 #include "Line.hpp"
+#include "Point.hpp"
 #include "Polyline.hpp"
+#include <Eigen/Core>
+#include "libslic3r.h"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include <sstream>
 
 namespace Slic3r {

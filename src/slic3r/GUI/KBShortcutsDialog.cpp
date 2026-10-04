@@ -4,6 +4,20 @@
 #include "libslic3r/Utils.hpp"
 #include "GUI.hpp"
 #include "Notebook.hpp"
+#include <vector>
+#include "slic3r/GUI/Shortcuts.hpp"
+#include <wx/colour.h>
+#include <string>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <cstddef>
+#include <wx/panel.h>
+#include <variant>
+#include <optional>
 #include <wx/scrolwin.h>
 #include <wx/display.h>
 #include <algorithm>
@@ -20,6 +34,10 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include <wx/notebook.h>
+#include <wx/string.h>
+#include <wx/wx.h>
+#include <wx/treebase.h>
+#include <wx/simplebook.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -159,8 +177,12 @@ void KBShortcutsDialog::fill_pages()
 
     if (wxGetApp().is_editor()) {
         page(_L("Global"), _L("Available anywhere in the window, even while typing in a text field."), ShortcutContext::Global, {
-            fixed(Section::Application, { alt, "1-9, 0" }, L("Run a speed dial favorite while the dial is open")),
+            fixed(Section::SpeedDial, { alt, "1-9, 0" }, L("Run favorite 1 to 10")),
+            fixed(Section::SpeedDial, { ctrl, "B" }, L("Pin or unpin the selected action")),
+            // wx cycles notebook pages on Ctrl+Tab, which is Cmd+Tab on macOS and never arrives there.
+#ifndef __APPLE__
             fixed(Section::Application, { ctrl, key(L_CONTEXT("Tab", "Keyboard Shortcut")) }, L("Switch to the next main tab")),
+#endif
         });
 
         page(_L("Prepare"), _L("Available while the 3D view on the Prepare tab has focus."), ShortcutContext::Plater, {
@@ -175,13 +197,13 @@ void KBShortcutsDialog::fill_pages()
             mouse(Section::Camera, _L("Middle mouse"), "middle_mouse_drag_action"),
             mouse(Section::Camera, _L("Right mouse"), "right_mouse_drag_action"),
             fixed(Section::Camera, { wheel }, L("Zoom View")),
+            fixed(Section::Display, { alt, wheel }, L("Move section plane")),
         });
 
         page(_L("Painting"), _L("Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."), ShortcutContext::Painting, {
             fixed(Section::Gizmos, { esc }, L("Deselect All")),
             fixed(Section::Gizmos, { shift, left_button }, L("Move: press to snap by 1mm")),
             fixed(Section::PaintingTools, { ctrl, wheel }, L("Support/Color Painting: adjust pen radius")),
-            fixed(Section::PaintingTools, { alt, wheel }, L("Support/Color Painting: adjust section position")),
         });
 
         page(_L("Objects list"), _L("Available while the object list has focus."), ShortcutContext::ObjectList, {
@@ -195,6 +217,7 @@ void KBShortcutsDialog::fill_pages()
     page(_L("Preview"), _L("Available while the 3D view on the Preview tab has focus."), ShortcutContext::Preview, {
         fixed(Section::Sliders, { shift_ctrl, any_key }, L("Move slider 5x faster")),
         fixed(Section::Sliders, { shift_ctrl, wheel }, L("Scroll slider 5x faster")),
+        fixed(Section::Display, { alt, wheel }, L("Move section plane")),
     });
 }
 
@@ -207,7 +230,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     wxGetApp().UpdateDarkUI(scrollable_panel);
     const wxColour page_colour = StateColor::darkModeColorFor(*wxWHITE);
     scrollable_panel->SetBackgroundColour(page_colour);
-    scrollable_panel->SetScrollRate(0, 20);
+    scrollable_panel->SetScrollRate(0, FromDIP(20));
     const int page_width = FromDIP(PAGE_WIDTH);
     scrollable_panel->SetInitialSize(wxSize(page_width, FromDIP(450)));
 
@@ -454,7 +477,10 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture_sizer->Add(m_chord_label, 0, wxALIGN_CENTER);
     capture_sizer->AddStretchSpacer();
     capture->SetSizer(capture_sizer);
-    capture->Bind(wxEVT_KEY_DOWN, &ShortcutCaptureDialog::on_key, this);
+    capture->Layout();   // the box is created at its final size, so nothing resizes it into laying the sizer out
+    // The hook runs before the window procedure, so Windows does not open its window menu
+    // over the dialog on Alt+Space.
+    Bind(wxEVT_CHAR_HOOK, &ShortcutCaptureDialog::on_key, this);
     capture->Bind(wxEVT_CHAR, &ShortcutCaptureDialog::on_char, this);
     capture->Bind(wxEVT_LEFT_DOWN, [capture](wxMouseEvent&) { capture->SetFocus(); });
     sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
@@ -531,10 +557,12 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
         m_ok->Enable(false);
     };
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
-    if (global && !chord.is_menu_accelerator()) {
+    if (chord.is_system_shortcut()) {
+        reject(_L("The system uses this shortcut, so it cannot be assigned."));
+    } else if (global && !chord.is_menu_accelerator()) {
         reject(m_rejection);
     } else if (const std::optional<Shortcut> owner = wxGetApp().shortcuts().step_owner(m_shortcut, chord); owner.has_value()) {
-        reject(wxString::Format(_L("Already used as a step of %s."), _(shortcut_info(*owner).name)));
+        reject(wxString::Format(_L("Shift and Ctrl with this key belong to %s and cannot be assigned."), _(shortcut_info(*owner).name)));
     } else {
         m_conflicts = wxGetApp().shortcuts().conflicts(m_shortcut, chord);
         m_status->SetForegroundColour(m_status_colour);

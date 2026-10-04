@@ -15,14 +15,33 @@
 #include "libslic3r/Config.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include <vector>
+#include <memory>
+#include <string>
+#include <functional>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include <wx/glcanvas.h>
+#include <wx/panel.h>
 #include <wx/stopwatch.h>   // wxGetLocalTimeMillis: the right-click vs right-hold budget
 #include <wx/sizer.h>
 #include <wx/frame.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
+#include <wx/time.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 namespace Slic3r {
 namespace GUI {

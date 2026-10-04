@@ -33,36 +33,47 @@
 	],
 	"thumbnails_format": "PNG",
 	"machine_max_acceleration_e": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_retracting": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_travel": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_x": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_y": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_z": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_e": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"12",
 		"12"
 	]
 }

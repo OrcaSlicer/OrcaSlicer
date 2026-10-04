@@ -1,6 +1,8 @@
 #ifndef slic3r_MarkdownTip_hpp_
 #define slic3r_MarkdownTip_hpp_
 
+#include <string>
+#include <wx/gdicmn.h>
 #include <wx/popupwin.h>
 #include <wx/timer.h>
 #include <wx/webview.h>

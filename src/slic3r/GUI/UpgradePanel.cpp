@@ -1,7 +1,28 @@
 #include "UpgradePanel.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/ProgressBar.hpp"
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <map>
+#include <cstdlib>
+#include <cstddef>
+#include "slic3r/GUI/ReleaseNote.hpp"
 #include <slic3r/GUI/Widgets/SideTools.hpp>
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <slic3r/GUI/I18N.hpp>
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <unordered_map>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <string>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/scrolwin.h>
 #include "slic3r/GUI/DeviceTab/uiDeviceUpdateVersion.h"
 #include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRackUpdate.h"
 
@@ -1629,7 +1650,7 @@ UpgradePanel::UpgradePanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
     auto m_main_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(5, 25);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
 
     m_machine_list_sizer = new wxBoxSizer(wxVERTICAL);
 

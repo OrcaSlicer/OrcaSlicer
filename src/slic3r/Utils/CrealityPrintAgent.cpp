@@ -1,16 +1,23 @@
 #include "CrealityPrintAgent.hpp"
 #include "CrealityPrint.hpp"
+#include "MoonrakerPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <boost/log/trivial.hpp>
+#include "libslic3r/Config.hpp"
+#include <exception>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cctype>
 #include <map>
 #include <set>
+#include <string>
+#include <vector>
+#include <utility>
 
 using json = nlohmann::json;
 
@@ -282,7 +289,7 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     return true;
 }
 
-bool CrealityPrintAgent::fetch_filament_info(std::string dev_id)
+bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     if (device_info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)

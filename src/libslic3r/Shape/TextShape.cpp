@@ -4,13 +4,36 @@
 
 #include "TextShape.hpp"
 
+#include <map>
+#include <Standard_Handle.hxx>
+#include <TColStd_SequenceOfHAsciiString.hxx>
+#include <cstddef>
+#include <Font_SystemFont.hxx>
+#include <Font_FontAspect.hxx>
+#include <gp_Ax3.hxx>
+#include <gp.hxx>
+#include <gp_Pnt.hxx>
+#include <Graphic3d_HorizontalTextAlignment.hxx>
+#include <Graphic3d_VerticalTextAlignment.hxx>
+#include <Font_StrictLevel.hxx>
+#include <Font_TextFormatter.hxx>
+#include <NCollection_UtfIterator.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <Poly_Triangulation.hxx>
+#include <cstdint>
+#include <gp_Trsf.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "libslic3r/Point.hpp"
 #include "Standard_TypeDef.hxx"
 #include "STEPCAFControl_Reader.hxx"
 #include "BRepMesh_IncrementalMesh.hxx"
 #include "Interface_Static.hxx"
+#include "libslic3r/Utils.hpp"
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
 #include "XCAFApp_Application.hxx"
@@ -27,6 +50,8 @@
 #include "Font_BRepTextBuilder.hxx"
 #include "BRepPrimAPI_MakePrism.hxx"
 #include "Font_FontMgr.hxx"
+#include "NCollection_Sequence.hxx"
+#include "TCollection_HAsciiString.hxx"
 
 #include <boost/log/trivial.hpp>
 
@@ -34,7 +59,7 @@ namespace Slic3r {
 
 static std::map<std::string, std::string> g_occt_fonts_maps; //map<font_name, font_path>
 
-static const std::vector<Standard_CString> fonts_suffix{ "Bold",  "Medium", "Heavy", "Italic", "Oblique", "Inclined", "Light", "Thin", 
+static const std::vector<const char*> fonts_suffix{ "Bold",  "Medium", "Heavy", "Italic", "Oblique", "Inclined", "Light", "Thin", 
 "Semibold", "ExtraBold", "ExtraBold",  "Semilight", "SemiLight", "ExtraLight", "Extralight",  "Ultralight", 
 "Condensed", "Ultra", "Extra", "Expanded", "Extended", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Al Tarikh"};
 
@@ -50,7 +75,7 @@ std::vector<std::string> init_occt_fonts()
     Handle(Font_FontMgr) aFontMgr = Font_FontMgr::GetInstance();
     aFontMgr->InitFontDataBase();
 
-    TColStd_SequenceOfHAsciiString availFontNames;
+    NCollection_Sequence<Handle(TCollection_HAsciiString)> availFontNames;
     aFontMgr->GetAvailableFontsNames(availFontNames);
     stdFontNames.reserve(availFontNames.Size());
 
@@ -99,16 +124,14 @@ std::vector<std::string> init_occt_fonts()
 
 static bool TextToBRep(const char* text, const char* font, const float theTextHeight, Font_FontAspect& theFontAspect, TopoDS_Shape& theShape, double& text_width)
 {
-    Standard_Integer anArgIt = 1;
-    Standard_CString aName = "text_shape";
-    Standard_CString aText = text;
+    const char* aText = text;
 
     Font_BRepFont           aFont;
     //TCollection_AsciiString aFontName("Courier");
     TCollection_AsciiString aFontName(font);
-    Standard_Real           aTextHeight = theTextHeight;
+    double                  aTextHeight = theTextHeight;
     Font_FontAspect         aFontAspect = theFontAspect;
-    Standard_Boolean        anIsCompositeCurve = Standard_False;
+    bool                    anIsCompositeCurve = false;
     gp_Ax3                  aPenAx3(gp::XOY());
     gp_Dir                  aNormal(0.0, 0.0, 1.0);
     gp_Dir                  aDirection(1.0, 0.0, 0.0);
@@ -133,10 +156,10 @@ static bool TextToBRep(const char* text, const char* font, const float theTextHe
     // get the text width
     text_width                  = 0;
     NCollection_String coll_str = aText;
-    for (NCollection_Utf8Iter anIter = coll_str.Iterator(); *anIter != 0;) {
-        const Standard_Utf32Char aCharThis = *anIter;
-        const Standard_Utf32Char aCharNext = *++anIter;
-        double                   width     = aFont.AdvanceX(aCharThis, aCharNext);
+    for (auto anIter = coll_str.Iterator(); *anIter != 0;) {
+        const char32_t aCharThis = *anIter;
+        const char32_t aCharNext = *++anIter;
+        double         width     = aFont.AdvanceX(aCharThis, aCharNext);
         text_width += width;
     }
 
@@ -150,9 +173,9 @@ static bool Prism(const TopoDS_Shape& theBase, const float thickness, TopoDS_Sha
     if (theBase.IsNull()) return false;
 
     gp_Vec V(0.f, 0.f, thickness);
-    BRepPrimAPI_MakePrism* Prism = new BRepPrimAPI_MakePrism(theBase, V, Standard_False);
+    BRepPrimAPI_MakePrism prism(theBase, V, false);
 
-    theSolid = Prism->Shape();
+    theSolid = prism.Shape();
     return true;
 }
 
@@ -182,10 +205,10 @@ static void MakeMesh(TopoDS_Shape& theSolid, TriangleMesh& theMesh)
     std::vector<Vec3f> points;
     points.reserve(aNbNodes);
     //BBS: count faces missing triangulation
-    Standard_Integer aNbFacesNoTri = 0;
+    int aNbFacesNoTri = 0;
     //BBS: fill temporary triangulation
-    Standard_Integer aNodeOffset = 0;
-    Standard_Integer aTriangleOffet = 0;
+    int aNodeOffset = 0;
+    int aTriangleOffet = 0;
     for (TopExp_Explorer anExpSF(theSolid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
         const TopoDS_Shape& aFace = anExpSF.Current();
         TopLoc_Location aLoc;
@@ -196,21 +219,21 @@ static void MakeMesh(TopoDS_Shape& theSolid, TriangleMesh& theMesh)
         }
         //BBS: copy nodes
         gp_Trsf aTrsf = aLoc.Transformation();
-        for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
+        for (int aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
             gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
             aPnt.Transform(aTrsf);
             points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
         }
         //BBS: copy triangles
         const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
-        for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
+        for (int aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
             Poly_Triangle aTri = aTriangulation->Triangle(aTriIter);
 
-            Standard_Integer anId[3];
+            int anId[3];
             aTri.Get(anId[0], anId[1], anId[2]);
             if (anOrientation == TopAbs_REVERSED) {
                 //BBS: swap 1, 2.
-                Standard_Integer aTmpIdx = anId[1];
+                int aTmpIdx = anId[1];
                 anId[1] = anId[2];
                 anId[2] = aTmpIdx;
             }

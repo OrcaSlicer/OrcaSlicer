@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG-CF @Elegoo Giga",
+	"renamed_from": "Elegoo PETG-CF @EOS Giga",
 	"inherits": "Elegoo PETG-CF @base",
 	"from": "system",
 	"setting_id": "uGF6puqnX1jW2pmn",
@@ -40,6 +41,5 @@
 		"Elegoo OrangeStorm Giga 0.6 nozzle",
 		"Elegoo OrangeStorm Giga 0.8 nozzle",
 		"Elegoo OrangeStorm Giga 1.0 nozzle"
-	],
-	"renamed_from": "Elegoo PETG-CF @EOS Giga"
+	]
 }

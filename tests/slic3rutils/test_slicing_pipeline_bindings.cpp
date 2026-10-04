@@ -1,4 +1,18 @@
 #include <catch2/catch_test_macros.hpp>
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include "libslic3r/libslic3r.h"
+#include <pybind11/cast.h>
+#include <pybind11/eval.h>
+#include <catch2/matchers/catch_matchers.hpp>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Print.hpp"
+#include <cstddef>
+#include "libslic3r/SurfaceCollection.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <initializer_list>
+#include <utility>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 using namespace Slic3r;
 

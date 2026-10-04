@@ -1,4 +1,5 @@
 #include "GLGizmoEmboss.hpp"
+#include "EmbossStyleManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
@@ -29,6 +30,52 @@
 #include "libslic3r/BuildVolume.hpp"
 
 #include "imgui/imgui_stdlib.h" // using std::string for inputs
+#include <string>
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include "slic3r/GUI/TextLines.hpp"
+#include <atomic>
+#include <imgui.h>
+#include "libslic3r/Emboss.hpp"
+#include "libslic3r/TextConfiguration.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "slic3r/GUI/IconManager.hpp"
+#include <cstddef>
+#include <vector>
+#include <wx/fontenc.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <utility>
+#include <cassert>
+#include <optional>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/SurfaceDrag.hpp"
+#include <Eigen/Geometry>
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <algorithm>
+#include <wx/gdicmn.h>
+#include "libslic3r/Utils.hpp"
+#include <wx/settings.h>
+#include <cmath>
+#include <string_view>
+#include "libslic3r/Config.hpp"
+#include <wx/dataview.h>
+#include <limits>
+#include <wx/intl.h>
+#include <math.h>
+#include <boost/container_hash/hash.hpp>
+#include <cstdint>
+#include <boost/nowide/convert.hpp>
+#include "libslic3r/Polygon.hpp"
+#include <sstream>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <exception>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <cfloat>
+#include <wx/string.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -2000,7 +2047,7 @@ void GLGizmoEmboss::draw_model_type()
         if ((is_volume_move_inside || is_volume_move_outside))
             process();
 
-        // inspiration in ObjectList::change_part_type()
+        // inspiration in ObjectList::set_volume_type()
         // how to view correct side panel with objects
         ObjectList *obj_list = app.obj_list();
         wxDataViewItemArray sel = obj_list->reorder_volumes_and_get_selection(

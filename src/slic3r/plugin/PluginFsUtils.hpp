@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PluginDescriptor.hpp"
+#include <pybind11/pytypes.h>
 
 #include <nlohmann/json.hpp>
 #include <pybind11/pybind11.h>
@@ -9,6 +10,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define PLUGIN_SUBSCRIBED_DIR "_subscribed"

@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "re3D Terabot 4 0.8 nozzle",
 	"inherits": "fdm_re3D_common",
+	"setting_id": "EsfqTpN28Qmlaov3",
 	"instantiation": "true",
 	"machine_tech": "FFF",
 	"model_id": "TB4",
@@ -31,6 +32,5 @@
 		"re3D PETG @0.8 nozzle"
 	],
 	"default_print_profile": "0.4 Standard",
-	"printer_settings_id": "re3d_terabot4_08",
-	"setting_id": "EsfqTpN28Qmlaov3"
+	"printer_settings_id": "re3d_terabot4_08"
 }

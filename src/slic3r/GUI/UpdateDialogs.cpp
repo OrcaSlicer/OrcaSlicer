@@ -4,6 +4,18 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <string>
+#include "libslic3r/Semver.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include <wx/hyperlink.h>
+#include <vector>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <unordered_map>
 #include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/event.h>
@@ -11,6 +23,7 @@
 #include <wx/button.h>
 #include <wx/statbmp.h>
 #include <wx/checkbox.h>
+#include <wx/string.h>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
@@ -130,7 +143,7 @@ MsgUpdateConfig::MsgUpdateConfig(const std::vector<Update> &updates, bool force_
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     auto m_scrollwindw_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)),wxVSCROLL);
-    m_scrollwindw_release_note->SetScrollRate(0, 5);
+    m_scrollwindw_release_note->SetScrollRate(0, FromDIP(20));
     m_scrollwindw_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_scrollwindw_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     m_scrollwindw_release_note->SetWindowStyle(wxVSCROLL);

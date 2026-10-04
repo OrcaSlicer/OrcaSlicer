@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <wx/accel.h>
 #include <wx/defs.h>
 
@@ -34,6 +35,9 @@ struct KeyChord
     // True when Ctrl or Alt is held or the key is non-printable, the chords a menu can own without
     // swallowing typing in text fields.
     bool is_menu_accelerator() const;
+    // True for a chord the desktop acts on although the app receives it, so a binding would
+    // take it from the system.
+    bool is_system_shortcut() const;
 
     // Platform-neutral text ("Ctrl+Shift+S") for persistence and wx accelerator strings.
     std::string to_string() const;

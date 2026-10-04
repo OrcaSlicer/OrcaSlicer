@@ -1,18 +1,57 @@
 #include "Utils.hpp"
+#include "Exception.hpp"
 #include "I18N.hpp"
 
 #include <atomic>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/keywords/severity.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <cstdio>
+#include <boost/log/keywords/file_name.hpp>
+#include <boost/log/keywords/rotation_size.hpp>
+#include <boost/log/keywords/format.hpp>
+#include <boost/log/expressions/formatters/stream.hpp>
+#include <boost/log/expressions/attr.hpp>
+#include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/log/attributes/current_thread_id.hpp>
+#include <boost/log/expressions/message.hpp>
+#include <boost/log/keywords/auto_flush.hpp>
+#include <initializer_list>
+#include <boost/filesystem/file_status.hpp>
+#include <cstdint>
+#include <boost/filesystem/directory.hpp>
+#include <fstream>
+#include <iosfwd>
+#include <cstring>
+#include <cassert>
+#include <boost/locale/conversion.hpp>
+#include <iterator>
+#include <functional>
+#include <exception>
 #include <locale>
 #include <ctime>
 #include <cstdarg>
 #include <iostream>
+#include <map>
+#include <openssl/md5.h>
+#include <set>
 #include <stdio.h>
 #include <filesystem>
 #include <sstream>
+#include <cerrno>
+#include <mutex>
 #include <iomanip>
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <system_error>
+#include <string_view>
+#include <vector>
 
+#include "Semver.hpp"
 #include "format.hpp"
 #include "Platform.hpp"
 #include "Time.hpp"
@@ -21,6 +60,7 @@
 // (get_version_from_json) and the preset cache stamp (VendorCacheFile).
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
+#include "libslic3r_version.h"
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
@@ -70,6 +110,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
@@ -702,11 +743,97 @@ namespace WindowsSupport
 std::error_code rename_file(const std::string &from, const std::string &to)
 {
 #ifdef _WIN32
+	// Retries and moves an open destination aside itself.
 	return WindowsSupport::rename(from, to);
 #else
-	boost::nowide::remove(to.c_str());
-	return std::make_error_code(static_cast<std::errc>(boost::nowide::rename(from.c_str(), to.c_str())));
+	// rename(2) replaces an existing target atomically; removing it first would
+	// leave a window in which the file does not exist at all.
+	if (boost::nowide::rename(from.c_str(), to.c_str()) == 0)
+		return {};
+	const int err = errno;
+	// Some mounts (sshfs, gvfs, MTP and a few SMB setups) refuse to replace an
+	// existing target in one step, each with the error it sees fit; every error
+	// is worth the remove-then-rename this always did, except the ones no retry
+	// can help: nothing at the source, a different device, or a directory where
+	// a file was expected and the reverse.
+	const bool worth_retrying = err != ENOENT && err != EXDEV && err != ENOTDIR && err != EISDIR;
+	if (worth_retrying && boost::nowide::remove(to.c_str()) == 0 && boost::nowide::rename(from.c_str(), to.c_str()) == 0)
+		return {};
+	return std::make_error_code(static_cast<std::errc>(err));
 #endif
+}
+
+static std::error_code write_whole_file(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary)
+{
+	errno = 0;
+	FILE *file = boost::nowide::fopen(path.c_str(), binary ? "wb" : "w");
+	if (file == nullptr)
+		return std::make_error_code(errno != 0 ? static_cast<std::errc>(errno) : std::errc::io_error);
+	bool ok = true;
+	for (const std::string_view chunk : chunks)
+		ok = ok && std::fwrite(chunk.data(), 1, chunk.size(), file) == chunk.size();
+	ok = ok && std::fflush(file) == 0;
+	const int err = ok ? 0 : errno;
+	ok = std::fclose(file) == 0 && ok;
+	if (ok)
+		return {};
+	return std::make_error_code(err != 0 ? static_cast<std::errc>(err) : std::errc::io_error);
+}
+
+// The in-place fallback truncates the target, so two threads of this process
+// on the same file must not both be in it. One mutex for all such writes: they
+// are the rare case. Never freed, like the InstanceLock registry, so a save
+// during static destruction still finds it.
+static std::error_code write_in_place(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary)
+{
+	static auto *mutex = new std::mutex();
+	std::lock_guard<std::mutex> guard(*mutex);
+	return write_whole_file(path, chunks, binary);
+}
+
+std::error_code write_file_atomically(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary)
+{
+	boost::system::error_code bec;
+	const boost::filesystem::file_status target = boost::filesystem::symlink_status(path, bec);
+	const bool target_exists = ! bec && boost::filesystem::exists(target);
+	if (target_exists && boost::filesystem::is_symlink(target)) {
+		// A config or preset kept in a dotfiles repository: the link stays,
+		// the file it points to is replaced like any other.
+		const boost::filesystem::path resolved = boost::filesystem::canonical(path, bec);
+		if (! bec && boost::filesystem::is_regular_file(resolved, bec))
+			return write_file_atomically(resolved.string(), chunks, binary);
+	}
+	if (target_exists && ! boost::filesystem::is_regular_file(target))
+		return write_in_place(path, chunks, binary);
+
+	// Unique per process and per call, so two threads writing one target
+	// without a lock never share a temporary.
+	static std::atomic<unsigned> counter{0};
+	const std::string tmp_path = path + "." + std::to_string(get_current_pid()) + "." + std::to_string(counter++) + ".tmp";
+	if (const std::error_code ec = write_whole_file(tmp_path, chunks, binary)) {
+		boost::nowide::remove(tmp_path.c_str());
+		if (! target_exists)
+			return ec;
+		// A directory that lets this process write its files but not create
+		// one: losing the save is worse than a reader seeing a partial file.
+		BOOST_LOG_TRIVIAL(warning) << "Cannot create a temporary beside " << path << " (" << ec.message() << "); writing in place";
+		return write_in_place(path, chunks, binary);
+	}
+#ifndef _WIN32
+	// Not on Windows, where a read-only bit on the temporary would stop the rename itself.
+	if (target_exists)
+		boost::filesystem::permissions(tmp_path, target.permissions(), bec);
+#endif
+	if (const std::error_code ec = rename_file(tmp_path, path)) {
+		boost::nowide::remove(tmp_path.c_str());
+		// A reader on Windows holding the target open without FILE_SHARE_DELETE,
+		// or a mount that cannot replace a file at all. Losing the save is worse
+		// than a reader seeing a partial file, so write in place the way this
+		// used to work before the atomic path existed.
+		BOOST_LOG_TRIVIAL(warning) << "Cannot replace " << path << " (" << ec.message() << "); writing in place";
+		return write_in_place(path, chunks, binary);
+	}
+	return {};
 }
 
 #ifdef __linux__
@@ -1093,6 +1220,9 @@ bool is_path_within_root(const std::string &rel_path, const boost::filesystem::p
     auto is_separator = [](char c) { return c == '/' || c == '\\'; };
     if (rel_path.empty() || is_separator(rel_path.front()) || (rel_path.size() > 1 && rel_path[1] == ':'))
         return false;
+    // The filesystem calls stop at a NUL, so they would act on a shorter path than the one checked here.
+    if (rel_path.find('\0') != std::string::npos)
+        return false;
     for (size_t start = 0; start <= rel_path.size();) {
         size_t end = start;
         while (end < rel_path.size() && !is_separator(rel_path[end]))
@@ -1103,13 +1233,47 @@ bool is_path_within_root(const std::string &rel_path, const boost::filesystem::p
     }
     // Resolve against the canonical root so a symlink inside it cannot lead back out.
     try {
-        const std::string root_str = boost::filesystem::weakly_canonical(root).string();
+        std::string root_str = boost::filesystem::weakly_canonical(root).string();
+        // A trailing separator on root would otherwise fail the prefix match below for every path.
+        while (!root_str.empty() && (root_str.back() == '/' || root_str.back() == boost::filesystem::path::preferred_separator))
+            root_str.pop_back();
         const std::string full_str = boost::filesystem::weakly_canonical(root / rel_path).string();
         return full_str.compare(0, root_str.size(), root_str) == 0 &&
                (full_str.size() == root_str.size() || full_str[root_str.size()] == boost::filesystem::path::preferred_separator);
     } catch (const boost::filesystem::filesystem_error &) {
         return false;
     }
+}
+
+bool is_symlink_target_within_root(const std::string &link_rel_path, const std::string &target, const boost::filesystem::path &root)
+{
+    if (target.empty() || target.front() == '/' || target.front() == '\\' || (target.size() > 1 && target[1] == ':'))
+        return false;
+    // A relative target without ".." only descends from the link's directory, so no chain of such links can leave root.
+    const size_t sep = link_rel_path.find_last_of("/\\");
+    return is_path_within_root((sep == std::string::npos ? std::string() : link_rel_path.substr(0, sep + 1)) + target, root);
+}
+
+bool is_absolute_path_within_root(const boost::filesystem::path &path, const boost::filesystem::path &root)
+{
+    const boost::filesystem::path rel = path.lexically_relative(root);
+    return !rel.empty() && rel != "." && is_path_within_root(rel.string(), root);
+}
+
+bool is_safe_to_open_file_name(const std::string &file_name)
+{
+    // Formats that cannot carry macros or scripts. Legacy and OpenDocument office files, HTML and SVG are left out on purpose.
+    static const std::vector<std::string> safe_extensions = {
+        "jpg", "jpeg", "jfif", "pjpeg", "pjp", "png", "gif", "bmp", "webp", "tif", "tiff",
+        "pdf", "txt", "md", "csv", "docx", "xlsx", "pptx",
+        "stl", "obj", "3mf", "amf", "ply", "step", "stp", "iges", "igs", "dxf",
+        "mp4", "mov", "webm"};
+    // The name must end in the extension itself: Windows drops trailing dots and spaces and reads ':' as a stream separator.
+    const size_t dot = file_name.find_last_of('.');
+    if (dot == std::string::npos || file_name.find_first_of("/\\:") != std::string::npos)
+        return false;
+    const std::string extension = boost::algorithm::to_lower_copy(file_name.substr(dot + 1));
+    return std::find(safe_extensions.begin(), safe_extensions.end(), extension) != safe_extensions.end();
 }
 
 bool is_img_file(const std::string &path)
@@ -1319,6 +1483,31 @@ unsigned get_current_pid()
 #else
     return ::getpid();
 #endif
+}
+
+boost::filesystem::path download_marker_path(const boost::filesystem::path &dest_folder, const std::string &filename)
+{
+    return dest_folder / (filename + "." + std::to_string(get_current_pid()) + ".download");
+}
+
+bool find_unused_filename(const boost::filesystem::path &dest_folder, const std::string &filename,
+                          const boost::filesystem::path &ignored_marker, std::string &result)
+{
+    // Probe the name that will be written, so a name the sanitizing maps onto an existing file is versioned too.
+    const std::string sanitized = sanitize_filename(filename);
+    const std::string extension = boost::filesystem::path(sanitized).extension().string();
+    const std::string stem      = sanitized.substr(0, sanitized.size() - extension.size());
+    auto is_used = [&](const std::string &name) {
+        const boost::filesystem::path marker = download_marker_path(dest_folder, name);
+        return boost::filesystem::exists(dest_folder / name) || (marker != ignored_marker && boost::filesystem::exists(marker));
+    };
+    result = sanitized;
+    for (size_t version = 1; is_used(result); ++version) {
+        if (version > 999)
+            return false;
+        result = stem + "(" + std::to_string(version) + ")" + extension;
+    }
+    return true;
 }
 
 std::string per_user_temp_id()

@@ -2,15 +2,27 @@
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
 #include "../TexturePainting.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
 #include "ResourcePathUtils.hpp"
 
 #include "OBJ.hpp"
 #include "objparser.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <array>
+#include <cstring>
+#include <map>
+#include <ios>
 #include <string>
 
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <utility>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'
@@ -141,7 +153,7 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                 its.indices.emplace_back(indices[0], indices[1], indices[2]);
                 int  face_index =its.indices.size() - 1;
                 RGBA face_color;
-                auto set_face_color = [&uvs, &data, &mtl_data, &obj_info, &face_color](int face_index, const std::string mtl_name) {
+                auto set_face_color = [&uvs, &data, &mtl_data, &obj_info, &face_color](int face_index, const std::string mtl_name, const std::array<int, 3> &corners) {
                     if (mtl_data.new_mtl_unmap.find(mtl_name) != mtl_data.new_mtl_unmap.end()) {
                         bool is_merge_ka_kd = true;
                         for (size_t n = 0; n < 3; n++) {
@@ -166,10 +178,15 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                             obj_info.uv_map_pngs[face_index] = png_name;
                         }
                         if (data.textureCoordinates.size() > 0) {
-                            Vec2f                uv0(data.textureCoordinates[uvs[0] * 2], data.textureCoordinates[uvs[0] * 2 + 1]);
-                            Vec2f                uv1(data.textureCoordinates[uvs[1] * 2], data.textureCoordinates[uvs[1] * 2 + 1]);
-                            Vec2f                uv2(data.textureCoordinates[uvs[2] * 2], data.textureCoordinates[uvs[2] * 2 + 1]);
-                            std::array<Vec2f, 3> uv_array{uv0, uv1, uv2};
+                            // A face vertex may omit vt or reference a missing one. Fall back to (0, 0) rather than
+                            // skipping the face, so obj_info.uvs stays aligned with the face indices.
+                            const int uv_count = static_cast<int>(data.textureCoordinates.size() / OBJ_TEXCOORD_LENGTH);
+                            auto      uv_at    = [&data, uv_count](int idx) -> Vec2f {
+                                if (idx < 0 || idx >= uv_count)
+                                    return Vec2f::Zero();
+                                return Vec2f(data.textureCoordinates[idx * OBJ_TEXCOORD_LENGTH], data.textureCoordinates[idx * OBJ_TEXCOORD_LENGTH + 1]);
+                            };
+                            std::array<Vec2f, 3> uv_array{uv_at(uvs[corners[0]]), uv_at(uvs[corners[1]]), uv_at(uvs[corners[2]])};
                             obj_info.uvs.emplace_back(uv_array);
                         }
                         obj_info.face_colors.emplace_back(face_color);
@@ -180,27 +197,27 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                         }
                     }
                 };
-                auto set_face_color_by_mtl = [&data, &set_face_color](int face_index) {
+                auto set_face_color_by_mtl = [&data, &set_face_color](int face_index, const std::array<int, 3> &corners) {
                     if (data.usemtls.size() == 1) {
-                        set_face_color(face_index, data.usemtls[0].name);
+                        set_face_color(face_index, data.usemtls[0].name, corners);
                     } else {
                         for (size_t k = 0; k < data.usemtls.size(); k++) {
                             auto mtl = data.usemtls[k];
                             if (face_index >= mtl.face_start && face_index <= mtl.face_end) {
-                                set_face_color(face_index, data.usemtls[k].name);
+                                set_face_color(face_index, data.usemtls[k].name, corners);
                                 break;
                             }
                         }
                     }
                 };
                 if (exist_mtl) {
-                    set_face_color_by_mtl(face_index);
+                    set_face_color_by_mtl(face_index, {0, 1, 2});
                 }
                 if (cnt == 4) {
                     its.indices.emplace_back(indices[0], indices[2], indices[3]);
                     int face_index = its.indices.size() - 1;
                     if (exist_mtl) {
-                        set_face_color_by_mtl(face_index);
+                        set_face_color_by_mtl(face_index, {0, 2, 3});
                     }
                 }
             }
@@ -212,8 +229,12 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
         message = _L("This OBJ file couldn't be read because it's empty.");
         return false;
     }
-    if (meshptr->volume() < 0)
+    if (meshptr->volume() < 0) {
         meshptr->flip_triangles();
+        // Flipping swaps corners 1 and 2 of every face, so the UVs have to follow.
+        for (std::array<Vec2f, 3> &uv : obj_info.uvs)
+            std::swap(uv[1], uv[2]);
+    }
     // Hand the parsed material table back so callers can build a TexturedMesh from it.
     if (out_mtl)
         *out_mtl = mtl_data;

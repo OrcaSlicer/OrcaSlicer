@@ -1,6 +1,11 @@
 #include "MutablePolygon.hpp"
 #include "Line.hpp"
+#include "Point.hpp"
 #include "libslic3r.h"
+#include <cmath>
+#include <cstdint>
+#include <cassert>
+#include <utility>
 
 namespace Slic3r {
 

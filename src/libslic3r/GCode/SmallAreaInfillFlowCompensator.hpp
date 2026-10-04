@@ -6,6 +6,7 @@
 #include "../ExtrusionEntity.hpp"
 #include "PchipInterpolatorHelper.hpp"
 #include <memory>
+#include <vector>
 
 namespace Slic3r {
 

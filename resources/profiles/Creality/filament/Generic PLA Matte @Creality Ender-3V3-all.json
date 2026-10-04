@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Matte @Creality Ender-3V3-all",
-	"inherits": "Generic PLA @Creality Ender-3V3-all",
 	"renamed_from": "Creality Generic PLA Matte @Ender-3V3-all;Creality Generic PLA Matte Ender-3V3-all",
+	"inherits": "Generic PLA @Creality Ender-3V3-all",
 	"from": "system",
 	"setting_id": "JlvUB8GxzpAOlgkz",
 	"filament_id": "OFmY0l6t",

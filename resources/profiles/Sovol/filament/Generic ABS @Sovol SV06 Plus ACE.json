@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Sovol SV06 Plus ACE",
-	"inherits": "Generic ABS @System",
 	"renamed_from": "Sovol SV06 Plus ACE ABS",
+	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "sg9HXvKEoKD4pw7v",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

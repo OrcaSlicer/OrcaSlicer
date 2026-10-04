@@ -9,6 +9,7 @@
 #include <map>
 
 // wx
+#include <string>
 #include <wx/string.h>
 #include <wx/event.h>
 

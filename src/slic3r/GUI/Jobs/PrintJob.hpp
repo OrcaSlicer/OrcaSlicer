@@ -3,6 +3,11 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <functional>
+#include <string>
+#include <wx/string.h>
+#include <exception>
+#include <cstddef>
 #include "libslic3r/PrintConfig.hpp"
 #include "Job.hpp"
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 

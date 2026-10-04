@@ -3,7 +3,9 @@
 
 #include "AABBTreeLines.hpp"
 #include "BoundingBox.hpp"
+#include "Point.hpp"
 #include "libslic3r.h"
+#include <tuple>
 #include <vector>
 #include "Polygon.hpp"
 

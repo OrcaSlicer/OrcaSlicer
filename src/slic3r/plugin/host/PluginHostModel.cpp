@@ -1,7 +1,11 @@
 #include "PluginHostBindings.hpp"
 #include "PluginHostMesh.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 
+#include <cstddef>
 #include <libslic3r/Model.hpp>
 
 #include <pybind11/stl.h>
@@ -24,7 +28,14 @@ void host_bindings::register_model(py::module_& host)
         .value("NegativeVolume", ModelVolumeType::NEGATIVE_VOLUME)
         .value("ParameterModifier", ModelVolumeType::PARAMETER_MODIFIER)
         .value("SupportBlocker", ModelVolumeType::SUPPORT_BLOCKER)
-        .value("SupportEnforcer", ModelVolumeType::SUPPORT_ENFORCER);
+        .value("SupportEnforcer", ModelVolumeType::SUPPORT_ENFORCER)
+        // Expose every seam mode returned by ModelVolume::type() to plugins.
+        .value("PreciseSeamCenter", ModelVolumeType::PRECISE_SEAM_CENTER)
+        .value("PreciseSeamLeft", ModelVolumeType::PRECISE_SEAM_LEFT)
+        .value("PreciseSeamRight", ModelVolumeType::PRECISE_SEAM_RIGHT)
+        .value("PreciseSeamEnforced", ModelVolumeType::PRECISE_SEAM_ENFORCED)
+        .value("PreciseSeamBlocked", ModelVolumeType::PRECISE_SEAM_BLOCKED)
+        .value("PreciseSeamNeutral", ModelVolumeType::PRECISE_SEAM_NEUTRAL);
 
     py::class_<ModelVolume, std::unique_ptr<ModelVolume, py::nodelete>>(host, "ModelVolume")
         .def("id", [](const ModelVolume& volume) { return volume.id().id; })
@@ -36,6 +47,10 @@ void host_bindings::register_model(py::module_& host)
         .def("is_support_enforcer", &ModelVolume::is_support_enforcer)
         .def("is_support_blocker", &ModelVolume::is_support_blocker)
         .def("is_support_modifier", &ModelVolume::is_support_modifier)
+        // Let plugins identify seam helper geometry without relying on enum ordering.
+        .def("is_precise_seam", &ModelVolume::is_precise_seam)
+        .def("is_precise_seam_strong", &ModelVolume::is_precise_seam_strong)
+        .def("is_precise_seam_weak", &ModelVolume::is_precise_seam_weak)
         // Extruder ID is 1-based for FFF, -1 for SLA or support volumes.
         .def("extruder_id", &ModelVolume::extruder_id)
         .def("offset", [](const ModelVolume& volume) { return vec3_to_tuple(volume.get_offset()); })

@@ -5,6 +5,17 @@
 #include "wxExtensions.hpp"
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
+#include <wx/wx.h>
+#include <string>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/font.h>
+#include <wx/event.h>
 
 namespace Slic3r { namespace GUI {
 

@@ -2,11 +2,26 @@
 #define SLA_TEST_UTILS_HPP
 
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "test_utils.hpp"
 
 // Debug
+#include <cstddef>
+#include <climits>
+#include <cmath>
+#include <cstdint>
 #include <fstream>
+#include <string>
+#include "libslic3r/SLA/SupportTree.hpp"
+#include "libslic3r/SLA/Hollowing.hpp"
+#include <unordered_map>
+#include <random>
+#include <type_traits>
+#include "libslic3r/SLA/RasterBase.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
 #include <unordered_set>
+#include <vector>
+#include <utility>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Format/OBJ.hpp"

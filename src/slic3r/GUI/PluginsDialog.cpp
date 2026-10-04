@@ -9,10 +9,19 @@
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include <cctype>
+#include <exception>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <chrono>
 #include <libslic3r/Utils.hpp>
 
 #include <slic3r/GUI/NotificationManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
+#include "slic3r/GUI/PluginSource.hpp"
+#include "slic3r/GUI/PluginStatus.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include "slic3r/GUI/PluginSort.hpp"
 #include <slic3r/GUI/format.hpp>
 
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -25,13 +34,18 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include <wx/busycursor.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
+#include <wx/gdicmn.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
 
@@ -193,6 +207,7 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["label"]                 = dialog_item.display_name;
     payload_item["source"]                = to_string(dialog_item.source);
     payload_item["status"]                = to_string(dialog_item.status);
+    payload_item["is_loaded"]             = dialog_item.is_loaded;
     payload_item["error"]                 = dialog_item.error_text;
     payload_item["update_status"]         = to_string(dialog_item.update_status);
     payload_item["unauthorized"]          = dialog_item.unauthorized;
@@ -337,14 +352,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.sharing_token = descriptor.sharing_token;
     item.thumbnail_url = descriptor.thumbnail_url;
 
-    if (item.loading)
-        item.status = PluginStatus::Loading;
-    else if (item.has_error)
-        item.status = PluginStatus::Error;
-    else if (item.is_loaded)
-        item.status = PluginStatus::Activated;
-    else
-        item.status = PluginStatus::Inactive;
+    item.status = resolve_plugin_status(item.loading, item.has_error, item.is_loaded);
 
     item.available_actions        = evaluate_action_policy(item);
     const bool has_enabled_script = std::any_of(item.capabilities.begin(), item.capabilities.end(),
@@ -790,6 +798,9 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
         }
 
         BOOST_LOG_TRIVIAL(info) << "Plugin unloaded from Plugins dialog: " << plugin_key;
+        // A user-disabled plugin has no meaningful error state.
+        if (!manager.clear_plugin_error(plugin_key))
+            BOOST_LOG_TRIVIAL(warning) << "Failed to clear plugin error for " << plugin_key << " (failed to find)";
         // A prior activation of this plugin is moot now; drop it so no stale "Activated" arrives later.
         if (m_activating_plugin_key == plugin_key)
             m_activating_plugin_key.clear();

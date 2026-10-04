@@ -11,7 +11,17 @@
 #ifndef slic3r_FillAdaptive_hpp_
 #define slic3r_FillAdaptive_hpp_
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <memory>
+#include <utility>
+#include <Eigen/Geometry>
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
 
 struct indexed_triangle_set;
 
@@ -47,6 +57,9 @@ FillAdaptive::OctreePtr         build_octree(
     coordf_t                     line_spacing, 
     // If true, octree is densified below internal overhangs only.
     bool                         support_overhangs_only);
+
+// Multiline infill: lines of the three families to non-crossing paths d1 apart, ends reaching end_overlap into walls.
+Polylines                       multiline_paths(const Lines &lines, double d1, double end_overlap, int sweep, const BoundingBox &cover);
 
 //
 // Some of the algorithms used by class FillAdaptive were inspired by
