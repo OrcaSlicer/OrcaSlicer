@@ -52,6 +52,9 @@
 #include <wx/webview.h>
 #include <wx/string.h>
 #include <wx/timer.h>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 

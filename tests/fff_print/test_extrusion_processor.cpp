@@ -25,6 +25,10 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include <string>
 #include <string_view>
 #include <vector>
@@ -562,6 +566,12 @@ struct SlicedCage
 
 using Walls = std::vector<std::vector<ProcessedPoint>>;
 
+bool has_curled_lines(const PrintObject &object)
+{
+    const auto layers = object.layers();
+    return std::any_of(layers.begin(), layers.end(), [](const Layer *layer) { return !layer->curled_lines.empty(); });
+}
+
 // Estimates every wall of `layer` against whatever layer `estimator` was last prepared with before it.
 Walls estimate_walls(ExtrusionQualityEstimator &estimator, const PrintObject *object, const Layer &layer)
 {
@@ -701,6 +711,53 @@ TEST_CASE("Precomputed overhang data has the curled-line tree exactly when a reg
     const std::vector<PrecomputedOverhangLayer> precomputed = precompute_overhang_layers({layer}, false);
     REQUIRE(precomputed.size() == 1);
     CHECK((precomputed.front().lower_curled_lines != nullptr) == slowdown);
+}
+
+TEST_CASE("Curled walls are estimated only when overhang speed and the slowdown for curled perimeters are both on", "[ExtrusionProcessor]")
+{
+    const auto [overhang_speed, slowdown, estimated] = GENERATE(table<bool, bool, bool>({
+        {true, true, true},
+        {true, false, false},
+        {false, true, false},
+    }));
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict({{"enable_overhang_speed", overhang_speed ? "1" : "0"},
+                                   {"slowdown_for_curled_perimeters", slowdown ? "1" : "0"}});
+    const SlicedCage cage(config);
+
+    CHECK(has_curled_lines(*cage.object) == estimated);
+}
+
+TEST_CASE("Curled walls are estimated when overhang speed and the slowdown for curled perimeters are on in different objects", "[ExtrusionProcessor]")
+{
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        {{"enable_overhang_speed", "1"}, {"slowdown_for_curled_perimeters", "0"}},
+        {{"enable_overhang_speed", "0"}, {"slowdown_for_curled_perimeters", "1"}},
+    };
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{caged_overhang_mesh(), caged_overhang_mesh()}, print, model, caged_overhang_config("classic"),
+               &overrides);
+    print.process();
+
+    REQUIRE(print.objects().size() == 2);
+    for (const PrintObject *object : print.objects())
+        CHECK(has_curled_lines(*object));
+}
+
+TEST_CASE("Curled walls from an earlier slice are dropped once overhang speed is off", "[ExtrusionProcessor]")
+{
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict("slowdown_for_curled_perimeters", "1");
+    SlicedCage cage(config);
+    const Layer *first_layer = cage.print.objects().front()->layers().front();
+    REQUIRE(has_curled_lines(*cage.print.objects().front()));
+
+    config.set_deserialize_strict("enable_overhang_speed", "0");
+    cage.print.apply(cage.model, config);
+    cage.print.process();
+    REQUIRE(cage.print.objects().front()->layers().front() == first_layer);
+    CHECK_FALSE(has_curled_lines(*cage.print.objects().front()));
 }
 
 TEST_CASE("Caged external overhangs are slowed when printed by object or through the pressure equalizer", "[ExtrusionProcessor]")

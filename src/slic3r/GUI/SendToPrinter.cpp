@@ -77,6 +77,9 @@
 #include "DeviceCore/DevStorage.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r {

@@ -70,6 +70,9 @@
 #include "DeviceCore/DevStorage.h"
 #include "../Utils/Http.hpp"
 #include "md4c/src/md4c-html.h"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 

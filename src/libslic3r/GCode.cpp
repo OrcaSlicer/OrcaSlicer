@@ -133,6 +133,8 @@ using namespace std::literals::string_view_literals;
 
 #include <assert.h>
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r {
 
     //! macro used to mark string used at localization,
@@ -4411,11 +4413,6 @@ struct PrecomputedLayer
     std::vector<PrecomputedOverhangLayer>     overhang_layers;
 };
 } // namespace
-
-template<typename BoolsOption> static bool any_enabled(const BoolsOption &option)
-{
-    return std::any_of(option.values.begin(), option.values.end(), [](unsigned char enabled) { return enabled != 0; });
-}
 
 // Whether process_layer() prepares the overhang estimator for `layer`.
 template<typename OverhangSpeed>

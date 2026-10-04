@@ -37,6 +37,7 @@
 #include "libslic3r/TriangleSelector.hpp"
 #include <algorithm>
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Format/AssembleList.hpp"
 #include <cstdlib>
 #include <stdlib.h>
 #include <stdexcept>
@@ -140,6 +141,8 @@ using namespace nlohmann;
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GuiColor.hpp"
 #include <GLFW/glfw3.h>
+
+namespace fs = boost::filesystem;
 
 #ifdef __WXGTK__
 #if __has_include(<X11/Xlib.h>)

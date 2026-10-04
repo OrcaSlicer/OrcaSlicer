@@ -87,6 +87,8 @@
 #include "PlaceholderParser.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 
+namespace fs = boost::filesystem;
+
 using boost::property_tree::ptree;
 
 namespace Slic3r {

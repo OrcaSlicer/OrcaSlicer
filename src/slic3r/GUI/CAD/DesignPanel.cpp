@@ -16,7 +16,6 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>          // the offer/atlas join check reports on the log
-#include <Standard_Failure.hxx>
 
 #include <cassert>
 #include <cstdarg>                        // offer_trace: diagnostic row dump for the offer ladder
@@ -4694,7 +4693,7 @@ void DesignPanel::on_import_svg()
 // (parse + tessellate); running it inline froze the whole window — the compositor marked the
 // app unresponsive and nothing repainted. The dialog is app-modal, so the document cannot be
 // touched while the worker owns it. Exceptions must not escape the worker: `work` is expected
-// to swallow them (OCCT throws Standard_Failure, which is not a std::exception).
+// to swallow them.
 static void run_off_ui_thread(wxWindow* parent, const wxString& message, const std::function<void()>& work)
 {
     std::atomic<bool> done{false};
@@ -4722,10 +4721,6 @@ static void run_off_ui_thread(wxWindow* parent, const wxString& message, const s
     worker.join();
 }
 
-// Rebuild the document off the UI thread. Every feature op (fillet, cut, shell, boolean, ...)
-// goes through recompute(), and on a heavy imported solid that is seconds of OCCT work — inline
-// it freezes the window. OCCT throws Standard_Failure, which is not a std::exception and would
-// terminate the process if it escaped the worker, so both are caught here.
 // Keep the Model's copy of the recipe in step with the document.
 //
 // This used to be written in exactly ONE place — on_commit(), as a side effect of Commit to
@@ -4756,18 +4751,15 @@ void DesignPanel::sync_recipe_to_model()
     Slic3r::put_other_changes();
 }
 
+// Runs recompute() off the UI thread, because on a heavy imported solid it takes seconds.
 bool DesignPanel::recompute_guarded(const wxString& message)
 {
     bool ok = false;
     run_off_ui_thread(this, message, [this, &ok]() {
         try {
             ok = m_doc.recompute();
-        } catch (const Standard_Failure& e) {
-            const char* what = e.GetMessageString();
-            m_doc.error = (what != nullptr && *what != '\0') ? what : "OCCT failure";
-            ok = false;
         } catch (const std::exception& e) {
-            m_doc.error = e.what();
+            m_doc.error = *e.what() ? e.what() : "OCCT failure";
             ok = false;
         }
     });
@@ -4792,11 +4784,8 @@ void DesignPanel::on_import_step()
     run_off_ui_thread(this, _L("Reading STEP…"), [&]() {
         try {
             solids = GeometryEngine::read_step_solids(path, err);
-        } catch (const Standard_Failure& e) {
-            const char* what = e.GetMessageString();
-            err = (what != nullptr && *what != '\0') ? what : "OCCT failure";
         } catch (const std::exception& e) {
-            err = e.what();
+            err = *e.what() ? e.what() : "OCCT failure";
         }
     });
     if (solids.empty()) {
@@ -4820,11 +4809,8 @@ void DesignPanel::on_import_step()
     run_off_ui_thread(this, _L("Rebuilding model…"), [&]() {
         try {
             rebuilt = m_doc.recompute();
-        } catch (const Standard_Failure& e) {
-            const char* what = e.GetMessageString();
-            m_doc.error = (what != nullptr && *what != '\0') ? what : "OCCT failure";
         } catch (const std::exception& e) {
-            m_doc.error = e.what();
+            m_doc.error = *e.what() ? e.what() : "OCCT failure";
         }
     });
     if (!rebuilt) {
@@ -4901,12 +4887,8 @@ void DesignPanel::on_import_mesh()
     try {
         shape = GeometryEngine::mesh_to_brep(mesh.its, MESH_IMPORT_TOLERANCE,
                                              MESH_IMPORT_MERGE_ANGLE_DEG, stats);
-    } catch (const Standard_Failure& e) {   // on OCCT >= 8 Standard_Failure derives from std::exception — must precede that handler
-        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(
-                 e.GetMessageString() ? e.GetMessageString() : "OCCT error"));
-        return;
     } catch (const std::exception& e) {
-        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
+        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(*e.what() ? e.what() : "OCCT error"));
         return;
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }

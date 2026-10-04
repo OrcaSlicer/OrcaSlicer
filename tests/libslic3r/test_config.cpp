@@ -19,6 +19,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include "libslic3r/Config.hpp"
+#include <initializer_list>
 #include <memory>
 #include <map>
 #include <iterator>
@@ -28,6 +29,8 @@
 #include <sstream>
 #include <vector>
 #include <utility>
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 

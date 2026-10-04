@@ -65,6 +65,8 @@
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_AUXILIARY_IMPORT, wxCommandEvent);
