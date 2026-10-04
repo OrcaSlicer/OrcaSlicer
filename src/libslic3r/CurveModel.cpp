@@ -82,6 +82,30 @@ bool CurveModel::valid_view(const CurveView& view)
            std::isfinite(view.max_x - view.min_x) && std::isfinite(view.max_y - view.min_y);
 }
 
+const char* CurveModel::validate_view(const CurveView& view) const
+{
+    if (!valid_view(view)) return L("Enter finite bounds with minimum less than maximum.");
+    const auto limits = view_limits();
+    if (view.min_x < limits.bounds.min_x || view.max_x > limits.bounds.max_x ||
+        view.min_y < limits.bounds.min_y || view.max_y > limits.bounds.max_y)
+        return L("Visible range bounds are outside the allowed limits.");
+    if (view.max_x < view.min_x + limits.minimum_span || view.max_y < view.min_y + limits.minimum_span)
+        return L("The visible range is too small.");
+    return nullptr;
+}
+
+const char* CurveModel::read_view(const std::array<std::string, 4>& bounds, CurveView& view) const
+{
+    double values[4];
+    for (size_t i = 0; i < bounds.size(); ++i)
+        if (!read_number(bounds[i], values[i]))
+            return L("Enter finite bounds with minimum less than maximum.");
+    const CurveView candidate = {values[0], values[1], values[2], values[3]};
+    if (const char* error = validate_view(candidate)) return error;
+    view = candidate;
+    return nullptr;
+}
+
 const char* CurveModel::read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const
 {
     x.clear();

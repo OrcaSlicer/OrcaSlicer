@@ -46,9 +46,19 @@ CurveModel::Interpolator SmallAreaInfillFlowCompensationModel::make_interpolator
 CurveView SmallAreaInfillFlowCompensationModel::fitted_view(
     const std::vector<double>& x, const std::vector<double>& y) const
 {
+    const auto limits = view_limits();
     double maximum = x.empty() ? 1.0 : x.back();
-    if (maximum <= std::numeric_limits<double>::max() / 1.1) maximum *= 1.1;
-    return {0.0, maximum, y.empty() ? 0.0 : std::min(0.0, y.front()), y.empty() ? 1.0 : std::max(1.0, y.back())};
+    maximum = std::clamp(maximum, limits.minimum_span, limits.bounds.max_x);
+    maximum = std::min(limits.bounds.max_x, maximum * 1.1);
+    return {0.0, maximum,
+            y.empty() ? 0.0 : std::clamp(y.front(), limits.bounds.min_y, 0.0),
+            y.empty() ? 1.0 : std::clamp(y.back(), 1.0, limits.bounds.max_y)};
+}
+
+CurveViewLimits SmallAreaInfillFlowCompensationModel::view_limits() const
+{
+    // Limit zooming to useful lengths and factors, without restricting saved model points.
+    return {{0.0, 1000.0, -1.0, 2.0}, 1.0, 0.01, 0.001};
 }
 
 CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
@@ -81,11 +91,6 @@ CurveModel::Rows SmallAreaInfillFlowCompensationModel::seed_rows() const
 const char* SmallAreaInfillFlowCompensationModel::empty_message() const
 {
     return L("The model is empty. No flow compensation will be applied.");
-}
-
-const char* SmallAreaInfillFlowCompensationModel::validate_view(const CurveView& view) const
-{
-    return view.min_x < 0.0 ? L("Extrusion length cannot be negative.") : nullptr;
 }
 
 } // namespace Slic3r
