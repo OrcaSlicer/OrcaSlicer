@@ -483,8 +483,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/ProjectDirtyStateManager.cpp
     GUI/ProjectDirtyStateManager.hpp
     GUI/Project.hpp
-    GUI/PublishDialog.cpp
-    GUI/PublishDialog.hpp
     GUI/PublishSettingsDialog.cpp
     GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
