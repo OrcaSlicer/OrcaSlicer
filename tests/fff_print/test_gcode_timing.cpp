@@ -106,8 +106,8 @@ double filament_change_delay(const GCodeProcessorResult& r)
 TEST_CASE("G29 preparation time is added only once", "[GCodeTiming][Regression]")
 {
     const FullPrintConfig config = make_config(0.0, 0.0, 0.0);
-    const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
-    auto estimate = [&config, mode](bool is_bbl_printer, const char* commands) {
+    auto estimate = [&config](bool is_bbl_printer, const char* commands) {
+        const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
         std::string gcode = is_bbl_printer ? "; FEATURE: Custom\n" : ";TYPE:Custom\n";
         gcode += "G1 X10 Y10 Z0.2 F600\nG1 X20 Y10 F600\n";
         if (is_bbl_printer)
