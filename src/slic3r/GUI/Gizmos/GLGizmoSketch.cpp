@@ -404,7 +404,7 @@ void GLGizmoSketch::on_render_input_window(float x, float y, float bottom_limit)
     } else if (is_revolve) {
         if (btn(_u8L("Revolve").c_str(), ok)) apply_revolve();
     } else {
-        if (btn(_u8L("Extrude").c_str(), ok)) apply_extrude();
+        if (btn(_u8L_CONTEXT("Extrude", "Design").c_str(), ok)) apply_extrude();
     }
 
     if (ImGui::Button(_u8L("Clear all").c_str(), {-1,0})) clear_all();

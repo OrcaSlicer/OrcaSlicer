@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:00-0300\n"
+"POT-Creation-Date: 2026-10-04 20:03-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -10737,27 +10737,27 @@ msgstr "Žádné karty"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Showing %s actions"
-msgstr "Zobrazené akce: %s"
+msgid "Matching actions: %s"
+msgstr "Odpovídající akce: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s actions"
+msgid "Actions: %s"
 msgstr "Akce: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s tabs"
+msgid "Tabs: %s"
 msgstr "Karty: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s matches"
-msgstr "Shody: %s"
+msgid "Matching tabs: %s"
+msgstr "Odpovídající karty: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourites are full (%s max)"
+msgid "Favorites are full (%s max)"
 msgstr "Oblíbené jsou plné (max. %s)"
 
 # AI Translated
@@ -10780,21 +10780,21 @@ msgstr "Přejít na kartu"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourite %s (%s)"
+msgid "Favorite %s (%s)"
 msgstr "Oblíbená položka %s (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Pin to favourites (%s)"
+msgid "Pin to favorites (%s)"
 msgstr "Připnout k oblíbeným (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Unpin from favourites (%s)"
+msgid "Unpin from favorites (%s)"
 msgstr "Odepnout z oblíbených (%s)"
 
 # AI Translated
-msgid "Remove from favourites"
+msgid "Remove from favorites"
 msgstr "Odebrat z oblíbených"
 
 # AI Translated
@@ -12716,7 +12716,7 @@ msgid "Flushing volumes for filament change"
 msgstr "Objemy čištění při výměně filamentu"
 
 # AI Translated
-msgid "Please choose the filament colour"
+msgid "Please choose the filament color"
 msgstr "Vyberte prosím barvu filamentu"
 
 # AI Translated
@@ -22916,8 +22916,8 @@ msgstr "Konstrukční"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s  ·  on %s"
-msgstr "%s  ·  na %s"
+msgid "%s  ·  plane: %s"
+msgstr "%s  ·  rovina: %s"
 
 # AI Translated
 msgid "Line — click start, then end"
@@ -23033,8 +23033,8 @@ msgstr "Náčrt"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketching on %s — pick a tool"
-msgstr "Kreslení náčrtu na %s — vyberte nástroj"
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Rovina náčrtu: %s — vyberte nástroj"
 
 # AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
@@ -23043,10 +23043,10 @@ msgstr "V zobrazovací oblasti klikněte na plochu nebo referenční rovinu, pak
 # AI Translated
 #, c-format, boost-format
 msgid ""
-"Drawing on %s.\n"
+"Sketch plane: %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
-"Kreslení na %s.\n"
+"Rovina náčrtu: %s.\n"
 "Vyberte nástroj nebo stiskněte Menu pro zobrazení seznamu."
 
 # AI Translated
@@ -23056,6 +23056,11 @@ msgstr "Klikněte na plochu nebo referenční rovinu, pak na nástroj náčrtu."
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
 msgstr "Přidat materiál (vysunutí / rotace / tažení / šablonování / zesílení / žebro)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extrude"
+msgstr "Vysunutí"
 
 # AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
@@ -23119,6 +23124,11 @@ msgid "Body %zu"
 msgstr "Těleso %zu"
 
 # AI Translated
+msgctxt "Design"
+msgid "Rib"
+msgstr "Žebro"
+
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr "Vytvořit tenkou stěnu z otevřené čáry náčrtu, sloučenou s tělesem"
 
@@ -23129,6 +23139,11 @@ msgstr "Žebro vyžaduje objemové těleso — nejprve nějaké přidejte nebo i
 # AI Translated
 msgid "Create a sketch with an open line first"
 msgstr "Nejprve vytvořte náčrt s otevřenou čárou"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern"
+msgstr "Pole"
 
 # AI Translated
 msgid "Create a solid body to pattern first"
@@ -23239,6 +23254,11 @@ msgid "Helical curve (spring path) — use as a sweep path for coils / springs /
 msgstr "Šroubovicová křivka (dráha pružiny) — použijte jako trajektorii tažení pro cívky / pružiny / šneky"
 
 # AI Translated
+msgctxt "Design"
+msgid "Project"
+msgstr "Promítnutí"
+
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
 msgstr "Promítnout hrany tělesa na rovinu jako entity náčrtu"
 
@@ -23303,7 +23323,7 @@ msgid "Cut — needs a solid body to slice"
 msgstr "Řez — vyžaduje objemové těleso k rozříznutí"
 
 # AI Translated
-msgid "Color — set the selected body's display colour"
+msgid "Color — set the selected body's display color"
 msgstr "Barva — nastavit zobrazovanou barvu vybraného tělesa"
 
 # AI Translated
@@ -23331,6 +23351,11 @@ msgid "Tilt a picked face by a draft angle"
 msgstr "Naklonit vybranou plochu o úhel úkosu"
 
 # AI Translated
+msgctxt "Design"
+msgid "Shell"
+msgstr "Skořepina"
+
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr "Vyprázdnit těleso na danou tloušťku stěny a otevřít vybranou plochu"
 
@@ -23355,7 +23380,7 @@ msgid "Hole / thread"
 msgstr "Díra / závit"
 
 # AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Vyvrtat díru se středem na vybrané ploše nebo umístěnou na rovině"
 
 # AI Translated
@@ -23671,13 +23696,32 @@ msgstr "vepsaný"
 msgid "Polygon"
 msgstr "Mnohoúhelník"
 
+# AI Translated
 #, c-format, boost-format
-msgid "Converted %d entit%s between construction and real geometry"
-msgstr ""
+msgid "Converted %d entity between construction and real geometry"
+msgid_plural "Converted %d entities between construction and real geometry"
+msgstr[0] "Převedena %d entita mezi konstrukční a skutečnou geometrií"
+msgstr[1] "Převedeny %d entity mezi konstrukční a skutečnou geometrií"
+msgstr[2] "Převedeno %d entit mezi konstrukční a skutečnou geometrií"
 
 # AI Translated
 msgid "CONSTRAIN"
 msgstr "VAZBY"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Horizontal"
+msgstr "Vodorovnost"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Vertical"
+msgstr "Svislost"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Parallel"
+msgstr "Rovnoběžnost"
 
 # AI Translated
 msgid "Perpendicular"
@@ -23698,6 +23742,11 @@ msgstr "Stejný poloměr"
 # AI Translated
 msgid "Collinear"
 msgstr "Kolinearita"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Concentric"
+msgstr "Soustřednost"
 
 # AI Translated
 msgid "Tangent"
@@ -23835,6 +23884,11 @@ msgid "New body"
 msgstr "Nové těleso"
 
 # AI Translated
+msgctxt "Boolean Mode"
+msgid "Cut"
+msgstr "Odečíst"
+
+# AI Translated
 msgid "Intersect"
 msgstr "Průnik"
 
@@ -23942,6 +23996,11 @@ msgid "Linear"
 msgstr "Lineární"
 
 # AI Translated
+msgctxt "Design"
+msgid "Circular"
+msgstr "Kruhové"
+
+# AI Translated
 msgid "Direction"
 msgstr "Směr"
 
@@ -23970,6 +24029,11 @@ msgid "Keep tool body"
 msgstr "Zachovat těleso nástroje"
 
 # AI Translated
+msgctxt "Design"
+msgid "Cut"
+msgstr "Řez"
+
+# AI Translated
 msgid "Body"
 msgstr "Těleso"
 
@@ -23979,7 +24043,7 @@ msgstr "Vložit"
 
 # AI Translated
 msgid ""
-"Drag a corner to size, the centre to move.\n"
+"Drag a corner to size, the center to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
 "Tažením rohu změníte velikost, tažením středu posunete.\n"
@@ -24428,10 +24492,6 @@ msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Booleovská operace — sjednotit, odečíst nebo provést průnik s jiným tělesem"
 
 # AI Translated
-msgid "Colour"
-msgstr "Barva"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
 msgstr "Těleso %d vybráno — pravým tlačítkem zobrazíte dostupné akce"
@@ -24488,26 +24548,41 @@ msgstr "Plocha %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d "
-msgstr "Těleso %d: "
+msgid "Body %d: vertex selected — click again for the whole body"
+msgstr "Těleso %d: vybrán vrchol — klikněte znovu pro výběr celého tělesa"
 
 # AI Translated
-msgid "vertex selected — click again for the whole body"
-msgstr "vybrán vrchol — klikněte znovu pro výběr celého tělesa"
-
-# AI Translated
-msgid "selected (whole body) — right-click for what applies to it"
-msgstr "vybráno (celé těleso) — pravým tlačítkem zobrazíte dostupné akce"
+msgid "Vertex selected — click again for the whole body"
+msgstr "Vybrán vrchol — klikněte znovu pro výběr celého tělesa"
 
 # AI Translated
 #, c-format, boost-format
-msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr "vybrána plocha %d — pravým tlačítkem ji tlačte/táhněte, nebo klikněte znovu pro celé těleso"
+msgid "Body %d selected (whole body) — right-click for what applies to it"
+msgstr "Vybráno celé těleso %d — pravým tlačítkem zobrazíte dostupné akce"
+
+# AI Translated
+msgid "Whole body selected — right-click for what applies to it"
+msgstr "Vybráno celé těleso — pravým tlačítkem zobrazíte dostupné akce"
 
 # AI Translated
 #, c-format, boost-format
-msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "vybrána hrana %d — upravte ji zaoblením/zkosením, nebo klikněte znovu pro celé těleso"
+msgid "Body %d: face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "Těleso %d: vybrána plocha %d — pravým tlačítkem ji tlačte/táhněte, nebo klikněte znovu pro celé těleso"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "Vybrána plocha %d — pravým tlačítkem ji tlačte/táhněte, nebo klikněte znovu pro celé těleso"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "Těleso %d: vybrána hrana %d — upravte ji zaoblením/zkosením, nebo klikněte znovu pro celé těleso"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "Vybrána hrana %d — upravte ji zaoblením/zkosením, nebo klikněte znovu pro celé těleso"
 
 # AI Translated
 #, c-format, boost-format
@@ -24521,8 +24596,13 @@ msgstr "Vybrána rovina %s — pravým tlačítkem na ní vytvoříte náčrt, n
 
 # AI Translated
 #, c-format, boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr "umístěno (%.1f, %.1f, %.1f) mm — tažením šipek posunete, tažením kruhů otočíte"
+msgid "Body %d placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "Těleso %d umístěno v bodě (%.1f, %.1f, %.1f) mm — tažením šipek posunete, tažením kruhů otočíte"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "Umístěno v bodě (%.1f, %.1f, %.1f) mm — tažením šipek posunete, tažením kruhů otočíte"
 
 # AI Translated
 msgid "Tool exited"
@@ -24542,8 +24622,11 @@ msgstr "✓ Plně určeno"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d degrees of freedom"
-msgstr "Stupně volnosti: %d"
+msgid "%d degree of freedom"
+msgid_plural "%d degrees of freedom"
+msgstr[0] "%d stupeň volnosti"
+msgstr[1] "%d stupně volnosti"
+msgstr[2] "%d stupňů volnosti"
 
 # AI Translated
 #, c-format, boost-format
@@ -24563,6 +24646,11 @@ msgstr "OK — trojúhelníky: %zu"
 # AI Translated
 msgid "Text to insert:"
 msgstr "Text k vložení:"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Text"
 
 # AI Translated
 msgid "Import SVG"
@@ -24590,8 +24678,11 @@ msgstr "Přestavba modelu…"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "Importovaná tělesa: %d — vyberte plochu nebo hranu, pak je upravte pomocí Zaoblení / Řez / Skořepina"
+msgid "Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgid_plural "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr[0] "Importováno %d těleso — vyberte plochu nebo hranu, pak k úpravě použijte Zaoblení / Řez / Skořepina"
+msgstr[1] "Importována %d tělesa — vyberte plochu nebo hranu, pak k úpravě použijte Zaoblení / Řez / Skořepina"
+msgstr[2] "Importováno %d těles — vyberte plochu nebo hranu, pak k úpravě použijte Zaoblení / Řez / Skořepina"
 
 # AI Translated
 msgid "Import mesh"
@@ -24647,8 +24738,8 @@ msgstr "Importované těleso — trojúhelníky: %d → plochy: %d, objem %.2f m
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr "Importováno jako otevřená skořepina (není vodotěsná): hraniční hrany: %d, nemanifoldní hrany: %d — trojúhelníky: %d → plochy: %d. Zdrojová síť obsahuje díry nebo duplicitní geometrii; booleovské prvky na ní mohou selhat"
+msgid "Imported as an open shell (not watertight). Boundary edges: %d, non-manifold edges: %d, triangles: %d → faces: %d. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr "Importováno jako otevřená skořepina (není vodotěsná). Hraniční hrany: %d, nemanifoldní hrany: %d, trojúhelníky: %d → plochy: %d. Zdrojová síť obsahuje díry nebo duplicitní geometrii; booleovské prvky na ní mohou selhat"
 
 # AI Translated
 msgid "No importable geometry found"
@@ -24668,13 +24759,13 @@ msgid "Insert cancelled"
 msgstr "Vložení zrušeno"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — right-click when done"
 msgstr "Tažením rohu změníte měřítko, tažením středu posunete — po dokončení klikněte pravým tlačítkem"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr "Náčrt umístěn na %s — vyberte ho a pravým tlačítkem zvolte Vysunutí"
+msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
+msgstr "Náčrt přidán (rovina: %s) — vyberte ho a pravým tlačítkem zvolte Vysunutí"
 
 # AI Translated
 msgid "Recompute error: "
@@ -24772,8 +24863,11 @@ msgstr "Nebyly nalezeny žádné kolize"
 
 # AI Translated
 #, c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr "Kolizní páry: %zu, nejhorší %.2f mm³"
+msgid "%zu interference pair, worst %.2f mm³"
+msgid_plural "%zu interference pairs, worst %.2f mm³"
+msgstr[0] "%zu kolizní pár, nejhorší %.2f mm³"
+msgstr[1] "%zu kolizní páry, nejhorší %.2f mm³"
+msgstr[2] "%zu kolizních párů, nejhorší %.2f mm³"
 
 # AI Translated
 msgid ""
@@ -24858,12 +24952,12 @@ msgstr "Řez vyžaduje objemové těleso — nejprve nějaké přidejte nebo imp
 
 # AI Translated
 #, c-format, boost-format
-msgid "the picked face of Body %d"
-msgstr "vybrané ploše tělesa %d"
+msgid "Picked face (Body %d)"
+msgstr "Vybraná plocha (Těleso %d)"
 
 # AI Translated
-msgid "the picked face"
-msgstr "vybrané ploše"
+msgid "Picked face"
+msgstr "Vybraná plocha"
 
 # AI Translated
 #, c-format, boost-format
@@ -24872,17 +24966,20 @@ msgstr "  ·  vybráno: %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr "Vybráno: %d  ·  Del je odstraní  ·  Shift+klik přidá  ·  dvojklik vybere celou smyčku"
+msgid "%d selected  ·  Del removes it  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgid_plural "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr[0] "Vybrána %d entita  ·  Del ji odstraní  ·  Shift+klik přidá  ·  dvojklik vybere celou smyčku"
+msgstr[1] "Vybrány %d entity  ·  Del je odstraní  ·  Shift+klik přidá  ·  dvojklik vybere celou smyčku"
+msgstr[2] "Vybráno %d entit  ·  Del je odstraní  ·  Shift+klik přidá  ·  dvojklik vybere celou smyčku"
 
 # AI Translated
-msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgid "Select — click an entity to pick it  ·  drag an endpoint or center to move it  ·  Shift-click adds  ·  Del removes"
 msgstr "Výběr — kliknutím vyberte entitu  ·  tažením koncového bodu nebo středu ji posunete  ·  Shift+klik přidá  ·  Del odstraní"
 
 # AI Translated
 #, c-format, boost-format
 msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
-msgstr "Vybráno: %d  ·  nyní zvolte vazbu (Vodorovně, Paralelně, Tečnost, Shodnost…)"
+msgstr "Vybráno: %d  ·  nyní zvolte vazbu (Vodorovnost, Rovnoběžnost, Tečnost, Shodnost…)"
 
 # AI Translated
 msgid "Constrain — click one or two entities, then choose a constraint"
@@ -24921,11 +25018,11 @@ msgid "Rectangle — click the opposite corner"
 msgstr "Obdélník — klikněte na protilehlý roh"
 
 # AI Translated
-msgid "Centre rectangle — click the centre"
+msgid "Center rectangle — click the center"
 msgstr "Obdélník ze středu — klikněte na střed"
 
 # AI Translated
-msgid "Centre rectangle — click a corner"
+msgid "Center rectangle — click a corner"
 msgstr "Obdélník ze středu — klikněte na roh"
 
 # AI Translated
@@ -24953,7 +25050,7 @@ msgid "Rounded rectangle — click to set the corner radius"
 msgstr "Zaoblený obdélník — kliknutím nastavte poloměr rohů"
 
 # AI Translated
-msgid "Circle — click the centre"
+msgid "Circle — click the center"
 msgstr "Kružnice — klikněte na střed"
 
 # AI Translated
@@ -25001,23 +25098,23 @@ msgid "Tangent arc — click its far end"
 msgstr "Tečný oblouk — klikněte na jeho vzdálený konec"
 
 # AI Translated
-msgid "Centre arc — click the centre"
+msgid "Center arc — click the center"
 msgstr "Oblouk středem — klikněte na střed"
 
 # AI Translated
-msgid "Centre arc — click the start point (this sets the radius)"
+msgid "Center arc — click the start point (this sets the radius)"
 msgstr "Oblouk středem — klikněte na počáteční bod (určuje poloměr)"
 
 # AI Translated
-msgid "Centre arc — click the end point"
+msgid "Center arc — click the end point"
 msgstr "Oblouk středem — klikněte na koncový bod"
 
 # AI Translated
-msgid "Slot — click one end of the centreline"
+msgid "Slot — click one end of the centerline"
 msgstr "Drážka — klikněte na jeden konec osy"
 
 # AI Translated
-msgid "Slot — click the other end of the centreline"
+msgid "Slot — click the other end of the centerline"
 msgstr "Drážka — klikněte na druhý konec osy"
 
 # AI Translated
@@ -25025,15 +25122,15 @@ msgid "Slot — click to set the width"
 msgstr "Drážka — kliknutím nastavte šířku"
 
 # AI Translated
-msgid "Arc slot — click the centre the slot curves about"
+msgid "Arc slot — click the center the slot curves about"
 msgstr "Oblouková drážka — klikněte na střed, kolem kterého se drážka zakřivuje"
 
 # AI Translated
-msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgid "Arc slot — click the start of the centerline (this sets the radius)"
 msgstr "Oblouková drážka — klikněte na začátek osy (určuje poloměr)"
 
 # AI Translated
-msgid "Arc slot — click the end of the centreline"
+msgid "Arc slot — click the end of the centerline"
 msgstr "Oblouková drážka — klikněte na konec osy"
 
 # AI Translated
@@ -25041,7 +25138,7 @@ msgid "Arc slot — click to set the width"
 msgstr "Oblouková drážka — kliknutím nastavte šířku"
 
 # AI Translated
-msgid "Polygon — click the centre"
+msgid "Polygon — click the center"
 msgstr "Mnohoúhelník — klikněte na střed"
 
 # AI Translated
@@ -25049,7 +25146,7 @@ msgid "Polygon — click a vertex (this sets size and orientation)"
 msgstr "Mnohoúhelník — klikněte na vrchol (určuje velikost a orientaci)"
 
 # AI Translated
-msgid "Ellipse — click the centre"
+msgid "Ellipse — click the center"
 msgstr "Elipsa — klikněte na střed"
 
 # AI Translated
@@ -25061,7 +25158,7 @@ msgid "Ellipse — click a point on the minor axis"
 msgstr "Elipsa — klikněte na bod na vedlejší ose"
 
 # AI Translated
-msgid "Elliptical arc — click the centre"
+msgid "Elliptical arc — click the center"
 msgstr "Eliptický oblouk — klikněte na střed"
 
 # AI Translated
@@ -25186,7 +25283,7 @@ msgid "Polar array — drag the handle to set the sweep, click the count to type
 msgstr "Kruhové pole — tažením úchytu nastavte úhlový rozsah, kliknutím na počet jej zadejte  ·  kliknutím do prázdna použijete"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  right-click when done"
 msgstr "Tažením rohu změníte měřítko, tažením středu posunete  ·  po dokončení klikněte pravým tlačítkem"
 
 # AI Translated
@@ -25308,17 +25405,12 @@ msgid "Section view off"
 msgstr "Pohled v řezu vypnut"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Section view — showing the %s half"
-msgstr "Pohled v řezu — zobrazena %s polovina"
+msgid "Section view — showing the upper half"
+msgstr "Pohled v řezu — zobrazena horní polovina"
 
 # AI Translated
-msgid "upper"
-msgstr "horní"
-
-# AI Translated
-msgid "lower"
-msgstr "dolní"
+msgid "Section view — showing the lower half"
+msgstr "Pohled v řezu — zobrazena dolní polovina"
 
 # AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
@@ -25346,7 +25438,7 @@ msgstr "Nejprve vyberte těleso"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d colour set"
+msgid "Body %d color set"
 msgstr "Barva tělesa %d nastavena"
 
 # AI Translated
@@ -25449,7 +25541,7 @@ msgstr "Nejprve vyberte dvě entity"
 
 # AI Translated
 msgid "Horizontal and Vertical apply to a line"
-msgstr "Vazby Vodorovně a Vertikální platí pro čáru"
+msgstr "Vazby Vodorovnost a Svislost platí pro čáru"
 
 # AI Translated
 msgid "Angle applies between two lines"
@@ -25518,7 +25610,10 @@ msgstr "Vazba použita  ·  její značka je na náčrtu — kliknutím na znač
 # AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr "%s  —  vybráno: %d. Stiskněte Esc pro nástroj Výběr, klikněte na jednu čáru, pak na druhou se Shiftem nebo Ctrl."
+msgid_plural "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr[0] "%s  —  vybrána %d entita. Stiskněte Esc pro nástroj Výběr, klikněte na jednu čáru, pak na druhou se Shiftem nebo Ctrl."
+msgstr[1] "%s  —  vybrány %d entity. Stiskněte Esc pro nástroj Výběr, klikněte na jednu čáru, pak na druhou se Shiftem nebo Ctrl."
+msgstr[2] "%s  —  vybráno %d entit. Stiskněte Esc pro nástroj Výběr, klikněte na jednu čáru, pak na druhou se Shiftem nebo Ctrl."
 
 # AI Translated
 msgid "Applied constraint"
@@ -25729,11 +25824,11 @@ msgstr "Nejprve vyberte úsek v zobrazovací oblasti"
 
 # AI Translated
 msgid "Applied Horizontal"
-msgstr "Použito: Vodorovně"
+msgstr "Použito: Vodorovnost"
 
 # AI Translated
 msgid "Applied Vertical"
-msgstr "Použito: Vertikální"
+msgstr "Použito: Svislost"
 
 # AI Translated
 msgid "Sketch: "
@@ -25873,13 +25968,19 @@ msgstr "Není co vrátit zpět"
 
 # AI Translated
 #, c-format
-msgid "Redo  (%zu more)"
-msgstr "Znovu provést  (ještě %zu)"
+msgid "Redo  (%zu more step)"
+msgid_plural "Redo  (%zu more steps)"
+msgstr[0] "Znovu provést  (ještě %zu krok)"
+msgstr[1] "Znovu provést  (ještě %zu kroky)"
+msgstr[2] "Znovu provést  (ještě %zu kroků)"
 
 # AI Translated
 #, c-format
-msgid "Undo  (%zu more)"
-msgstr "Zpět  (ještě %zu)"
+msgid "Undo  (%zu more step)"
+msgid_plural "Undo  (%zu more steps)"
+msgstr[0] "Zpět  (ještě %zu krok)"
+msgstr[1] "Zpět  (ještě %zu kroky)"
+msgstr[2] "Zpět  (ještě %zu kroků)"
 
 # AI Translated
 msgid "Variable name:"
@@ -26473,6 +26574,139 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Showing %s actions"
+#~ msgstr "Zobrazené akce: %s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s actions"
+#~ msgstr "Akce: %s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s tabs"
+#~ msgstr "Karty: %s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s matches"
+#~ msgstr "Shody: %s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s  ·  on %s"
+#~ msgstr "%s  ·  na %s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketching on %s — pick a tool"
+#~ msgstr "Kreslení náčrtu na %s — vyberte nástroj"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Drawing on %s.\n"
+#~ "Pick a tool, or press Menu for the list."
+#~ msgstr ""
+#~ "Kreslení na %s.\n"
+#~ "Vyberte nástroj nebo stiskněte Menu pro zobrazení seznamu."
+
+# AI Translated
+#~ msgid "Colour"
+#~ msgstr "Barva"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d "
+#~ msgstr "Těleso %d: "
+
+# AI Translated
+#~ msgid "vertex selected — click again for the whole body"
+#~ msgstr "vybrán vrchol — klikněte znovu pro výběr celého tělesa"
+
+# AI Translated
+#~ msgid "selected (whole body) — right-click for what applies to it"
+#~ msgstr "vybráno (celé těleso) — pravým tlačítkem zobrazíte dostupné akce"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+#~ msgstr "vybrána plocha %d — pravým tlačítkem ji tlačte/táhněte, nebo klikněte znovu pro celé těleso"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "vybrána hrana %d — upravte ji zaoblením/zkosením, nebo klikněte znovu pro celé těleso"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+#~ msgstr "umístěno (%.1f, %.1f, %.1f) mm — tažením šipek posunete, tažením kruhů otočíte"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d degrees of freedom"
+#~ msgstr "Stupně volnosti: %d"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+#~ msgstr "Importovaná tělesa: %d — vyberte plochu nebo hranu, pak je upravte pomocí Zaoblení / Řez / Skořepina"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+#~ msgstr "Importováno jako otevřená skořepina (není vodotěsná): hraniční hrany: %d, nemanifoldní hrany: %d — trojúhelníky: %d → plochy: %d. Zdrojová síť obsahuje díry nebo duplicitní geometrii; booleovské prvky na ní mohou selhat"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketch added on %s — select it, then right-click to Extrude"
+#~ msgstr "Náčrt umístěn na %s — vyberte ho a pravým tlačítkem zvolte Vysunutí"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pairs, worst %.2f mm³"
+#~ msgstr "Kolizní páry: %zu, nejhorší %.2f mm³"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "the picked face of Body %d"
+#~ msgstr "vybrané ploše tělesa %d"
+
+# AI Translated
+#~ msgid "the picked face"
+#~ msgstr "vybrané ploše"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+#~ msgstr "Vybráno: %d  ·  Del je odstraní  ·  Shift+klik přidá  ·  dvojklik vybere celou smyčku"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Section view — showing the %s half"
+#~ msgstr "Pohled v řezu — zobrazena %s polovina"
+
+# AI Translated
+#~ msgid "upper"
+#~ msgstr "horní"
+
+# AI Translated
+#~ msgid "lower"
+#~ msgstr "dolní"
+
+# AI Translated
+#, c-format
+#~ msgid "Redo  (%zu more)"
+#~ msgstr "Znovu provést  (ještě %zu)"
+
+# AI Translated
+#, c-format
+#~ msgid "Undo  (%zu more)"
+#~ msgstr "Zpět  (ještě %zu)"
 
 #~ msgid "Reset direction"
 #~ msgstr "Resetovat směr"

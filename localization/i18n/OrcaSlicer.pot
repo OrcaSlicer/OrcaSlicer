@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:00-0300\n"
+"POT-Creation-Date: 2026-10-04 20:03-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -9808,23 +9808,23 @@ msgid "No tabs"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Showing %s actions"
+msgid "Matching actions: %s"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s actions"
+msgid "Actions: %s"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s tabs"
+msgid "Tabs: %s"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s matches"
+msgid "Matching tabs: %s"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Favourites are full (%s max)"
+msgid "Favorites are full (%s max)"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -9842,18 +9842,18 @@ msgid "Go to tab"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Favourite %s (%s)"
+msgid "Favorite %s (%s)"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Pin to favourites (%s)"
+msgid "Pin to favorites (%s)"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Unpin from favourites (%s)"
+msgid "Unpin from favorites (%s)"
 msgstr ""
 
-msgid "Remove from favourites"
+msgid "Remove from favorites"
 msgstr ""
 
 msgid "Move left"
@@ -11558,7 +11558,7 @@ msgstr ""
 msgid "Flushing volumes for filament change"
 msgstr ""
 
-msgid "Please choose the filament colour"
+msgid "Please choose the filament color"
 msgstr ""
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -20457,7 +20457,7 @@ msgid "Construction"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s  ·  on %s"
+msgid "%s  ·  plane: %s"
 msgstr ""
 
 msgid "Line — click start, then end"
@@ -20545,7 +20545,7 @@ msgid "Sketch"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Sketching on %s — pick a tool"
+msgid "Sketch plane: %s — pick a tool"
 msgstr ""
 
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
@@ -20553,7 +20553,7 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid ""
-"Drawing on %s.\n"
+"Sketch plane: %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
 
@@ -20561,6 +20561,10 @@ msgid "Click a face or a reference plane, then a sketch tool."
 msgstr ""
 
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Extrude"
 msgstr ""
 
 msgid "Extrude a sketch profile, or push/pull a picked face"
@@ -20609,6 +20613,10 @@ msgstr ""
 msgid "Body %zu"
 msgstr ""
 
+msgctxt "Design"
+msgid "Rib"
+msgstr ""
+
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr ""
 
@@ -20616,6 +20624,10 @@ msgid "Rib needs a solid body — add or import one first"
 msgstr ""
 
 msgid "Create a sketch with an open line first"
+msgstr ""
+
+msgctxt "Design"
+msgid "Pattern"
 msgstr ""
 
 msgid "Create a solid body to pattern first"
@@ -20699,6 +20711,10 @@ msgstr ""
 msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
 msgstr ""
 
+msgctxt "Design"
+msgid "Project"
+msgstr ""
+
 msgid "Project body edges onto a plane as sketch entities"
 msgstr ""
 
@@ -20747,7 +20763,7 @@ msgstr ""
 msgid "Cut — needs a solid body to slice"
 msgstr ""
 
-msgid "Color — set the selected body's display colour"
+msgid "Color — set the selected body's display color"
 msgstr ""
 
 msgid "Select a feature, or a body, first — then rename it"
@@ -20768,6 +20784,10 @@ msgstr ""
 msgid "Tilt a picked face by a draft angle"
 msgstr ""
 
+msgctxt "Design"
+msgid "Shell"
+msgstr ""
+
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr ""
 
@@ -20786,7 +20806,7 @@ msgstr ""
 msgid "Hole / thread"
 msgstr ""
 
-msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr ""
 
 msgid "Thread"
@@ -21025,10 +21045,24 @@ msgid "Polygon"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Converted %d entit%s between construction and real geometry"
-msgstr ""
+msgid "Converted %d entity between construction and real geometry"
+msgid_plural "Converted %d entities between construction and real geometry"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "CONSTRAIN"
+msgstr ""
+
+msgctxt "Sketch Constraint"
+msgid "Horizontal"
+msgstr ""
+
+msgctxt "Sketch Constraint"
+msgid "Vertical"
+msgstr ""
+
+msgctxt "Sketch Constraint"
+msgid "Parallel"
 msgstr ""
 
 msgid "Perpendicular"
@@ -21044,6 +21078,10 @@ msgid "Equal radius"
 msgstr ""
 
 msgid "Collinear"
+msgstr ""
+
+msgctxt "Sketch Constraint"
+msgid "Concentric"
 msgstr ""
 
 msgid "Tangent"
@@ -21148,6 +21186,10 @@ msgstr ""
 msgid "New body"
 msgstr ""
 
+msgctxt "Boolean Mode"
+msgid "Cut"
+msgstr ""
+
 msgid "Intersect"
 msgstr ""
 
@@ -21229,6 +21271,10 @@ msgstr ""
 msgid "Linear"
 msgstr ""
 
+msgctxt "Design"
+msgid "Circular"
+msgstr ""
+
 msgid "Direction"
 msgstr ""
 
@@ -21250,6 +21296,10 @@ msgstr ""
 msgid "Keep tool body"
 msgstr ""
 
+msgctxt "Design"
+msgid "Cut"
+msgstr ""
+
 msgid "Body"
 msgstr ""
 
@@ -21257,7 +21307,7 @@ msgid "Insert"
 msgstr ""
 
 msgid ""
-"Drag a corner to size, the centre to move.\n"
+"Drag a corner to size, the center to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
 
@@ -21593,9 +21643,6 @@ msgstr ""
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr ""
 
-msgid "Colour"
-msgstr ""
-
 #, possible-c-format, possible-boost-format
 msgid "Body %d selected — right-click for what applies to it"
 msgstr ""
@@ -21639,21 +21686,33 @@ msgid "Face %d"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Body %d "
+msgid "Body %d: vertex selected — click again for the whole body"
 msgstr ""
 
-msgid "vertex selected — click again for the whole body"
-msgstr ""
-
-msgid "selected (whole body) — right-click for what applies to it"
+msgid "Vertex selected — click again for the whole body"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgid "Body %d selected (whole body) — right-click for what applies to it"
+msgstr ""
+
+msgid "Whole body selected — right-click for what applies to it"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgid "Body %d: face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -21665,7 +21724,11 @@ msgid "%s plane selected — right-click to sketch on it, or click an object to 
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgid "Body %d placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
 msgstr ""
 
 msgid "Tool exited"
@@ -21681,8 +21744,10 @@ msgid "✓ Fully constrained"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%d degrees of freedom"
-msgstr ""
+msgid "%d degree of freedom"
+msgid_plural "%d degrees of freedom"
+msgstr[0] ""
+msgstr[1] ""
 
 #, possible-c-format, possible-boost-format
 msgid "Sketch %d"
@@ -21697,6 +21762,10 @@ msgid "OK — %zu triangles"
 msgstr ""
 
 msgid "Text to insert:"
+msgstr ""
+
+msgctxt "Design"
+msgid "Text"
 msgstr ""
 
 msgid "Import SVG"
@@ -21718,8 +21787,10 @@ msgid "Rebuilding model…"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgid "Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgid_plural "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Import mesh"
 msgstr ""
@@ -21760,7 +21831,7 @@ msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a fa
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgid "Imported as an open shell (not watertight). Boundary edges: %d, non-manifold edges: %d, triangles: %d → faces: %d. The source mesh has holes or duplicated geometry; boolean features may fail on it"
 msgstr ""
 
 msgid "No importable geometry found"
@@ -21776,11 +21847,11 @@ msgstr ""
 msgid "Insert cancelled"
 msgstr ""
 
-msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — right-click when done"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Sketch added on %s — select it, then right-click to Extrude"
+msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr ""
 
 msgid "Recompute error: "
@@ -21855,8 +21926,10 @@ msgid "No interference found"
 msgstr ""
 
 #, possible-c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr ""
+msgid "%zu interference pair, worst %.2f mm³"
+msgid_plural "%zu interference pairs, worst %.2f mm³"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid ""
 "Interference pairs:\n"
@@ -21915,10 +21988,10 @@ msgid "Cut needs a solid body — add or import one first"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "the picked face of Body %d"
+msgid "Picked face (Body %d)"
 msgstr ""
 
-msgid "the picked face"
+msgid "Picked face"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -21926,10 +21999,12 @@ msgid "  ·  %d picked"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr ""
+msgid "%d selected  ·  Del removes it  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgid_plural "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr[0] ""
+msgstr[1] ""
 
-msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgid "Select — click an entity to pick it  ·  drag an endpoint or center to move it  ·  Shift-click adds  ·  Del removes"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -21963,10 +22038,10 @@ msgstr ""
 msgid "Rectangle — click the opposite corner"
 msgstr ""
 
-msgid "Centre rectangle — click the centre"
+msgid "Center rectangle — click the center"
 msgstr ""
 
-msgid "Centre rectangle — click a corner"
+msgid "Center rectangle — click a corner"
 msgstr ""
 
 msgid "Oblique rectangle — click the start of the base edge"
@@ -21987,7 +22062,7 @@ msgstr ""
 msgid "Rounded rectangle — click to set the corner radius"
 msgstr ""
 
-msgid "Circle — click the centre"
+msgid "Circle — click the center"
 msgstr ""
 
 msgid "Circle — click to set the radius, or type it"
@@ -22023,43 +22098,43 @@ msgstr ""
 msgid "Tangent arc — click its far end"
 msgstr ""
 
-msgid "Centre arc — click the centre"
+msgid "Center arc — click the center"
 msgstr ""
 
-msgid "Centre arc — click the start point (this sets the radius)"
+msgid "Center arc — click the start point (this sets the radius)"
 msgstr ""
 
-msgid "Centre arc — click the end point"
+msgid "Center arc — click the end point"
 msgstr ""
 
-msgid "Slot — click one end of the centreline"
+msgid "Slot — click one end of the centerline"
 msgstr ""
 
-msgid "Slot — click the other end of the centreline"
+msgid "Slot — click the other end of the centerline"
 msgstr ""
 
 msgid "Slot — click to set the width"
 msgstr ""
 
-msgid "Arc slot — click the centre the slot curves about"
+msgid "Arc slot — click the center the slot curves about"
 msgstr ""
 
-msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgid "Arc slot — click the start of the centerline (this sets the radius)"
 msgstr ""
 
-msgid "Arc slot — click the end of the centreline"
+msgid "Arc slot — click the end of the centerline"
 msgstr ""
 
 msgid "Arc slot — click to set the width"
 msgstr ""
 
-msgid "Polygon — click the centre"
+msgid "Polygon — click the center"
 msgstr ""
 
 msgid "Polygon — click a vertex (this sets size and orientation)"
 msgstr ""
 
-msgid "Ellipse — click the centre"
+msgid "Ellipse — click the center"
 msgstr ""
 
 msgid "Ellipse — click the end of the major axis"
@@ -22068,7 +22143,7 @@ msgstr ""
 msgid "Ellipse — click a point on the minor axis"
 msgstr ""
 
-msgid "Elliptical arc — click the centre"
+msgid "Elliptical arc — click the center"
 msgstr ""
 
 msgid "Elliptical arc — click the end of the major axis"
@@ -22162,7 +22237,7 @@ msgstr ""
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
 msgstr ""
 
-msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  right-click when done"
 msgstr ""
 
 msgid "  ·  Esc goes back to Select"
@@ -22253,14 +22328,10 @@ msgstr ""
 msgid "Section view off"
 msgstr ""
 
-#, possible-c-format, possible-boost-format
-msgid "Section view — showing the %s half"
+msgid "Section view — showing the upper half"
 msgstr ""
 
-msgid "upper"
-msgstr ""
-
-msgid "lower"
+msgid "Section view — showing the lower half"
 msgstr ""
 
 msgid "Boolean needs two bodies — create or import a second solid"
@@ -22282,7 +22353,7 @@ msgid "Select a body first"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Body %d colour set"
+msgid "Body %d color set"
 msgstr ""
 
 msgid "Click a face on the solid, then press F"
@@ -22411,7 +22482,9 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr ""
+msgid_plural "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Applied constraint"
 msgstr ""
@@ -22680,12 +22753,16 @@ msgid "Nothing to undo"
 msgstr ""
 
 #, possible-c-format
-msgid "Redo  (%zu more)"
-msgstr ""
+msgid "Redo  (%zu more step)"
+msgid_plural "Redo  (%zu more steps)"
+msgstr[0] ""
+msgstr[1] ""
 
 #, possible-c-format
-msgid "Undo  (%zu more)"
-msgstr ""
+msgid "Undo  (%zu more step)"
+msgid_plural "Undo  (%zu more steps)"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Variable name:"
 msgstr ""

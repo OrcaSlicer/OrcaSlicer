@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:00-0300\n"
+"POT-Creation-Date: 2026-10-04 20:03-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10688,27 +10688,27 @@ msgstr "タブがありません"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Showing %s actions"
-msgstr "%s 件のアクションを表示中"
+msgid "Matching actions: %s"
+msgstr "一致するアクション: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s actions"
-msgstr "%s 件のアクション"
+msgid "Actions: %s"
+msgstr "アクション: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s tabs"
-msgstr "%s 個のタブ"
+msgid "Tabs: %s"
+msgstr "タブ: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s matches"
-msgstr "%s 件一致"
+msgid "Matching tabs: %s"
+msgstr "一致するタブ: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourites are full (%s max)"
+msgid "Favorites are full (%s max)"
 msgstr "お気に入りがいっぱいです (最大%s件)"
 
 # AI Translated
@@ -10731,21 +10731,21 @@ msgstr "タブへ移動"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourite %s (%s)"
+msgid "Favorite %s (%s)"
 msgstr "お気に入り %s (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Pin to favourites (%s)"
+msgid "Pin to favorites (%s)"
 msgstr "お気に入りにピン留め (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Unpin from favourites (%s)"
+msgid "Unpin from favorites (%s)"
 msgstr "お気に入りのピン留めを解除 (%s)"
 
 # AI Translated
-msgid "Remove from favourites"
+msgid "Remove from favorites"
 msgstr "お気に入りから削除"
 
 # AI Translated
@@ -12614,7 +12614,7 @@ msgstr "マルチプライヤ"
 msgid "Flushing volumes for filament change"
 msgstr "フィラメントを入替える為のフラッシュ量"
 
-msgid "Please choose the filament colour"
+msgid "Please choose the filament color"
 msgstr "フィラメントの色を選択してください"
 
 # AI Translated
@@ -23226,8 +23226,8 @@ msgstr "補助ジオメトリ"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s  ·  on %s"
-msgstr "%s  ·  %s上"
+msgid "%s  ·  plane: %s"
+msgstr "%s  ·  平面: %s"
 
 # AI Translated
 msgid "Line — click start, then end"
@@ -23343,8 +23343,8 @@ msgstr "スケッチ"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketching on %s — pick a tool"
-msgstr "%sにスケッチ中 — ツールを選択"
+msgid "Sketch plane: %s — pick a tool"
+msgstr "スケッチ平面: %s — ツールを選択"
 
 # AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
@@ -23353,10 +23353,10 @@ msgstr "ビューポートで面または参照平面をクリックしてから
 # AI Translated
 #, c-format, boost-format
 msgid ""
-"Drawing on %s.\n"
+"Sketch plane: %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
-"%sに描画中。\n"
+"スケッチ平面: %s\n"
 "ツールを選択するか、メニューを押して一覧を表示します。"
 
 # AI Translated
@@ -23366,6 +23366,11 @@ msgstr "面または参照平面をクリックしてから、スケッチツー
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
 msgstr "材料を追加 (押し出し / 回転押し出し / スイープ / ロフト / 厚み付け / リブ)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extrude"
+msgstr "押し出し"
 
 # AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
@@ -23429,6 +23434,11 @@ msgid "Body %zu"
 msgstr "ボディ%zu"
 
 # AI Translated
+msgctxt "Design"
+msgid "Rib"
+msgstr "リブ"
+
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr "開いたスケッチ線から薄い壁を伸ばし、ボディに結合します"
 
@@ -23439,6 +23449,11 @@ msgstr "リブにはソリッドボディが必要です — 先に追加また�
 # AI Translated
 msgid "Create a sketch with an open line first"
 msgstr "先に開いた線を含むスケッチを作成してください"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern"
+msgstr "パターン"
 
 # AI Translated
 msgid "Create a solid body to pattern first"
@@ -23549,6 +23564,11 @@ msgid "Helical curve (spring path) — use as a sweep path for coils / springs /
 msgstr "らせん曲線 (ばねのパス) — コイル / ばね / オーガーのスイープパスとして使用"
 
 # AI Translated
+msgctxt "Design"
+msgid "Project"
+msgstr "投影"
+
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
 msgstr "ボディのエッジを平面に投影してスケッチエンティティにします"
 
@@ -23613,7 +23633,7 @@ msgid "Cut — needs a solid body to slice"
 msgstr "カット — 切断するソリッドボディが必要です"
 
 # AI Translated
-msgid "Color — set the selected body's display colour"
+msgid "Color — set the selected body's display color"
 msgstr "色 — 選択したボディの表示色を設定"
 
 # AI Translated
@@ -23641,6 +23661,11 @@ msgid "Tilt a picked face by a draft angle"
 msgstr "選択した面を抜き勾配の角度だけ傾ける"
 
 # AI Translated
+msgctxt "Design"
+msgid "Shell"
+msgstr "シェル"
+
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr "選択した面を開口し、ボディを指定の壁厚で中空にします"
 
@@ -23665,7 +23690,7 @@ msgid "Hole / thread"
 msgstr "穴 / ねじ"
 
 # AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "選択した面の中心、または平面上に穴を開けます"
 
 # AI Translated
@@ -23981,13 +24006,30 @@ msgstr "内接"
 msgid "Polygon"
 msgstr "ポリゴン"
 
+# AI Translated
 #, c-format, boost-format
-msgid "Converted %d entit%s between construction and real geometry"
-msgstr ""
+msgid "Converted %d entity between construction and real geometry"
+msgid_plural "Converted %d entities between construction and real geometry"
+msgstr[0] "%d 個のエンティティを補助ジオメトリと実ジオメトリの間で変換しました"
 
 # AI Translated
 msgid "CONSTRAIN"
 msgstr "拘束"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Horizontal"
+msgstr "水平"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Vertical"
+msgstr "垂直"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Parallel"
+msgstr "平行"
 
 # AI Translated
 msgid "Perpendicular"
@@ -24008,6 +24050,11 @@ msgstr "等半径"
 # AI Translated
 msgid "Collinear"
 msgstr "同一直線上"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Concentric"
+msgstr "同心"
 
 # AI Translated
 msgid "Tangent"
@@ -24145,6 +24192,11 @@ msgid "New body"
 msgstr "新規ボディ"
 
 # AI Translated
+msgctxt "Boolean Mode"
+msgid "Cut"
+msgstr "切り取り"
+
+# AI Translated
 msgid "Intersect"
 msgstr "交差"
 
@@ -24252,6 +24304,11 @@ msgid "Linear"
 msgstr "直線状"
 
 # AI Translated
+msgctxt "Design"
+msgid "Circular"
+msgstr "円形状"
+
+# AI Translated
 msgid "Direction"
 msgstr "方向"
 
@@ -24280,6 +24337,11 @@ msgid "Keep tool body"
 msgstr "ツールボディを保持"
 
 # AI Translated
+msgctxt "Design"
+msgid "Cut"
+msgstr "カット"
+
+# AI Translated
 msgid "Body"
 msgstr "ボディ"
 
@@ -24289,7 +24351,7 @@ msgstr "挿入"
 
 # AI Translated
 msgid ""
-"Drag a corner to size, the centre to move.\n"
+"Drag a corner to size, the center to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
 "角をドラッグしてサイズ変更、中心をドラッグして移動します。\n"
@@ -24738,10 +24800,6 @@ msgid "Boolean — join, subtract or intersect with another body"
 msgstr "ブーリアン — 別のボディと結合、減算、交差"
 
 # AI Translated
-msgid "Colour"
-msgstr "色"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
 msgstr "ボディ%dを選択中 — 右クリックで適用可能な操作を表示"
@@ -24798,25 +24856,40 @@ msgstr "面%d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d "
-msgstr "ボディ%d "
+msgid "Body %d: vertex selected — click again for the whole body"
+msgstr "ボディ%d: 頂点を選択しました — もう一度クリックでボディ全体を選択"
 
 # AI Translated
-msgid "vertex selected — click again for the whole body"
+msgid "Vertex selected — click again for the whole body"
 msgstr "頂点を選択しました — もう一度クリックでボディ全体を選択"
 
 # AI Translated
-msgid "selected (whole body) — right-click for what applies to it"
-msgstr "選択中 (ボディ全体) — 右クリックで適用可能な操作を表示"
+#, c-format, boost-format
+msgid "Body %d selected (whole body) — right-click for what applies to it"
+msgstr "ボディ%dを選択中 (ボディ全体) — 右クリックで適用可能な操作を表示"
+
+# AI Translated
+msgid "Whole body selected — right-click for what applies to it"
+msgstr "ボディ全体を選択中 — 右クリックで適用可能な操作を表示"
 
 # AI Translated
 #, c-format, boost-format
-msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgid "Body %d: face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "ボディ%d: 面%dを選択しました — 右クリックでプッシュ/プル、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "面%dを選択しました — 右クリックでプッシュ/プル、もう一度クリックでボディ全体を選択"
 
 # AI Translated
 #, c-format, boost-format
-msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "ボディ%d: エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
 msgstr "エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
 
 # AI Translated
@@ -24831,8 +24904,13 @@ msgstr "%s平面を選択しました — 右クリックでスケッチ、ま�
 
 # AI Translated
 #, c-format, boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr "配置しました (%.1f, %.1f, %.1f) mm — 矢印をドラッグして移動、リングをドラッグして回転"
+msgid "Body %d placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "ボディ%dを (%.1f, %.1f, %.1f) mm に配置しました — 矢印をドラッグして移動、リングをドラッグして回転"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "(%.1f, %.1f, %.1f) mm に配置しました — 矢印をドラッグして移動、リングをドラッグして回転"
 
 # AI Translated
 msgid "Tool exited"
@@ -24852,8 +24930,9 @@ msgstr "✓ 完全拘束"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d degrees of freedom"
-msgstr "自由度 %d"
+msgid "%d degree of freedom"
+msgid_plural "%d degrees of freedom"
+msgstr[0] "自由度 %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -24873,6 +24952,11 @@ msgstr "OK — 三角形 %zu 個"
 # AI Translated
 msgid "Text to insert:"
 msgstr "挿入するテキスト:"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "テキスト"
 
 # AI Translated
 msgid "Import SVG"
@@ -24900,8 +24984,9 @@ msgstr "モデルを再構築中…"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "%d 個のソリッドをインポートしました — 面またはエッジを選択し、フィレット / カット / シェルで変更します"
+msgid "Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgid_plural "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr[0] "%d 個のソリッドをインポートしました — 面またはエッジを選択し、フィレット / カット / シェルで変更します"
 
 # AI Translated
 msgid "Import mesh"
@@ -24957,8 +25042,8 @@ msgstr "ソリッドをインポートしました — 三角形 %d 個 → 面 
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr "開いたシェル (非水密) としてインポートしました: 境界エッジ %d 本、非多様体エッジ %d 本 — 三角形 %d 個 → 面 %d 個。元のメッシュに穴または重複したジオメトリがあるため、ブーリアンフィーチャーが失敗する可能性があります"
+msgid "Imported as an open shell (not watertight). Boundary edges: %d, non-manifold edges: %d, triangles: %d → faces: %d. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr "開いたシェル (非水密) としてインポートしました。境界エッジ: %d、非多様体エッジ: %d、三角形: %d → 面: %d。元のメッシュに穴または重複したジオメトリがあるため、ブーリアンフィーチャーが失敗する可能性があります"
 
 # AI Translated
 msgid "No importable geometry found"
@@ -24978,13 +25063,13 @@ msgid "Insert cancelled"
 msgstr "挿入を取り消しました"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — right-click when done"
 msgstr "角をドラッグしてスケール、中心をドラッグして移動 — 完了したら右クリック"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr "%sにスケッチを追加しました — 選択して右クリックで押し出し"
+msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
+msgstr "スケッチを追加しました (平面: %s) — 選択して右クリックで押し出し"
 
 # AI Translated
 msgid "Recompute error: "
@@ -25082,8 +25167,9 @@ msgstr "干渉は見つかりませんでした"
 
 # AI Translated
 #, c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr "干渉ペア %zu 組、最大 %.2f mm³"
+msgid "%zu interference pair, worst %.2f mm³"
+msgid_plural "%zu interference pairs, worst %.2f mm³"
+msgstr[0] "干渉ペア %zu 組、最大 %.2f mm³"
 
 # AI Translated
 msgid ""
@@ -25168,11 +25254,11 @@ msgstr "カットにはソリッドボディが必要です — 先に追加ま�
 
 # AI Translated
 #, c-format, boost-format
-msgid "the picked face of Body %d"
-msgstr "ボディ%dの選択した面"
+msgid "Picked face (Body %d)"
+msgstr "選択した面 (ボディ%d)"
 
 # AI Translated
-msgid "the picked face"
+msgid "Picked face"
 msgstr "選択した面"
 
 # AI Translated
@@ -25182,11 +25268,12 @@ msgstr "  ·  %d 個選択"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr "%d 個選択中  ·  Delで削除  ·  Shift+クリックで追加  ·  ダブルクリックでループ全体を選択"
+msgid "%d selected  ·  Del removes it  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgid_plural "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr[0] "%d 個選択中  ·  Delで削除  ·  Shift+クリックで追加  ·  ダブルクリックでループ全体を選択"
 
 # AI Translated
-msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgid "Select — click an entity to pick it  ·  drag an endpoint or center to move it  ·  Shift-click adds  ·  Del removes"
 msgstr "選択 — エンティティをクリックして選択  ·  端点または中心をドラッグして移動  ·  Shift+クリックで追加  ·  Delで削除"
 
 # AI Translated
@@ -25231,11 +25318,11 @@ msgid "Rectangle — click the opposite corner"
 msgstr "長方形 — 対角の角をクリック"
 
 # AI Translated
-msgid "Centre rectangle — click the centre"
+msgid "Center rectangle — click the center"
 msgstr "中心指定の長方形 — 中心をクリック"
 
 # AI Translated
-msgid "Centre rectangle — click a corner"
+msgid "Center rectangle — click a corner"
 msgstr "中心指定の長方形 — 角をクリック"
 
 # AI Translated
@@ -25263,7 +25350,7 @@ msgid "Rounded rectangle — click to set the corner radius"
 msgstr "角丸長方形 — クリックして角の半径を設定"
 
 # AI Translated
-msgid "Circle — click the centre"
+msgid "Circle — click the center"
 msgstr "円 — 中心をクリック"
 
 # AI Translated
@@ -25311,23 +25398,23 @@ msgid "Tangent arc — click its far end"
 msgstr "接線円弧 — 反対側の端をクリック"
 
 # AI Translated
-msgid "Centre arc — click the centre"
+msgid "Center arc — click the center"
 msgstr "中心点円弧 — 中心をクリック"
 
 # AI Translated
-msgid "Centre arc — click the start point (this sets the radius)"
+msgid "Center arc — click the start point (this sets the radius)"
 msgstr "中心点円弧 — 始点をクリック (これで半径が決まります)"
 
 # AI Translated
-msgid "Centre arc — click the end point"
+msgid "Center arc — click the end point"
 msgstr "中心点円弧 — 終点をクリック"
 
 # AI Translated
-msgid "Slot — click one end of the centreline"
+msgid "Slot — click one end of the centerline"
 msgstr "スロット — 中心線の一方の端をクリック"
 
 # AI Translated
-msgid "Slot — click the other end of the centreline"
+msgid "Slot — click the other end of the centerline"
 msgstr "スロット — 中心線のもう一方の端をクリック"
 
 # AI Translated
@@ -25335,15 +25422,15 @@ msgid "Slot — click to set the width"
 msgstr "スロット — クリックして幅を設定"
 
 # AI Translated
-msgid "Arc slot — click the centre the slot curves about"
+msgid "Arc slot — click the center the slot curves about"
 msgstr "円弧スロット — スロットが曲がる中心をクリック"
 
 # AI Translated
-msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgid "Arc slot — click the start of the centerline (this sets the radius)"
 msgstr "円弧スロット — 中心線の始点をクリック (これで半径が決まります)"
 
 # AI Translated
-msgid "Arc slot — click the end of the centreline"
+msgid "Arc slot — click the end of the centerline"
 msgstr "円弧スロット — 中心線の終点をクリック"
 
 # AI Translated
@@ -25351,7 +25438,7 @@ msgid "Arc slot — click to set the width"
 msgstr "円弧スロット — クリックして幅を設定"
 
 # AI Translated
-msgid "Polygon — click the centre"
+msgid "Polygon — click the center"
 msgstr "ポリゴン — 中心をクリック"
 
 # AI Translated
@@ -25359,7 +25446,7 @@ msgid "Polygon — click a vertex (this sets size and orientation)"
 msgstr "ポリゴン — 頂点をクリック (これでサイズと向きが決まります)"
 
 # AI Translated
-msgid "Ellipse — click the centre"
+msgid "Ellipse — click the center"
 msgstr "楕円 — 中心をクリック"
 
 # AI Translated
@@ -25371,7 +25458,7 @@ msgid "Ellipse — click a point on the minor axis"
 msgstr "楕円 — 短軸上の点をクリック"
 
 # AI Translated
-msgid "Elliptical arc — click the centre"
+msgid "Elliptical arc — click the center"
 msgstr "楕円弧 — 中心をクリック"
 
 # AI Translated
@@ -25496,7 +25583,7 @@ msgid "Polar array — drag the handle to set the sweep, click the count to type
 msgstr "円形配列 — ハンドルをドラッグして角度範囲を設定、個数をクリックして入力  ·  空白部分をクリックで適用"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  right-click when done"
 msgstr "角をドラッグしてスケール、中心をドラッグして移動  ·  完了したら右クリック"
 
 # AI Translated
@@ -25618,17 +25705,12 @@ msgid "Section view off"
 msgstr "断面ビュー オフ"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Section view — showing the %s half"
-msgstr "断面ビュー — %sの半分を表示中"
+msgid "Section view — showing the upper half"
+msgstr "断面ビュー — 上半分を表示中"
 
 # AI Translated
-msgid "upper"
-msgstr "上側"
-
-# AI Translated
-msgid "lower"
-msgstr "下側"
+msgid "Section view — showing the lower half"
+msgstr "断面ビュー — 下半分を表示中"
 
 # AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
@@ -25656,7 +25738,7 @@ msgstr "先にボディを選択してください"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d colour set"
+msgid "Body %d color set"
 msgstr "ボディ%dの色を設定しました"
 
 # AI Translated
@@ -25828,7 +25910,8 @@ msgstr "拘束を適用しました  ·  スケッチ上にバッジが表示さ
 # AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr "%s  —  %d 個選択中。Escで選択ツールに切り替え、線分を1本クリックしてから、もう1本をShift+クリックまたはCtrl+クリックしてください。"
+msgid_plural "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr[0] "%s  —  %d 個選択中。Escで選択ツールに切り替え、線分を1本クリックしてから、もう1本をShift+クリックまたはCtrl+クリックしてください。"
 
 # AI Translated
 msgid "Applied constraint"
@@ -26183,13 +26266,15 @@ msgstr "元に戻す操作がありません"
 
 # AI Translated
 #, c-format
-msgid "Redo  (%zu more)"
-msgstr "やり直す  (残り %zu)"
+msgid "Redo  (%zu more step)"
+msgid_plural "Redo  (%zu more steps)"
+msgstr[0] "やり直す  (残り %zu ステップ)"
 
 # AI Translated
 #, c-format
-msgid "Undo  (%zu more)"
-msgstr "元に戻す  (残り %zu)"
+msgid "Undo  (%zu more step)"
+msgid_plural "Undo  (%zu more steps)"
+msgstr[0] "元に戻す  (残り %zu ステップ)"
 
 # AI Translated
 msgid "Variable name:"
@@ -26793,6 +26878,139 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Showing %s actions"
+#~ msgstr "%s 件のアクションを表示中"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s actions"
+#~ msgstr "%s 件のアクション"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s tabs"
+#~ msgstr "%s 個のタブ"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s matches"
+#~ msgstr "%s 件一致"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s  ·  on %s"
+#~ msgstr "%s  ·  %s上"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketching on %s — pick a tool"
+#~ msgstr "%sにスケッチ中 — ツールを選択"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Drawing on %s.\n"
+#~ "Pick a tool, or press Menu for the list."
+#~ msgstr ""
+#~ "%sに描画中。\n"
+#~ "ツールを選択するか、メニューを押して一覧を表示します。"
+
+# AI Translated
+#~ msgid "Colour"
+#~ msgstr "色"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d "
+#~ msgstr "ボディ%d "
+
+# AI Translated
+#~ msgid "vertex selected — click again for the whole body"
+#~ msgstr "頂点を選択しました — もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#~ msgid "selected (whole body) — right-click for what applies to it"
+#~ msgstr "選択中 (ボディ全体) — 右クリックで適用可能な操作を表示"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+#~ msgstr "面%dを選択しました — 右クリックでプッシュ/プル、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+#~ msgstr "配置しました (%.1f, %.1f, %.1f) mm — 矢印をドラッグして移動、リングをドラッグして回転"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d degrees of freedom"
+#~ msgstr "自由度 %d"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+#~ msgstr "%d 個のソリッドをインポートしました — 面またはエッジを選択し、フィレット / カット / シェルで変更します"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+#~ msgstr "開いたシェル (非水密) としてインポートしました: 境界エッジ %d 本、非多様体エッジ %d 本 — 三角形 %d 個 → 面 %d 個。元のメッシュに穴または重複したジオメトリがあるため、ブーリアンフィーチャーが失敗する可能性があります"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketch added on %s — select it, then right-click to Extrude"
+#~ msgstr "%sにスケッチを追加しました — 選択して右クリックで押し出し"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pairs, worst %.2f mm³"
+#~ msgstr "干渉ペア %zu 組、最大 %.2f mm³"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "the picked face of Body %d"
+#~ msgstr "ボディ%dの選択した面"
+
+# AI Translated
+#~ msgid "the picked face"
+#~ msgstr "選択した面"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+#~ msgstr "%d 個選択中  ·  Delで削除  ·  Shift+クリックで追加  ·  ダブルクリックでループ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Section view — showing the %s half"
+#~ msgstr "断面ビュー — %sの半分を表示中"
+
+# AI Translated
+#~ msgid "upper"
+#~ msgstr "上側"
+
+# AI Translated
+#~ msgid "lower"
+#~ msgstr "下側"
+
+# AI Translated
+#, c-format
+#~ msgid "Redo  (%zu more)"
+#~ msgstr "やり直す  (残り %zu)"
+
+# AI Translated
+#, c-format
+#~ msgid "Undo  (%zu more)"
+#~ msgstr "元に戻す  (残り %zu)"
 
 #~ msgid "Reset direction"
 #~ msgstr "方向をリセット"

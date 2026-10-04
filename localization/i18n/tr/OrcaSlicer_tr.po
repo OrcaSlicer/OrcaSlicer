@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:00-0300\n"
+"POT-Creation-Date: 2026-10-04 20:03-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -10721,27 +10721,27 @@ msgstr "Sekme yok"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Showing %s actions"
-msgstr "%s eylem gösteriliyor"
+msgid "Matching actions: %s"
+msgstr "Eşleşen eylemler: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s actions"
-msgstr "%s eylem"
+msgid "Actions: %s"
+msgstr "Eylemler: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s tabs"
-msgstr "%s sekme"
+msgid "Tabs: %s"
+msgstr "Sekmeler: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s matches"
-msgstr "%s eşleşme"
+msgid "Matching tabs: %s"
+msgstr "Eşleşen sekmeler: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourites are full (%s max)"
+msgid "Favorites are full (%s max)"
 msgstr "Favoriler dolu (en fazla %s)"
 
 # AI Translated
@@ -10764,21 +10764,21 @@ msgstr "Sekmeye git"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourite %s (%s)"
+msgid "Favorite %s (%s)"
 msgstr "Favori %s (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Pin to favourites (%s)"
+msgid "Pin to favorites (%s)"
 msgstr "Favorilere sabitle (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Unpin from favourites (%s)"
+msgid "Unpin from favorites (%s)"
 msgstr "Favorilerdeki sabitlemeyi kaldır (%s)"
 
 # AI Translated
-msgid "Remove from favourites"
+msgid "Remove from favorites"
 msgstr "Favorilerden kaldır"
 
 # AI Translated
@@ -12674,7 +12674,7 @@ msgstr "Çarpan"
 msgid "Flushing volumes for filament change"
 msgstr "Filament değişimi için temizleme hacmi"
 
-msgid "Please choose the filament colour"
+msgid "Please choose the filament color"
 msgstr "Lütfen filament rengini seçin"
 
 # AI Translated
@@ -22869,8 +22869,8 @@ msgstr "Yardımcı"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s  ·  on %s"
-msgstr "%s  ·  %s üzerinde"
+msgid "%s  ·  plane: %s"
+msgstr "%s  ·  düzlem: %s"
 
 # AI Translated
 msgid "Line — click start, then end"
@@ -22986,8 +22986,8 @@ msgstr "Eskiz"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketching on %s — pick a tool"
-msgstr "%s üzerinde eskiz çiziliyor — bir araç seçin"
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Eskiz düzlemi: %s — bir araç seçin"
 
 # AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
@@ -22996,10 +22996,10 @@ msgstr "Görünüm penceresinde bir yüze veya referans düzlemine, ardından bi
 # AI Translated
 #, c-format, boost-format
 msgid ""
-"Drawing on %s.\n"
+"Sketch plane: %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
-"%s üzerinde çiziliyor.\n"
+"Eskiz düzlemi: %s.\n"
 "Bir araç seçin veya liste için Menü tuşuna basın."
 
 # AI Translated
@@ -23009,6 +23009,11 @@ msgstr "Bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklay
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
 msgstr "Malzeme ekle (ekstrüzyon / döndürme / süpürme / loft / kalınlaştırma / nervür)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extrude"
+msgstr "Ekstrüzyon"
 
 # AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
@@ -23072,6 +23077,11 @@ msgid "Body %zu"
 msgstr "Gövde %zu"
 
 # AI Translated
+msgctxt "Design"
+msgid "Rib"
+msgstr "Nervür"
+
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr "Açık bir eskiz çizgisinden, bir gövdeyle kaynaşan ince bir duvar oluşturun"
 
@@ -23082,6 +23092,11 @@ msgstr "Nervür için katı bir gövde gerekir — önce bir tane ekleyin veya i
 # AI Translated
 msgid "Create a sketch with an open line first"
 msgstr "Önce açık bir çizgi içeren bir eskiz oluşturun"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern"
+msgstr "Çoğaltma"
 
 # AI Translated
 msgid "Create a solid body to pattern first"
@@ -23192,6 +23207,11 @@ msgid "Helical curve (spring path) — use as a sweep path for coils / springs /
 msgstr "Helisel eğri (yay yolu) — bobin / yay / helezon için süpürme yolu olarak kullanın"
 
 # AI Translated
+msgctxt "Design"
+msgid "Project"
+msgstr "İzdüşüm"
+
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
 msgstr "Gövde kenarlarının bir düzlem üzerindeki izdüşümünü eskiz öğeleri olarak alın"
 
@@ -23256,7 +23276,7 @@ msgid "Cut — needs a solid body to slice"
 msgstr "Kes — kesilecek katı bir gövde gerekir"
 
 # AI Translated
-msgid "Color — set the selected body's display colour"
+msgid "Color — set the selected body's display color"
 msgstr "Renk — seçili gövdenin görüntü rengini ayarlayın"
 
 # AI Translated
@@ -23284,6 +23304,11 @@ msgid "Tilt a picked face by a draft angle"
 msgstr "Seçilen bir yüzü koniklik açısı kadar eğin"
 
 # AI Translated
+msgctxt "Design"
+msgid "Shell"
+msgstr "Kabuklama"
+
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr "Seçilen bir yüzü açarak gövdenin içini belirli bir duvar kalınlığında boşaltın"
 
@@ -23308,7 +23333,7 @@ msgid "Hole / thread"
 msgstr "Delik / diş"
 
 # AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Seçilen bir yüzde ortalanmış veya bir düzleme yerleştirilmiş bir delik açın"
 
 # AI Translated
@@ -23624,13 +23649,31 @@ msgstr "içten çizilmiş"
 msgid "Polygon"
 msgstr "Çokgen"
 
+# AI Translated
 #, c-format, boost-format
-msgid "Converted %d entit%s between construction and real geometry"
-msgstr ""
+msgid "Converted %d entity between construction and real geometry"
+msgid_plural "Converted %d entities between construction and real geometry"
+msgstr[0] "%d öğe yardımcı ve gerçek geometri arasında dönüştürüldü"
+msgstr[1] "%d öğe yardımcı ve gerçek geometri arasında dönüştürüldü"
 
 # AI Translated
 msgid "CONSTRAIN"
 msgstr "KISITLA"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Horizontal"
+msgstr "Yatay"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Vertical"
+msgstr "Dikey"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Parallel"
+msgstr "Paralel"
 
 # AI Translated
 msgid "Perpendicular"
@@ -23651,6 +23694,11 @@ msgstr "Eşit yarıçap"
 # AI Translated
 msgid "Collinear"
 msgstr "Eş doğrusal"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Concentric"
+msgstr "Eş merkezli"
 
 # AI Translated
 msgid "Tangent"
@@ -23788,6 +23836,11 @@ msgid "New body"
 msgstr "Yeni gövde"
 
 # AI Translated
+msgctxt "Boolean Mode"
+msgid "Cut"
+msgstr "Kes"
+
+# AI Translated
 msgid "Intersect"
 msgstr "Kesişim"
 
@@ -23895,6 +23948,11 @@ msgid "Linear"
 msgstr "Doğrusal"
 
 # AI Translated
+msgctxt "Design"
+msgid "Circular"
+msgstr "Dairesel"
+
+# AI Translated
 msgid "Direction"
 msgstr "Yön"
 
@@ -23923,6 +23981,11 @@ msgid "Keep tool body"
 msgstr "Araç gövdesini koru"
 
 # AI Translated
+msgctxt "Design"
+msgid "Cut"
+msgstr "Kes"
+
+# AI Translated
 msgid "Body"
 msgstr "Gövde"
 
@@ -23932,7 +23995,7 @@ msgstr "Ekle"
 
 # AI Translated
 msgid ""
-"Drag a corner to size, the centre to move.\n"
+"Drag a corner to size, the center to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
 "Boyutlandırmak için bir köşeyi, taşımak için merkezi sürükleyin.\n"
@@ -24381,10 +24444,6 @@ msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Boole — başka bir gövdeyle birleştir, çıkar veya kesiştir"
 
 # AI Translated
-msgid "Colour"
-msgstr "Renk"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
 msgstr "Gövde %d seçildi — uygulanabilecek işlemler için sağ tıklayın"
@@ -24440,26 +24499,41 @@ msgstr "Yüz %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d "
-msgstr "Gövde %d "
+msgid "Body %d: vertex selected — click again for the whole body"
+msgstr "Gövde %d: köşe noktası seçildi — tüm gövde için tekrar tıklayın"
 
 # AI Translated
-msgid "vertex selected — click again for the whole body"
-msgstr "köşe noktası seçildi — tüm gövde için tekrar tıklayın"
-
-# AI Translated
-msgid "selected (whole body) — right-click for what applies to it"
-msgstr "seçildi (tüm gövde) — uygulanabilecek işlemler için sağ tıklayın"
+msgid "Vertex selected — click again for the whole body"
+msgstr "Köşe noktası seçildi — tüm gövde için tekrar tıklayın"
 
 # AI Translated
 #, c-format, boost-format
-msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr "yüz %d seçildi — itmek/çekmek için sağ tıklayın veya tüm gövde için tekrar tıklayın"
+msgid "Body %d selected (whole body) — right-click for what applies to it"
+msgstr "Gövde %d seçildi (tüm gövde) — uygulanabilecek işlemler için sağ tıklayın"
+
+# AI Translated
+msgid "Whole body selected — right-click for what applies to it"
+msgstr "Tüm gövde seçildi — uygulanabilecek işlemler için sağ tıklayın"
 
 # AI Translated
 #, c-format, boost-format
-msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
+msgid "Body %d: face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "Gövde %d: yüz %d seçildi — itmek/çekmek için sağ tıklayın veya tüm gövde için tekrar tıklayın"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "Yüz %d seçildi — itmek/çekmek için sağ tıklayın veya tüm gövde için tekrar tıklayın"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "Gövde %d: kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "Kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
 
 # AI Translated
 #, c-format, boost-format
@@ -24473,8 +24547,13 @@ msgstr "%s düzlemi seçildi — üzerinde eskiz çizmek için sağ tıklayın v
 
 # AI Translated
 #, c-format, boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr "yerleştirildi (%.1f, %.1f, %.1f) mm — taşımak için okları, döndürmek için halkaları sürükleyin"
+msgid "Body %d placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "Gövde %d (%.1f, %.1f, %.1f) mm konumuna yerleştirildi — taşımak için okları, döndürmek için halkaları sürükleyin"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "(%.1f, %.1f, %.1f) mm konumuna yerleştirildi — taşımak için okları, döndürmek için halkaları sürükleyin"
 
 # AI Translated
 msgid "Tool exited"
@@ -24494,8 +24573,10 @@ msgstr "✓ Tamamen kısıtlı"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d degrees of freedom"
-msgstr "%d serbestlik derecesi"
+msgid "%d degree of freedom"
+msgid_plural "%d degrees of freedom"
+msgstr[0] "%d serbestlik derecesi"
+msgstr[1] "%d serbestlik derecesi"
 
 # AI Translated
 #, c-format, boost-format
@@ -24515,6 +24596,11 @@ msgstr "Tamam — %zu üçgen"
 # AI Translated
 msgid "Text to insert:"
 msgstr "Eklenecek metin:"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Metin"
 
 # AI Translated
 msgid "Import SVG"
@@ -24542,8 +24628,10 @@ msgstr "Model yeniden oluşturuluyor…"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "%d katı içe aktarıldı — değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
+msgid "Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgid_plural "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr[0] "%d katı gövde içe aktarıldı — değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
+msgstr[1] "%d katı gövde içe aktarıldı — değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
 
 # AI Translated
 msgid "Import mesh"
@@ -24599,8 +24687,8 @@ msgstr "Katı içe aktarıldı — %d üçgen → %d yüz, hacim %.2f mm³. Değ
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr "Açık kabuk olarak içe aktarıldı (su geçirmez değil): %d sınır kenarı, %d manifold olmayan kenar — %d üçgen → %d yüz. Kaynak mesh'te delikler veya yinelenen geometri var; boole unsurları bu mesh üzerinde başarısız olabilir"
+msgid "Imported as an open shell (not watertight). Boundary edges: %d, non-manifold edges: %d, triangles: %d → faces: %d. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr "Açık kabuk olarak içe aktarıldı (su geçirmez değil). Sınır kenarları: %d, manifold olmayan kenarlar: %d, üçgenler: %d → yüzler: %d. Kaynak mesh'te delikler veya yinelenen geometri var; boole unsurları bu mesh üzerinde başarısız olabilir"
 
 # AI Translated
 msgid "No importable geometry found"
@@ -24620,13 +24708,13 @@ msgid "Insert cancelled"
 msgstr "Ekleme iptal edildi"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — right-click when done"
 msgstr "Ölçeklendirmek için bir köşeyi, taşımak için merkezi sürükleyin — bitince sağ tıklayın"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr "%s üzerine eskiz eklendi — seçin, ardından Ekstrüzyon için sağ tıklayın"
+msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
+msgstr "Eskiz eklendi (düzlem: %s) — seçin, ardından Ekstrüzyon için sağ tıklayın"
 
 # AI Translated
 msgid "Recompute error: "
@@ -24724,8 +24812,10 @@ msgstr "Girişim bulunamadı"
 
 # AI Translated
 #, c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr "%zu girişim çifti, en kötüsü %.2f mm³"
+msgid "%zu interference pair, worst %.2f mm³"
+msgid_plural "%zu interference pairs, worst %.2f mm³"
+msgstr[0] "%zu girişim çifti, en kötüsü %.2f mm³"
+msgstr[1] "%zu girişim çifti, en kötüsü %.2f mm³"
 
 # AI Translated
 msgid ""
@@ -24810,12 +24900,12 @@ msgstr "Kesme için katı bir gövde gerekir — önce bir tane ekleyin veya iç
 
 # AI Translated
 #, c-format, boost-format
-msgid "the picked face of Body %d"
-msgstr "Gövde %d üzerindeki seçilen yüz"
+msgid "Picked face (Body %d)"
+msgstr "Seçilen yüz (Gövde %d)"
 
 # AI Translated
-msgid "the picked face"
-msgstr "seçilen yüz"
+msgid "Picked face"
+msgstr "Seçilen yüz"
 
 # AI Translated
 #, c-format, boost-format
@@ -24824,11 +24914,13 @@ msgstr "  ·  %d seçildi"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr "%d seçildi  ·  Del bunları kaldırır  ·  Shift+tıklama ekler  ·  çift tıklama tüm döngüyü alır"
+msgid "%d selected  ·  Del removes it  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgid_plural "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr[0] "%d seçildi  ·  Del bunu kaldırır  ·  Shift+tıklama ekler  ·  çift tıklama tüm döngüyü alır"
+msgstr[1] "%d seçildi  ·  Del bunları kaldırır  ·  Shift+tıklama ekler  ·  çift tıklama tüm döngüyü alır"
 
 # AI Translated
-msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgid "Select — click an entity to pick it  ·  drag an endpoint or center to move it  ·  Shift-click adds  ·  Del removes"
 msgstr "Seç — seçmek için bir öğeye tıklayın  ·  taşımak için bir uç noktayı veya merkezi sürükleyin  ·  Shift+tıklama ekler  ·  Del kaldırır"
 
 # AI Translated
@@ -24873,11 +24965,11 @@ msgid "Rectangle — click the opposite corner"
 msgstr "Dikdörtgen — karşı köşeye tıklayın"
 
 # AI Translated
-msgid "Centre rectangle — click the centre"
+msgid "Center rectangle — click the center"
 msgstr "Merkez dikdörtgeni — merkeze tıklayın"
 
 # AI Translated
-msgid "Centre rectangle — click a corner"
+msgid "Center rectangle — click a corner"
 msgstr "Merkez dikdörtgeni — bir köşeye tıklayın"
 
 # AI Translated
@@ -24905,7 +24997,7 @@ msgid "Rounded rectangle — click to set the corner radius"
 msgstr "Yuvarlatılmış dikdörtgen — köşe yarıçapını ayarlamak için tıklayın"
 
 # AI Translated
-msgid "Circle — click the centre"
+msgid "Circle — click the center"
 msgstr "Daire — merkeze tıklayın"
 
 # AI Translated
@@ -24953,23 +25045,23 @@ msgid "Tangent arc — click its far end"
 msgstr "Teğet yay — diğer ucuna tıklayın"
 
 # AI Translated
-msgid "Centre arc — click the centre"
+msgid "Center arc — click the center"
 msgstr "Merkez noktalı yay — merkeze tıklayın"
 
 # AI Translated
-msgid "Centre arc — click the start point (this sets the radius)"
+msgid "Center arc — click the start point (this sets the radius)"
 msgstr "Merkez noktalı yay — başlangıç noktasına tıklayın (bu, yarıçapı belirler)"
 
 # AI Translated
-msgid "Centre arc — click the end point"
+msgid "Center arc — click the end point"
 msgstr "Merkez noktalı yay — bitiş noktasına tıklayın"
 
 # AI Translated
-msgid "Slot — click one end of the centreline"
+msgid "Slot — click one end of the centerline"
 msgstr "Kanal — merkez çizgisinin bir ucuna tıklayın"
 
 # AI Translated
-msgid "Slot — click the other end of the centreline"
+msgid "Slot — click the other end of the centerline"
 msgstr "Kanal — merkez çizgisinin diğer ucuna tıklayın"
 
 # AI Translated
@@ -24977,15 +25069,15 @@ msgid "Slot — click to set the width"
 msgstr "Kanal — genişliği ayarlamak için tıklayın"
 
 # AI Translated
-msgid "Arc slot — click the centre the slot curves about"
+msgid "Arc slot — click the center the slot curves about"
 msgstr "Yay kanal — kanalın etrafında kıvrıldığı merkeze tıklayın"
 
 # AI Translated
-msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgid "Arc slot — click the start of the centerline (this sets the radius)"
 msgstr "Yay kanal — merkez çizgisinin başlangıcına tıklayın (bu, yarıçapı belirler)"
 
 # AI Translated
-msgid "Arc slot — click the end of the centreline"
+msgid "Arc slot — click the end of the centerline"
 msgstr "Yay kanal — merkez çizgisinin sonuna tıklayın"
 
 # AI Translated
@@ -24993,7 +25085,7 @@ msgid "Arc slot — click to set the width"
 msgstr "Yay kanal — genişliği ayarlamak için tıklayın"
 
 # AI Translated
-msgid "Polygon — click the centre"
+msgid "Polygon — click the center"
 msgstr "Çokgen — merkeze tıklayın"
 
 # AI Translated
@@ -25001,7 +25093,7 @@ msgid "Polygon — click a vertex (this sets size and orientation)"
 msgstr "Çokgen — bir köşe noktasına tıklayın (bu, boyutu ve yönü belirler)"
 
 # AI Translated
-msgid "Ellipse — click the centre"
+msgid "Ellipse — click the center"
 msgstr "Elips — merkeze tıklayın"
 
 # AI Translated
@@ -25013,7 +25105,7 @@ msgid "Ellipse — click a point on the minor axis"
 msgstr "Elips — küçük eksen üzerinde bir noktaya tıklayın"
 
 # AI Translated
-msgid "Elliptical arc — click the centre"
+msgid "Elliptical arc — click the center"
 msgstr "Eliptik yay — merkeze tıklayın"
 
 # AI Translated
@@ -25138,7 +25230,7 @@ msgid "Polar array — drag the handle to set the sweep, click the count to type
 msgstr "Dairesel dizi — açıyı ayarlamak için tutamacı sürükleyin, adedi yazmak için adet değerine tıklayın  ·  uygulamak için boş alana tıklayın"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  right-click when done"
 msgstr "Ölçeklendirmek için bir köşeyi, taşımak için merkezi sürükleyin  ·  bitince sağ tıklayın"
 
 # AI Translated
@@ -25260,17 +25352,12 @@ msgid "Section view off"
 msgstr "Kesit görünümü kapalı"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Section view — showing the %s half"
-msgstr "Kesit görünümü — %s yarı gösteriliyor"
+msgid "Section view — showing the upper half"
+msgstr "Kesit görünümü — üst yarı gösteriliyor"
 
 # AI Translated
-msgid "upper"
-msgstr "üst"
-
-# AI Translated
-msgid "lower"
-msgstr "alt"
+msgid "Section view — showing the lower half"
+msgstr "Kesit görünümü — alt yarı gösteriliyor"
 
 # AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
@@ -25298,7 +25385,7 @@ msgstr "Önce bir gövde seçin"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d colour set"
+msgid "Body %d color set"
 msgstr "Gövde %d rengi ayarlandı"
 
 # AI Translated
@@ -25470,7 +25557,9 @@ msgstr "Kısıtlama uygulandı  ·  rozeti eskizin üzerinde — kaldırmak içi
 # AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr "%s  —  %d seçili. Seç aracı için Esc'ye basın, bir çizgiye tıklayın, ardından diğerine Shift veya Ctrl ile tıklayın."
+msgid_plural "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr[0] "%s  —  %d seçili. Seç aracı için Esc'ye basın, bir çizgiye tıklayın, ardından diğerine Shift veya Ctrl ile tıklayın."
+msgstr[1] "%s  —  %d seçili. Seç aracı için Esc'ye basın, bir çizgiye tıklayın, ardından diğerine Shift veya Ctrl ile tıklayın."
 
 # AI Translated
 msgid "Applied constraint"
@@ -25825,13 +25914,17 @@ msgstr "Geri alınacak bir şey yok"
 
 # AI Translated
 #, c-format
-msgid "Redo  (%zu more)"
-msgstr "İleri al  (%zu tane daha)"
+msgid "Redo  (%zu more step)"
+msgid_plural "Redo  (%zu more steps)"
+msgstr[0] "İleri al  (%zu adım daha)"
+msgstr[1] "İleri al  (%zu adım daha)"
 
 # AI Translated
 #, c-format
-msgid "Undo  (%zu more)"
-msgstr "Geri al  (%zu tane daha)"
+msgid "Undo  (%zu more step)"
+msgid_plural "Undo  (%zu more steps)"
+msgstr[0] "Geri al  (%zu adım daha)"
+msgstr[1] "Geri al  (%zu adım daha)"
 
 # AI Translated
 msgid "Variable name:"
@@ -26425,6 +26518,139 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Showing %s actions"
+#~ msgstr "%s eylem gösteriliyor"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s actions"
+#~ msgstr "%s eylem"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s tabs"
+#~ msgstr "%s sekme"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s matches"
+#~ msgstr "%s eşleşme"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s  ·  on %s"
+#~ msgstr "%s  ·  %s üzerinde"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketching on %s — pick a tool"
+#~ msgstr "%s üzerinde eskiz çiziliyor — bir araç seçin"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Drawing on %s.\n"
+#~ "Pick a tool, or press Menu for the list."
+#~ msgstr ""
+#~ "%s üzerinde çiziliyor.\n"
+#~ "Bir araç seçin veya liste için Menü tuşuna basın."
+
+# AI Translated
+#~ msgid "Colour"
+#~ msgstr "Renk"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d "
+#~ msgstr "Gövde %d "
+
+# AI Translated
+#~ msgid "vertex selected — click again for the whole body"
+#~ msgstr "köşe noktası seçildi — tüm gövde için tekrar tıklayın"
+
+# AI Translated
+#~ msgid "selected (whole body) — right-click for what applies to it"
+#~ msgstr "seçildi (tüm gövde) — uygulanabilecek işlemler için sağ tıklayın"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+#~ msgstr "yüz %d seçildi — itmek/çekmek için sağ tıklayın veya tüm gövde için tekrar tıklayın"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+#~ msgstr "yerleştirildi (%.1f, %.1f, %.1f) mm — taşımak için okları, döndürmek için halkaları sürükleyin"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d degrees of freedom"
+#~ msgstr "%d serbestlik derecesi"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+#~ msgstr "%d katı içe aktarıldı — değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+#~ msgstr "Açık kabuk olarak içe aktarıldı (su geçirmez değil): %d sınır kenarı, %d manifold olmayan kenar — %d üçgen → %d yüz. Kaynak mesh'te delikler veya yinelenen geometri var; boole unsurları bu mesh üzerinde başarısız olabilir"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketch added on %s — select it, then right-click to Extrude"
+#~ msgstr "%s üzerine eskiz eklendi — seçin, ardından Ekstrüzyon için sağ tıklayın"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pairs, worst %.2f mm³"
+#~ msgstr "%zu girişim çifti, en kötüsü %.2f mm³"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "the picked face of Body %d"
+#~ msgstr "Gövde %d üzerindeki seçilen yüz"
+
+# AI Translated
+#~ msgid "the picked face"
+#~ msgstr "seçilen yüz"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+#~ msgstr "%d seçildi  ·  Del bunları kaldırır  ·  Shift+tıklama ekler  ·  çift tıklama tüm döngüyü alır"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Section view — showing the %s half"
+#~ msgstr "Kesit görünümü — %s yarı gösteriliyor"
+
+# AI Translated
+#~ msgid "upper"
+#~ msgstr "üst"
+
+# AI Translated
+#~ msgid "lower"
+#~ msgstr "alt"
+
+# AI Translated
+#, c-format
+#~ msgid "Redo  (%zu more)"
+#~ msgstr "İleri al  (%zu tane daha)"
+
+# AI Translated
+#, c-format
+#~ msgid "Undo  (%zu more)"
+#~ msgstr "Geri al  (%zu tane daha)"
 
 #~ msgid "Reset direction"
 #~ msgstr "Yönü sıfırla"

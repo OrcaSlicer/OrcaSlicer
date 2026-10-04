@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:00-0300\n"
+"POT-Creation-Date: 2026-10-04 20:03-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -10776,27 +10776,27 @@ msgstr "탭 없음"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Showing %s actions"
-msgstr "작업 %s개 표시 중"
+msgid "Matching actions: %s"
+msgstr "일치하는 작업: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s actions"
-msgstr "작업 %s개"
+msgid "Actions: %s"
+msgstr "작업: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s tabs"
-msgstr "탭 %s개"
+msgid "Tabs: %s"
+msgstr "탭: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s matches"
-msgstr "일치 항목 %s개"
+msgid "Matching tabs: %s"
+msgstr "일치하는 탭: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourites are full (%s max)"
+msgid "Favorites are full (%s max)"
 msgstr "즐겨찾기가 가득 찼습니다(최대 %s개)"
 
 # AI Translated
@@ -10819,21 +10819,21 @@ msgstr "탭으로 이동"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourite %s (%s)"
+msgid "Favorite %s (%s)"
 msgstr "즐겨찾기 %s (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Pin to favourites (%s)"
+msgid "Pin to favorites (%s)"
 msgstr "즐겨찾기에 고정 (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Unpin from favourites (%s)"
+msgid "Unpin from favorites (%s)"
 msgstr "즐겨찾기에서 고정 해제 (%s)"
 
 # AI Translated
-msgid "Remove from favourites"
+msgid "Remove from favorites"
 msgstr "즐겨찾기에서 제거"
 
 # AI Translated
@@ -12743,7 +12743,7 @@ msgstr "승수"
 msgid "Flushing volumes for filament change"
 msgstr "필라멘트 교체를 위한 버리기 볼륨"
 
-msgid "Please choose the filament colour"
+msgid "Please choose the filament color"
 msgstr "필라멘트 색상을 선택하세요"
 
 # AI Translated
@@ -23101,8 +23101,8 @@ msgstr "보조"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s  ·  on %s"
-msgstr "%s  ·  %s 위"
+msgid "%s  ·  plane: %s"
+msgstr "%s  ·  평면: %s"
 
 # AI Translated
 msgid "Line — click start, then end"
@@ -23218,8 +23218,8 @@ msgstr "스케치"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketching on %s — pick a tool"
-msgstr "%s에서 스케치 중 — 도구를 선택하십시오"
+msgid "Sketch plane: %s — pick a tool"
+msgstr "스케치 평면: %s — 도구를 선택하십시오"
 
 # AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
@@ -23228,10 +23228,10 @@ msgstr "뷰포트에서 면 또는 기준 평면을 클릭한 다음 스케치 �
 # AI Translated
 #, c-format, boost-format
 msgid ""
-"Drawing on %s.\n"
+"Sketch plane: %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
-"%s에 그리는 중입니다.\n"
+"스케치 평면: %s.\n"
 "도구를 선택하거나 메뉴를 눌러 목록을 보십시오."
 
 # AI Translated
@@ -23241,6 +23241,11 @@ msgstr "면 또는 기준 평면을 클릭한 다음 스케치 도구를 선택�
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
 msgstr "재료 추가(돌출 / 회전 / 스윕 / 로프트 / 두껍게 하기 / 리브)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extrude"
+msgstr "돌출"
 
 # AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
@@ -23304,6 +23309,11 @@ msgid "Body %zu"
 msgstr "바디 %zu"
 
 # AI Translated
+msgctxt "Design"
+msgid "Rib"
+msgstr "리브"
+
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr "열린 스케치 선에서 얇은 벽을 만들어 바디에 결합"
 
@@ -23314,6 +23324,11 @@ msgstr "리브에는 솔리드 바디가 필요합니다 — 먼저 추가하거
 # AI Translated
 msgid "Create a sketch with an open line first"
 msgstr "먼저 열린 선이 있는 스케치를 만드십시오"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern"
+msgstr "패턴"
 
 # AI Translated
 msgid "Create a solid body to pattern first"
@@ -23424,6 +23439,11 @@ msgid "Helical curve (spring path) — use as a sweep path for coils / springs /
 msgstr "나선 곡선(스프링 경로) — 코일 / 스프링 / 오거의 스윕 경로로 사용"
 
 # AI Translated
+msgctxt "Design"
+msgid "Project"
+msgstr "투영"
+
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
 msgstr "바디 모서리를 평면에 스케치 요소로 투영"
 
@@ -23488,7 +23508,7 @@ msgid "Cut — needs a solid body to slice"
 msgstr "자르기 — 자를 솔리드 바디가 필요합니다"
 
 # AI Translated
-msgid "Color — set the selected body's display colour"
+msgid "Color — set the selected body's display color"
 msgstr "색상 — 선택한 바디의 표시 색상 설정"
 
 # AI Translated
@@ -23516,6 +23536,11 @@ msgid "Tilt a picked face by a draft angle"
 msgstr "선택한 면을 구배 각도만큼 기울이기"
 
 # AI Translated
+msgctxt "Design"
+msgid "Shell"
+msgstr "쉘"
+
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr "선택한 면을 열고 바디 속을 벽 두께만큼 남기고 비우기"
 
@@ -23540,7 +23565,7 @@ msgid "Hole / thread"
 msgstr "구멍 / 나사산"
 
 # AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "선택한 면의 중앙 또는 평면 위에 구멍 뚫기"
 
 # AI Translated
@@ -23856,13 +23881,30 @@ msgstr "내접"
 msgid "Polygon"
 msgstr "다각형"
 
+# AI Translated
 #, c-format, boost-format
-msgid "Converted %d entit%s between construction and real geometry"
-msgstr ""
+msgid "Converted %d entity between construction and real geometry"
+msgid_plural "Converted %d entities between construction and real geometry"
+msgstr[0] "요소 %d개를 보조 형상과 실제 형상 간에 변환했습니다"
 
 # AI Translated
 msgid "CONSTRAIN"
 msgstr "구속"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Horizontal"
+msgstr "수평"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Vertical"
+msgstr "수직"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Parallel"
+msgstr "평행"
 
 # AI Translated
 msgid "Perpendicular"
@@ -23883,6 +23925,11 @@ msgstr "반지름 같음"
 # AI Translated
 msgid "Collinear"
 msgstr "동일 선상"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Concentric"
+msgstr "동심"
 
 # AI Translated
 msgid "Tangent"
@@ -24020,6 +24067,11 @@ msgid "New body"
 msgstr "새 바디"
 
 # AI Translated
+msgctxt "Boolean Mode"
+msgid "Cut"
+msgstr "잘라내기"
+
+# AI Translated
 msgid "Intersect"
 msgstr "교차"
 
@@ -24127,6 +24179,11 @@ msgid "Linear"
 msgstr "선형"
 
 # AI Translated
+msgctxt "Design"
+msgid "Circular"
+msgstr "원형"
+
+# AI Translated
 msgid "Direction"
 msgstr "방향"
 
@@ -24155,6 +24212,11 @@ msgid "Keep tool body"
 msgstr "도구 바디 유지"
 
 # AI Translated
+msgctxt "Design"
+msgid "Cut"
+msgstr "자르기"
+
+# AI Translated
 msgid "Body"
 msgstr "바디"
 
@@ -24164,7 +24226,7 @@ msgstr "삽입"
 
 # AI Translated
 msgid ""
-"Drag a corner to size, the centre to move.\n"
+"Drag a corner to size, the center to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
 "코너를 드래그하여 크기를 조정하고, 중앙을 드래그하여 이동합니다.\n"
@@ -24613,10 +24675,6 @@ msgid "Boolean — join, subtract or intersect with another body"
 msgstr "불리언 — 다른 바디와 결합, 빼기 또는 교차"
 
 # AI Translated
-msgid "Colour"
-msgstr "색상"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
 msgstr "바디 %d 선택됨 — 적용할 수 있는 작업은 마우스 오른쪽 클릭"
@@ -24673,25 +24731,40 @@ msgstr "면 %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d "
-msgstr "바디 %d "
+msgid "Body %d: vertex selected — click again for the whole body"
+msgstr "바디 %d: 꼭지점 선택됨 — 다시 클릭하면 전체 바디 선택"
 
 # AI Translated
-msgid "vertex selected — click again for the whole body"
+msgid "Vertex selected — click again for the whole body"
 msgstr "꼭지점 선택됨 — 다시 클릭하면 전체 바디 선택"
 
 # AI Translated
-msgid "selected (whole body) — right-click for what applies to it"
-msgstr "선택됨(전체 바디) — 적용할 수 있는 작업은 마우스 오른쪽 클릭"
+#, c-format, boost-format
+msgid "Body %d selected (whole body) — right-click for what applies to it"
+msgstr "바디 %d 선택됨(전체 바디) — 적용할 수 있는 작업은 마우스 오른쪽 클릭"
+
+# AI Translated
+msgid "Whole body selected — right-click for what applies to it"
+msgstr "전체 바디 선택됨 — 적용할 수 있는 작업은 마우스 오른쪽 클릭"
 
 # AI Translated
 #, c-format, boost-format
-msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgid "Body %d: face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "바디 %d: 면 %d 선택됨 — 마우스 오른쪽 클릭으로 밀기/당기기, 다시 클릭하면 전체 바디 선택"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "면 %d 선택됨 — 마우스 오른쪽 클릭으로 밀기/당기기, 다시 클릭하면 전체 바디 선택"
 
 # AI Translated
 #, c-format, boost-format
-msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "바디 %d: 모서리 %d 선택됨 — 필렛/모따기로 다듬거나, 다시 클릭하면 전체 바디 선택"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
 msgstr "모서리 %d 선택됨 — 필렛/모따기로 다듬거나, 다시 클릭하면 전체 바디 선택"
 
 # AI Translated
@@ -24706,8 +24779,13 @@ msgstr "%s 평면 선택됨 — 마우스 오른쪽 클릭으로 평면에 스�
 
 # AI Translated
 #, c-format, boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr "배치됨 (%.1f, %.1f, %.1f) mm — 화살표를 드래그하여 이동, 링을 드래그하여 회전"
+msgid "Body %d placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "바디 %d: (%.1f, %.1f, %.1f) mm에 배치됨 — 화살표를 드래그하여 이동, 링을 드래그하여 회전"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "(%.1f, %.1f, %.1f) mm에 배치됨 — 화살표를 드래그하여 이동, 링을 드래그하여 회전"
 
 # AI Translated
 msgid "Tool exited"
@@ -24727,8 +24805,9 @@ msgstr "✓ 완전 구속됨"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d degrees of freedom"
-msgstr "자유도 %d"
+msgid "%d degree of freedom"
+msgid_plural "%d degrees of freedom"
+msgstr[0] "자유도 %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -24748,6 +24827,11 @@ msgstr "완료 — 삼각형 %zu개"
 # AI Translated
 msgid "Text to insert:"
 msgstr "삽입할 텍스트:"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "텍스트"
 
 # AI Translated
 msgid "Import SVG"
@@ -24775,8 +24859,9 @@ msgstr "모델 재구성 중…"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "솔리드 %d개를 가져왔습니다 — 면이나 모서리를 선택한 다음 필렛 / 자르기 / 쉘로 수정하십시오"
+msgid "Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgid_plural "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr[0] "솔리드 %d개를 가져왔습니다 — 면이나 모서리를 선택한 다음 필렛 / 자르기 / 쉘로 수정하십시오"
 
 # AI Translated
 msgid "Import mesh"
@@ -24832,8 +24917,8 @@ msgstr "솔리드를 가져왔습니다 — 삼각형 %d개 → 면 %d개, 부�
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr "열린 쉘로 가져왔습니다(수밀 아님): 경계 모서리 %d개, 비다양체 모서리 %d개 — 삼각형 %d개 → 면 %d개. 원본 메시에 구멍이나 중복된 형상이 있어 불리언 피처가 실패할 수 있습니다"
+msgid "Imported as an open shell (not watertight). Boundary edges: %d, non-manifold edges: %d, triangles: %d → faces: %d. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr "열린 쉘로 가져왔습니다(수밀 아님). 경계 모서리: %d, 비다양체 모서리: %d, 삼각형: %d → 면: %d. 원본 메시에 구멍이나 중복된 형상이 있어 불리언 피처가 실패할 수 있습니다"
 
 # AI Translated
 msgid "No importable geometry found"
@@ -24853,13 +24938,13 @@ msgid "Insert cancelled"
 msgstr "삽입 취소됨"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — right-click when done"
 msgstr "코너를 드래그하여 크기 조정, 중앙을 드래그하여 이동 — 완료되면 마우스 오른쪽 클릭"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr "%s에 스케치 추가됨 — 스케치를 선택한 다음 마우스 오른쪽 클릭으로 돌출"
+msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
+msgstr "스케치 추가됨(평면: %s) — 스케치를 선택한 다음 마우스 오른쪽 클릭으로 돌출"
 
 # AI Translated
 msgid "Recompute error: "
@@ -24957,8 +25042,9 @@ msgstr "간섭이 없습니다"
 
 # AI Translated
 #, c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr "간섭 쌍 %zu개, 최대 %.2f mm³"
+msgid "%zu interference pair, worst %.2f mm³"
+msgid_plural "%zu interference pairs, worst %.2f mm³"
+msgstr[0] "간섭 쌍 %zu개, 최대 %.2f mm³"
 
 # AI Translated
 msgid ""
@@ -25043,11 +25129,11 @@ msgstr "자르기에는 솔리드 바디가 필요합니다 — 먼저 추가하
 
 # AI Translated
 #, c-format, boost-format
-msgid "the picked face of Body %d"
-msgstr "바디 %d의 선택한 면"
+msgid "Picked face (Body %d)"
+msgstr "선택한 면(바디 %d)"
 
 # AI Translated
-msgid "the picked face"
+msgid "Picked face"
 msgstr "선택한 면"
 
 # AI Translated
@@ -25057,11 +25143,12 @@ msgstr "  ·  %d개 선택됨"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr "%d개 선택됨  ·  Del로 제거  ·  Shift+클릭으로 추가  ·  더블 클릭으로 전체 루프 선택"
+msgid "%d selected  ·  Del removes it  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgid_plural "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr[0] "%d개 선택됨  ·  Del로 제거  ·  Shift+클릭으로 추가  ·  더블 클릭으로 전체 루프 선택"
 
 # AI Translated
-msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgid "Select — click an entity to pick it  ·  drag an endpoint or center to move it  ·  Shift-click adds  ·  Del removes"
 msgstr "선택 — 요소를 클릭하여 선택  ·  끝점이나 중심을 드래그하여 이동  ·  Shift+클릭으로 추가  ·  Del로 제거"
 
 # AI Translated
@@ -25106,11 +25193,11 @@ msgid "Rectangle — click the opposite corner"
 msgstr "직사각형 — 반대쪽 코너 클릭"
 
 # AI Translated
-msgid "Centre rectangle — click the centre"
+msgid "Center rectangle — click the center"
 msgstr "중심 직사각형 — 중심 클릭"
 
 # AI Translated
-msgid "Centre rectangle — click a corner"
+msgid "Center rectangle — click a corner"
 msgstr "중심 직사각형 — 코너 클릭"
 
 # AI Translated
@@ -25138,7 +25225,7 @@ msgid "Rounded rectangle — click to set the corner radius"
 msgstr "둥근 직사각형 — 클릭하여 코너 반지름 설정"
 
 # AI Translated
-msgid "Circle — click the centre"
+msgid "Circle — click the center"
 msgstr "원 — 중심 클릭"
 
 # AI Translated
@@ -25186,23 +25273,23 @@ msgid "Tangent arc — click its far end"
 msgstr "접선 호 — 반대쪽 끝 클릭"
 
 # AI Translated
-msgid "Centre arc — click the centre"
+msgid "Center arc — click the center"
 msgstr "중심점 호 — 중심 클릭"
 
 # AI Translated
-msgid "Centre arc — click the start point (this sets the radius)"
+msgid "Center arc — click the start point (this sets the radius)"
 msgstr "중심점 호 — 시작점 클릭(반지름이 결정됨)"
 
 # AI Translated
-msgid "Centre arc — click the end point"
+msgid "Center arc — click the end point"
 msgstr "중심점 호 — 끝점 클릭"
 
 # AI Translated
-msgid "Slot — click one end of the centreline"
+msgid "Slot — click one end of the centerline"
 msgstr "슬롯 — 중심선의 한쪽 끝 클릭"
 
 # AI Translated
-msgid "Slot — click the other end of the centreline"
+msgid "Slot — click the other end of the centerline"
 msgstr "슬롯 — 중심선의 다른 쪽 끝 클릭"
 
 # AI Translated
@@ -25210,15 +25297,15 @@ msgid "Slot — click to set the width"
 msgstr "슬롯 — 클릭하여 너비 설정"
 
 # AI Translated
-msgid "Arc slot — click the centre the slot curves about"
+msgid "Arc slot — click the center the slot curves about"
 msgstr "호 슬롯 — 슬롯이 휘어지는 중심 클릭"
 
 # AI Translated
-msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgid "Arc slot — click the start of the centerline (this sets the radius)"
 msgstr "호 슬롯 — 중심선의 시작점 클릭(반지름이 결정됨)"
 
 # AI Translated
-msgid "Arc slot — click the end of the centreline"
+msgid "Arc slot — click the end of the centerline"
 msgstr "호 슬롯 — 중심선의 끝점 클릭"
 
 # AI Translated
@@ -25226,7 +25313,7 @@ msgid "Arc slot — click to set the width"
 msgstr "호 슬롯 — 클릭하여 너비 설정"
 
 # AI Translated
-msgid "Polygon — click the centre"
+msgid "Polygon — click the center"
 msgstr "다각형 — 중심 클릭"
 
 # AI Translated
@@ -25234,7 +25321,7 @@ msgid "Polygon — click a vertex (this sets size and orientation)"
 msgstr "다각형 — 꼭지점 클릭(크기와 방향이 결정됨)"
 
 # AI Translated
-msgid "Ellipse — click the centre"
+msgid "Ellipse — click the center"
 msgstr "타원 — 중심 클릭"
 
 # AI Translated
@@ -25246,7 +25333,7 @@ msgid "Ellipse — click a point on the minor axis"
 msgstr "타원 — 단축 위의 점 클릭"
 
 # AI Translated
-msgid "Elliptical arc — click the centre"
+msgid "Elliptical arc — click the center"
 msgstr "타원 호 — 중심 클릭"
 
 # AI Translated
@@ -25371,7 +25458,7 @@ msgid "Polar array — drag the handle to set the sweep, click the count to type
 msgstr "원형 배열 — 핸들을 드래그하여 회전 범위 설정, 개수를 클릭하여 입력  ·  빈 곳을 클릭하면 적용"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  right-click when done"
 msgstr "코너를 드래그하여 크기 조정, 중앙을 드래그하여 이동  ·  완료되면 마우스 오른쪽 클릭"
 
 # AI Translated
@@ -25493,17 +25580,12 @@ msgid "Section view off"
 msgstr "단면도 꺼짐"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Section view — showing the %s half"
-msgstr "단면도 — %s 절반 표시 중"
+msgid "Section view — showing the upper half"
+msgstr "단면도 — 위쪽 절반 표시 중"
 
 # AI Translated
-msgid "upper"
-msgstr "위쪽"
-
-# AI Translated
-msgid "lower"
-msgstr "아래쪽"
+msgid "Section view — showing the lower half"
+msgstr "단면도 — 아래쪽 절반 표시 중"
 
 # AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
@@ -25531,7 +25613,7 @@ msgstr "먼저 바디를 선택하십시오"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d colour set"
+msgid "Body %d color set"
 msgstr "바디 %d 색상 설정됨"
 
 # AI Translated
@@ -25703,7 +25785,8 @@ msgstr "구속조건 적용됨  ·  스케치에 배지가 표시됩니다 — �
 # AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr "%s  —  %d개 선택됨. Esc를 눌러 선택 도구로 전환하고, 선 하나를 클릭한 다음 다른 선을 Shift+클릭 또는 Ctrl+클릭하십시오."
+msgid_plural "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr[0] "%s  —  %d개 선택됨. Esc를 눌러 선택 도구로 전환하고, 선 하나를 클릭한 다음 다른 선을 Shift+클릭 또는 Ctrl+클릭하십시오."
 
 # AI Translated
 msgid "Applied constraint"
@@ -26058,13 +26141,15 @@ msgstr "실행 취소할 항목이 없습니다"
 
 # AI Translated
 #, c-format
-msgid "Redo  (%zu more)"
-msgstr "다시 실행  (%zu개 더)"
+msgid "Redo  (%zu more step)"
+msgid_plural "Redo  (%zu more steps)"
+msgstr[0] "다시 실행  (%zu단계 더)"
 
 # AI Translated
 #, c-format
-msgid "Undo  (%zu more)"
-msgstr "실행 취소  (%zu개 더)"
+msgid "Undo  (%zu more step)"
+msgid_plural "Undo  (%zu more steps)"
+msgstr[0] "실행 취소  (%zu단계 더)"
 
 # AI Translated
 msgid "Variable name:"
@@ -26659,6 +26744,139 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Showing %s actions"
+#~ msgstr "작업 %s개 표시 중"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s actions"
+#~ msgstr "작업 %s개"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s tabs"
+#~ msgstr "탭 %s개"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s matches"
+#~ msgstr "일치 항목 %s개"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s  ·  on %s"
+#~ msgstr "%s  ·  %s 위"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketching on %s — pick a tool"
+#~ msgstr "%s에서 스케치 중 — 도구를 선택하십시오"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Drawing on %s.\n"
+#~ "Pick a tool, or press Menu for the list."
+#~ msgstr ""
+#~ "%s에 그리는 중입니다.\n"
+#~ "도구를 선택하거나 메뉴를 눌러 목록을 보십시오."
+
+# AI Translated
+#~ msgid "Colour"
+#~ msgstr "색상"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d "
+#~ msgstr "바디 %d "
+
+# AI Translated
+#~ msgid "vertex selected — click again for the whole body"
+#~ msgstr "꼭지점 선택됨 — 다시 클릭하면 전체 바디 선택"
+
+# AI Translated
+#~ msgid "selected (whole body) — right-click for what applies to it"
+#~ msgstr "선택됨(전체 바디) — 적용할 수 있는 작업은 마우스 오른쪽 클릭"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+#~ msgstr "면 %d 선택됨 — 마우스 오른쪽 클릭으로 밀기/당기기, 다시 클릭하면 전체 바디 선택"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "모서리 %d 선택됨 — 필렛/모따기로 다듬거나, 다시 클릭하면 전체 바디 선택"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+#~ msgstr "배치됨 (%.1f, %.1f, %.1f) mm — 화살표를 드래그하여 이동, 링을 드래그하여 회전"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d degrees of freedom"
+#~ msgstr "자유도 %d"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+#~ msgstr "솔리드 %d개를 가져왔습니다 — 면이나 모서리를 선택한 다음 필렛 / 자르기 / 쉘로 수정하십시오"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+#~ msgstr "열린 쉘로 가져왔습니다(수밀 아님): 경계 모서리 %d개, 비다양체 모서리 %d개 — 삼각형 %d개 → 면 %d개. 원본 메시에 구멍이나 중복된 형상이 있어 불리언 피처가 실패할 수 있습니다"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketch added on %s — select it, then right-click to Extrude"
+#~ msgstr "%s에 스케치 추가됨 — 스케치를 선택한 다음 마우스 오른쪽 클릭으로 돌출"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pairs, worst %.2f mm³"
+#~ msgstr "간섭 쌍 %zu개, 최대 %.2f mm³"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "the picked face of Body %d"
+#~ msgstr "바디 %d의 선택한 면"
+
+# AI Translated
+#~ msgid "the picked face"
+#~ msgstr "선택한 면"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+#~ msgstr "%d개 선택됨  ·  Del로 제거  ·  Shift+클릭으로 추가  ·  더블 클릭으로 전체 루프 선택"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Section view — showing the %s half"
+#~ msgstr "단면도 — %s 절반 표시 중"
+
+# AI Translated
+#~ msgid "upper"
+#~ msgstr "위쪽"
+
+# AI Translated
+#~ msgid "lower"
+#~ msgstr "아래쪽"
+
+# AI Translated
+#, c-format
+#~ msgid "Redo  (%zu more)"
+#~ msgstr "다시 실행  (%zu개 더)"
+
+# AI Translated
+#, c-format
+#~ msgid "Undo  (%zu more)"
+#~ msgstr "실행 취소  (%zu개 더)"
 
 #~ msgid "Reset direction"
 #~ msgstr "방향 초기화"
@@ -27759,9 +27977,6 @@ msgstr ""
 
 #~ msgid "Show home page on startup"
 #~ msgstr "시작 시 홈페이지 표시"
-
-#~ msgid "Please choose the filament color"
-#~ msgstr "필라멘트 색상을 선택해 주세요"
 
 #~ msgid "Send print job to"
 #~ msgstr "출력 작업 보내기"

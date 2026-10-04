@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:00-0300\n"
+"POT-Creation-Date: 2026-10-04 20:03-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10646,27 +10646,27 @@ msgstr "Nincsenek fülek"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Showing %s actions"
-msgstr "%s művelet látható"
+msgid "Matching actions: %s"
+msgstr "Egyező műveletek: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s actions"
-msgstr "%s művelet"
+msgid "Actions: %s"
+msgstr "Műveletek: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s tabs"
-msgstr "%s fül"
+msgid "Tabs: %s"
+msgstr "Fülek: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s matches"
-msgstr "%s találat"
+msgid "Matching tabs: %s"
+msgstr "Egyező fülek: %s"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourites are full (%s max)"
+msgid "Favorites are full (%s max)"
 msgstr "A kedvencek megteltek (legfeljebb %s)"
 
 # AI Translated
@@ -10689,21 +10689,21 @@ msgstr "Ugrás fülre"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Favourite %s (%s)"
+msgid "Favorite %s (%s)"
 msgstr "Kedvenc %s (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Pin to favourites (%s)"
+msgid "Pin to favorites (%s)"
 msgstr "Rögzítés a kedvencek közé (%s)"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Unpin from favourites (%s)"
+msgid "Unpin from favorites (%s)"
 msgstr "Rögzítés feloldása a kedvencek közül (%s)"
 
 # AI Translated
-msgid "Remove from favourites"
+msgid "Remove from favorites"
 msgstr "Eltávolítás a kedvencek közül"
 
 # AI Translated
@@ -12573,7 +12573,7 @@ msgstr "Szorzó"
 msgid "Flushing volumes for filament change"
 msgstr "Filamentcsere öblítési mennyisége"
 
-msgid "Please choose the filament colour"
+msgid "Please choose the filament color"
 msgstr "Kérlek, válaszd ki a filament színét"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -22662,8 +22662,8 @@ msgstr "Segédgeometria"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s  ·  on %s"
-msgstr "%s  ·  ezen: %s"
+msgid "%s  ·  plane: %s"
+msgstr "%s  ·  sík: %s"
 
 # AI Translated
 msgid "Line — click start, then end"
@@ -22779,8 +22779,8 @@ msgstr "Vázlat"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketching on %s — pick a tool"
-msgstr "Vázlatkészítés ezen: %s — válassz eszközt"
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Vázlatsík: %s — válassz eszközt"
 
 # AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
@@ -22789,10 +22789,10 @@ msgstr "Kattints egy lapra vagy referenciasíkra a nézetablakban, majd egy váz
 # AI Translated
 #, c-format, boost-format
 msgid ""
-"Drawing on %s.\n"
+"Sketch plane: %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
-"Rajzolás ezen: %s.\n"
+"Vázlatsík: %s.\n"
 "Válassz eszközt, vagy nyomd meg a Menü billentyűt a listához."
 
 # AI Translated
@@ -22802,6 +22802,11 @@ msgstr "Kattints egy lapra vagy referenciasíkra, majd egy vázlateszközre."
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
 msgstr "Anyag hozzáadása (extrudálás / körbeforgatás / söprés / átmenet / vastagítás / borda)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extrude"
+msgstr "Extrudálás"
 
 # AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
@@ -22865,6 +22870,11 @@ msgid "Body %zu"
 msgstr "Test %zu"
 
 # AI Translated
+msgctxt "Design"
+msgid "Rib"
+msgstr "Borda"
+
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr "Vékony fal növesztése nyitott vázlatvonalból, egy testhez olvasztva"
 
@@ -22875,6 +22885,11 @@ msgstr "A bordához szilárd test szükséges — előbb adj hozzá vagy import�
 # AI Translated
 msgid "Create a sketch with an open line first"
 msgstr "Előbb hozz létre egy nyitott vonalat tartalmazó vázlatot"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern"
+msgstr "Sokszorozás"
 
 # AI Translated
 msgid "Create a solid body to pattern first"
@@ -22985,6 +23000,11 @@ msgid "Helical curve (spring path) — use as a sweep path for coils / springs /
 msgstr "Csavarvonal (rugópálya) — söprési útvonalként használható tekercsekhez / rugókhoz / csigákhoz"
 
 # AI Translated
+msgctxt "Design"
+msgid "Project"
+msgstr "Vetítés"
+
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
 msgstr "Test éleinek vetítése egy síkra vázlatelemekként"
 
@@ -23049,7 +23069,7 @@ msgid "Cut — needs a solid body to slice"
 msgstr "Vágás — egy vágandó szilárd test szükséges"
 
 # AI Translated
-msgid "Color — set the selected body's display colour"
+msgid "Color — set the selected body's display color"
 msgstr "Szín — a kijelölt test megjelenítési színének beállítása"
 
 # AI Translated
@@ -23077,6 +23097,11 @@ msgid "Tilt a picked face by a draft angle"
 msgstr "Kijelölt lap döntése ferdeségi szöggel"
 
 # AI Translated
+msgctxt "Design"
+msgid "Shell"
+msgstr "Héjazás"
+
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr "Test kiüregelése adott falvastagságra, egy kijelölt lap megnyitásával"
 
@@ -23101,7 +23126,7 @@ msgid "Hole / thread"
 msgstr "Furat / menet"
 
 # AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Furat készítése egy kijelölt lap közepén vagy egy síkon elhelyezve"
 
 # AI Translated
@@ -23417,13 +23442,31 @@ msgstr "beírt"
 msgid "Polygon"
 msgstr "Sokszög"
 
+# AI Translated
 #, c-format, boost-format
-msgid "Converted %d entit%s between construction and real geometry"
-msgstr ""
+msgid "Converted %d entity between construction and real geometry"
+msgid_plural "Converted %d entities between construction and real geometry"
+msgstr[0] "%d elem átalakítva segédgeometria és valós geometria között"
+msgstr[1] "%d elem átalakítva segédgeometria és valós geometria között"
 
 # AI Translated
 msgid "CONSTRAIN"
 msgstr "KÉNYSZEREK"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Horizontal"
+msgstr "Vízszintes"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Vertical"
+msgstr "Függőleges"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Parallel"
+msgstr "Párhuzamos"
 
 # AI Translated
 msgid "Perpendicular"
@@ -23444,6 +23487,11 @@ msgstr "Egyenlő sugár"
 # AI Translated
 msgid "Collinear"
 msgstr "Kollineáris"
+
+# AI Translated
+msgctxt "Sketch Constraint"
+msgid "Concentric"
+msgstr "Koncentrikus"
 
 # AI Translated
 msgid "Tangent"
@@ -23581,6 +23629,11 @@ msgid "New body"
 msgstr "Új test"
 
 # AI Translated
+msgctxt "Boolean Mode"
+msgid "Cut"
+msgstr "Kivágás"
+
+# AI Translated
 msgid "Intersect"
 msgstr "Metszet"
 
@@ -23688,6 +23741,11 @@ msgid "Linear"
 msgstr "Lineáris"
 
 # AI Translated
+msgctxt "Design"
+msgid "Circular"
+msgstr "Körkörös"
+
+# AI Translated
 msgid "Direction"
 msgstr "Irány"
 
@@ -23716,6 +23774,11 @@ msgid "Keep tool body"
 msgstr "Szerszámtest megtartása"
 
 # AI Translated
+msgctxt "Design"
+msgid "Cut"
+msgstr "Vágás"
+
+# AI Translated
 msgid "Body"
 msgstr "Test"
 
@@ -23725,7 +23788,7 @@ msgstr "Beszúrás"
 
 # AI Translated
 msgid ""
-"Drag a corner to size, the centre to move.\n"
+"Drag a corner to size, the center to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
 "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz.\n"
@@ -24174,10 +24237,6 @@ msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Logikai művelet — egyesítés, kivonás vagy metszet egy másik testtel"
 
 # AI Translated
-msgid "Colour"
-msgstr "Szín"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
 msgstr "Test %d kijelölve — jobb kattintással láthatod, mi alkalmazható rá"
@@ -24234,26 +24293,41 @@ msgstr "Lap %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d "
-msgstr "Test %d: "
+msgid "Body %d: vertex selected — click again for the whole body"
+msgstr "Test %d: csúcs kijelölve — kattints újra a teljes testhez"
 
 # AI Translated
-msgid "vertex selected — click again for the whole body"
-msgstr "csúcs kijelölve — kattints újra a teljes testhez"
-
-# AI Translated
-msgid "selected (whole body) — right-click for what applies to it"
-msgstr "kijelölve (teljes test) — jobb kattintással láthatod, mi alkalmazható rá"
+msgid "Vertex selected — click again for the whole body"
+msgstr "Csúcs kijelölve — kattints újra a teljes testhez"
 
 # AI Translated
 #, c-format, boost-format
-msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr "lap %d kijelölve — jobb kattintás: tolás/húzás, vagy kattints újra a teljes testhez"
+msgid "Body %d selected (whole body) — right-click for what applies to it"
+msgstr "Test %d kijelölve (teljes test) — jobb kattintással láthatod, mi alkalmazható rá"
+
+# AI Translated
+msgid "Whole body selected — right-click for what applies to it"
+msgstr "Teljes test kijelölve — jobb kattintással láthatod, mi alkalmazható rá"
 
 # AI Translated
 #, c-format, boost-format
-msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+msgid "Body %d: face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "Test %d: lap %d kijelölve — jobb kattintás: tolás/húzás, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr "Lap %d kijelölve — jobb kattintás: tolás/húzás, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "Test %d: él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr "Él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
 
 # AI Translated
 #, c-format, boost-format
@@ -24267,8 +24341,13 @@ msgstr "%s sík kijelölve — jobb kattintással vázlatot készíthetsz rajta,
 
 # AI Translated
 #, c-format, boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr "elhelyezve (%.1f, %.1f, %.1f) mm — a nyilak húzásával mozgathatod, a gyűrűkkel forgathatod"
+msgid "Body %d placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "Test %d elhelyezve: (%.1f, %.1f, %.1f) mm — a nyilak húzásával mozgathatod, a gyűrűkkel forgathatod"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Placed at (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr "Elhelyezve: (%.1f, %.1f, %.1f) mm — a nyilak húzásával mozgathatod, a gyűrűkkel forgathatod"
 
 # AI Translated
 msgid "Tool exited"
@@ -24288,8 +24367,10 @@ msgstr "✓ Teljesen meghatározott"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d degrees of freedom"
-msgstr "%d szabadságfok"
+msgid "%d degree of freedom"
+msgid_plural "%d degrees of freedom"
+msgstr[0] "%d szabadságfok"
+msgstr[1] "%d szabadságfok"
 
 # AI Translated
 #, c-format, boost-format
@@ -24309,6 +24390,11 @@ msgstr "OK — %zu háromszög"
 # AI Translated
 msgid "Text to insert:"
 msgstr "Beszúrandó szöveg:"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Szöveg"
 
 # AI Translated
 msgid "Import SVG"
@@ -24336,8 +24422,10 @@ msgstr "Modell újraépítése…"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "%d szilárd test importálva — válassz ki egy lapot vagy élt, majd módosítsd Lekerekítéssel / Vágással / Héjazással"
+msgid "Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgid_plural "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr[0] "%d szilárd test importálva — válassz ki egy lapot vagy élt, majd módosítsd Lekerekítéssel / Vágással / Héjazással"
+msgstr[1] "%d szilárd test importálva — válassz ki egy lapot vagy élt, majd módosítsd Lekerekítéssel / Vágással / Héjazással"
 
 # AI Translated
 msgid "Import mesh"
@@ -24393,8 +24481,8 @@ msgstr "Szilárd test importálva — %d háromszög → %d lap, térfogat: %.2f
 
 # AI Translated
 #, c-format, boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr "Nyitott héjként importálva (nem zárt): %d határél, %d hibás él — %d háromszög → %d lap. A forrásháló lyukas vagy duplikált geometriát tartalmaz; a logikai műveletek hibásak lehetnek rajta"
+msgid "Imported as an open shell (not watertight). Boundary edges: %d, non-manifold edges: %d, triangles: %d → faces: %d. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr "Nyitott héjként importálva (nem zárt). Határélek: %d, hibás élek: %d, háromszögek: %d → lapok: %d. A forrásháló lyukas vagy duplikált geometriát tartalmaz; a logikai műveletek hibásak lehetnek rajta"
 
 # AI Translated
 msgid "No importable geometry found"
@@ -24414,13 +24502,13 @@ msgid "Insert cancelled"
 msgstr "Beszúrás megszakítva"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — right-click when done"
 msgstr "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz — ha kész, kattints jobb gombbal"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr "Vázlat hozzáadva ezen: %s — jelöld ki, majd jobb kattintással extrudáld"
+msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
+msgstr "Vázlat hozzáadva (sík: %s) — jelöld ki, majd jobb kattintással extrudáld"
 
 # AI Translated
 msgid "Recompute error: "
@@ -24518,8 +24606,10 @@ msgstr "Nem található ütközés"
 
 # AI Translated
 #, c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr "%zu ütköző pár, a legnagyobb %.2f mm³"
+msgid "%zu interference pair, worst %.2f mm³"
+msgid_plural "%zu interference pairs, worst %.2f mm³"
+msgstr[0] "%zu ütköző pár, a legnagyobb %.2f mm³"
+msgstr[1] "%zu ütköző pár, a legnagyobb %.2f mm³"
 
 # AI Translated
 msgid ""
@@ -24604,12 +24694,12 @@ msgstr "A vágáshoz szilárd test szükséges — előbb adj hozzá vagy import
 
 # AI Translated
 #, c-format, boost-format
-msgid "the picked face of Body %d"
-msgstr "a Test %d kijelölt lapja"
+msgid "Picked face (Body %d)"
+msgstr "Kijelölt lap (Test %d)"
 
 # AI Translated
-msgid "the picked face"
-msgstr "a kijelölt lap"
+msgid "Picked face"
+msgstr "Kijelölt lap"
 
 # AI Translated
 #, c-format, boost-format
@@ -24618,11 +24708,13 @@ msgstr "  ·  %d kiválasztva"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr "%d kijelölve  ·  Del: eltávolítás  ·  Shift+kattintás: hozzáadás  ·  dupla kattintás: teljes hurok"
+msgid "%d selected  ·  Del removes it  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgid_plural "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr[0] "%d kijelölve  ·  Del: eltávolítás  ·  Shift+kattintás: hozzáadás  ·  dupla kattintás: teljes hurok"
+msgstr[1] "%d kijelölve  ·  Del: eltávolítás  ·  Shift+kattintás: hozzáadás  ·  dupla kattintás: teljes hurok"
 
 # AI Translated
-msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgid "Select — click an entity to pick it  ·  drag an endpoint or center to move it  ·  Shift-click adds  ·  Del removes"
 msgstr "Kijelölés — kattints egy elemre a kiválasztásához  ·  végpont vagy középpont húzásával mozgathatod  ·  Shift+kattintás: hozzáadás  ·  Del: eltávolítás"
 
 # AI Translated
@@ -24667,11 +24759,11 @@ msgid "Rectangle — click the opposite corner"
 msgstr "Téglalap — kattints az átellenes sarokra"
 
 # AI Translated
-msgid "Centre rectangle — click the centre"
+msgid "Center rectangle — click the center"
 msgstr "Középpontos téglalap — kattints a középpontra"
 
 # AI Translated
-msgid "Centre rectangle — click a corner"
+msgid "Center rectangle — click a corner"
 msgstr "Középpontos téglalap — kattints egy sarokra"
 
 # AI Translated
@@ -24699,7 +24791,7 @@ msgid "Rounded rectangle — click to set the corner radius"
 msgstr "Lekerekített téglalap — kattints a saroksugár megadásához"
 
 # AI Translated
-msgid "Circle — click the centre"
+msgid "Circle — click the center"
 msgstr "Kör — kattints a középpontra"
 
 # AI Translated
@@ -24747,23 +24839,23 @@ msgid "Tangent arc — click its far end"
 msgstr "Érintőív — kattints a túlsó végére"
 
 # AI Translated
-msgid "Centre arc — click the centre"
+msgid "Center arc — click the center"
 msgstr "Középpontos ív — kattints a középpontra"
 
 # AI Translated
-msgid "Centre arc — click the start point (this sets the radius)"
+msgid "Center arc — click the start point (this sets the radius)"
 msgstr "Középpontos ív — kattints a kezdőpontra (ez határozza meg a sugarat)"
 
 # AI Translated
-msgid "Centre arc — click the end point"
+msgid "Center arc — click the end point"
 msgstr "Középpontos ív — kattints a végpontra"
 
 # AI Translated
-msgid "Slot — click one end of the centreline"
+msgid "Slot — click one end of the centerline"
 msgstr "Hosszlyuk — kattints a középvonal egyik végére"
 
 # AI Translated
-msgid "Slot — click the other end of the centreline"
+msgid "Slot — click the other end of the centerline"
 msgstr "Hosszlyuk — kattints a középvonal másik végére"
 
 # AI Translated
@@ -24771,15 +24863,15 @@ msgid "Slot — click to set the width"
 msgstr "Hosszlyuk — kattints a szélesség megadásához"
 
 # AI Translated
-msgid "Arc slot — click the centre the slot curves about"
+msgid "Arc slot — click the center the slot curves about"
 msgstr "Íves hosszlyuk — kattints arra a középpontra, amely körül a hosszlyuk ívelődik"
 
 # AI Translated
-msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgid "Arc slot — click the start of the centerline (this sets the radius)"
 msgstr "Íves hosszlyuk — kattints a középvonal kezdőpontjára (ez határozza meg a sugarat)"
 
 # AI Translated
-msgid "Arc slot — click the end of the centreline"
+msgid "Arc slot — click the end of the centerline"
 msgstr "Íves hosszlyuk — kattints a középvonal végpontjára"
 
 # AI Translated
@@ -24787,7 +24879,7 @@ msgid "Arc slot — click to set the width"
 msgstr "Íves hosszlyuk — kattints a szélesség megadásához"
 
 # AI Translated
-msgid "Polygon — click the centre"
+msgid "Polygon — click the center"
 msgstr "Sokszög — kattints a középpontra"
 
 # AI Translated
@@ -24795,7 +24887,7 @@ msgid "Polygon — click a vertex (this sets size and orientation)"
 msgstr "Sokszög — kattints egy csúcsra (ez határozza meg a méretet és a tájolást)"
 
 # AI Translated
-msgid "Ellipse — click the centre"
+msgid "Ellipse — click the center"
 msgstr "Ellipszis — kattints a középpontra"
 
 # AI Translated
@@ -24807,7 +24899,7 @@ msgid "Ellipse — click a point on the minor axis"
 msgstr "Ellipszis — kattints egy pontra a kistengelyen"
 
 # AI Translated
-msgid "Elliptical arc — click the centre"
+msgid "Elliptical arc — click the center"
 msgstr "Ellipszisív — kattints a középpontra"
 
 # AI Translated
@@ -24932,7 +25024,7 @@ msgid "Polar array — drag the handle to set the sweep, click the count to type
 msgstr "Poláris sokszorozás — húzd a fogantyút a szögtartomány beállításához, kattints a darabszámra a beírásához  ·  az alkalmazáshoz kattints üres területre"
 
 # AI Translated
-msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  right-click when done"
 msgstr "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz  ·  ha kész, kattints jobb gombbal"
 
 # AI Translated
@@ -25054,17 +25146,12 @@ msgid "Section view off"
 msgstr "Keresztmetszet nézet kikapcsolva"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Section view — showing the %s half"
-msgstr "Keresztmetszet nézet — a(z) %s fél látható"
+msgid "Section view — showing the upper half"
+msgstr "Keresztmetszet nézet — a felső fél látható"
 
 # AI Translated
-msgid "upper"
-msgstr "felső"
-
-# AI Translated
-msgid "lower"
-msgstr "alsó"
+msgid "Section view — showing the lower half"
+msgstr "Keresztmetszet nézet — az alsó fél látható"
 
 # AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
@@ -25092,7 +25179,7 @@ msgstr "Előbb jelölj ki egy testet"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Body %d colour set"
+msgid "Body %d color set"
 msgstr "Test %d színe beállítva"
 
 # AI Translated
@@ -25264,7 +25351,9 @@ msgstr "Kényszer alkalmazva  ·  a jelvénye a vázlaton látható — az eltá
 # AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr "%s  —  %d kijelölve. Nyomd meg az Esc billentyűt a Kijelölés eszközhöz, kattints az egyik vonalra, majd Shift+ vagy Ctrl+kattintással a másikra."
+msgid_plural "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr[0] "%s  —  %d kijelölve. Nyomd meg az Esc billentyűt a Kijelölés eszközhöz, kattints az egyik vonalra, majd Shift+ vagy Ctrl+kattintással a másikra."
+msgstr[1] "%s  —  %d kijelölve. Nyomd meg az Esc billentyűt a Kijelölés eszközhöz, kattints az egyik vonalra, majd Shift+ vagy Ctrl+kattintással a másikra."
 
 # AI Translated
 msgid "Applied constraint"
@@ -25619,13 +25708,17 @@ msgstr "Nincs mit visszavonni"
 
 # AI Translated
 #, c-format
-msgid "Redo  (%zu more)"
-msgstr "Mégis  (még %zu)"
+msgid "Redo  (%zu more step)"
+msgid_plural "Redo  (%zu more steps)"
+msgstr[0] "Mégis  (még %zu lépés)"
+msgstr[1] "Mégis  (még %zu lépés)"
 
 # AI Translated
 #, c-format
-msgid "Undo  (%zu more)"
-msgstr "Visszavonás  (még %zu)"
+msgid "Undo  (%zu more step)"
+msgid_plural "Undo  (%zu more steps)"
+msgstr[0] "Visszavonás  (még %zu lépés)"
+msgstr[1] "Visszavonás  (még %zu lépés)"
 
 # AI Translated
 msgid "Variable name:"
@@ -26217,6 +26310,139 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Showing %s actions"
+#~ msgstr "%s művelet látható"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s actions"
+#~ msgstr "%s művelet"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s tabs"
+#~ msgstr "%s fül"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s matches"
+#~ msgstr "%s találat"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s  ·  on %s"
+#~ msgstr "%s  ·  ezen: %s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketching on %s — pick a tool"
+#~ msgstr "Vázlatkészítés ezen: %s — válassz eszközt"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Drawing on %s.\n"
+#~ "Pick a tool, or press Menu for the list."
+#~ msgstr ""
+#~ "Rajzolás ezen: %s.\n"
+#~ "Válassz eszközt, vagy nyomd meg a Menü billentyűt a listához."
+
+# AI Translated
+#~ msgid "Colour"
+#~ msgstr "Szín"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d "
+#~ msgstr "Test %d: "
+
+# AI Translated
+#~ msgid "vertex selected — click again for the whole body"
+#~ msgstr "csúcs kijelölve — kattints újra a teljes testhez"
+
+# AI Translated
+#~ msgid "selected (whole body) — right-click for what applies to it"
+#~ msgstr "kijelölve (teljes test) — jobb kattintással láthatod, mi alkalmazható rá"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+#~ msgstr "lap %d kijelölve — jobb kattintás: tolás/húzás, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+#~ msgstr "elhelyezve (%.1f, %.1f, %.1f) mm — a nyilak húzásával mozgathatod, a gyűrűkkel forgathatod"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d degrees of freedom"
+#~ msgstr "%d szabadságfok"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+#~ msgstr "%d szilárd test importálva — válassz ki egy lapot vagy élt, majd módosítsd Lekerekítéssel / Vágással / Héjazással"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+#~ msgstr "Nyitott héjként importálva (nem zárt): %d határél, %d hibás él — %d háromszög → %d lap. A forrásháló lyukas vagy duplikált geometriát tartalmaz; a logikai műveletek hibásak lehetnek rajta"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Sketch added on %s — select it, then right-click to Extrude"
+#~ msgstr "Vázlat hozzáadva ezen: %s — jelöld ki, majd jobb kattintással extrudáld"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pairs, worst %.2f mm³"
+#~ msgstr "%zu ütköző pár, a legnagyobb %.2f mm³"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "the picked face of Body %d"
+#~ msgstr "a Test %d kijelölt lapja"
+
+# AI Translated
+#~ msgid "the picked face"
+#~ msgstr "a kijelölt lap"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+#~ msgstr "%d kijelölve  ·  Del: eltávolítás  ·  Shift+kattintás: hozzáadás  ·  dupla kattintás: teljes hurok"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Section view — showing the %s half"
+#~ msgstr "Keresztmetszet nézet — a(z) %s fél látható"
+
+# AI Translated
+#~ msgid "upper"
+#~ msgstr "felső"
+
+# AI Translated
+#~ msgid "lower"
+#~ msgstr "alsó"
+
+# AI Translated
+#, c-format
+#~ msgid "Redo  (%zu more)"
+#~ msgstr "Mégis  (még %zu)"
+
+# AI Translated
+#, c-format
+#~ msgid "Undo  (%zu more)"
+#~ msgstr "Visszavonás  (még %zu)"
 
 #~ msgid "Reset direction"
 #~ msgstr "Irány visszaállítása"
