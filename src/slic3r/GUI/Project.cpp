@@ -4,19 +4,47 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <atomic>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <array>
+#include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Auxiliary.hpp"
+#include <cstddef>
+#include <memory>
+#include <map>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <exception>
+#include <cmath>
+#include <fstream>
+#include <ios>
+#include <sstream>
 #include <wx/app.h>
+#include <wx/base64.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/filefn.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 #include <wx/filedlg.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wupdlock.h>
 #include <wx/dataview.h>
 #include <wx/tokenzr.h>

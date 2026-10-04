@@ -1,7 +1,10 @@
 #include "AmsWidgets.hpp"
+#include <map>
+#include <string>
 #include <wx/button.h>
 #include <wx/sizer.h>
 #include <wx/dataview.h>
+#include <wx/variant.h>
 
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"

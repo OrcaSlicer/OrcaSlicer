@@ -4,10 +4,14 @@
 #define WipeTower2_
 
 #include <cmath>
+#include <cstddef>
+#include <limits>
+#include <math.h>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <algorithm>
+#include <vector>
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"

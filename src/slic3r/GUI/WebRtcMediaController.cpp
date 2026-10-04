@@ -1,9 +1,26 @@
 #include "WebRtcMediaController.hpp"
+#include "ICameraSignalingChannel.hpp"
 
+#include <functional>
+#include <memory>
+#include <cstddef>
+#include <exception>
+#include <rtc/candidate.hpp>
+#include <chrono>
 #include <rtc/common.hpp>
+#include <rtc/global.hpp>
+#include <rtc/configuration.hpp>
+#include <rtc/description.hpp>
+#include <rtc/peerconnection.hpp>
 #include <rtc/rtc.hpp>
 
 #include <mutex>
+#include <string>
+#include <wx/image.h>
+#include <wx/gdicmn.h>
+#include <utility>
+#include <wx/mediactrl.h>
+#include <vector>
 #include <wx/mstream.h>
 
 #include <boost/log/trivial.hpp>

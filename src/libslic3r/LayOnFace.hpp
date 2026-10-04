@@ -2,6 +2,7 @@
 
 #include "Point.hpp"
 
+#include <cstddef>
 #include <vector>
 
 namespace Slic3r {

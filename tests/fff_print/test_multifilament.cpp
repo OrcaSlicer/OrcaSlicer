@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 
@@ -12,6 +15,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Print.hpp"
 #include <limits>
 #include <optional>
 #include <set>
@@ -891,5 +899,67 @@ TEST_CASE("Each filament sets the pressure advance of its extruder variant on a 
             expected.insert(adaptive_pressure_advance);
         CHECK(pressure_advance_values(gcode) == expected);
         CHECK(gcode.find("; start pressure advance " + pressure_advance + "\n") != std::string::npos);
+    }
+}
+
+// The speeds, in percent, a G-code turns a fan on at: the part cooling fan for `M106 S`, the auxiliary
+// fan for `M106 P2 S`.
+static std::set<int> fan_speeds(const std::string &gcode, const std::string &command)
+{
+    std::set<int> speeds;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);)
+        if (line.rfind(command, 0) == 0)
+            if (const int pwm = std::stoi(line.substr(command.size())); pwm > 0)
+                speeds.insert(int(std::lround(pwm * 100. / 255.)));
+    return speeds;
+}
+
+// The fan speeds and the recommended nozzle temperature range are tuned per extruder variant like the
+// other filament variant settings.
+TEST_CASE("Each filament cools with the fan speeds of its extruder variant", "[MultiFilament]")
+{
+    auto [nozzle_volume_type, filament, fan_min_speed, fan_max_speed, additional_fan_speed, range_high] = GENERATE(table<NozzleVolumeType, int, int, int, int, int>({
+        { nvtStandard, 1, 15, 25, 10, 240 },
+        { nvtHighFlow, 1, 35, 45, 20, 260 },
+        { nvtHighFlow, 2, 55, 65, 40, 280 }, // filament 2 defines no High Flow variant
+    }));
+    // Layers printed faster than slow_down_layer_time run the fan at its maximum speed, layers slower than
+    // fan_cooling_layer_time at its minimum.
+    const bool fast_layers = GENERATE(false, true);
+    DYNAMIC_SECTION(get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament << (fast_layers ? ", fast layers" : ", slow layers")) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "extruder_variant_list",          "Direct Drive Standard,Direct Drive High Flow" },
+            // filament 1 defines Standard and High Flow, filament 2 Standard
+            { "filament_extruder_variant",      "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",            "1,1,2" },
+            { "fan_min_speed",                  "15,35,55" },
+            { "fan_max_speed",                  "25,45,65" },
+            { "additional_cooling_fan_speed",   "10,20,40" },
+            { "nozzle_temperature_range_high",  "240,260,280" },
+            { "auxiliary_fan",                  1 },
+            { "reduce_fan_stop_start_freq",     "1,1" },
+            { "slow_down_layer_time",           fast_layers ? "1000,1000" : "0,0" },
+            { "fan_cooling_layer_time",         fast_layers ? "1000,1000" : "0,0" },
+            { "slow_down_for_layer_cooling",    "0,0" },
+            { "enable_overhang_bridge_fan",     "0,0" },
+            { "sparse_infill_filament_id",      filament },
+            { "internal_solid_filament_id",     filament },
+            { "top_surface_filament_id",        filament },
+            { "bottom_surface_filament_id",     filament },
+            { "outer_wall_filament_id",         filament },
+            { "inner_wall_filament_id",         filament },
+            { "enable_prime_tower",             0 },
+            { "skirt_loops",                    0 },
+            { "brim_type",                      "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",            "; start range high {nozzle_temperature_range_high[initial_extruder]}" },
+        });
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        CHECK(fan_speeds(gcode, "M106 S") == std::set<int>{ fast_layers ? fan_max_speed : fan_min_speed });
+        CHECK(fan_speeds(gcode, "M106 P2 S") == std::set<int>{ additional_fan_speed });
+        CHECK(gcode.find("; start range high " + std::to_string(range_high) + "\n") != std::string::npos);
     }
 }

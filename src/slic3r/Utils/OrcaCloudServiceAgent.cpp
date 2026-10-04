@@ -1,21 +1,37 @@
 #include "OrcaCloudServiceAgent.hpp"
+#include "CloudProvider.hpp"
 #include "Http.hpp"
+#include "bambu_networking.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include <atomic>
 #include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/uuid/name_generator_sha1.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <chrono>
+#include <cstdio>
 #include <exception>
+#include <functional>
 #include <iostream>
+#include <iterator>
 #include <libslic3r/Platform.hpp>
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/ProjectTask.hpp"
 #include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -32,7 +48,11 @@
 #include <sstream>
 
 #include <string>
+#include <system_error>
+#include <thread>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 #include <wx/filename.h>
 #include <wx/filefn.h>
 #include <wx/secretstore.h>
@@ -819,7 +839,9 @@ int OrcaCloudServiceAgent::user_logout(bool request)
         }
     }
 
-    clear_session();
+    // An explicit logout also wipes the backend the token storage option is not using, so a token
+    // stranded by switching that option cannot sign the account back in later.
+    clear_session(/*all_backends=*/request);
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -1476,15 +1498,8 @@ void OrcaCloudServiceAgent::save_sync_state()
     if (sync_state_path.empty())
         return;
 
-    try {
-        std::string tmp_path = sync_state_path + ".tmp";
-        std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc);
-        if (ofs.good()) {
-            ofs << std::to_string(sync_state.last_sync_timestamp);
-            ofs.close();
-            boost::filesystem::rename(tmp_path, sync_state_path);
-        }
-    } catch (...) {}
+    if (const std::error_code ec = write_file_atomically(sync_state_path, std::to_string(sync_state.last_sync_timestamp)))
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: failed to save the sync state: " << ec.message();
 }
 
 void OrcaCloudServiceAgent::clear_sync_state()
@@ -1573,22 +1588,10 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
             wxFileName::Mkdir(path.GetPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
         }
 
-        const std::string tmp_path = secret_fallback_path + ".tmp";
-        std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc | std::ios::binary);
-        if (ofs.good()) {
-            ofs << signed_payload;
-            ofs.flush();
-            ofs.close();
-
-            if (wxRenameFile(wxString::FromUTF8(tmp_path.c_str()), wxString::FromUTF8(secret_fallback_path.c_str()), true)) {
-                stored = true;
-            } else {
-                wxRemoveFile(wxString::FromUTF8(tmp_path.c_str()));
-                BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: failed to atomically replace user secret file";
-            }
-        } else {
-            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot open user secret file for write - " << secret_fallback_path;
-        }
+        if (const std::error_code ec = write_file_atomically(secret_fallback_path, signed_payload, /*binary=*/true))
+            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot write user secret file " << secret_fallback_path << ": " << ec.message();
+        else
+            stored = true;
     } else {
         // Use wxSecretStore only
         wxSecretStore store = wxSecretStore::GetDefault();
@@ -1604,7 +1607,9 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
         }
     }
 
-    (void) stored;
+    if (stored) {
+        secret_stored = true;
+    }
 }
 
 bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
@@ -1644,6 +1649,7 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
                 }
 
                 if (integrity_ok && aes256gcm_decrypt(encoded_payload, key, plain) && !plain.empty()) {
+                    secret_stored = true;
                     out_secret = plain;
                     // Upgrade legacy payloads to signed format
                     if (payload.rfind("v2:", 0) != 0) {
@@ -1661,6 +1667,7 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
             if (store.Load(SECRET_STORE_SERVICE, username, secret) && secret.IsOk()) {
                 out_secret.assign(static_cast<const char*>(secret.GetData()), secret.GetSize());
                 if (!out_secret.empty()) {
+                    secret_stored = true;
                     return true;
                 }
             }
@@ -1670,11 +1677,20 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
     return false;
 }
 
-void OrcaCloudServiceAgent::clear_user_secret()
+void OrcaCloudServiceAgent::clear_user_secret(bool all_backends)
 {
-    wxSecretStore store = wxSecretStore::GetDefault();
-    if (store.IsOk()) {
-        store.Delete(SECRET_STORE_SERVICE);
+    // Nothing this process loaded or saved: leave the store alone. Deleting would only cost a
+    // keychain round trip (or a hang while the keychain is unresponsive) and could remove a
+    // login another instance just saved.
+    if (!secret_stored.exchange(false) && !all_backends) {
+        return;
+    }
+
+    if (all_backends || !m_use_encrypted_token_file) {
+        wxSecretStore store = wxSecretStore::GetDefault();
+        if (store.IsOk()) {
+            store.Delete(SECRET_STORE_SERVICE);
+        }
     }
 
     compute_fallback_path();
@@ -2023,13 +2039,13 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
     return success;
 }
 
-void OrcaCloudServiceAgent::clear_session()
+void OrcaCloudServiceAgent::clear_session(bool all_backends)
 {
     {
         std::lock_guard<std::mutex> lock(session_mutex);
         session = SessionInfo{};
     }
-    clear_user_secret();
+    clear_user_secret(all_backends);
 }
 
 // ============================================================================

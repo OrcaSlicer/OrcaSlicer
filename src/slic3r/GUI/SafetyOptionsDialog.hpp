@@ -1,6 +1,8 @@
 #ifndef slic3r_GUI_SafetyOptionsDialog_hpp_
 #define slic3r_GUI_SafetyOptionsDialog_hpp_
 
+#include <wx/panel.h>
+#include <wx/timer.h>
 #include <wx/wx.h>
 #include <wx/font.h>
 #include <wx/colour.h>

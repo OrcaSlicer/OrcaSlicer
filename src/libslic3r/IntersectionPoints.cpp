@@ -1,5 +1,10 @@
 #include "IntersectionPoints.hpp"
+#include <cstdint>
 #include <libslic3r/AABBTreeLines.hpp>
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
 
 //NOTE: using CGAL SweepLines is slower !!! (example in git history)
 

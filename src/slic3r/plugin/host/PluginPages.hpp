@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <wx/bitmap.h>
+#include <wx/string.h>
 #include <wx/webview.h>
 
 class Notebook;

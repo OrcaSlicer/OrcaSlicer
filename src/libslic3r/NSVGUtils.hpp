@@ -1,12 +1,16 @@
 #ifndef slic3r_NSVGUtils_hpp_
 #define slic3r_NSVGUtils_hpp_
 
+#include <cmath>
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <sstream>
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
 #include "EmbossShape.hpp" // ExPolygonsWithIds
+#include "libslic3r.h"
 #include "nanosvg/nanosvg.h"    // load SVG file
 
 // Helper function to work with nano svg

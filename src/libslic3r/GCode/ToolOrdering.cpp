@@ -1,4 +1,9 @@
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Config.hpp"
 #include "ExtrusionEntity.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/FilamentGroup.hpp"
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
 #include "Layer.hpp"
@@ -9,11 +14,23 @@
 #include "MultiNozzleUtils.hpp"
 #include "FilamentMixer.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "Utils.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <optional>
+#include <functional>
+#include <exception>
+#include <memory>
+#include <tuple>
+#include <iostream>
 
 // #define SLIC3R_DEBUG
 
@@ -1230,15 +1247,21 @@ void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)
 
 float ToolOrdering::cal_max_additional_fan(const PrintConfig &config)
 {
-    // record
+    std::set<unsigned int> used_filaments;
+    for (const LayerTools &layer_tools : m_layer_tools)
+        used_filaments.insert(layer_tools.extruders.begin(), layer_tools.extruders.end());
+    if (used_filaments.empty())
+        return 0;
+
+    // Orca: additional_cooling_fan_speed can hold one value per extruder variant a filament prints with;
+    // filament_self_index maps such a column to its filament.
+    const std::vector<int> &self_index = config.filament_self_index.values;
+    const size_t columns = std::max(config.additional_cooling_fan_speed.size(), size_t(*used_filaments.rbegin()) + 1);
     float max_fan = 0;
-    for (LayerTools &layer_tools : m_layer_tools) {
-        std::vector<unsigned int> filaments = layer_tools.extruders;
-        std::set<int>             layer_extruder_count;
-        // count once only
-        for (unsigned int &filament : filaments)
-            if (max_fan < config.additional_cooling_fan_speed.get_at(filament))
-                max_fan = config.additional_cooling_fan_speed.get_at(filament);
+    for (size_t column = 0; column < columns; ++column) {
+        const unsigned int filament_id = self_index.size() == columns ? self_index[column] - 1 : column;
+        if (used_filaments.count(filament_id) && max_fan < config.additional_cooling_fan_speed.get_at(column))
+            max_fan = config.additional_cooling_fan_speed.get_at(column);
     }
     return max_fan;
 }

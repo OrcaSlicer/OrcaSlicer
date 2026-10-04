@@ -2,9 +2,16 @@
 #include "PluginHostUi.hpp"
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
+#include <pybind11/pybind11.h>
+
+#include <cstddef>
 #include <libslic3r/AppConfig.hpp>
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/PresetBundle.hpp>
+
+#include <memory>
 
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>

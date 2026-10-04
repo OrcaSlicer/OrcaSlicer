@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include "slic3r/Utils/bambu_networking.hpp"
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
@@ -12,6 +13,12 @@
 #include <memory>
 #include <string>
 
+#include <catch2/catch_test_macros.hpp>
+#include "plugin_test_utils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/eval.h>
+#include <pybind11/gil.h>
+
 namespace py = pybind11;
 using namespace Slic3r;
 
@@ -21,6 +28,9 @@ namespace {
 // into Python unless PythonInterpreter::instance() reports initialized.
 struct ScopedPluginManager
 {
+    // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
+    // which would otherwise land in the working directory.
+    ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = PluginManager::instance().initialize();
 
     ~ScopedPluginManager()

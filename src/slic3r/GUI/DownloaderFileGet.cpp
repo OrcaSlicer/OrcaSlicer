@@ -1,5 +1,16 @@
 #include "DownloaderFileGet.hpp"
 
+#include <cstddef>
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include <atomic>
+#include <regex>
+#include <cassert>
+#include <boost/filesystem/exception.hpp>
+#include <cstdio>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <stdexcept>
 #include <thread>
 #include <curl/curl.h>
 #include <boost/nowide/fstream.hpp>
@@ -8,6 +19,8 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <wx/event.h>
+#include <utility>
 
 #include "format.hpp"
 #include "GUI.hpp"

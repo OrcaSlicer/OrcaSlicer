@@ -1,6 +1,8 @@
 #ifndef slic3r_MonitorPage_hpp_
 #define slic3r_MonitorPage_hpp_
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
 

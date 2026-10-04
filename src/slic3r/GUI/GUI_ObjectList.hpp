@@ -1,13 +1,23 @@
 #ifndef slic3r_GUI_ObjectList_hpp_
 #define slic3r_GUI_ObjectList_hpp_
 
+#include <cstdint>
+#include <cstddef>
+#include <functional>
 #include <map>
+#include <string>
+#include <utility>
 #include <vector>
 #include <set>
 
+#include <wx/arrstr.h>
 #include <wx/bitmap.h>
 #include <wx/dataview.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/menu.h>
+#include <wx/string.h>
+#include <wx/window.h>
 
 #include "Event.hpp"
 #include "wxExtensions.hpp"

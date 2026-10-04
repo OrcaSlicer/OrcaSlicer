@@ -1,4 +1,5 @@
 #include "CalibrationWizard.hpp"
+#include "CalibUtils.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -7,6 +8,34 @@
 #include "../../libslic3r/calib.hpp"
 #include "Tabbook.hpp"
 #include "CaliHistoryDialog.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include <utility>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include <wx/scrolwin.h>
+#include <functional>
+#include <boost/log/trivial.hpp>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/CalibrationWizardPresetPage.hpp"
+#include <vector>
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <cassert>
+#include "slic3r/GUI/CalibrationWizardStartPage.hpp"
+#include "slic3r/GUI/CalibrationWizardCaliPage.hpp"
+#include "slic3r/GUI/CalibrationWizardSavePage.hpp"
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/arrstr.h>
+#include <algorithm>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/ParameterUtils.hpp"
 
 namespace Slic3r { namespace GUI {
 

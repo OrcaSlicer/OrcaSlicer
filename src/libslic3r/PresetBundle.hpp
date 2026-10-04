@@ -1,16 +1,23 @@
 #ifndef slic3r_PresetBundle_hpp_
 #define slic3r_PresetBundle_hpp_
 
+#include "Config.hpp"
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
+#include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
+#include "Semver.hpp"
 #include "enum_bitmask.hpp"
 
+#include <climits>
+#include <functional>
+#include <cstddef>
 #include <memory>
 #include <map>
 #include <set>
 #include <shared_mutex>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <optional>
@@ -18,6 +25,8 @@
 #include <atomic>
 #include <boost/filesystem/path.hpp>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 
 #define DEFAULT_USER_FOLDER_NAME "default"
 #define BUNDLE_STRUCTURE_JSON_NAME "bundle_structure.json"
@@ -410,13 +419,22 @@ public:
     std::vector<Preset *> get_filament_presets_for_machine(const std::string &printer_type,
                                                            const std::string &nozzle_diameter_str,
                                                            bool               include_user_presets);
+    // Orca: the variant index of a filament preset's per-variant options on extruder extruder_id of a printer
+    // preset, with the nozzle volume type the machine reports; 0 when the filament has no such variant.
+    static int            get_filament_variant_index(const DynamicPrintConfig &filament_config,
+                                                     const DynamicPrintConfig &printer_config,
+                                                     int                       extruder_id,
+                                                     NozzleVolumeType          nozzle_volume_type);
+    // extruder_id and nozzle_volume_type identify the tray's nozzle, whose variant the temperature range is compared for.
     bool                  check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(const std::string &printer_type,
                                                                                                std::string &      nozzle_diameter_str,
                                                                                                std::string &      setting_id,
                                                                                                std::string &      tag_uid,
                                                                                                std::string &      nozzle_temp_min,
                                                                                                std::string &      nozzle_temp_max,
-                                                                                               std::string &      preset_setting_id);
+                                                                                               std::string &      preset_setting_id,
+                                                                                               int                extruder_id,
+                                                                                               NozzleVolumeType   nozzle_volume_type);
     Preset *                    get_similar_printer_preset(std::string printer_model, std::string printer_variant);
 
     PresetCollection            prints;

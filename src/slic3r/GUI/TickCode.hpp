@@ -4,6 +4,8 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Color.hpp"
 #include <set>
+#include <string>
+#include <vector>
 
 namespace Slic3r {
 using namespace CustomGCode;

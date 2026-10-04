@@ -2,14 +2,18 @@
 #define slic3r_CoolingBuffer_hpp_
 
 #include "../libslic3r.h"
+#include "../Point.hpp"
+#include <cstddef>
 #include <map>
 #include <string>
 #include <cfloat>
+#include <vector>
 
 namespace Slic3r {
 
 class GCode;
 class Layer;
+class PrintConfig;
 struct PerExtruderAdjustments;
 
 // A standalone G-code filter, to control cooling of the print.
@@ -54,6 +58,8 @@ private:
     // Referencs GCode::m_config, which is FullPrintConfig. While the PrintObjectConfig slice of FullPrintConfig is being modified,
     // the PrintConfig slice of FullPrintConfig is constant, thus no thread synchronization is required.
     const PrintConfig          &m_config;
+    // Resolves the filament config index of the per-variant options.
+    const GCode                &m_gcodegen;
     unsigned int                m_current_extruder;
     unsigned int                m_current_nozzle;
     //BBS: current fan speed

@@ -1,6 +1,10 @@
 #include "PluginProgressDialog.hpp"
 
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include <memory>
 #include <utility>
+#include <wx/string.h>
+#include <wx/timer.h>
 
 namespace Slic3r { namespace GUI {
 

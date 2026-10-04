@@ -2,6 +2,7 @@
 #define slic3r_GUI_Factories_hpp_
 
 #include <map>
+#include <string>
 #include <vector>
 #include <array>
 #include <cstddef>

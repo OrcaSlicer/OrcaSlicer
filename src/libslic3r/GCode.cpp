@@ -1,9 +1,31 @@
+#include "ArcFitter.hpp"
 #include "BoundingBox.hpp"
+#include "Circle.hpp"
 #include "Config.hpp"
+#include "GCode/GCodeProcessor.hpp"
+#include "Flow.hpp"
+#include "GCode/ThumbnailData.hpp"
+#include "GCode/ToolOrdering.hpp"
+#include "GCode/SpiralVase.hpp"
+#include "GCode/PressureEqualizer.hpp"
+#include "GCode/SmallAreaInfillFlowCompensator.hpp"
+#include "GCode/CoolingBuffer.hpp"
+#include "GCode/AdaptivePAProcessor.hpp"
+#include "CustomGCode.hpp"
+#include "GCode/TimelapsePosPicker.hpp"
+#include "ExPolygon.hpp"
 #include "GCode/WipePathHelpers.hpp"
+#include "GCodeReader.hpp"
 #include "GCodeWriter.hpp"
+#include "Point.hpp"
+#include "Line.hpp"
+#include "ObjectID.hpp"
+#include "Layer.hpp"
 #include "Polygon.hpp"
+#include "Polyline.hpp"
+#include "PrintBase.hpp"
 #include "PrintConfig.hpp"
+#include "enum_bitmask.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "GCode.hpp"
@@ -26,16 +48,39 @@
 #include "libslic3r/format.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
+#include <Eigen/Geometry>
+#include <Shiny/ShinyMacros.h>
 #include <algorithm>
+#include <cctype>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <cfloat>
 #include <cmath>
+#include <cstdio>
+#include <cstdint>
+#include <cstdarg>
 #include <cstdlib>
 #include <chrono>
+#include <iomanip>
+#include <cstring>
+#include <exception>
+#include <functional>
 #include <iostream>
 #include <iterator>
+#include <limits>
+#include <map>
 #include <math.h>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <set>
+#include <optional>
 #include <stdlib.h>
 #include <string>
+#include <system_error>
+#include <unordered_set>
+#include <type_traits>
 #include <utility>
 #include <string_view>
 
@@ -54,7 +99,9 @@
 #include "SVG.hpp"
 
 #include <tbb/parallel_for.h>
+#include <vector>
 #include "calib.hpp"
+#include "libslic3r_version.h"
 // Intel redesigned some TBB interface considerably when merging TBB with their oneAPI set of libraries, see GH #7332.
 // We are using quite an old TBB 2017 U7. Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
 #if ! defined(TBB_VERSION_MAJOR)
@@ -1258,7 +1305,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("old_filament_temp", new ConfigOptionInt(old_filament_temp));
                 int interface_temp = full_config.filament_tower_interface_print_temp.get_at(new_filament_id);
                 if (interface_temp == -1)
-                    interface_temp = full_config.nozzle_temperature_range_high.get_at(new_filament_id);
+                    interface_temp = full_config.nozzle_temperature_range_high.get_at(new_fi);
                 if (full_config.enable_tower_interface_features && tcr.is_contact)
                     new_filament_temp = interface_temp;
                 config.set_key_value("new_filament_temp", new ConfigOptionInt(new_filament_temp));
@@ -1309,7 +1356,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         flush_temps[idx] = use_fast_flush ? m_print_config->filament_flush_temp_fast.get_at(fi)
                                                           : m_print_config->filament_flush_temp.get_at(fi);
                         if (flush_temps[idx] == 0)
-                            flush_temps[idx] = m_print_config->nozzle_temperature_range_high.get_at(idx);
+                            flush_temps[idx] = m_print_config->nozzle_temperature_range_high.get_at(fi);
                         filament_cooling_before_tower[idx] = m_print_config->filament_cooling_before_tower.get_at(fi);
                     }
                     if (tcr.is_contact || gcodegen.m_layer_index == 0)
@@ -1563,7 +1610,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         const bool will_go_down     = !is_approx(z, current_z);
         const bool is_ramming       = (gcodegen.config().single_extruder_multi_material) ||
                                 (!gcodegen.config().single_extruder_multi_material &&
-                                 gcodegen.config().filament_multitool_ramming.get_at(tcr.initial_tool));
+                                 gcodegen.config().filament_multitool_ramming.get_at(gcodegen.get_filament_config_index(tcr.initial_tool)));
         // Orca: user-facing override (Printer Settings > Wipe tower > "Tool change on wipe tower").
         // Forces the toolhead to travel over the wipe tower before issuing Tx even on multi-toolhead
         // printers without ramming, where Orca would otherwise emit Tx in place (potentially over the part).
@@ -1620,7 +1667,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (gcodegen.config().enable_tower_interface_features && tcr.is_contact) {
                 interface_temp = gcodegen.config().filament_tower_interface_print_temp.get_at(new_extruder_id);
                 if (interface_temp == -1)
-                    interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
+                    interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(gcodegen.get_filament_config_index(new_extruder_id));
                 toolchange_temp_override = interface_temp;
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
@@ -4334,19 +4381,25 @@ size_t GCode::get_extruder_id(unsigned int filament_id) const
 
 size_t GCode::get_filament_config_index(int filament_id) const
 {
-    if (m_print) {
-        return m_print->get_filament_config_indx(filament_id, m_cur_layer_idx);
-    }
+    if (m_print)
+        return m_filament_index_cache.get(filament_id, m_cur_layer_idx, m_print->config_index_generation(),
+                                          [&] { return m_print->get_filament_config_indx(filament_id, m_cur_layer_idx); });
     // Orca: without a Print the filament-indexed arrays are unexpanded, so the
     // filament id itself is the only meaningful column.
     return filament_id;
 }
 
+size_t GCode::get_filament_config_index(int filament_id, size_t layer_id) const
+{
+    // Orca: uncached, as the stages after the generator run concurrently with it.
+    return m_print ? m_print->get_filament_config_indx(filament_id, (int) layer_id, false) : filament_id;
+}
+
 size_t GCode::get_nozzle_config_index(int filament_id) const
 {
-    if (m_print) {
-        return m_print->get_nozzle_config_index(filament_id, m_cur_layer_idx);
-    }
+    if (m_print)
+        return m_nozzle_index_cache.get(filament_id, m_cur_layer_idx, m_print->config_index_generation(),
+                                        [&] { return m_print->get_nozzle_config_index(filament_id, m_cur_layer_idx); });
     // Orca: same reasoning; degenerate to the filament's extruder column.
     return get_extruder_id(filament_id);
 }
@@ -7304,12 +7357,12 @@ static std::unique_ptr<EdgeGrid::Grid> calculate_layer_edge_grid(const Layer& la
     return out;
 }
 
-std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
-                                const std::string&          description,
-                                double                      speed,
-                                const ExtrusionEntitiesPtr& region_perimeters,
-                                const Point*                start_point,
-                                const WipeInwardSupport*     wipe_support)
+std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_ref,
+                                const std::string&                         description,
+                                double                                     speed,
+                                const std::vector<const ExtrusionEntity*>& region_perimeters,
+                                const Point*                               start_point,
+                                const WipeInwardSupport*                   wipe_support)
 {
     // get a copy; don't modify the orientation of the original loop object otherwise
     // next copies (if any) would not detect the correct orientation
@@ -7653,11 +7706,11 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const
     return gcode;
 }
 
-std::string GCode::extrude_entity(const ExtrusionEntity&      entity,
-                                  const std::string&          description,
-                                  double                      speed,
-                                  const ExtrusionEntitiesPtr& region_perimeters,
-                                  const WipeInwardSupport*     wipe_support)
+std::string GCode::extrude_entity(const ExtrusionEntity&                     entity,
+                                  const std::string&                         description,
+                                  double                                     speed,
+                                  const std::vector<const ExtrusionEntity*>& region_perimeters,
+                                  const WipeInwardSupport*                   wipe_support)
 {
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity))
         return this->extrude_path(*path, description, speed);
@@ -7748,23 +7801,32 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
 // Chain the paths hierarchically by a greedy algorithm to minimize a travel distance.
 std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool ironing)
 {
-    std::string 		 gcode;
-    ExtrusionEntitiesPtr extrusions;
-    const char*          extrusion_name = ironing ? "ironing" : "infill";
+    std::string                                   gcode;
+    std::vector<const ExtrusionEntity*>           extrusions;
+    std::vector<std::unique_ptr<ExtrusionEntity>> reversed;
+    const char*                                   extrusion_name = ironing ? "ironing" : "infill";
     for (const ObjectByExtruder::Island::Region &region : by_region)
         if (! region.infills.empty()) {
             extrusions.clear();
             extrusions.reserve(region.infills.size());
-            for (ExtrusionEntity *ee : region.infills)
+            for (const ExtrusionEntity *ee : region.infills)
                 if ((ee->role() == erIroning) == ironing)
                     extrusions.emplace_back(ee);
             if (! extrusions.empty()) {
                 m_config.apply(print.get_print_region(&region - &by_region.front()).config());
-                chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
+                reversed.clear();
+                chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
+                // The reversed copies are in chain order.
+                auto next_reversed = reversed.begin();
                 for (const ExtrusionEntity *fill : extrusions) {
+                    ExtrusionEntity *own_copy = next_reversed != reversed.end() && next_reversed->get() == fill ? (next_reversed++)->get() : nullptr;
                     auto *eec = dynamic_cast<const ExtrusionEntityCollection*>(fill);
                     if (eec) {
-                        for (ExtrusionEntity *ee : eec->chained_path_from(m_last_pos.to_point()).entities)
+                        // A reversed copy is owned here and can be moved from.
+                        ExtrusionEntityCollection chained = own_copy ? std::move(static_cast<ExtrusionEntityCollection&>(*own_copy)) : ExtrusionEntityCollection(*eec);
+                        if (!chained.no_sort)
+                            chain_and_reorder_extrusion_entities(chained.entities, m_last_pos.to_point());
+                        for (ExtrusionEntity *ee : chained.entities)
                             gcode += this->extrude_entity(*ee, extrusion_name);
                     } else
                         gcode += this->extrude_entity(*fill, extrusion_name);
@@ -7802,9 +7864,9 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
     std::string gcode;
     if (!support_fills.entities.empty()) {
 
-        ExtrusionEntitiesPtr extrusions;
+        std::vector<const ExtrusionEntity*> extrusions;
         extrusions.reserve(support_fills.entities.size());
-        for (ExtrusionEntity* ee : support_fills.entities) {
+        for (const ExtrusionEntity* ee : support_fills.entities) {
             const auto role = ee->role();
             if ((role == support_extrusion_role) || (support_extrusion_role == erMixed && role != erIroning)) {
                 extrusions.emplace_back(ee);
@@ -7813,9 +7875,10 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         if (extrusions.empty())
             return gcode;
 
+        std::vector<std::unique_ptr<ExtrusionEntity>> reversed;
         //ORCA: Respect no_sort to preserve support base outline->fill order.
         if (!support_fills.no_sort)
-            chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
+            chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
 
         for (const ExtrusionEntity *ee : extrusions) {
             ExtrusionRole role = ee->role();
@@ -8043,28 +8106,36 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     unsigned int acceleration_i = 0;
     double jerk = 0;
     // adjust acceleration
-    if (NOZZLE_CONFIG(default_acceleration) > 0) {
+    const size_t nozzle = get_nozzle_config_index(m_writer.filament()->id());
+    if (m_config.default_acceleration.get_at(nozzle) > 0) {
+        const ExtrusionRole role = path.role();
+        const double bridge_acceleration = is_bridge(role) ?
+            m_config.bridge_acceleration.get_at(nozzle).get_abs_value(m_config.outer_wall_acceleration.get_at(nozzle)) : 0.;
+        const double sparse_infill_acceleration = role == erInternalInfill ?
+            m_config.sparse_infill_acceleration.get_at(nozzle).get_abs_value(m_config.default_acceleration.get_at(nozzle)) : 0.;
+        const double internal_solid_infill_acceleration = role == erSolidInfill ?
+            m_config.internal_solid_infill_acceleration.get_at(nozzle).get_abs_value(m_config.default_acceleration.get_at(nozzle)) : 0.;
         double acceleration;
-        if (this->on_first_layer() && NOZZLE_CONFIG(initial_layer_acceleration) > 0) {
-            acceleration = NOZZLE_CONFIG(initial_layer_acceleration);
+        if (this->on_first_layer() && m_config.initial_layer_acceleration.get_at(nozzle) > 0) {
+            acceleration = m_config.initial_layer_acceleration.get_at(nozzle);
 #if 0
         } else if (this->object_layer_over_raft() && m_config.first_layer_acceleration_over_raft.value > 0) {
             acceleration = m_config.first_layer_acceleration_over_raft.value;
 #endif
-        } else if (m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && is_bridge(path.role())) {
-            acceleration = m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erInternalInfill)) {
-            acceleration = m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erSolidInfill)) {
-            acceleration = m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (NOZZLE_CONFIG(outer_wall_acceleration) > 0 && is_external_perimeter(path.role())) {
-            acceleration = NOZZLE_CONFIG(outer_wall_acceleration);
-        } else if (NOZZLE_CONFIG(inner_wall_acceleration) > 0 && is_internal_perimeter(path.role())) {
-            acceleration = NOZZLE_CONFIG(inner_wall_acceleration);
-        } else if (NOZZLE_CONFIG(top_surface_acceleration) > 0 && is_top_surface(path.role())) {
-            acceleration = NOZZLE_CONFIG(top_surface_acceleration);
+        } else if (bridge_acceleration > 0) {
+            acceleration = bridge_acceleration;
+        } else if (sparse_infill_acceleration > 0) {
+            acceleration = sparse_infill_acceleration;
+        } else if (internal_solid_infill_acceleration > 0) {
+            acceleration = internal_solid_infill_acceleration;
+        } else if (m_config.outer_wall_acceleration.get_at(nozzle) > 0 && is_external_perimeter(role)) {
+            acceleration = m_config.outer_wall_acceleration.get_at(nozzle);
+        } else if (m_config.inner_wall_acceleration.get_at(nozzle) > 0 && is_internal_perimeter(role)) {
+            acceleration = m_config.inner_wall_acceleration.get_at(nozzle);
+        } else if (m_config.top_surface_acceleration.get_at(nozzle) > 0 && is_top_surface(role)) {
+            acceleration = m_config.top_surface_acceleration.get_at(nozzle);
         } else {
-            acceleration = NOZZLE_CONFIG(default_acceleration);
+            acceleration = m_config.default_acceleration.get_at(nozzle);
         }
         acceleration_i = (unsigned int)floor(acceleration + 0.5);
     }
@@ -8165,7 +8236,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(speed));
             }
         } else if(path.role() == erInternalBridgeInfill) {
-            speed = m_config.get_abs_value_at("internal_bridge_speed", get_nozzle_config_index(m_writer.filament()->id()));
+            speed = m_config.internal_bridge_speed.get_at(nozzle).get_abs_value(m_config.bridge_speed.get_at(nozzle));
         } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {
@@ -8177,7 +8248,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         } else if (path.role() == erIroning) {
             const size_t filament_idx = get_filament_config_index(m_writer.filament()->id());
             speed = m_config.filament_ironing_speed.is_nil(filament_idx)
-                ? m_config.get_abs_value("ironing_speed")
+                ? m_config.ironing_speed.value
                 : m_config.filament_ironing_speed.get_at(filament_idx);
         } else if (path.role() == erBottomSurface) {
             speed = NOZZLE_CONFIG(initial_layer_infill_speed);
@@ -8238,7 +8309,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
     // Override skirt speed if set
     if (path.role() == erSkirt) {
-        const double skirt_speed = m_config.get_abs_value("skirt_speed");
+        const double skirt_speed = m_config.skirt_speed.value;
         if (skirt_speed > 0.0)
         speed = skirt_speed;
     }
@@ -9409,10 +9480,13 @@ void GCode::update_placeholder_parser_with_variant_params()
 
     // Helper: remap config arrays from variant index space to filament_id index space.
     // After remapping, gcode templates can use param[filament_id] directly.
+    std::vector<size_t> config_index(num_filaments);
+    for (size_t i = 0; i < num_filaments; ++i)
+        config_index[i] = get_filament_config_index(i);
     auto remap_by_filament = [&](const auto &src) {
         std::decay_t<decltype(src.values)> dst(num_filaments);
         for (size_t i = 0; i < num_filaments; ++i)
-            dst[i] = src.get_at(get_filament_config_index(i));
+            dst[i] = src.get_at(config_index[i]);
         return dst;
     };
 
@@ -9427,6 +9501,16 @@ void GCode::update_placeholder_parser_with_variant_params()
     this->placeholder_parser().set("first_layer_temperature",             new ConfigOptionInts(remap_by_filament(m_config.nozzle_temperature_initial_layer)));
     this->placeholder_parser().set("pressure_advance",                    new ConfigOptionFloats(remap_by_filament(m_config.pressure_advance)));
     this->placeholder_parser().set("enable_pressure_advance",             new ConfigOptionBools(remap_by_filament(m_config.enable_pressure_advance)));
+    this->placeholder_parser().set("fan_min_speed",                       new ConfigOptionFloats(remap_by_filament(m_config.fan_min_speed)));
+    this->placeholder_parser().set("fan_max_speed",                       new ConfigOptionFloats(remap_by_filament(m_config.fan_max_speed)));
+    this->placeholder_parser().set("additional_cooling_fan_speed",        new ConfigOptionInts(remap_by_filament(m_config.additional_cooling_fan_speed)));
+    this->placeholder_parser().set("filament_minimal_purge_on_wipe_tower", new ConfigOptionFloats(remap_by_filament(m_config.filament_minimal_purge_on_wipe_tower)));
+    this->placeholder_parser().set("filament_multitool_ramming",          new ConfigOptionBools(remap_by_filament(m_config.filament_multitool_ramming)));
+    this->placeholder_parser().set("filament_multitool_ramming_volume",   new ConfigOptionFloats(remap_by_filament(m_config.filament_multitool_ramming_volume)));
+    this->placeholder_parser().set("filament_multitool_ramming_flow",     new ConfigOptionFloats(remap_by_filament(m_config.filament_multitool_ramming_flow)));
+    this->placeholder_parser().set("nozzle_temperature_range_low",        new ConfigOptionInts(remap_by_filament(m_config.nozzle_temperature_range_low)));
+    const auto nozzle_temperature_range_high = remap_by_filament(m_config.nozzle_temperature_range_high);
+    this->placeholder_parser().set("nozzle_temperature_range_high",       new ConfigOptionInts(nozzle_temperature_range_high));
 
     // --- printer_options_with_variant_1: in m_config these are already merged as filament-indexed ---
     this->placeholder_parser().set("retraction_distances_when_cut",       new ConfigOptionFloats(remap_by_filament(m_config.retraction_distances_when_cut)));
@@ -9447,7 +9531,7 @@ void GCode::update_placeholder_parser_with_variant_params()
             if (flush_v_speed[i] == 0)
                 flush_v_speed[i] = filament_max_v[i];
             if (flush_temps[i] == 0)
-                flush_temps[i] = m_config.nozzle_temperature_range_high.get_at(i);
+                flush_temps[i] = nozzle_temperature_range_high[i];
         }
         this->placeholder_parser().set("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
         this->placeholder_parser().set("flush_temperatures",      new ConfigOptionInts(flush_temps));
@@ -9706,7 +9790,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     {
         int interface_temp = m_config.filament_tower_interface_print_temp.get_at(new_filament_id);
         if (interface_temp == -1)
-            interface_temp = m_config.nozzle_temperature_range_high.get_at(new_filament_id);
+            interface_temp = m_config.nozzle_temperature_range_high.get_at(new_fi);
         dyn_config.set_key_value("filament_tower_interface_print_temp", new ConfigOptionInt(interface_temp));
     }
     if (toolchange_temp_override > 0) {
@@ -9745,7 +9829,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             flush_temps[idx] = use_fast_flush ? m_print->config().filament_flush_temp_fast.get_at(fi)
                                               : m_print->config().filament_flush_temp.get_at(fi);
             if (flush_temps[idx] == 0)
-                flush_temps[idx] = m_print->config().nozzle_temperature_range_high.get_at(idx);
+                flush_temps[idx] = m_print->config().nozzle_temperature_range_high.get_at(fi);
             filament_cooling_before_tower[idx] = m_print->config().filament_cooling_before_tower.get_at(fi);
         }
         std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
@@ -10035,8 +10119,8 @@ const std::vector<GCode::ObjectByExtruder::Island::Region>& GCode::ObjectByExtru
         // Now we are going to iterate through perimeters and infills and pick ones that are supposed to be printed
         // References are used so that we don't have to repeat the same code
         for (int iter = 0; iter < 2; ++iter) {
-            const ExtrusionEntitiesPtr&										entities    = (iter ? reg.infills : reg.perimeters);
-            ExtrusionEntitiesPtr&   										target_eec  = (iter ? by_region_per_copy_cache.back().infills : by_region_per_copy_cache.back().perimeters);
+            const std::vector<const ExtrusionEntity*>&						entities    = (iter ? reg.infills : reg.perimeters);
+            std::vector<const ExtrusionEntity*>&							target_eec  = (iter ? by_region_per_copy_cache.back().infills : by_region_per_copy_cache.back().perimeters);
             const std::vector<const WipingExtrusions::ExtruderPerCopy*>& 	overrides   = (iter ? reg.infills_overrides : reg.perimeters_overrides);
 
             // Now the most important thing - which extrusion should we print.
@@ -10071,7 +10155,7 @@ const std::vector<GCode::ObjectByExtruder::Island::Region>& GCode::ObjectByExtru
 void GCode::ObjectByExtruder::Island::Region::append(const Type type, const ExtrusionEntityCollection* eec, const WipingExtrusions::ExtruderPerCopy* copies_extruder)
 {
     // We are going to manipulate either perimeters or infills, exactly in the same way. Let's create pointers to the proper structure to not repeat ourselves:
-    ExtrusionEntitiesPtr*									perimeters_or_infills;
+    std::vector<const ExtrusionEntity*>*					perimeters_or_infills;
     std::vector<const WipingExtrusions::ExtruderPerCopy*>* 	perimeters_or_infills_overrides;
 
     switch (type) {
@@ -10095,7 +10179,7 @@ void GCode::ObjectByExtruder::Island::Region::append(const Type type, const Extr
         for (auto* ee : eec->entities)
             perimeters_or_infills->emplace_back(ee);
     } else
-        perimeters_or_infills->emplace_back(const_cast<ExtrusionEntityCollection*>(eec));
+        perimeters_or_infills->emplace_back(eec);
 
     if (copies_extruder != nullptr) {
         // Don't reallocate overrides if not needed.

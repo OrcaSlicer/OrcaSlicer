@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <wx/accel.h>
 #include <wx/defs.h>
 

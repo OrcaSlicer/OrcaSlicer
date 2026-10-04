@@ -2,13 +2,35 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Point.hpp"
+#include <iterator>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <limits>
+#include "libslic3r/Model.hpp"
 #include <map>
+#include <memory>
+#include <math.h>
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
@@ -746,6 +768,61 @@ TEST_CASE("A region with ironing turned off is never ironed", "[Fill]")
     const bool spiral_mode      = GENERATE(false, true);
     CAPTURE(spiral_mode);
     REQUIRE(Layer::choose_ironing_extruder(cfg, spiral_mode, /*is_topmost_layer=*/true) == -1);
+}
+
+// Ironing path count and total length in mm, over the whole object.
+static std::pair<size_t, double> ironing_extent(const Print &print)
+{
+    size_t paths  = 0;
+    double length = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (ironing_role(entity->role())) {
+                    ++paths;
+                    length += unscale<double>(entity->length());
+                }
+    return {paths, length};
+}
+
+TEST_CASE("Ironing spacing below the minimum irons at the minimum spacing", "[Fill]")
+{
+    const std::string pattern      = GENERATE("rectilinear", "concentric");
+    const bool        via_filament = GENERATE(false, true);
+    const double      spacing      = GENERATE(0., 0.001);
+    CAPTURE(pattern, via_filament, spacing);
+
+    auto ironing_for = [&pattern, via_filament](double spacing) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"ironing_type", "top"},
+                                       {"ironing_pattern", pattern},
+                                       {"layer_height", 0.2}});
+        // The filament override replaces the process spacing, which stays at a usable value.
+        if (via_filament)
+            config.set_deserialize_strict({{"ironing_spacing", 0.1}, {"filament_ironing_spacing", spacing}});
+        else
+            config.set_deserialize_strict({{"ironing_spacing", spacing}});
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print, config);
+        return ironing_extent(print);
+    };
+
+    const std::pair<size_t, double> clamped = ironing_for(spacing);
+    const std::pair<size_t, double> minimum = ironing_for(IRONING_SPACING_MIN);
+    REQUIRE(minimum.first > 0);
+    CHECK(clamped.first == minimum.first);
+    CHECK_THAT(clamped.second, Catch::Matchers::WithinRel(minimum.second, 1e-9));
+}
+
+TEST_CASE("Concentric fill at zero spacing returns without paths", "[Fill]")
+{
+    std::unique_ptr<Fill> filler(Fill::new_from_type(ipConcentric));
+    filler->spacing      = 0.;
+    filler->bounding_box = BoundingBox(Point(0, 0), Point::new_scale(10, 10));
+    FillParams params;
+    params.density = 1.f;
+    Surface surface(stTop, ExPolygon({Point(0, 0), Point::new_scale(10, 0), Point::new_scale(10, 10), Point::new_scale(0, 10)}));
+    CHECK(filler->fill_surface(&surface, params).empty());
 }
 
 TEST_CASE("Solid infill direction offsets every layer when no template is set", "[Fill]")
@@ -1616,24 +1693,32 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     // and the outlines of branches that run close to each other merge into one. Rounding the branches
     // before those outlines are built moves them apart, which breaks the merged outlines up into
     // separate loops - many more of them, each needing its own travel move.
+    // A micron change of the cube moves the loop count of a single slice by several percent, so the
+    // shapes of a few nearly equal cubes are added up.
     auto shape_for = [](const std::string &smooth_factor) {
-        Print print;
-        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
-                                            {{"sparse_infill_pattern", "lightning"},
-                                             {"sparse_infill_density", "50%"},
-                                             {"fill_multiline", 2},
-                                             {"sparse_infill_smooth_factor", smooth_factor},
-                                             {"layer_height", 0.2}});
-        return sparse_infill_shape(print);
+        SparseInfillShape sum;
+        for (const double size : {20., 20.001, 20.002, 20.003}) {
+            Print print;
+            Slic3r::Test::init_and_process_print({Slic3r::Test::cube(size)}, print,
+                                                {{"sparse_infill_pattern", "lightning"},
+                                                 {"sparse_infill_density", "50%"},
+                                                 {"fill_multiline", 2},
+                                                 {"sparse_infill_smooth_factor", smooth_factor},
+                                                 {"layer_height", 0.2}});
+            const SparseInfillShape shape = sparse_infill_shape(print);
+            sum.path_count += shape.path_count;
+            sum.point_count += shape.point_count;
+            sum.sharp_turns += shape.sharp_turns;
+        }
+        return sum;
     };
 
     const SparseInfillShape sharp  = shape_for("0%");
     const SparseInfillShape smooth = shape_for("100%");
 
     REQUIRE(sharp.path_count > 0);
-    // The loop count varies by a loop or two between platforms and between runs, so this is not an
-    // exact comparison. Smoothing should leave it about where it was; uncapping the smoothing
-    // reach, the regression this guards against, adds about 10%.
+    // Smoothing should leave the loop count about where it was; uncapping the smoothing reach, the
+    // regression this guards against, adds about 10%.
     const size_t allowed_extra = sharp.path_count / 50; // 2%
     REQUIRE(smooth.path_count <= sharp.path_count + allowed_extra);
     // The outlines are still rounded.

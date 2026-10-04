@@ -12,6 +12,23 @@
 #include "Widgets/StaticBox.hpp"
 
 #include "DeviceCore/DevConfig.h"
+#include <wx/colour.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
+#include "slic3r/GUI/Widgets/StepCtrl.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <boost/log/trivial.hpp>
 
 static wxColour FG_COLOR = wxColour(0x32, 0x3A, 0x3D);
 static wxColour BG_COLOR = wxColour(0xF8, 0xF8, 0xF8);

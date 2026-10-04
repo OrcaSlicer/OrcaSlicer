@@ -1,3 +1,6 @@
+#include <array>
+#include <cstdlib>
+#include <functional>
 #include <glad/gl.h>
 #include "OpenGLManager.hpp"
 
@@ -13,16 +16,46 @@
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 
+#include <utility>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <vector>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <math.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/TexturePainting.hpp"
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <memory>
+#include <mutex>
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/colordlg.h>
+#include <wx/dc.h>
+#include <wx/colourdata.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
+#include <wx/dialog.h>
 #include <wx/display.h>
+#include <wx/event.h>
 #include <wx/evtloop.h>
+#include <wx/settings.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/popupwin.h>
+#include <wx/glcanvas.h>
+#include <wx/image.h>
+#include <wx/sizer.h>
+#include <wx/object.h>
+#include <wx/spinctrl.h>
+#include <wx/progdlg.h>
+#include <wx/peninfobase.h>
 #include <wx/statline.h>
 #include <wx/scrolwin.h>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 #include <wx/valtext.h>
 
@@ -36,6 +69,7 @@
 #include <sstream>
 
 #include <boost/log/trivial.hpp>
+#include <wx/window.h>
 
 static constexpr const char* DEFAULT_VIRTUAL_FILAMENT_BASIC_TYPE = "PLA Basic";
 static constexpr const char* DEFAULT_VIRTUAL_FILAMENT_SHORT_TYPE = "PLA";

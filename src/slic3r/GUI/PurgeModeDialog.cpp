@@ -1,10 +1,22 @@
 #include "PurgeModeDialog.hpp"
 
+#include <wx/colour.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <string>
+#include <wx/panel.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/statbmp.h>
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
+#include <wx/window.h>
 
 #include "I18N.hpp"
 #include "GUI_App.hpp"

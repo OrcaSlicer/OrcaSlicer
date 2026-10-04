@@ -1,9 +1,15 @@
 #ifndef slic3r_DeviceManager_hpp_
 #define slic3r_DeviceManager_hpp_
 
+#include <cstdint>
+#include <ctime>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <atomic>
+#include <tuple>
+#include <set>
+#include <utility>
 #include <vector>
 #include <string>
 #include <memory>
@@ -27,6 +33,7 @@
 #include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/colour.h>
 
@@ -341,6 +348,8 @@ public:
     bool is_main_extruder_on_left() const { return false;  } // only means the extruder is on the left hand when extruder id is 0
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
+    // Orca: the printer preset's extruder index of device extruder extder_id
+    int  get_preset_extruder_index(int extder_id) const { return is_multi_extruders() ? (is_main_extruder_on_left() ? extder_id : 1 - extder_id) : 0; }
 
     /* E3D has extra nozzle flow type info */
     bool has_extra_flow_type{false};
@@ -957,7 +966,8 @@ public:
     {
         std::set<std::string>                      checked_filament;
         std::string                                printer_preset_name;
-        std::map<std::string, std::pair<int, int>> filament_list; // filament_id, pair<min temp, max temp>
+        // filament_id, pair<min temps, max temps>, one per filament variant
+        std::map<std::string, std::pair<std::vector<int>, std::vector<int>>> filament_list;
     };
     std::map<std::string, FilamentData> m_nozzle_filament_data;
     void update_filament_list();

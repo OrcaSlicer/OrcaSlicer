@@ -13,12 +13,25 @@
 
 #include <algorithm>
 
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/chartype.h>
+#include <atomic>
+#include <vector>
+#include <utility>
 #include <wx/dcmemory.h>
 #include <wx/display.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/frame.h>
+#include <wx/nonownedwnd.h>
 #include <wx/region.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/utils.h>
+#include <wx/webview.h>
 
 #ifdef __linux__
 #include <gtk/gtk.h>
