@@ -248,6 +248,77 @@ TEST_CASE("Curve viewports reject reversed degenerate nonfinite and overflowing 
     CHECK(FlowModel().validate_view({0, 10, -0.1, 1}) == nullptr);
 }
 
+TEST_CASE("Flow viewports enforce useful bounds and a minimum visible span", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    FlowModel model;
+    CHECK(model.validate_view({0, 1000, -1, 2}) == nullptr);
+    CHECK(model.validate_view({999.999, 1000, 1.999, 2}) == nullptr);
+    const std::vector<CurveView> invalid = {
+        {-0.001, 10, 0, 1}, {0, 1000.001, 0, 1},
+        {0, 10, -1.001, 1}, {0, 10, 0, 2.001},
+        {0, 0.0001, 0, 1}, {0, 10, 0, 0.0001},
+        {10, 10, 0, 1}, {10, 5, 0, 1}, {0, 10, 1, 0},
+        {0, std::numeric_limits<double>::infinity(), 0, 1},
+        {0, 10, std::numeric_limits<double>::quiet_NaN(), 1},
+    };
+    const auto view = GENERATE_COPY(from_range(invalid));
+    CHECK(model.validate_view(view) != nullptr);
+}
+
+TEST_CASE("Reading invalid visible bounds preserves the current viewport", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    FlowModel model;
+    const std::string input = GENERATE(as<std::string>{}, "", "letters", "nan", "inf", "1e9999", "1,2,3");
+    const size_t index = GENERATE(size_t(0), size_t(1), size_t(2), size_t(3));
+    std::array<std::string, 4> bounds = {"0", "10", "0", "1"};
+    bounds[index] = input;
+    CurveView current = {2, 20, -0.1, 1.5};
+    CHECK(model.read_view(bounds, current) != nullptr);
+    CHECK_THAT(current.min_x, WithinAbs(2.0, 1e-12));
+    CHECK_THAT(current.max_x, WithinAbs(20.0, 1e-12));
+    CHECK_THAT(current.min_y, WithinAbs(-0.1, 1e-12));
+    CHECK_THAT(current.max_y, WithinAbs(1.5, 1e-12));
+}
+
+TEST_CASE("Reading numeric visible bounds validates the complete range before applying it", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    FlowModel model({"0,0", "\n10,1"});
+    CurveView view;
+    REQUIRE(model.read_view({"0", "10,5", "-0,1", "+1.5e0"}, view) == nullptr);
+    CHECK_THAT(view.max_x, WithinAbs(10.5, 1e-12));
+    CHECK_THAT(view.min_y, WithinAbs(-0.1, 1e-12));
+    CHECK_THAT(view.max_y, WithinAbs(1.5, 1e-12));
+
+    const std::vector<std::array<std::string, 4>> invalid = {
+        {"0", "1001", "0", "1"}, {"0", "10", "-2", "1"},
+        {"10", "10", "0", "1"}, {"0", "10", "1", "0"},
+        {"0", "0.0001", "0", "1"},
+    };
+    const auto bounds = GENERATE_COPY(from_range(invalid));
+    CHECK(model.read_view(bounds, view) != nullptr);
+    CHECK_THAT(view.max_x, WithinAbs(10.5, 1e-12));
+    CHECK_THAT(view.min_y, WithinAbs(-0.1, 1e-12));
+    CHECK_THAT(view.max_y, WithinAbs(1.5, 1e-12));
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Fitting an oversized legacy curve keeps viewport limits without changing model points", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const std::vector<std::string> parameters = {"0,-3", "\n100000000,1"};
+    FlowModel model(parameters);
+    const std::vector<double> x = {0, 100000000}, y = {-3, 1};
+    int row = -1;
+    REQUIRE(model.validate_points(x, y, row) == nullptr);
+    const auto view = model.fitted_view(x, y);
+    CHECK(model.validate_view(view) == nullptr);
+    CHECK_THAT(view.max_x, WithinAbs(1000.0, 1e-12));
+    CHECK_THAT(view.min_y, WithinAbs(-1.0, 1e-12));
+    CHECK(model.parameters() == parameters);
+    CHECK_FALSE(model.is_modified());
+    CHECK(model.validate_view(model.fitted_view({0, 1e-10}, {0, 1})) == nullptr);
+    CHECK(model.validate_view(model.fitted_view({}, {})) == nullptr);
+}
+
 TEST_CASE("Flow model changes are reported as one complete preset option", "[SmallAreaInfillFlowCompensation][PresetDiff][Regression]")
 {
     const std::string key = "small_area_infill_flow_compensation_model";

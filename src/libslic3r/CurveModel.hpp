@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <functional>
 #include <string>
 #include <utility>
@@ -12,6 +13,13 @@ struct CurveView {
     double max_x = 1.0;
     double min_y = 0.0;
     double max_y = 1.0;
+};
+
+struct CurveViewLimits {
+    CurveView bounds;
+    double x_step = 1.0;
+    double y_step = 0.01;
+    double minimum_span = 0.001;
 };
 
 // Numeric curve rules and editable text, independent of wxWidgets. Dialogs own
@@ -42,16 +50,18 @@ public:
 
     // A null message means success; row identifies the offending point, or -1.
     const char* read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const;
+    const char* read_view(const std::array<std::string, 4>& bounds, CurveView& view) const;
     virtual const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const = 0;
     virtual Interpolator make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const = 0;
     virtual CurveView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const = 0;
+    virtual CurveViewLimits view_limits() const = 0;
     // Equal bounds lock an axis. Inverted bounds mean no move is possible in this viewport.
     virtual CurveView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,
                                   const CurveView& view) const = 0;
     virtual Rows default_rows() const = 0;
     virtual Rows seed_rows() const = 0;
     virtual const char* empty_message() const { return nullptr; }
-    virtual const char* validate_view(const CurveView&) const { return nullptr; }
+    virtual const char* validate_view(const CurveView& view) const;
 
 private:
     std::vector<std::string> m_initial_parameters;

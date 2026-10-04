@@ -8,6 +8,7 @@
 #include <utility>
 #include <wx/grid.h>
 #include <wx/sizer.h>
+#include <wx/spinbutt.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include "GUI_App.hpp"
@@ -79,17 +80,49 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     add_title(_L("Minimum"));
     add_title(_L("Maximum"));
     ranges->AddSpacer(0);
+    const auto view_limits = m_model->view_limits();
     for (int axis = 0; axis < 2; ++axis) {
         auto range_label = new wxStaticText(this, wxID_ANY, axis == 0 ? appearance.x_label : appearance.y_label);
         range_label->SetFont(Label::Body_14);
         range_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         ranges->Add(range_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
         for (int bound = 0; bound < 2; ++bound) {
+            const int index = axis * 2 + bound;
             auto* field = new TextInput(this, "", "", "", wxDefaultPosition, FromDIP(wxSize(-1, -1)), wxTE_PROCESS_ENTER);
-            m_range_fields[axis * 2 + bound] = field;
+            m_range_fields[index] = field;
             field->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { apply_chart_range(); });
-            field->SetToolTip(_L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."));
-            ranges->Add(field, 1, wxEXPAND);
+            field->GetTextCtrl()->Bind(wxEVT_KEY_DOWN, [this, index](wxKeyEvent& event) {
+                if (event.GetKeyCode() == WXK_UP || event.GetKeyCode() == WXK_DOWN)
+                    step_chart_range(index, event.GetKeyCode() == WXK_UP ? 1 : -1);
+                else
+                    event.Skip();
+            });
+            const double minimum = axis == 0 ? view_limits.bounds.min_x : view_limits.bounds.min_y;
+            const double maximum = axis == 0 ? view_limits.bounds.max_x : view_limits.bounds.max_y;
+            const wxString tooltip =
+                _L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update.") +
+                "\n" + wxString::Format(_L("Allowed range: %s to %s."),
+                    wxString::FromUTF8(format_number(minimum)), wxString::FromUTF8(format_number(maximum)));
+            field->SetToolTip(tooltip);
+
+            // Keep the styled input and its raw text: a native double spin control
+            // can silently replace invalid text on focus loss before Apply validates it.
+            auto* arrows = new wxSpinButton(this, wxID_ANY, wxDefaultPosition, FromDIP(wxSize(20, -1)), wxSP_VERTICAL);
+            arrows->SetRange(-1, 1);
+            arrows->SetValue(0);
+            arrows->SetToolTip(tooltip);
+            arrows->Bind(wxEVT_SPIN_UP, [this, index](wxSpinEvent& event) {
+                event.Veto(); // Keep the arrows centred for repeated clicks in either direction.
+                step_chart_range(index, 1);
+            });
+            arrows->Bind(wxEVT_SPIN_DOWN, [this, index](wxSpinEvent& event) {
+                event.Veto();
+                step_chart_range(index, -1);
+            });
+            auto* input = new wxBoxSizer(wxHORIZONTAL);
+            input->Add(field, 1, wxEXPAND);
+            input->Add(arrows, 0, wxEXPAND | wxLEFT, FromDIP(2));
+            ranges->Add(input, 1, wxEXPAND);
         }
         ranges->Add(axis == 0 ? apply_btn_sizer : fit_btn_sizer, 0, wxEXPAND | wxLEFT, FromDIP(5));
     }
@@ -333,22 +366,12 @@ void CurveEditorDialog::fit_chart()
 
 void CurveEditorDialog::apply_chart_range()
 {
-    double values[4];
-    bool valid = true;
+    std::array<std::string, 4> bounds;
     for (int i = 0; i < 4; ++i)
-        valid = read_number(m_range_fields[i]->GetTextCtrl()->GetValue(), values[i]) && valid;
-    if (valid)
-        valid = CurveModel::valid_view({values[0], values[1], values[2], values[3]});
-    wxString error;
+        bounds[i] = into_u8(m_range_fields[i]->GetTextCtrl()->GetValue());
     CurveEditorView view;
-    if (valid) {
-        view = {values[0], values[1], values[2], values[3]};
-        if (const char* message = m_model->validate_view(view))
-            error = _L(message);
-    } else
-        error = _L("Enter finite bounds with minimum less than maximum.");
-    if (!error.empty()) {
-        m_range_status->SetLabel(error);
+    if (const char* error = m_model->read_view(bounds, view)) {
+        m_range_status->SetLabel(_L(error));
         m_range_status->Wrap(FromDIP(640));
         m_range_status->Show();
         Layout();
@@ -356,6 +379,24 @@ void CurveEditorDialog::apply_chart_range()
     }
     m_chart->set_view(view);
     sync_chart_range();
+}
+
+void CurveEditorDialog::step_chart_range(int field, int direction)
+{
+    double value;
+    auto* text = m_range_fields[field]->GetTextCtrl();
+    if (!read_number(text->GetValue(), value)) {
+        apply_chart_range();
+        return;
+    }
+    const auto limits = m_model->view_limits();
+    const bool x_axis = field < 2;
+    const double step = x_axis ? limits.x_step : limits.y_step;
+    const double minimum = x_axis ? limits.bounds.min_x : limits.bounds.min_y;
+    const double maximum = x_axis ? limits.bounds.max_x : limits.bounds.max_y;
+    value = std::clamp(value + direction * step, minimum, maximum);
+    text->ChangeValue(wxString::FromCDouble(value, 4));
+    apply_chart_range();
 }
 
 } // namespace Slic3r::GUI
