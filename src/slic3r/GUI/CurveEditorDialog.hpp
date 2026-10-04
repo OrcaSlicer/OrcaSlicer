@@ -34,6 +34,7 @@ private:
     void move_point(int row, double x, double y);
     void fit_chart();
     void apply_chart_range();
+    void step_chart_range(int field, int direction);
     void sync_chart_range();
 
     CurveEditorAppearance m_appearance;
