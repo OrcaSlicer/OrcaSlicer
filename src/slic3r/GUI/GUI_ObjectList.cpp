@@ -1190,13 +1190,15 @@ void ObjectList::update_filament_in_config(const wxDataViewItem& item)
 void ObjectList::update_name_in_model(const wxDataViewItem& item) const
 {
     if (m_objects_model->GetItemType(item) & itPlate) {
-        std::string name = m_objects_model->GetName(item).ToUTF8().data();
+        std::string name = into_u8(m_objects_model->GetName(item));
         int plate_idx = -1;
         const ItemType type0 = m_objects_model->GetItemType(item, plate_idx);
         if (plate_idx >= 0) {
             auto plate = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
             if (plate->get_plate_name() != name) {
+                take_snapshot(_u8L("Rename Plate"));
                 plate->set_plate_name(name);
+                wxGetApp().plater()->set_plater_dirty(true);
             }
             m_objects_model->SetCurSelectedPlateFullName(plate_idx, name);
         }

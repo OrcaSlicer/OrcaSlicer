@@ -1347,6 +1347,7 @@ void ObjectDataViewModel::SetCurSelectedPlateFullName(int plate_idx, const std::
                 plate_full_name += wxString(" (", wxConvUTF8) + from_u8(custom_name) + wxString(")", wxConvUTF8);
             }
             plate->SetName(plate_full_name);
+            ItemChanged(wxDataViewItem((void*)plate));
         }
     }
 }

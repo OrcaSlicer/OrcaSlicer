@@ -466,9 +466,20 @@ std::vector<NativeCommand> build_command_catalog()
             return plate_unavailable();
         PartPlate* curr = plater->get_partplate_list().get_curr_plate();
         PlateNameEditDialog dlg((wxWindow*) wxGetApp().mainframe, wxID_ANY, _L("Edit Plate Name"));
-        dlg.set_plate_name(from_u8(curr->get_plate_name()));
-        if (dlg.ShowModal() == wxID_YES)
-            curr->set_plate_name(dlg.get_plate_name().ToUTF8().data());
+        wxString curr_plate_name = from_u8(curr->get_plate_name());
+        dlg.set_plate_name(curr_plate_name);
+        if (dlg.ShowModal() == wxID_YES) {
+            wxString dlg_plate_name = dlg.get_plate_name();
+            if (dlg_plate_name != curr_plate_name) {
+                plater->take_snapshot(_u8L("Rename Plate"));
+                std::string new_name = into_u8(dlg_plate_name);
+                curr->set_plate_name(new_name);
+                int plate_index = plater->get_partplate_list().get_curr_plate_index();
+                if (wxGetApp().obj_list() && wxGetApp().obj_list()->GetModel())
+                    wxGetApp().obj_list()->GetModel()->SetCurSelectedPlateFullName(plate_index, new_name);
+                plater->set_plater_dirty(true);
+            }
+        }
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("plate_toggle_lock", _u8L("Toggle Plate Lock"), _u8L("Plate"), "lock_normal", [](const std::string&) {

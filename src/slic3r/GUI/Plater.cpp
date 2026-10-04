@@ -22402,10 +22402,19 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
         update();
         wxGetApp().obj_list()->update_selections();
         });
-    dlg.set_plate_name(from_u8(curr_plate->get_plate_name()));
+    wxString curr_plate_name = from_u8(curr_plate->get_plate_name());
+    dlg.set_plate_name(curr_plate_name);
 
-    dlg.ShowModal();
-    curr_plate->set_plate_name(dlg.get_plate_name().ToUTF8().data());
+    if (dlg.ShowModal() == wxID_YES) {
+        wxString dlg_plate_name = dlg.get_plate_name();
+        if (dlg_plate_name != curr_plate_name) {
+            std::string new_name = into_u8(dlg_plate_name);
+            curr_plate->set_plate_name(new_name);
+            if (p->sidebar && p->sidebar->obj_list() && p->sidebar->obj_list()->GetModel())
+                p->sidebar->obj_list()->GetModel()->SetCurSelectedPlateFullName(plate_index, new_name);
+            set_plater_dirty(true);
+        }
+    }
 }
 
 void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
@@ -22660,10 +22669,17 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             wxString curr_plate_name = from_u8(curr_plate->get_plate_name());
             dlg.set_plate_name(curr_plate_name);
 
-            int result=dlg.ShowModal();
+            int result = dlg.ShowModal();
             if (result == wxID_YES) {
                 wxString dlg_plate_name = dlg.get_plate_name();
-                curr_plate->set_plate_name(dlg_plate_name.ToUTF8().data());
+                if (dlg_plate_name != curr_plate_name) {
+                    take_snapshot(_u8L("Rename Plate"));
+                    std::string new_name = into_u8(dlg_plate_name);
+                    curr_plate->set_plate_name(new_name);
+                    if (p->sidebar && p->sidebar->obj_list() && p->sidebar->obj_list()->GetModel())
+                        p->sidebar->obj_list()->GetModel()->SetCurSelectedPlateFullName(plate_index, new_name);
+                    set_plater_dirty(true);
+                }
             }
         } else {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;

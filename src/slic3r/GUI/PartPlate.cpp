@@ -2638,6 +2638,7 @@ void PartPlate::set_plate_name(const std::string& name)
         ctx.previous_name = previous_name;
         ctx.index = m_plate_index;
         fire_lifecycle_event(LifecycleEvent::PlateRenamed, ctx);
+        m_plater->set_plater_dirty(true);
     }
 }
 
