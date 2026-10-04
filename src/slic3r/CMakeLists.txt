@@ -536,6 +536,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SliceInfoPanel.hpp
     GUI/SlicingProgressNotification.cpp
     GUI/SlicingProgressNotification.hpp
+    GUI/SourceFileWatcher.cpp
+    GUI/SourceFileWatcher.hpp
     GUI/StagedBuild.hpp
     GUI/StatusPanel.cpp
     GUI/StatusPanel.hpp
