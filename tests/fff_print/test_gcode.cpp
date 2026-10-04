@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <catch2/catch_message.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -9,6 +10,8 @@
 
 #include "test_helpers.hpp"
 
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Point.hpp"
 #include <string>
 #include <vector>
 

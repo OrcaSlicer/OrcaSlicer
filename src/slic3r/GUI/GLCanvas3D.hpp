@@ -4,6 +4,7 @@
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <cstdlib>
+#include <imgui.h>
 #include <map>
 #include <cmath>
 #include "libslic3r/Geometry.hpp"
