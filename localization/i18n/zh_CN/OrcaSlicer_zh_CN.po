@@ -248,8 +248,9 @@ msgstr "标准"
 msgid "TPU High Flow"
 msgstr "TPU 高流量"
 
+# AI Translated
 msgid "E3D High Flow"
-msgstr ""
+msgstr "E3D 高流量"
 
 msgid "Unknown"
 msgstr "未定义"
@@ -1943,15 +1944,20 @@ msgstr "配置包已被加载，但部分数值未被识别。"
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "配置文件“%1%”已被加载，但部分数值未被识别。"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
 "\n"
 "Only open attachments from projects you trust. Open it anyway?"
 msgstr ""
+"“%s”不是普通的文档、图像或模型文件。打开它可能会在此计算机上将其作为程序或脚本运行。\n"
+"\n"
+"请仅打开来自您信任的项目的附件。仍要打开吗？"
 
+# AI Translated
 msgid "Open attachment"
-msgstr ""
+msgstr "打开附件"
 
 msgid "Loading configuration"
 msgstr "正在加载配置"
@@ -2400,18 +2406,22 @@ msgstr ""
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "无法打开插件对话框（未知错误）。"
 
+# AI Translated
 msgid "Plugins refreshed."
-msgstr ""
+msgstr "插件已刷新。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Failed to refresh plugins: %s"
-msgstr ""
+msgstr "刷新插件失败：%s"
 
+# AI Translated
 msgid "Select plugin package"
-msgstr ""
+msgstr "选择插件包"
 
+# AI Translated
 msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
-msgstr ""
+msgstr "插件文件 (*.py;*.whl)|*.py;*.whl"
 
 msgid "Plugin Terminal"
 msgstr "插件终端"
@@ -2531,8 +2541,9 @@ msgstr "添加支撑屏蔽器"
 msgid "Add Support Enforcer"
 msgstr "添加支撑生成器"
 
+# AI Translated
 msgid "Add Precise Seam"
-msgstr ""
+msgstr "添加精确接缝"
 
 msgid "Add text"
 msgstr "添加文本"
@@ -2658,8 +2669,9 @@ msgstr "支撑屏蔽器"
 msgid "Support Enforcer"
 msgstr "支撑添加器"
 
+# AI Translated
 msgid "Precise Seam"
-msgstr ""
+msgstr "精确接缝"
 
 msgid "Change part type"
 msgstr "选择零件类型"
@@ -2803,29 +2815,37 @@ msgstr "沿Z轴镜像"
 msgid "Mirror object"
 msgstr "镜像对象"
 
+# AI Translated
 msgid "Precise Seam Type"
-msgstr ""
+msgstr "精确接缝类型"
 
+# AI Translated
 msgid "Seam Center"
-msgstr ""
+msgstr "居中接缝"
 
+# AI Translated
 msgid "Seam Left"
-msgstr ""
+msgstr "左侧接缝"
 
+# AI Translated
 msgid "Seam Right"
-msgstr ""
+msgstr "右侧接缝"
 
+# AI Translated
 msgid "Seam Enforced"
-msgstr ""
+msgstr "强制接缝"
 
+# AI Translated
 msgid "Seam Blocked"
-msgstr ""
+msgstr "屏蔽接缝"
 
+# AI Translated
 msgid "Seam Neutral"
-msgstr ""
+msgstr "中性接缝"
 
+# AI Translated
 msgid "Choose precise seam subtype"
-msgstr ""
+msgstr "选择精确接缝子类型"
 
 msgid "Edit text"
 msgstr "编辑文字"
@@ -4052,20 +4072,24 @@ msgstr "OrcaSlicer 也始于同样的精神，汲取了 PrusaSlicer、BambuStudi
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "如今，OrcaSlicer 是 3D 打印社区中使用最广泛、开发最活跃的开源切片软件。它的许多创新已被其他切片软件采用，成为推动整个行业发展的力量。"
 
+# AI Translated
 msgid "Script plugin skipped."
-msgstr ""
+msgstr "已跳过脚本插件。"
 
+# AI Translated
 msgid "Script plugin finished."
-msgstr ""
+msgstr "脚本插件已完成。"
 
 msgid "Printer"
 msgstr "打印机"
 
+# AI Translated
 msgid "Recent Projects"
-msgstr ""
+msgstr "最近的项目"
 
+# AI Translated
 msgid "Go to Plate"
-msgstr ""
+msgstr "转到盘"
 
 msgid "AMS Materials Setting"
 msgstr "AMS 材料设置"
@@ -5470,11 +5494,13 @@ msgstr "速度: "
 msgid "Actual speed profile"
 msgstr "实际速度曲线"
 
+# AI Translated
 msgid "Automatic"
-msgstr ""
+msgstr "自动"
 
+# AI Translated
 msgid "Last used"
-msgstr ""
+msgstr "上次使用"
 
 msgid "Statistics of All Plates"
 msgstr "所有盘切片信息"
@@ -5879,8 +5905,9 @@ msgstr "轮廓线"
 msgid "Wireframe"
 msgstr "线框"
 
+# AI Translated
 msgid "X-Ray"
-msgstr ""
+msgstr "X 射线"
 
 msgid "Realistic View"
 msgstr "写实渲染"
@@ -5897,23 +5924,29 @@ msgstr "网格线"
 msgid "Labels"
 msgstr "标签"
 
+# AI Translated
 msgid "Move section plane"
-msgstr ""
+msgstr "移动剖切面"
 
+# AI Translated
 msgid "Mouse wheel on icon"
-msgstr ""
+msgstr "在图标上滚动鼠标滚轮"
 
+# AI Translated
 msgid "Right click on icon"
-msgstr ""
+msgstr "右键单击图标"
 
+# AI Translated
 msgid "Toggle section view"
-msgstr ""
+msgstr "切换剖面视图"
 
+# AI Translated
 msgid "Middle click on icon"
-msgstr ""
+msgstr "中键单击图标"
 
+# AI Translated
 msgid "Set viewing angle"
-msgstr ""
+msgstr "设置视角"
 
 msgid "Paint Toolbar"
 msgstr "上色工具条"
@@ -6096,8 +6129,9 @@ msgstr "正在关闭应用程序，部分预设已修改。"
 msgid "Logging"
 msgstr "日志"
 
+# AI Translated
 msgid "Design"
-msgstr ""
+msgstr "设计"
 
 msgid "Prepare"
 msgstr "准备"
@@ -6176,11 +6210,13 @@ msgstr "故障排查中心"
 msgid "Open Network Test"
 msgstr "打开网络测试"
 
+# AI Translated
 msgid "Benchmark 3D Scene"
-msgstr ""
+msgstr "3D 场景基准测试"
 
+# AI Translated
 msgid "Measure how fast the 3D scene renders in Prepare and Preview"
-msgstr ""
+msgstr "测量 3D 场景在“准备”和“预览”中的渲染速度"
 
 msgid "Show Tip of the Day"
 msgstr "展示每日小贴士"
@@ -6441,8 +6477,9 @@ msgstr "编辑"
 msgid "View"
 msgstr "视图"
 
+# AI Translated
 msgid "Open Speed Dial"
-msgstr ""
+msgstr "打开快捷面板"
 
 msgid "Preset Bundle"
 msgstr "预设包"
@@ -6628,8 +6665,9 @@ msgstr "由于缺少 GStreamer GTK 视频接收器或其初始化失败，播放
 msgid "Please confirm if the printer is connected."
 msgstr "请确认打印机是否连接成功。"
 
+# AI Translated
 msgid "Sign in to OrcaCloud to view the camera."
-msgstr ""
+msgstr "登录 OrcaCloud 以查看摄像头。"
 
 msgid "Initializing..."
 msgstr "正在初始化……"
@@ -7362,53 +7400,69 @@ msgstr "不再显示此对话框？"
 msgid "Please refer to Wiki before use->"
 msgstr "使用前请参考 Wiki->"
 
+# AI Translated
 msgid "Plates are a filament (FFF) feature."
-msgstr ""
+msgstr "盘仅适用于耗材丝 (FFF) 打印。"
 
+# AI Translated
 msgid "Open the 3D view first."
-msgstr ""
+msgstr "请先打开 3D 视图。"
 
+# AI Translated
 msgid "Select an object first."
-msgstr ""
+msgstr "请先选择一个对象。"
 
+# AI Translated
 msgid "Slice and Preview"
-msgstr ""
+msgstr "切片并预览"
 
+# AI Translated
 msgid "Slice & Export"
-msgstr ""
+msgstr "切片并导出"
 
+# AI Translated
 msgid "Go to layer (percent)"
-msgstr ""
+msgstr "转到层（百分比）"
 
+# AI Translated
 msgid "Commands"
-msgstr ""
+msgstr "命令"
 
+# AI Translated
 msgid "Go to tab..."
-msgstr ""
+msgstr "转到标签页..."
 
+# AI Translated
 msgid "Load Project"
-msgstr ""
+msgstr "加载项目"
 
+# AI Translated
 msgid "Save Project As"
-msgstr ""
+msgstr "项目另存为"
 
+# AI Translated
 msgid "Mode: Simple"
-msgstr ""
+msgstr "模式：简单"
 
+# AI Translated
 msgid "Mode: Advanced"
-msgstr ""
+msgstr "模式：高级"
 
+# AI Translated
 msgid "Mode: Expert"
-msgstr ""
+msgstr "模式：专家"
 
+# AI Translated
 msgid "Toggle Developer Mode"
-msgstr ""
+msgstr "切换开发者模式"
 
+# AI Translated
 msgid "Developer mode enabled."
-msgstr ""
+msgstr "开发者模式已启用。"
 
+# AI Translated
 msgid "Developer mode disabled."
-msgstr ""
+msgstr "开发者模式已禁用。"
 
 msgid "Export STL"
 msgstr "导出STL文件"
@@ -7416,176 +7470,229 @@ msgstr "导出STL文件"
 msgid "Export 3MF"
 msgstr "导出 3MF"
 
+# AI Translated
 msgid "Export Sliced File"
-msgstr ""
+msgstr "导出切片文件"
 
+# AI Translated
 msgid "Export All Sliced Files"
-msgstr ""
+msgstr "导出所有切片文件"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "最大体积流量校准"
 
+# AI Translated
 msgid "Pressure Advance Calibration"
-msgstr ""
+msgstr "压力提前校准"
 
 msgid "Flow Ratio Calibration"
 msgstr "流量比校准"
 
+# AI Translated
 msgid "Retraction Calibration"
-msgstr ""
+msgstr "回抽校准"
 
+# AI Translated
 msgid "Cornering Calibration"
-msgstr ""
+msgstr "转弯校准"
 
+# AI Translated
 msgid "Input Shaping Frequency Calibration"
-msgstr ""
+msgstr "输入整形频率校准"
 
+# AI Translated
 msgid "Input Shaping Damping Calibration"
-msgstr ""
+msgstr "输入整形阻尼校准"
 
+# AI Translated
 msgid "VFA Calibration"
-msgstr ""
+msgstr "VFA 校准"
 
+# AI Translated
 msgid "View: Top"
-msgstr ""
+msgstr "视图：顶部"
 
+# AI Translated
 msgid "View: Bottom"
-msgstr ""
+msgstr "视图：底部"
 
+# AI Translated
 msgid "View: Front"
-msgstr ""
+msgstr "视图：前面"
 
+# AI Translated
 msgid "View: Rear"
-msgstr ""
+msgstr "视图：背面"
 
+# AI Translated
 msgid "View: Left"
-msgstr ""
+msgstr "视图：左"
 
+# AI Translated
 msgid "View: Right"
-msgstr ""
+msgstr "视图：右"
 
+# AI Translated
 msgid "View: Isometric"
-msgstr ""
+msgstr "视图：等距"
 
+# AI Translated
 msgid "View: Default"
-msgstr ""
+msgstr "视图：默认"
 
+# AI Translated
 msgid "Fit Bed to View"
-msgstr ""
+msgstr "缩放以适合热床"
 
+# AI Translated
 msgid "Toggle Perspective"
-msgstr ""
+msgstr "切换透视"
 
 msgid "Delete All Objects"
 msgstr "删除所有对象"
 
+# AI Translated
 msgid "Mirror X"
-msgstr ""
+msgstr "镜像 X"
 
+# AI Translated
 msgid "Mirror Y"
-msgstr ""
+msgstr "镜像 Y"
 
+# AI Translated
 msgid "Mirror Z"
-msgstr ""
+msgstr "镜像 Z"
 
 msgid "Split to Objects"
 msgstr "拆分为对象"
 
+# AI Translated
 msgid "Split to Parts"
-msgstr ""
+msgstr "拆分为零件"
 
+# AI Translated
 msgid "Center Selected on Plate"
-msgstr ""
+msgstr "将所选对象在盘上居中"
 
+# AI Translated
 msgid "Drop to Bed"
-msgstr ""
+msgstr "落到热床"
 
+# AI Translated
 msgid "Scale to Fit Print Volume"
-msgstr ""
+msgstr "缩放以适应构建空间"
 
+# AI Translated
 msgid "Increase Instances"
-msgstr ""
+msgstr "增加实例"
 
+# AI Translated
 msgid "Decrease Instances"
-msgstr ""
+msgstr "减少实例"
 
+# AI Translated
 msgid "Auto-Arrange"
-msgstr ""
+msgstr "自动摆放"
 
+# AI Translated
 msgid "Auto-Orient"
-msgstr ""
+msgstr "自动朝向"
 
+# AI Translated
 msgid "Add Plate"
-msgstr ""
+msgstr "添加盘"
 
+# AI Translated
 msgid "Cannot add another plate (maximum reached)."
-msgstr ""
+msgstr "无法再添加盘（已达上限）。"
 
+# AI Translated
 msgid "Duplicate Plate"
-msgstr ""
+msgstr "复制盘"
 
+# AI Translated
 msgid "Cannot duplicate a plate (maximum reached)."
-msgstr ""
+msgstr "无法复制盘（已达上限）。"
 
+# AI Translated
 msgid "Cannot delete the only plate."
-msgstr ""
+msgstr "无法删除唯一的盘。"
 
+# AI Translated
 msgid "Rename Plate"
-msgstr ""
+msgstr "重命名盘"
 
+# AI Translated
 msgid "Toggle Plate Lock"
-msgstr ""
+msgstr "切换盘锁定"
 
+# AI Translated
 msgid "No plates available."
-msgstr ""
+msgstr "没有可用的盘。"
 
+# AI Translated
 msgid "Synchronize Filament List from AMS"
-msgstr ""
+msgstr "从 AMS 同步耗材丝列表"
 
+# AI Translated
 msgid "Connect a printer to synchronize the AMS filament list."
-msgstr ""
+msgstr "请连接打印机以同步 AMS 耗材丝列表。"
 
+# AI Translated
 msgid "Open Preset Bundle"
-msgstr ""
+msgstr "打开预设包"
 
+# AI Translated
 msgid "Sign in to sync presets."
-msgstr ""
+msgstr "登录以同步预设。"
 
+# AI Translated
 msgid "Export All Objects as STLs"
-msgstr ""
+msgstr "将所有对象导出为多个 STL"
 
+# AI Translated
 msgid "Export All Objects as DRC (one file)"
-msgstr ""
+msgstr "将所有对象导出为 DRC（单个文件）"
 
+# AI Translated
 msgid "Export All Objects as DRCs"
-msgstr ""
+msgstr "将所有对象导出为多个 DRC"
 
+# AI Translated
 msgid "Export Toolpaths as OBJ"
-msgstr ""
+msgstr "将工具路径导出为 OBJ"
 
+# AI Translated
 msgid "About OrcaSlicer"
-msgstr ""
+msgstr "关于 OrcaSlicer"
 
+# AI Translated
 msgid "Open Wiki"
-msgstr ""
+msgstr "打开 Wiki"
 
+# AI Translated
 msgid "Open YouTube Channel"
-msgstr ""
+msgstr "打开 YouTube 频道"
 
+# AI Translated
 msgid "Open Plugins"
-msgstr ""
+msgstr "打开插件"
 
+# AI Translated
 msgid "Refresh Plugins"
-msgstr ""
+msgstr "刷新插件"
 
+# AI Translated
 msgid "Install Plugin"
-msgstr ""
+msgstr "安装插件"
 
+# AI Translated
 msgid "Install Local Plugin"
-msgstr ""
+msgstr "安装本地插件"
 
+# AI Translated
 msgid "Unknown command."
-msgstr ""
+msgstr "未知命令。"
 
 msgid "3D Mouse disconnected."
 msgstr "3D鼠标断连。"
@@ -8086,8 +8193,9 @@ msgstr "同步喷嘴信息和 AMS 数量"
 msgid "Click to edit preset"
 msgstr "点击编辑配置"
 
+# AI Translated
 msgid "Variant"
-msgstr ""
+msgstr "变种"
 
 msgid "Nozzle"
 msgstr "喷嘴"
@@ -8179,8 +8287,9 @@ msgstr "耗材丝类型和颜色信息已同步，但不包括插槽信息。"
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "是否保存修改到“%1%”？"
 
+# AI Translated
 msgid "UV Editor"
-msgstr ""
+msgstr "UV 编辑器"
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8547,16 +8656,21 @@ msgstr ""
 msgid "Sync now"
 msgstr "立即同步"
 
+# AI Translated
 msgid "Cannot undo or redo while an operation is running. Stop it first."
-msgstr ""
+msgstr "操作正在进行时无法撤销或重做。请先停止该操作。"
 
+# AI Translated
 msgid ""
 "The selected printer does not support multiple bed types.\n"
 "Bed type overrides were reset to the global bed type."
 msgstr ""
+"所选打印机不支持多种热床类型。\n"
+"热床类型覆盖已重置为全局热床类型。"
 
+# AI Translated
 msgid "Plate bed types reset"
-msgstr ""
+msgstr "盘的热床类型已重置"
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -9235,32 +9349,41 @@ msgstr "多设备管理"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "启用此选项后，您可以同时向多个设备发送任务并管理多个设备。"
 
+# AI Translated
 msgid "Open the Speed Dial from the keyboard"
-msgstr ""
+msgstr "通过键盘打开快捷面板"
 
+# AI Translated
 msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
-msgstr ""
+msgstr "启用后，快捷面板的快捷键（默认为空格键）可在任意页面打开操作搜索。"
 
+# AI Translated
 msgid "Recent actions"
-msgstr ""
+msgstr "最近的操作"
 
+# AI Translated
 msgid "actions"
-msgstr ""
+msgstr "个操作"
 
+# AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
-msgstr ""
+msgstr "在快捷面板顶部显示的最近启动操作的数量。设置为 0 可隐藏最近的操作。"
 
+# AI Translated
 msgid "CAD feature (experimental)"
-msgstr ""
+msgstr "CAD 功能（实验性）"
 
+# AI Translated
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr ""
+msgstr "启用此选项后，将显示“设计”标签页，可在其中以参数化方式构建和编辑模型。此功能为实验性功能，仍在开发中。"
 
+# AI Translated
 msgid "Auto-close sketch loops"
-msgstr ""
+msgstr "自动闭合草图环"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr ""
+msgstr "将相距 0.001 mm 以内的草图端点视为同一连接点，并将环焊接闭合。关闭时：只有完全重合的端点才会连接，因此存在微小间隙的环会显示为开放，而不会被自动闭合。"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "弹出选择耗材丝分组模式"
@@ -9304,11 +9427,13 @@ msgstr "解除混合温度限制"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "启用此选项后，您可以一起打印温差较大的材料。"
 
+# AI Translated
 msgid "Remember last print action"
-msgstr ""
+msgstr "记住上次的打印操作"
 
+# AI Translated
 msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr ""
+msgstr "启用后，OrcaSlicer 将记住打印按钮下拉菜单中上次选择的选项（例如打印、导出单盘切片文件、导出 G-code 文件），并在下次启动时将其作为默认选项。"
 
 msgid "Touchpad"
 msgstr "触控板"
@@ -9349,11 +9474,13 @@ msgstr "反转鼠标缩放"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "如果启用，使用鼠标滚轮缩放的方向会反转。"
 
+# AI Translated
 msgid "Draw mate connectors as a face"
-msgstr ""
+msgstr "将配合连接器绘制为面"
 
+# AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr ""
+msgstr "在“设计”标签页中，将配合连接器绘制为一个小面，而不是带有滚转象限的传统圆盘。面的朝向无需学习即可读懂。关闭此选项可使用传统的 CAD 表示方式。"
 
 msgid "Pan"
 msgstr "平移"
@@ -9376,14 +9503,17 @@ msgstr "鼠标右键拖动"
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "设置拖动鼠标右键时应执行的操作。"
 
+# AI Translated
 msgid "Keyboard"
-msgstr ""
+msgstr "键盘"
 
+# AI Translated
 msgid "Keyboard shortcuts"
-msgstr ""
+msgstr "快捷键"
 
+# AI Translated
 msgid "Choose the key for each action."
-msgstr ""
+msgstr "为每个操作选择按键。"
 
 msgid "Clear my choice on..."
 msgstr "清除我的选择..."
@@ -9428,13 +9558,17 @@ msgstr "Phong 着色"
 msgid "Uses Phong shading inside realistic view."
 msgstr "在写实渲染中使用 Phong 着色。"
 
+# AI Translated
 msgid "Enable in Preview"
-msgstr ""
+msgstr "在预览中启用"
 
+# AI Translated
 msgid ""
 "Also applies realistic view to the Preview canvas, not just Prepare.\n"
 "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
 msgstr ""
+"将写实渲染同时应用于预览画布，而不仅是准备页面。\n"
+"预览会绘制完整的工具路径几何体，因此阴影和 SSAO 在其中的开销远高于普通模型。"
 
 msgid "SSAO ambient occlusion"
 msgstr "SSAO 环境光遮蔽"
@@ -9442,20 +9576,26 @@ msgstr "SSAO 环境光遮蔽"
 msgid "Applies SSAO in realistic view."
 msgstr "在写实渲染中应用 SSAO。"
 
+# AI Translated
 msgid "Static"
-msgstr ""
+msgstr "静态"
 
+# AI Translated
 msgid "Orbit"
-msgstr ""
+msgstr "环绕"
 
 msgid "Shadows"
 msgstr "阴影"
 
+# AI Translated
 msgid ""
 "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
 "Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
 "Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
 msgstr ""
+"在写实渲染中，渲染投射到盘、其他对象以及对象自身上的阴影。\n"
+"静态：光源在世界中保持固定，因此仅在场景变化时重新计算阴影。\n"
+"环绕：光源随相机转动，相机移动时每一帧都会重新计算阴影。"
 
 msgid "Anti-aliasing"
 msgstr "抗锯齿"
@@ -9511,9 +9651,11 @@ msgstr ""
 "限制视口帧率以降低 GPU 负载和功耗。\n"
 "设置为 0 表示不限制帧率。"
 
+# AI Translated
 msgid "Reuse the 3D scene while idle"
-msgstr ""
+msgstr "空闲时复用 3D 场景"
 
+# AI Translated
 msgid ""
 "Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
 "and reuses the previous frame's scene instead. Reduces GPU load.\n"
@@ -9521,10 +9663,17 @@ msgid ""
 "\n"
 "Takes effect immediately."
 msgstr ""
+"当仅有鼠标光标在视口上移动时，跳过重绘 3D 场景，\n"
+"改为复用上一帧的场景。可降低 GPU 负载。\n"
+"如果视口显示过时或缺失的内容，请禁用此选项。\n"
+"\n"
+"立即生效。"
 
+# AI Translated
 msgid "Skip unchanged frames"
-msgstr ""
+msgstr "跳过未变化的帧"
 
+# AI Translated
 msgid ""
 "Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
 "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
@@ -9532,50 +9681,68 @@ msgid ""
 "\n"
 "Takes effect immediately."
 msgstr ""
+"当某一帧与屏幕上已有的帧完全相同时，完全跳过绘制该帧。\n"
+"仅适用于复用 3D 场景的帧，因此需要启用“空闲时复用 3D 场景”。\n"
+"如果悬停高亮、工具提示或动画停止更新，请禁用此选项。\n"
+"\n"
+"立即生效。"
 
 msgid "Show FPS overlay"
 msgstr "显示 FPS 叠加层"
 
+# AI Translated
 msgid "Displays rendering counts in the top-right corner of the viewport."
-msgstr ""
+msgstr "在视口右上角显示渲染计数。"
 
+# AI Translated
 msgid "FPS: frames presented to the screen per second."
-msgstr ""
+msgstr "FPS：每秒呈现到屏幕上的帧数。"
 
+# AI Translated
 msgid "3D: frames per second that redrew the 3D scene."
-msgstr ""
+msgstr "3D：每秒重绘 3D 场景的帧数。"
 
+# AI Translated
 msgid "Show render timings"
-msgstr ""
+msgstr "显示渲染耗时"
 
+# AI Translated
 msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
-msgstr ""
+msgstr "在视口右上角显示重绘 3D 场景的帧中各部分所耗费的毫秒数。"
 
+# AI Translated
 msgid "CPU: time spent issuing the drawing commands."
-msgstr ""
+msgstr "CPU：发出绘制命令所花费的时间。"
 
+# AI Translated
 msgid "GPU: time the graphics card spent running them."
-msgstr ""
+msgstr "GPU：显卡执行这些命令所花费的时间。"
 
+# AI Translated
 msgid "Adds a small overhead to each frame while enabled."
-msgstr ""
+msgstr "启用后会给每一帧增加少量开销。"
 
+# AI Translated
 msgid "3D scene benchmark"
-msgstr ""
+msgstr "3D 场景基准测试"
 
+# AI Translated
 msgid "Run"
-msgstr ""
+msgstr "运行"
 
+# AI Translated
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
-msgstr ""
+msgstr "用 OrcaSliced Combo 替换当前项目，然后在“准备”和“预览”中相机围绕其转动时，以及层滑块在已切片的各层间移动时，测量帧率和渲染耗时。"
 
 # AI Translated
 msgid "G-code Preview"
 msgstr "G-code 预览"
 
+# AI Translated
 msgid "Default view type"
-msgstr ""
+msgstr "默认视图类型"
 
+# AI Translated
 msgid ""
 "The color scheme the sliced preview opens with.\n"
 "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
@@ -9583,6 +9750,11 @@ msgid ""
 "Any other value always opens that view type.\n"
 "You can still switch the view type in the preview afterwards."
 msgstr ""
+"切片预览打开时使用的配色方案。\n"
+"自动：多材料打印使用“耗材丝”，单材料打印使用“走线类型”。\n"
+"上次使用：您上次选择的视图类型。\n"
+"其他任何值：始终以该视图类型打开。\n"
+"之后您仍可在预览中切换视图类型。"
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10041,8 +10213,9 @@ msgstr "发布 3MF..."
 msgid "Select which settings to be published in the 3MF file"
 msgstr "选择要在 3MF 文件中发布的设置"
 
+# AI Translated
 msgid "Video Guide"
-msgstr ""
+msgstr "视频指南"
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10148,127 +10321,163 @@ msgstr "为“%1%”，添加“%2%”为一个新预设"
 msgid "Simply switch to \"%1%\""
 msgstr "直接切换到“%1%”"
 
+# AI Translated
 msgid "Loading the benchmark model"
-msgstr ""
+msgstr "正在加载基准测试模型"
 
+# AI Translated
 msgid "The benchmark model could not be loaded."
-msgstr ""
+msgstr "无法加载基准测试模型。"
 
+# AI Translated
 msgid "Slicing failed, so only Prepare was measured."
-msgstr ""
+msgstr "切片失败，因此仅测量了“准备”。"
 
+# AI Translated
 msgid "The benchmark stopped because the 3D view was hidden."
-msgstr ""
+msgstr "由于 3D 视图被隐藏，基准测试已停止。"
 
+# AI Translated
 msgid "Turning the camera in Prepare"
-msgstr ""
+msgstr "在“准备”中转动相机"
 
+# AI Translated
 msgid "Turning the camera in Preview"
-msgstr ""
+msgstr "在“预览”中转动相机"
 
+# AI Translated
 msgid "Moving through the layers in Preview"
-msgstr ""
+msgstr "在“预览”中逐层移动"
 
+# AI Translated
 msgid "Copy the results to the clipboard"
-msgstr ""
+msgstr "将结果复制到剪贴板"
 
+# AI Translated
 msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
-msgstr ""
+msgstr "基准测试会用 OrcaSliced Combo 替换当前项目并对其切片。它会在“准备”和“预览”中围绕模型转动相机，然后让层滑块在已切片的各层间移动，对每一帧计时，并显示结果。"
 
+# AI Translated
 msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
-msgstr ""
+msgstr "它使用当前的图形设置，通常不到一分钟即可完成。完成之前主窗口将保持锁定。"
 
+# AI Translated
 msgid "Expert"
-msgstr ""
+msgstr "专家"
 
+# AI Translated
 msgid "Simple"
-msgstr ""
+msgstr "简单"
 
+# AI Translated
 msgid "Search actions"
-msgstr ""
+msgstr "搜索操作"
 
+# AI Translated
 msgid "Recent"
-msgstr ""
+msgstr "最近"
 
 msgid "Other"
 msgstr "其他"
 
+# AI Translated
 #, c-format, boost-format
 msgid "No actions match (Total: %s)"
-msgstr ""
+msgstr "没有匹配的操作（共 %s 个）"
 
+# AI Translated
 msgid "No actions yet"
-msgstr ""
+msgstr "暂无操作"
 
+# AI Translated
 msgid "No tabs match"
-msgstr ""
+msgstr "没有匹配的标签页"
 
+# AI Translated
 msgid "No tabs"
-msgstr ""
+msgstr "没有标签页"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Showing %s actions"
-msgstr ""
+msgstr "显示 %s 个操作"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s actions"
-msgstr ""
+msgstr "%s 个操作"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s tabs"
-msgstr ""
+msgstr "%s 个标签页"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s matches"
-msgstr ""
+msgstr "%s 个匹配项"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Favourites are full (%s max)"
-msgstr ""
+msgstr "收藏已满（最多 %s 个）"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Go to %s%% of the layer range"
-msgstr ""
+msgstr "转到层范围的 %s%%"
 
+# AI Translated
 msgid "Enter a layer percentage (0-100)"
-msgstr ""
+msgstr "输入层百分比 (0-100)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Go to layer %% (0-100)"
-msgstr ""
+msgstr "转到层 %% (0-100)"
 
+# AI Translated
 msgid "Go to tab"
-msgstr ""
+msgstr "转到标签页"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Favourite %s (%s)"
-msgstr ""
+msgstr "收藏 %s (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Pin to favourites (%s)"
-msgstr ""
+msgstr "固定到收藏 (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Unpin from favourites (%s)"
-msgstr ""
+msgstr "从收藏中取消固定 (%s)"
 
+# AI Translated
 msgid "Remove from favourites"
-msgstr ""
+msgstr "从收藏中移除"
 
+# AI Translated
 msgid "Move left"
-msgstr ""
+msgstr "左移"
 
+# AI Translated
 msgid "Move right"
-msgstr ""
+msgstr "右移"
 
+# AI Translated
 msgid "Unpin"
-msgstr ""
+msgstr "取消固定"
 
+# AI Translated
 msgid "Wiki (F1)"
-msgstr ""
+msgstr "Wiki (F1)"
 
+# AI Translated
 msgid "No wiki page for this action"
-msgstr ""
+msgstr "此操作没有 Wiki 页面"
 
 msgid "Show details"
 msgstr "显示详情"
@@ -10277,29 +10486,36 @@ msgstr "显示详情"
 msgid "Hide details"
 msgstr "隐藏详情"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
-msgstr ""
+msgstr "“%s”是开发者设置。是否启用开发者模式以编辑它？"
 
+# AI Translated
 msgid "Developer setting"
-msgstr ""
+msgstr "开发者设置"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
-msgstr ""
+msgstr "“%s”是%s设置。是否从%s模式切换到%s模式以编辑它？"
 
+# AI Translated
 msgid "Switch settings mode"
-msgstr ""
+msgstr "切换设置模式"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Run \"%s\"?"
-msgstr ""
+msgstr "运行“%s”？"
 
+# AI Translated
 msgid "Run plugin"
-msgstr ""
+msgstr "运行插件"
 
+# AI Translated
 msgid "Don't ask again for this action"
-msgstr ""
+msgstr "不再针对此操作询问"
 
 msgid "Task canceled"
 msgstr "任务已取消"
@@ -10441,9 +10657,10 @@ msgstr "材料编号和AMS槽位中的耗材丝材质不匹配，请更新打印
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "所选打印机 (%s) 与打印文件配置 (%s) 不兼容。请在准备页面调整打印机预设或在此页面选择兼容的打印机。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
-msgstr ""
+msgstr "所选打印机 (%s) 的型号未知，因此无法验证与打印文件配置 (%s) 的兼容性。请在发送前核实打印机预设。"
 
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "当启用旋转花瓶模式时，I3结构的机器将不会生成延时摄影。"
@@ -10519,11 +10736,13 @@ msgstr "清理"
 msgid "Preparing print job"
 msgstr "正在准备打印任务"
 
+# AI Translated
 msgid "Failed to upload the file to the printer's storage. Please try again."
-msgstr ""
+msgstr "上传文件到打印机存储失败，请重试。"
 
+# AI Translated
 msgid "Send Failed"
-msgstr ""
+msgstr "发送失败"
 
 msgid "The name length exceeds the limit."
 msgstr "名称长度超过限制。"
@@ -10698,8 +10917,9 @@ msgstr "无法为空盘发送打印任务"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "需要插入存储来记录延时摄影。"
 
+# AI Translated
 msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
-msgstr ""
+msgstr "无法识别所选打印机的型号，因此无法验证与打印文件配置的兼容性。请在发送前核实打印机预设。"
 
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "您已为挤出机选择了外部耗材丝和 AMS 耗材丝。您需要在打印过程中手动切换外部耗材丝。"
@@ -10768,8 +10988,9 @@ msgstr "打印机需要与Orca Slicer在同一个局域网内。"
 msgid "The printer does not support sending to printer storage."
 msgstr "打印机不支持发送到打印机存储。"
 
+# AI Translated
 msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
-msgstr ""
+msgstr "初始化打印机文件传输失败。请检查连接后重试。"
 
 msgid "Sending..."
 msgstr "正在发送..."
@@ -12098,36 +12319,44 @@ msgstr "移动视角"
 msgid "Rotate View"
 msgstr "旋转视角"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Use %s or %s, or a key that does not type a character."
-msgstr ""
+msgstr "请使用 %s 或 %s，或者使用不输入字符的按键。"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Key"
-msgstr ""
+msgstr "按键"
 
+# AI Translated
 msgid "Left mouse"
-msgstr ""
+msgstr "鼠标左键"
 
+# AI Translated
 msgid "Available anywhere in the window, even while typing in a text field."
-msgstr ""
+msgstr "在窗口任意位置可用，即使正在文本框中输入。"
 
+# AI Translated
 msgid "Run favorite 1 to 10"
-msgstr ""
+msgstr "运行收藏 1 至 10"
 
+# AI Translated
 msgid "Pin or unpin the selected action"
-msgstr ""
+msgstr "固定或取消固定所选操作"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Tab"
 msgstr "Tab"
 
+# AI Translated
 msgid "Switch to the next main tab"
-msgstr ""
+msgstr "切换到下一个主标签页"
 
+# AI Translated
 msgid "Available while the 3D view on the Prepare tab has focus."
-msgstr ""
+msgstr "在“准备”标签页的 3D 视图获得焦点时可用。"
 
 msgid "Select a part"
 msgstr "选择单个零件"
@@ -12147,20 +12376,24 @@ msgstr "沿X、Y轴以1mm为步进移动对象"
 msgid "Movement in camera space"
 msgstr "沿相机视角移动对象"
 
+# AI Translated
 msgid "Middle mouse"
-msgstr ""
+msgstr "鼠标中键"
 
+# AI Translated
 msgid "Right mouse"
-msgstr ""
+msgstr "鼠标右键"
 
 msgid "Zoom View"
 msgstr "缩放视角"
 
+# AI Translated
 msgid "Painting"
-msgstr ""
+msgstr "绘制"
 
+# AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr ""
+msgstr "在绘制小工具打开时可用：支撑、接缝、绒毛表面或颜色绘制。"
 
 msgid "Move: press to snap by 1mm"
 msgstr "移动：以1mm为步进移动"
@@ -12171,8 +12404,9 @@ msgstr "支撑/颜色绘制：调节画笔半径"
 msgid "Objects list"
 msgstr "对象列表"
 
+# AI Translated
 msgid "Available while the object list has focus."
-msgstr ""
+msgstr "在对象列表获得焦点时可用。"
 
 msgid "Set extruder number for the objects and parts"
 msgstr "设置对象、零件使用的挤出机编号"
@@ -12191,51 +12425,65 @@ msgstr "鼠标点击"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "选中对象、零件，双击零件名可修改名称"
 
+# AI Translated
 msgid "Available while the 3D view on the Preview tab has focus."
-msgstr ""
+msgstr "在“预览”标签页的 3D 视图获得焦点时可用。"
 
 msgid "Move slider 5x faster"
 msgstr "5倍速移动滑动条"
 
+# AI Translated
 msgid "Scroll slider 5x faster"
-msgstr ""
+msgstr "以 5 倍速滚动滑动条"
 
+# AI Translated
 msgid "Not customizable"
-msgstr ""
+msgstr "不可自定义"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "%s 已分配给 %s。是否将其重新分配给 %s？"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The default %s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "默认的 %s 已分配给 %s。是否将其重新分配给 %s？"
 
+# AI Translated
 msgid "Global shortcuts also apply while typing."
-msgstr ""
+msgstr "全局快捷键在输入文字时同样生效。"
 
+# AI Translated
 msgid "A key that types a character cannot be a global shortcut."
-msgstr ""
+msgstr "会输入字符的按键不能用作全局快捷键。"
 
+# AI Translated
 msgid "Esc cancels, Enter confirms."
-msgstr ""
+msgstr "按 Esc 取消，按 Enter 确认。"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Press the new shortcut for\n"
 "\"%s\""
 msgstr ""
+"请按下新的快捷键，用于\n"
+"“%s”"
 
+# AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
-msgstr ""
+msgstr "系统正在使用此快捷键，因此无法分配。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
-msgstr ""
+msgstr "此键与 Shift 和 Ctrl 的组合属于 %s，无法分配。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Already assigned to %s. Press OK to reassign it."
-msgstr ""
+msgstr "已分配给 %s。按“确定”可重新分配。"
 
 msgid "Release Note"
 msgstr "更新说明"
@@ -12314,8 +12562,9 @@ msgstr "打开CA证书文件"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "HTTPS CA文件是可选的。只有在使用自签名证书进行HTTPS连接时才需要。"
 
+# AI Translated
 msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr ""
+msgstr "此系统使用来自系统证书存储或钥匙串的 HTTPS 证书。要使用自定义 CA 文件，请将其导入其中。"
 
 msgid "Printer model"
 msgstr "打印机模型"
@@ -12538,28 +12787,34 @@ msgstr "分组错误：%1% 无法放入右喷嘴"
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "手动模式下分组错误。请检查喷嘴数量或重新分组。"
 
+# AI Translated
 #, boost-format
 msgid "failed to process some intersections (%1%)"
-msgstr ""
+msgstr "部分交点处理失败 (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "multiple intersections with a perimeter, only one was used (%1%)"
-msgstr ""
+msgstr "与墙存在多个交点，仅使用了其中一个 (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
-msgstr ""
+msgstr "某条墙完全位于修改器内部，修改器未应用于它 (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr ""
+msgstr "“%2%”的修改器“%1%”对接缝没有影响（它可能未触及所打印墙的中心线）"
 
+# AI Translated
 #, boost-format
 msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr ""
+msgstr "“%2%”的修改器“%1%”（共 %3% 个）对接缝没有影响（它们可能未触及所打印墙的中心线）"
 
+# AI Translated
 msgid "Seam placement may differ from expected."
-msgstr ""
+msgstr "接缝位置可能与预期不同。"
 
 msgid "Internal Bridge"
 msgstr "内部搭桥"
@@ -16683,8 +16938,9 @@ msgstr "远程挤出机"
 msgid "Hybrid"
 msgstr "混合"
 
+# AI Translated
 msgid "Extra High Flow"
-msgstr ""
+msgstr "超高流量"
 
 msgid "Enable filament dynamic map"
 msgstr "启用耗材动态映射"
@@ -17104,8 +17360,9 @@ msgstr "预热步骤"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "插入多个预热命令（例如 M104.1）。仅适用于 Prusa XL。对于其他打印机，请将其设置为 1。"
 
+# AI Translated
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
-msgstr ""
+msgstr "写在输出文件最顶部、位于其他所有内容之前的 G-code。可用于添加打印机固件从文件开头几行读取的元数据（例如预计打印时间、耗材丝用量）。支持 {print_time_total_sec}、{print_time_day}、{print_time_hour}、{print_time_minute}、{print_time_sec} 和 {used_filament_length} 等占位符。"
 
 msgid "Start G-code"
 msgstr "起始G-code"
@@ -17170,9 +17427,11 @@ msgstr "无稀疏层 （实验功能）"
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "启用后，擦拭塔不会在没有换料的层上打印。在有换料的层上，挤出机会向下移动去打印擦拭塔，因此塔会低于模型，工具头必须向下伸到它那里。若这样会与已打印的对象发生碰撞，则该布局会被拒绝。对平滑模式的延时摄影或喷嘴结块检测无效，因为它们需要每层都有塔。"
 
+# AI Translated
 msgid "Combine sparse layers"
-msgstr ""
+msgstr "合并稀疏层"
 
+# AI Translated
 msgid ""
 "If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
 "\n"
@@ -17180,6 +17439,11 @@ msgid ""
 "\n"
 "Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr ""
+"启用后，擦拭塔上没有耗材丝更换的连续层将合并打印为一个较厚的塔层，而不是每层各打印一个薄层，与合并填充合并稀疏填充的方式相同。合并后的层在这一段的顶部打印，其高度覆盖所涵盖的所有层。\n"
+"\n"
+"只会合并完整的层，且绝不超过打印该塔的喷嘴的最大层高（该值保留为 0 时为喷嘴直径的四分之三）。因此，必须有两层或更多层能够容纳在该限制之内，才会产生任何变化：在最大值为 0.3 mm 时，0.2 mm 层高不会合并任何层，而 0.1 mm 层高时三层会合并为一层。\n"
+"\n"
+"与“无稀疏层”不同，擦拭塔会持续跟随模型增高，因此工具头无需向下够到塔。在启用“无稀疏层”、平滑延时摄影或结块检测时此选项无效，因为这些功能要求每一层都有擦拭塔。"
 
 msgid "Prime all printing extruders"
 msgstr "所有挤出机画线"
@@ -17863,8 +18127,9 @@ msgstr "肋宽度始终小于主塔边长的一半。"
 msgid "Fillet wall"
 msgstr "墙加圆角"
 
+# AI Translated
 msgid "The wall of prime tower will fillet."
-msgstr "擦料塔的墙壁做倒角处理"
+msgstr "擦拭塔的墙壁将做圆角处理。"
 
 msgid "The extruder to use when printing perimeter of the wipe tower. Set to 0 to use the one that is available (non-soluble would be preferred)."
 msgstr "打印擦拭塔周长时使用的挤出机。设置为0将使用唯一的挤出机（尽量使用不可溶的材料）。"
@@ -18462,11 +18727,13 @@ msgstr "排列时允许旋转"
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "如果启用，排列功能将在放置对象时允许旋转。"
 
+# AI Translated
 msgid "Align to Y axis when arranging"
-msgstr ""
+msgstr "自动摆放时对齐到 Y 轴"
 
+# AI Translated
 msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
-msgstr ""
+msgstr "启用后，自动摆放会在放置每个对象之前将其旋转，使其长边沿 Y 轴方向。未指定时，对 i3 打印机默认开启，对其他打印机默认关闭，与图形界面中相同。"
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "排列时避开挤出校准区域"
@@ -18654,35 +18921,44 @@ msgstr "已用耗材"
 msgid "Total length of filament used in the print."
 msgstr "打印中使用的耗材的总长度。"
 
+# AI Translated
 msgid "Print time (total seconds)"
-msgstr ""
+msgstr "打印耗时（总秒数）"
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "预计总打印耗时（以秒为单位）。在后处理时将替换为实际值。"
 
+# AI Translated
 msgid "Print time (days component)"
-msgstr ""
+msgstr "打印耗时（天数部分）"
 
+# AI Translated
 msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "预计打印耗时的天数部分（正常模式）。在后处理时将替换为实际值。"
 
+# AI Translated
 msgid "Print time (hours component)"
-msgstr ""
+msgstr "打印耗时（小时部分）"
 
+# AI Translated
 msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "预计打印耗时的小时部分（正常模式）。在后处理时将替换为实际值。"
 
+# AI Translated
 msgid "Print time (minutes component)"
-msgstr ""
+msgstr "打印耗时（分钟部分）"
 
+# AI Translated
 msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "预计打印耗时的分钟部分（正常模式）。在后处理时将替换为实际值。"
 
+# AI Translated
 msgid "Print time (seconds component)"
-msgstr ""
+msgstr "打印耗时（秒数部分）"
 
+# AI Translated
 msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "预计打印耗时的秒数部分（正常模式）。在后处理时将替换为实际值。"
 
 msgid "Filament length (meters)"
 msgstr "耗材长度（米）"
@@ -20516,8 +20792,9 @@ msgstr "未检测到有效会话。是否继续登录 3DPrinterOS？"
 msgid "Success!"
 msgstr "成功！"
 
+# AI Translated
 msgid "Generate API Key"
-msgstr ""
+msgstr "生成 API 密钥"
 
 msgid "Are you sure to log out?"
 msgstr "您确定要登出吗？"
@@ -21877,1433 +22154,1901 @@ msgstr "此耗材可能与当前设备设置不兼容，将使用随机耗材预
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "此耗材可能于当前设备设置不兼容，将使用随机耗材预设。"
 
+# AI Translated
 msgid "Construction"
-msgstr ""
+msgstr "构造"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s  ·  on %s"
-msgstr ""
+msgstr "%s  ·  在 %s 上"
 
+# AI Translated
 msgid "Line — click start, then end"
-msgstr ""
+msgstr "直线 — 单击起点，然后单击终点"
 
+# AI Translated
 msgid "Rectangle — click two opposite corners"
-msgstr ""
+msgstr "矩形 — 单击两个对角"
 
+# AI Translated
 msgid "Circle — click center, then radius"
-msgstr ""
+msgstr "圆 — 单击圆心，然后单击确定半径"
 
+# AI Translated
 msgid "Arc — click start, end, then a point"
-msgstr ""
+msgstr "圆弧 — 依次单击起点、终点，然后单击一个点"
 
+# AI Translated
 msgid "Slot — two centerline ends, then end radius"
-msgstr ""
+msgstr "槽口 — 中心线两端，然后是端部半径"
 
+# AI Translated
 msgid "Ellipse — center, major end, minor point"
-msgstr ""
+msgstr "椭圆 — 中心、长轴端点、短轴上的点"
 
+# AI Translated
 msgid "Spline — click control points"
-msgstr ""
+msgstr "样条曲线 — 单击控制点"
 
+# AI Translated
 msgid "Point — click to place"
-msgstr ""
+msgstr "点 — 单击放置"
 
+# AI Translated
 msgid "Dimension — click 2 points or an entity"
-msgstr ""
+msgstr "尺寸 — 单击 2 个点或一个图元"
 
+# AI Translated
 msgid "Trim — click a segment to trim it"
-msgstr ""
+msgstr "修剪 — 单击要修剪的线段"
 
+# AI Translated
 msgid "Extend — click a line/arc to extend it"
-msgstr ""
+msgstr "延伸 — 单击要延伸的直线/圆弧"
 
+# AI Translated
 msgid "Offset — pick an entity, drag the distance"
-msgstr ""
+msgstr "偏移 — 选取一个图元，拖动设置距离"
 
+# AI Translated
 msgid "Mirror — pick axis, then entities"
-msgstr ""
+msgstr "镜像 — 选取镜像轴，然后选取图元"
 
+# AI Translated
 msgid "Fillet — pick two lines, set the radius"
-msgstr ""
+msgstr "圆角 — 选取两条直线，设置半径"
 
+# AI Translated
 msgid "Chamfer — pick two lines, set the distance"
-msgstr ""
+msgstr "倒角 — 选取两条直线，设置距离"
 
+# AI Translated
 msgid "Polygon — click center, then a vertex"
-msgstr ""
+msgstr "多边形 — 单击中心，然后单击一个顶点"
 
+# AI Translated
 msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
-msgstr ""
+msgstr "此处没有可输入的值 — 请选取一条直线、一段圆弧、一个圆或两个图元"
 
+# AI Translated
 msgid "Normal to the sketch plane"
-msgstr ""
+msgstr "正视于草图平面"
 
+# AI Translated
 msgid "Converted the selection between construction and real geometry"
-msgstr ""
+msgstr "已在构造几何与实际几何之间转换所选内容"
 
+# AI Translated
 msgid "Origin planes shown"
-msgstr ""
+msgstr "已显示原点平面"
 
+# AI Translated
 msgid "Origin planes hidden"
-msgstr ""
+msgstr "已隐藏原点平面"
 
+# AI Translated
 msgid "World axes shown"
-msgstr ""
+msgstr "已显示世界坐标轴"
 
+# AI Translated
 msgid "World axes hidden"
-msgstr ""
+msgstr "已隐藏世界坐标轴"
 
+# AI Translated
 msgid "Isometric view, fitted"
-msgstr ""
+msgstr "等距视图，已缩放至适合"
 
+# AI Translated
 msgid "Bed shown"
-msgstr ""
+msgstr "已显示热床"
 
+# AI Translated
 msgid "Bed hidden"
-msgstr ""
+msgstr "已隐藏热床"
 
+# AI Translated
 msgid "FEATURES"
-msgstr ""
+msgstr "特征"
 
+# AI Translated
 msgid "Sketch"
-msgstr ""
+msgstr "草图"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketching on %s — pick a tool"
-msgstr ""
+msgstr "正在 %s 上绘制草图 — 请选取工具"
 
+# AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr ""
+msgstr "在视口中单击一个面或基准面，然后单击草图工具"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Drawing on %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
+"正在 %s 上绘制。\n"
+"请选取工具，或按“菜单”查看列表。"
 
+# AI Translated
 msgid "Click a face or a reference plane, then a sketch tool."
-msgstr ""
+msgstr "单击一个面或基准面，然后单击草图工具。"
 
+# AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
-msgstr ""
+msgstr "添加材料（拉伸 / 旋转 / 扫掠 / 放样 / 加厚 / 肋条）"
 
+# AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
-msgstr ""
+msgstr "拉伸草图轮廓，或推/拉选取的面"
 
+# AI Translated
 msgid "Create a sketch, or pick a solid face, first"
-msgstr ""
+msgstr "请先创建草图或选取一个实体面"
 
+# AI Translated
 msgid "Revolve"
-msgstr ""
+msgstr "旋转"
 
+# AI Translated
 msgid "Revolve a profile about an axis"
-msgstr ""
+msgstr "绕轴旋转轮廓"
 
+# AI Translated
 msgid "Create a sketch profile to revolve first"
-msgstr ""
+msgstr "请先创建要旋转的草图轮廓"
 
+# AI Translated
 msgid "Sweep"
-msgstr ""
+msgstr "扫掠"
 
+# AI Translated
 msgid "Sweep a profile along a path"
-msgstr ""
+msgstr "沿路径扫掠轮廓"
 
+# AI Translated
 msgid "Create a profile sketch to sweep first"
-msgstr ""
+msgstr "请先创建要扫掠的轮廓草图"
 
+# AI Translated
 msgid "Loft"
-msgstr ""
+msgstr "放样"
 
+# AI Translated
 msgid "Loft (skin) between two or more profiles"
-msgstr ""
+msgstr "在两个或多个轮廓之间放样（蒙皮）"
 
+# AI Translated
 msgid "Create at least two profile sketches to loft"
-msgstr ""
+msgstr "请至少创建两个轮廓草图以进行放样"
 
+# AI Translated
 msgid "Thicken"
-msgstr ""
+msgstr "加厚"
 
+# AI Translated
 msgid "Offset a solid face into a thin plate (new body)"
-msgstr ""
+msgstr "将实体面偏移为薄板（新实体）"
 
+# AI Translated
 msgid "Thicken needs a solid body — add or import one first"
-msgstr ""
+msgstr "加厚需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 #, c-format
 msgid "Body %zu"
-msgstr ""
+msgstr "实体 %zu"
 
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
-msgstr ""
+msgstr "从开放的草图线生成薄壁，并与实体融合"
 
+# AI Translated
 msgid "Rib needs a solid body — add or import one first"
-msgstr ""
+msgstr "肋条需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Create a sketch with an open line first"
-msgstr ""
+msgstr "请先创建包含开放线条的草图"
 
+# AI Translated
 msgid "Create a solid body to pattern first"
-msgstr ""
+msgstr "请先创建要阵列的实体"
 
+# AI Translated
 msgid "Pattern — needs a solid body to replicate"
-msgstr ""
+msgstr "阵列 — 需要一个可复制的实体"
 
+# AI Translated
 msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
-msgstr ""
+msgstr "曲面（拉伸 / 旋转 / 放样 / 填充 / 偏移 / 加厚）"
 
+# AI Translated
 msgid "Surface Extrude"
-msgstr ""
+msgstr "拉伸曲面"
 
+# AI Translated
 msgid "Extrude a sketch into a sheet body (no end caps)"
-msgstr ""
+msgstr "将草图拉伸为曲面实体（无端盖）"
 
+# AI Translated
 msgid "Create a sketch first"
-msgstr ""
+msgstr "请先创建草图"
 
+# AI Translated
 msgid "Surface Revolve"
-msgstr ""
+msgstr "旋转曲面"
 
+# AI Translated
 msgid "Revolve a sketch profile into a sheet body"
-msgstr ""
+msgstr "将草图轮廓旋转为曲面实体"
 
+# AI Translated
 msgid "Surface Loft"
-msgstr ""
+msgstr "放样曲面"
 
+# AI Translated
 msgid "Loft (skin) between 2+ profiles, open (no end caps)"
-msgstr ""
+msgstr "在 2 个及以上轮廓之间放样（蒙皮），开放（无端盖）"
 
+# AI Translated
 msgid "Surface Fill"
-msgstr ""
+msgstr "填充曲面"
 
+# AI Translated
 msgid "Fill a sketch boundary with a smooth face"
-msgstr ""
+msgstr "用光滑面填充草图边界"
 
+# AI Translated
 msgid "Create a sketch profile to fill first"
-msgstr ""
+msgstr "请先创建要填充的草图轮廓"
 
+# AI Translated
 msgid "Surface Offset"
-msgstr ""
+msgstr "偏移曲面"
 
+# AI Translated
 msgid "Offset a sheet body's shell by a signed distance"
-msgstr ""
+msgstr "按带符号的距离偏移曲面实体的壳体"
 
+# AI Translated
 msgid "No sheet body to offset — create a surface feature first"
-msgstr ""
+msgstr "没有可偏移的曲面实体 — 请先创建曲面特征"
 
+# AI Translated
 msgid "Thicken Surface"
-msgstr ""
+msgstr "加厚曲面"
 
+# AI Translated
 msgid "Thicken a sheet body into a solid"
-msgstr ""
+msgstr "将曲面实体加厚为实体"
 
+# AI Translated
 msgid "No sheet body to thicken — create a surface feature first"
-msgstr ""
+msgstr "没有可加厚的曲面实体 — 请先创建曲面特征"
 
+# AI Translated
 msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
-msgstr ""
+msgstr "基准 / 曲线（平面 / 轴 / 坐标系 / 螺旋线 / 投影）"
 
+# AI Translated
 msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
-msgstr ""
+msgstr "基准面（偏移 / 倾斜 / 中间平面 / 相切 / 两条边 / 重合）"
 
+# AI Translated
 msgid "Axis"
-msgstr ""
+msgstr "轴"
 
+# AI Translated
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
-msgstr ""
+msgstr "基准轴（两点、面法线、圆柱中心线、两平面相交、沿边线）"
 
+# AI Translated
 msgid "Coord Sys"
-msgstr ""
+msgstr "坐标系"
 
+# AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
-msgstr ""
+msgstr "基准坐标系（世界坐标点，或面 + 方向边）"
 
+# AI Translated
 msgid "Helix"
-msgstr ""
+msgstr "螺旋线"
 
+# AI Translated
 msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
-msgstr ""
+msgstr "螺旋曲线（弹簧路径） — 用作线圈 / 弹簧 / 螺旋钻的扫掠路径"
 
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
-msgstr ""
+msgstr "将实体边线投影到平面上，作为草图图元"
 
+# AI Translated
 msgid "Project needs a body — add or import one first"
-msgstr ""
+msgstr "投影需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "(all edges)"
-msgstr ""
+msgstr "（所有边）"
 
+# AI Translated
 msgid "Placement (transform / mirror / mate)"
-msgstr ""
+msgstr "放置（变换 / 镜像 / 配合）"
 
+# AI Translated
 msgid "Transform"
-msgstr ""
+msgstr "变换"
 
+# AI Translated
 msgid "Move and/or rotate an existing body"
-msgstr ""
+msgstr "移动和/或旋转现有实体"
 
+# AI Translated
 msgid "Transform needs a body — add or import one first"
-msgstr ""
+msgstr "变换需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Reflect a body about a plane"
-msgstr ""
+msgstr "相对于平面镜像实体"
 
+# AI Translated
 msgid "Mirror needs a body — add or import one first"
-msgstr ""
+msgstr "镜像需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Mate"
-msgstr ""
+msgstr "配合"
 
+# AI Translated
 msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "装配：对齐两个坐标系特征（紧固、平面、旋转、滑块、圆柱）"
 
+# AI Translated
 msgid "Boolean (combine bodies)"
-msgstr ""
+msgstr "布尔（组合实体）"
 
+# AI Translated
 msgid "Boolean — needs two solid bodies to combine"
-msgstr ""
+msgstr "布尔 — 需要两个实体进行组合"
 
+# AI Translated
 msgid "Cut (split a body with a plane)"
-msgstr ""
+msgstr "切割（用平面分割实体）"
 
+# AI Translated
 msgid "Create a solid body to cut first"
-msgstr ""
+msgstr "请先创建要切割的实体"
 
+# AI Translated
 msgid "Cut — needs a solid body to slice"
-msgstr ""
+msgstr "切割 — 需要一个可切割的实体"
 
+# AI Translated
 msgid "Color — set the selected body's display colour"
-msgstr ""
+msgstr "颜色 — 设置所选实体的显示颜色"
 
+# AI Translated
 msgid "Select a feature, or a body, first — then rename it"
-msgstr ""
+msgstr "请先选择一个特征或实体 — 然后重命名"
 
+# AI Translated
 msgid "Fillet / chamfer / draft / shell / delete face"
-msgstr ""
+msgstr "圆角 / 倒角 / 拔模 / 抽壳 / 删除面"
 
+# AI Translated
 msgid "Fillet / Chamfer"
-msgstr ""
+msgstr "圆角 / 倒角"
 
+# AI Translated
 msgid "Round or bevel a picked edge"
-msgstr ""
+msgstr "对选取的边倒圆角或倒角"
 
+# AI Translated
 msgid "Draft (taper a face)"
-msgstr ""
+msgstr "拔模（使面倾斜）"
 
+# AI Translated
 msgid "Tilt a picked face by a draft angle"
-msgstr ""
+msgstr "按拔模角度倾斜选取的面"
 
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
-msgstr ""
+msgstr "将实体抽空为指定壁厚，并在选取的面上开口"
 
+# AI Translated
 msgid "Delete Face"
-msgstr ""
+msgstr "删除面"
 
+# AI Translated
 msgid "Remove faces from a body and heal the solid"
-msgstr ""
+msgstr "从实体中移除面并修复实体"
 
+# AI Translated
 msgid "Delete Face needs a body — add or import one first"
-msgstr ""
+msgstr "删除面需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "(none)"
-msgstr ""
+msgstr "（无）"
 
+# AI Translated
 msgid "Hole / thread"
-msgstr ""
+msgstr "孔 / 螺纹"
 
+# AI Translated
 msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr ""
+msgstr "钻孔，以选取的面为中心或放置在平面上"
 
+# AI Translated
 msgid "Thread"
-msgstr ""
+msgstr "螺纹"
 
+# AI Translated
 msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
-msgstr ""
+msgstr "在圆柱面（内孔 / 外圆）或圆形边上创建螺纹"
 
+# AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr ""
+msgstr "选取用于螺纹的圆柱面（内孔 / 外圆）或圆形边"
 
+# AI Translated
 msgid "Import STEP (editable B-rep solid)"
-msgstr ""
+msgstr "导入 STEP（可编辑的 B-rep 实体）"
 
+# AI Translated
 msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr ""
+msgstr "将网格 (STL/OBJ) 导入为可编辑的 B-rep 实体"
 
+# AI Translated
 msgid "Constrain selected sketch"
-msgstr ""
+msgstr "约束所选草图"
 
+# AI Translated
 msgid "SKETCH"
-msgstr ""
+msgstr "草图"
 
+# AI Translated
 msgid "Click to select; Shift to add; double-click for a whole loop"
-msgstr ""
+msgstr "单击选择；按住 Shift 添加；双击选择整个环"
 
+# AI Translated
 msgid "Dimension"
-msgstr ""
+msgstr "尺寸"
 
+# AI Translated
 msgid "Click 2 points or a line / circle / arc to place a dimension"
-msgstr ""
+msgstr "单击 2 个点或一条直线 / 圆 / 圆弧以放置尺寸"
 
+# AI Translated
 msgid "Line / polyline"
-msgstr ""
+msgstr "直线 / 多段线"
 
+# AI Translated
 msgid "Click start, then end — then set the exact length"
-msgstr ""
+msgstr "单击起点，然后单击终点 — 再设置精确长度"
 
+# AI Translated
 msgid "Polyline"
-msgstr ""
+msgstr "多段线"
 
+# AI Translated
 msgid "Click points; click first / right-click to close the loop"
-msgstr ""
+msgstr "单击各点；单击第一个点 / 右键单击以闭合环"
 
+# AI Translated
 msgid "Corner rectangle"
-msgstr ""
+msgstr "边角矩形"
 
+# AI Translated
 msgid "Click two opposite corners"
-msgstr ""
+msgstr "单击两个对角"
 
+# AI Translated
 msgid "Center rectangle"
-msgstr ""
+msgstr "中心矩形"
 
+# AI Translated
 msgid "Click center, then a corner"
-msgstr ""
+msgstr "单击中心，然后单击一个角点"
 
+# AI Translated
 msgid "Oblique rectangle"
-msgstr ""
+msgstr "斜矩形"
 
+# AI Translated
 msgid "Click two corners of one edge, then a point for the width"
-msgstr ""
+msgstr "单击一条边的两个角点，然后单击一个点确定宽度"
 
+# AI Translated
 msgid "Rounded rectangle"
-msgstr ""
+msgstr "圆角矩形"
 
+# AI Translated
 msgid "Click two opposite corners, then a point for the corner radius"
-msgstr ""
+msgstr "单击两个对角，然后单击一个点确定圆角半径"
 
+# AI Translated
 msgid "Center circle"
-msgstr ""
+msgstr "中心圆"
 
+# AI Translated
 msgid "Click center, then radius"
-msgstr ""
+msgstr "单击圆心，然后确定半径"
 
+# AI Translated
 msgid "2-point circle"
-msgstr ""
+msgstr "两点圆"
 
+# AI Translated
 msgid "Click two ends of the diameter"
-msgstr ""
+msgstr "单击直径的两个端点"
 
+# AI Translated
 msgid "3-point circle"
-msgstr ""
+msgstr "三点圆"
 
+# AI Translated
 msgid "Click three points on the circle"
-msgstr ""
+msgstr "单击圆上的三个点"
 
+# AI Translated
 msgid "Arc"
-msgstr ""
+msgstr "圆弧"
 
+# AI Translated
 msgid "3-point arc"
-msgstr ""
+msgstr "三点圆弧"
 
+# AI Translated
 msgid "Click start, end, then a point on the arc"
-msgstr ""
+msgstr "单击起点、终点，然后单击圆弧上的一点"
 
+# AI Translated
 msgid "Tangent arc"
-msgstr ""
+msgstr "切线弧"
 
+# AI Translated
 msgid "Click start (on the last entity) then end"
-msgstr ""
+msgstr "单击起点（位于上一个图元上），然后单击终点"
 
+# AI Translated
 msgid "Center-point arc"
-msgstr ""
+msgstr "中心点圆弧"
 
+# AI Translated
 msgid "Click center, then start, then a point for the end angle"
-msgstr ""
+msgstr "单击圆心，然后单击起点，再单击一个点确定终止角度"
 
+# AI Translated
 msgid "Slot"
-msgstr ""
+msgstr "槽口"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the end radius"
-msgstr ""
+msgstr "单击中心线的两个端点，然后单击一个点确定端部半径"
 
+# AI Translated
 msgid "Arc slot"
-msgstr ""
+msgstr "圆弧槽口"
 
+# AI Translated
 msgid "Click center, start, end, then a point for the width"
-msgstr ""
+msgstr "单击圆心、起点、终点，然后单击一个点确定宽度"
 
+# AI Translated
 msgid "Ellipse"
-msgstr ""
+msgstr "椭圆"
 
+# AI Translated
 msgid "Click center, a major-axis end, then a point for the minor axis"
-msgstr ""
+msgstr "单击中心、长轴端点，然后单击一个点确定短轴"
 
+# AI Translated
 msgid "Elliptical arc"
-msgstr ""
+msgstr "椭圆弧"
 
+# AI Translated
 msgid "Click center, major-axis end, minor point, then arc start and end"
-msgstr ""
+msgstr "单击中心、长轴端点、短轴点，然后单击圆弧的起点和终点"
 
+# AI Translated
 msgid "Spline"
-msgstr ""
+msgstr "样条曲线"
 
+# AI Translated
 msgid "Click control points; double-click or right-click to finish"
-msgstr ""
+msgstr "单击控制点；双击或右键单击完成"
 
+# AI Translated
 msgid "Click to place a point"
-msgstr ""
+msgstr "单击放置点"
 
+# AI Translated
 msgid "Select — click to select; Shift to add"
-msgstr ""
+msgstr "选择 — 单击选择；按住 Shift 添加"
 
+# AI Translated
 msgid "Text — emboss text as a profile"
-msgstr ""
+msgstr "文字 — 将文字生成为轮廓"
 
+# AI Translated
 msgid "SVG — import an outline as a profile"
-msgstr ""
+msgstr "SVG — 导入轮廓线作为草图轮廓"
 
+# AI Translated
 msgid "Fillet / chamfer"
-msgstr ""
+msgstr "圆角 / 倒角"
 
+# AI Translated
 msgid "Fillet"
-msgstr ""
+msgstr "圆角"
 
+# AI Translated
 msgid "Pick two lines, then drag the arrow or click the radius to set it"
-msgstr ""
+msgstr "选取两条直线，然后拖动箭头或单击半径值进行设置"
 
+# AI Translated
 msgid "Chamfer"
-msgstr ""
+msgstr "倒角"
 
+# AI Translated
 msgid "Pick two lines, then drag the arrow or click the distance to set it"
-msgstr ""
+msgstr "选取两条直线，然后拖动箭头或单击距离值进行设置"
 
+# AI Translated
 msgid "Offset"
-msgstr ""
+msgstr "偏移"
 
+# AI Translated
 msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
-msgstr ""
+msgstr "选取一个图元，然后拖动箭头或单击距离值；单击空白处应用"
 
+# AI Translated
 msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
-msgstr ""
+msgstr "选取一条镜像轴线，然后选取要镜像的图元；单击空白处应用"
 
+# AI Translated
 msgid "Trim"
-msgstr ""
+msgstr "修剪"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr ""
+msgstr "单击线段，将其修剪到最近的交点；右键单击退出"
 
+# AI Translated
 msgid "Extend"
-msgstr ""
+msgstr "延伸"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr ""
+msgstr "单击直线或圆弧，将其延伸到最近的图元；右键单击退出"
 
+# AI Translated
 msgid "Constrain — add geometric/dimensional relations"
-msgstr ""
+msgstr "约束 — 添加几何/尺寸关系"
 
+# AI Translated
 msgid "Move / rotate / scale"
-msgstr ""
+msgstr "移动 / 旋转 / 缩放"
 
+# AI Translated
 msgid "Move (translate)"
-msgstr ""
+msgstr "移动（平移）"
 
+# AI Translated
 msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
-msgstr ""
+msgstr "选取图元，然后拖动控制柄或单击距离值；单击空白处应用"
 
+# AI Translated
 msgid "Rotate (about centroid)"
-msgstr ""
+msgstr "旋转（绕质心）"
 
+# AI Translated
 msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
-msgstr ""
+msgstr "选取图元，然后绕枢轴拖动或单击角度值；单击空白处应用"
 
+# AI Translated
 msgid "Scale (about centroid)"
-msgstr ""
+msgstr "缩放（以质心为基点）"
 
+# AI Translated
 msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
-msgstr ""
+msgstr "选取图元，然后拖动控制柄或单击比例因子；单击空白处应用"
 
+# AI Translated
 msgid "Linear / polar array"
-msgstr ""
+msgstr "线性 / 圆周阵列"
 
+# AI Translated
 msgid "Linear array"
-msgstr ""
+msgstr "线性阵列"
 
+# AI Translated
 msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
-msgstr ""
+msgstr "选取图元，拖动间距控制柄，单击数量值；单击空白处应用"
 
+# AI Translated
 msgid "Polar array (about centroid)"
-msgstr ""
+msgstr "圆周阵列（绕质心）"
 
+# AI Translated
 msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
-msgstr ""
+msgstr "选取图元，拖动总角度控制柄，单击数量值；单击空白处应用"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Click center then a vertex — %d sides, %s"
-msgstr ""
+msgstr "单击中心，然后单击一个顶点 — %d 条边，%s"
 
+# AI Translated
 msgid "circumscribed"
-msgstr ""
+msgstr "外切"
 
+# AI Translated
 msgid "inscribed"
-msgstr ""
+msgstr "内接"
 
+# AI Translated
 msgid "Polygon"
-msgstr ""
+msgstr "多边形"
 
 #, c-format, boost-format
 msgid "Converted %d entit%s between construction and real geometry"
 msgstr ""
 
+# AI Translated
 msgid "CONSTRAIN"
-msgstr ""
+msgstr "约束"
 
+# AI Translated
 msgid "Perpendicular"
-msgstr ""
+msgstr "相互垂直"
 
+# AI Translated
 msgid "Coincident"
-msgstr ""
+msgstr "重合"
 
+# AI Translated
 msgid "Equal length"
-msgstr ""
+msgstr "等长"
 
+# AI Translated
 msgid "Equal radius"
-msgstr ""
+msgstr "等半径"
 
+# AI Translated
 msgid "Collinear"
-msgstr ""
+msgstr "共线"
 
+# AI Translated
 msgid "Tangent"
-msgstr ""
+msgstr "相切"
 
+# AI Translated
 msgid "Midpoint"
-msgstr ""
+msgstr "中点"
 
+# AI Translated
 msgid "Symmetric"
-msgstr ""
+msgstr "对称"
 
+# AI Translated
 msgid "Symmetric about the vertical axis"
-msgstr ""
+msgstr "关于垂直轴对称"
 
+# AI Translated
 msgid "Symmetric about the horizontal axis"
-msgstr ""
+msgstr "关于水平轴对称"
 
+# AI Translated
 msgid "Fix point (anchor in place)"
-msgstr ""
+msgstr "固定点（锚定在原位）"
 
+# AI Translated
 msgid "Horizontal distance"
-msgstr ""
+msgstr "水平距离"
 
+# AI Translated
 msgid "Vertical distance"
-msgstr ""
+msgstr "垂直距离"
 
+# AI Translated
 msgid "✓ Confirm"
-msgstr ""
+msgstr "✓ 确定"
 
+# AI Translated
 msgid "✗ Cancel"
-msgstr ""
+msgstr "✗ 取消"
 
+# AI Translated
 msgid "Undo (Ctrl+Z)"
-msgstr ""
+msgstr "撤销 (Ctrl+Z)"
 
+# AI Translated
 msgid "Redo (Ctrl+Shift+Z)"
-msgstr ""
+msgstr "重做 (Ctrl+Shift+Z)"
 
+# AI Translated
 msgid "New Design — clear the feature tree"
-msgstr ""
+msgstr "新建设计 — 清空特征树"
 
+# AI Translated
 msgid "Export STEP…"
-msgstr ""
+msgstr "导出 STEP…"
 
+# AI Translated
 msgid "Show the printer bed and its plate grid"
-msgstr ""
+msgstr "显示打印机热床及其网格"
 
+# AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
-msgstr ""
+msgstr "选择底面 (F) — 将选取的面放置在热床上"
 
+# AI Translated
 msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
-msgstr ""
+msgstr "剖面视图 — 隐藏模型的一部分以查看内部。PageUp/PageDown 移动剖切面；Delete 将其移除。"
 
+# AI Translated
 msgid "Flip Section — show the opposite half"
-msgstr ""
+msgstr "翻转剖面 — 显示另一半"
 
+# AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
-msgstr ""
+msgstr "提交到盘 — 将实体发送到“准备”"
 
+# AI Translated
 msgid "Width / X"
-msgstr ""
+msgstr "宽度 / X"
 
+# AI Translated
 msgid "Height / Y"
-msgstr ""
+msgstr "高度 / Y"
 
+# AI Translated
 msgid "Distance X"
-msgstr ""
+msgstr "距离 X"
 
+# AI Translated
 msgid "Distance Y"
-msgstr ""
+msgstr "距离 Y"
 
+# AI Translated
 msgid "Distance Z"
-msgstr ""
+msgstr "距离 Z"
 
+# AI Translated
 msgid "Z"
-msgstr ""
+msgstr "Z"
 
+# AI Translated
 msgid "Rotation axis"
-msgstr ""
+msgstr "旋转轴"
 
+# AI Translated
 msgid "Angle °"
-msgstr ""
+msgstr "角度 °"
 
+# AI Translated
 msgid "Move / Rotate"
-msgstr ""
+msgstr "移动 / 旋转"
 
+# AI Translated
 msgid "Sketch: —"
-msgstr ""
+msgstr "草图：—"
 
+# AI Translated
 msgid "Extrude dist"
-msgstr ""
+msgstr "拉伸距离"
 
 msgid "End"
 msgstr "结束"
 
+# AI Translated
 msgid "2nd dist"
-msgstr ""
+msgstr "第二距离"
 
+# AI Translated
 msgid "Taper °"
-msgstr ""
+msgstr "拔模角 °"
 
+# AI Translated
 msgid "New body"
-msgstr ""
+msgstr "新建实体"
 
+# AI Translated
 msgid "Intersect"
-msgstr ""
+msgstr "相交"
 
+# AI Translated
 msgid "Result"
-msgstr ""
+msgstr "结果"
 
+# AI Translated
 msgid "Flip direction"
-msgstr ""
+msgstr "反转方向"
 
+# AI Translated
 msgid "(no edge picked — group below)"
-msgstr ""
+msgstr "（未选取边 — 使用下方的分组）"
 
 msgid "Bottom"
 msgstr "底部"
 
+# AI Translated
 msgid "Lateral"
-msgstr ""
+msgstr "侧面"
 
+# AI Translated
 msgid "Edges"
-msgstr ""
+msgstr "边"
 
+# AI Translated
 msgid "Size (r/dist)"
-msgstr ""
+msgstr "大小（半径/距离）"
 
+# AI Translated
 msgid "XY"
-msgstr ""
+msgstr "XY"
 
+# AI Translated
 msgid "XZ"
-msgstr ""
+msgstr "XZ"
 
+# AI Translated
 msgid "YZ"
-msgstr ""
+msgstr "YZ"
 
+# AI Translated
 msgid "Hole plane"
-msgstr ""
+msgstr "孔平面"
 
+# AI Translated
 msgid "Depth (blind)"
-msgstr ""
+msgstr "深度（盲孔）"
 
+# AI Translated
 msgid "Pos X"
-msgstr ""
+msgstr "位置 X"
 
+# AI Translated
 msgid "Pos Y"
-msgstr ""
+msgstr "位置 Y"
 
+# AI Translated
 msgid "Through"
-msgstr ""
+msgstr "贯穿"
 
+# AI Translated
 msgid "(none — uses Hole plane)"
-msgstr ""
+msgstr "（无 — 使用孔平面）"
 
+# AI Translated
 msgid "On face"
-msgstr ""
+msgstr "在面上"
 
+# AI Translated
 msgid "Thread plane"
-msgstr ""
+msgstr "螺纹平面"
 
+# AI Translated
 msgid "Pitch"
-msgstr ""
+msgstr "螺距"
 
+# AI Translated
 msgid "Thread depth"
-msgstr ""
+msgstr "螺纹深度"
 
+# AI Translated
 msgid "(none — uses Thread plane)"
-msgstr ""
+msgstr "（无 — 使用螺纹平面）"
 
+# AI Translated
 msgid "Plane X"
-msgstr ""
+msgstr "平面 X"
 
+# AI Translated
 msgid "Plane Y"
-msgstr ""
+msgstr "平面 Y"
 
+# AI Translated
 msgid "Profile: —"
-msgstr ""
+msgstr "轮廓：—"
 
+# AI Translated
 msgid "Path"
-msgstr ""
+msgstr "路径"
 
+# AI Translated
 msgid "Linear"
-msgstr ""
+msgstr "线性"
 
+# AI Translated
 msgid "Direction"
-msgstr ""
+msgstr "方向"
 
+# AI Translated
 msgid "Total angle°"
-msgstr ""
+msgstr "总角度°"
 
+# AI Translated
 msgid "Boolean"
-msgstr ""
+msgstr "布尔"
 
+# AI Translated
 msgid "Union (join)"
-msgstr ""
+msgstr "并集（合并）"
 
+# AI Translated
 msgid "Subtract (cut)"
-msgstr ""
+msgstr "差集（切除）"
 
+# AI Translated
 msgid "Target (kept)"
-msgstr ""
+msgstr "目标（保留）"
 
+# AI Translated
 msgid "Keep tool body"
-msgstr ""
+msgstr "保留工具实体"
 
+# AI Translated
 msgid "Body"
-msgstr ""
+msgstr "实体"
 
+# AI Translated
 msgid "Insert"
-msgstr ""
+msgstr "插入"
 
+# AI Translated
 msgid ""
 "Drag a corner to size, the centre to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
+"拖动角点调整大小，拖动中心移动。\n"
+"在上方工具栏中确定或取消。"
 
+# AI Translated
 msgid "Midplane"
-msgstr ""
+msgstr "中间平面"
 
+# AI Translated
 msgid "Two edges"
-msgstr ""
+msgstr "两条边"
 
+# AI Translated
 msgid "Plane type"
-msgstr ""
+msgstr "平面类型"
 
+# AI Translated
 msgid "Base"
-msgstr ""
+msgstr "基面"
 
+# AI Translated
 msgid "Angle°"
-msgstr ""
+msgstr "角度°"
 
+# AI Translated
 msgid "Base X"
-msgstr ""
+msgstr "基面 X"
 
+# AI Translated
 msgid "Base Y"
-msgstr ""
+msgstr "基面 Y"
 
+# AI Translated
 msgid "Tilt axis"
-msgstr ""
+msgstr "倾斜轴"
 
+# AI Translated
 msgid "Pick Face A"
-msgstr ""
+msgstr "选取面 A"
 
+# AI Translated
 msgid "Pick Face B"
-msgstr ""
+msgstr "选取面 B"
 
+# AI Translated
 msgid "Pick Edge A"
-msgstr ""
+msgstr "选取边 A"
 
+# AI Translated
 msgid "Pick Edge B"
-msgstr ""
+msgstr "选取边 B"
 
+# AI Translated
 msgid "Size U"
-msgstr ""
+msgstr "大小 U"
 
+# AI Translated
 msgid "Size V"
-msgstr ""
+msgstr "大小 V"
 
+# AI Translated
 msgid "Profiles (check 2+, in order):"
-msgstr ""
+msgstr "轮廓（按顺序勾选 2 个及以上）："
 
+# AI Translated
 msgid "Ruled (straight) sections"
-msgstr ""
+msgstr "直纹（直线）截面"
 
+# AI Translated
 msgid "Fills the sketch's closed boundary with a smooth face."
-msgstr ""
+msgstr "用光滑面填充草图的封闭边界。"
 
+# AI Translated
 msgid "Sheet body"
-msgstr ""
+msgstr "曲面实体"
 
+# AI Translated
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
-msgstr ""
+msgstr "偏移曲面实体的壳体。正值 = 向外，负值 = 向内。"
 
+# AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
-msgstr ""
+msgstr "将曲面实体加厚为实体。“翻转”可反转方向。"
 
+# AI Translated
 msgid "(all faces — closed hollow)"
-msgstr ""
+msgstr "（所有面 — 封闭中空）"
 
+# AI Translated
 msgid "Open face"
-msgstr ""
+msgstr "开口面"
 
+# AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
-msgstr ""
+msgstr "选取一个实体面作为开口，然后设置壁厚。"
 
+# AI Translated
 msgid "Angle (°)"
-msgstr ""
+msgstr "角度 (°)"
 
+# AI Translated
 msgid "(pick a side face)"
-msgstr ""
+msgstr "（选取一个侧面）"
 
+# AI Translated
 msgid "Draft"
-msgstr ""
+msgstr "拔模"
 
+# AI Translated
 msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
-msgstr ""
+msgstr "选取一个侧面，然后设置拔模角度。该面将绕实体底部旋转。"
 
+# AI Translated
 msgid "Translate X"
-msgstr ""
+msgstr "平移 X"
 
+# AI Translated
 msgid "Translate Y"
-msgstr ""
+msgstr "平移 Y"
 
+# AI Translated
 msgid "Translate Z"
-msgstr ""
+msgstr "平移 Z"
 
+# AI Translated
 msgid "Rotate axis"
-msgstr ""
+msgstr "旋转轴"
 
+# AI Translated
 msgid "Pivot X"
-msgstr ""
+msgstr "枢轴点 X"
 
+# AI Translated
 msgid "Pivot Y"
-msgstr ""
+msgstr "枢轴点 Y"
 
+# AI Translated
 msgid "Pivot Z"
-msgstr ""
+msgstr "枢轴点 Z"
 
+# AI Translated
 msgid "Keep original (make a copy)"
-msgstr ""
+msgstr "保留原始实体（创建副本）"
 
+# AI Translated
 msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
-msgstr ""
+msgstr "平移和/或旋转所选实体。先绕枢轴点旋转，然后再平移。"
 
+# AI Translated
 msgid "Mirror plane"
-msgstr ""
+msgstr "镜像平面"
 
+# AI Translated
 msgid "Keep original"
-msgstr ""
+msgstr "保留原始实体"
 
+# AI Translated
 msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
-msgstr ""
+msgstr "相对于平面镜像所选实体。镜像结果始终是一个新实体；保留原始实体则两者都会保留。"
 
+# AI Translated
 msgid "(pick a solid face)"
-msgstr ""
+msgstr "（选取一个实体面）"
 
+# AI Translated
 msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
-msgstr ""
+msgstr "选取一个实体面并将其偏移为新的薄实体。不适用于曲面实体 — 曲面实体请使用“加厚曲面”。"
 
+# AI Translated
 msgid "Target body"
-msgstr ""
+msgstr "目标实体"
 
+# AI Translated
 msgid "Entity index"
-msgstr ""
+msgstr "图元索引"
 
+# AI Translated
 msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
-msgstr ""
+msgstr "从开放的草图直线图元生成薄壁，并与目标实体融合。图元索引是该开放直线在草图中的位置。"
 
+# AI Translated
 msgid "Source body"
-msgstr ""
+msgstr "源实体"
 
+# AI Translated
 msgid "Target plane"
-msgstr ""
+msgstr "目标平面"
 
+# AI Translated
 msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
-msgstr ""
+msgstr "将实体的边线投影到平面上作为草图图元。选取一个面可仅投影其边线，或将面留空以投影整个实体。"
 
+# AI Translated
 msgid "Add picked face"
-msgstr ""
+msgstr "添加选取的面"
 
+# AI Translated
 msgid "Click a face on the body first, then Add picked face"
-msgstr ""
+msgstr "请先单击实体上的一个面，然后单击“添加选取的面”"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d is already in the list"
-msgstr ""
+msgstr "面 %d 已在列表中"
 
+# AI Translated
 msgid "Faces to delete"
-msgstr ""
+msgstr "要删除的面"
 
+# AI Translated
 msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
-msgstr ""
+msgstr "选取一个实体面，然后单击“添加选取的面”以累积多个面。确定后将移除列表中的所有面并修复实体。"
 
+# AI Translated
 msgid "Left-handed"
-msgstr ""
+msgstr "左旋"
 
+# AI Translated
 msgid "Taper (°)"
-msgstr ""
+msgstr "锥度 (°)"
 
+# AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
-msgstr ""
+msgstr "螺旋曲线（弹簧路径）。可用作扫掠路径来创建弹簧、线圈或螺旋钻。"
 
+# AI Translated
 msgid "Two points"
-msgstr ""
+msgstr "两点"
 
+# AI Translated
 msgid "Face normal"
-msgstr ""
+msgstr "面法线"
 
+# AI Translated
 msgid "Cylinder centerline"
-msgstr ""
+msgstr "圆柱中心线"
 
+# AI Translated
 msgid "Plane intersection"
-msgstr ""
+msgstr "平面交线"
 
+# AI Translated
 msgid "Along edge"
-msgstr ""
+msgstr "沿边线"
 
+# AI Translated
 msgid "Axis type"
-msgstr ""
+msgstr "轴类型"
 
+# AI Translated
 msgid "Pick Face"
-msgstr ""
+msgstr "选取面"
 
+# AI Translated
 msgid "Pick Edge"
-msgstr ""
+msgstr "选取边"
 
+# AI Translated
 msgid "Plane A"
-msgstr ""
+msgstr "平面 A"
 
+# AI Translated
 msgid "Plane B"
-msgstr ""
+msgstr "平面 B"
 
+# AI Translated
 msgid "Point 1 X"
-msgstr ""
+msgstr "点 1 X"
 
+# AI Translated
 msgid "Point 1 Y"
-msgstr ""
+msgstr "点 1 Y"
 
+# AI Translated
 msgid "Point 1 Z"
-msgstr ""
+msgstr "点 1 Z"
 
+# AI Translated
 msgid "Point 2 X"
-msgstr ""
+msgstr "点 2 X"
 
+# AI Translated
 msgid "Point 2 Y"
-msgstr ""
+msgstr "点 2 Y"
 
+# AI Translated
 msgid "Point 2 Z"
-msgstr ""
+msgstr "点 2 Z"
 
+# AI Translated
 msgid "Point (world)"
-msgstr ""
+msgstr "点（世界坐标）"
 
+# AI Translated
 msgid "Face + direction"
-msgstr ""
+msgstr "面 + 方向"
 
+# AI Translated
 msgid "(all)"
-msgstr ""
+msgstr "（全部）"
 
+# AI Translated
 msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
-msgstr ""
+msgstr "将选取限制在一个实体上 — 其他实体变为透明且不再响应单击"
 
+# AI Translated
 msgid "Edge (sets in-plane direction)"
-msgstr ""
+msgstr "边（设置平面内方向）"
 
+# AI Translated
 msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
-msgstr ""
+msgstr "如未选取边，坐标系将以该面的第一条边作为 X 方向 — 选取一条边可自行指定"
 
+# AI Translated
 msgid "X hint X"
-msgstr ""
+msgstr "X 方向提示 X"
 
+# AI Translated
 msgid "X hint Y"
-msgstr ""
+msgstr "X 方向提示 Y"
 
+# AI Translated
 msgid "X hint Z"
-msgstr ""
+msgstr "X 方向提示 Z"
 
+# AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
-msgstr ""
+msgstr "紧固 — 锁定全部 6 个自由度，B 精确贴合到 A"
 
+# AI Translated
 msgid "Planar — z aligned, offset distance; free in-plane slide"
-msgstr ""
+msgstr "平面 — z 轴对齐，偏移距离；可在平面内自由滑动"
 
+# AI Translated
 msgid "Revolute — axes collinear; free rotation about z"
-msgstr ""
+msgstr "旋转 — 轴共线；可绕 z 轴自由旋转"
 
+# AI Translated
 msgid "Slider — orientation locked; free axial slide"
-msgstr ""
+msgstr "滑块 — 方向锁定；可沿轴向自由滑动"
 
+# AI Translated
 msgid "Cylindrical — axes collinear; free spin + axial slide"
-msgstr ""
+msgstr "圆柱 — 轴共线；可自由旋转并沿轴向滑动"
 
+# AI Translated
 msgid "Kind"
-msgstr ""
+msgstr "类型"
 
+# AI Translated
 msgid "CS A (fixed)"
-msgstr ""
+msgstr "坐标系 A（固定）"
 
+# AI Translated
 msgid "CS B (moves)"
-msgstr ""
+msgstr "坐标系 B（移动）"
 
+# AI Translated
 msgid "Flip (oppose z axes)"
-msgstr ""
+msgstr "翻转（z 轴反向）"
 
+# AI Translated
 msgid "Plane distance"
-msgstr ""
+msgstr "平面距离"
 
+# AI Translated
 msgid "Axial position"
-msgstr ""
+msgstr "轴向位置"
 
+# AI Translated
 msgid "Expression"
-msgstr ""
+msgstr "表达式"
 
+# AI Translated
 msgid "Field"
-msgstr ""
+msgstr "字段"
 
+# AI Translated
 msgid "Expr"
-msgstr ""
+msgstr "表达式"
 
+# AI Translated
 msgid "(no bindings)"
-msgstr ""
+msgstr "（无绑定）"
 
+# AI Translated
 msgid "Value"
-msgstr ""
+msgstr "数值"
 
+# AI Translated
 msgid "Constraints"
-msgstr ""
+msgstr "约束"
 
+# AI Translated
 msgid "Feature tree"
-msgstr ""
+msgstr "特征树"
 
+# AI Translated
 msgid " — the eye suppresses this mate"
-msgstr ""
+msgstr " — 单击眼睛图标可压缩此配合"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s selected — F2 or right-click renames it, double-click edits it"
-msgstr ""
+msgstr "已选择 %s — 按 F2 或右键单击可重命名，双击可编辑"
 
+# AI Translated
 msgid "Rename\tF2"
-msgstr ""
+msgstr "重命名\tF2"
 
+# AI Translated
 msgid "Scale artwork"
-msgstr ""
+msgstr "缩放图稿"
 
+# AI Translated
 msgid "Move up"
-msgstr ""
+msgstr "上移"
 
+# AI Translated
 msgid "Move down"
-msgstr ""
+msgstr "下移"
 
+# AI Translated
 msgid "Show / hide"
-msgstr ""
+msgstr "显示 / 隐藏"
 
+# AI Translated
 msgid "Check interference — find overlapping bodies"
-msgstr ""
+msgstr "干涉检查 — 查找重叠的实体"
 
+# AI Translated
 msgid "Bodies"
-msgstr ""
+msgstr "实体"
 
+# AI Translated
 msgid "Move body"
-msgstr ""
+msgstr "移动实体"
 
+# AI Translated
 msgid "Select a body row first, then move it"
-msgstr ""
+msgstr "请先选择一行实体，然后再移动"
 
+# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
-msgstr ""
+msgstr "布尔 — 与另一个实体合并、相减或相交"
 
+# AI Translated
 msgid "Colour"
-msgstr ""
+msgstr "颜色"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
-msgstr ""
+msgstr "已选择实体 %d — 右键单击查看适用的操作"
 
+# AI Translated
 msgid "Variables"
-msgstr ""
+msgstr "变量"
 
+# AI Translated
 msgid "+"
-msgstr ""
+msgstr "+"
 
 msgid "Del"
 msgstr "删除"
 
+# AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
-msgstr ""
+msgstr "草图已创建 — 选择它，然后右键单击进行拉伸"
 
+# AI Translated
 msgid "Sketch empty — nothing committed"
-msgstr ""
+msgstr "草图为空 — 未提交任何内容"
 
+# AI Translated
 msgid "Sketch updated"
-msgstr ""
+msgstr "草图已更新"
 
+# AI Translated
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
-msgstr ""
+msgstr "草图已创建（%zu 个驱动尺寸） — 选择它，然后右键单击进行拉伸"
 
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
-msgstr ""
+msgstr "无法解析要拉伸的草图"
 
+# AI Translated
 msgid "Face selected — set the depth and Confirm"
-msgstr ""
+msgstr "已选择面 — 设置深度并单击“确定”"
 
+# AI Translated
 msgid "Region selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "已选择区域 — 右键单击进行拉伸，或双击进行编辑"
 
+# AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "已选择草图 — 右键单击进行拉伸，或双击进行编辑"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d"
-msgstr ""
+msgstr "面 %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d "
-msgstr ""
+msgstr "实体 %d "
 
+# AI Translated
 msgid "vertex selected — click again for the whole body"
-msgstr ""
+msgstr "已选择顶点 — 再次单击选择整个实体"
 
+# AI Translated
 msgid "selected (whole body) — right-click for what applies to it"
-msgstr ""
+msgstr "已选中（整个实体） — 右键单击查看适用的操作"
 
+# AI Translated
 #, c-format, boost-format
 msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr ""
+msgstr "已选择面 %d — 右键单击可推/拉该面，或再次单击选择整个实体"
 
+# AI Translated
 #, c-format, boost-format
 msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr ""
+msgstr "已选择边 %d — 可使用圆角/倒角进行修饰，或再次单击选择整个实体"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s plane selected — right-click for the drawing tools"
-msgstr ""
+msgstr "已选择 %s 平面 — 右键单击打开绘图工具"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
-msgstr ""
+msgstr "已选择 %s 平面 — 右键单击可在其上绘制草图，或单击对象以选择它"
 
+# AI Translated
 #, c-format, boost-format
 msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr ""
+msgstr "已放置于 (%.1f, %.1f, %.1f) mm — 拖动箭头移动，拖动圆环旋转"
 
+# AI Translated
 msgid "Tool exited"
-msgstr ""
+msgstr "已退出工具"
 
+# AI Translated
 msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr ""
+msgstr "草图已保留 — 单击“完成”提交，单击“取消”放弃"
 
+# AI Translated
 msgid "✗ Conflicting constraints"
-msgstr ""
+msgstr "✗ 约束冲突"
 
+# AI Translated
 msgid "✓ Fully constrained"
-msgstr ""
+msgstr "✓ 完全约束"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d degrees of freedom"
-msgstr ""
+msgstr "%d 个自由度"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketch %d"
-msgstr ""
+msgstr "草图 %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr ""
+msgstr "正在编辑：草图 %d   ·   N = 正视于平面   ·   在工具栏中完成或取消"
 
+# AI Translated
 #, c-format
 msgid "OK — %zu triangles"
-msgstr ""
+msgstr "完成 — %zu 个三角形"
 
+# AI Translated
 msgid "Text to insert:"
-msgstr ""
+msgstr "要插入的文字："
 
+# AI Translated
 msgid "Import SVG"
-msgstr ""
+msgstr "导入 SVG"
 
+# AI Translated
 msgid "Import STEP"
-msgstr ""
+msgstr "导入 STEP"
 
+# AI Translated
 msgid "Reading STEP…"
-msgstr ""
+msgstr "正在读取 STEP…"
 
+# AI Translated
 msgid "No solids found in STEP"
-msgstr ""
+msgstr "STEP 中未找到实体"
 
+# AI Translated
 msgid "STEP import failed: "
-msgstr ""
+msgstr "STEP 导入失败： "
 
+# AI Translated
 msgid "Rebuilding model…"
-msgstr ""
+msgstr "正在重建模型…"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "已导入 %d 个实体 — 选取一个面或边，然后使用圆角 / 切割 / 抽壳进行修改"
 
+# AI Translated
 msgid "Import mesh"
-msgstr ""
+msgstr "导入网格"
 
+# AI Translated
 msgid "Could not read the STL file"
-msgstr ""
+msgstr "无法读取 STL 文件"
 
+# AI Translated
 msgid "Could not read the OBJ file: "
-msgstr ""
+msgstr "无法读取 OBJ 文件： "
 
+# AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
-msgstr ""
+msgstr "不支持的网格格式（支持 STL 和 OBJ）"
 
+# AI Translated
 msgid "The mesh contains no triangles"
-msgstr ""
+msgstr "网格不包含任何三角形"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
 "\n"
 "Import anyway?"
 msgstr ""
+"此网格包含 %d 个三角形。在合并共面之前，每个三角形都会成为一个 B-rep 面，因此导入可能需要很长时间，且生成的实体编辑起来会很慢。通常最好先简化网格。\n"
+"\n"
+"仍要导入吗？"
 
+# AI Translated
 msgid "Large mesh"
-msgstr ""
+msgstr "大型网格"
 
+# AI Translated
 msgid "Mesh conversion failed: "
-msgstr ""
+msgstr "网格转换失败： "
 
+# AI Translated
 msgid "Mesh conversion produced no geometry"
-msgstr ""
+msgstr "网格转换未生成任何几何体"
 
+# AI Translated
 msgid "Mesh import failed: "
-msgstr ""
+msgstr "网格导入失败： "
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "已导入实体 — %d 个三角形 → %d 个面，体积 %.2f mm³。选取一个面或边，然后使用圆角 / 切割 / 抽壳进行修改"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr ""
+msgstr "已导入为开放壳体（非水密）：%d 条边界边，%d 条非流形边 — %d 个三角形 → %d 个面。源网格存在孔洞或重复的几何体；布尔特征可能会对其失败"
 
+# AI Translated
 msgid "No importable geometry found"
-msgstr ""
+msgstr "未找到可导入的几何体"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s added to the sketch — Confirm to commit it"
-msgstr ""
+msgstr "%s 已添加到草图 — 单击“确定”提交"
 
+# AI Translated
 msgid " — drag to place/size, then Confirm"
-msgstr ""
+msgstr " — 拖动以放置/调整大小，然后单击“确定”"
 
+# AI Translated
 msgid "Insert cancelled"
-msgstr ""
+msgstr "已取消插入"
 
+# AI Translated
 msgid "Drag a corner to scale, the centre to move — right-click when done"
-msgstr ""
+msgstr "拖动角点缩放，拖动中心移动 — 完成后右键单击"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr ""
+msgstr "已在 %s 上添加草图 — 选择它，然后右键单击进行拉伸"
 
+# AI Translated
 msgid "Recompute error: "
-msgstr ""
+msgstr "重新计算出错： "
 
+# AI Translated
 msgid "Add a solid (sketch + extrude) first"
-msgstr ""
+msgstr "请先添加一个实体（草图 + 拉伸）"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Edge %d"
-msgstr ""
+msgstr "边 %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Thread standard: %s  (pitch %.3g mm)"
-msgstr ""
+msgstr "螺纹标准：%s  （螺距 %.3g mm）"
 
+# AI Translated
 msgid "Thread needs a solid body — add or import one first"
-msgstr ""
+msgstr "螺纹需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Pick a sketch profile to revolve first"
-msgstr ""
+msgstr "请先选取要旋转的草图轮廓"
 
+# AI Translated
 msgid "Revolve needs a solid body — add or import one first"
-msgstr ""
+msgstr "旋转需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Pick a profile sketch to sweep first"
-msgstr ""
+msgstr "请先选取要扫掠的轮廓草图"
 
+# AI Translated
 msgid "Pick a path sketch for the sweep"
-msgstr ""
+msgstr "请选取用于扫掠的路径草图"
 
+# AI Translated
 msgid "Sweep needs a solid body — add or import one first"
-msgstr ""
+msgstr "扫掠需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Check at least two profile sketches to loft"
-msgstr ""
+msgstr "请至少勾选两个轮廓草图以进行放样"
 
+# AI Translated
 msgid "Loft needs a solid body — add or import one first"
-msgstr ""
+msgstr "放样需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Pick a sketch profile to extrude first"
-msgstr ""
+msgstr "请先选取要拉伸的草图轮廓"
 
+# AI Translated
 msgid "Pick a sketch to fill first"
-msgstr ""
+msgstr "请先选取要填充的草图"
 
+# AI Translated
 msgid "Select a sheet body first"
-msgstr ""
+msgstr "请先选择一个曲面实体"
 
+# AI Translated
 msgid "Pick a solid face to thicken first"
-msgstr ""
+msgstr "请先选取要加厚的实体面"
 
+# AI Translated
 msgid "Pick a sketch with an open line first"
-msgstr ""
+msgstr "请先选取包含开放线条的草图"
 
+# AI Translated
 msgid "Add at least one face to delete first"
-msgstr ""
+msgstr "请先添加至少一个要删除的面"
 
+# AI Translated
 msgid "Mate needs two CoordSys features — create them first"
-msgstr ""
+msgstr "配合需要两个坐标系特征 — 请先创建它们"
 
+# AI Translated
 msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr ""
+msgstr "配合：坐标系 A 和坐标系 B 必须是不同的坐标系特征"
 
+# AI Translated
 msgid "Mate rejected"
-msgstr ""
+msgstr "配合被拒绝"
 
+# AI Translated
 msgid "No interference — need at least two solid bodies to check"
-msgstr ""
+msgstr "无干涉 — 至少需要两个实体才能检查"
 
+# AI Translated
 msgid "No interference found"
-msgstr ""
+msgstr "未发现干涉"
 
+# AI Translated
 #, c-format
 msgid "%zu interference pairs, worst %.2f mm³"
-msgstr ""
+msgstr "%zu 对干涉，最大 %.2f mm³"
 
+# AI Translated
 msgid ""
 "Interference pairs:\n"
 "\n"
 msgstr ""
+"干涉对：\n"
+"\n"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
-msgstr ""
+msgstr "实体 %d"
 
+# AI Translated
 msgid "Interference"
-msgstr ""
+msgstr "干涉"
 
+# AI Translated
 msgid "Select a solid body first — its mass properties are what is reported"
-msgstr ""
+msgstr "请先选择一个实体 — 将报告其质量属性"
 
+# AI Translated
 msgid "Mass properties could not be computed for this body"
-msgstr ""
+msgstr "无法计算此实体的质量属性"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr ""
+msgstr "%s：曲面实体 — 表面积 %.2f cm²，无体积"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "%s\n"
@@ -23313,14 +24058,23 @@ msgid ""
 "\n"
 "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
 msgstr ""
+"%s\n"
+"\n"
+"曲面实体（开放壳体）\n"
+"表面积：%.2f cm²\n"
+"\n"
+"曲面实体不包围任何材料，因此没有体积。将其加厚为实体即可获得体积。"
 
+# AI Translated
 msgid "Mass properties"
-msgstr ""
+msgstr "质量属性"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: %.3f cm³, %.2f cm²"
-msgstr ""
+msgstr "%s：%.3f cm³，%.2f cm²"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "%s\n"
@@ -23328,836 +24082,1110 @@ msgid ""
 "Volume: %.3f cm³\n"
 "Surface area: %.2f cm²"
 msgstr ""
+"%s\n"
+"\n"
+"体积：%.3f cm³\n"
+"表面积：%.2f cm²"
 
+# AI Translated
 msgid "Pattern needs a solid body — add or import one first"
-msgstr ""
+msgstr "阵列需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr ""
+msgstr "布尔需要两个实体 — 请添加或导入第二个实体"
 
+# AI Translated
 msgid "Cut needs a solid body — add or import one first"
-msgstr ""
+msgstr "切割需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 #, c-format, boost-format
 msgid "the picked face of Body %d"
-msgstr ""
+msgstr "实体 %d 上选取的面"
 
+# AI Translated
 msgid "the picked face"
-msgstr ""
+msgstr "选取的面"
 
+# AI Translated
 #, c-format, boost-format
 msgid "  ·  %d picked"
-msgstr ""
+msgstr "  ·  已选取 %d 个"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr ""
+msgstr "已选择 %d 个  ·  按 Del 删除  ·  按住 Shift 单击可添加  ·  双击选择整个环"
 
+# AI Translated
 msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
-msgstr ""
+msgstr "选择 — 单击图元进行选取  ·  拖动端点或中心可移动  ·  按住 Shift 单击可添加  ·  按 Del 删除"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
-msgstr ""
+msgstr "已选取 %d 个  ·  现在选择一个约束（水平、平行、相切、相等…）"
 
+# AI Translated
 msgid "Constrain — click one or two entities, then choose a constraint"
-msgstr ""
+msgstr "约束 — 单击一个或两个图元，然后选择约束"
 
+# AI Translated
 msgid "Dimension — click an entity, or the first of two points"
-msgstr ""
+msgstr "尺寸 — 单击一个图元，或两个点中的第一个点"
 
+# AI Translated
 msgid "Dimension — click the second point"
-msgstr ""
+msgstr "尺寸 — 单击第二个点"
 
+# AI Translated
 msgid "Line — click the start point"
-msgstr ""
+msgstr "直线 — 单击起点"
 
+# AI Translated
 msgid "Line — click the end point, or type the length"
-msgstr ""
+msgstr "直线 — 单击终点，或输入长度"
 
+# AI Translated
 msgid "Polyline — click the first point"
-msgstr ""
+msgstr "多段线 — 单击第一个点"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr ""
+msgstr "多段线 — 单击下一个点  ·  单击起点以闭合  ·  右键单击结束连线"
 
+# AI Translated
 msgid "Rectangle — click one corner"
-msgstr ""
+msgstr "矩形 — 单击一个角点"
 
+# AI Translated
 msgid "Rectangle — click the opposite corner"
-msgstr ""
+msgstr "矩形 — 单击对角点"
 
+# AI Translated
 msgid "Centre rectangle — click the centre"
-msgstr ""
+msgstr "中心矩形 — 单击中心"
 
+# AI Translated
 msgid "Centre rectangle — click a corner"
-msgstr ""
+msgstr "中心矩形 — 单击一个角点"
 
+# AI Translated
 msgid "Oblique rectangle — click the start of the base edge"
-msgstr ""
+msgstr "斜矩形 — 单击底边的起点"
 
+# AI Translated
 msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
-msgstr ""
+msgstr "斜矩形 — 单击底边的终点（以此设置角度）"
 
+# AI Translated
 msgid "Oblique rectangle — click to set the width"
-msgstr ""
+msgstr "斜矩形 — 单击以设置宽度"
 
+# AI Translated
 msgid "Rounded rectangle — click one corner"
-msgstr ""
+msgstr "圆角矩形 — 单击一个角点"
 
+# AI Translated
 msgid "Rounded rectangle — click the opposite corner"
-msgstr ""
+msgstr "圆角矩形 — 单击对角点"
 
+# AI Translated
 msgid "Rounded rectangle — click to set the corner radius"
-msgstr ""
+msgstr "圆角矩形 — 单击以设置圆角半径"
 
+# AI Translated
 msgid "Circle — click the centre"
-msgstr ""
+msgstr "圆 — 单击圆心"
 
+# AI Translated
 msgid "Circle — click to set the radius, or type it"
-msgstr ""
+msgstr "圆 — 单击以设置半径，或直接输入"
 
+# AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
-msgstr ""
+msgstr "圆（两点） — 单击直径的一个端点"
 
+# AI Translated
 msgid "Circle (2 points) — click the other end of the diameter"
-msgstr ""
+msgstr "圆（两点） — 单击直径的另一个端点"
 
+# AI Translated
 msgid "Circle (3 points) — click the first point on the circle"
-msgstr ""
+msgstr "圆（三点） — 单击圆上的第一个点"
 
+# AI Translated
 msgid "Circle (3 points) — click the second point"
-msgstr ""
+msgstr "圆（三点） — 单击第二个点"
 
+# AI Translated
 msgid "Circle (3 points) — click the third point"
-msgstr ""
+msgstr "圆（三点） — 单击第三个点"
 
+# AI Translated
 msgid "Arc — click the start point"
-msgstr ""
+msgstr "圆弧 — 单击起点"
 
+# AI Translated
 msgid "Arc — click the end point"
-msgstr ""
+msgstr "圆弧 — 单击终点"
 
+# AI Translated
 msgid "Arc — click a point the arc passes through"
-msgstr ""
+msgstr "圆弧 — 单击圆弧经过的一个点"
 
+# AI Translated
 msgid "Tangent arc — click the endpoint it leaves from"
-msgstr ""
+msgstr "切线弧 — 单击其起始端点"
 
+# AI Translated
 msgid "Tangent arc — click its far end"
-msgstr ""
+msgstr "切线弧 — 单击其另一端"
 
+# AI Translated
 msgid "Centre arc — click the centre"
-msgstr ""
+msgstr "中心点圆弧 — 单击圆心"
 
+# AI Translated
 msgid "Centre arc — click the start point (this sets the radius)"
-msgstr ""
+msgstr "中心点圆弧 — 单击起点（以此设置半径）"
 
+# AI Translated
 msgid "Centre arc — click the end point"
-msgstr ""
+msgstr "中心点圆弧 — 单击终点"
 
+# AI Translated
 msgid "Slot — click one end of the centreline"
-msgstr ""
+msgstr "槽口 — 单击中心线的一端"
 
+# AI Translated
 msgid "Slot — click the other end of the centreline"
-msgstr ""
+msgstr "槽口 — 单击中心线的另一端"
 
+# AI Translated
 msgid "Slot — click to set the width"
-msgstr ""
+msgstr "槽口 — 单击以设置宽度"
 
+# AI Translated
 msgid "Arc slot — click the centre the slot curves about"
-msgstr ""
+msgstr "圆弧槽口 — 单击槽口弯曲所绕的中心"
 
+# AI Translated
 msgid "Arc slot — click the start of the centreline (this sets the radius)"
-msgstr ""
+msgstr "圆弧槽口 — 单击中心线的起点（以此设置半径）"
 
+# AI Translated
 msgid "Arc slot — click the end of the centreline"
-msgstr ""
+msgstr "圆弧槽口 — 单击中心线的终点"
 
+# AI Translated
 msgid "Arc slot — click to set the width"
-msgstr ""
+msgstr "圆弧槽口 — 单击以设置宽度"
 
+# AI Translated
 msgid "Polygon — click the centre"
-msgstr ""
+msgstr "多边形 — 单击中心"
 
+# AI Translated
 msgid "Polygon — click a vertex (this sets size and orientation)"
-msgstr ""
+msgstr "多边形 — 单击一个顶点（以此设置大小和方向）"
 
+# AI Translated
 msgid "Ellipse — click the centre"
-msgstr ""
+msgstr "椭圆 — 单击中心"
 
+# AI Translated
 msgid "Ellipse — click the end of the major axis"
-msgstr ""
+msgstr "椭圆 — 单击长轴的端点"
 
+# AI Translated
 msgid "Ellipse — click a point on the minor axis"
-msgstr ""
+msgstr "椭圆 — 单击短轴上的一个点"
 
+# AI Translated
 msgid "Elliptical arc — click the centre"
-msgstr ""
+msgstr "椭圆弧 — 单击中心"
 
+# AI Translated
 msgid "Elliptical arc — click the end of the major axis"
-msgstr ""
+msgstr "椭圆弧 — 单击长轴的端点"
 
+# AI Translated
 msgid "Elliptical arc — click a point on the minor axis"
-msgstr ""
+msgstr "椭圆弧 — 单击短轴上的一个点"
 
+# AI Translated
 msgid "Elliptical arc — click where the arc starts"
-msgstr ""
+msgstr "椭圆弧 — 单击圆弧的起始位置"
 
+# AI Translated
 msgid "Elliptical arc — click where the arc ends"
-msgstr ""
+msgstr "椭圆弧 — 单击圆弧的结束位置"
 
+# AI Translated
 msgid "Spline — click the first control point"
-msgstr ""
+msgstr "样条曲线 — 单击第一个控制点"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr ""
+msgstr "样条曲线 — 单击下一个控制点  ·  右键单击完成曲线"
 
+# AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
-msgstr ""
+msgstr "点 — 单击放置一个点；工具保持激活，可继续放置"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr ""
+msgstr "修剪 — 单击与其他图元相交的线段  ·  右键单击退出"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr ""
+msgstr "延伸 — 单击直线或圆弧，将其延长到最近的图元  ·  右键单击退出"
 
+# AI Translated
 msgid "Fillet — click the first of two lines that meet"
-msgstr ""
+msgstr "圆角 — 单击两条相交直线中的第一条"
 
+# AI Translated
 msgid "Fillet — click the second line"
-msgstr ""
+msgstr "圆角 — 单击第二条直线"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "圆角 — 拖动箭头，或单击数值输入半径  ·  单击空白处应用  ·  右键单击取消"
 
+# AI Translated
 msgid "Chamfer — click the first of two lines that meet"
-msgstr ""
+msgstr "倒角 — 单击两条相交直线中的第一条"
 
+# AI Translated
 msgid "Chamfer — click the second line"
-msgstr ""
+msgstr "倒角 — 单击第二条直线"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "倒角 — 拖动箭头，或单击数值输入倒角距离  ·  单击空白处应用  ·  右键单击取消"
 
+# AI Translated
 msgid "Offset — click the entity to offset"
-msgstr ""
+msgstr "偏移 — 单击要偏移的图元"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "偏移 — 向任意一侧拖动箭头，或单击数值输入距离  ·  单击空白处应用  ·  右键单击取消"
 
+# AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
-msgstr ""
+msgstr "镜像 — 先单击作为镜像轴的直线（可使用构造线）"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr ""
+msgstr "镜像 — 已设置镜像轴  ·  现在单击要镜像的图元  ·  右键单击取消"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr ""
+msgstr "镜像 — 已设置镜像轴  ·  待镜像 %d 个  ·  单击其他图元可添加或移除  ·  单击空白处应用"
 
+# AI Translated
 msgid "Move — click the entities to move"
-msgstr ""
+msgstr "移动 — 单击要移动的图元"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr ""
+msgstr "移动 — 拖动控制柄，或单击数值输入距离  ·  单击空白处应用"
 
+# AI Translated
 msgid "Rotate — click the entities to rotate"
-msgstr ""
+msgstr "旋转 — 单击要旋转的图元"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr ""
+msgstr "旋转 — 拖动控制柄，或单击数值输入角度  ·  单击空白处应用"
 
+# AI Translated
 msgid "Scale — click the entities to scale"
-msgstr ""
+msgstr "缩放 — 单击要缩放的图元"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr ""
+msgstr "缩放 — 拖动控制柄，或单击数值输入比例因子  ·  单击空白处应用"
 
+# AI Translated
 msgid "Array — click the entities to repeat"
-msgstr ""
+msgstr "阵列 — 单击要阵列的图元"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "阵列 — 拖动控制柄设置间距，单击数量值进行输入  ·  单击空白处应用"
 
+# AI Translated
 msgid "Polar array — click the entities to repeat"
-msgstr ""
+msgstr "圆周阵列 — 单击要阵列的图元"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "圆周阵列 — 拖动控制柄设置总角度，单击数量值进行输入  ·  单击空白处应用"
 
+# AI Translated
 msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
-msgstr ""
+msgstr "拖动角点缩放，拖动中心移动  ·  完成后右键单击"
 
+# AI Translated
 msgid "  ·  Esc goes back to Select"
-msgstr ""
+msgstr "  ·  按 Esc 返回选择工具"
 
+# AI Translated
 msgid "  ·  click a constraint badge to remove it"
-msgstr ""
+msgstr "  ·  单击约束标记可将其移除"
 
+# AI Translated
 msgid "select something first"
-msgstr ""
+msgstr "请先选择内容"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mate: %s  →  %s"
-msgstr ""
+msgstr "配合：%s  →  %s"
 
+# AI Translated
 msgid "Fastened"
-msgstr ""
+msgstr "紧固"
 
+# AI Translated
 msgid "Revolute"
-msgstr ""
+msgstr "旋转"
 
+# AI Translated
 msgid "Slider"
-msgstr ""
+msgstr "滑块"
 
+# AI Translated
 msgid "Cylindrical"
-msgstr ""
+msgstr "圆柱"
 
+# AI Translated
 msgid "Click a solid FACE in the viewport"
-msgstr ""
+msgstr "在视口中单击一个实体面"
 
+# AI Translated
 msgid "Click a solid EDGE in the viewport"
-msgstr ""
+msgstr "在视口中单击一条实体边"
 
+# AI Translated
 msgid "An angled plane needs an edge to tilt about — pick Edge A"
-msgstr ""
+msgstr "倾斜平面需要一条作为旋转轴的边 — 请选取边 A"
 
+# AI Translated
 msgid "A midplane needs two faces — pick Face A and Face B"
-msgstr ""
+msgstr "中间平面需要两个面 — 请选取面 A 和面 B"
 
+# AI Translated
 msgid "Face A and Face B are the same face — a midplane needs two different faces"
-msgstr ""
+msgstr "面 A 和面 B 是同一个面 — 中间平面需要两个不同的面"
 
+# AI Translated
 msgid "A tangent plane needs a cylindrical face — pick Face A"
-msgstr ""
+msgstr "相切平面需要一个圆柱面 — 请选取面 A"
 
+# AI Translated
 msgid "This plane needs two edges — pick Edge A and Edge B"
-msgstr ""
+msgstr "此平面需要两条边 — 请选取边 A 和边 B"
 
+# AI Translated
 msgid "Plane added — pick it as a sketch plane"
-msgstr ""
+msgstr "已添加平面 — 可将其选作草图平面"
 
+# AI Translated
 msgid "Axis added"
-msgstr ""
+msgstr "已添加轴"
 
+# AI Translated
 msgid "Coord Sys added"
-msgstr ""
+msgstr "已添加坐标系"
 
+# AI Translated
 msgid "Shell needs a solid body — add or import one first"
-msgstr ""
+msgstr "抽壳需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Draft needs a solid body — add or import one first"
-msgstr ""
+msgstr "拔模需要一个实体 — 请先添加或导入实体"
 
+# AI Translated
 msgid "Draft needs a picked face — click a side face first"
-msgstr ""
+msgstr "拔模需要选取一个面 — 请先单击一个侧面"
 
+# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
 "or click a reference plane and right-click it to start a sketch."
 msgstr ""
+"尚无内容 — 从工具栏导入 STEP 或网格，\n"
+"或单击一个基准面并右键单击它以开始绘制草图。"
 
+# AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
-msgstr ""
+msgstr "尚无实体 — 选择一个草图并右键单击它进行拉伸。"
 
+# AI Translated
 msgid "Could not restore the CAD model from this project"
-msgstr ""
+msgstr "无法从此项目恢复 CAD 模型"
 
+# AI Translated
 msgid "Could not restore the CAD model: "
-msgstr ""
+msgstr "无法恢复 CAD 模型： "
 
+# AI Translated
 #, c-format
 msgid "Body %zu — %s"
-msgstr ""
+msgstr "实体 %zu — %s"
 
+# AI Translated
 msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
-msgstr ""
+msgstr "剖面视图已开启 — 隐藏模型的一半以查看内部；PageUp / PageDown 移动剖切面，“翻转”显示另一半"
 
+# AI Translated
 msgid "Section view off"
-msgstr ""
+msgstr "剖面视图已关闭"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Section view — showing the %s half"
-msgstr ""
+msgstr "剖面视图 — 正在显示%s半部分"
 
+# AI Translated
 msgid "upper"
-msgstr ""
+msgstr "上"
 
+# AI Translated
 msgid "lower"
-msgstr ""
+msgstr "下"
 
+# AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
-msgstr ""
+msgstr "布尔需要两个实体 — 请创建或导入第二个实体"
 
+# AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr ""
+msgstr "请先选择一个实体 — 在视口或实体列表中单击它"
 
+# AI Translated
 msgid "That body has no display mesh yet — recompute first"
-msgstr ""
+msgstr "该实体尚无显示网格 — 请先重新计算"
 
+# AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
-msgstr ""
+msgstr "拖动箭头移动，拖动圆环旋转 — 然后单击“确定”（按 Esc 取消）"
 
+# AI Translated
 msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
-msgstr ""
+msgstr "拖动箭头移动，拖动圆环旋转 — 数值会随之更新"
 
+# AI Translated
 msgid "Select a body first"
-msgstr ""
+msgstr "请先选择一个实体"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d colour set"
-msgstr ""
+msgstr "已设置实体 %d 的颜色"
 
+# AI Translated
 msgid "Click a face on the solid, then press F"
-msgstr ""
+msgstr "单击实体上的一个面，然后按 F"
 
+# AI Translated
 msgid "Placed on face — body laid flat on the bed"
-msgstr ""
+msgstr "已放置在面上 — 实体已平放在热床上"
 
+# AI Translated
 msgid "Edit rejected: "
-msgstr ""
+msgstr "编辑被拒绝： "
 
+# AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
-msgstr ""
+msgstr "清除所有特征和实体并开始新设计？此操作无法撤销。"
 
+# AI Translated
 msgid "New Design"
-msgstr ""
+msgstr "新建设计"
 
+# AI Translated
 msgid "This body has no feature to delete — use New Design to start over"
-msgstr ""
+msgstr "此实体没有可删除的特征 — 请使用“新建设计”重新开始"
 
+# AI Translated
 #, c-format, boost-format
 msgid "feature %d"
-msgstr ""
+msgstr "特征 %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Delete %s?\n"
 "\n"
 "That is the feature this body was made from. Features built on it may be removed or stop working."
 msgstr ""
+"删除 %s？\n"
+"\n"
+"这是生成此实体的特征。基于它构建的特征可能会被移除或失效。"
 
+# AI Translated
 msgid "Delete body"
-msgstr ""
+msgstr "删除实体"
 
+# AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
-msgstr ""
+msgstr "请选择创建此实体的特征（或使用“新建设计”）"
 
+# AI Translated
 msgid "Select a feature in the tree first"
-msgstr ""
+msgstr "请先在特征树中选择一个特征"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d shown"
-msgstr ""
+msgstr "已显示实体 %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d hidden"
-msgstr ""
+msgstr "已隐藏实体 %d"
 
+# AI Translated
 msgid "Feature shown"
-msgstr ""
+msgstr "已显示特征"
 
+# AI Translated
 msgid "Feature hidden"
-msgstr ""
+msgstr "已隐藏特征"
 
+# AI Translated
 msgid "Draw a sketch first, then Constrain"
-msgstr ""
+msgstr "请先绘制草图，然后再添加约束"
 
+# AI Translated
 msgid "Select a sketch in the tree first"
-msgstr ""
+msgstr "请先在特征树中选择一个草图"
 
+# AI Translated
 msgid "Selected feature is not a sketch"
-msgstr ""
+msgstr "所选特征不是草图"
 
+# AI Translated
 msgid "Pick 1-2 lines, then a constraint; right-click exits"
-msgstr ""
+msgstr "选取 1-2 条直线，然后选择约束；右键单击退出"
 
+# AI Translated
 msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
-msgstr ""
+msgstr "选取 1-2 个图元，然后选择约束或尺寸；右键单击退出"
 
+# AI Translated
 msgid "Pick an entity first"
-msgstr ""
+msgstr "请先选取一个图元"
 
+# AI Translated
 msgid "Pick two entities first"
-msgstr ""
+msgstr "请先选取两个图元"
 
+# AI Translated
 msgid "Horizontal and Vertical apply to a line"
-msgstr ""
+msgstr "水平和垂直约束适用于一条直线"
 
+# AI Translated
 msgid "Angle applies between two lines"
-msgstr ""
+msgstr "角度约束适用于两条直线之间"
 
+# AI Translated
 msgid "Collinear needs two lines"
-msgstr ""
+msgstr "共线需要两条直线"
 
+# AI Translated
 msgid "Parallel, perpendicular and equal length apply to two lines"
-msgstr ""
+msgstr "平行、相互垂直和等长适用于两条直线"
 
+# AI Translated
 msgid "Equal radius needs two circles or arcs"
-msgstr ""
+msgstr "等半径需要两个圆或圆弧"
 
+# AI Translated
 msgid "Concentric needs two circles or arcs"
-msgstr ""
+msgstr "同心需要两个圆或圆弧"
 
+# AI Translated
 msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
-msgstr ""
+msgstr "相切需要一条直线和一个圆/圆弧，或两个圆/圆弧"
 
+# AI Translated
 msgid "This constraint needs two entities with a point to join"
-msgstr ""
+msgstr "此约束需要两个具有可连接点的图元"
 
+# AI Translated
 msgid "This dimension needs two entities with a point to measure between"
-msgstr ""
+msgstr "此尺寸需要两个具有可测量点的图元"
 
+# AI Translated
 msgid "Midpoint needs a point and a line"
-msgstr ""
+msgstr "中点需要一个点和一条直线"
 
+# AI Translated
 msgid "Symmetric needs two points or two lines + an axis"
-msgstr ""
+msgstr "对称需要两个点或两条直线 + 一条对称轴"
 
+# AI Translated
 msgid "Symmetric needs two points or two lines"
-msgstr ""
+msgstr "对称需要两个点或两条直线"
 
+# AI Translated
 msgid "Symmetric: pick two entities, then an axis line"
-msgstr ""
+msgstr "对称：选取两个图元，然后选取一条轴线"
 
+# AI Translated
 msgid "Radius/Diameter needs a circle or arc"
-msgstr ""
+msgstr "半径/直径需要一个圆或圆弧"
 
+# AI Translated
 msgid "Unsupported constraint"
-msgstr ""
+msgstr "不支持的约束"
 
+# AI Translated
 msgid "Constraint rejected (over-constrained)"
-msgstr ""
+msgstr "约束被拒绝（过约束）"
 
+# AI Translated
 msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
-msgstr ""
+msgstr "已应用约束  ·  其标记显示在草图上 — 单击标记可将其移除"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr ""
+msgstr "%s  —  已选择 %d 个。按 Esc 切换到选择工具，单击一条直线，然后按住 Shift 或 Ctrl 单击另一条。"
 
+# AI Translated
 msgid "Applied constraint"
-msgstr ""
+msgstr "已应用约束"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
-msgstr ""
+msgstr "固定 %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Lock X %s"
-msgstr ""
+msgstr "锁定 X %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Lock Y %s"
-msgstr ""
+msgstr "锁定 Y %s"
 
+# AI Translated
 msgid "Equal"
-msgstr ""
+msgstr "相等"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric %s — %s / %s"
-msgstr ""
+msgstr "对称 %s — %s / %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric about Y axis %s — %s"
-msgstr ""
+msgstr "关于 Y 轴对称 %s — %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric about X axis %s — %s"
-msgstr ""
+msgstr "关于 X 轴对称 %s — %s"
 
+# AI Translated
 msgid "On line"
-msgstr ""
+msgstr "在线上"
 
+# AI Translated
 msgid "On edge"
-msgstr ""
+msgstr "在边上"
 
+# AI Translated
 msgid "Constraint"
-msgstr ""
+msgstr "约束"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Constraints (%d)"
-msgstr ""
+msgstr "约束 (%d)"
 
+# AI Translated
 msgid "No constraints yet"
-msgstr ""
+msgstr "尚无约束"
 
+# AI Translated
 msgid "Delete constraint"
-msgstr ""
+msgstr "删除约束"
 
+# AI Translated
 msgid "Constraint deleted"
-msgstr ""
+msgstr "已删除约束"
 
+# AI Translated
 msgid "Press Constrain on a sketch first"
-msgstr ""
+msgstr "请先在草图上单击“约束”"
 
+# AI Translated
 msgid "Pick the entity, then a mirror-axis line"
-msgstr ""
+msgstr "选取图元，然后选取一条镜像轴线"
 
+# AI Translated
 msgid "Mirror axis must be a line"
-msgstr ""
+msgstr "镜像轴必须是直线"
 
+# AI Translated
 msgid "Mirror produced nothing"
-msgstr ""
+msgstr "镜像未生成任何结果"
 
+# AI Translated
 msgid "Offset distance (+left / -right of direction)"
-msgstr ""
+msgstr "偏移距离（+ 为方向左侧 / - 为方向右侧）"
 
+# AI Translated
 msgid "Offset collapsed the entity"
-msgstr ""
+msgstr "偏移导致图元退化消失"
 
+# AI Translated
 msgid "Pick two lines to fillet"
-msgstr ""
+msgstr "选取两条直线以创建圆角"
 
+# AI Translated
 msgid "Fillet needs two lines"
-msgstr ""
+msgstr "圆角需要两条直线"
 
+# AI Translated
 msgid "Fillet radius"
-msgstr ""
+msgstr "圆角半径"
 
+# AI Translated
 msgid "Fillet failed (parallel lines or radius too large)"
-msgstr ""
+msgstr "圆角失败（直线平行或半径过大）"
 
+# AI Translated
 msgid "Pick two lines to chamfer"
-msgstr ""
+msgstr "选取两条直线以创建倒角"
 
+# AI Translated
 msgid "Chamfer needs two lines"
-msgstr ""
+msgstr "倒角需要两条直线"
 
+# AI Translated
 msgid "Chamfer distance"
-msgstr ""
+msgstr "倒角距离"
 
+# AI Translated
 msgid "Chamfer failed (parallel lines or distance too large)"
-msgstr ""
+msgstr "倒角失败（直线平行或距离过大）"
 
+# AI Translated
 msgid "Trim works on lines, arcs and circles"
-msgstr ""
+msgstr "修剪适用于直线、圆弧和圆"
 
+# AI Translated
 msgid "Extend works on lines and arcs"
-msgstr ""
+msgstr "延伸适用于直线和圆弧"
 
+# AI Translated
 msgid "Pick the edge to trim/extend"
-msgstr ""
+msgstr "选取要修剪/延伸的边"
 
+# AI Translated
 msgid "Nothing to trim at the pick"
-msgstr ""
+msgstr "选取处没有可修剪的内容"
 
+# AI Translated
 msgid "No edge to extend to"
-msgstr ""
+msgstr "没有可延伸到的边"
 
+# AI Translated
 msgid "Array count (incl. original)"
-msgstr ""
+msgstr "阵列数量（含原始图元）"
 
+# AI Translated
 msgid "Spacing (mm)"
-msgstr ""
+msgstr "间距 (mm)"
 
+# AI Translated
 msgid "Array produced nothing"
-msgstr ""
+msgstr "阵列未生成任何结果"
 
+# AI Translated
 msgid "Move dX (mm)"
-msgstr ""
+msgstr "移动 dX (mm)"
 
+# AI Translated
 msgid "Move dY (mm)"
-msgstr ""
+msgstr "移动 dY (mm)"
 
+# AI Translated
 msgid "Move produced nothing"
-msgstr ""
+msgstr "移动未生成任何结果"
 
+# AI Translated
 msgid "Rotate angle (deg)"
-msgstr ""
+msgstr "旋转角度（度）"
 
+# AI Translated
 msgid "Rotate produced nothing"
-msgstr ""
+msgstr "旋转未生成任何结果"
 
+# AI Translated
 msgid "Scale factor"
-msgstr ""
+msgstr "缩放比例"
 
+# AI Translated
 msgid "Scale produced nothing"
-msgstr ""
+msgstr "缩放未生成任何结果"
 
+# AI Translated
 msgid "Polar count (incl. original)"
-msgstr ""
+msgstr "圆周阵列数量（含原始图元）"
 
+# AI Translated
 msgid "Total sweep (deg)"
-msgstr ""
+msgstr "总角度（度）"
 
+# AI Translated
 msgid "Polar array produced nothing"
-msgstr ""
+msgstr "圆周阵列未生成任何结果"
 
+# AI Translated
 msgid "Applied edit"
-msgstr ""
+msgstr "已应用编辑"
 
+# AI Translated
 msgid " — type a value, press Enter (or Confirm)"
-msgstr ""
+msgstr " — 输入数值，按 Enter（或单击“确定”）"
 
+# AI Translated
 msgid "Pick a segment in the viewport first"
-msgstr ""
+msgstr "请先在视口中选取一条线段"
 
+# AI Translated
 msgid "Applied Horizontal"
-msgstr ""
+msgstr "已应用水平约束"
 
+# AI Translated
 msgid "Applied Vertical"
-msgstr ""
+msgstr "已应用垂直约束"
 
+# AI Translated
 msgid "Sketch: "
-msgstr ""
+msgstr "草图： "
 
+# AI Translated
 #, c-format, boost-format
 msgid "On a face of Body %d"
-msgstr ""
+msgstr "位于实体 %d 的一个面上"
 
+# AI Translated
 msgid "On a stored face"
-msgstr ""
+msgstr "位于已存储的面上"
 
+# AI Translated
 msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr ""
+msgstr "正在编辑草图 — 拖动控制柄或单击尺寸标注进行编辑"
 
+# AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
-msgstr ""
+msgstr "导入的实体没有参数 — 请使用“变换”来移动或旋转它"
 
+# AI Translated
 msgid "This feature type can't be edited yet"
-msgstr ""
+msgstr "暂不支持编辑此类特征"
 
+# AI Translated
 msgid "Nothing to export — add a feature first"
-msgstr ""
+msgstr "没有可导出的内容 — 请先添加特征"
 
+# AI Translated
 msgid "Export STEP"
-msgstr ""
+msgstr "导出 STEP"
 
+# AI Translated
 msgid "Exported STEP"
-msgstr ""
+msgstr "已导出 STEP"
 
+# AI Translated
 msgid "STEP export failed: "
-msgstr ""
+msgstr "STEP 导出失败： "
 
+# AI Translated
 msgid "Nothing to commit — add a feature first"
-msgstr ""
+msgstr "没有可提交的内容 — 请先添加特征"
 
+# AI Translated
 msgid "All bodies hidden — show one before committing"
-msgstr ""
+msgstr "所有实体均已隐藏 — 请在提交前显示至少一个实体"
 
+# AI Translated
 msgid "Plane ready"
-msgstr ""
+msgstr "平面已就绪"
 
+# AI Translated
 msgid "Axis ready"
-msgstr ""
+msgstr "轴已就绪"
 
+# AI Translated
 msgid "Coord Sys ready"
-msgstr ""
+msgstr "坐标系已就绪"
 
+# AI Translated
 msgid "Helix ready"
-msgstr ""
+msgstr "螺旋线已就绪"
 
+# AI Translated
 msgid "Project ready"
-msgstr ""
+msgstr "投影已就绪"
 
+# AI Translated
 msgid "Sketch ready"
-msgstr ""
+msgstr "草图已就绪"
 
+# AI Translated
 msgid "Mate needs at least two CoordSys features"
-msgstr ""
+msgstr "配合至少需要两个坐标系特征"
 
+# AI Translated
 msgid "Mate: CS A and CS B must be different"
-msgstr ""
+msgstr "配合：坐标系 A 和坐标系 B 必须不同"
 
+# AI Translated
 msgid "Mate ready"
-msgstr ""
+msgstr "配合已就绪"
 
+# AI Translated
 msgid "Invalid: "
-msgstr ""
+msgstr "无效： "
 
+# AI Translated
 #, c-format
 msgid "Preview — %zu triangles"
-msgstr ""
+msgstr "预览 — %zu 个三角形"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
-msgstr ""
+msgstr "实体 %d — 已移动 (%.1f, %.1f, %.1f) mm，已旋转 %.1f°"
 
+# AI Translated
 msgid "Profile: "
-msgstr ""
+msgstr "轮廓： "
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d (push/pull)"
-msgstr ""
+msgstr "面 %d（推/拉）"
 
+# AI Translated
 msgid "Move cancelled"
-msgstr ""
+msgstr "已取消移动"
 
+# AI Translated
 msgid "Discard this sketch and everything drawn in it?"
-msgstr ""
+msgstr "放弃此草图及其中绘制的所有内容？"
 
+# AI Translated
 msgid "Discard sketch"
-msgstr ""
+msgstr "放弃草图"
 
+# AI Translated
 msgid "Keep drawing"
-msgstr ""
+msgstr "继续绘制"
 
+# AI Translated
 msgid "Finish or cancel the current tool first (Esc)"
-msgstr ""
+msgstr "请先完成或取消当前工具 (Esc)"
 
+# AI Translated
 msgid "Nothing to redo"
-msgstr ""
+msgstr "没有可重做的操作"
 
+# AI Translated
 msgid "Nothing to undo"
-msgstr ""
+msgstr "没有可撤销的操作"
 
+# AI Translated
 #, c-format
 msgid "Redo  (%zu more)"
-msgstr ""
+msgstr "重做  （还有 %zu 步）"
 
+# AI Translated
 #, c-format
 msgid "Undo  (%zu more)"
-msgstr ""
+msgstr "撤销  （还有 %zu 步）"
 
+# AI Translated
 msgid "Variable name:"
-msgstr ""
+msgstr "变量名称："
 
+# AI Translated
 msgid "Add Variable"
-msgstr ""
+msgstr "添加变量"
 
+# AI Translated
 msgid "Variable name must not contain spaces"
-msgstr ""
+msgstr "变量名称不能包含空格"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Expression for '%s':"
-msgstr ""
+msgstr "“%s”的表达式："
 
+# AI Translated
 msgid "Select a variable first"
-msgstr ""
+msgstr "请先选择一个变量"
 
+# AI Translated
 msgid "Edit Variable"
-msgstr ""
+msgstr "编辑变量"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
-msgstr ""
+msgstr "无法移除变量“%s”（可能仍被某个特征表达式引用）：%s"
 
+# AI Translated
 msgid "No binding for that field"
-msgstr ""
+msgstr "该字段没有绑定"
 
+# AI Translated
 msgid "Enter a number"
-msgstr ""
+msgstr "请输入数字"
 
+# AI Translated
 msgid "Not a number"
-msgstr ""
+msgstr "不是有效数字"
 
+# AI Translated
 msgid "Primitive"
-msgstr ""
+msgstr "标准模型"
 
+# AI Translated
 msgid "Empty mesh generated"
-msgstr ""
+msgstr "生成了空网格"
 
+# AI Translated
 msgid "Pocket (Cut)"
-msgstr ""
+msgstr "凹槽（切除）"
 
+# AI Translated
 msgid "Clear All"
-msgstr ""
+msgstr "全部清除"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
-msgstr ""
+msgstr "Ins"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24169,13 +25197,15 @@ msgctxt "Keyboard Shortcut"
 msgid "End"
 msgstr "End"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgUp"
-msgstr ""
+msgstr "PgUp"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgDn"
-msgstr ""
+msgstr "PgDn"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24225,11 +25255,13 @@ msgstr "将所选项沿 Y 轴正方向移动 10mm"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "将所选项沿 Y 轴负方向移动 10mm"
 
+# AI Translated
 msgid "Rotate selection 45 degrees counterclockwise"
-msgstr ""
+msgstr "将所选项逆时针旋转 45 度"
 
+# AI Translated
 msgid "Rotate selection 45 degrees clockwise"
-msgstr ""
+msgstr "将所选项顺时针旋转 45 度"
 
 msgid "Gizmo move"
 msgstr "线框移动"
@@ -24249,8 +25281,9 @@ msgstr "剪切物件"
 msgid "Gizmo mesh boolean"
 msgstr "线框网格布尔操作"
 
+# AI Translated
 msgid "Gizmo FDM paint-on supports"
-msgstr ""
+msgstr "FDM 手绘支撑小工具"
 
 msgid "Gizmo FDM paint-on seam"
 msgstr "FDM涂装接缝"
@@ -24258,8 +25291,9 @@ msgstr "FDM涂装接缝"
 msgid "Gizmo FDM paint-on fuzzy skin"
 msgstr "Gizmo FDM手绘绒毛表面"
 
+# AI Translated
 msgid "Gizmo multi-material painting"
-msgstr ""
+msgstr "多材料绘制小工具"
 
 msgid "Gizmo text emboss/engrave"
 msgstr "线框文本浮雕/雕刻"
@@ -24312,8 +25346,9 @@ msgstr "摄像机视角 - 左面"
 msgid "Camera Angle - Right side"
 msgstr "摄像机视角 - 右面"
 
+# AI Translated
 msgid "Camera view - Current plate"
-msgstr ""
+msgstr "相机视图 - 当前盘"
 
 msgid "Zoom in"
 msgstr "放大"
@@ -24324,8 +25359,9 @@ msgstr "缩小"
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "显示/隐藏 3Dconnexion设备的设置对话框"
 
+# AI Translated
 msgid "Show/Hide wireframe"
-msgstr ""
+msgstr "显示/隐藏线框"
 
 msgid "On/Off G-code window"
 msgstr "开启/关闭G-code窗口"
@@ -24339,38 +25375,48 @@ msgstr "准备/预览之间的切换"
 msgid "Collapse/Expand the sidebar"
 msgstr "收起/展开 侧边栏"
 
+# AI Translated
 msgid "Reload the device page"
-msgstr ""
+msgstr "重新加载设备页面"
 
 msgid "Show keyboard shortcuts list"
 msgstr "显示键盘快捷键列表"
 
+# AI Translated
 msgid "Open the Speed Dial"
-msgstr ""
+msgstr "打开快捷面板"
 
+# AI Translated
 msgid "Slicing and printing"
-msgstr ""
+msgstr "切片与打印"
 
+# AI Translated
 msgid "Editing"
-msgstr ""
+msgstr "编辑"
 
+# AI Translated
 msgid "Placement"
-msgstr ""
+msgstr "放置"
 
+# AI Translated
 msgid "Gizmos"
-msgstr ""
+msgstr "小工具"
 
+# AI Translated
 msgid "Sliders"
-msgstr ""
+msgstr "滑动条"
 
+# AI Translated
 msgid "Painting tools"
-msgstr ""
+msgstr "绘制工具"
 
+# AI Translated
 msgid "Application"
-msgstr ""
+msgstr "应用程序"
 
+# AI Translated
 msgid "Speed Dial"
-msgstr ""
+msgstr "快捷面板"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

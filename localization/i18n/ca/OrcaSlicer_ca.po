@@ -295,8 +295,9 @@ msgstr "Estàndard"
 msgid "TPU High Flow"
 msgstr "TPU d'Alt Flux"
 
+# AI Translated
 msgid "E3D High Flow"
-msgstr ""
+msgstr "E3D High Flow"
 
 msgid "Unknown"
 msgstr "Desconegut"
@@ -2067,15 +2068,20 @@ msgstr "Ha estat carregat el paquet de configuració, però alguns valors no s'h
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Ha estat carregat el fitxer de configuració \"%1%\", però alguns valors no s'han pogut reconèixer."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
 "\n"
 "Only open attachments from projects you trust. Open it anyway?"
 msgstr ""
+"\"%s\" no és un document, una imatge ni un fitxer de model normal. Obrir-lo pot executar-lo com a programa o script en aquest ordinador.\n"
+"\n"
+"Obriu només fitxers adjunts de projectes de confiança. Voleu obrir-lo igualment?"
 
+# AI Translated
 msgid "Open attachment"
-msgstr ""
+msgstr "Obrir el fitxer adjunt"
 
 msgid "Loading configuration"
 msgstr "S'està carregant la configuració"
@@ -2566,18 +2572,22 @@ msgstr ""
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "No s'ha pogut obrir el quadre de diàleg de Connectors (error desconegut)."
 
+# AI Translated
 msgid "Plugins refreshed."
-msgstr ""
+msgstr "S'han actualitzat els connectors."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Failed to refresh plugins: %s"
-msgstr ""
+msgstr "No s'han pogut actualitzar els connectors: %s"
 
+# AI Translated
 msgid "Select plugin package"
-msgstr ""
+msgstr "Seleccionar el paquet del connector"
 
+# AI Translated
 msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
-msgstr ""
+msgstr "Fitxers de connector (*.py;*.whl)|*.py;*.whl"
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -2698,8 +2708,9 @@ msgstr "Afegir bloqueig de suports"
 msgid "Add Support Enforcer"
 msgstr "Afegir forçat de suports"
 
+# AI Translated
 msgid "Add Precise Seam"
-msgstr ""
+msgstr "Afegir costura precisa"
 
 msgid "Add text"
 msgstr "Afegir text"
@@ -2826,8 +2837,9 @@ msgstr "Bloquejador de Suport"
 msgid "Support Enforcer"
 msgstr "Reforçador de Suport"
 
+# AI Translated
 msgid "Precise Seam"
-msgstr ""
+msgstr "Costura precisa"
 
 # AI Translated
 msgid "Change part type"
@@ -2975,29 +2987,37 @@ msgstr "Mirall al llarg de l'eix Z"
 msgid "Mirror object"
 msgstr "Emmirallar objecte"
 
+# AI Translated
 msgid "Precise Seam Type"
-msgstr ""
+msgstr "Tipus de costura precisa"
 
+# AI Translated
 msgid "Seam Center"
-msgstr ""
+msgstr "Costura centrada"
 
+# AI Translated
 msgid "Seam Left"
-msgstr ""
+msgstr "Costura a l'esquerra"
 
+# AI Translated
 msgid "Seam Right"
-msgstr ""
+msgstr "Costura a la dreta"
 
+# AI Translated
 msgid "Seam Enforced"
-msgstr ""
+msgstr "Costura forçada"
 
+# AI Translated
 msgid "Seam Blocked"
-msgstr ""
+msgstr "Costura bloquejada"
 
+# AI Translated
 msgid "Seam Neutral"
-msgstr ""
+msgstr "Costura neutra"
 
+# AI Translated
 msgid "Choose precise seam subtype"
-msgstr ""
+msgstr "Trieu el subtipus de costura precisa"
 
 msgid "Edit text"
 msgstr "Editar el text"
@@ -4294,20 +4314,24 @@ msgstr "OrcaSlicer va néixer amb aquest mateix esperit, inspirant-se en PrusaSl
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Avui, OrcaSlicer és el laminador de codi obert més utilitzat i amb un desenvolupament més actiu de la comunitat d'impressió 3D. Moltes de les seves innovacions han estat adoptades per altres laminadors, cosa que el converteix en una força motriu per a tot el sector."
 
+# AI Translated
 msgid "Script plugin skipped."
-msgstr ""
+msgstr "S'ha omès el connector d'script."
 
+# AI Translated
 msgid "Script plugin finished."
-msgstr ""
+msgstr "El connector d'script ha finalitzat."
 
 msgid "Printer"
 msgstr "Impressora"
 
+# AI Translated
 msgid "Recent Projects"
-msgstr ""
+msgstr "Projectes recents"
 
+# AI Translated
 msgid "Go to Plate"
-msgstr ""
+msgstr "Anar a la placa"
 
 msgid "AMS Materials Setting"
 msgstr "Configuració de materials AMS"
@@ -5726,11 +5750,13 @@ msgstr "Velocitat: "
 msgid "Actual speed profile"
 msgstr "Perfil de velocitat real"
 
+# AI Translated
 msgid "Automatic"
-msgstr ""
+msgstr "Automàtic"
 
+# AI Translated
 msgid "Last used"
-msgstr ""
+msgstr "Darrer utilitzat"
 
 msgid "Statistics of All Plates"
 msgstr "Estadístiques de totes les plaques"
@@ -6138,8 +6164,9 @@ msgstr "Contorn"
 msgid "Wireframe"
 msgstr "Malla alàmbrica"
 
+# AI Translated
 msgid "X-Ray"
-msgstr ""
+msgstr "Raigs X"
 
 # AI Translated
 msgid "Realistic View"
@@ -6157,23 +6184,29 @@ msgstr "Línies de la graella"
 msgid "Labels"
 msgstr "Etiquetes"
 
+# AI Translated
 msgid "Move section plane"
-msgstr ""
+msgstr "Moure el pla de secció"
 
+# AI Translated
 msgid "Mouse wheel on icon"
-msgstr ""
+msgstr "Roda del ratolí sobre la icona"
 
+# AI Translated
 msgid "Right click on icon"
-msgstr ""
+msgstr "Clic dret sobre la icona"
 
+# AI Translated
 msgid "Toggle section view"
-msgstr ""
+msgstr "Commutar la vista de secció"
 
+# AI Translated
 msgid "Middle click on icon"
-msgstr ""
+msgstr "Clic central sobre la icona"
 
+# AI Translated
 msgid "Set viewing angle"
-msgstr ""
+msgstr "Establir l'angle de visió"
 
 msgid "Paint Toolbar"
 msgstr "Barra d'eines de pintura"
@@ -6356,8 +6389,9 @@ msgstr "Tancant l'aplicació mentre s'han modificat alguns perfils."
 msgid "Logging"
 msgstr "Registrant"
 
+# AI Translated
 msgid "Design"
-msgstr ""
+msgstr "Disseny"
 
 msgid "Prepare"
 msgstr "Preparació"
@@ -6438,11 +6472,13 @@ msgstr "Centre de resolució de problemes"
 msgid "Open Network Test"
 msgstr "Obrir Test de Xarxa"
 
+# AI Translated
 msgid "Benchmark 3D Scene"
-msgstr ""
+msgstr "Prova de rendiment de l'escena 3D"
 
+# AI Translated
 msgid "Measure how fast the 3D scene renders in Prepare and Preview"
-msgstr ""
+msgstr "Mesurar la velocitat de renderització de l'escena 3D a Preparació i Previsualització"
 
 msgid "Show Tip of the Day"
 msgstr "Mostra Consell del dia"
@@ -6703,8 +6739,9 @@ msgstr "Edita"
 msgid "View"
 msgstr "Vista"
 
+# AI Translated
 msgid "Open Speed Dial"
-msgstr ""
+msgstr "Obrir l'Accés ràpid"
 
 # AI Translated
 msgid "Preset Bundle"
@@ -6900,8 +6937,9 @@ msgstr "El reproductor no s'ha carregat perquè falta el sink de vídeo GTK de G
 msgid "Please confirm if the printer is connected."
 msgstr "Confirmeu si la impressora està connectada."
 
+# AI Translated
 msgid "Sign in to OrcaCloud to view the camera."
-msgstr ""
+msgstr "Inicieu sessió a OrcaCloud per veure la càmera."
 
 msgid "Initializing..."
 msgstr "Inicialitzant..."
@@ -7643,53 +7681,69 @@ msgstr "No tornis a mostrar aquest diàleg"
 msgid "Please refer to Wiki before use->"
 msgstr "Consulteu la Wiki abans d'usar ->"
 
+# AI Translated
 msgid "Plates are a filament (FFF) feature."
-msgstr ""
+msgstr "Les plaques són una funció de filament (FFF)."
 
+# AI Translated
 msgid "Open the 3D view first."
-msgstr ""
+msgstr "Obriu primer la vista 3D."
 
+# AI Translated
 msgid "Select an object first."
-msgstr ""
+msgstr "Seleccioneu primer un objecte."
 
+# AI Translated
 msgid "Slice and Preview"
-msgstr ""
+msgstr "Laminar i previsualitzar"
 
+# AI Translated
 msgid "Slice & Export"
-msgstr ""
+msgstr "Laminar i exportar"
 
+# AI Translated
 msgid "Go to layer (percent)"
-msgstr ""
+msgstr "Anar a la capa (percentatge)"
 
+# AI Translated
 msgid "Commands"
-msgstr ""
+msgstr "Ordres"
 
+# AI Translated
 msgid "Go to tab..."
-msgstr ""
+msgstr "Anar a la pestanya..."
 
+# AI Translated
 msgid "Load Project"
-msgstr ""
+msgstr "Carregar projecte"
 
+# AI Translated
 msgid "Save Project As"
-msgstr ""
+msgstr "Desar el projecte com a"
 
+# AI Translated
 msgid "Mode: Simple"
-msgstr ""
+msgstr "Mode: Simple"
 
+# AI Translated
 msgid "Mode: Advanced"
-msgstr ""
+msgstr "Mode: Avançat"
 
+# AI Translated
 msgid "Mode: Expert"
-msgstr ""
+msgstr "Mode: Expert"
 
+# AI Translated
 msgid "Toggle Developer Mode"
-msgstr ""
+msgstr "Commutar el mode de desenvolupament"
 
+# AI Translated
 msgid "Developer mode enabled."
-msgstr ""
+msgstr "S'ha activat el mode de desenvolupament."
 
+# AI Translated
 msgid "Developer mode disabled."
-msgstr ""
+msgstr "S'ha desactivat el mode de desenvolupament."
 
 msgid "Export STL"
 msgstr "Exportar STL"
@@ -7697,179 +7751,232 @@ msgstr "Exportar STL"
 msgid "Export 3MF"
 msgstr "Exportar 3MF"
 
+# AI Translated
 msgid "Export Sliced File"
-msgstr ""
+msgstr "Exportar el fitxer laminat"
 
+# AI Translated
 msgid "Export All Sliced Files"
-msgstr ""
+msgstr "Exportar tots els fitxers laminats"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "Calibratge de Velocitat Volumètrica Màxima"
 
+# AI Translated
 msgid "Pressure Advance Calibration"
-msgstr ""
+msgstr "Calibratge de Pressure Advance"
 
 # AI Translated
 msgid "Flow Ratio Calibration"
 msgstr "Calibratge de la relació de flux"
 
+# AI Translated
 msgid "Retraction Calibration"
-msgstr ""
+msgstr "Calibratge de retracció"
 
+# AI Translated
 msgid "Cornering Calibration"
-msgstr ""
+msgstr "Calibratge de gestió de cantonades"
 
+# AI Translated
 msgid "Input Shaping Frequency Calibration"
-msgstr ""
+msgstr "Calibratge de freqüència d'Input Shaping"
 
+# AI Translated
 msgid "Input Shaping Damping Calibration"
-msgstr ""
+msgstr "Calibratge d'esmorteïment d'Input Shaping"
 
+# AI Translated
 msgid "VFA Calibration"
-msgstr ""
+msgstr "Calibratge VFA"
 
+# AI Translated
 msgid "View: Top"
-msgstr ""
+msgstr "Vista: Superior"
 
+# AI Translated
 msgid "View: Bottom"
-msgstr ""
+msgstr "Vista: Inferior"
 
+# AI Translated
 msgid "View: Front"
-msgstr ""
+msgstr "Vista: Frontal"
 
+# AI Translated
 msgid "View: Rear"
-msgstr ""
+msgstr "Vista: Darrera"
 
+# AI Translated
 msgid "View: Left"
-msgstr ""
+msgstr "Vista: Esquerra"
 
+# AI Translated
 msgid "View: Right"
-msgstr ""
+msgstr "Vista: Dreta"
 
+# AI Translated
 msgid "View: Isometric"
-msgstr ""
+msgstr "Vista: Isomètrica"
 
+# AI Translated
 msgid "View: Default"
-msgstr ""
+msgstr "Vista: Per defecte"
 
+# AI Translated
 msgid "Fit Bed to View"
-msgstr ""
+msgstr "Ajustar el llit a la vista"
 
+# AI Translated
 msgid "Toggle Perspective"
-msgstr ""
+msgstr "Commutar la perspectiva"
 
 # AI Translated
 msgid "Delete All Objects"
 msgstr "Suprimir tots els objectes"
 
+# AI Translated
 msgid "Mirror X"
-msgstr ""
+msgstr "Mirall X"
 
+# AI Translated
 msgid "Mirror Y"
-msgstr ""
+msgstr "Mirall Y"
 
+# AI Translated
 msgid "Mirror Z"
-msgstr ""
+msgstr "Mirall Z"
 
 # AI Translated
 msgid "Split to Objects"
 msgstr "Separar en objectes"
 
+# AI Translated
 msgid "Split to Parts"
-msgstr ""
+msgstr "Separar en peces"
 
+# AI Translated
 msgid "Center Selected on Plate"
-msgstr ""
+msgstr "Centrar la selecció a la placa"
 
+# AI Translated
 msgid "Drop to Bed"
-msgstr ""
+msgstr "Deixar caure al llit"
 
+# AI Translated
 msgid "Scale to Fit Print Volume"
-msgstr ""
+msgstr "Escalar per ajustar al volum d'impressió"
 
+# AI Translated
 msgid "Increase Instances"
-msgstr ""
+msgstr "Augmentar les instàncies"
 
+# AI Translated
 msgid "Decrease Instances"
-msgstr ""
+msgstr "Reduir les instàncies"
 
+# AI Translated
 msgid "Auto-Arrange"
-msgstr ""
+msgstr "Ordenar automàticament"
 
+# AI Translated
 msgid "Auto-Orient"
-msgstr ""
+msgstr "Orientar automàticament"
 
+# AI Translated
 msgid "Add Plate"
-msgstr ""
+msgstr "Afegir placa"
 
+# AI Translated
 msgid "Cannot add another plate (maximum reached)."
-msgstr ""
+msgstr "No es pot afegir una altra placa (s'ha arribat al màxim)."
 
+# AI Translated
 msgid "Duplicate Plate"
-msgstr ""
+msgstr "Duplicar la placa"
 
+# AI Translated
 msgid "Cannot duplicate a plate (maximum reached)."
-msgstr ""
+msgstr "No es pot duplicar la placa (s'ha arribat al màxim)."
 
+# AI Translated
 msgid "Cannot delete the only plate."
-msgstr ""
+msgstr "No es pot suprimir l'única placa."
 
+# AI Translated
 msgid "Rename Plate"
-msgstr ""
+msgstr "Canviar el nom de la placa"
 
+# AI Translated
 msgid "Toggle Plate Lock"
-msgstr ""
+msgstr "Commutar el bloqueig de la placa"
 
+# AI Translated
 msgid "No plates available."
-msgstr ""
+msgstr "No hi ha plaques disponibles."
 
+# AI Translated
 msgid "Synchronize Filament List from AMS"
-msgstr ""
+msgstr "Sincronitzar la llista de filaments des d'AMS"
 
+# AI Translated
 msgid "Connect a printer to synchronize the AMS filament list."
-msgstr ""
+msgstr "Connecteu una impressora per sincronitzar la llista de filaments de l'AMS."
 
+# AI Translated
 msgid "Open Preset Bundle"
-msgstr ""
+msgstr "Obrir el paquet de perfils"
 
+# AI Translated
 msgid "Sign in to sync presets."
-msgstr ""
+msgstr "Inicieu sessió per sincronitzar els perfils."
 
+# AI Translated
 msgid "Export All Objects as STLs"
-msgstr ""
+msgstr "Exportar tots els objectes com a diferents STL"
 
+# AI Translated
 msgid "Export All Objects as DRC (one file)"
-msgstr ""
+msgstr "Exportar tots els objectes com a DRC (un sol fitxer)"
 
+# AI Translated
 msgid "Export All Objects as DRCs"
-msgstr ""
+msgstr "Exportar tots els objectes com a DRC"
 
+# AI Translated
 msgid "Export Toolpaths as OBJ"
-msgstr ""
+msgstr "Exportar les trajectòries d'eina com a OBJ"
 
+# AI Translated
 msgid "About OrcaSlicer"
-msgstr ""
+msgstr "Sobre OrcaSlicer"
 
+# AI Translated
 msgid "Open Wiki"
-msgstr ""
+msgstr "Obrir la Wiki"
 
+# AI Translated
 msgid "Open YouTube Channel"
-msgstr ""
+msgstr "Obrir el canal de YouTube"
 
+# AI Translated
 msgid "Open Plugins"
-msgstr ""
+msgstr "Obrir els connectors"
 
+# AI Translated
 msgid "Refresh Plugins"
-msgstr ""
+msgstr "Actualitzar els connectors"
 
+# AI Translated
 msgid "Install Plugin"
-msgstr ""
+msgstr "Instal·lar el connector"
 
+# AI Translated
 msgid "Install Local Plugin"
-msgstr ""
+msgstr "Instal·lar un connector local"
 
+# AI Translated
 msgid "Unknown command."
-msgstr ""
+msgstr "Ordre desconeguda."
 
 msgid "3D Mouse disconnected."
 msgstr "S'ha desconnectat el ratolí 3D."
@@ -8407,8 +8514,9 @@ msgstr "Sincronitza la informació del broquet i el nombre d'AMS"
 msgid "Click to edit preset"
 msgstr "Feu clic per editar el perfil"
 
+# AI Translated
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "Nozzle"
 msgstr "Broquet( nozzle )"
@@ -8501,8 +8609,9 @@ msgstr "S'ha sincronitzat la informació del tipus i color del filament, però n
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Vols desar els canvis a \"%1%\"?"
 
+# AI Translated
 msgid "UV Editor"
-msgstr ""
+msgstr "Editor UV"
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8881,16 +8990,21 @@ msgstr ""
 msgid "Sync now"
 msgstr "Sincronitza ara"
 
+# AI Translated
 msgid "Cannot undo or redo while an operation is running. Stop it first."
-msgstr ""
+msgstr "No es pot desfer ni refer mentre s'executa una operació. Atureu-la primer."
 
+# AI Translated
 msgid ""
 "The selected printer does not support multiple bed types.\n"
 "Bed type overrides were reset to the global bed type."
 msgstr ""
+"La impressora seleccionada no admet diversos tipus de llit.\n"
+"Els tipus de llit específics de les plaques s'han restablert al tipus de llit global."
 
+# AI Translated
 msgid "Plate bed types reset"
-msgstr ""
+msgstr "S'han restablert els tipus de llit de les plaques"
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -9584,32 +9698,41 @@ msgstr "Gestió multidispositiu"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius alhora i gestionar múltiples dispositius."
 
+# AI Translated
 msgid "Open the Speed Dial from the keyboard"
-msgstr ""
+msgstr "Obrir l'Accés ràpid des del teclat"
 
+# AI Translated
 msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
-msgstr ""
+msgstr "Quan està activat, la drecera de teclat de l'Accés ràpid (Espai per defecte) obre la cerca d'accions des de qualsevol pàgina."
 
+# AI Translated
 msgid "Recent actions"
-msgstr ""
+msgstr "Accions recents"
 
+# AI Translated
 msgid "actions"
-msgstr ""
+msgstr "accions"
 
+# AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
-msgstr ""
+msgstr "Nombre d'accions executades recentment que es mostren a la part superior de l'Accés ràpid. Establiu-ho a 0 per amagar les accions recents."
 
+# AI Translated
 msgid "CAD feature (experimental)"
-msgstr ""
+msgstr "Funció CAD (experimental)"
 
+# AI Translated
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr ""
+msgstr "Amb aquesta opció activada, es mostra la pestanya Disseny, on es poden crear i editar models de manera paramètrica. Aquesta funció és experimental i encara està en desenvolupament."
 
+# AI Translated
 msgid "Auto-close sketch loops"
-msgstr ""
+msgstr "Tancar automàticament els bucles dels esbossos"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr ""
+msgstr "Tracta els extrems d'esbós a menys de 0,001 mm com una sola unió i solda el bucle per tancar-lo. Desactivat: només s'uneixen els extrems exactament coincidents, de manera que un bucle amb una petita obertura es mostra obert en lloc de tancar-se automàticament."
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Finestra emergent per seleccionar el mode d'agrupació de filaments"
@@ -9653,11 +9776,13 @@ msgstr "Elimina la restricció de temperatures barrejades"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Amb aquesta opció activada, podeu imprimir materials amb una gran diferència de temperatura junts."
 
+# AI Translated
 msgid "Remember last print action"
-msgstr ""
+msgstr "Recordar la darrera acció d'impressió"
 
+# AI Translated
 msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr ""
+msgstr "Si s'activa, OrcaSlicer recordarà la darrera opció seleccionada al desplegable del botó d'impressió (p. ex. Imprimir, Exportar fitxer de la placa laminada, Exportar el fitxer del Codi-G) i la farà servir per defecte en el proper inici."
 
 msgid "Touchpad"
 msgstr "Ratolí tàctil"
@@ -9698,11 +9823,13 @@ msgstr "Zoom invers del ratolí"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Si està habilitat, inverteix la direcció del zoom amb la roda del ratolí."
 
+# AI Translated
 msgid "Draw mate connectors as a face"
-msgstr ""
+msgstr "Dibuixar els connectors de relació de posició com una cara"
 
+# AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr ""
+msgstr "A la pestanya Disseny, dibuixa el connector de relació de posició com una petita cara en lloc del disc convencional amb un quadrant de gir. L'orientació d'una cara s'entén sense haver-la d'aprendre. Desactiveu-ho per obtenir la representació CAD convencional."
 
 # AI Translated
 msgid "Pan"
@@ -9732,14 +9859,17 @@ msgstr "Arrossegament amb el botó dret del ratolí"
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Estableix l'acció que ha de fer l'arrossegament amb el botó dret del ratolí."
 
+# AI Translated
 msgid "Keyboard"
-msgstr ""
+msgstr "Teclat"
 
+# AI Translated
 msgid "Keyboard shortcuts"
-msgstr ""
+msgstr "Dreceres de teclat"
 
+# AI Translated
 msgid "Choose the key for each action."
-msgstr ""
+msgstr "Trieu la tecla per a cada acció."
 
 msgid "Clear my choice on..."
 msgstr "Esborra la meva elecció a..."
@@ -9788,13 +9918,17 @@ msgstr "Ombrejat Phong"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Utilitza l'ombrejat Phong dins de la vista realista."
 
+# AI Translated
 msgid "Enable in Preview"
-msgstr ""
+msgstr "Activar a Previsualització"
 
+# AI Translated
 msgid ""
 "Also applies realistic view to the Preview canvas, not just Prepare.\n"
 "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
 msgstr ""
+"Aplica la vista realista també al llenç de Previsualització, no només a Preparació.\n"
+"La previsualització dibuixa tota la geometria de les trajectòries d'eina, de manera que les ombres i l'SSAO hi costen considerablement més que en un model senzill."
 
 # AI Translated
 msgid "SSAO ambient occlusion"
@@ -9804,21 +9938,27 @@ msgstr "Oclusió ambiental SSAO"
 msgid "Applies SSAO in realistic view."
 msgstr "Aplica SSAO a la vista realista."
 
+# AI Translated
 msgid "Static"
-msgstr ""
+msgstr "Estàtic"
 
+# AI Translated
 msgid "Orbit"
-msgstr ""
+msgstr "Òrbita"
 
 # AI Translated
 msgid "Shadows"
 msgstr "Ombres"
 
+# AI Translated
 msgid ""
 "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
 "Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
 "Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
 msgstr ""
+"Renderitza a la vista realista les ombres projectades sobre la placa, sobre altres objectes i de cada objecte sobre si mateix.\n"
+"Estàtic: la llum es manté fixa al món, de manera que les ombres només es recalculen quan l'escena canvia.\n"
+"Òrbita: la llum gira amb la càmera i recalcula les ombres a cada fotograma en què la càmera es mou."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -9881,9 +10021,11 @@ msgstr ""
 "Limita la velocitat de fotogrames de la vista per reduir la càrrega de la GPU i el consum.\n"
 "Establiu-ho a 0 per a una velocitat de fotogrames sense límit."
 
+# AI Translated
 msgid "Reuse the 3D scene while idle"
-msgstr ""
+msgstr "Reutilitzar l'escena 3D en repòs"
 
+# AI Translated
 msgid ""
 "Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
 "and reuses the previous frame's scene instead. Reduces GPU load.\n"
@@ -9891,10 +10033,17 @@ msgid ""
 "\n"
 "Takes effect immediately."
 msgstr ""
+"Omet el redibuixat de l'escena 3D quan només es mou el cursor del ratolí per la vista,\n"
+"i reutilitza l'escena del fotograma anterior. Redueix la càrrega de la GPU.\n"
+"Desactiveu-ho si la vista mostra continguts obsolets o incomplets.\n"
+"\n"
+"Té efecte immediat."
 
+# AI Translated
 msgid "Skip unchanged frames"
-msgstr ""
+msgstr "Ometre els fotogrames sense canvis"
 
+# AI Translated
 msgid ""
 "Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
 "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
@@ -9902,51 +10051,69 @@ msgid ""
 "\n"
 "Takes effect immediately."
 msgstr ""
+"Omet completament el dibuix d'un fotograma quan seria idèntic al que ja hi ha a la pantalla.\n"
+"Només s'aplica als fotogrames que reutilitzen l'escena 3D, de manera que requereix Reutilitzar l'escena 3D en repòs.\n"
+"Desactiveu-ho si un ressaltat en passar el ratolí, un consell emergent o una animació deixa d'actualitzar-se.\n"
+"\n"
+"Té efecte immediat."
 
 # AI Translated
 msgid "Show FPS overlay"
 msgstr "Mostrar la superposició d'FPS"
 
+# AI Translated
 msgid "Displays rendering counts in the top-right corner of the viewport."
-msgstr ""
+msgstr "Mostra els comptadors de renderització a la cantonada superior dreta de la vista."
 
+# AI Translated
 msgid "FPS: frames presented to the screen per second."
-msgstr ""
+msgstr "FPS: fotogrames mostrats a la pantalla per segon."
 
+# AI Translated
 msgid "3D: frames per second that redrew the 3D scene."
-msgstr ""
+msgstr "3D: fotogrames per segon que han redibuixat l'escena 3D."
 
+# AI Translated
 msgid "Show render timings"
-msgstr ""
+msgstr "Mostrar els temps de renderització"
 
+# AI Translated
 msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
-msgstr ""
+msgstr "Mostra quants mil·lisegons triga cada part d'un fotograma que redibuixa l'escena 3D, a la cantonada superior dreta de la vista."
 
+# AI Translated
 msgid "CPU: time spent issuing the drawing commands."
-msgstr ""
+msgstr "CPU: temps dedicat a emetre les ordres de dibuix."
 
+# AI Translated
 msgid "GPU: time the graphics card spent running them."
-msgstr ""
+msgstr "GPU: temps que la targeta gràfica ha dedicat a executar-les."
 
+# AI Translated
 msgid "Adds a small overhead to each frame while enabled."
-msgstr ""
+msgstr "Afegeix una petita sobrecàrrega a cada fotograma mentre està activat."
 
+# AI Translated
 msgid "3D scene benchmark"
-msgstr ""
+msgstr "Prova de rendiment de l'escena 3D"
 
+# AI Translated
 msgid "Run"
-msgstr ""
+msgstr "Executar"
 
+# AI Translated
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
-msgstr ""
+msgstr "Substitueix el projecte actual per l'OrcaSliced Combo i després mesura la velocitat de fotogrames i els temps de renderització mentre la càmera hi gira al voltant a Preparació i a Previsualització, i mentre el control lliscant de capes recorre les capes laminades."
 
 # AI Translated
 msgid "G-code Preview"
 msgstr "Previsualització del G-code"
 
+# AI Translated
 msgid "Default view type"
-msgstr ""
+msgstr "Tipus de vista predeterminat"
 
+# AI Translated
 msgid ""
 "The color scheme the sliced preview opens with.\n"
 "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
@@ -9954,6 +10121,11 @@ msgid ""
 "Any other value always opens that view type.\n"
 "You can still switch the view type in the preview afterwards."
 msgstr ""
+"L'esquema de colors amb què s'obre la previsualització laminada.\n"
+"Automàtic: Filament per a impressions multimaterial, Tipus de línia per a les d'un sol material.\n"
+"Darrer utilitzat: el tipus de vista que vau seleccionar per última vegada.\n"
+"Qualsevol altre valor obre sempre aquest tipus de vista.\n"
+"Després podeu canviar igualment el tipus de vista a la previsualització."
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10431,8 +10603,9 @@ msgstr "Publicar 3MF..."
 msgid "Select which settings to be published in the 3MF file"
 msgstr "Seleccioneu quines opcions es publicaran al fitxer 3MF"
 
+# AI Translated
 msgid "Video Guide"
-msgstr ""
+msgstr "Guia en vídeo"
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10538,127 +10711,163 @@ msgstr "Per a \"%1%\", afegir \"%2%\" com a perfil nou"
 msgid "Simply switch to \"%1%\""
 msgstr "Simplement canviar a \"%1%\""
 
+# AI Translated
 msgid "Loading the benchmark model"
-msgstr ""
+msgstr "Carregant el model de la prova de rendiment"
 
+# AI Translated
 msgid "The benchmark model could not be loaded."
-msgstr ""
+msgstr "No s'ha pogut carregar el model de la prova de rendiment."
 
+# AI Translated
 msgid "Slicing failed, so only Prepare was measured."
-msgstr ""
+msgstr "El laminat ha fallat, de manera que només s'ha mesurat Preparació."
 
+# AI Translated
 msgid "The benchmark stopped because the 3D view was hidden."
-msgstr ""
+msgstr "La prova de rendiment s'ha aturat perquè la vista 3D s'ha amagat."
 
+# AI Translated
 msgid "Turning the camera in Prepare"
-msgstr ""
+msgstr "Girant la càmera a Preparació"
 
+# AI Translated
 msgid "Turning the camera in Preview"
-msgstr ""
+msgstr "Girant la càmera a Previsualització"
 
+# AI Translated
 msgid "Moving through the layers in Preview"
-msgstr ""
+msgstr "Recorrent les capes a Previsualització"
 
+# AI Translated
 msgid "Copy the results to the clipboard"
-msgstr ""
+msgstr "Copiar els resultats al porta-retalls"
 
+# AI Translated
 msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
-msgstr ""
+msgstr "La prova de rendiment substitueix el projecte actual per l'OrcaSliced Combo i el lamina. Fa girar la càmera al voltant del model a Preparació i a Previsualització, després mou el control lliscant de capes per les capes laminades, cronometrant cada fotograma, i mostra els resultats."
 
+# AI Translated
 msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
-msgstr ""
+msgstr "Utilitza la configuració gràfica actual i normalment triga menys d'un minut. La finestra principal queda bloquejada fins que acaba."
 
+# AI Translated
 msgid "Expert"
-msgstr ""
+msgstr "Expert"
 
+# AI Translated
 msgid "Simple"
-msgstr ""
+msgstr "Simple"
 
+# AI Translated
 msgid "Search actions"
-msgstr ""
+msgstr "Cercar accions"
 
+# AI Translated
 msgid "Recent"
-msgstr ""
+msgstr "Recents"
 
 msgid "Other"
 msgstr "Altre"
 
+# AI Translated
 #, c-format, boost-format
 msgid "No actions match (Total: %s)"
-msgstr ""
+msgstr "Cap acció coincideix (Total: %s)"
 
+# AI Translated
 msgid "No actions yet"
-msgstr ""
+msgstr "Encara no hi ha accions"
 
+# AI Translated
 msgid "No tabs match"
-msgstr ""
+msgstr "Cap pestanya coincideix"
 
+# AI Translated
 msgid "No tabs"
-msgstr ""
+msgstr "Cap pestanya"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Showing %s actions"
-msgstr ""
+msgstr "Es mostren %s accions"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s actions"
-msgstr ""
+msgstr "%s accions"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s tabs"
-msgstr ""
+msgstr "%s pestanyes"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s matches"
-msgstr ""
+msgstr "%s coincidències"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Favourites are full (%s max)"
-msgstr ""
+msgstr "Els preferits són plens (màx. %s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Go to %s%% of the layer range"
-msgstr ""
+msgstr "Anar al %s%% del rang de capes"
 
+# AI Translated
 msgid "Enter a layer percentage (0-100)"
-msgstr ""
+msgstr "Introduïu un percentatge de capa (0-100)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Go to layer %% (0-100)"
-msgstr ""
+msgstr "Anar a la capa %% (0-100)"
 
+# AI Translated
 msgid "Go to tab"
-msgstr ""
+msgstr "Anar a la pestanya"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Favourite %s (%s)"
-msgstr ""
+msgstr "Preferit %s (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Pin to favourites (%s)"
-msgstr ""
+msgstr "Fixar als preferits (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Unpin from favourites (%s)"
-msgstr ""
+msgstr "Desfixar dels preferits (%s)"
 
+# AI Translated
 msgid "Remove from favourites"
-msgstr ""
+msgstr "Treure dels preferits"
 
+# AI Translated
 msgid "Move left"
-msgstr ""
+msgstr "Moure a l'esquerra"
 
+# AI Translated
 msgid "Move right"
-msgstr ""
+msgstr "Moure a la dreta"
 
+# AI Translated
 msgid "Unpin"
-msgstr ""
+msgstr "Desfixar"
 
+# AI Translated
 msgid "Wiki (F1)"
-msgstr ""
+msgstr "Wiki (F1)"
 
+# AI Translated
 msgid "No wiki page for this action"
-msgstr ""
+msgstr "No hi ha cap pàgina de la wiki per a aquesta acció"
 
 msgid "Show details"
 msgstr "Mostra detalls"
@@ -10667,29 +10876,36 @@ msgstr "Mostra detalls"
 msgid "Hide details"
 msgstr "Amagar els detalls"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
-msgstr ""
+msgstr "\"%s\" és un paràmetre de desenvolupament. Voleu activar el mode de desenvolupament per editar-lo?"
 
+# AI Translated
 msgid "Developer setting"
-msgstr ""
+msgstr "Paràmetre de desenvolupament"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
-msgstr ""
+msgstr "\"%s\" és un paràmetre %s. Voleu canviar del mode %s al mode %s per editar-lo?"
 
+# AI Translated
 msgid "Switch settings mode"
-msgstr ""
+msgstr "Canviar el mode de configuració"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Run \"%s\"?"
-msgstr ""
+msgstr "Voleu executar \"%s\"?"
 
+# AI Translated
 msgid "Run plugin"
-msgstr ""
+msgstr "Executar el connector"
 
+# AI Translated
 msgid "Don't ask again for this action"
-msgstr ""
+msgstr "No tornar a preguntar per a aquesta acció"
 
 msgid "Task canceled"
 msgstr "Tasca cancel·lada"
@@ -10844,9 +11060,10 @@ msgstr "El filament no coincideix amb el filament de la ranura AMS. Actualitzeu 
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "La impressora seleccionada (%s) és incompatible amb la configuració del fitxer d'impressió (%s). Ajusteu el perfil de la impressora a la pàgina de preparació o trieu una impressora compatible en aquesta pàgina."
 
+# AI Translated
 #, c-format, boost-format
 msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
-msgstr ""
+msgstr "La impressora seleccionada (%s) té un model desconegut, de manera que no es pot verificar la compatibilitat amb la configuració del fitxer d'impressió (%s). Verifiqueu el perfil de la impressora abans d'enviar."
 
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Quan s'habilita el mode Gerro Espiral, les màquines amb estructura I3 no generaran vídeos timelapse."
@@ -10932,11 +11149,13 @@ msgstr "Netejar"
 msgid "Preparing print job"
 msgstr "Preparant el treball d'impressió"
 
+# AI Translated
 msgid "Failed to upload the file to the printer's storage. Please try again."
-msgstr ""
+msgstr "No s'ha pogut pujar el fitxer a l'emmagatzematge de la impressora. Torneu-ho a provar."
 
+# AI Translated
 msgid "Send Failed"
-msgstr ""
+msgstr "L'enviament ha fallat"
 
 msgid "The name length exceeds the limit."
 msgstr "La longitud del nom supera el límit."
@@ -11120,8 +11339,9 @@ msgstr "No es pot enviar el treball d'impressió d'una Base Buida"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Cal inserir un emmagatzematge per gravar el timelapse."
 
+# AI Translated
 msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
-msgstr ""
+msgstr "No s'ha pogut identificar el model de la impressora seleccionada, de manera que no es pot verificar la compatibilitat amb la configuració del fitxer d'impressió. Verifiqueu el perfil de la impressora abans d'enviar."
 
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Heu seleccionat filaments tant externs com d'AMS per a un extrusor. Haureu de canviar manualment el filament extern durant la impressió."
@@ -11191,8 +11411,9 @@ msgstr "Es requereix que la impressora estigui a la mateixa LAN que Orca Slicer.
 msgid "The printer does not support sending to printer storage."
 msgstr "La impressora no admet l'enviament a l'emmagatzematge de la impressora."
 
+# AI Translated
 msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
-msgstr ""
+msgstr "No s'ha pogut inicialitzar la transferència de fitxers a la impressora. Comproveu la connexió i torneu-ho a provar."
 
 msgid "Sending..."
 msgstr "Enviant..."
@@ -12558,36 +12779,44 @@ msgstr "Desplaçament de la vista"
 msgid "Rotate View"
 msgstr "Rotació de la vista"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Use %s or %s, or a key that does not type a character."
-msgstr ""
+msgstr "Feu servir %s o %s, o una tecla que no escrigui cap caràcter."
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Key"
-msgstr ""
+msgstr "Tecla"
 
+# AI Translated
 msgid "Left mouse"
-msgstr ""
+msgstr "Botó esquerre del ratolí"
 
+# AI Translated
 msgid "Available anywhere in the window, even while typing in a text field."
-msgstr ""
+msgstr "Disponible a qualsevol lloc de la finestra, fins i tot mentre s'escriu en un camp de text."
 
+# AI Translated
 msgid "Run favorite 1 to 10"
-msgstr ""
+msgstr "Executar els preferits de l'1 al 10"
 
+# AI Translated
 msgid "Pin or unpin the selected action"
-msgstr ""
+msgstr "Fixar o desfixar l'acció seleccionada"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Tab"
 msgstr "Tab"
 
+# AI Translated
 msgid "Switch to the next main tab"
-msgstr ""
+msgstr "Canviar a la pestanya principal següent"
 
+# AI Translated
 msgid "Available while the 3D view on the Prepare tab has focus."
-msgstr ""
+msgstr "Disponible mentre la vista 3D de la pestanya Preparació té el focus."
 
 msgid "Select a part"
 msgstr "Seleccionar una peça"
@@ -12607,21 +12836,25 @@ msgstr "Pas de moviment configurat a 1 mm"
 msgid "Movement in camera space"
 msgstr "Moviment a l'espai de la càmera"
 
+# AI Translated
 msgid "Middle mouse"
-msgstr ""
+msgstr "Botó central del ratolí"
 
+# AI Translated
 msgid "Right mouse"
-msgstr ""
+msgstr "Botó dret del ratolí"
 
 # AI Translated
 msgid "Zoom View"
 msgstr "Zoom de la vista"
 
+# AI Translated
 msgid "Painting"
-msgstr ""
+msgstr "Pintat"
 
+# AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr ""
+msgstr "Disponible mentre hi ha obert un gizmo de pintat: suports, costura, pell difusa o pintat de color."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Moure: Clicka per ajustar en passos d'1 mm"
@@ -12632,8 +12865,9 @@ msgstr "Suport/Pintat de color: configuració del radi de la ploma"
 msgid "Objects list"
 msgstr "Llista d'objectes"
 
+# AI Translated
 msgid "Available while the object list has focus."
-msgstr ""
+msgstr "Disponible mentre la llista d'objectes té el focus."
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Establir el número d'extrusor per als objectes i les peces"
@@ -12652,51 +12886,65 @@ msgstr "Feu clic amb el ratolí"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Seleccioneu l'objecte/peça i feu clic amb el ratolí per canviar el nom"
 
+# AI Translated
 msgid "Available while the 3D view on the Preview tab has focus."
-msgstr ""
+msgstr "Disponible mentre la vista 3D de la pestanya Previsualització té el focus."
 
 msgid "Move slider 5x faster"
 msgstr "Moure la barra de desplaçament 5 vegades més ràpid"
 
+# AI Translated
 msgid "Scroll slider 5x faster"
-msgstr ""
+msgstr "Desplaçar el control lliscant 5 vegades més ràpid"
 
+# AI Translated
 msgid "Not customizable"
-msgstr ""
+msgstr "No personalitzable"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "La drecera %s està assignada a %s. Voleu reassignar-la a %s?"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The default %s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "La drecera predeterminada %s està assignada a %s. Voleu reassignar-la a %s?"
 
+# AI Translated
 msgid "Global shortcuts also apply while typing."
-msgstr ""
+msgstr "Les dreceres globals també s'apliquen mentre s'escriu."
 
+# AI Translated
 msgid "A key that types a character cannot be a global shortcut."
-msgstr ""
+msgstr "Una tecla que escriu un caràcter no pot ser una drecera global."
 
+# AI Translated
 msgid "Esc cancels, Enter confirms."
-msgstr ""
+msgstr "Esc cancel·la, Retorn confirma."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Press the new shortcut for\n"
 "\"%s\""
 msgstr ""
+"Premeu la nova drecera per a\n"
+"\"%s\""
 
+# AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
-msgstr ""
+msgstr "El sistema utilitza aquesta drecera, de manera que no es pot assignar."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
-msgstr ""
+msgstr "Majúscules i Ctrl amb aquesta tecla pertanyen a %s i no es poden assignar."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Already assigned to %s. Press OK to reassign it."
-msgstr ""
+msgstr "Ja està assignada a %s. Premeu D'acord per reassignar-la."
 
 msgid "Release Note"
 msgstr "Notes de la versió"
@@ -12779,8 +13027,9 @@ msgstr "Obrir fitxer de certificat CA"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "El fitxer HTTPS CA és opcional. Només es necessita si uses HTTPS amb un certificat autosignat."
 
+# AI Translated
 msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr ""
+msgstr "Aquest sistema utilitza certificats HTTPS del magatzem de certificats o clauer del sistema. Per utilitzar un fitxer CA personalitzat, importeu-lo allà."
 
 msgid "Printer model"
 msgstr "Model d'impressora"
@@ -13009,28 +13258,34 @@ msgstr "Error d'agrupació: %1% no es pot col·locar al broquet dret"
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Error d'agrupació en mode manual. Comproveu el nombre de broquets o reagrupeu."
 
+# AI Translated
 #, boost-format
 msgid "failed to process some intersections (%1%)"
-msgstr ""
+msgstr "no s'han pogut processar algunes interseccions (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "multiple intersections with a perimeter, only one was used (%1%)"
-msgstr ""
+msgstr "diverses interseccions amb un perímetre, només se n'ha utilitzat una (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
-msgstr ""
+msgstr "un perímetre és completament dins d'un modificador; el modificador no s'hi ha aplicat (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr ""
+msgstr "el modificador \"%1%\" de \"%2%\" no ha tingut cap efecte sobre la costura (potser no arriba a la línia central del perímetre imprès)"
 
+# AI Translated
 #, boost-format
 msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr ""
+msgstr "el modificador \"%1%\" de \"%2%\" (%3% en total) no ha tingut cap efecte sobre la costura (potser no arriba a la línia central del perímetre imprès)"
 
+# AI Translated
 msgid "Seam placement may differ from expected."
-msgstr ""
+msgstr "La posició de la costura pot ser diferent de l'esperada."
 
 msgid "Internal Bridge"
 msgstr "Pont Interior"
@@ -17304,8 +17559,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Híbrid"
 
+# AI Translated
 msgid "Extra High Flow"
-msgstr ""
+msgstr "Flux extra alt"
 
 # AI Translated
 msgid "Enable filament dynamic map"
@@ -17729,8 +17985,9 @@ msgstr "Passos de preescalfament"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "Inseriu diverses ordres de preescalfament (p. ex., M104.1). Només útil per a Prusa XL. Per a altres impressores, poseu-la a 1."
 
+# AI Translated
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
-msgstr ""
+msgstr "G-code escrit a l'inici de tot del fitxer de sortida, abans de qualsevol altre contingut. Útil per afegir metadades que el firmware de la impressora llegeix de les primeres línies del fitxer (p. ex. temps d'impressió estimat, consum de filament). Admet placeholders com {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} i {used_filament_length}."
 
 msgid "Start G-code"
 msgstr "Codi-G inicial"
@@ -17797,9 +18054,11 @@ msgstr "Sense capes poc denses( beta )"
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Si s'activa, la Torre de Purga no s'imprimirà a les capes sense canvis d'eina. A les capes amb un canvi d'eina, l'extrusor baixarà per imprimir la Torre de Purga, de manera que la torre queda per sota del model i el capçal ha de baixar fins a ella. Es rebutgen les disposicions en què això xocaria amb un objecte ja imprès. No té cap efecte amb el timelapse suau ni amb la detecció d'obstruccions al broquet, que necessiten una torre a cada capa."
 
+# AI Translated
 msgid "Combine sparse layers"
-msgstr ""
+msgstr "Combinar capes poc denses"
 
+# AI Translated
 msgid ""
 "If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
 "\n"
@@ -17807,6 +18066,11 @@ msgid ""
 "\n"
 "Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr ""
+"Si s'activa, les capes consecutives en què la Torre de Purga no té cap canvi de filament s'imprimeixen com una sola capa de torre més gruixuda en lloc d'una capa fina cadascuna, de la mateixa manera que la combinació de farciment fusiona el farciment poc dens. La capa fusionada s'imprimeix a la part superior del tram, a l'alçada de tot el que cobreix.\n"
+"\n"
+"Només es fusionen capes senceres, i mai per sobre de l'alçada de capa màxima del broquet que imprimeix la torre (tres quarts del diàmetre del broquet quan aquesta es deixa a 0). Per tant, dues o més capes han de cabre sota aquest límit perquè canviï res: amb una alçada de capa de 0,2 mm i un màxim de 0,3 mm no es fusiona res, mentre que amb 0,1 mm tres capes es converteixen en una.\n"
+"\n"
+"A diferència de \"Sense capes poc denses\", la torre continua seguint el model, de manera que el capçal mai no ha de baixar fins a ella. No té cap efecte amb \"Sense capes poc denses\", el timelapse suau o la detecció d'acumulació, que necessiten una torre a cada capa."
 
 msgid "Prime all printing extruders"
 msgstr "Purgar tots els extrusors d'impressió"
@@ -19114,11 +19378,13 @@ msgstr "Permet girs en fer l'arranjament"
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Si està habilitat, l'arranjament permetrà rotacions en col·locar l'objecte"
 
+# AI Translated
 msgid "Align to Y axis when arranging"
-msgstr ""
+msgstr "Alinear amb l'eix Y en ordenar"
 
+# AI Translated
 msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
-msgstr ""
+msgstr "Si s'activa, Ordenar girarà cada objecte perquè el seu costat llarg quedi al llarg de l'eix Y abans de col·locar-lo. Si no s'especifica, està activat per a les impressores i3 i desactivat per a les altres, com a la interfície gràfica."
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Evitar la regió de calibratge d'extrusió en fer l'arranjament"
@@ -19306,35 +19572,44 @@ msgstr "Filament usat"
 msgid "Total length of filament used in the print."
 msgstr "Longitud total de filament utilitzat a la impressió."
 
+# AI Translated
 msgid "Print time (total seconds)"
-msgstr ""
+msgstr "Temps d'impressió (segons totals)"
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Temps d'impressió estimat total en segons. Substituït pel valor real durant el post-processament."
 
+# AI Translated
 msgid "Print time (days component)"
-msgstr ""
+msgstr "Temps d'impressió (component de dies)"
 
+# AI Translated
 msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Component de dies del temps d'impressió estimat (mode normal). Substituït pel valor real durant el post-processament."
 
+# AI Translated
 msgid "Print time (hours component)"
-msgstr ""
+msgstr "Temps d'impressió (component d'hores)"
 
+# AI Translated
 msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Component d'hores del temps d'impressió estimat (mode normal). Substituït pel valor real durant el post-processament."
 
+# AI Translated
 msgid "Print time (minutes component)"
-msgstr ""
+msgstr "Temps d'impressió (component de minuts)"
 
+# AI Translated
 msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Component de minuts del temps d'impressió estimat (mode normal). Substituït pel valor real durant el post-processament."
 
+# AI Translated
 msgid "Print time (seconds component)"
-msgstr ""
+msgstr "Temps d'impressió (component de segons)"
 
+# AI Translated
 msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Component de segons del temps d'impressió estimat (mode normal). Substituït pel valor real durant el post-processament."
 
 msgid "Filament length (meters)"
 msgstr "Longitud del filament (metres)"
@@ -21209,8 +21484,9 @@ msgstr "No s'ha detectat cap sessió vàlida. Voleu continuar amb l'inici de ses
 msgid "Success!"
 msgstr "Èxit!"
 
+# AI Translated
 msgid "Generate API Key"
-msgstr ""
+msgstr "Generar clau API"
 
 msgid "Are you sure to log out?"
 msgstr "Estàs segur de tancar sessió?"
@@ -22654,1433 +22930,1901 @@ msgstr "El filament pot no ser compatible amb la configuració actual de la màq
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "El model de filament és desconegut. S'utilitzarà un perfil de filament aleatori."
 
+# AI Translated
 msgid "Construction"
-msgstr ""
+msgstr "Construcció"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s  ·  on %s"
-msgstr ""
+msgstr "%s  ·  sobre %s"
 
+# AI Translated
 msgid "Line — click start, then end"
-msgstr ""
+msgstr "Línia — feu clic a l'inici i després al final"
 
+# AI Translated
 msgid "Rectangle — click two opposite corners"
-msgstr ""
+msgstr "Rectangle — feu clic a dues cantonades oposades"
 
+# AI Translated
 msgid "Circle — click center, then radius"
-msgstr ""
+msgstr "Cercle — feu clic al centre i després al radi"
 
+# AI Translated
 msgid "Arc — click start, end, then a point"
-msgstr ""
+msgstr "Arc — feu clic a l'inici, al final i després a un punt"
 
+# AI Translated
 msgid "Slot — two centerline ends, then end radius"
-msgstr ""
+msgstr "Ranura — dos extrems de la línia central i després el radi de l'extrem"
 
+# AI Translated
 msgid "Ellipse — center, major end, minor point"
-msgstr ""
+msgstr "El·lipse — centre, extrem de l'eix major, punt de l'eix menor"
 
+# AI Translated
 msgid "Spline — click control points"
-msgstr ""
+msgstr "Spline — feu clic als punts de control"
 
+# AI Translated
 msgid "Point — click to place"
-msgstr ""
+msgstr "Punt — feu clic per col·locar-lo"
 
+# AI Translated
 msgid "Dimension — click 2 points or an entity"
-msgstr ""
+msgstr "Cota — feu clic a 2 punts o a una entitat"
 
+# AI Translated
 msgid "Trim — click a segment to trim it"
-msgstr ""
+msgstr "Retallar — feu clic en un segment per retallar-lo"
 
+# AI Translated
 msgid "Extend — click a line/arc to extend it"
-msgstr ""
+msgstr "Allargar — feu clic en una línia o un arc per allargar-lo"
 
+# AI Translated
 msgid "Offset — pick an entity, drag the distance"
-msgstr ""
+msgstr "Desplaçament — trieu una entitat i arrossegueu la distància"
 
+# AI Translated
 msgid "Mirror — pick axis, then entities"
-msgstr ""
+msgstr "Mirall — trieu l'eix i després les entitats"
 
+# AI Translated
 msgid "Fillet — pick two lines, set the radius"
-msgstr ""
+msgstr "Arrodoniment — trieu dues línies i establiu el radi"
 
+# AI Translated
 msgid "Chamfer — pick two lines, set the distance"
-msgstr ""
+msgstr "Xamfrà — trieu dues línies i establiu la distància"
 
+# AI Translated
 msgid "Polygon — click center, then a vertex"
-msgstr ""
+msgstr "Polígon — feu clic al centre i després a un vèrtex"
 
+# AI Translated
 msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
-msgstr ""
+msgstr "Aquí no hi ha cap valor per introduir — trieu una línia, un arc, un cercle o dues entitats"
 
+# AI Translated
 msgid "Normal to the sketch plane"
-msgstr ""
+msgstr "Normal al pla de l'esbós"
 
+# AI Translated
 msgid "Converted the selection between construction and real geometry"
-msgstr ""
+msgstr "S'ha convertit la selecció entre geometria de construcció i geometria real"
 
+# AI Translated
 msgid "Origin planes shown"
-msgstr ""
+msgstr "Plans d'origen visibles"
 
+# AI Translated
 msgid "Origin planes hidden"
-msgstr ""
+msgstr "Plans d'origen amagats"
 
+# AI Translated
 msgid "World axes shown"
-msgstr ""
+msgstr "Eixos globals visibles"
 
+# AI Translated
 msgid "World axes hidden"
-msgstr ""
+msgstr "Eixos globals amagats"
 
+# AI Translated
 msgid "Isometric view, fitted"
-msgstr ""
+msgstr "Vista isomètrica, ajustada"
 
+# AI Translated
 msgid "Bed shown"
-msgstr ""
+msgstr "Llit visible"
 
+# AI Translated
 msgid "Bed hidden"
-msgstr ""
+msgstr "Llit amagat"
 
+# AI Translated
 msgid "FEATURES"
-msgstr ""
+msgstr "OPERACIONS"
 
+# AI Translated
 msgid "Sketch"
-msgstr ""
+msgstr "Esbós"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketching on %s — pick a tool"
-msgstr ""
+msgstr "Dibuixant l'esbós sobre %s — trieu una eina"
 
+# AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr ""
+msgstr "Feu clic a una cara o a un pla de referència a la vista i després a una eina d'esbós"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Drawing on %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
+"Dibuixant sobre %s.\n"
+"Trieu una eina o premeu Menú per veure la llista."
 
+# AI Translated
 msgid "Click a face or a reference plane, then a sketch tool."
-msgstr ""
+msgstr "Feu clic a una cara o a un pla de referència i després a una eina d'esbós."
 
+# AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
-msgstr ""
+msgstr "Afegir material (extrusió / revolució / escombratge / recobriment / engruiximent / nervi)"
 
+# AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
-msgstr ""
+msgstr "Extrudir un perfil d'esbós, o empènyer/estirar una cara triada"
 
+# AI Translated
 msgid "Create a sketch, or pick a solid face, first"
-msgstr ""
+msgstr "Primer creeu un esbós o trieu una cara d'un sòlid"
 
+# AI Translated
 msgid "Revolve"
-msgstr ""
+msgstr "Revolució"
 
+# AI Translated
 msgid "Revolve a profile about an axis"
-msgstr ""
+msgstr "Fer girar un perfil al voltant d'un eix"
 
+# AI Translated
 msgid "Create a sketch profile to revolve first"
-msgstr ""
+msgstr "Primer creeu un perfil d'esbós per a la revolució"
 
+# AI Translated
 msgid "Sweep"
-msgstr ""
+msgstr "Escombratge"
 
+# AI Translated
 msgid "Sweep a profile along a path"
-msgstr ""
+msgstr "Escombrar un perfil al llarg d'una trajectòria"
 
+# AI Translated
 msgid "Create a profile sketch to sweep first"
-msgstr ""
+msgstr "Primer creeu un esbós de perfil per a l'escombratge"
 
+# AI Translated
 msgid "Loft"
-msgstr ""
+msgstr "Recobriment"
 
+# AI Translated
 msgid "Loft (skin) between two or more profiles"
-msgstr ""
+msgstr "Recobriment (pell) entre dos o més perfils"
 
+# AI Translated
 msgid "Create at least two profile sketches to loft"
-msgstr ""
+msgstr "Creeu almenys dos esbossos de perfil per al recobriment"
 
+# AI Translated
 msgid "Thicken"
-msgstr ""
+msgstr "Engruiximent"
 
+# AI Translated
 msgid "Offset a solid face into a thin plate (new body)"
-msgstr ""
+msgstr "Desplaçar una cara d'un sòlid per crear una làmina fina (cos nou)"
 
+# AI Translated
 msgid "Thicken needs a solid body — add or import one first"
-msgstr ""
+msgstr "L'engruiximent necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 #, c-format
 msgid "Body %zu"
-msgstr ""
+msgstr "Cos %zu"
 
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
-msgstr ""
+msgstr "Fer créixer una paret fina a partir d'una línia oberta d'esbós, fusionada a un cos"
 
+# AI Translated
 msgid "Rib needs a solid body — add or import one first"
-msgstr ""
+msgstr "El nervi necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Create a sketch with an open line first"
-msgstr ""
+msgstr "Primer creeu un esbós amb una línia oberta"
 
+# AI Translated
 msgid "Create a solid body to pattern first"
-msgstr ""
+msgstr "Primer creeu un cos sòlid per fer-ne una matriu"
 
+# AI Translated
 msgid "Pattern — needs a solid body to replicate"
-msgstr ""
+msgstr "Matriu — necessita un cos sòlid per replicar"
 
+# AI Translated
 msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
-msgstr ""
+msgstr "Superfície (extrusió / revolució / recobriment / emplenament / desplaçament / engruiximent)"
 
+# AI Translated
 msgid "Surface Extrude"
-msgstr ""
+msgstr "Extrusió de superfície"
 
+# AI Translated
 msgid "Extrude a sketch into a sheet body (no end caps)"
-msgstr ""
+msgstr "Extrudir un esbós en un cos de superfície (sense tapes als extrems)"
 
+# AI Translated
 msgid "Create a sketch first"
-msgstr ""
+msgstr "Primer creeu un esbós"
 
+# AI Translated
 msgid "Surface Revolve"
-msgstr ""
+msgstr "Revolució de superfície"
 
+# AI Translated
 msgid "Revolve a sketch profile into a sheet body"
-msgstr ""
+msgstr "Fer girar un perfil d'esbós per crear un cos de superfície"
 
+# AI Translated
 msgid "Surface Loft"
-msgstr ""
+msgstr "Recobriment de superfície"
 
+# AI Translated
 msgid "Loft (skin) between 2+ profiles, open (no end caps)"
-msgstr ""
+msgstr "Recobriment (pell) entre 2 o més perfils, obert (sense tapes als extrems)"
 
+# AI Translated
 msgid "Surface Fill"
-msgstr ""
+msgstr "Emplenament de superfície"
 
+# AI Translated
 msgid "Fill a sketch boundary with a smooth face"
-msgstr ""
+msgstr "Omplir un contorn d'esbós amb una cara suau"
 
+# AI Translated
 msgid "Create a sketch profile to fill first"
-msgstr ""
+msgstr "Primer creeu un perfil d'esbós per omplir"
 
+# AI Translated
 msgid "Surface Offset"
-msgstr ""
+msgstr "Desplaçament de superfície"
 
+# AI Translated
 msgid "Offset a sheet body's shell by a signed distance"
-msgstr ""
+msgstr "Desplaçar la closca d'un cos de superfície una distància amb signe"
 
+# AI Translated
 msgid "No sheet body to offset — create a surface feature first"
-msgstr ""
+msgstr "No hi ha cap cos de superfície per desplaçar — primer creeu una operació de superfície"
 
+# AI Translated
 msgid "Thicken Surface"
-msgstr ""
+msgstr "Engruiximent de superfície"
 
+# AI Translated
 msgid "Thicken a sheet body into a solid"
-msgstr ""
+msgstr "Engruixir un cos de superfície per convertir-lo en un sòlid"
 
+# AI Translated
 msgid "No sheet body to thicken — create a surface feature first"
-msgstr ""
+msgstr "No hi ha cap cos de superfície per engruixir — primer creeu una operació de superfície"
 
+# AI Translated
 msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
-msgstr ""
+msgstr "Referència / Corba (pla / eix / sist. coord. / hèlix / projecció)"
 
+# AI Translated
 msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
-msgstr ""
+msgstr "Pla de referència (desplaçat / inclinat / pla mitjà / tangent / dues arestes / coincident)"
 
+# AI Translated
 msgid "Axis"
-msgstr ""
+msgstr "Eix"
 
+# AI Translated
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
-msgstr ""
+msgstr "Eix de referència (dos punts, normal d'una cara, eix d'un cilindre, dos plans, al llarg d'una aresta)"
 
+# AI Translated
 msgid "Coord Sys"
-msgstr ""
+msgstr "Sist. coord."
 
+# AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
-msgstr ""
+msgstr "Sistema de coordenades de referència (punt global, o cara + aresta de direcció)"
 
+# AI Translated
 msgid "Helix"
-msgstr ""
+msgstr "Hèlix"
 
+# AI Translated
 msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
-msgstr ""
+msgstr "Corba helicoidal (trajectòria de molla) — utilitzeu-la com a trajectòria d'escombratge per a bobines / molles / barrines"
 
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
-msgstr ""
+msgstr "Projectar les arestes d'un cos sobre un pla com a entitats d'esbós"
 
+# AI Translated
 msgid "Project needs a body — add or import one first"
-msgstr ""
+msgstr "La projecció necessita un cos — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "(all edges)"
-msgstr ""
+msgstr "(totes les arestes)"
 
+# AI Translated
 msgid "Placement (transform / mirror / mate)"
-msgstr ""
+msgstr "Posicionament (transformació / mirall / relació de posició)"
 
+# AI Translated
 msgid "Transform"
-msgstr ""
+msgstr "Transformació"
 
+# AI Translated
 msgid "Move and/or rotate an existing body"
-msgstr ""
+msgstr "Moure i/o girar un cos existent"
 
+# AI Translated
 msgid "Transform needs a body — add or import one first"
-msgstr ""
+msgstr "La transformació necessita un cos — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Reflect a body about a plane"
-msgstr ""
+msgstr "Reflectir un cos respecte a un pla"
 
+# AI Translated
 msgid "Mirror needs a body — add or import one first"
-msgstr ""
+msgstr "El mirall necessita un cos — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Mate"
-msgstr ""
+msgstr "Relació de posició"
 
+# AI Translated
 msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Assemblatge: alinear dues operacions de sistema de coordenades (fixa, plana, giratòria, lliscant, cilíndrica)"
 
+# AI Translated
 msgid "Boolean (combine bodies)"
-msgstr ""
+msgstr "Booleana (combinar cossos)"
 
+# AI Translated
 msgid "Boolean — needs two solid bodies to combine"
-msgstr ""
+msgstr "Booleana — necessita dos cossos sòlids per combinar"
 
+# AI Translated
 msgid "Cut (split a body with a plane)"
-msgstr ""
+msgstr "Tall (dividir un cos amb un pla)"
 
+# AI Translated
 msgid "Create a solid body to cut first"
-msgstr ""
+msgstr "Primer creeu un cos sòlid per tallar"
 
+# AI Translated
 msgid "Cut — needs a solid body to slice"
-msgstr ""
+msgstr "Tall — necessita un cos sòlid per tallar"
 
+# AI Translated
 msgid "Color — set the selected body's display colour"
-msgstr ""
+msgstr "Color — establir el color de visualització del cos seleccionat"
 
+# AI Translated
 msgid "Select a feature, or a body, first — then rename it"
-msgstr ""
+msgstr "Primer seleccioneu una operació o un cos — després canvieu-ne el nom"
 
+# AI Translated
 msgid "Fillet / chamfer / draft / shell / delete face"
-msgstr ""
+msgstr "Arrodoniment / xamfrà / desmoldeig / buidat / suprimir cara"
 
+# AI Translated
 msgid "Fillet / Chamfer"
-msgstr ""
+msgstr "Arrodoniment / Xamfrà"
 
+# AI Translated
 msgid "Round or bevel a picked edge"
-msgstr ""
+msgstr "Arrodonir o bisellar una aresta triada"
 
+# AI Translated
 msgid "Draft (taper a face)"
-msgstr ""
+msgstr "Desmoldeig (inclinar una cara)"
 
+# AI Translated
 msgid "Tilt a picked face by a draft angle"
-msgstr ""
+msgstr "Inclinar una cara triada segons un angle de desmoldeig"
 
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
-msgstr ""
+msgstr "Buidar el cos fins a un gruix de paret, obrint una cara triada"
 
+# AI Translated
 msgid "Delete Face"
-msgstr ""
+msgstr "Suprimir cara"
 
+# AI Translated
 msgid "Remove faces from a body and heal the solid"
-msgstr ""
+msgstr "Eliminar cares d'un cos i reparar el sòlid"
 
+# AI Translated
 msgid "Delete Face needs a body — add or import one first"
-msgstr ""
+msgstr "Suprimir cara necessita un cos — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "(none)"
-msgstr ""
+msgstr "(cap)"
 
+# AI Translated
 msgid "Hole / thread"
-msgstr ""
+msgstr "Forat / rosca"
 
+# AI Translated
 msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr ""
+msgstr "Perforar un forat, centrat en una cara triada o col·locat en un pla"
 
+# AI Translated
 msgid "Thread"
-msgstr ""
+msgstr "Rosca"
 
+# AI Translated
 msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
-msgstr ""
+msgstr "Roscar una superfície cilíndrica (forat interior / exterior) o una aresta circular"
 
+# AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr ""
+msgstr "Trieu una superfície cilíndrica (forat / exterior) o una aresta circular per a la rosca"
 
+# AI Translated
 msgid "Import STEP (editable B-rep solid)"
-msgstr ""
+msgstr "Importar STEP (sòlid B-rep editable)"
 
+# AI Translated
 msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr ""
+msgstr "Importar una malla (STL/OBJ) com a sòlid B-rep editable"
 
+# AI Translated
 msgid "Constrain selected sketch"
-msgstr ""
+msgstr "Restringir l'esbós seleccionat"
 
+# AI Translated
 msgid "SKETCH"
-msgstr ""
+msgstr "ESBÓS"
 
+# AI Translated
 msgid "Click to select; Shift to add; double-click for a whole loop"
-msgstr ""
+msgstr "Feu clic per seleccionar; Majúscules per afegir; doble clic per a un bucle sencer"
 
+# AI Translated
 msgid "Dimension"
-msgstr ""
+msgstr "Cota"
 
+# AI Translated
 msgid "Click 2 points or a line / circle / arc to place a dimension"
-msgstr ""
+msgstr "Feu clic a 2 punts o a una línia / cercle / arc per col·locar una cota"
 
+# AI Translated
 msgid "Line / polyline"
-msgstr ""
+msgstr "Línia / polilínia"
 
+# AI Translated
 msgid "Click start, then end — then set the exact length"
-msgstr ""
+msgstr "Feu clic a l'inici i després al final — després establiu la longitud exacta"
 
+# AI Translated
 msgid "Polyline"
-msgstr ""
+msgstr "Polilínia"
 
+# AI Translated
 msgid "Click points; click first / right-click to close the loop"
-msgstr ""
+msgstr "Feu clic als punts; feu clic al primer / clic dret per tancar el bucle"
 
+# AI Translated
 msgid "Corner rectangle"
-msgstr ""
+msgstr "Rectangle per cantonades"
 
+# AI Translated
 msgid "Click two opposite corners"
-msgstr ""
+msgstr "Feu clic a dues cantonades oposades"
 
+# AI Translated
 msgid "Center rectangle"
-msgstr ""
+msgstr "Rectangle des del centre"
 
+# AI Translated
 msgid "Click center, then a corner"
-msgstr ""
+msgstr "Feu clic al centre i després a una cantonada"
 
+# AI Translated
 msgid "Oblique rectangle"
-msgstr ""
+msgstr "Rectangle oblic"
 
+# AI Translated
 msgid "Click two corners of one edge, then a point for the width"
-msgstr ""
+msgstr "Feu clic a dues cantonades d'un costat i després a un punt per a l'amplada"
 
+# AI Translated
 msgid "Rounded rectangle"
-msgstr ""
+msgstr "Rectangle arrodonit"
 
+# AI Translated
 msgid "Click two opposite corners, then a point for the corner radius"
-msgstr ""
+msgstr "Feu clic a dues cantonades oposades i després a un punt per al radi de les cantonades"
 
+# AI Translated
 msgid "Center circle"
-msgstr ""
+msgstr "Cercle per centre"
 
+# AI Translated
 msgid "Click center, then radius"
-msgstr ""
+msgstr "Feu clic al centre i després al radi"
 
+# AI Translated
 msgid "2-point circle"
-msgstr ""
+msgstr "Cercle per 2 punts"
 
+# AI Translated
 msgid "Click two ends of the diameter"
-msgstr ""
+msgstr "Feu clic als dos extrems del diàmetre"
 
+# AI Translated
 msgid "3-point circle"
-msgstr ""
+msgstr "Cercle per 3 punts"
 
+# AI Translated
 msgid "Click three points on the circle"
-msgstr ""
+msgstr "Feu clic a tres punts del cercle"
 
+# AI Translated
 msgid "Arc"
-msgstr ""
+msgstr "Arc"
 
+# AI Translated
 msgid "3-point arc"
-msgstr ""
+msgstr "Arc per 3 punts"
 
+# AI Translated
 msgid "Click start, end, then a point on the arc"
-msgstr ""
+msgstr "Feu clic a l'inici, al final i després a un punt de l'arc"
 
+# AI Translated
 msgid "Tangent arc"
-msgstr ""
+msgstr "Arc tangent"
 
+# AI Translated
 msgid "Click start (on the last entity) then end"
-msgstr ""
+msgstr "Feu clic a l'inici (a l'última entitat) i després al final"
 
+# AI Translated
 msgid "Center-point arc"
-msgstr ""
+msgstr "Arc per centre"
 
+# AI Translated
 msgid "Click center, then start, then a point for the end angle"
-msgstr ""
+msgstr "Feu clic al centre, després a l'inici i després a un punt per a l'angle final"
 
+# AI Translated
 msgid "Slot"
-msgstr ""
+msgstr "Ranura"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the end radius"
-msgstr ""
+msgstr "Feu clic als dos extrems de la línia central i després a un punt per al radi de l'extrem"
 
+# AI Translated
 msgid "Arc slot"
-msgstr ""
+msgstr "Ranura en arc"
 
+# AI Translated
 msgid "Click center, start, end, then a point for the width"
-msgstr ""
+msgstr "Feu clic al centre, a l'inici, al final i després a un punt per a l'amplada"
 
+# AI Translated
 msgid "Ellipse"
-msgstr ""
+msgstr "El·lipse"
 
+# AI Translated
 msgid "Click center, a major-axis end, then a point for the minor axis"
-msgstr ""
+msgstr "Feu clic al centre, a un extrem de l'eix major i després a un punt per a l'eix menor"
 
+# AI Translated
 msgid "Elliptical arc"
-msgstr ""
+msgstr "Arc el·líptic"
 
+# AI Translated
 msgid "Click center, major-axis end, minor point, then arc start and end"
-msgstr ""
+msgstr "Feu clic al centre, a l'extrem de l'eix major, al punt de l'eix menor i després a l'inici i al final de l'arc"
 
+# AI Translated
 msgid "Spline"
-msgstr ""
+msgstr "Spline"
 
+# AI Translated
 msgid "Click control points; double-click or right-click to finish"
-msgstr ""
+msgstr "Feu clic als punts de control; doble clic o clic dret per acabar"
 
+# AI Translated
 msgid "Click to place a point"
-msgstr ""
+msgstr "Feu clic per col·locar un punt"
 
+# AI Translated
 msgid "Select — click to select; Shift to add"
-msgstr ""
+msgstr "Seleccionar — feu clic per seleccionar; Majúscules per afegir"
 
+# AI Translated
 msgid "Text — emboss text as a profile"
-msgstr ""
+msgstr "Text — text en relleu com a perfil"
 
+# AI Translated
 msgid "SVG — import an outline as a profile"
-msgstr ""
+msgstr "SVG — importar un contorn com a perfil"
 
+# AI Translated
 msgid "Fillet / chamfer"
-msgstr ""
+msgstr "Arrodoniment / xamfrà"
 
+# AI Translated
 msgid "Fillet"
-msgstr ""
+msgstr "Arrodoniment"
 
+# AI Translated
 msgid "Pick two lines, then drag the arrow or click the radius to set it"
-msgstr ""
+msgstr "Trieu dues línies i després arrossegueu la fletxa o feu clic al radi per establir-lo"
 
+# AI Translated
 msgid "Chamfer"
-msgstr ""
+msgstr "Xamfrà"
 
+# AI Translated
 msgid "Pick two lines, then drag the arrow or click the distance to set it"
-msgstr ""
+msgstr "Trieu dues línies i després arrossegueu la fletxa o feu clic a la distància per establir-la"
 
+# AI Translated
 msgid "Offset"
-msgstr ""
+msgstr "Desplaçament"
 
+# AI Translated
 msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
-msgstr ""
+msgstr "Trieu una entitat i després arrossegueu la fletxa o feu clic a la distància; feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
-msgstr ""
+msgstr "Trieu una línia d'eix de mirall i després les entitats a reflectir; feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Trim"
-msgstr ""
+msgstr "Retallar"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr ""
+msgstr "Feu clic en un segment per retallar-lo fins a la intersecció més propera; el clic dret surt"
 
+# AI Translated
 msgid "Extend"
-msgstr ""
+msgstr "Allargar"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr ""
+msgstr "Feu clic en una línia o un arc per allargar-lo fins a l'entitat més propera; el clic dret surt"
 
+# AI Translated
 msgid "Constrain — add geometric/dimensional relations"
-msgstr ""
+msgstr "Restringir — afegir relacions geomètriques/dimensionals"
 
+# AI Translated
 msgid "Move / rotate / scale"
-msgstr ""
+msgstr "Moure / rotar / escalar"
 
+# AI Translated
 msgid "Move (translate)"
-msgstr ""
+msgstr "Moure (traslladar)"
 
+# AI Translated
 msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
-msgstr ""
+msgstr "Trieu entitats i després arrossegueu la nansa o feu clic a la distància; feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Rotate (about centroid)"
-msgstr ""
+msgstr "Rotar (al voltant del centroide)"
 
+# AI Translated
 msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
-msgstr ""
+msgstr "Trieu entitats i després arrossegueu al voltant del pivot o feu clic a l'angle; feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Scale (about centroid)"
-msgstr ""
+msgstr "Escalar (respecte al centroide)"
 
+# AI Translated
 msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
-msgstr ""
+msgstr "Trieu entitats i després arrossegueu la nansa o feu clic al factor; feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Linear / polar array"
-msgstr ""
+msgstr "Matriu lineal / polar"
 
+# AI Translated
 msgid "Linear array"
-msgstr ""
+msgstr "Matriu lineal"
 
+# AI Translated
 msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
-msgstr ""
+msgstr "Trieu entitats, arrossegueu la nansa d'espaiat i feu clic al nombre; feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Polar array (about centroid)"
-msgstr ""
+msgstr "Matriu polar (al voltant del centroide)"
 
+# AI Translated
 msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
-msgstr ""
+msgstr "Trieu entitats, arrossegueu la nansa de l'angle total i feu clic al nombre; feu clic en un espai buit per aplicar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Click center then a vertex — %d sides, %s"
-msgstr ""
+msgstr "Feu clic al centre i després a un vèrtex — %d costats, %s"
 
+# AI Translated
 msgid "circumscribed"
-msgstr ""
+msgstr "circumscrit"
 
+# AI Translated
 msgid "inscribed"
-msgstr ""
+msgstr "inscrit"
 
+# AI Translated
 msgid "Polygon"
-msgstr ""
+msgstr "Polígon"
 
 #, c-format, boost-format
 msgid "Converted %d entit%s between construction and real geometry"
 msgstr ""
 
+# AI Translated
 msgid "CONSTRAIN"
-msgstr ""
+msgstr "RESTRINGIR"
 
+# AI Translated
 msgid "Perpendicular"
-msgstr ""
+msgstr "Perpendicular"
 
+# AI Translated
 msgid "Coincident"
-msgstr ""
+msgstr "Coincident"
 
+# AI Translated
 msgid "Equal length"
-msgstr ""
+msgstr "Longitud igual"
 
+# AI Translated
 msgid "Equal radius"
-msgstr ""
+msgstr "Radi igual"
 
+# AI Translated
 msgid "Collinear"
-msgstr ""
+msgstr "Col·lineal"
 
+# AI Translated
 msgid "Tangent"
-msgstr ""
+msgstr "Tangent"
 
+# AI Translated
 msgid "Midpoint"
-msgstr ""
+msgstr "Punt mitjà"
 
+# AI Translated
 msgid "Symmetric"
-msgstr ""
+msgstr "Simètric"
 
+# AI Translated
 msgid "Symmetric about the vertical axis"
-msgstr ""
+msgstr "Simètric respecte a l'eix vertical"
 
+# AI Translated
 msgid "Symmetric about the horizontal axis"
-msgstr ""
+msgstr "Simètric respecte a l'eix horitzontal"
 
+# AI Translated
 msgid "Fix point (anchor in place)"
-msgstr ""
+msgstr "Fixar punt (ancorar-lo al seu lloc)"
 
+# AI Translated
 msgid "Horizontal distance"
-msgstr ""
+msgstr "Distància horitzontal"
 
+# AI Translated
 msgid "Vertical distance"
-msgstr ""
+msgstr "Distància vertical"
 
+# AI Translated
 msgid "✓ Confirm"
-msgstr ""
+msgstr "✓ Confirmar"
 
+# AI Translated
 msgid "✗ Cancel"
-msgstr ""
+msgstr "✗ Cancel·lar"
 
+# AI Translated
 msgid "Undo (Ctrl+Z)"
-msgstr ""
+msgstr "Desfer (Ctrl+Z)"
 
+# AI Translated
 msgid "Redo (Ctrl+Shift+Z)"
-msgstr ""
+msgstr "Refer (Ctrl+Màj+Z)"
 
+# AI Translated
 msgid "New Design — clear the feature tree"
-msgstr ""
+msgstr "Disseny nou — buidar l'arbre d'operacions"
 
+# AI Translated
 msgid "Export STEP…"
-msgstr ""
+msgstr "Exportar STEP…"
 
+# AI Translated
 msgid "Show the printer bed and its plate grid"
-msgstr ""
+msgstr "Mostrar el llit de la impressora i la quadrícula de la placa"
 
+# AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
-msgstr ""
+msgstr "Recolzar sobre la cara (F) — col·locar la cara triada sobre el llit"
 
+# AI Translated
 msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
-msgstr ""
+msgstr "Vista de secció — amagar part del model per veure'n l'interior. RePàg/AvPàg mouen el pla; Supr l'elimina."
 
+# AI Translated
 msgid "Flip Section — show the opposite half"
-msgstr ""
+msgstr "Invertir la secció — mostrar la meitat oposada"
 
+# AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
-msgstr ""
+msgstr "Enviar a la placa — enviar el sòlid a Preparació"
 
+# AI Translated
 msgid "Width / X"
-msgstr ""
+msgstr "Amplada / X"
 
+# AI Translated
 msgid "Height / Y"
-msgstr ""
+msgstr "Alçada / Y"
 
+# AI Translated
 msgid "Distance X"
-msgstr ""
+msgstr "Distància X"
 
+# AI Translated
 msgid "Distance Y"
-msgstr ""
+msgstr "Distància Y"
 
+# AI Translated
 msgid "Distance Z"
-msgstr ""
+msgstr "Distància Z"
 
+# AI Translated
 msgid "Z"
-msgstr ""
+msgstr "Z"
 
+# AI Translated
 msgid "Rotation axis"
-msgstr ""
+msgstr "Eix de rotació"
 
+# AI Translated
 msgid "Angle °"
-msgstr ""
+msgstr "Angle °"
 
+# AI Translated
 msgid "Move / Rotate"
-msgstr ""
+msgstr "Moure / Rotar"
 
+# AI Translated
 msgid "Sketch: —"
-msgstr ""
+msgstr "Esbós: —"
 
+# AI Translated
 msgid "Extrude dist"
-msgstr ""
+msgstr "Dist. d'extrusió"
 
 msgid "End"
 msgstr "Final"
 
+# AI Translated
 msgid "2nd dist"
-msgstr ""
+msgstr "2a dist."
 
+# AI Translated
 msgid "Taper °"
-msgstr ""
+msgstr "Conicitat °"
 
+# AI Translated
 msgid "New body"
-msgstr ""
+msgstr "Cos nou"
 
+# AI Translated
 msgid "Intersect"
-msgstr ""
+msgstr "Intersecció"
 
+# AI Translated
 msgid "Result"
-msgstr ""
+msgstr "Resultat"
 
+# AI Translated
 msgid "Flip direction"
-msgstr ""
+msgstr "Invertir la direcció"
 
+# AI Translated
 msgid "(no edge picked — group below)"
-msgstr ""
+msgstr "(cap aresta triada — grup de sota)"
 
 msgid "Bottom"
 msgstr "Inferior"
 
+# AI Translated
 msgid "Lateral"
-msgstr ""
+msgstr "Lateral"
 
+# AI Translated
 msgid "Edges"
-msgstr ""
+msgstr "Arestes"
 
+# AI Translated
 msgid "Size (r/dist)"
-msgstr ""
+msgstr "Mida (r/dist)"
 
+# AI Translated
 msgid "XY"
-msgstr ""
+msgstr "XY"
 
+# AI Translated
 msgid "XZ"
-msgstr ""
+msgstr "XZ"
 
+# AI Translated
 msgid "YZ"
-msgstr ""
+msgstr "YZ"
 
+# AI Translated
 msgid "Hole plane"
-msgstr ""
+msgstr "Pla del forat"
 
+# AI Translated
 msgid "Depth (blind)"
-msgstr ""
+msgstr "Profunditat (cec)"
 
+# AI Translated
 msgid "Pos X"
-msgstr ""
+msgstr "Pos. X"
 
+# AI Translated
 msgid "Pos Y"
-msgstr ""
+msgstr "Pos. Y"
 
+# AI Translated
 msgid "Through"
-msgstr ""
+msgstr "Passant"
 
+# AI Translated
 msgid "(none — uses Hole plane)"
-msgstr ""
+msgstr "(cap — utilitza el pla del forat)"
 
+# AI Translated
 msgid "On face"
-msgstr ""
+msgstr "Sobre una cara"
 
+# AI Translated
 msgid "Thread plane"
-msgstr ""
+msgstr "Pla de la rosca"
 
+# AI Translated
 msgid "Pitch"
-msgstr ""
+msgstr "Pas"
 
+# AI Translated
 msgid "Thread depth"
-msgstr ""
+msgstr "Profunditat de la rosca"
 
+# AI Translated
 msgid "(none — uses Thread plane)"
-msgstr ""
+msgstr "(cap — utilitza el pla de la rosca)"
 
+# AI Translated
 msgid "Plane X"
-msgstr ""
+msgstr "Pla X"
 
+# AI Translated
 msgid "Plane Y"
-msgstr ""
+msgstr "Pla Y"
 
+# AI Translated
 msgid "Profile: —"
-msgstr ""
+msgstr "Perfil: —"
 
+# AI Translated
 msgid "Path"
-msgstr ""
+msgstr "Trajectòria"
 
+# AI Translated
 msgid "Linear"
-msgstr ""
+msgstr "Lineal"
 
+# AI Translated
 msgid "Direction"
-msgstr ""
+msgstr "Direcció"
 
+# AI Translated
 msgid "Total angle°"
-msgstr ""
+msgstr "Angle total°"
 
+# AI Translated
 msgid "Boolean"
-msgstr ""
+msgstr "Booleana"
 
+# AI Translated
 msgid "Union (join)"
-msgstr ""
+msgstr "Unió (unir)"
 
+# AI Translated
 msgid "Subtract (cut)"
-msgstr ""
+msgstr "Resta (tallar)"
 
+# AI Translated
 msgid "Target (kept)"
-msgstr ""
+msgstr "Objectiu (es conserva)"
 
+# AI Translated
 msgid "Keep tool body"
-msgstr ""
+msgstr "Conservar el cos eina"
 
+# AI Translated
 msgid "Body"
-msgstr ""
+msgstr "Cos"
 
+# AI Translated
 msgid "Insert"
-msgstr ""
+msgstr "Inserir"
 
+# AI Translated
 msgid ""
 "Drag a corner to size, the centre to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
+"Arrossegueu una cantonada per canviar la mida i el centre per moure.\n"
+"Confirmeu o cancel·leu a la barra d'eines de dalt."
 
+# AI Translated
 msgid "Midplane"
-msgstr ""
+msgstr "Pla mitjà"
 
+# AI Translated
 msgid "Two edges"
-msgstr ""
+msgstr "Dues arestes"
 
+# AI Translated
 msgid "Plane type"
-msgstr ""
+msgstr "Tipus de pla"
 
+# AI Translated
 msgid "Base"
-msgstr ""
+msgstr "Base"
 
+# AI Translated
 msgid "Angle°"
-msgstr ""
+msgstr "Angle°"
 
+# AI Translated
 msgid "Base X"
-msgstr ""
+msgstr "Base X"
 
+# AI Translated
 msgid "Base Y"
-msgstr ""
+msgstr "Base Y"
 
+# AI Translated
 msgid "Tilt axis"
-msgstr ""
+msgstr "Eix d'inclinació"
 
+# AI Translated
 msgid "Pick Face A"
-msgstr ""
+msgstr "Triar cara A"
 
+# AI Translated
 msgid "Pick Face B"
-msgstr ""
+msgstr "Triar cara B"
 
+# AI Translated
 msgid "Pick Edge A"
-msgstr ""
+msgstr "Triar aresta A"
 
+# AI Translated
 msgid "Pick Edge B"
-msgstr ""
+msgstr "Triar aresta B"
 
+# AI Translated
 msgid "Size U"
-msgstr ""
+msgstr "Mida U"
 
+# AI Translated
 msgid "Size V"
-msgstr ""
+msgstr "Mida V"
 
+# AI Translated
 msgid "Profiles (check 2+, in order):"
-msgstr ""
+msgstr "Perfils (marqueu-ne 2 o més, en ordre):"
 
+# AI Translated
 msgid "Ruled (straight) sections"
-msgstr ""
+msgstr "Seccions reglades (rectes)"
 
+# AI Translated
 msgid "Fills the sketch's closed boundary with a smooth face."
-msgstr ""
+msgstr "Omple el contorn tancat de l'esbós amb una cara suau."
 
+# AI Translated
 msgid "Sheet body"
-msgstr ""
+msgstr "Cos de superfície"
 
+# AI Translated
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
-msgstr ""
+msgstr "Desplaça la closca d'un cos de superfície. Positiu = cap a fora, negatiu = cap a dins."
 
+# AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
-msgstr ""
+msgstr "Engruixeix un cos de superfície per convertir-lo en un sòlid. Invertir inverteix la direcció."
 
+# AI Translated
 msgid "(all faces — closed hollow)"
-msgstr ""
+msgstr "(totes les cares — buit tancat)"
 
+# AI Translated
 msgid "Open face"
-msgstr ""
+msgstr "Cara oberta"
 
+# AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
-msgstr ""
+msgstr "Trieu una cara del sòlid per obrir-la i després establiu el gruix de paret."
 
+# AI Translated
 msgid "Angle (°)"
-msgstr ""
+msgstr "Angle (°)"
 
+# AI Translated
 msgid "(pick a side face)"
-msgstr ""
+msgstr "(trieu una cara lateral)"
 
+# AI Translated
 msgid "Draft"
-msgstr ""
+msgstr "Desmoldeig"
 
+# AI Translated
 msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
-msgstr ""
+msgstr "Trieu una cara lateral i després establiu l'angle de desmoldeig. La cara pivota al voltant de la base del cos."
 
+# AI Translated
 msgid "Translate X"
-msgstr ""
+msgstr "Traslladar X"
 
+# AI Translated
 msgid "Translate Y"
-msgstr ""
+msgstr "Traslladar Y"
 
+# AI Translated
 msgid "Translate Z"
-msgstr ""
+msgstr "Traslladar Z"
 
+# AI Translated
 msgid "Rotate axis"
-msgstr ""
+msgstr "Eix de rotació"
 
+# AI Translated
 msgid "Pivot X"
-msgstr ""
+msgstr "Pivot X"
 
+# AI Translated
 msgid "Pivot Y"
-msgstr ""
+msgstr "Pivot Y"
 
+# AI Translated
 msgid "Pivot Z"
-msgstr ""
+msgstr "Pivot Z"
 
+# AI Translated
 msgid "Keep original (make a copy)"
-msgstr ""
+msgstr "Conservar l'original (fer-ne una còpia)"
 
+# AI Translated
 msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
-msgstr ""
+msgstr "Trasllada i/o rota el cos seleccionat. La rotació s'aplica al voltant del pivot i després s'aplica la translació."
 
+# AI Translated
 msgid "Mirror plane"
-msgstr ""
+msgstr "Pla de mirall"
 
+# AI Translated
 msgid "Keep original"
-msgstr ""
+msgstr "Conservar l'original"
 
+# AI Translated
 msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
-msgstr ""
+msgstr "Reflecteix el cos seleccionat respecte a un pla. El mirall sempre és un cos nou; si conserveu l'original, obtindreu tots dos."
 
+# AI Translated
 msgid "(pick a solid face)"
-msgstr ""
+msgstr "(trieu una cara del sòlid)"
 
+# AI Translated
 msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
-msgstr ""
+msgstr "Trieu una cara del sòlid i desplaceu-la per crear un cos fi nou. No és per a cossos de superfície — per a aquests, feu servir Engruiximent de superfície."
 
+# AI Translated
 msgid "Target body"
-msgstr ""
+msgstr "Cos objectiu"
 
+# AI Translated
 msgid "Entity index"
-msgstr ""
+msgstr "Índex de l'entitat"
 
+# AI Translated
 msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
-msgstr ""
+msgstr "Fa créixer una paret fina a partir d'una entitat Línia oberta de l'esbós, fusionada al cos objectiu. L'índex de l'entitat és la posició de la Línia oberta a l'esbós."
 
+# AI Translated
 msgid "Source body"
-msgstr ""
+msgstr "Cos d'origen"
 
+# AI Translated
 msgid "Target plane"
-msgstr ""
+msgstr "Pla objectiu"
 
+# AI Translated
 msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
-msgstr ""
+msgstr "Projecta les arestes d'un cos sobre un pla com a entitats d'esbós. Trieu una cara per projectar-ne només les arestes, o deixeu la cara buida per projectar tot el cos."
 
+# AI Translated
 msgid "Add picked face"
-msgstr ""
+msgstr "Afegir la cara triada"
 
+# AI Translated
 msgid "Click a face on the body first, then Add picked face"
-msgstr ""
+msgstr "Primer feu clic a una cara del cos i després a Afegir la cara triada"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d is already in the list"
-msgstr ""
+msgstr "La cara %d ja és a la llista"
 
+# AI Translated
 msgid "Faces to delete"
-msgstr ""
+msgstr "Cares a suprimir"
 
+# AI Translated
 msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
-msgstr ""
+msgstr "Trieu una cara del sòlid i després feu clic a 'Afegir la cara triada' per acumular cares. Confirmeu per eliminar totes les cares de la llista i reparar el sòlid."
 
+# AI Translated
 msgid "Left-handed"
-msgstr ""
+msgstr "A esquerres"
 
+# AI Translated
 msgid "Taper (°)"
-msgstr ""
+msgstr "Conicitat (°)"
 
+# AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
-msgstr ""
+msgstr "Una corba helicoidal (trajectòria de molla). Utilitzeu-la com a trajectòria d'escombratge per crear molles, bobines o barrines."
 
+# AI Translated
 msgid "Two points"
-msgstr ""
+msgstr "Dos punts"
 
+# AI Translated
 msgid "Face normal"
-msgstr ""
+msgstr "Normal de la cara"
 
+# AI Translated
 msgid "Cylinder centerline"
-msgstr ""
+msgstr "Eix del cilindre"
 
+# AI Translated
 msgid "Plane intersection"
-msgstr ""
+msgstr "Intersecció de plans"
 
+# AI Translated
 msgid "Along edge"
-msgstr ""
+msgstr "Al llarg d'una aresta"
 
+# AI Translated
 msgid "Axis type"
-msgstr ""
+msgstr "Tipus d'eix"
 
+# AI Translated
 msgid "Pick Face"
-msgstr ""
+msgstr "Triar cara"
 
+# AI Translated
 msgid "Pick Edge"
-msgstr ""
+msgstr "Triar aresta"
 
+# AI Translated
 msgid "Plane A"
-msgstr ""
+msgstr "Pla A"
 
+# AI Translated
 msgid "Plane B"
-msgstr ""
+msgstr "Pla B"
 
+# AI Translated
 msgid "Point 1 X"
-msgstr ""
+msgstr "Punt 1 X"
 
+# AI Translated
 msgid "Point 1 Y"
-msgstr ""
+msgstr "Punt 1 Y"
 
+# AI Translated
 msgid "Point 1 Z"
-msgstr ""
+msgstr "Punt 1 Z"
 
+# AI Translated
 msgid "Point 2 X"
-msgstr ""
+msgstr "Punt 2 X"
 
+# AI Translated
 msgid "Point 2 Y"
-msgstr ""
+msgstr "Punt 2 Y"
 
+# AI Translated
 msgid "Point 2 Z"
-msgstr ""
+msgstr "Punt 2 Z"
 
+# AI Translated
 msgid "Point (world)"
-msgstr ""
+msgstr "Punt (global)"
 
+# AI Translated
 msgid "Face + direction"
-msgstr ""
+msgstr "Cara + direcció"
 
+# AI Translated
 msgid "(all)"
-msgstr ""
+msgstr "(tots)"
 
+# AI Translated
 msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
-msgstr ""
+msgstr "Restringir la selecció a un cos — els altres es tornen transparents i deixen de rebre clics"
 
+# AI Translated
 msgid "Edge (sets in-plane direction)"
-msgstr ""
+msgstr "Aresta (defineix la direcció dins del pla)"
 
+# AI Translated
 msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
-msgstr ""
+msgstr "Sense aresta, el sistema de referència pren l'X de la primera aresta de la cara — trieu-ne una per escollir-la vosaltres mateixos"
 
+# AI Translated
 msgid "X hint X"
-msgstr ""
+msgstr "Direcció X: X"
 
+# AI Translated
 msgid "X hint Y"
-msgstr ""
+msgstr "Direcció X: Y"
 
+# AI Translated
 msgid "X hint Z"
-msgstr ""
+msgstr "Direcció X: Z"
 
+# AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
-msgstr ""
+msgstr "Fixa — 6 graus de llibertat bloquejats, B es porta exactament sobre A"
 
+# AI Translated
 msgid "Planar — z aligned, offset distance; free in-plane slide"
-msgstr ""
+msgstr "Plana — z alineat, distància de desplaçament; lliscament lliure dins del pla"
 
+# AI Translated
 msgid "Revolute — axes collinear; free rotation about z"
-msgstr ""
+msgstr "Giratòria — eixos col·lineals; rotació lliure al voltant de z"
 
+# AI Translated
 msgid "Slider — orientation locked; free axial slide"
-msgstr ""
+msgstr "Lliscant — orientació bloquejada; lliscament axial lliure"
 
+# AI Translated
 msgid "Cylindrical — axes collinear; free spin + axial slide"
-msgstr ""
+msgstr "Cilíndrica — eixos col·lineals; gir lliure + lliscament axial"
 
+# AI Translated
 msgid "Kind"
-msgstr ""
+msgstr "Tipus"
 
+# AI Translated
 msgid "CS A (fixed)"
-msgstr ""
+msgstr "SC A (fix)"
 
+# AI Translated
 msgid "CS B (moves)"
-msgstr ""
+msgstr "SC B (es mou)"
 
+# AI Translated
 msgid "Flip (oppose z axes)"
-msgstr ""
+msgstr "Invertir (eixos z oposats)"
 
+# AI Translated
 msgid "Plane distance"
-msgstr ""
+msgstr "Distància entre plans"
 
+# AI Translated
 msgid "Axial position"
-msgstr ""
+msgstr "Posició axial"
 
+# AI Translated
 msgid "Expression"
-msgstr ""
+msgstr "Expressió"
 
+# AI Translated
 msgid "Field"
-msgstr ""
+msgstr "Camp"
 
+# AI Translated
 msgid "Expr"
-msgstr ""
+msgstr "Expr."
 
+# AI Translated
 msgid "(no bindings)"
-msgstr ""
+msgstr "(cap vinculació)"
 
+# AI Translated
 msgid "Value"
-msgstr ""
+msgstr "Valor"
 
+# AI Translated
 msgid "Constraints"
-msgstr ""
+msgstr "Restriccions"
 
+# AI Translated
 msgid "Feature tree"
-msgstr ""
+msgstr "Arbre d'operacions"
 
+# AI Translated
 msgid " — the eye suppresses this mate"
-msgstr ""
+msgstr " — l'ull desactiva aquesta relació de posició"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s selected — F2 or right-click renames it, double-click edits it"
-msgstr ""
+msgstr "%s seleccionat — F2 o clic dret per canviar-ne el nom, doble clic per editar-lo"
 
+# AI Translated
 msgid "Rename\tF2"
-msgstr ""
+msgstr "Canviar el nom\tF2"
 
+# AI Translated
 msgid "Scale artwork"
-msgstr ""
+msgstr "Escalar el dibuix"
 
+# AI Translated
 msgid "Move up"
-msgstr ""
+msgstr "Moure amunt"
 
+# AI Translated
 msgid "Move down"
-msgstr ""
+msgstr "Moure avall"
 
+# AI Translated
 msgid "Show / hide"
-msgstr ""
+msgstr "Mostrar / amagar"
 
+# AI Translated
 msgid "Check interference — find overlapping bodies"
-msgstr ""
+msgstr "Comprovar interferències — trobar cossos superposats"
 
+# AI Translated
 msgid "Bodies"
-msgstr ""
+msgstr "Cossos"
 
+# AI Translated
 msgid "Move body"
-msgstr ""
+msgstr "Moure el cos"
 
+# AI Translated
 msgid "Select a body row first, then move it"
-msgstr ""
+msgstr "Primer seleccioneu una fila de cos i després moveu-la"
 
+# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
-msgstr ""
+msgstr "Booleana — unir, restar o intersecar amb un altre cos"
 
+# AI Translated
 msgid "Colour"
-msgstr ""
+msgstr "Color"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
-msgstr ""
+msgstr "Cos %d seleccionat — feu clic dret per veure què s'hi pot aplicar"
 
+# AI Translated
 msgid "Variables"
-msgstr ""
+msgstr "Variables"
 
+# AI Translated
 msgid "+"
-msgstr ""
+msgstr "+"
 
 msgid "Del"
 msgstr "Esborrar"
 
+# AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Esbós creat — seleccioneu-lo i feu clic dret per fer una extrusió"
 
+# AI Translated
 msgid "Sketch empty — nothing committed"
-msgstr ""
+msgstr "Esbós buit — no s'ha confirmat res"
 
+# AI Translated
 msgid "Sketch updated"
-msgstr ""
+msgstr "Esbós actualitzat"
 
+# AI Translated
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Esbós creat (%zu cotes motrius) — seleccioneu-lo i feu clic dret per fer una extrusió"
 
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
-msgstr ""
+msgstr "No s'ha pogut resoldre l'esbós a extrudir"
 
+# AI Translated
 msgid "Face selected — set the depth and Confirm"
-msgstr ""
+msgstr "Cara seleccionada — establiu la profunditat i confirmeu"
 
+# AI Translated
 msgid "Region selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "Regió seleccionada — feu clic dret per fer una extrusió, o doble clic per editar"
 
+# AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "Esbós seleccionat — feu clic dret per fer una extrusió, o doble clic per editar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d"
-msgstr ""
+msgstr "Cara %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d "
-msgstr ""
+msgstr "Cos %d "
 
+# AI Translated
 msgid "vertex selected — click again for the whole body"
-msgstr ""
+msgstr "vèrtex seleccionat — feu clic de nou per seleccionar tot el cos"
 
+# AI Translated
 msgid "selected (whole body) — right-click for what applies to it"
-msgstr ""
+msgstr "seleccionat (cos sencer) — feu clic dret per veure què s'hi pot aplicar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr ""
+msgstr "cara %d seleccionada — feu clic dret per empènyer-la/estirar-la, o feu clic de nou per seleccionar tot el cos"
 
+# AI Translated
 #, c-format, boost-format
 msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr ""
+msgstr "aresta %d seleccionada — Arrodoniment/Xamfrà per acabar-la, o feu clic de nou per seleccionar tot el cos"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s plane selected — right-click for the drawing tools"
-msgstr ""
+msgstr "Pla %s seleccionat — feu clic dret per a les eines de dibuix"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
-msgstr ""
+msgstr "Pla %s seleccionat — feu clic dret per dibuixar-hi un esbós, o feu clic en un objecte per seleccionar-lo"
 
+# AI Translated
 #, c-format, boost-format
 msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr ""
+msgstr "col·locat a (%.1f, %.1f, %.1f) mm — arrossegueu les fletxes per moure i els anells per rotar"
 
+# AI Translated
 msgid "Tool exited"
-msgstr ""
+msgstr "S'ha sortit de l'eina"
 
+# AI Translated
 msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr ""
+msgstr "Esbós conservat — Finalitzar per confirmar-lo, Cancel·lar per descartar-lo"
 
+# AI Translated
 msgid "✗ Conflicting constraints"
-msgstr ""
+msgstr "✗ Restriccions en conflicte"
 
+# AI Translated
 msgid "✓ Fully constrained"
-msgstr ""
+msgstr "✓ Totalment restringit"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d degrees of freedom"
-msgstr ""
+msgstr "%d graus de llibertat"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketch %d"
-msgstr ""
+msgstr "Esbós %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr ""
+msgstr "Editant: Esbós %d   ·   N = mirar perpendicular al pla   ·   Finalitzar o Cancel·lar a la barra d'eines"
 
+# AI Translated
 #, c-format
 msgid "OK — %zu triangles"
-msgstr ""
+msgstr "D'acord — %zu triangles"
 
+# AI Translated
 msgid "Text to insert:"
-msgstr ""
+msgstr "Text a inserir:"
 
+# AI Translated
 msgid "Import SVG"
-msgstr ""
+msgstr "Importar SVG"
 
+# AI Translated
 msgid "Import STEP"
-msgstr ""
+msgstr "Importar STEP"
 
+# AI Translated
 msgid "Reading STEP…"
-msgstr ""
+msgstr "Llegint STEP…"
 
+# AI Translated
 msgid "No solids found in STEP"
-msgstr ""
+msgstr "No s'han trobat sòlids al STEP"
 
+# AI Translated
 msgid "STEP import failed: "
-msgstr ""
+msgstr "La importació STEP ha fallat: "
 
+# AI Translated
 msgid "Rebuilding model…"
-msgstr ""
+msgstr "Reconstruint el model…"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "S'han importat %d sòlid(s) — trieu una cara o una aresta i després Arrodoniment / Tall / Buidat per modificar"
 
+# AI Translated
 msgid "Import mesh"
-msgstr ""
+msgstr "Importar malla"
 
+# AI Translated
 msgid "Could not read the STL file"
-msgstr ""
+msgstr "No s'ha pogut llegir el fitxer STL"
 
+# AI Translated
 msgid "Could not read the OBJ file: "
-msgstr ""
+msgstr "No s'ha pogut llegir el fitxer OBJ: "
 
+# AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
-msgstr ""
+msgstr "Format de malla no compatible (s'admeten STL i OBJ)"
 
+# AI Translated
 msgid "The mesh contains no triangles"
-msgstr ""
+msgstr "La malla no conté cap triangle"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
 "\n"
 "Import anyway?"
 msgstr ""
+"Aquesta malla té %d triangles. Cada triangle es converteix en una cara B-rep abans de fusionar les cares coplanàries, de manera que importar-la pot trigar molt i deixar un cos lent d'editar. Normalment és millor simplificar primer la malla.\n"
+"\n"
+"Voleu importar-la igualment?"
 
+# AI Translated
 msgid "Large mesh"
-msgstr ""
+msgstr "Malla gran"
 
+# AI Translated
 msgid "Mesh conversion failed: "
-msgstr ""
+msgstr "La conversió de la malla ha fallat: "
 
+# AI Translated
 msgid "Mesh conversion produced no geometry"
-msgstr ""
+msgstr "La conversió de la malla no ha produït cap geometria"
 
+# AI Translated
 msgid "Mesh import failed: "
-msgstr ""
+msgstr "La importació de la malla ha fallat: "
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "Sòlid importat — %d triangles → %d cares, volum %.2f mm³. Trieu una cara o una aresta i després Arrodoniment / Tall / Buidat per modificar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr ""
+msgstr "Importat com a closca oberta (no estanca): %d aresta(es) de contorn, %d aresta(es) no moldejada(es) — %d triangles → %d cares. La malla d'origen té forats o geometria duplicada; les operacions booleanes hi poden fallar"
 
+# AI Translated
 msgid "No importable geometry found"
-msgstr ""
+msgstr "No s'ha trobat cap geometria importable"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s added to the sketch — Confirm to commit it"
-msgstr ""
+msgstr "%s afegit a l'esbós — confirmeu per validar-lo"
 
+# AI Translated
 msgid " — drag to place/size, then Confirm"
-msgstr ""
+msgstr " — arrossegueu per col·locar/dimensionar i després confirmeu"
 
+# AI Translated
 msgid "Insert cancelled"
-msgstr ""
+msgstr "Inserció cancel·lada"
 
+# AI Translated
 msgid "Drag a corner to scale, the centre to move — right-click when done"
-msgstr ""
+msgstr "Arrossegueu una cantonada per escalar i el centre per moure — feu clic dret quan acabeu"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Esbós afegit sobre %s — seleccioneu-lo i feu clic dret per fer una extrusió"
 
+# AI Translated
 msgid "Recompute error: "
-msgstr ""
+msgstr "Error de recàlcul: "
 
+# AI Translated
 msgid "Add a solid (sketch + extrude) first"
-msgstr ""
+msgstr "Primer afegiu un sòlid (esbós + extrusió)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Edge %d"
-msgstr ""
+msgstr "Aresta %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Thread standard: %s  (pitch %.3g mm)"
-msgstr ""
+msgstr "Estàndard de rosca: %s  (pas %.3g mm)"
 
+# AI Translated
 msgid "Thread needs a solid body — add or import one first"
-msgstr ""
+msgstr "La rosca necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Pick a sketch profile to revolve first"
-msgstr ""
+msgstr "Primer trieu un perfil d'esbós per a la revolució"
 
+# AI Translated
 msgid "Revolve needs a solid body — add or import one first"
-msgstr ""
+msgstr "La revolució necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Pick a profile sketch to sweep first"
-msgstr ""
+msgstr "Primer trieu un esbós de perfil per a l'escombratge"
 
+# AI Translated
 msgid "Pick a path sketch for the sweep"
-msgstr ""
+msgstr "Trieu un esbós de trajectòria per a l'escombratge"
 
+# AI Translated
 msgid "Sweep needs a solid body — add or import one first"
-msgstr ""
+msgstr "L'escombratge necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Check at least two profile sketches to loft"
-msgstr ""
+msgstr "Marqueu almenys dos esbossos de perfil per al recobriment"
 
+# AI Translated
 msgid "Loft needs a solid body — add or import one first"
-msgstr ""
+msgstr "El recobriment necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Pick a sketch profile to extrude first"
-msgstr ""
+msgstr "Primer trieu un perfil d'esbós per extrudir"
 
+# AI Translated
 msgid "Pick a sketch to fill first"
-msgstr ""
+msgstr "Primer trieu un esbós per omplir"
 
+# AI Translated
 msgid "Select a sheet body first"
-msgstr ""
+msgstr "Primer seleccioneu un cos de superfície"
 
+# AI Translated
 msgid "Pick a solid face to thicken first"
-msgstr ""
+msgstr "Primer trieu una cara del sòlid per engruixir"
 
+# AI Translated
 msgid "Pick a sketch with an open line first"
-msgstr ""
+msgstr "Primer trieu un esbós amb una línia oberta"
 
+# AI Translated
 msgid "Add at least one face to delete first"
-msgstr ""
+msgstr "Primer afegiu almenys una cara per suprimir"
 
+# AI Translated
 msgid "Mate needs two CoordSys features — create them first"
-msgstr ""
+msgstr "La relació de posició necessita dues operacions de sistema de coordenades — primer creeu-les"
 
+# AI Translated
 msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr ""
+msgstr "Relació de posició: SC A i SC B han de ser operacions de sistema de coordenades diferents"
 
+# AI Translated
 msgid "Mate rejected"
-msgstr ""
+msgstr "Relació de posició rebutjada"
 
+# AI Translated
 msgid "No interference — need at least two solid bodies to check"
-msgstr ""
+msgstr "Cap interferència — calen almenys dos cossos sòlids per comprovar-ho"
 
+# AI Translated
 msgid "No interference found"
-msgstr ""
+msgstr "No s'ha trobat cap interferència"
 
+# AI Translated
 #, c-format
 msgid "%zu interference pairs, worst %.2f mm³"
-msgstr ""
+msgstr "%zu parells amb interferència, el pitjor %.2f mm³"
 
+# AI Translated
 msgid ""
 "Interference pairs:\n"
 "\n"
 msgstr ""
+"Parells amb interferència:\n"
+"\n"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
-msgstr ""
+msgstr "Cos %d"
 
+# AI Translated
 msgid "Interference"
-msgstr ""
+msgstr "Interferència"
 
+# AI Translated
 msgid "Select a solid body first — its mass properties are what is reported"
-msgstr ""
+msgstr "Primer seleccioneu un cos sòlid — se n'informaran les propietats de massa"
 
+# AI Translated
 msgid "Mass properties could not be computed for this body"
-msgstr ""
+msgstr "No s'han pogut calcular les propietats de massa d'aquest cos"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr ""
+msgstr "%s: cos de superfície — %.2f cm² de superfície, sense volum"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "%s\n"
@@ -24090,14 +24834,23 @@ msgid ""
 "\n"
 "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
 msgstr ""
+"%s\n"
+"\n"
+"Cos de superfície (closca oberta)\n"
+"Àrea de la superfície: %.2f cm²\n"
+"\n"
+"Una superfície no tanca cap material, de manera que no té volum. Engruixiu-la per convertir-la en un sòlid que en tingui."
 
+# AI Translated
 msgid "Mass properties"
-msgstr ""
+msgstr "Propietats de massa"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: %.3f cm³, %.2f cm²"
-msgstr ""
+msgstr "%s: %.3f cm³, %.2f cm²"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "%s\n"
@@ -24105,836 +24858,1110 @@ msgid ""
 "Volume: %.3f cm³\n"
 "Surface area: %.2f cm²"
 msgstr ""
+"%s\n"
+"\n"
+"Volum: %.3f cm³\n"
+"Àrea de la superfície: %.2f cm²"
 
+# AI Translated
 msgid "Pattern needs a solid body — add or import one first"
-msgstr ""
+msgstr "La matriu necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr ""
+msgstr "L'operació booleana necessita dos cossos sòlids — afegiu-ne o importeu-ne un segon"
 
+# AI Translated
 msgid "Cut needs a solid body — add or import one first"
-msgstr ""
+msgstr "El tall necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 #, c-format, boost-format
 msgid "the picked face of Body %d"
-msgstr ""
+msgstr "la cara triada del Cos %d"
 
+# AI Translated
 msgid "the picked face"
-msgstr ""
+msgstr "la cara triada"
 
+# AI Translated
 #, c-format, boost-format
 msgid "  ·  %d picked"
-msgstr ""
+msgstr "  ·  %d triats"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr ""
+msgstr "%d seleccionats  ·  Supr els elimina  ·  Majúscules+clic n'afegeix  ·  doble clic agafa tot el bucle"
 
+# AI Translated
 msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
-msgstr ""
+msgstr "Seleccionar — feu clic en una entitat per triar-la  ·  arrossegueu un extrem o el centre per moure-la  ·  Majúscules+clic n'afegeix  ·  Supr elimina"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
-msgstr ""
+msgstr "%d triats  ·  ara trieu una restricció (Horitzontal, Paral·lel, Tangent, Igual…)"
 
+# AI Translated
 msgid "Constrain — click one or two entities, then choose a constraint"
-msgstr ""
+msgstr "Restringir — feu clic en una o dues entitats i després trieu una restricció"
 
+# AI Translated
 msgid "Dimension — click an entity, or the first of two points"
-msgstr ""
+msgstr "Cota — feu clic en una entitat, o en el primer de dos punts"
 
+# AI Translated
 msgid "Dimension — click the second point"
-msgstr ""
+msgstr "Cota — feu clic al segon punt"
 
+# AI Translated
 msgid "Line — click the start point"
-msgstr ""
+msgstr "Línia — feu clic al punt inicial"
 
+# AI Translated
 msgid "Line — click the end point, or type the length"
-msgstr ""
+msgstr "Línia — feu clic al punt final, o escriviu la longitud"
 
+# AI Translated
 msgid "Polyline — click the first point"
-msgstr ""
+msgstr "Polilínia — feu clic al primer punt"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr ""
+msgstr "Polilínia — feu clic al punt següent  ·  feu clic al punt inicial per tancar-la  ·  clic dret per acabar la cadena"
 
+# AI Translated
 msgid "Rectangle — click one corner"
-msgstr ""
+msgstr "Rectangle — feu clic a una cantonada"
 
+# AI Translated
 msgid "Rectangle — click the opposite corner"
-msgstr ""
+msgstr "Rectangle — feu clic a la cantonada oposada"
 
+# AI Translated
 msgid "Centre rectangle — click the centre"
-msgstr ""
+msgstr "Rectangle des del centre — feu clic al centre"
 
+# AI Translated
 msgid "Centre rectangle — click a corner"
-msgstr ""
+msgstr "Rectangle des del centre — feu clic a una cantonada"
 
+# AI Translated
 msgid "Oblique rectangle — click the start of the base edge"
-msgstr ""
+msgstr "Rectangle oblic — feu clic a l'inici del costat de base"
 
+# AI Translated
 msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
-msgstr ""
+msgstr "Rectangle oblic — feu clic al final del costat de base (això defineix l'angle)"
 
+# AI Translated
 msgid "Oblique rectangle — click to set the width"
-msgstr ""
+msgstr "Rectangle oblic — feu clic per establir l'amplada"
 
+# AI Translated
 msgid "Rounded rectangle — click one corner"
-msgstr ""
+msgstr "Rectangle arrodonit — feu clic a una cantonada"
 
+# AI Translated
 msgid "Rounded rectangle — click the opposite corner"
-msgstr ""
+msgstr "Rectangle arrodonit — feu clic a la cantonada oposada"
 
+# AI Translated
 msgid "Rounded rectangle — click to set the corner radius"
-msgstr ""
+msgstr "Rectangle arrodonit — feu clic per establir el radi de les cantonades"
 
+# AI Translated
 msgid "Circle — click the centre"
-msgstr ""
+msgstr "Cercle — feu clic al centre"
 
+# AI Translated
 msgid "Circle — click to set the radius, or type it"
-msgstr ""
+msgstr "Cercle — feu clic per establir el radi, o escriviu-lo"
 
+# AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
-msgstr ""
+msgstr "Cercle (2 punts) — feu clic a un extrem del diàmetre"
 
+# AI Translated
 msgid "Circle (2 points) — click the other end of the diameter"
-msgstr ""
+msgstr "Cercle (2 punts) — feu clic a l'altre extrem del diàmetre"
 
+# AI Translated
 msgid "Circle (3 points) — click the first point on the circle"
-msgstr ""
+msgstr "Cercle (3 punts) — feu clic al primer punt del cercle"
 
+# AI Translated
 msgid "Circle (3 points) — click the second point"
-msgstr ""
+msgstr "Cercle (3 punts) — feu clic al segon punt"
 
+# AI Translated
 msgid "Circle (3 points) — click the third point"
-msgstr ""
+msgstr "Cercle (3 punts) — feu clic al tercer punt"
 
+# AI Translated
 msgid "Arc — click the start point"
-msgstr ""
+msgstr "Arc — feu clic al punt inicial"
 
+# AI Translated
 msgid "Arc — click the end point"
-msgstr ""
+msgstr "Arc — feu clic al punt final"
 
+# AI Translated
 msgid "Arc — click a point the arc passes through"
-msgstr ""
+msgstr "Arc — feu clic a un punt per on passi l'arc"
 
+# AI Translated
 msgid "Tangent arc — click the endpoint it leaves from"
-msgstr ""
+msgstr "Arc tangent — feu clic a l'extrem des d'on surt"
 
+# AI Translated
 msgid "Tangent arc — click its far end"
-msgstr ""
+msgstr "Arc tangent — feu clic al seu extrem final"
 
+# AI Translated
 msgid "Centre arc — click the centre"
-msgstr ""
+msgstr "Arc per centre — feu clic al centre"
 
+# AI Translated
 msgid "Centre arc — click the start point (this sets the radius)"
-msgstr ""
+msgstr "Arc per centre — feu clic al punt inicial (això defineix el radi)"
 
+# AI Translated
 msgid "Centre arc — click the end point"
-msgstr ""
+msgstr "Arc per centre — feu clic al punt final"
 
+# AI Translated
 msgid "Slot — click one end of the centreline"
-msgstr ""
+msgstr "Ranura — feu clic a un extrem de la línia central"
 
+# AI Translated
 msgid "Slot — click the other end of the centreline"
-msgstr ""
+msgstr "Ranura — feu clic a l'altre extrem de la línia central"
 
+# AI Translated
 msgid "Slot — click to set the width"
-msgstr ""
+msgstr "Ranura — feu clic per establir l'amplada"
 
+# AI Translated
 msgid "Arc slot — click the centre the slot curves about"
-msgstr ""
+msgstr "Ranura en arc — feu clic al centre al voltant del qual es corba la ranura"
 
+# AI Translated
 msgid "Arc slot — click the start of the centreline (this sets the radius)"
-msgstr ""
+msgstr "Ranura en arc — feu clic a l'inici de la línia central (això defineix el radi)"
 
+# AI Translated
 msgid "Arc slot — click the end of the centreline"
-msgstr ""
+msgstr "Ranura en arc — feu clic al final de la línia central"
 
+# AI Translated
 msgid "Arc slot — click to set the width"
-msgstr ""
+msgstr "Ranura en arc — feu clic per establir l'amplada"
 
+# AI Translated
 msgid "Polygon — click the centre"
-msgstr ""
+msgstr "Polígon — feu clic al centre"
 
+# AI Translated
 msgid "Polygon — click a vertex (this sets size and orientation)"
-msgstr ""
+msgstr "Polígon — feu clic a un vèrtex (això defineix la mida i l'orientació)"
 
+# AI Translated
 msgid "Ellipse — click the centre"
-msgstr ""
+msgstr "El·lipse — feu clic al centre"
 
+# AI Translated
 msgid "Ellipse — click the end of the major axis"
-msgstr ""
+msgstr "El·lipse — feu clic a l'extrem de l'eix major"
 
+# AI Translated
 msgid "Ellipse — click a point on the minor axis"
-msgstr ""
+msgstr "El·lipse — feu clic a un punt de l'eix menor"
 
+# AI Translated
 msgid "Elliptical arc — click the centre"
-msgstr ""
+msgstr "Arc el·líptic — feu clic al centre"
 
+# AI Translated
 msgid "Elliptical arc — click the end of the major axis"
-msgstr ""
+msgstr "Arc el·líptic — feu clic a l'extrem de l'eix major"
 
+# AI Translated
 msgid "Elliptical arc — click a point on the minor axis"
-msgstr ""
+msgstr "Arc el·líptic — feu clic a un punt de l'eix menor"
 
+# AI Translated
 msgid "Elliptical arc — click where the arc starts"
-msgstr ""
+msgstr "Arc el·líptic — feu clic on comença l'arc"
 
+# AI Translated
 msgid "Elliptical arc — click where the arc ends"
-msgstr ""
+msgstr "Arc el·líptic — feu clic on acaba l'arc"
 
+# AI Translated
 msgid "Spline — click the first control point"
-msgstr ""
+msgstr "Spline — feu clic al primer punt de control"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr ""
+msgstr "Spline — feu clic al punt de control següent  ·  clic dret per acabar la corba"
 
+# AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
-msgstr ""
+msgstr "Punt — feu clic per col·locar-ne un; l'eina continua activa per a més"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr ""
+msgstr "Retallar — feu clic en un segment on creua una altra entitat  ·  clic dret per sortir"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr ""
+msgstr "Allargar — feu clic en una línia o un arc per allargar-lo fins a l'entitat més propera  ·  clic dret per sortir"
 
+# AI Translated
 msgid "Fillet — click the first of two lines that meet"
-msgstr ""
+msgstr "Arrodoniment — feu clic a la primera de dues línies que es troben"
 
+# AI Translated
 msgid "Fillet — click the second line"
-msgstr ""
+msgstr "Arrodoniment — feu clic a la segona línia"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Arrodoniment — arrossegueu la fletxa, o feu clic al número per escriure el radi  ·  feu clic en un espai buit per aplicar  ·  el clic dret cancel·la"
 
+# AI Translated
 msgid "Chamfer — click the first of two lines that meet"
-msgstr ""
+msgstr "Xamfrà — feu clic a la primera de dues línies que es troben"
 
+# AI Translated
 msgid "Chamfer — click the second line"
-msgstr ""
+msgstr "Xamfrà — feu clic a la segona línia"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Xamfrà — arrossegueu la fletxa, o feu clic al número per escriure la distància  ·  feu clic en un espai buit per aplicar  ·  el clic dret cancel·la"
 
+# AI Translated
 msgid "Offset — click the entity to offset"
-msgstr ""
+msgstr "Desplaçament — feu clic a l'entitat a desplaçar"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Desplaçament — arrossegueu la fletxa cap a qualsevol costat, o feu clic al número per escriure la distància  ·  feu clic en un espai buit per aplicar  ·  el clic dret cancel·la"
 
+# AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
-msgstr ""
+msgstr "Mirall — primer feu clic a la LÍNIA respecte a la qual reflectir (serveix una línia de construcció)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr ""
+msgstr "Mirall — eix definit  ·  ara feu clic a les entitats a reflectir  ·  el clic dret cancel·la"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr ""
+msgstr "Mirall — eix definit  ·  %d a reflectir  ·  feu clic en una altra per afegir-la o treure-la  ·  feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Move — click the entities to move"
-msgstr ""
+msgstr "Moure — feu clic a les entitats a moure"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr ""
+msgstr "Moure — arrossegueu la nansa, o feu clic al número per escriure la distància  ·  feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Rotate — click the entities to rotate"
-msgstr ""
+msgstr "Rotar — feu clic a les entitats a rotar"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr ""
+msgstr "Rotar — arrossegueu la nansa, o feu clic al número per escriure l'angle  ·  feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Scale — click the entities to scale"
-msgstr ""
+msgstr "Escalar — feu clic a les entitats a escalar"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr ""
+msgstr "Escalar — arrossegueu la nansa, o feu clic al número per escriure el factor  ·  feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Array — click the entities to repeat"
-msgstr ""
+msgstr "Matriu — feu clic a les entitats a repetir"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "Matriu — arrossegueu la nansa per establir el pas, feu clic al nombre per escriure'l  ·  feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Polar array — click the entities to repeat"
-msgstr ""
+msgstr "Matriu polar — feu clic a les entitats a repetir"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "Matriu polar — arrossegueu la nansa per establir l'angle total, feu clic al nombre per escriure'l  ·  feu clic en un espai buit per aplicar"
 
+# AI Translated
 msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
-msgstr ""
+msgstr "Arrossegueu una cantonada per escalar i el centre per moure  ·  feu clic dret quan acabeu"
 
+# AI Translated
 msgid "  ·  Esc goes back to Select"
-msgstr ""
+msgstr "  ·  Esc torna a Seleccionar"
 
+# AI Translated
 msgid "  ·  click a constraint badge to remove it"
-msgstr ""
+msgstr "  ·  feu clic a la insígnia d'una restricció per eliminar-la"
 
+# AI Translated
 msgid "select something first"
-msgstr ""
+msgstr "primer seleccioneu alguna cosa"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mate: %s  →  %s"
-msgstr ""
+msgstr "Relació de posició: %s  →  %s"
 
+# AI Translated
 msgid "Fastened"
-msgstr ""
+msgstr "Fixa"
 
+# AI Translated
 msgid "Revolute"
-msgstr ""
+msgstr "Giratòria"
 
+# AI Translated
 msgid "Slider"
-msgstr ""
+msgstr "Lliscant"
 
+# AI Translated
 msgid "Cylindrical"
-msgstr ""
+msgstr "Cilíndrica"
 
+# AI Translated
 msgid "Click a solid FACE in the viewport"
-msgstr ""
+msgstr "Feu clic en una CARA del sòlid a la vista"
 
+# AI Translated
 msgid "Click a solid EDGE in the viewport"
-msgstr ""
+msgstr "Feu clic en una ARESTA del sòlid a la vista"
 
+# AI Translated
 msgid "An angled plane needs an edge to tilt about — pick Edge A"
-msgstr ""
+msgstr "Un pla inclinat necessita una aresta com a eix d'inclinació — trieu l'aresta A"
 
+# AI Translated
 msgid "A midplane needs two faces — pick Face A and Face B"
-msgstr ""
+msgstr "Un pla mitjà necessita dues cares — trieu la cara A i la cara B"
 
+# AI Translated
 msgid "Face A and Face B are the same face — a midplane needs two different faces"
-msgstr ""
+msgstr "La cara A i la cara B són la mateixa cara — un pla mitjà necessita dues cares diferents"
 
+# AI Translated
 msgid "A tangent plane needs a cylindrical face — pick Face A"
-msgstr ""
+msgstr "Un pla tangent necessita una cara cilíndrica — trieu la cara A"
 
+# AI Translated
 msgid "This plane needs two edges — pick Edge A and Edge B"
-msgstr ""
+msgstr "Aquest pla necessita dues arestes — trieu l'aresta A i l'aresta B"
 
+# AI Translated
 msgid "Plane added — pick it as a sketch plane"
-msgstr ""
+msgstr "Pla afegit — trieu-lo com a pla d'esbós"
 
+# AI Translated
 msgid "Axis added"
-msgstr ""
+msgstr "Eix afegit"
 
+# AI Translated
 msgid "Coord Sys added"
-msgstr ""
+msgstr "Sist. coord. afegit"
 
+# AI Translated
 msgid "Shell needs a solid body — add or import one first"
-msgstr ""
+msgstr "El buidat necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Draft needs a solid body — add or import one first"
-msgstr ""
+msgstr "El desmoldeig necessita un cos sòlid — primer afegiu-ne o importeu-ne un"
 
+# AI Translated
 msgid "Draft needs a picked face — click a side face first"
-msgstr ""
+msgstr "El desmoldeig necessita una cara triada — primer feu clic en una cara lateral"
 
+# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
 "or click a reference plane and right-click it to start a sketch."
 msgstr ""
+"Encara no hi ha res — importeu un STEP o una malla des de la barra d'eines,\n"
+"o feu clic en un pla de referència i feu-hi clic dret per començar un esbós."
 
+# AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
-msgstr ""
+msgstr "Encara no hi ha cap sòlid — seleccioneu un esbós i feu-hi clic dret per fer una extrusió."
 
+# AI Translated
 msgid "Could not restore the CAD model from this project"
-msgstr ""
+msgstr "No s'ha pogut restaurar el model CAD d'aquest projecte"
 
+# AI Translated
 msgid "Could not restore the CAD model: "
-msgstr ""
+msgstr "No s'ha pogut restaurar el model CAD: "
 
+# AI Translated
 #, c-format
 msgid "Body %zu — %s"
-msgstr ""
+msgstr "Cos %zu — %s"
 
+# AI Translated
 msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
-msgstr ""
+msgstr "Vista de secció activada — amaga la meitat del model per veure'n l'interior; RePàg / AvPàg mouen el pla, Invertir mostra l'altra meitat"
 
+# AI Translated
 msgid "Section view off"
-msgstr ""
+msgstr "Vista de secció desactivada"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Section view — showing the %s half"
-msgstr ""
+msgstr "Vista de secció — es mostra la meitat %s"
 
+# AI Translated
 msgid "upper"
-msgstr ""
+msgstr "superior"
 
+# AI Translated
 msgid "lower"
-msgstr ""
+msgstr "inferior"
 
+# AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
-msgstr ""
+msgstr "L'operació booleana necessita dos cossos — creeu o importeu un segon sòlid"
 
+# AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr ""
+msgstr "Primer seleccioneu un cos — feu-hi clic a la vista o a la llista de cossos"
 
+# AI Translated
 msgid "That body has no display mesh yet — recompute first"
-msgstr ""
+msgstr "Aquest cos encara no té malla de visualització — primer recalculeu"
 
+# AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
-msgstr ""
+msgstr "Arrossegueu les fletxes per moure i els anells per rotar — després confirmeu (Esc cancel·la)"
 
+# AI Translated
 msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
-msgstr ""
+msgstr "Arrossegueu les fletxes per moure i els anells per rotar — els números s'actualitzen"
 
+# AI Translated
 msgid "Select a body first"
-msgstr ""
+msgstr "Primer seleccioneu un cos"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d colour set"
-msgstr ""
+msgstr "S'ha establert el color del Cos %d"
 
+# AI Translated
 msgid "Click a face on the solid, then press F"
-msgstr ""
+msgstr "Feu clic en una cara del sòlid i després premeu F"
 
+# AI Translated
 msgid "Placed on face — body laid flat on the bed"
-msgstr ""
+msgstr "Recolzat sobre la cara — cos col·locat pla sobre el llit"
 
+# AI Translated
 msgid "Edit rejected: "
-msgstr ""
+msgstr "Edició rebutjada: "
 
+# AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
-msgstr ""
+msgstr "Voleu esborrar totes les operacions i cossos i començar un disseny nou? Això no es pot desfer."
 
+# AI Translated
 msgid "New Design"
-msgstr ""
+msgstr "Disseny nou"
 
+# AI Translated
 msgid "This body has no feature to delete — use New Design to start over"
-msgstr ""
+msgstr "Aquest cos no té cap operació per suprimir — feu servir Disseny nou per tornar a començar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "feature %d"
-msgstr ""
+msgstr "operació %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Delete %s?\n"
 "\n"
 "That is the feature this body was made from. Features built on it may be removed or stop working."
 msgstr ""
+"Voleu suprimir %s?\n"
+"\n"
+"És l'operació a partir de la qual s'ha creat aquest cos. Les operacions que en depenen es poden eliminar o deixar de funcionar."
 
+# AI Translated
 msgid "Delete body"
-msgstr ""
+msgstr "Suprimir el cos"
 
+# AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
-msgstr ""
+msgstr "Seleccioneu l'OPERACIÓ que ha creat aquest cos (o feu servir Disseny nou)"
 
+# AI Translated
 msgid "Select a feature in the tree first"
-msgstr ""
+msgstr "Primer seleccioneu una operació a l'arbre"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d shown"
-msgstr ""
+msgstr "Cos %d visible"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d hidden"
-msgstr ""
+msgstr "Cos %d amagat"
 
+# AI Translated
 msgid "Feature shown"
-msgstr ""
+msgstr "Operació visible"
 
+# AI Translated
 msgid "Feature hidden"
-msgstr ""
+msgstr "Operació amagada"
 
+# AI Translated
 msgid "Draw a sketch first, then Constrain"
-msgstr ""
+msgstr "Primer dibuixeu un esbós i després restringiu-lo"
 
+# AI Translated
 msgid "Select a sketch in the tree first"
-msgstr ""
+msgstr "Primer seleccioneu un esbós a l'arbre"
 
+# AI Translated
 msgid "Selected feature is not a sketch"
-msgstr ""
+msgstr "L'operació seleccionada no és un esbós"
 
+# AI Translated
 msgid "Pick 1-2 lines, then a constraint; right-click exits"
-msgstr ""
+msgstr "Trieu 1-2 línies i després una restricció; el clic dret surt"
 
+# AI Translated
 msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
-msgstr ""
+msgstr "Trieu 1-2 entitats i després una restricció o una cota; el clic dret surt"
 
+# AI Translated
 msgid "Pick an entity first"
-msgstr ""
+msgstr "Primer trieu una entitat"
 
+# AI Translated
 msgid "Pick two entities first"
-msgstr ""
+msgstr "Primer trieu dues entitats"
 
+# AI Translated
 msgid "Horizontal and Vertical apply to a line"
-msgstr ""
+msgstr "Horitzontal i Vertical s'apliquen a una línia"
 
+# AI Translated
 msgid "Angle applies between two lines"
-msgstr ""
+msgstr "Angle s'aplica entre dues línies"
 
+# AI Translated
 msgid "Collinear needs two lines"
-msgstr ""
+msgstr "Col·lineal necessita dues línies"
 
+# AI Translated
 msgid "Parallel, perpendicular and equal length apply to two lines"
-msgstr ""
+msgstr "Paral·lel, perpendicular i longitud igual s'apliquen a dues línies"
 
+# AI Translated
 msgid "Equal radius needs two circles or arcs"
-msgstr ""
+msgstr "Radi igual necessita dos cercles o arcs"
 
+# AI Translated
 msgid "Concentric needs two circles or arcs"
-msgstr ""
+msgstr "Concèntric necessita dos cercles o arcs"
 
+# AI Translated
 msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
-msgstr ""
+msgstr "Tangent necessita una línia i un cercle/arc, o dos cercles/arcs"
 
+# AI Translated
 msgid "This constraint needs two entities with a point to join"
-msgstr ""
+msgstr "Aquesta restricció necessita dues entitats amb un punt per unir"
 
+# AI Translated
 msgid "This dimension needs two entities with a point to measure between"
-msgstr ""
+msgstr "Aquesta cota necessita dues entitats amb punts entre els quals mesurar"
 
+# AI Translated
 msgid "Midpoint needs a point and a line"
-msgstr ""
+msgstr "Punt mitjà necessita un punt i una línia"
 
+# AI Translated
 msgid "Symmetric needs two points or two lines + an axis"
-msgstr ""
+msgstr "Simètric necessita dos punts o dues línies + un eix"
 
+# AI Translated
 msgid "Symmetric needs two points or two lines"
-msgstr ""
+msgstr "Simètric necessita dos punts o dues línies"
 
+# AI Translated
 msgid "Symmetric: pick two entities, then an axis line"
-msgstr ""
+msgstr "Simètric: trieu dues entitats i després una línia d'eix"
 
+# AI Translated
 msgid "Radius/Diameter needs a circle or arc"
-msgstr ""
+msgstr "Radi/Diàmetre necessita un cercle o un arc"
 
+# AI Translated
 msgid "Unsupported constraint"
-msgstr ""
+msgstr "Restricció no compatible"
 
+# AI Translated
 msgid "Constraint rejected (over-constrained)"
-msgstr ""
+msgstr "Restricció rebutjada (sobrerestringit)"
 
+# AI Translated
 msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
-msgstr ""
+msgstr "Restricció aplicada  ·  la seva insígnia és a l'esbós — feu clic a la insígnia per eliminar-la"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr ""
+msgstr "%s  —  %d seleccionats. Premeu Esc per a l'eina Seleccionar, feu clic en una línia i després Majúscules+clic o Ctrl+clic a l'altra."
 
+# AI Translated
 msgid "Applied constraint"
-msgstr ""
+msgstr "Restricció aplicada"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
-msgstr ""
+msgstr "Fixar %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Lock X %s"
-msgstr ""
+msgstr "Bloquejar X %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Lock Y %s"
-msgstr ""
+msgstr "Bloquejar Y %s"
 
+# AI Translated
 msgid "Equal"
-msgstr ""
+msgstr "Igual"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric %s — %s / %s"
-msgstr ""
+msgstr "Simètric %s — %s / %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric about Y axis %s — %s"
-msgstr ""
+msgstr "Simètric respecte a l'eix Y %s — %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric about X axis %s — %s"
-msgstr ""
+msgstr "Simètric respecte a l'eix X %s — %s"
 
+# AI Translated
 msgid "On line"
-msgstr ""
+msgstr "Sobre la línia"
 
+# AI Translated
 msgid "On edge"
-msgstr ""
+msgstr "Sobre l'aresta"
 
+# AI Translated
 msgid "Constraint"
-msgstr ""
+msgstr "Restricció"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Constraints (%d)"
-msgstr ""
+msgstr "Restriccions (%d)"
 
+# AI Translated
 msgid "No constraints yet"
-msgstr ""
+msgstr "Encara no hi ha restriccions"
 
+# AI Translated
 msgid "Delete constraint"
-msgstr ""
+msgstr "Suprimir la restricció"
 
+# AI Translated
 msgid "Constraint deleted"
-msgstr ""
+msgstr "Restricció suprimida"
 
+# AI Translated
 msgid "Press Constrain on a sketch first"
-msgstr ""
+msgstr "Primer premeu Restringir en un esbós"
 
+# AI Translated
 msgid "Pick the entity, then a mirror-axis line"
-msgstr ""
+msgstr "Trieu l'entitat i després una línia d'eix de mirall"
 
+# AI Translated
 msgid "Mirror axis must be a line"
-msgstr ""
+msgstr "L'eix de mirall ha de ser una línia"
 
+# AI Translated
 msgid "Mirror produced nothing"
-msgstr ""
+msgstr "El mirall no ha produït res"
 
+# AI Translated
 msgid "Offset distance (+left / -right of direction)"
-msgstr ""
+msgstr "Distància de desplaçament (+esquerra / -dreta de la direcció)"
 
+# AI Translated
 msgid "Offset collapsed the entity"
-msgstr ""
+msgstr "El desplaçament ha col·lapsat l'entitat"
 
+# AI Translated
 msgid "Pick two lines to fillet"
-msgstr ""
+msgstr "Trieu dues línies per arrodonir"
 
+# AI Translated
 msgid "Fillet needs two lines"
-msgstr ""
+msgstr "L'arrodoniment necessita dues línies"
 
+# AI Translated
 msgid "Fillet radius"
-msgstr ""
+msgstr "Radi d'arrodoniment"
 
+# AI Translated
 msgid "Fillet failed (parallel lines or radius too large)"
-msgstr ""
+msgstr "L'arrodoniment ha fallat (línies paral·leles o radi massa gran)"
 
+# AI Translated
 msgid "Pick two lines to chamfer"
-msgstr ""
+msgstr "Trieu dues línies per fer el xamfrà"
 
+# AI Translated
 msgid "Chamfer needs two lines"
-msgstr ""
+msgstr "El xamfrà necessita dues línies"
 
+# AI Translated
 msgid "Chamfer distance"
-msgstr ""
+msgstr "Distància del xamfrà"
 
+# AI Translated
 msgid "Chamfer failed (parallel lines or distance too large)"
-msgstr ""
+msgstr "El xamfrà ha fallat (línies paral·leles o distància massa gran)"
 
+# AI Translated
 msgid "Trim works on lines, arcs and circles"
-msgstr ""
+msgstr "Retallar funciona amb línies, arcs i cercles"
 
+# AI Translated
 msgid "Extend works on lines and arcs"
-msgstr ""
+msgstr "Allargar funciona amb línies i arcs"
 
+# AI Translated
 msgid "Pick the edge to trim/extend"
-msgstr ""
+msgstr "Trieu l'aresta a retallar/allargar"
 
+# AI Translated
 msgid "Nothing to trim at the pick"
-msgstr ""
+msgstr "No hi ha res a retallar al punt triat"
 
+# AI Translated
 msgid "No edge to extend to"
-msgstr ""
+msgstr "No hi ha cap aresta fins on allargar"
 
+# AI Translated
 msgid "Array count (incl. original)"
-msgstr ""
+msgstr "Nombre d'elements de la matriu (incl. l'original)"
 
+# AI Translated
 msgid "Spacing (mm)"
-msgstr ""
+msgstr "Espaiat (mm)"
 
+# AI Translated
 msgid "Array produced nothing"
-msgstr ""
+msgstr "La matriu no ha produït res"
 
+# AI Translated
 msgid "Move dX (mm)"
-msgstr ""
+msgstr "Moure dX (mm)"
 
+# AI Translated
 msgid "Move dY (mm)"
-msgstr ""
+msgstr "Moure dY (mm)"
 
+# AI Translated
 msgid "Move produced nothing"
-msgstr ""
+msgstr "El moviment no ha produït res"
 
+# AI Translated
 msgid "Rotate angle (deg)"
-msgstr ""
+msgstr "Angle de rotació (graus)"
 
+# AI Translated
 msgid "Rotate produced nothing"
-msgstr ""
+msgstr "La rotació no ha produït res"
 
+# AI Translated
 msgid "Scale factor"
-msgstr ""
+msgstr "Factor d'escala"
 
+# AI Translated
 msgid "Scale produced nothing"
-msgstr ""
+msgstr "L'escalat no ha produït res"
 
+# AI Translated
 msgid "Polar count (incl. original)"
-msgstr ""
+msgstr "Nombre d'elements polars (incl. l'original)"
 
+# AI Translated
 msgid "Total sweep (deg)"
-msgstr ""
+msgstr "Angle total (graus)"
 
+# AI Translated
 msgid "Polar array produced nothing"
-msgstr ""
+msgstr "La matriu polar no ha produït res"
 
+# AI Translated
 msgid "Applied edit"
-msgstr ""
+msgstr "Edició aplicada"
 
+# AI Translated
 msgid " — type a value, press Enter (or Confirm)"
-msgstr ""
+msgstr " — escriviu un valor i premeu Retorn (o Confirmar)"
 
+# AI Translated
 msgid "Pick a segment in the viewport first"
-msgstr ""
+msgstr "Primer trieu un segment a la vista"
 
+# AI Translated
 msgid "Applied Horizontal"
-msgstr ""
+msgstr "Horitzontal aplicada"
 
+# AI Translated
 msgid "Applied Vertical"
-msgstr ""
+msgstr "Vertical aplicada"
 
+# AI Translated
 msgid "Sketch: "
-msgstr ""
+msgstr "Esbós: "
 
+# AI Translated
 #, c-format, boost-format
 msgid "On a face of Body %d"
-msgstr ""
+msgstr "Sobre una cara del Cos %d"
 
+# AI Translated
 msgid "On a stored face"
-msgstr ""
+msgstr "Sobre una cara desada"
 
+# AI Translated
 msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr ""
+msgstr "Editant l'esbós — arrossegueu una nansa o feu clic en una cota per editar-la"
 
+# AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
-msgstr ""
+msgstr "Un sòlid importat no té paràmetres — feu servir Transformació per moure'l o rotar-lo"
 
+# AI Translated
 msgid "This feature type can't be edited yet"
-msgstr ""
+msgstr "Aquest tipus d'operació encara no es pot editar"
 
+# AI Translated
 msgid "Nothing to export — add a feature first"
-msgstr ""
+msgstr "No hi ha res a exportar — primer afegiu una operació"
 
+# AI Translated
 msgid "Export STEP"
-msgstr ""
+msgstr "Exportar STEP"
 
+# AI Translated
 msgid "Exported STEP"
-msgstr ""
+msgstr "STEP exportat"
 
+# AI Translated
 msgid "STEP export failed: "
-msgstr ""
+msgstr "L'exportació STEP ha fallat: "
 
+# AI Translated
 msgid "Nothing to commit — add a feature first"
-msgstr ""
+msgstr "No hi ha res a enviar — primer afegiu una operació"
 
+# AI Translated
 msgid "All bodies hidden — show one before committing"
-msgstr ""
+msgstr "Tots els cossos estan amagats — mostreu-ne un abans d'enviar"
 
+# AI Translated
 msgid "Plane ready"
-msgstr ""
+msgstr "Pla a punt"
 
+# AI Translated
 msgid "Axis ready"
-msgstr ""
+msgstr "Eix a punt"
 
+# AI Translated
 msgid "Coord Sys ready"
-msgstr ""
+msgstr "Sist. coord. a punt"
 
+# AI Translated
 msgid "Helix ready"
-msgstr ""
+msgstr "Hèlix a punt"
 
+# AI Translated
 msgid "Project ready"
-msgstr ""
+msgstr "Projecció a punt"
 
+# AI Translated
 msgid "Sketch ready"
-msgstr ""
+msgstr "Esbós a punt"
 
+# AI Translated
 msgid "Mate needs at least two CoordSys features"
-msgstr ""
+msgstr "La relació de posició necessita almenys dues operacions de sistema de coordenades"
 
+# AI Translated
 msgid "Mate: CS A and CS B must be different"
-msgstr ""
+msgstr "Relació de posició: SC A i SC B han de ser diferents"
 
+# AI Translated
 msgid "Mate ready"
-msgstr ""
+msgstr "Relació de posició a punt"
 
+# AI Translated
 msgid "Invalid: "
-msgstr ""
+msgstr "No vàlid: "
 
+# AI Translated
 #, c-format
 msgid "Preview — %zu triangles"
-msgstr ""
+msgstr "Previsualització — %zu triangles"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
-msgstr ""
+msgstr "Cos %d — desplaçat (%.1f, %.1f, %.1f) mm, rotat %.1f°"
 
+# AI Translated
 msgid "Profile: "
-msgstr ""
+msgstr "Perfil: "
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d (push/pull)"
-msgstr ""
+msgstr "Cara %d (empènyer/estirar)"
 
+# AI Translated
 msgid "Move cancelled"
-msgstr ""
+msgstr "Moviment cancel·lat"
 
+# AI Translated
 msgid "Discard this sketch and everything drawn in it?"
-msgstr ""
+msgstr "Voleu descartar aquest esbós i tot el que s'hi ha dibuixat?"
 
+# AI Translated
 msgid "Discard sketch"
-msgstr ""
+msgstr "Descartar l'esbós"
 
+# AI Translated
 msgid "Keep drawing"
-msgstr ""
+msgstr "Continuar dibuixant"
 
+# AI Translated
 msgid "Finish or cancel the current tool first (Esc)"
-msgstr ""
+msgstr "Primer finalitzeu o cancel·leu l'eina actual (Esc)"
 
+# AI Translated
 msgid "Nothing to redo"
-msgstr ""
+msgstr "No hi ha res a refer"
 
+# AI Translated
 msgid "Nothing to undo"
-msgstr ""
+msgstr "No hi ha res a desfer"
 
+# AI Translated
 #, c-format
 msgid "Redo  (%zu more)"
-msgstr ""
+msgstr "Refer  (%zu més)"
 
+# AI Translated
 #, c-format
 msgid "Undo  (%zu more)"
-msgstr ""
+msgstr "Desfer  (%zu més)"
 
+# AI Translated
 msgid "Variable name:"
-msgstr ""
+msgstr "Nom de la variable:"
 
+# AI Translated
 msgid "Add Variable"
-msgstr ""
+msgstr "Afegir variable"
 
+# AI Translated
 msgid "Variable name must not contain spaces"
-msgstr ""
+msgstr "El nom de la variable no pot contenir espais"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Expression for '%s':"
-msgstr ""
+msgstr "Expressió per a '%s':"
 
+# AI Translated
 msgid "Select a variable first"
-msgstr ""
+msgstr "Primer seleccioneu una variable"
 
+# AI Translated
 msgid "Edit Variable"
-msgstr ""
+msgstr "Editar la variable"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
-msgstr ""
+msgstr "No s'ha pogut eliminar la variable '%s' (probablement encara la referencia l'expressió d'una operació): %s"
 
+# AI Translated
 msgid "No binding for that field"
-msgstr ""
+msgstr "No hi ha cap vinculació per a aquest camp"
 
+# AI Translated
 msgid "Enter a number"
-msgstr ""
+msgstr "Introduïu un número"
 
+# AI Translated
 msgid "Not a number"
-msgstr ""
+msgstr "No és un número"
 
+# AI Translated
 msgid "Primitive"
-msgstr ""
+msgstr "Primitiva"
 
+# AI Translated
 msgid "Empty mesh generated"
-msgstr ""
+msgstr "S'ha generat una malla buida"
 
+# AI Translated
 msgid "Pocket (Cut)"
-msgstr ""
+msgstr "Cavitat (tall)"
 
+# AI Translated
 msgid "Clear All"
-msgstr ""
+msgstr "Esborrar-ho tot"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
-msgstr ""
+msgstr "Ins"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24946,13 +25973,15 @@ msgctxt "Keyboard Shortcut"
 msgid "End"
 msgstr "Fi"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgUp"
-msgstr ""
+msgstr "RePàg"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgDn"
-msgstr ""
+msgstr "AvPàg"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24999,11 +26028,13 @@ msgstr "Moure la selecció 10 mm en direcció Y positiva"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Moure la selecció 10 mm en direcció Y negativa"
 
+# AI Translated
 msgid "Rotate selection 45 degrees counterclockwise"
-msgstr ""
+msgstr "Rotar la selecció 45 graus en sentit antihorari"
 
+# AI Translated
 msgid "Rotate selection 45 degrees clockwise"
-msgstr ""
+msgstr "Rotar la selecció 45 graus en sentit horari"
 
 msgid "Gizmo move"
 msgstr "Gizmo de Moviment"
@@ -25023,8 +26054,9 @@ msgstr "Gizmo de Tall"
 msgid "Gizmo mesh boolean"
 msgstr "Gizmo booleà de malla"
 
+# AI Translated
 msgid "Gizmo FDM paint-on supports"
-msgstr ""
+msgstr "Gizmo de pintat de suports FDM"
 
 msgid "Gizmo FDM paint-on seam"
 msgstr "Eina de Pintat de costures FDM"
@@ -25032,8 +26064,9 @@ msgstr "Eina de Pintat de costures FDM"
 msgid "Gizmo FDM paint-on fuzzy skin"
 msgstr "Eina FDM per a pell difusa pintada"
 
+# AI Translated
 msgid "Gizmo multi-material painting"
-msgstr ""
+msgstr "Gizmo de pintat multimaterial"
 
 msgid "Gizmo text emboss/engrave"
 msgstr "Gizmo de text en relleu/gravat"
@@ -25086,8 +26119,9 @@ msgstr "Angle de càmera - Costat Esquerre"
 msgid "Camera Angle - Right side"
 msgstr "Angle de càmera - Costat Dret"
 
+# AI Translated
 msgid "Camera view - Current plate"
-msgstr ""
+msgstr "Vista de càmera - Placa actual"
 
 msgid "Zoom in"
 msgstr "Augmentar zoom"
@@ -25098,8 +26132,9 @@ msgstr "Reduir zoom"
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "Mostrar/Amagar quadre de diàleg Configuració de Dispositius 3Dconnexion"
 
+# AI Translated
 msgid "Show/Hide wireframe"
-msgstr ""
+msgstr "Mostrar/amagar la malla alàmbrica"
 
 msgid "On/Off G-code window"
 msgstr "Activar/Desactivar finestra de Codi-G"
@@ -25113,38 +26148,48 @@ msgstr "Canviar entre Preparar/Previsualitzar"
 msgid "Collapse/Expand the sidebar"
 msgstr "Replegar/Expandir barra lateral"
 
+# AI Translated
 msgid "Reload the device page"
-msgstr ""
+msgstr "Tornar a carregar la pàgina del dispositiu"
 
 msgid "Show keyboard shortcuts list"
 msgstr "Mostrar la llista de dreceres de teclat"
 
+# AI Translated
 msgid "Open the Speed Dial"
-msgstr ""
+msgstr "Obrir l'Accés ràpid"
 
+# AI Translated
 msgid "Slicing and printing"
-msgstr ""
+msgstr "Laminat i impressió"
 
+# AI Translated
 msgid "Editing"
-msgstr ""
+msgstr "Edició"
 
+# AI Translated
 msgid "Placement"
-msgstr ""
+msgstr "Col·locació"
 
+# AI Translated
 msgid "Gizmos"
-msgstr ""
+msgstr "Gizmos"
 
+# AI Translated
 msgid "Sliders"
-msgstr ""
+msgstr "Controls lliscants"
 
+# AI Translated
 msgid "Painting tools"
-msgstr ""
+msgstr "Eines de pintat"
 
+# AI Translated
 msgid "Application"
-msgstr ""
+msgstr "Aplicació"
 
+# AI Translated
 msgid "Speed Dial"
-msgstr ""
+msgstr "Accés ràpid"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

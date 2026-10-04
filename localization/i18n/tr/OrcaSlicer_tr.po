@@ -264,8 +264,9 @@ msgstr "Standart"
 msgid "TPU High Flow"
 msgstr "TPU Yüksek Akış"
 
+# AI Translated
 msgid "E3D High Flow"
-msgstr ""
+msgstr "E3D Yüksek Akış"
 
 msgid "Unknown"
 msgstr "Bilinmeyen"
@@ -2024,15 +2025,20 @@ msgstr "Yapılandırma paketi yüklendi ancak bazı değerler tanınamadı."
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "\"%1%\" yapılandırma dosyası yüklendi ancak bazı değerler tanınamadı."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
 "\n"
 "Only open attachments from projects you trust. Open it anyway?"
 msgstr ""
+"\"%s\" düz bir belge, görüntü veya model dosyası değil. Açılması, onu bu bilgisayarda bir program veya betik olarak çalıştırabilir.\n"
+"\n"
+"Yalnızca güvendiğiniz projelerdeki ekleri açın. Yine de açılsın mı?"
 
+# AI Translated
 msgid "Open attachment"
-msgstr ""
+msgstr "Eki aç"
 
 msgid "Loading configuration"
 msgstr "Yapılandırma yükleniyor"
@@ -2524,18 +2530,22 @@ msgstr ""
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Eklentiler iletişim kutusu açılamadı (bilinmeyen hata)."
 
+# AI Translated
 msgid "Plugins refreshed."
-msgstr ""
+msgstr "Eklentiler yenilendi."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Failed to refresh plugins: %s"
-msgstr ""
+msgstr "Eklentiler yenilenemedi: %s"
 
+# AI Translated
 msgid "Select plugin package"
-msgstr ""
+msgstr "Eklenti paketini seçin"
 
+# AI Translated
 msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
-msgstr ""
+msgstr "Eklenti dosyaları (*.py;*.whl)|*.py;*.whl"
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -2656,8 +2666,9 @@ msgstr "Destek engelleyici ekle"
 msgid "Add Support Enforcer"
 msgstr "Destek uygulayıcısı ekle"
 
+# AI Translated
 msgid "Add Precise Seam"
-msgstr ""
+msgstr "Hassas Dikiş Ekle"
 
 msgid "Add text"
 msgstr "Yazı ekle"
@@ -2781,8 +2792,9 @@ msgstr "Destek Engelleyici"
 msgid "Support Enforcer"
 msgstr "Destek Uygulayıcısı"
 
+# AI Translated
 msgid "Precise Seam"
-msgstr ""
+msgstr "Hassas Dikiş"
 
 # AI Translated
 msgid "Change part type"
@@ -2929,29 +2941,37 @@ msgstr "Z ekseni boyunca aynala"
 msgid "Mirror object"
 msgstr "Nesneyi aynala"
 
+# AI Translated
 msgid "Precise Seam Type"
-msgstr ""
+msgstr "Hassas Dikiş Türü"
 
+# AI Translated
 msgid "Seam Center"
-msgstr ""
+msgstr "Merkez Dikiş"
 
+# AI Translated
 msgid "Seam Left"
-msgstr ""
+msgstr "Sol Dikiş"
 
+# AI Translated
 msgid "Seam Right"
-msgstr ""
+msgstr "Sağ Dikiş"
 
+# AI Translated
 msgid "Seam Enforced"
-msgstr ""
+msgstr "Zorunlu Dikiş"
 
+# AI Translated
 msgid "Seam Blocked"
-msgstr ""
+msgstr "Engellenen Dikiş"
 
+# AI Translated
 msgid "Seam Neutral"
-msgstr ""
+msgstr "Nötr Dikiş"
 
+# AI Translated
 msgid "Choose precise seam subtype"
-msgstr ""
+msgstr "Hassas dikiş alt türünü seçin"
 
 msgid "Edit text"
 msgstr "Metni düzenle"
@@ -4245,20 +4265,24 @@ msgstr "OrcaSlicer da aynı ruhla, PrusaSlicer, BambuStudio, SuperSlicer ve Cura
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Bugün OrcaSlicer, 3D baskı topluluğunda en yaygın kullanılan ve en etkin geliştirilen açık kaynaklı dilimleyicidir. Yeniliklerinin birçoğu diğer dilimleyiciler tarafından da benimsendi ve bu da onu tüm sektör için itici bir güç haline getirdi."
 
+# AI Translated
 msgid "Script plugin skipped."
-msgstr ""
+msgstr "Betik eklentisi atlandı."
 
+# AI Translated
 msgid "Script plugin finished."
-msgstr ""
+msgstr "Betik eklentisi tamamlandı."
 
 msgid "Printer"
 msgstr "Yazıcı"
 
+# AI Translated
 msgid "Recent Projects"
-msgstr ""
+msgstr "Son Projeler"
 
+# AI Translated
 msgid "Go to Plate"
-msgstr ""
+msgstr "Plakaya Git"
 
 msgid "AMS Materials Setting"
 msgstr "AMS Malzeme Ayarı"
@@ -5679,11 +5703,13 @@ msgstr "Hız: "
 msgid "Actual speed profile"
 msgstr "Gerçek hız profili"
 
+# AI Translated
 msgid "Automatic"
-msgstr ""
+msgstr "Otomatik"
 
+# AI Translated
 msgid "Last used"
-msgstr ""
+msgstr "Son kullanılan"
 
 msgid "Statistics of All Plates"
 msgstr "Tüm plakaların istatistikleri"
@@ -6068,8 +6094,9 @@ msgstr "Geri dön"
 msgid "Canvas Toolbar"
 msgstr "Kanvas Araç Çubuğu"
 
+# AI Translated
 msgid "Section view"
-msgstr "Bölüm görünümü"
+msgstr "Kesit görünümü"
 
 msgid "Fit camera to scene or selected object."
 msgstr "Kamerayı sahneye veya seçilen nesneye sığdırın."
@@ -6090,8 +6117,9 @@ msgstr "Taslak"
 msgid "Wireframe"
 msgstr "Wireframe"
 
+# AI Translated
 msgid "X-Ray"
-msgstr ""
+msgstr "Röntgen"
 
 # AI Translated
 msgid "Realistic View"
@@ -6109,23 +6137,29 @@ msgstr "Kılavuz çizgileri"
 msgid "Labels"
 msgstr "Etiketler"
 
+# AI Translated
 msgid "Move section plane"
-msgstr ""
+msgstr "Kesit düzlemini taşı"
 
+# AI Translated
 msgid "Mouse wheel on icon"
-msgstr ""
+msgstr "Simge üzerinde fare tekerleği"
 
+# AI Translated
 msgid "Right click on icon"
-msgstr ""
+msgstr "Simgeye sağ tıklama"
 
+# AI Translated
 msgid "Toggle section view"
-msgstr ""
+msgstr "Kesit görünümünü aç/kapat"
 
+# AI Translated
 msgid "Middle click on icon"
-msgstr ""
+msgstr "Simgeye orta tıklama"
 
+# AI Translated
 msgid "Set viewing angle"
-msgstr ""
+msgstr "Görüş açısını ayarla"
 
 msgid "Paint Toolbar"
 msgstr "Boyama Araç Çubuğu"
@@ -6309,8 +6343,9 @@ msgstr "Bazı ön ayarlar değiştirilirken Uygulama kapatılıyor."
 msgid "Logging"
 msgstr "Günlük kaydı"
 
+# AI Translated
 msgid "Design"
-msgstr ""
+msgstr "Tasarım"
 
 msgid "Prepare"
 msgstr "Hazırlık"
@@ -6389,11 +6424,13 @@ msgstr "Sorun giderme merkezi"
 msgid "Open Network Test"
 msgstr "Ağ testini aç"
 
+# AI Translated
 msgid "Benchmark 3D Scene"
-msgstr ""
+msgstr "3D Sahne Performans Testi"
 
+# AI Translated
 msgid "Measure how fast the 3D scene renders in Prepare and Preview"
-msgstr ""
+msgstr "3D sahnenin Hazırlık ve Ön İzleme'de ne kadar hızlı çizildiğini ölçer"
 
 msgid "Show Tip of the Day"
 msgstr "Günün ipucunu göster"
@@ -6654,8 +6691,9 @@ msgstr "Düzen"
 msgid "View"
 msgstr "Görünüm"
 
+# AI Translated
 msgid "Open Speed Dial"
-msgstr ""
+msgstr "Hızlı Erişim'i Aç"
 
 msgid "Preset Bundle"
 msgstr "Ön ayar paketi"
@@ -6848,8 +6886,9 @@ msgstr "GStreamer GTK video alıcısı eksik olduğundan veya başlatılamadığ
 msgid "Please confirm if the printer is connected."
 msgstr "Lütfen yazıcının bağlı olup olmadığını onaylayın."
 
+# AI Translated
 msgid "Sign in to OrcaCloud to view the camera."
-msgstr ""
+msgstr "Kamerayı görüntülemek için OrcaCloud'da oturum açın."
 
 msgid "Initializing..."
 msgstr "Başlatılıyor..."
@@ -7588,53 +7627,69 @@ msgstr "Bu iletişim kutusunu bir daha gösterme"
 msgid "Please refer to Wiki before use->"
 msgstr "Lütfen kullanmadan önce Wiki'ye bakın->"
 
+# AI Translated
 msgid "Plates are a filament (FFF) feature."
-msgstr ""
+msgstr "Plakalar bir filament (FFF) özelliğidir."
 
+# AI Translated
 msgid "Open the 3D view first."
-msgstr ""
+msgstr "Önce 3D görünümü açın."
 
+# AI Translated
 msgid "Select an object first."
-msgstr ""
+msgstr "Önce bir nesne seçin."
 
+# AI Translated
 msgid "Slice and Preview"
-msgstr ""
+msgstr "Dilimle ve Ön İzle"
 
+# AI Translated
 msgid "Slice & Export"
-msgstr ""
+msgstr "Dilimle ve Dışa Aktar"
 
+# AI Translated
 msgid "Go to layer (percent)"
-msgstr ""
+msgstr "Katmana git (yüzde)"
 
+# AI Translated
 msgid "Commands"
-msgstr ""
+msgstr "Komutlar"
 
+# AI Translated
 msgid "Go to tab..."
-msgstr ""
+msgstr "Sekmeye git..."
 
+# AI Translated
 msgid "Load Project"
-msgstr ""
+msgstr "Projeyi Aç"
 
+# AI Translated
 msgid "Save Project As"
-msgstr ""
+msgstr "Projeyi Farklı Kaydet"
 
+# AI Translated
 msgid "Mode: Simple"
-msgstr ""
+msgstr "Mod: Basit"
 
+# AI Translated
 msgid "Mode: Advanced"
-msgstr ""
+msgstr "Mod: Gelişmiş"
 
+# AI Translated
 msgid "Mode: Expert"
-msgstr ""
+msgstr "Mod: Uzman"
 
+# AI Translated
 msgid "Toggle Developer Mode"
-msgstr ""
+msgstr "Geliştirici Modunu Aç/Kapat"
 
+# AI Translated
 msgid "Developer mode enabled."
-msgstr ""
+msgstr "Geliştirici modu etkinleştirildi."
 
+# AI Translated
 msgid "Developer mode disabled."
-msgstr ""
+msgstr "Geliştirici modu devre dışı bırakıldı."
 
 msgid "Export STL"
 msgstr "STL'yi dışa aktar"
@@ -7642,179 +7697,232 @@ msgstr "STL'yi dışa aktar"
 msgid "Export 3MF"
 msgstr "3MF'yi dışa aktar"
 
+# AI Translated
 msgid "Export Sliced File"
-msgstr ""
+msgstr "Dilimlenmiş Dosyayı Dışa Aktar"
 
+# AI Translated
 msgid "Export All Sliced Files"
-msgstr ""
+msgstr "Tüm Dilimlenmiş Dosyaları Dışa Aktar"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "Maksimum Hacimsel Hız Kalibrasyonu"
 
+# AI Translated
 msgid "Pressure Advance Calibration"
-msgstr ""
+msgstr "Pressure Advance Kalibrasyonu"
 
 # AI Translated
 msgid "Flow Ratio Calibration"
 msgstr "Akış Oranı Kalibrasyonu"
 
+# AI Translated
 msgid "Retraction Calibration"
-msgstr ""
+msgstr "Geri Çekme Kalibrasyonu"
 
+# AI Translated
 msgid "Cornering Calibration"
-msgstr ""
+msgstr "Viraj Kalibrasyonu"
 
+# AI Translated
 msgid "Input Shaping Frequency Calibration"
-msgstr ""
+msgstr "Input Shaping Frekans Kalibrasyonu"
 
+# AI Translated
 msgid "Input Shaping Damping Calibration"
-msgstr ""
+msgstr "Input Shaping Sönümleme Kalibrasyonu"
 
+# AI Translated
 msgid "VFA Calibration"
-msgstr ""
+msgstr "VFA Kalibrasyonu"
 
+# AI Translated
 msgid "View: Top"
-msgstr ""
+msgstr "Görünüm: Üst"
 
+# AI Translated
 msgid "View: Bottom"
-msgstr ""
+msgstr "Görünüm: Alt"
 
+# AI Translated
 msgid "View: Front"
-msgstr ""
+msgstr "Görünüm: Ön"
 
+# AI Translated
 msgid "View: Rear"
-msgstr ""
+msgstr "Görünüm: Arka"
 
+# AI Translated
 msgid "View: Left"
-msgstr ""
+msgstr "Görünüm: Sol"
 
+# AI Translated
 msgid "View: Right"
-msgstr ""
+msgstr "Görünüm: Sağ"
 
+# AI Translated
 msgid "View: Isometric"
-msgstr ""
+msgstr "Görünüm: İzometrik"
 
+# AI Translated
 msgid "View: Default"
-msgstr ""
+msgstr "Görünüm: Varsayılan"
 
+# AI Translated
 msgid "Fit Bed to View"
-msgstr ""
+msgstr "Yatağı Görünüme Sığdır"
 
+# AI Translated
 msgid "Toggle Perspective"
-msgstr ""
+msgstr "Perspektifi Aç/Kapat"
 
 # AI Translated
 msgid "Delete All Objects"
 msgstr "Tüm Nesneleri Sil"
 
+# AI Translated
 msgid "Mirror X"
-msgstr ""
+msgstr "X Ekseni Boyunca Aynala"
 
+# AI Translated
 msgid "Mirror Y"
-msgstr ""
+msgstr "Y Ekseni Boyunca Aynala"
 
+# AI Translated
 msgid "Mirror Z"
-msgstr ""
+msgstr "Z Ekseni Boyunca Aynala"
 
 # AI Translated
 msgid "Split to Objects"
 msgstr "Nesnelere Ayır"
 
+# AI Translated
 msgid "Split to Parts"
-msgstr ""
+msgstr "Parçalara Ayır"
 
+# AI Translated
 msgid "Center Selected on Plate"
-msgstr ""
+msgstr "Seçileni Plakada Ortala"
 
+# AI Translated
 msgid "Drop to Bed"
-msgstr ""
+msgstr "Yatağa İndir"
 
+# AI Translated
 msgid "Scale to Fit Print Volume"
-msgstr ""
+msgstr "Baskı Hacmine Sığacak Şekilde Ölçeklendir"
 
+# AI Translated
 msgid "Increase Instances"
-msgstr ""
+msgstr "Eş Kopyaları Artır"
 
+# AI Translated
 msgid "Decrease Instances"
-msgstr ""
+msgstr "Eş Kopyaları Azalt"
 
+# AI Translated
 msgid "Auto-Arrange"
-msgstr ""
+msgstr "Otomatik Hizala"
 
+# AI Translated
 msgid "Auto-Orient"
-msgstr ""
+msgstr "Otomatik Yönlendir"
 
+# AI Translated
 msgid "Add Plate"
-msgstr ""
+msgstr "Plaka Ekle"
 
+# AI Translated
 msgid "Cannot add another plate (maximum reached)."
-msgstr ""
+msgstr "Başka plaka eklenemiyor (en fazla sayıya ulaşıldı)."
 
+# AI Translated
 msgid "Duplicate Plate"
-msgstr ""
+msgstr "Plakayı Çoğalt"
 
+# AI Translated
 msgid "Cannot duplicate a plate (maximum reached)."
-msgstr ""
+msgstr "Plaka çoğaltılamıyor (en fazla sayıya ulaşıldı)."
 
+# AI Translated
 msgid "Cannot delete the only plate."
-msgstr ""
+msgstr "Tek plaka silinemez."
 
+# AI Translated
 msgid "Rename Plate"
-msgstr ""
+msgstr "Plakayı Yeniden Adlandır"
 
+# AI Translated
 msgid "Toggle Plate Lock"
-msgstr ""
+msgstr "Plaka Kilidini Aç/Kapat"
 
+# AI Translated
 msgid "No plates available."
-msgstr ""
+msgstr "Kullanılabilir plaka yok."
 
+# AI Translated
 msgid "Synchronize Filament List from AMS"
-msgstr ""
+msgstr "Filament Listesini AMS'den Senkronize Et"
 
+# AI Translated
 msgid "Connect a printer to synchronize the AMS filament list."
-msgstr ""
+msgstr "AMS filament listesini senkronize etmek için bir yazıcı bağlayın."
 
+# AI Translated
 msgid "Open Preset Bundle"
-msgstr ""
+msgstr "Ön Ayar Paketini Aç"
 
+# AI Translated
 msgid "Sign in to sync presets."
-msgstr ""
+msgstr "Ön ayarları senkronize etmek için oturum açın."
 
+# AI Translated
 msgid "Export All Objects as STLs"
-msgstr ""
+msgstr "Tüm Nesneleri Ayrı STL'ler Olarak Dışa Aktar"
 
+# AI Translated
 msgid "Export All Objects as DRC (one file)"
-msgstr ""
+msgstr "Tüm Nesneleri DRC Olarak Dışa Aktar (tek dosya)"
 
+# AI Translated
 msgid "Export All Objects as DRCs"
-msgstr ""
+msgstr "Tüm Nesneleri Ayrı DRC'ler Olarak Dışa Aktar"
 
+# AI Translated
 msgid "Export Toolpaths as OBJ"
-msgstr ""
+msgstr "Takımyollarını OBJ Olarak Dışa Aktar"
 
+# AI Translated
 msgid "About OrcaSlicer"
-msgstr ""
+msgstr "OrcaSlicer Hakkında"
 
+# AI Translated
 msgid "Open Wiki"
-msgstr ""
+msgstr "Wiki'yi Aç"
 
+# AI Translated
 msgid "Open YouTube Channel"
-msgstr ""
+msgstr "YouTube Kanalını Aç"
 
+# AI Translated
 msgid "Open Plugins"
-msgstr ""
+msgstr "Eklentileri Aç"
 
+# AI Translated
 msgid "Refresh Plugins"
-msgstr ""
+msgstr "Eklentileri Yenile"
 
+# AI Translated
 msgid "Install Plugin"
-msgstr ""
+msgstr "Eklenti Yükle"
 
+# AI Translated
 msgid "Install Local Plugin"
-msgstr ""
+msgstr "Yerel Eklenti Yükle"
 
+# AI Translated
 msgid "Unknown command."
-msgstr ""
+msgstr "Bilinmeyen komut."
 
 msgid "3D Mouse disconnected."
 msgstr "3D Fare bağlantısı kesildi."
@@ -8348,8 +8456,9 @@ msgstr "Püskürtme ucu bilgilerini ve AMS sayısını senkronize edin"
 msgid "Click to edit preset"
 msgstr "Ön ayarı düzenlemek için tıklayın"
 
+# AI Translated
 msgid "Variant"
-msgstr ""
+msgstr "Varyant"
 
 msgid "Nozzle"
 msgstr "Nozul"
@@ -8441,8 +8550,9 @@ msgstr "Filament türü ve renk bilgisi senkronize edilmiştir ancak slot bilgis
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "\"%1%\" dosyasındaki değişiklikleri kaydetmek istiyor musunuz?"
 
+# AI Translated
 msgid "UV Editor"
-msgstr ""
+msgstr "UV Düzenleyici"
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8818,16 +8928,21 @@ msgstr ""
 msgid "Sync now"
 msgstr "Şimdi senkronize et"
 
+# AI Translated
 msgid "Cannot undo or redo while an operation is running. Stop it first."
-msgstr ""
+msgstr "Bir işlem sürerken geri alma veya ileri alma yapılamaz. Önce işlemi durdurun."
 
+# AI Translated
 msgid ""
 "The selected printer does not support multiple bed types.\n"
 "Bed type overrides were reset to the global bed type."
 msgstr ""
+"Seçilen yazıcı birden fazla yatak türünü desteklemiyor.\n"
+"Yatak türü geçersiz kılmaları genel yatak türüne sıfırlandı."
 
+# AI Translated
 msgid "Plate bed types reset"
-msgstr ""
+msgstr "Plaka yatak türleri sıfırlandı"
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -9518,32 +9633,41 @@ msgstr "Çoklu cihaz yönetimi"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Bu seçenek etkinleştirildiğinde, aynı anda birden fazla cihaza bir görev gönderebilir ve birden fazla cihazı yönetebilirsiniz."
 
+# AI Translated
 msgid "Open the Speed Dial from the keyboard"
-msgstr ""
+msgstr "Hızlı Erişim'i klavyeden aç"
 
+# AI Translated
 msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
-msgstr ""
+msgstr "Etkinleştirildiğinde, Hızlı Erişim klavye kısayolu (varsayılan olarak Boşluk) eylem aramasını herhangi bir sayfadan açar."
 
+# AI Translated
 msgid "Recent actions"
-msgstr ""
+msgstr "Son eylemler"
 
+# AI Translated
 msgid "actions"
-msgstr ""
+msgstr "eylem"
 
+# AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
-msgstr ""
+msgstr "Hızlı Erişim'in en üstünde gösterilecek, son çalıştırılan eylem sayısı. Son eylemleri gizlemek için 0 olarak ayarlayın."
 
+# AI Translated
 msgid "CAD feature (experimental)"
-msgstr ""
+msgstr "CAD özelliği (deneysel)"
 
+# AI Translated
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr ""
+msgstr "Bu seçenek etkinleştirildiğinde, modellerin parametrik olarak oluşturulup düzenlenebildiği Tasarım sekmesi gösterilir. Bu özellik deneyseldir ve hâlâ geliştirilmektedir."
 
+# AI Translated
 msgid "Auto-close sketch loops"
-msgstr ""
+msgstr "Eskiz döngülerini otomatik kapat"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr ""
+msgstr "Birbirine 0,001 mm'den yakın eskiz uç noktalarını tek bir birleşim noktası sayar ve döngüyü kaynaklayarak kapatır. Kapalı: yalnızca tam çakışan uç noktalar birleşir; bu nedenle küçük bir boşluğu olan döngü sizin için kapatılmak yerine açık olarak gösterilir."
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Filament gruplama modunu seçmek için açılır pencere"
@@ -9587,11 +9711,13 @@ msgstr "Karışık sıcaklık sınırlamasını kaldırın"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Bu seçenek etkinleştirildiğinde, sıcaklık farkı büyük olan malzemeleri bir arada yazdırabilirsiniz."
 
+# AI Translated
 msgid "Remember last print action"
-msgstr ""
+msgstr "Son yazdırma eylemini hatırla"
 
+# AI Translated
 msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr ""
+msgstr "Etkinleştirilirse OrcaSlicer, yazdır düğmesinin açılır menüsünde en son seçilen seçeneği (ör. Yazdır, Dilimlenmiş plaka dosyasını dışa aktar, G-code dosyasını dışa aktar) hatırlar ve bir sonraki başlangıçta varsayılan olarak kullanır."
 
 msgid "Touchpad"
 msgstr "Dokunmatik yüzey"
@@ -9632,11 +9758,13 @@ msgstr "Mouse yakınlaştırmasını tersine çevir"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Etkinleştirilirse, mouse tekerleğiyle yakınlaştırmanın yönü tersine çevrilir."
 
+# AI Translated
 msgid "Draw mate connectors as a face"
-msgstr ""
+msgstr "Montaj bağlayıcılarını yüz olarak çiz"
 
+# AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr ""
+msgstr "Tasarım sekmesinde montaj bağlayıcısını, dönüş çeyreği olan geleneksel disk yerine küçük bir yüz olarak çizer. Bir yüzün yönü, öğrenmeye gerek kalmadan okunur. Geleneksel CAD gösterimi için bunu kapatın."
 
 # AI Translated
 msgid "Pan"
@@ -9666,14 +9794,17 @@ msgstr "Sağ fare sürükleme"
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Sağ fare düğmesiyle sürüklemenin gerçekleştireceği eylemi ayarlayın."
 
+# AI Translated
 msgid "Keyboard"
-msgstr ""
+msgstr "Klavye"
 
+# AI Translated
 msgid "Keyboard shortcuts"
-msgstr ""
+msgstr "Klavye kısayolları"
 
+# AI Translated
 msgid "Choose the key for each action."
-msgstr ""
+msgstr "Her eylem için tuşu seçin."
 
 msgid "Clear my choice on..."
 msgstr "Seçimimi Temizle"
@@ -9722,13 +9853,17 @@ msgstr "Phong gölgelendirme"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Gerçekçi görünümde Phong gölgelendirme kullanır."
 
+# AI Translated
 msgid "Enable in Preview"
-msgstr ""
+msgstr "Ön İzleme'de etkinleştir"
 
+# AI Translated
 msgid ""
 "Also applies realistic view to the Preview canvas, not just Prepare.\n"
 "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
 msgstr ""
+"Gerçekçi görünümü yalnızca Hazırlık'a değil, Ön İzleme tuvaline de uygular.\n"
+"Ön İzleme tüm takımyolu geometrisini çizdiğinden, gölgeler ve SSAO orada düz bir modele göre çok daha fazla yük getirir."
 
 # AI Translated
 msgid "SSAO ambient occlusion"
@@ -9738,21 +9873,27 @@ msgstr "SSAO ortam örtüşmesi"
 msgid "Applies SSAO in realistic view."
 msgstr "Gerçekçi görünümde SSAO uygular."
 
+# AI Translated
 msgid "Static"
-msgstr ""
+msgstr "Sabit"
 
+# AI Translated
 msgid "Orbit"
-msgstr ""
+msgstr "Yörünge"
 
 # AI Translated
 msgid "Shadows"
 msgstr "Gölgeler"
 
+# AI Translated
 msgid ""
 "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
 "Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
 "Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
 msgstr ""
+"Gerçekçi görünümde plakaya, diğer nesnelere ve her nesnenin kendi üzerine düşen gölgeleri çizer.\n"
+"Sabit: ışık dünyada sabit kalır, bu nedenle gölgeler yalnızca sahne değiştiğinde yeniden hesaplanır.\n"
+"Yörünge: ışık kamerayla birlikte döner ve kamera hareket ettiği her karede gölgeleri yeniden hesaplar."
 
 msgid "Anti-aliasing"
 msgstr "Anti-Aliasing"
@@ -9815,9 +9956,11 @@ msgstr ""
 "GPU yükünü ve güç tüketimini azaltmak için görünüm penceresinin kare hızını sınırlar.\n"
 "Sınırsız kare hızı için 0 olarak ayarlayın."
 
+# AI Translated
 msgid "Reuse the 3D scene while idle"
-msgstr ""
+msgstr "Boştayken 3D sahneyi yeniden kullan"
 
+# AI Translated
 msgid ""
 "Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
 "and reuses the previous frame's scene instead. Reduces GPU load.\n"
@@ -9825,10 +9968,17 @@ msgid ""
 "\n"
 "Takes effect immediately."
 msgstr ""
+"Görünüm penceresi üzerinde yalnızca fare imleci hareket ettiğinde 3D sahneyi yeniden çizmez\n"
+"ve bunun yerine önceki karenin sahnesini yeniden kullanır. GPU yükünü azaltır.\n"
+"Görünüm penceresi eski veya eksik içerik gösterirse devre dışı bırakın.\n"
+"\n"
+"Hemen etkili olur."
 
+# AI Translated
 msgid "Skip unchanged frames"
-msgstr ""
+msgstr "Değişmeyen kareleri atla"
 
+# AI Translated
 msgid ""
 "Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
 "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
@@ -9836,51 +9986,69 @@ msgid ""
 "\n"
 "Takes effect immediately."
 msgstr ""
+"Bir kare ekranda zaten bulunan kareyle aynı olacaksa onu hiç çizmez.\n"
+"Yalnızca 3D sahneyi yeniden kullanan karelere uygulanır, bu nedenle \"Boştayken 3D sahneyi yeniden kullan\" seçeneğini gerektirir.\n"
+"Üzerine gelme vurgusu, araç ipucu veya animasyon güncellenmez hale gelirse devre dışı bırakın.\n"
+"\n"
+"Hemen etkili olur."
 
 # AI Translated
 msgid "Show FPS overlay"
 msgstr "FPS göstergesini göster"
 
+# AI Translated
 msgid "Displays rendering counts in the top-right corner of the viewport."
-msgstr ""
+msgstr "Görünüm penceresinin sağ üst köşesinde çizim sayaçlarını gösterir."
 
+# AI Translated
 msgid "FPS: frames presented to the screen per second."
-msgstr ""
+msgstr "FPS: saniyede ekrana sunulan kare sayısı."
 
+# AI Translated
 msgid "3D: frames per second that redrew the 3D scene."
-msgstr ""
+msgstr "3D: saniyede 3D sahneyi yeniden çizen kare sayısı."
 
+# AI Translated
 msgid "Show render timings"
-msgstr ""
+msgstr "Render sürelerini göster"
 
+# AI Translated
 msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
-msgstr ""
+msgstr "3D sahneyi yeniden çizen bir karenin her bölümünün kaç milisaniye sürdüğünü görünüm penceresinin sağ üst köşesinde gösterir."
 
+# AI Translated
 msgid "CPU: time spent issuing the drawing commands."
-msgstr ""
+msgstr "CPU: çizim komutlarını göndermek için harcanan süre."
 
+# AI Translated
 msgid "GPU: time the graphics card spent running them."
-msgstr ""
+msgstr "GPU: grafik kartının bunları çalıştırmak için harcadığı süre."
 
+# AI Translated
 msgid "Adds a small overhead to each frame while enabled."
-msgstr ""
+msgstr "Etkinken her kareye küçük bir ek yük getirir."
 
+# AI Translated
 msgid "3D scene benchmark"
-msgstr ""
+msgstr "3D sahne performans testi"
 
+# AI Translated
 msgid "Run"
-msgstr ""
+msgstr "Çalıştır"
 
+# AI Translated
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
-msgstr ""
+msgstr "Geçerli projeyi OrcaSliced Combo ile değiştirir, ardından kamera Hazırlık ve Ön İzleme'de modelin etrafında dönerken ve katman kaydırıcısı dilimlenmiş katmanlar boyunca ilerlerken kare hızını ve render sürelerini ölçer."
 
 # AI Translated
 msgid "G-code Preview"
 msgstr "G-code Önizleme"
 
+# AI Translated
 msgid "Default view type"
-msgstr ""
+msgstr "Varsayılan görünüm türü"
 
+# AI Translated
 msgid ""
 "The color scheme the sliced preview opens with.\n"
 "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
@@ -9888,6 +10056,11 @@ msgid ""
 "Any other value always opens that view type.\n"
 "You can still switch the view type in the preview afterwards."
 msgstr ""
+"Dilimlenmiş ön izlemenin açıldığı renk şeması.\n"
+"Otomatik: çok malzemeli baskılar için Filament, tek malzemeli baskılar için Çizgi Tipi.\n"
+"Son kullanılan: en son seçtiğiniz görünüm türü.\n"
+"Diğer herhangi bir değer her zaman o görünüm türünü açar.\n"
+"Görünüm türünü daha sonra ön izlemede yine değiştirebilirsiniz."
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10362,8 +10535,9 @@ msgstr "3MF Yayınla..."
 msgid "Select which settings to be published in the 3MF file"
 msgstr "3MF dosyasında hangi ayarların yayınlanacağını seçin"
 
+# AI Translated
 msgid "Video Guide"
-msgstr ""
+msgstr "Video Kılavuzu"
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10469,127 +10643,163 @@ msgstr "\"%1%\" için \"%2%\"yi yeni ön ayar olarak ekleyin"
 msgid "Simply switch to \"%1%\""
 msgstr "Kolayca \"%1%\"e geçin"
 
+# AI Translated
 msgid "Loading the benchmark model"
-msgstr ""
+msgstr "Test modeli yükleniyor"
 
+# AI Translated
 msgid "The benchmark model could not be loaded."
-msgstr ""
+msgstr "Test modeli yüklenemedi."
 
+# AI Translated
 msgid "Slicing failed, so only Prepare was measured."
-msgstr ""
+msgstr "Dilimleme başarısız olduğundan yalnızca Hazırlık ölçüldü."
 
+# AI Translated
 msgid "The benchmark stopped because the 3D view was hidden."
-msgstr ""
+msgstr "3D görünüm gizlendiği için performans testi durdu."
 
+# AI Translated
 msgid "Turning the camera in Prepare"
-msgstr ""
+msgstr "Hazırlık'ta kamera döndürülüyor"
 
+# AI Translated
 msgid "Turning the camera in Preview"
-msgstr ""
+msgstr "Ön İzleme'de kamera döndürülüyor"
 
+# AI Translated
 msgid "Moving through the layers in Preview"
-msgstr ""
+msgstr "Ön İzleme'de katmanlar arasında ilerleniyor"
 
+# AI Translated
 msgid "Copy the results to the clipboard"
-msgstr ""
+msgstr "Sonuçları panoya kopyala"
 
+# AI Translated
 msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
-msgstr ""
+msgstr "Performans testi geçerli projeyi OrcaSliced Combo ile değiştirir ve dilimler. Kamerayı Hazırlık'ta ve Ön İzleme'de modelin etrafında döndürür, ardından katman kaydırıcısını dilimlenmiş katmanlar boyunca hareket ettirir, her kareyi zamanlar ve sonuçları gösterir."
 
+# AI Translated
 msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
-msgstr ""
+msgstr "Geçerli grafik ayarlarını kullanır ve genellikle bir dakikadan kısa sürer. Bitene kadar ana pencere kilitli kalır."
 
+# AI Translated
 msgid "Expert"
-msgstr ""
+msgstr "Uzman"
 
+# AI Translated
 msgid "Simple"
-msgstr ""
+msgstr "Basit"
 
+# AI Translated
 msgid "Search actions"
-msgstr ""
+msgstr "Eylem ara"
 
+# AI Translated
 msgid "Recent"
-msgstr ""
+msgstr "Son kullanılanlar"
 
 msgid "Other"
 msgstr "Diğer"
 
+# AI Translated
 #, c-format, boost-format
 msgid "No actions match (Total: %s)"
-msgstr ""
+msgstr "Eşleşen eylem yok (Toplam: %s)"
 
+# AI Translated
 msgid "No actions yet"
-msgstr ""
+msgstr "Henüz eylem yok"
 
+# AI Translated
 msgid "No tabs match"
-msgstr ""
+msgstr "Eşleşen sekme yok"
 
+# AI Translated
 msgid "No tabs"
-msgstr ""
+msgstr "Sekme yok"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Showing %s actions"
-msgstr ""
+msgstr "%s eylem gösteriliyor"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s actions"
-msgstr ""
+msgstr "%s eylem"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s tabs"
-msgstr ""
+msgstr "%s sekme"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s matches"
-msgstr ""
+msgstr "%s eşleşme"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Favourites are full (%s max)"
-msgstr ""
+msgstr "Favoriler dolu (en fazla %s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Go to %s%% of the layer range"
-msgstr ""
+msgstr "Katman aralığının %s%% noktasına git"
 
+# AI Translated
 msgid "Enter a layer percentage (0-100)"
-msgstr ""
+msgstr "Bir katman yüzdesi girin (0-100)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Go to layer %% (0-100)"
-msgstr ""
+msgstr "Katman %% konumuna git (0-100)"
 
+# AI Translated
 msgid "Go to tab"
-msgstr ""
+msgstr "Sekmeye git"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Favourite %s (%s)"
-msgstr ""
+msgstr "Favori %s (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Pin to favourites (%s)"
-msgstr ""
+msgstr "Favorilere sabitle (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Unpin from favourites (%s)"
-msgstr ""
+msgstr "Favorilerdeki sabitlemeyi kaldır (%s)"
 
+# AI Translated
 msgid "Remove from favourites"
-msgstr ""
+msgstr "Favorilerden kaldır"
 
+# AI Translated
 msgid "Move left"
-msgstr ""
+msgstr "Sola taşı"
 
+# AI Translated
 msgid "Move right"
-msgstr ""
+msgstr "Sağa taşı"
 
+# AI Translated
 msgid "Unpin"
-msgstr ""
+msgstr "Sabitlemeyi kaldır"
 
+# AI Translated
 msgid "Wiki (F1)"
-msgstr ""
+msgstr "Wiki (F1)"
 
+# AI Translated
 msgid "No wiki page for this action"
-msgstr ""
+msgstr "Bu eylem için wiki sayfası yok"
 
 msgid "Show details"
 msgstr "Ayrıntıları göster"
@@ -10598,29 +10808,36 @@ msgstr "Ayrıntıları göster"
 msgid "Hide details"
 msgstr "Ayrıntıları gizle"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
-msgstr ""
+msgstr "\"%s\" bir Geliştirici ayarıdır. Düzenlemek için Geliştirici modu etkinleştirilsin mi?"
 
+# AI Translated
 msgid "Developer setting"
-msgstr ""
+msgstr "Geliştirici ayarı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
-msgstr ""
+msgstr "\"%s\" bir %s ayarıdır. Düzenlemek için %s modundan %s moduna geçilsin mi?"
 
+# AI Translated
 msgid "Switch settings mode"
-msgstr ""
+msgstr "Ayar modunu değiştir"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Run \"%s\"?"
-msgstr ""
+msgstr "\"%s\" çalıştırılsın mı?"
 
+# AI Translated
 msgid "Run plugin"
-msgstr ""
+msgstr "Eklentiyi çalıştır"
 
+# AI Translated
 msgid "Don't ask again for this action"
-msgstr ""
+msgstr "Bu eylem için bir daha sorma"
 
 msgid "Task canceled"
 msgstr "Görev iptal edildi"
@@ -10776,9 +10993,10 @@ msgstr "Filament, AMS yuvasındaki filamentle eşleşmiyor. AMS yuvası ataması
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Seçilen yazıcı (%s), yazdırma dosyası yapılandırmasıyla (%s) uyumlu değil. Lütfen hazırlama sayfasında yazıcı ön ayarını yapın veya bu sayfada uyumlu bir yazıcı seçin."
 
+# AI Translated
 #, c-format, boost-format
 msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
-msgstr ""
+msgstr "Seçilen yazıcının (%s) modeli bilinmediğinden, yazdırma dosyası yapılandırmasıyla (%s) uyumluluğu doğrulanamıyor. Lütfen göndermeden önce yazıcı ön ayarını doğrulayın."
 
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Spiral vazo modu etkinleştirildiğinde, I3 yapısına sahip makineler zaman atlamalı videolar oluşturmayacaktır."
@@ -10863,11 +11081,13 @@ msgstr "Temizle"
 msgid "Preparing print job"
 msgstr "Yazdırma için hazırlanıyor"
 
+# AI Translated
 msgid "Failed to upload the file to the printer's storage. Please try again."
-msgstr ""
+msgstr "Dosya yazıcının depolama alanına yüklenemedi. Lütfen tekrar deneyin."
 
+# AI Translated
 msgid "Send Failed"
-msgstr ""
+msgstr "Gönderim Başarısız"
 
 msgid "The name length exceeds the limit."
 msgstr "Ad uzunluğu sınırı aşıyor."
@@ -11055,8 +11275,9 @@ msgstr "Boş bir tabla için baskı işi gönderilemez."
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Hızlandırılmış çekimi kaydetmek için depolama biriminin eklenmesi gerekir."
 
+# AI Translated
 msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
-msgstr ""
+msgstr "Seçilen yazıcı modeli tanımlanamadığından, yazdırma dosyası yapılandırmasıyla uyumluluk doğrulanamıyor. Lütfen göndermeden önce yazıcı ön ayarını doğrulayın."
 
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Bir ekstruder için hem harici hem de AMS filamentlerini seçtiniz. Yazdırma sırasında harici filamenti manuel olarak değiştirmeniz gerekecektir."
@@ -11126,8 +11347,9 @@ msgstr "Yazıcının Orca Slicer ile aynı LAN'da olması gerekir."
 msgid "The printer does not support sending to printer storage."
 msgstr "Yazıcı, yazıcı deposuna göndermeyi desteklemiyor."
 
+# AI Translated
 msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
-msgstr ""
+msgstr "Yazıcı dosya aktarımı başlatılamadı. Lütfen bağlantıyı kontrol edip tekrar deneyin."
 
 msgid "Sending..."
 msgstr "Gönderiliyor..."
@@ -12494,36 +12716,44 @@ msgstr "Pan Görünümü"
 msgid "Rotate View"
 msgstr "Görüntüyü döndür"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Use %s or %s, or a key that does not type a character."
-msgstr ""
+msgstr "%s veya %s ya da karakter yazmayan bir tuş kullanın."
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Key"
-msgstr ""
+msgstr "Tuş"
 
+# AI Translated
 msgid "Left mouse"
-msgstr ""
+msgstr "Sol fare tuşu"
 
+# AI Translated
 msgid "Available anywhere in the window, even while typing in a text field."
-msgstr ""
+msgstr "Pencerenin her yerinde, bir metin alanına yazarken bile kullanılabilir."
 
+# AI Translated
 msgid "Run favorite 1 to 10"
-msgstr ""
+msgstr "Favori 1-10'u çalıştır"
 
+# AI Translated
 msgid "Pin or unpin the selected action"
-msgstr ""
+msgstr "Seçili eylemi sabitle veya sabitlemesini kaldır"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Tab"
 msgstr "Tab"
 
+# AI Translated
 msgid "Switch to the next main tab"
-msgstr ""
+msgstr "Sonraki ana sekmeye geç"
 
+# AI Translated
 msgid "Available while the 3D view on the Prepare tab has focus."
-msgstr ""
+msgstr "Hazırlık sekmesindeki 3D görünüm odaktayken kullanılabilir."
 
 msgid "Select a part"
 msgstr "Parça seçin"
@@ -12543,20 +12773,24 @@ msgstr "Hareket adımı 1 mm'ye ayarlandı"
 msgid "Movement in camera space"
 msgstr "Kamera alanında hareket"
 
+# AI Translated
 msgid "Middle mouse"
-msgstr ""
+msgstr "Orta fare tuşu"
 
+# AI Translated
 msgid "Right mouse"
-msgstr ""
+msgstr "Sağ fare tuşu"
 
 msgid "Zoom View"
 msgstr "Zoom Görünümü"
 
+# AI Translated
 msgid "Painting"
-msgstr ""
+msgstr "Boyama"
 
+# AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr ""
+msgstr "Bir boyama gizmosu açıkken kullanılabilir: destek, dikiş, pütürlü yüzey veya renk boyama."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Hareket Ettir: 1 mm kadar yaslamak için basın"
@@ -12567,8 +12801,9 @@ msgstr "Destek/Renkli Boyama: kalem yarıçapını ayarlayın"
 msgid "Objects list"
 msgstr "Nesne listesi"
 
+# AI Translated
 msgid "Available while the object list has focus."
-msgstr ""
+msgstr "Nesne listesi odaktayken kullanılabilir."
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Nesneler ve parçalar için ekstruder numarasını ayarlayın"
@@ -12587,51 +12822,65 @@ msgstr "Fare tıklaması"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Nesneyi/parçayı seçin ve adını değiştirmek için fareye tıklayın"
 
+# AI Translated
 msgid "Available while the 3D view on the Preview tab has focus."
-msgstr ""
+msgstr "Ön İzleme sekmesindeki 3D görünüm odaktayken kullanılabilir."
 
 msgid "Move slider 5x faster"
 msgstr "Kaydırıcıyı 5 kat daha hızlı hareket ettirin"
 
+# AI Translated
 msgid "Scroll slider 5x faster"
-msgstr ""
+msgstr "Kaydırıcıyı 5 kat daha hızlı kaydır"
 
+# AI Translated
 msgid "Not customizable"
-msgstr ""
+msgstr "Özelleştirilemez"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "%s, %s için atanmış. %s için yeniden atansın mı?"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The default %s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "Varsayılan %s, %s için atanmış. %s için yeniden atansın mı?"
 
+# AI Translated
 msgid "Global shortcuts also apply while typing."
-msgstr ""
+msgstr "Genel kısayollar yazarken de geçerlidir."
 
+# AI Translated
 msgid "A key that types a character cannot be a global shortcut."
-msgstr ""
+msgstr "Karakter yazan bir tuş genel kısayol olamaz."
 
+# AI Translated
 msgid "Esc cancels, Enter confirms."
-msgstr ""
+msgstr "Esc iptal eder, Enter onaylar."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Press the new shortcut for\n"
 "\"%s\""
 msgstr ""
+"Şunun için yeni kısayola basın:\n"
+"\"%s\""
 
+# AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
-msgstr ""
+msgstr "Bu kısayol sistem tarafından kullanıldığı için atanamaz."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
-msgstr ""
+msgstr "Bu tuşla birlikte Shift ve Ctrl, %s eylemine aittir ve atanamaz."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Already assigned to %s. Press OK to reassign it."
-msgstr ""
+msgstr "Zaten %s için atanmış. Yeniden atamak için TAMAM'a basın."
 
 msgid "Release Note"
 msgstr "Sürüm notu"
@@ -12714,8 +12963,9 @@ msgstr "CA sertifika dosyasını aç"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "HTTPS CA dosyası isteğe bağlıdır. Yalnızca HTTPS'yi kendinden imzalı bir sertifikayla kullanıyorsanız gereklidir."
 
+# AI Translated
 msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr ""
+msgstr "Bu sistem, sistem Sertifika Deposu veya Anahtar Zincirindeki HTTPS sertifikalarını kullanır. Özel bir CA dosyası kullanmak için onu oraya içe aktarın."
 
 msgid "Printer model"
 msgstr "Yazıcı modeli"
@@ -12945,28 +13195,34 @@ msgstr "Gruplama hatası: %1% sağ nozula yerleştirilemez"
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Elle modda gruplama hatası. Lütfen nozul sayısını denetleyin veya yeniden gruplayın."
 
+# AI Translated
 #, boost-format
 msgid "failed to process some intersections (%1%)"
-msgstr ""
+msgstr "bazı kesişimler işlenemedi (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "multiple intersections with a perimeter, only one was used (%1%)"
-msgstr ""
+msgstr "bir çevreyle birden fazla kesişim var, yalnızca biri kullanıldı (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
-msgstr ""
+msgstr "bir çevre tamamen bir değiştiricinin içinde, değiştirici ona uygulanmadı (%1%)"
 
+# AI Translated
 #, boost-format
 msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr ""
+msgstr "\"%2%\" nesnesinin \"%1%\" değiştiricisinin dikiş üzerinde etkisi olmadı (basılan çevrenin merkez çizgisine ulaşmıyor olabilir)"
 
+# AI Translated
 #, boost-format
 msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr ""
+msgstr "\"%2%\" nesnesinin \"%1%\" değiştiricisinin (toplam %3%) dikiş üzerinde etkisi olmadı (basılan çevrenin merkez çizgisine ulaşmıyor olabilir)"
 
+# AI Translated
 msgid "Seam placement may differ from expected."
-msgstr ""
+msgstr "Dikiş yerleşimi beklenenden farklı olabilir."
 
 msgid "Internal Bridge"
 msgstr "İç köprü"
@@ -17237,8 +17493,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Hibrit"
 
+# AI Translated
 msgid "Extra High Flow"
-msgstr ""
+msgstr "Ekstra Yüksek Akış"
 
 # AI Translated
 msgid "Enable filament dynamic map"
@@ -17663,8 +17920,9 @@ msgstr "Ön ısıtma adımları"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "Birden fazla ön ısıtma komutu ekleyin (örn. M104.1). Yalnızca Prusa XL için kullanışlıdır. Diğer yazıcılar için lütfen 1’e ayarlayın."
 
+# AI Translated
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
-msgstr ""
+msgstr "Çıktı dosyasının en üstüne, diğer tüm içerikten önce yazılan G-code. Yazıcı ürün yazılımının dosyanın ilk satırlarından okuduğu meta verileri (ör. tahmini yazdırma süresi, filament kullanımı) eklemek için kullanışlıdır. {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} ve {used_filament_length} gibi yer tutucuları destekler."
 
 msgid "Start G-code"
 msgstr "Başlangıç G-code"
@@ -17731,9 +17989,11 @@ msgstr "Seyrek katman yok (beta)"
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Etkinleştirilirse, silme kulesi araç değişimi olmayan katmanlarda yazdırılmaz. Araç değişimi olan katmanlarda ekstruder silme kulesini yazdırmak için aşağı doğru hareket eder; böylece kule modelin altında kalır ve baskı kafasının ona uzanması gerekir. Bunun daha önce yazdırılmış bir nesneyle çarpışmasına yol açacak yerleşimler reddedilir. Her katmanda bir kule gerektiren pürüzsüz timelapse veya nozul birikme algılamayla birlikte etkisi yoktur."
 
+# AI Translated
 msgid "Combine sparse layers"
-msgstr ""
+msgstr "Seyrek katmanları birleştir"
 
+# AI Translated
 msgid ""
 "If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
 "\n"
@@ -17741,6 +18001,11 @@ msgid ""
 "\n"
 "Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr ""
+"Etkinleştirilirse, prime kulesinde filament değişimi olmayan ardışık katmanlar, her biri için ayrı ince bir katman yerine tek bir kalın kule katmanı olarak yazdırılır; tıpkı dolgu kombinasyonunun seyrek dolguyu birleştirmesi gibi. Birleştirilen katman, serinin en üstünde, kapsadığı tüm katmanların yüksekliğinde yazdırılır.\n"
+"\n"
+"Yalnızca tam katmanlar birleştirilir ve kuleyi yazdıran nozulun maksimum katman yüksekliği (0 bırakıldığında nozul çapının dörtte üçü) asla aşılmaz. Bu nedenle herhangi bir şeyin değişmesi için iki veya daha fazla katmanın bu sınırın altına sığması gerekir: 0,3 mm maksimumla 0,2 mm katman yüksekliğinde hiçbir şey birleştirilmez, 0,1 mm'de ise üç katman bir olur.\n"
+"\n"
+"\"Seyrek katman yok\" seçeneğinden farklı olarak kule modeli izlemeye devam eder, böylece baskı kafası asla ona kadar aşağı inmek zorunda kalmaz. Her katmanda kule gerektiren \"Seyrek katman yok\", pürüzsüz timelapse veya topaklanma algılama ile birlikte etkisi yoktur."
 
 msgid "Prime all printing extruders"
 msgstr "Tüm ekstruderleri temizle"
@@ -18402,6 +18667,7 @@ msgstr ""
 msgid "Wall type"
 msgstr "Duvar tipi"
 
+# AI Translated
 msgid ""
 "Wipe tower outer wall type.\n"
 "1. Rectangle: The default wall type, a rectangle with fixed width and height.\n"
@@ -18410,7 +18676,7 @@ msgid ""
 msgstr ""
 "Silme kulesi dış duvar tipi.\n"
 "1. Dikdörtgen: Varsayılan duvar tipi, sabit genişlik ve yüksekliğe sahip bir dikdörtgendir.\n"
-"2. Koni: Silme kulesinin sabitlenmesine yardımcı olmak için alt kısmında bir fileto bulunan bir koni.\n"
+"2. Koni: Silme kulesinin sabitlenmesine yardımcı olmak için alt kısmı yuvarlatılmış bir koni.\n"
 "3. Kaburga: Kule duvarına gelişmiş denge için dört kaburga ekler."
 
 msgid "Rectangle"
@@ -18431,8 +18697,9 @@ msgstr "Kaburga genişliği"
 msgid "Rib width is always less than half the prime tower side length."
 msgstr "Kaburga genişliği, her zaman hazırlık kulesinin (prime tower) kenar uzunluğunun yarısından az olmalıdır."
 
+# AI Translated
 msgid "Fillet wall"
-msgstr "Kavisli duvar"
+msgstr "Yuvarlatılmış duvar"
 
 msgid "The wall of prime tower will fillet."
 msgstr "Temizleme kulesinin duvarı yuvarlatılacaktır."
@@ -19046,11 +19313,13 @@ msgstr "Düzenlerken rotasyonlara izin ver"
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Etkinleştirilirse düzenleme, nesne yerleştirildiğinde dönüşlere izin verir."
 
+# AI Translated
 msgid "Align to Y axis when arranging"
-msgstr ""
+msgstr "Hizalarken Y eksenine paralel yerleştir"
 
+# AI Translated
 msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
-msgstr ""
+msgstr "Etkinleştirilirse Hizala, her nesneyi yerleştirmeden önce uzun kenarı Y ekseni boyunca uzanacak şekilde döndürür. Belirtilmediğinde, arayüzde olduğu gibi i3 yazıcılarda açık, diğerlerinde kapalıdır."
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Düzenleme yaparken ekstrüzyon kalibrasyon bölgesinden kaçının"
@@ -19239,35 +19508,44 @@ msgstr "Kullanılan"
 msgid "Total length of filament used in the print."
 msgstr "Baskıda kullanılan filamentin toplam uzunluğu."
 
+# AI Translated
 msgid "Print time (total seconds)"
-msgstr ""
+msgstr "Yazdırma süresi (toplam saniye)"
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Saniye cinsinden toplam tahmini yazdırma süresi. Son işlem sırasında gerçek değerle değiştirilir."
 
+# AI Translated
 msgid "Print time (days component)"
-msgstr ""
+msgstr "Yazdırma süresi (gün bileşeni)"
 
+# AI Translated
 msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Tahmini yazdırma süresinin gün bileşeni (normal mod). Son işlem sırasında gerçek değerle değiştirilir."
 
+# AI Translated
 msgid "Print time (hours component)"
-msgstr ""
+msgstr "Yazdırma süresi (saat bileşeni)"
 
+# AI Translated
 msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Tahmini yazdırma süresinin saat bileşeni (normal mod). Son işlem sırasında gerçek değerle değiştirilir."
 
+# AI Translated
 msgid "Print time (minutes component)"
-msgstr ""
+msgstr "Yazdırma süresi (dakika bileşeni)"
 
+# AI Translated
 msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Tahmini yazdırma süresinin dakika bileşeni (normal mod). Son işlem sırasında gerçek değerle değiştirilir."
 
+# AI Translated
 msgid "Print time (seconds component)"
-msgstr ""
+msgstr "Yazdırma süresi (saniye bileşeni)"
 
+# AI Translated
 msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Tahmini yazdırma süresinin saniye bileşeni (normal mod). Son işlem sırasında gerçek değerle değiştirilir."
 
 msgid "Filament length (meters)"
 msgstr "Filament uzunluğu (metre)"
@@ -21141,8 +21419,9 @@ msgstr "Geçerli oturum algılanmadı. 3DPrinterOS'a giriş yapılsın mı?"
 msgid "Success!"
 msgstr "Başarılı!"
 
+# AI Translated
 msgid "Generate API Key"
-msgstr ""
+msgstr "API Anahtarı Oluştur"
 
 msgid "Are you sure to log out?"
 msgstr "Çıkış yaptığınızdan emin misiniz?"
@@ -22584,1433 +22863,1901 @@ msgstr "Filament mevcut makine ayarlarıyla uyumlu olmayabilir. Rastgele bir fil
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Filament modeli bilinmiyor. Rastgele bir filament ön ayarı kullanılacaktır."
 
+# AI Translated
 msgid "Construction"
-msgstr ""
+msgstr "Yardımcı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s  ·  on %s"
-msgstr ""
+msgstr "%s  ·  %s üzerinde"
 
+# AI Translated
 msgid "Line — click start, then end"
-msgstr ""
+msgstr "Çizgi — başlangıca, ardından bitişe tıklayın"
 
+# AI Translated
 msgid "Rectangle — click two opposite corners"
-msgstr ""
+msgstr "Dikdörtgen — karşılıklı iki köşeye tıklayın"
 
+# AI Translated
 msgid "Circle — click center, then radius"
-msgstr ""
+msgstr "Daire — merkeze, ardından yarıçapa tıklayın"
 
+# AI Translated
 msgid "Arc — click start, end, then a point"
-msgstr ""
+msgstr "Yay — başlangıca, bitişe, ardından bir noktaya tıklayın"
 
+# AI Translated
 msgid "Slot — two centerline ends, then end radius"
-msgstr ""
+msgstr "Kanal — merkez çizgisinin iki ucu, ardından uç yarıçapı"
 
+# AI Translated
 msgid "Ellipse — center, major end, minor point"
-msgstr ""
+msgstr "Elips — merkez, büyük eksen ucu, küçük eksen noktası"
 
+# AI Translated
 msgid "Spline — click control points"
-msgstr ""
+msgstr "Spline — kontrol noktalarına tıklayın"
 
+# AI Translated
 msgid "Point — click to place"
-msgstr ""
+msgstr "Nokta — yerleştirmek için tıklayın"
 
+# AI Translated
 msgid "Dimension — click 2 points or an entity"
-msgstr ""
+msgstr "Ölçü — 2 noktaya veya bir öğeye tıklayın"
 
+# AI Translated
 msgid "Trim — click a segment to trim it"
-msgstr ""
+msgstr "Kırp — kırpmak için bir segmente tıklayın"
 
+# AI Translated
 msgid "Extend — click a line/arc to extend it"
-msgstr ""
+msgstr "Uzat — uzatmak için bir çizgiye/yaya tıklayın"
 
+# AI Translated
 msgid "Offset — pick an entity, drag the distance"
-msgstr ""
+msgstr "Ofset — bir öğe seçin, mesafeyi sürükleyin"
 
+# AI Translated
 msgid "Mirror — pick axis, then entities"
-msgstr ""
+msgstr "Aynala — önce ekseni, ardından öğeleri seçin"
 
+# AI Translated
 msgid "Fillet — pick two lines, set the radius"
-msgstr ""
+msgstr "Yuvarlatma — iki çizgi seçin, yarıçapı ayarlayın"
 
+# AI Translated
 msgid "Chamfer — pick two lines, set the distance"
-msgstr ""
+msgstr "Pah — iki çizgi seçin, mesafeyi ayarlayın"
 
+# AI Translated
 msgid "Polygon — click center, then a vertex"
-msgstr ""
+msgstr "Çokgen — merkeze, ardından bir köşe noktasına tıklayın"
 
+# AI Translated
 msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
-msgstr ""
+msgstr "Burada değeri yazılabilecek bir şey yok — bir çizgi, yay, daire veya iki öğe seçin"
 
+# AI Translated
 msgid "Normal to the sketch plane"
-msgstr ""
+msgstr "Eskiz düzlemine dik görünüm"
 
+# AI Translated
 msgid "Converted the selection between construction and real geometry"
-msgstr ""
+msgstr "Seçim, yardımcı ve gerçek geometri arasında dönüştürüldü"
 
+# AI Translated
 msgid "Origin planes shown"
-msgstr ""
+msgstr "Orijin düzlemleri gösterildi"
 
+# AI Translated
 msgid "Origin planes hidden"
-msgstr ""
+msgstr "Orijin düzlemleri gizlendi"
 
+# AI Translated
 msgid "World axes shown"
-msgstr ""
+msgstr "Dünya eksenleri gösterildi"
 
+# AI Translated
 msgid "World axes hidden"
-msgstr ""
+msgstr "Dünya eksenleri gizlendi"
 
+# AI Translated
 msgid "Isometric view, fitted"
-msgstr ""
+msgstr "İzometrik görünüm, sığdırıldı"
 
+# AI Translated
 msgid "Bed shown"
-msgstr ""
+msgstr "Yatak gösterildi"
 
+# AI Translated
 msgid "Bed hidden"
-msgstr ""
+msgstr "Yatak gizlendi"
 
+# AI Translated
 msgid "FEATURES"
-msgstr ""
+msgstr "UNSURLAR"
 
+# AI Translated
 msgid "Sketch"
-msgstr ""
+msgstr "Eskiz"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketching on %s — pick a tool"
-msgstr ""
+msgstr "%s üzerinde eskiz çiziliyor — bir araç seçin"
 
+# AI Translated
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr ""
+msgstr "Görünüm penceresinde bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Drawing on %s.\n"
 "Pick a tool, or press Menu for the list."
 msgstr ""
+"%s üzerinde çiziliyor.\n"
+"Bir araç seçin veya liste için Menü tuşuna basın."
 
+# AI Translated
 msgid "Click a face or a reference plane, then a sketch tool."
-msgstr ""
+msgstr "Bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın."
 
+# AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
-msgstr ""
+msgstr "Malzeme ekle (ekstrüzyon / döndürme / süpürme / loft / kalınlaştırma / nervür)"
 
+# AI Translated
 msgid "Extrude a sketch profile, or push/pull a picked face"
-msgstr ""
+msgstr "Bir eskiz profilini ekstrüde edin veya seçilen bir yüzü itin/çekin"
 
+# AI Translated
 msgid "Create a sketch, or pick a solid face, first"
-msgstr ""
+msgstr "Önce bir eskiz oluşturun veya bir katı yüz seçin"
 
+# AI Translated
 msgid "Revolve"
-msgstr ""
+msgstr "Döndürme"
 
+# AI Translated
 msgid "Revolve a profile about an axis"
-msgstr ""
+msgstr "Bir profili bir eksen etrafında döndürün"
 
+# AI Translated
 msgid "Create a sketch profile to revolve first"
-msgstr ""
+msgstr "Önce döndürülecek bir eskiz profili oluşturun"
 
+# AI Translated
 msgid "Sweep"
-msgstr ""
+msgstr "Süpürme"
 
+# AI Translated
 msgid "Sweep a profile along a path"
-msgstr ""
+msgstr "Bir profili bir yol boyunca süpürün"
 
+# AI Translated
 msgid "Create a profile sketch to sweep first"
-msgstr ""
+msgstr "Önce süpürülecek bir profil eskizi oluşturun"
 
+# AI Translated
 msgid "Loft"
-msgstr ""
+msgstr "Loft"
 
+# AI Translated
 msgid "Loft (skin) between two or more profiles"
-msgstr ""
+msgstr "İki veya daha fazla profil arasında loft (kaplama) oluşturun"
 
+# AI Translated
 msgid "Create at least two profile sketches to loft"
-msgstr ""
+msgstr "Loft için en az iki profil eskizi oluşturun"
 
+# AI Translated
 msgid "Thicken"
-msgstr ""
+msgstr "Kalınlaştır"
 
+# AI Translated
 msgid "Offset a solid face into a thin plate (new body)"
-msgstr ""
+msgstr "Bir katı yüzü ofsetleyerek ince bir levha oluşturun (yeni gövde)"
 
+# AI Translated
 msgid "Thicken needs a solid body — add or import one first"
-msgstr ""
+msgstr "Kalınlaştırma için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 #, c-format
 msgid "Body %zu"
-msgstr ""
+msgstr "Gövde %zu"
 
+# AI Translated
 msgid "Grow a thin wall from an open sketch line, fused to a body"
-msgstr ""
+msgstr "Açık bir eskiz çizgisinden, bir gövdeyle kaynaşan ince bir duvar oluşturun"
 
+# AI Translated
 msgid "Rib needs a solid body — add or import one first"
-msgstr ""
+msgstr "Nervür için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Create a sketch with an open line first"
-msgstr ""
+msgstr "Önce açık bir çizgi içeren bir eskiz oluşturun"
 
+# AI Translated
 msgid "Create a solid body to pattern first"
-msgstr ""
+msgstr "Önce çoğaltılacak katı bir gövde oluşturun"
 
+# AI Translated
 msgid "Pattern — needs a solid body to replicate"
-msgstr ""
+msgstr "Çoğaltma — çoğaltılacak katı bir gövde gerekir"
 
+# AI Translated
 msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
-msgstr ""
+msgstr "Yüzey (ekstrüzyon / döndürme / loft / doldurma / ofset / kalınlaştırma)"
 
+# AI Translated
 msgid "Surface Extrude"
-msgstr ""
+msgstr "Yüzey Ekstrüzyonu"
 
+# AI Translated
 msgid "Extrude a sketch into a sheet body (no end caps)"
-msgstr ""
+msgstr "Bir eskizi yüzey gövdesi olarak ekstrüde edin (uç kapaksız)"
 
+# AI Translated
 msgid "Create a sketch first"
-msgstr ""
+msgstr "Önce bir eskiz oluşturun"
 
+# AI Translated
 msgid "Surface Revolve"
-msgstr ""
+msgstr "Yüzey Döndürme"
 
+# AI Translated
 msgid "Revolve a sketch profile into a sheet body"
-msgstr ""
+msgstr "Bir eskiz profilini döndürerek yüzey gövdesi oluşturun"
 
+# AI Translated
 msgid "Surface Loft"
-msgstr ""
+msgstr "Yüzey Loft"
 
+# AI Translated
 msgid "Loft (skin) between 2+ profiles, open (no end caps)"
-msgstr ""
+msgstr "2+ profil arasında açık loft (kaplama) oluşturun (uç kapaksız)"
 
+# AI Translated
 msgid "Surface Fill"
-msgstr ""
+msgstr "Yüzey Doldurma"
 
+# AI Translated
 msgid "Fill a sketch boundary with a smooth face"
-msgstr ""
+msgstr "Bir eskiz sınırını düzgün bir yüzle doldurun"
 
+# AI Translated
 msgid "Create a sketch profile to fill first"
-msgstr ""
+msgstr "Önce doldurulacak bir eskiz profili oluşturun"
 
+# AI Translated
 msgid "Surface Offset"
-msgstr ""
+msgstr "Yüzey Ofseti"
 
+# AI Translated
 msgid "Offset a sheet body's shell by a signed distance"
-msgstr ""
+msgstr "Bir yüzey gövdesinin kabuğunu işaretli bir mesafe kadar ofsetleyin"
 
+# AI Translated
 msgid "No sheet body to offset — create a surface feature first"
-msgstr ""
+msgstr "Ofsetlenecek yüzey gövdesi yok — önce bir yüzey unsuru oluşturun"
 
+# AI Translated
 msgid "Thicken Surface"
-msgstr ""
+msgstr "Yüzeyi Kalınlaştır"
 
+# AI Translated
 msgid "Thicken a sheet body into a solid"
-msgstr ""
+msgstr "Bir yüzey gövdesini kalınlaştırarak katıya dönüştürün"
 
+# AI Translated
 msgid "No sheet body to thicken — create a surface feature first"
-msgstr ""
+msgstr "Kalınlaştırılacak yüzey gövdesi yok — önce bir yüzey unsuru oluşturun"
 
+# AI Translated
 msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
-msgstr ""
+msgstr "Referans / Eğri (düzlem / eksen / koord. sist. / helis / izdüşüm)"
 
+# AI Translated
 msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
-msgstr ""
+msgstr "Referans düzlemi (ofset / eğik / orta düzlem / teğet / iki kenar / çakışık)"
 
+# AI Translated
 msgid "Axis"
-msgstr ""
+msgstr "Eksen"
 
+# AI Translated
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
-msgstr ""
+msgstr "Referans ekseni (iki nokta, yüz normali, silindir merkez çizgisi, iki düzlem, kenar boyunca)"
 
+# AI Translated
 msgid "Coord Sys"
-msgstr ""
+msgstr "Koord. Sist."
 
+# AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
-msgstr ""
+msgstr "Referans koordinat sistemi (dünya noktası veya yüz + yön kenarı)"
 
+# AI Translated
 msgid "Helix"
-msgstr ""
+msgstr "Helis"
 
+# AI Translated
 msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
-msgstr ""
+msgstr "Helisel eğri (yay yolu) — bobin / yay / helezon için süpürme yolu olarak kullanın"
 
+# AI Translated
 msgid "Project body edges onto a plane as sketch entities"
-msgstr ""
+msgstr "Gövde kenarlarının bir düzlem üzerindeki izdüşümünü eskiz öğeleri olarak alın"
 
+# AI Translated
 msgid "Project needs a body — add or import one first"
-msgstr ""
+msgstr "İzdüşüm için bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "(all edges)"
-msgstr ""
+msgstr "(tüm kenarlar)"
 
+# AI Translated
 msgid "Placement (transform / mirror / mate)"
-msgstr ""
+msgstr "Konumlandırma (dönüştürme / aynalama / montaj ilişkisi)"
 
+# AI Translated
 msgid "Transform"
-msgstr ""
+msgstr "Dönüştür"
 
+# AI Translated
 msgid "Move and/or rotate an existing body"
-msgstr ""
+msgstr "Mevcut bir gövdeyi taşıyın ve/veya döndürün"
 
+# AI Translated
 msgid "Transform needs a body — add or import one first"
-msgstr ""
+msgstr "Dönüştürme için bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Reflect a body about a plane"
-msgstr ""
+msgstr "Bir gövdeyi bir düzleme göre aynalayın"
 
+# AI Translated
 msgid "Mirror needs a body — add or import one first"
-msgstr ""
+msgstr "Aynalama için bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Mate"
-msgstr ""
+msgstr "Montaj ilişkisi"
 
+# AI Translated
 msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Montaj: iki koordinat sistemi unsurunu hizalayın (sabit, düzlemsel, döner, kayar, silindirik)"
 
+# AI Translated
 msgid "Boolean (combine bodies)"
-msgstr ""
+msgstr "Boole (gövdeleri birleştir)"
 
+# AI Translated
 msgid "Boolean — needs two solid bodies to combine"
-msgstr ""
+msgstr "Boole — birleştirilecek iki katı gövde gerekir"
 
+# AI Translated
 msgid "Cut (split a body with a plane)"
-msgstr ""
+msgstr "Kes (bir gövdeyi düzlemle böl)"
 
+# AI Translated
 msgid "Create a solid body to cut first"
-msgstr ""
+msgstr "Önce kesilecek katı bir gövde oluşturun"
 
+# AI Translated
 msgid "Cut — needs a solid body to slice"
-msgstr ""
+msgstr "Kes — kesilecek katı bir gövde gerekir"
 
+# AI Translated
 msgid "Color — set the selected body's display colour"
-msgstr ""
+msgstr "Renk — seçili gövdenin görüntü rengini ayarlayın"
 
+# AI Translated
 msgid "Select a feature, or a body, first — then rename it"
-msgstr ""
+msgstr "Önce bir unsur veya gövde seçin — ardından yeniden adlandırın"
 
+# AI Translated
 msgid "Fillet / chamfer / draft / shell / delete face"
-msgstr ""
+msgstr "Yuvarlatma / pah / koniklik / kabuklama / yüz silme"
 
+# AI Translated
 msgid "Fillet / Chamfer"
-msgstr ""
+msgstr "Yuvarlatma / Pah"
 
+# AI Translated
 msgid "Round or bevel a picked edge"
-msgstr ""
+msgstr "Seçilen bir kenarı yuvarlatın veya pah kırın"
 
+# AI Translated
 msgid "Draft (taper a face)"
-msgstr ""
+msgstr "Koniklik (yüze eğim ver)"
 
+# AI Translated
 msgid "Tilt a picked face by a draft angle"
-msgstr ""
+msgstr "Seçilen bir yüzü koniklik açısı kadar eğin"
 
+# AI Translated
 msgid "Hollow the body to a wall thickness, opening a picked face"
-msgstr ""
+msgstr "Seçilen bir yüzü açarak gövdenin içini belirli bir duvar kalınlığında boşaltın"
 
+# AI Translated
 msgid "Delete Face"
-msgstr ""
+msgstr "Yüzü Sil"
 
+# AI Translated
 msgid "Remove faces from a body and heal the solid"
-msgstr ""
+msgstr "Bir gövdeden yüzleri kaldırın ve katıyı onarın"
 
+# AI Translated
 msgid "Delete Face needs a body — add or import one first"
-msgstr ""
+msgstr "Yüz silme için bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "(none)"
-msgstr ""
+msgstr "(yok)"
 
+# AI Translated
 msgid "Hole / thread"
-msgstr ""
+msgstr "Delik / diş"
 
+# AI Translated
 msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr ""
+msgstr "Seçilen bir yüzde ortalanmış veya bir düzleme yerleştirilmiş bir delik açın"
 
+# AI Translated
 msgid "Thread"
-msgstr ""
+msgstr "Diş"
 
+# AI Translated
 msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
-msgstr ""
+msgstr "Silindirik bir yüzeye (iç delik / dış) veya dairesel bir kenara diş açın"
 
+# AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr ""
+msgstr "Diş için silindirik bir yüzey (delik / dış) veya dairesel bir kenar seçin"
 
+# AI Translated
 msgid "Import STEP (editable B-rep solid)"
-msgstr ""
+msgstr "STEP içe aktar (düzenlenebilir B-rep katı)"
 
+# AI Translated
 msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr ""
+msgstr "Mesh'i (STL/OBJ) düzenlenebilir B-rep katı olarak içe aktar"
 
+# AI Translated
 msgid "Constrain selected sketch"
-msgstr ""
+msgstr "Seçili eskizi kısıtla"
 
+# AI Translated
 msgid "SKETCH"
-msgstr ""
+msgstr "ESKİZ"
 
+# AI Translated
 msgid "Click to select; Shift to add; double-click for a whole loop"
-msgstr ""
+msgstr "Seçmek için tıklayın; eklemek için Shift; tüm döngü için çift tıklayın"
 
+# AI Translated
 msgid "Dimension"
-msgstr ""
+msgstr "Ölçü"
 
+# AI Translated
 msgid "Click 2 points or a line / circle / arc to place a dimension"
-msgstr ""
+msgstr "Ölçü yerleştirmek için 2 noktaya veya bir çizgiye / daireye / yaya tıklayın"
 
+# AI Translated
 msgid "Line / polyline"
-msgstr ""
+msgstr "Çizgi / çoklu çizgi"
 
+# AI Translated
 msgid "Click start, then end — then set the exact length"
-msgstr ""
+msgstr "Başlangıca, ardından bitişe tıklayın — sonra tam uzunluğu ayarlayın"
 
+# AI Translated
 msgid "Polyline"
-msgstr ""
+msgstr "Çoklu çizgi"
 
+# AI Translated
 msgid "Click points; click first / right-click to close the loop"
-msgstr ""
+msgstr "Noktalara tıklayın; döngüyü kapatmak için ilk noktaya tıklayın / sağ tıklayın"
 
+# AI Translated
 msgid "Corner rectangle"
-msgstr ""
+msgstr "Köşe dikdörtgeni"
 
+# AI Translated
 msgid "Click two opposite corners"
-msgstr ""
+msgstr "Karşılıklı iki köşeye tıklayın"
 
+# AI Translated
 msgid "Center rectangle"
-msgstr ""
+msgstr "Merkez dikdörtgeni"
 
+# AI Translated
 msgid "Click center, then a corner"
-msgstr ""
+msgstr "Merkeze, ardından bir köşeye tıklayın"
 
+# AI Translated
 msgid "Oblique rectangle"
-msgstr ""
+msgstr "Eğik dikdörtgen"
 
+# AI Translated
 msgid "Click two corners of one edge, then a point for the width"
-msgstr ""
+msgstr "Bir kenarın iki köşesine, ardından genişlik için bir noktaya tıklayın"
 
+# AI Translated
 msgid "Rounded rectangle"
-msgstr ""
+msgstr "Yuvarlatılmış dikdörtgen"
 
+# AI Translated
 msgid "Click two opposite corners, then a point for the corner radius"
-msgstr ""
+msgstr "Karşılıklı iki köşeye, ardından köşe yarıçapı için bir noktaya tıklayın"
 
+# AI Translated
 msgid "Center circle"
-msgstr ""
+msgstr "Merkezden daire"
 
+# AI Translated
 msgid "Click center, then radius"
-msgstr ""
+msgstr "Merkeze, ardından yarıçapa tıklayın"
 
+# AI Translated
 msgid "2-point circle"
-msgstr ""
+msgstr "2 noktalı daire"
 
+# AI Translated
 msgid "Click two ends of the diameter"
-msgstr ""
+msgstr "Çapın iki ucuna tıklayın"
 
+# AI Translated
 msgid "3-point circle"
-msgstr ""
+msgstr "3 noktalı daire"
 
+# AI Translated
 msgid "Click three points on the circle"
-msgstr ""
+msgstr "Daire üzerinde üç noktaya tıklayın"
 
+# AI Translated
 msgid "Arc"
-msgstr ""
+msgstr "Yay"
 
+# AI Translated
 msgid "3-point arc"
-msgstr ""
+msgstr "3 noktalı yay"
 
+# AI Translated
 msgid "Click start, end, then a point on the arc"
-msgstr ""
+msgstr "Başlangıca, bitişe, ardından yay üzerinde bir noktaya tıklayın"
 
+# AI Translated
 msgid "Tangent arc"
-msgstr ""
+msgstr "Teğet yay"
 
+# AI Translated
 msgid "Click start (on the last entity) then end"
-msgstr ""
+msgstr "Başlangıca (son öğe üzerinde), ardından bitişe tıklayın"
 
+# AI Translated
 msgid "Center-point arc"
-msgstr ""
+msgstr "Merkez noktalı yay"
 
+# AI Translated
 msgid "Click center, then start, then a point for the end angle"
-msgstr ""
+msgstr "Merkeze, ardından başlangıca, sonra bitiş açısı için bir noktaya tıklayın"
 
+# AI Translated
 msgid "Slot"
-msgstr ""
+msgstr "Kanal"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the end radius"
-msgstr ""
+msgstr "Merkez çizgisinin iki ucuna, ardından uç yarıçapı için bir noktaya tıklayın"
 
+# AI Translated
 msgid "Arc slot"
-msgstr ""
+msgstr "Yay kanal"
 
+# AI Translated
 msgid "Click center, start, end, then a point for the width"
-msgstr ""
+msgstr "Merkeze, başlangıca, bitişe, ardından genişlik için bir noktaya tıklayın"
 
+# AI Translated
 msgid "Ellipse"
-msgstr ""
+msgstr "Elips"
 
+# AI Translated
 msgid "Click center, a major-axis end, then a point for the minor axis"
-msgstr ""
+msgstr "Merkeze, bir büyük eksen ucuna, ardından küçük eksen için bir noktaya tıklayın"
 
+# AI Translated
 msgid "Elliptical arc"
-msgstr ""
+msgstr "Eliptik yay"
 
+# AI Translated
 msgid "Click center, major-axis end, minor point, then arc start and end"
-msgstr ""
+msgstr "Merkeze, büyük eksen ucuna, küçük eksen noktasına, ardından yayın başlangıcına ve bitişine tıklayın"
 
+# AI Translated
 msgid "Spline"
-msgstr ""
+msgstr "Spline"
 
+# AI Translated
 msgid "Click control points; double-click or right-click to finish"
-msgstr ""
+msgstr "Kontrol noktalarına tıklayın; bitirmek için çift tıklayın veya sağ tıklayın"
 
+# AI Translated
 msgid "Click to place a point"
-msgstr ""
+msgstr "Nokta yerleştirmek için tıklayın"
 
+# AI Translated
 msgid "Select — click to select; Shift to add"
-msgstr ""
+msgstr "Seç — seçmek için tıklayın; eklemek için Shift"
 
+# AI Translated
 msgid "Text — emboss text as a profile"
-msgstr ""
+msgstr "Metin — metni profil olarak kabartın"
 
+# AI Translated
 msgid "SVG — import an outline as a profile"
-msgstr ""
+msgstr "SVG — bir dış hattı profil olarak içe aktarın"
 
+# AI Translated
 msgid "Fillet / chamfer"
-msgstr ""
+msgstr "Yuvarlatma / pah"
 
+# AI Translated
 msgid "Fillet"
-msgstr ""
+msgstr "Yuvarlatma"
 
+# AI Translated
 msgid "Pick two lines, then drag the arrow or click the radius to set it"
-msgstr ""
+msgstr "İki çizgi seçin, ardından ayarlamak için oku sürükleyin veya yarıçapa tıklayın"
 
+# AI Translated
 msgid "Chamfer"
-msgstr ""
+msgstr "Pah"
 
+# AI Translated
 msgid "Pick two lines, then drag the arrow or click the distance to set it"
-msgstr ""
+msgstr "İki çizgi seçin, ardından ayarlamak için oku sürükleyin veya mesafeye tıklayın"
 
+# AI Translated
 msgid "Offset"
-msgstr ""
+msgstr "Ofset"
 
+# AI Translated
 msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
-msgstr ""
+msgstr "Bir öğe seçin, ardından oku sürükleyin veya mesafeye tıklayın; uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
-msgstr ""
+msgstr "Bir aynalama ekseni çizgisi, ardından aynalanacak öğeleri seçin; uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Trim"
-msgstr ""
+msgstr "Kırp"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr ""
+msgstr "Bir segmenti en yakın kesişimine kadar kırpmak için ona tıklayın; çıkmak için sağ tıklayın"
 
+# AI Translated
 msgid "Extend"
-msgstr ""
+msgstr "Uzat"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr ""
+msgstr "Bir çizgiyi veya yayı en yakın öğeye kadar uzatmak için ona tıklayın; çıkmak için sağ tıklayın"
 
+# AI Translated
 msgid "Constrain — add geometric/dimensional relations"
-msgstr ""
+msgstr "Kısıtla — geometrik/ölçüsel ilişkiler ekleyin"
 
+# AI Translated
 msgid "Move / rotate / scale"
-msgstr ""
+msgstr "Taşı / döndür / ölçeklendir"
 
+# AI Translated
 msgid "Move (translate)"
-msgstr ""
+msgstr "Taşı (ötele)"
 
+# AI Translated
 msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
-msgstr ""
+msgstr "Öğeleri seçin, ardından tutamacı sürükleyin veya mesafeye tıklayın; uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Rotate (about centroid)"
-msgstr ""
+msgstr "Döndür (ağırlık merkezi etrafında)"
 
+# AI Translated
 msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
-msgstr ""
+msgstr "Öğeleri seçin, ardından dönme noktası etrafında sürükleyin veya açıya tıklayın; uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Scale (about centroid)"
-msgstr ""
+msgstr "Ölçeklendir (ağırlık merkezine göre)"
 
+# AI Translated
 msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
-msgstr ""
+msgstr "Öğeleri seçin, ardından tutamacı sürükleyin veya katsayıya tıklayın; uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Linear / polar array"
-msgstr ""
+msgstr "Doğrusal / dairesel dizi"
 
+# AI Translated
 msgid "Linear array"
-msgstr ""
+msgstr "Doğrusal dizi"
 
+# AI Translated
 msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
-msgstr ""
+msgstr "Öğeleri seçin, aralık tutamacını sürükleyin, sayıya tıklayın; uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Polar array (about centroid)"
-msgstr ""
+msgstr "Dairesel dizi (ağırlık merkezi etrafında)"
 
+# AI Translated
 msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
-msgstr ""
+msgstr "Öğeleri seçin, açı tutamacını sürükleyin, sayıya tıklayın; uygulamak için boş alana tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Click center then a vertex — %d sides, %s"
-msgstr ""
+msgstr "Merkeze, ardından bir köşe noktasına tıklayın — %d kenar, %s"
 
+# AI Translated
 msgid "circumscribed"
-msgstr ""
+msgstr "dıştan çizilmiş"
 
+# AI Translated
 msgid "inscribed"
-msgstr ""
+msgstr "içten çizilmiş"
 
+# AI Translated
 msgid "Polygon"
-msgstr ""
+msgstr "Çokgen"
 
 #, c-format, boost-format
 msgid "Converted %d entit%s between construction and real geometry"
 msgstr ""
 
+# AI Translated
 msgid "CONSTRAIN"
-msgstr ""
+msgstr "KISITLA"
 
+# AI Translated
 msgid "Perpendicular"
-msgstr ""
+msgstr "Dik"
 
+# AI Translated
 msgid "Coincident"
-msgstr ""
+msgstr "Çakışık"
 
+# AI Translated
 msgid "Equal length"
-msgstr ""
+msgstr "Eşit uzunluk"
 
+# AI Translated
 msgid "Equal radius"
-msgstr ""
+msgstr "Eşit yarıçap"
 
+# AI Translated
 msgid "Collinear"
-msgstr ""
+msgstr "Eş doğrusal"
 
+# AI Translated
 msgid "Tangent"
-msgstr ""
+msgstr "Teğet"
 
+# AI Translated
 msgid "Midpoint"
-msgstr ""
+msgstr "Orta nokta"
 
+# AI Translated
 msgid "Symmetric"
-msgstr ""
+msgstr "Simetrik"
 
+# AI Translated
 msgid "Symmetric about the vertical axis"
-msgstr ""
+msgstr "Dikey eksene göre simetrik"
 
+# AI Translated
 msgid "Symmetric about the horizontal axis"
-msgstr ""
+msgstr "Yatay eksene göre simetrik"
 
+# AI Translated
 msgid "Fix point (anchor in place)"
-msgstr ""
+msgstr "Noktayı sabitle (yerine kilitle)"
 
+# AI Translated
 msgid "Horizontal distance"
-msgstr ""
+msgstr "Yatay mesafe"
 
+# AI Translated
 msgid "Vertical distance"
-msgstr ""
+msgstr "Dikey mesafe"
 
+# AI Translated
 msgid "✓ Confirm"
-msgstr ""
+msgstr "✓ Onayla"
 
+# AI Translated
 msgid "✗ Cancel"
-msgstr ""
+msgstr "✗ İptal"
 
+# AI Translated
 msgid "Undo (Ctrl+Z)"
-msgstr ""
+msgstr "Geri al (Ctrl+Z)"
 
+# AI Translated
 msgid "Redo (Ctrl+Shift+Z)"
-msgstr ""
+msgstr "İleri al (Ctrl+Shift+Z)"
 
+# AI Translated
 msgid "New Design — clear the feature tree"
-msgstr ""
+msgstr "Yeni Tasarım — unsur ağacını temizle"
 
+# AI Translated
 msgid "Export STEP…"
-msgstr ""
+msgstr "STEP olarak dışa aktar…"
 
+# AI Translated
 msgid "Show the printer bed and its plate grid"
-msgstr ""
+msgstr "Yazıcı yatağını ve plaka ızgarasını göster"
 
+# AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
-msgstr ""
+msgstr "Yüze Yerleştir (F) — seçilen yüzü yatağa yatır"
 
+# AI Translated
 msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
-msgstr ""
+msgstr "Kesit Görünümü — içini görmek için modelin bir kısmını gizleyin. PageUp/PageDown düzlemi taşır; Delete onu kaldırır."
 
+# AI Translated
 msgid "Flip Section — show the opposite half"
-msgstr ""
+msgstr "Kesiti Çevir — karşı yarıyı göster"
 
+# AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
-msgstr ""
+msgstr "Plakaya Aktar — katıyı Hazırlık'a gönder"
 
+# AI Translated
 msgid "Width / X"
-msgstr ""
+msgstr "Genişlik / X"
 
+# AI Translated
 msgid "Height / Y"
-msgstr ""
+msgstr "Yükseklik / Y"
 
+# AI Translated
 msgid "Distance X"
-msgstr ""
+msgstr "Mesafe X"
 
+# AI Translated
 msgid "Distance Y"
-msgstr ""
+msgstr "Mesafe Y"
 
+# AI Translated
 msgid "Distance Z"
-msgstr ""
+msgstr "Mesafe Z"
 
+# AI Translated
 msgid "Z"
-msgstr ""
+msgstr "Z"
 
+# AI Translated
 msgid "Rotation axis"
-msgstr ""
+msgstr "Dönme ekseni"
 
+# AI Translated
 msgid "Angle °"
-msgstr ""
+msgstr "Açı °"
 
+# AI Translated
 msgid "Move / Rotate"
-msgstr ""
+msgstr "Taşı / Döndür"
 
+# AI Translated
 msgid "Sketch: —"
-msgstr ""
+msgstr "Eskiz: —"
 
+# AI Translated
 msgid "Extrude dist"
-msgstr ""
+msgstr "Ekstrüzyon mesafesi"
 
 msgid "End"
 msgstr "Son"
 
+# AI Translated
 msgid "2nd dist"
-msgstr ""
+msgstr "2. mesafe"
 
+# AI Translated
 msgid "Taper °"
-msgstr ""
+msgstr "Daralma °"
 
+# AI Translated
 msgid "New body"
-msgstr ""
+msgstr "Yeni gövde"
 
+# AI Translated
 msgid "Intersect"
-msgstr ""
+msgstr "Kesişim"
 
+# AI Translated
 msgid "Result"
-msgstr ""
+msgstr "Sonuç"
 
+# AI Translated
 msgid "Flip direction"
-msgstr ""
+msgstr "Yönü çevir"
 
+# AI Translated
 msgid "(no edge picked — group below)"
-msgstr ""
+msgstr "(kenar seçilmedi — aşağıdaki grup)"
 
 msgid "Bottom"
 msgstr "Alt"
 
+# AI Translated
 msgid "Lateral"
-msgstr ""
+msgstr "Yanal"
 
+# AI Translated
 msgid "Edges"
-msgstr ""
+msgstr "Kenarlar"
 
+# AI Translated
 msgid "Size (r/dist)"
-msgstr ""
+msgstr "Boyut (r/mesafe)"
 
+# AI Translated
 msgid "XY"
-msgstr ""
+msgstr "XY"
 
+# AI Translated
 msgid "XZ"
-msgstr ""
+msgstr "XZ"
 
+# AI Translated
 msgid "YZ"
-msgstr ""
+msgstr "YZ"
 
+# AI Translated
 msgid "Hole plane"
-msgstr ""
+msgstr "Delik düzlemi"
 
+# AI Translated
 msgid "Depth (blind)"
-msgstr ""
+msgstr "Derinlik (kör)"
 
+# AI Translated
 msgid "Pos X"
-msgstr ""
+msgstr "Konum X"
 
+# AI Translated
 msgid "Pos Y"
-msgstr ""
+msgstr "Konum Y"
 
+# AI Translated
 msgid "Through"
-msgstr ""
+msgstr "Boydan boya"
 
+# AI Translated
 msgid "(none — uses Hole plane)"
-msgstr ""
+msgstr "(yok — Delik düzlemini kullanır)"
 
+# AI Translated
 msgid "On face"
-msgstr ""
+msgstr "Yüz üzerinde"
 
+# AI Translated
 msgid "Thread plane"
-msgstr ""
+msgstr "Diş düzlemi"
 
+# AI Translated
 msgid "Pitch"
-msgstr ""
+msgstr "Adım"
 
+# AI Translated
 msgid "Thread depth"
-msgstr ""
+msgstr "Diş derinliği"
 
+# AI Translated
 msgid "(none — uses Thread plane)"
-msgstr ""
+msgstr "(yok — Diş düzlemini kullanır)"
 
+# AI Translated
 msgid "Plane X"
-msgstr ""
+msgstr "Düzlem X"
 
+# AI Translated
 msgid "Plane Y"
-msgstr ""
+msgstr "Düzlem Y"
 
+# AI Translated
 msgid "Profile: —"
-msgstr ""
+msgstr "Profil: —"
 
+# AI Translated
 msgid "Path"
-msgstr ""
+msgstr "Yol"
 
+# AI Translated
 msgid "Linear"
-msgstr ""
+msgstr "Doğrusal"
 
+# AI Translated
 msgid "Direction"
-msgstr ""
+msgstr "Yön"
 
+# AI Translated
 msgid "Total angle°"
-msgstr ""
+msgstr "Toplam açı°"
 
+# AI Translated
 msgid "Boolean"
-msgstr ""
+msgstr "Boole"
 
+# AI Translated
 msgid "Union (join)"
-msgstr ""
+msgstr "Birleşim (birleştir)"
 
+# AI Translated
 msgid "Subtract (cut)"
-msgstr ""
+msgstr "Çıkarma (kes)"
 
+# AI Translated
 msgid "Target (kept)"
-msgstr ""
+msgstr "Hedef (korunur)"
 
+# AI Translated
 msgid "Keep tool body"
-msgstr ""
+msgstr "Araç gövdesini koru"
 
+# AI Translated
 msgid "Body"
-msgstr ""
+msgstr "Gövde"
 
+# AI Translated
 msgid "Insert"
-msgstr ""
+msgstr "Ekle"
 
+# AI Translated
 msgid ""
 "Drag a corner to size, the centre to move.\n"
 "Confirm or Cancel in the toolbar above."
 msgstr ""
+"Boyutlandırmak için bir köşeyi, taşımak için merkezi sürükleyin.\n"
+"Yukarıdaki araç çubuğundan Onayla veya İptal'i seçin."
 
+# AI Translated
 msgid "Midplane"
-msgstr ""
+msgstr "Orta düzlem"
 
+# AI Translated
 msgid "Two edges"
-msgstr ""
+msgstr "İki kenar"
 
+# AI Translated
 msgid "Plane type"
-msgstr ""
+msgstr "Düzlem türü"
 
+# AI Translated
 msgid "Base"
-msgstr ""
+msgstr "Taban"
 
+# AI Translated
 msgid "Angle°"
-msgstr ""
+msgstr "Açı°"
 
+# AI Translated
 msgid "Base X"
-msgstr ""
+msgstr "Taban X"
 
+# AI Translated
 msgid "Base Y"
-msgstr ""
+msgstr "Taban Y"
 
+# AI Translated
 msgid "Tilt axis"
-msgstr ""
+msgstr "Eğim ekseni"
 
+# AI Translated
 msgid "Pick Face A"
-msgstr ""
+msgstr "A Yüzünü Seç"
 
+# AI Translated
 msgid "Pick Face B"
-msgstr ""
+msgstr "B Yüzünü Seç"
 
+# AI Translated
 msgid "Pick Edge A"
-msgstr ""
+msgstr "A Kenarını Seç"
 
+# AI Translated
 msgid "Pick Edge B"
-msgstr ""
+msgstr "B Kenarını Seç"
 
+# AI Translated
 msgid "Size U"
-msgstr ""
+msgstr "Boyut U"
 
+# AI Translated
 msgid "Size V"
-msgstr ""
+msgstr "Boyut V"
 
+# AI Translated
 msgid "Profiles (check 2+, in order):"
-msgstr ""
+msgstr "Profiller (sırayla 2+ işaretleyin):"
 
+# AI Translated
 msgid "Ruled (straight) sections"
-msgstr ""
+msgstr "Düz (regle) kesitler"
 
+# AI Translated
 msgid "Fills the sketch's closed boundary with a smooth face."
-msgstr ""
+msgstr "Eskizin kapalı sınırını düzgün bir yüzle doldurur."
 
+# AI Translated
 msgid "Sheet body"
-msgstr ""
+msgstr "Yüzey gövdesi"
 
+# AI Translated
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
-msgstr ""
+msgstr "Bir yüzey gövdesinin kabuğunu ofsetler. Pozitif = dışa doğru, negatif = içe doğru."
 
+# AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
-msgstr ""
+msgstr "Bir yüzey gövdesini kalınlaştırarak katıya dönüştürür. Çevir, yönü tersine çevirir."
 
+# AI Translated
 msgid "(all faces — closed hollow)"
-msgstr ""
+msgstr "(tüm yüzler — kapalı boşluk)"
 
+# AI Translated
 msgid "Open face"
-msgstr ""
+msgstr "Açık yüz"
 
+# AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
-msgstr ""
+msgstr "Açmak için bir katı yüz seçin, ardından duvar kalınlığını ayarlayın."
 
+# AI Translated
 msgid "Angle (°)"
-msgstr ""
+msgstr "Açı (°)"
 
+# AI Translated
 msgid "(pick a side face)"
-msgstr ""
+msgstr "(bir yan yüz seçin)"
 
+# AI Translated
 msgid "Draft"
-msgstr ""
+msgstr "Koniklik"
 
+# AI Translated
 msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
-msgstr ""
+msgstr "Bir yan yüz seçin, ardından koniklik açısını ayarlayın. Yüz, gövde tabanı etrafında döner."
 
+# AI Translated
 msgid "Translate X"
-msgstr ""
+msgstr "Öteleme X"
 
+# AI Translated
 msgid "Translate Y"
-msgstr ""
+msgstr "Öteleme Y"
 
+# AI Translated
 msgid "Translate Z"
-msgstr ""
+msgstr "Öteleme Z"
 
+# AI Translated
 msgid "Rotate axis"
-msgstr ""
+msgstr "Dönme ekseni"
 
+# AI Translated
 msgid "Pivot X"
-msgstr ""
+msgstr "Pivot X"
 
+# AI Translated
 msgid "Pivot Y"
-msgstr ""
+msgstr "Pivot Y"
 
+# AI Translated
 msgid "Pivot Z"
-msgstr ""
+msgstr "Pivot Z"
 
+# AI Translated
 msgid "Keep original (make a copy)"
-msgstr ""
+msgstr "Orijinali koru (kopya oluştur)"
 
+# AI Translated
 msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
-msgstr ""
+msgstr "Seçili gövdeyi öteleyin ve/veya döndürün. Döndürme pivot etrafında uygulanır, ardından öteleme gelir."
 
+# AI Translated
 msgid "Mirror plane"
-msgstr ""
+msgstr "Aynalama düzlemi"
 
+# AI Translated
 msgid "Keep original"
-msgstr ""
+msgstr "Orijinali koru"
 
+# AI Translated
 msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
-msgstr ""
+msgstr "Seçili gövdeyi bir düzleme göre aynalayın. Ayna görüntüsü her zaman yeni bir gövdedir; orijinali korursanız ikisi birden olur."
 
+# AI Translated
 msgid "(pick a solid face)"
-msgstr ""
+msgstr "(bir katı yüz seçin)"
 
+# AI Translated
 msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
-msgstr ""
+msgstr "Bir katı yüz seçin ve onu yeni bir ince gövdeye ofsetleyin. Yüzey gövdeleri için değildir — onlar için Yüzeyi Kalınlaştır'ı kullanın."
 
+# AI Translated
 msgid "Target body"
-msgstr ""
+msgstr "Hedef gövde"
 
+# AI Translated
 msgid "Entity index"
-msgstr ""
+msgstr "Öğe indeksi"
 
+# AI Translated
 msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
-msgstr ""
+msgstr "Açık bir eskiz Çizgi öğesinden, hedef gövdeyle kaynaşan ince bir duvar oluşturur. Öğe indeksi, açık Çizginin eskizdeki konumudur."
 
+# AI Translated
 msgid "Source body"
-msgstr ""
+msgstr "Kaynak gövde"
 
+# AI Translated
 msgid "Target plane"
-msgstr ""
+msgstr "Hedef düzlem"
 
+# AI Translated
 msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
-msgstr ""
+msgstr "Bir gövdenin kenarlarının bir düzlem üzerindeki izdüşümünü eskiz öğeleri olarak alır. Yalnızca bir yüzün kenarlarının izdüşümünü almak için o yüzü seçin veya tüm gövdenin izdüşümünü almak için yüzü boş bırakın."
 
+# AI Translated
 msgid "Add picked face"
-msgstr ""
+msgstr "Seçilen yüzü ekle"
 
+# AI Translated
 msgid "Click a face on the body first, then Add picked face"
-msgstr ""
+msgstr "Önce gövde üzerinde bir yüze tıklayın, ardından Seçilen yüzü ekle'ye basın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d is already in the list"
-msgstr ""
+msgstr "Yüz %d zaten listede"
 
+# AI Translated
 msgid "Faces to delete"
-msgstr ""
+msgstr "Silinecek yüzler"
 
+# AI Translated
 msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
-msgstr ""
+msgstr "Bir katı yüz seçin, ardından yüzleri biriktirmek için 'Seçilen yüzü ekle'ye tıklayın. Listelenen tüm yüzleri kaldırıp katıyı onarmak için onaylayın."
 
+# AI Translated
 msgid "Left-handed"
-msgstr ""
+msgstr "Sol yönlü"
 
+# AI Translated
 msgid "Taper (°)"
-msgstr ""
+msgstr "Daralma (°)"
 
+# AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
-msgstr ""
+msgstr "Helisel bir eğri (yay yolu). Yay, bobin veya helezon oluşturmak için süpürme yolu olarak kullanın."
 
+# AI Translated
 msgid "Two points"
-msgstr ""
+msgstr "İki nokta"
 
+# AI Translated
 msgid "Face normal"
-msgstr ""
+msgstr "Yüz normali"
 
+# AI Translated
 msgid "Cylinder centerline"
-msgstr ""
+msgstr "Silindir merkez çizgisi"
 
+# AI Translated
 msgid "Plane intersection"
-msgstr ""
+msgstr "Düzlem kesişimi"
 
+# AI Translated
 msgid "Along edge"
-msgstr ""
+msgstr "Kenar boyunca"
 
+# AI Translated
 msgid "Axis type"
-msgstr ""
+msgstr "Eksen türü"
 
+# AI Translated
 msgid "Pick Face"
-msgstr ""
+msgstr "Yüz Seç"
 
+# AI Translated
 msgid "Pick Edge"
-msgstr ""
+msgstr "Kenar Seç"
 
+# AI Translated
 msgid "Plane A"
-msgstr ""
+msgstr "Düzlem A"
 
+# AI Translated
 msgid "Plane B"
-msgstr ""
+msgstr "Düzlem B"
 
+# AI Translated
 msgid "Point 1 X"
-msgstr ""
+msgstr "Nokta 1 X"
 
+# AI Translated
 msgid "Point 1 Y"
-msgstr ""
+msgstr "Nokta 1 Y"
 
+# AI Translated
 msgid "Point 1 Z"
-msgstr ""
+msgstr "Nokta 1 Z"
 
+# AI Translated
 msgid "Point 2 X"
-msgstr ""
+msgstr "Nokta 2 X"
 
+# AI Translated
 msgid "Point 2 Y"
-msgstr ""
+msgstr "Nokta 2 Y"
 
+# AI Translated
 msgid "Point 2 Z"
-msgstr ""
+msgstr "Nokta 2 Z"
 
+# AI Translated
 msgid "Point (world)"
-msgstr ""
+msgstr "Nokta (dünya)"
 
+# AI Translated
 msgid "Face + direction"
-msgstr ""
+msgstr "Yüz + yön"
 
+# AI Translated
 msgid "(all)"
-msgstr ""
+msgstr "(tümü)"
 
+# AI Translated
 msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
-msgstr ""
+msgstr "Seçimi tek bir gövdeyle sınırlayın — diğerleri saydamlaşır ve tıklamaları algılamaz"
 
+# AI Translated
 msgid "Edge (sets in-plane direction)"
-msgstr ""
+msgstr "Kenar (düzlem içi yönü belirler)"
 
+# AI Translated
 msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
-msgstr ""
+msgstr "Kenar seçilmezse çerçeve X'i yüzün ilk kenarından alır — kendiniz belirlemek için bir kenar seçin"
 
+# AI Translated
 msgid "X hint X"
-msgstr ""
+msgstr "X yönü X"
 
+# AI Translated
 msgid "X hint Y"
-msgstr ""
+msgstr "X yönü Y"
 
+# AI Translated
 msgid "X hint Z"
-msgstr ""
+msgstr "X yönü Z"
 
+# AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
-msgstr ""
+msgstr "Sabit — 6 DOF kilitli, B tam olarak A'ya oturtulur"
 
+# AI Translated
 msgid "Planar — z aligned, offset distance; free in-plane slide"
-msgstr ""
+msgstr "Düzlemsel — z hizalı, ofset mesafesi; düzlem içinde serbest kayma"
 
+# AI Translated
 msgid "Revolute — axes collinear; free rotation about z"
-msgstr ""
+msgstr "Döner — eksenler eş doğrusal; z etrafında serbest dönme"
 
+# AI Translated
 msgid "Slider — orientation locked; free axial slide"
-msgstr ""
+msgstr "Kayar — yönelim kilitli; serbest eksenel kayma"
 
+# AI Translated
 msgid "Cylindrical — axes collinear; free spin + axial slide"
-msgstr ""
+msgstr "Silindirik — eksenler eş doğrusal; serbest dönme + eksenel kayma"
 
+# AI Translated
 msgid "Kind"
-msgstr ""
+msgstr "Tür"
 
+# AI Translated
 msgid "CS A (fixed)"
-msgstr ""
+msgstr "KS A (sabit)"
 
+# AI Translated
 msgid "CS B (moves)"
-msgstr ""
+msgstr "KS B (hareketli)"
 
+# AI Translated
 msgid "Flip (oppose z axes)"
-msgstr ""
+msgstr "Çevir (z eksenleri zıt yönde)"
 
+# AI Translated
 msgid "Plane distance"
-msgstr ""
+msgstr "Düzlem mesafesi"
 
+# AI Translated
 msgid "Axial position"
-msgstr ""
+msgstr "Eksenel konum"
 
+# AI Translated
 msgid "Expression"
-msgstr ""
+msgstr "İfade"
 
+# AI Translated
 msgid "Field"
-msgstr ""
+msgstr "Alan"
 
+# AI Translated
 msgid "Expr"
-msgstr ""
+msgstr "İfade"
 
+# AI Translated
 msgid "(no bindings)"
-msgstr ""
+msgstr "(bağlama yok)"
 
+# AI Translated
 msgid "Value"
-msgstr ""
+msgstr "Değer"
 
+# AI Translated
 msgid "Constraints"
-msgstr ""
+msgstr "Kısıtlamalar"
 
+# AI Translated
 msgid "Feature tree"
-msgstr ""
+msgstr "Unsur ağacı"
 
+# AI Translated
 msgid " — the eye suppresses this mate"
-msgstr ""
+msgstr " — göz simgesi bu montaj ilişkisini devre dışı bırakır"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s selected — F2 or right-click renames it, double-click edits it"
-msgstr ""
+msgstr "%s seçildi — F2 veya sağ tıklama yeniden adlandırır, çift tıklama düzenler"
 
+# AI Translated
 msgid "Rename\tF2"
-msgstr ""
+msgstr "Yeniden adlandır\tF2"
 
+# AI Translated
 msgid "Scale artwork"
-msgstr ""
+msgstr "Görseli ölçeklendir"
 
+# AI Translated
 msgid "Move up"
-msgstr ""
+msgstr "Yukarı taşı"
 
+# AI Translated
 msgid "Move down"
-msgstr ""
+msgstr "Aşağı taşı"
 
+# AI Translated
 msgid "Show / hide"
-msgstr ""
+msgstr "Göster / gizle"
 
+# AI Translated
 msgid "Check interference — find overlapping bodies"
-msgstr ""
+msgstr "Girişim kontrolü — çakışan gövdeleri bul"
 
+# AI Translated
 msgid "Bodies"
-msgstr ""
+msgstr "Gövdeler"
 
+# AI Translated
 msgid "Move body"
-msgstr ""
+msgstr "Gövdeyi taşı"
 
+# AI Translated
 msgid "Select a body row first, then move it"
-msgstr ""
+msgstr "Önce bir gövde satırı seçin, ardından taşıyın"
 
+# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
-msgstr ""
+msgstr "Boole — başka bir gövdeyle birleştir, çıkar veya kesiştir"
 
+# AI Translated
 msgid "Colour"
-msgstr ""
+msgstr "Renk"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
-msgstr ""
+msgstr "Gövde %d seçildi — uygulanabilecek işlemler için sağ tıklayın"
 
+# AI Translated
 msgid "Variables"
-msgstr ""
+msgstr "Değişkenler"
 
+# AI Translated
 msgid "+"
-msgstr ""
+msgstr "+"
 
 msgid "Del"
 msgstr "Sil"
 
+# AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Eskiz oluşturuldu — seçin, ardından Ekstrüzyon için sağ tıklayın"
 
+# AI Translated
 msgid "Sketch empty — nothing committed"
-msgstr ""
+msgstr "Eskiz boş — hiçbir şey kaydedilmedi"
 
+# AI Translated
 msgid "Sketch updated"
-msgstr ""
+msgstr "Eskiz güncellendi"
 
+# AI Translated
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Eskiz oluşturuldu (%zu sürücü ölçü) — seçin, ardından Ekstrüzyon için sağ tıklayın"
 
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
-msgstr ""
+msgstr "Ekstrüde edilecek eskiz çözümlenemedi"
 
+# AI Translated
 msgid "Face selected — set the depth and Confirm"
-msgstr ""
+msgstr "Yüz seçildi — derinliği ayarlayın ve Onayla'ya basın"
 
+# AI Translated
 msgid "Region selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "Bölge seçildi — Ekstrüzyon için sağ tıklayın veya düzenlemek için çift tıklayın"
 
+# AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "Eskiz seçildi — Ekstrüzyon için sağ tıklayın veya düzenlemek için çift tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d"
-msgstr ""
+msgstr "Yüz %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d "
-msgstr ""
+msgstr "Gövde %d "
 
+# AI Translated
 msgid "vertex selected — click again for the whole body"
-msgstr ""
+msgstr "köşe noktası seçildi — tüm gövde için tekrar tıklayın"
 
+# AI Translated
 msgid "selected (whole body) — right-click for what applies to it"
-msgstr ""
+msgstr "seçildi (tüm gövde) — uygulanabilecek işlemler için sağ tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr ""
+msgstr "yüz %d seçildi — itmek/çekmek için sağ tıklayın veya tüm gövde için tekrar tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr ""
+msgstr "kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s plane selected — right-click for the drawing tools"
-msgstr ""
+msgstr "%s düzlemi seçildi — çizim araçları için sağ tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
-msgstr ""
+msgstr "%s düzlemi seçildi — üzerinde eskiz çizmek için sağ tıklayın veya seçmek için bir nesneye tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr ""
+msgstr "yerleştirildi (%.1f, %.1f, %.1f) mm — taşımak için okları, döndürmek için halkaları sürükleyin"
 
+# AI Translated
 msgid "Tool exited"
-msgstr ""
+msgstr "Araçtan çıkıldı"
 
+# AI Translated
 msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr ""
+msgstr "Eskiz korundu — kaydetmek için Bitir'e, atmak için İptal'e basın"
 
+# AI Translated
 msgid "✗ Conflicting constraints"
-msgstr ""
+msgstr "✗ Çelişen kısıtlamalar"
 
+# AI Translated
 msgid "✓ Fully constrained"
-msgstr ""
+msgstr "✓ Tamamen kısıtlı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d degrees of freedom"
-msgstr ""
+msgstr "%d serbestlik derecesi"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketch %d"
-msgstr ""
+msgstr "Eskiz %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr ""
+msgstr "Düzenleniyor: Eskiz %d   ·   N = düzleme dik bak   ·   Araç çubuğunda Bitir veya İptal"
 
+# AI Translated
 #, c-format
 msgid "OK — %zu triangles"
-msgstr ""
+msgstr "Tamam — %zu üçgen"
 
+# AI Translated
 msgid "Text to insert:"
-msgstr ""
+msgstr "Eklenecek metin:"
 
+# AI Translated
 msgid "Import SVG"
-msgstr ""
+msgstr "SVG içe aktar"
 
+# AI Translated
 msgid "Import STEP"
-msgstr ""
+msgstr "STEP içe aktar"
 
+# AI Translated
 msgid "Reading STEP…"
-msgstr ""
+msgstr "STEP okunuyor…"
 
+# AI Translated
 msgid "No solids found in STEP"
-msgstr ""
+msgstr "STEP içinde katı bulunamadı"
 
+# AI Translated
 msgid "STEP import failed: "
-msgstr ""
+msgstr "STEP içe aktarma başarısız oldu: "
 
+# AI Translated
 msgid "Rebuilding model…"
-msgstr ""
+msgstr "Model yeniden oluşturuluyor…"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "%d katı içe aktarıldı — değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
 
+# AI Translated
 msgid "Import mesh"
-msgstr ""
+msgstr "Mesh içe aktar"
 
+# AI Translated
 msgid "Could not read the STL file"
-msgstr ""
+msgstr "STL dosyası okunamadı"
 
+# AI Translated
 msgid "Could not read the OBJ file: "
-msgstr ""
+msgstr "OBJ dosyası okunamadı: "
 
+# AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
-msgstr ""
+msgstr "Desteklenmeyen mesh biçimi (STL ve OBJ desteklenir)"
 
+# AI Translated
 msgid "The mesh contains no triangles"
-msgstr ""
+msgstr "Mesh hiç üçgen içermiyor"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
 "\n"
 "Import anyway?"
 msgstr ""
+"Bu mesh %d üçgen içeriyor. Eş düzlemli birleştirmeden önce her üçgen bir B-rep yüzüne dönüşür; bu nedenle içe aktarma uzun sürebilir ve düzenlemesi yavaş bir gövde bırakabilir. Genellikle önce mesh'i sadeleştirmek daha iyidir.\n"
+"\n"
+"Yine de içe aktarılsın mı?"
 
+# AI Translated
 msgid "Large mesh"
-msgstr ""
+msgstr "Büyük mesh"
 
+# AI Translated
 msgid "Mesh conversion failed: "
-msgstr ""
+msgstr "Mesh dönüştürme başarısız oldu: "
 
+# AI Translated
 msgid "Mesh conversion produced no geometry"
-msgstr ""
+msgstr "Mesh dönüştürme hiç geometri üretmedi"
 
+# AI Translated
 msgid "Mesh import failed: "
-msgstr ""
+msgstr "Mesh içe aktarma başarısız oldu: "
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "Katı içe aktarıldı — %d üçgen → %d yüz, hacim %.2f mm³. Değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr ""
+msgstr "Açık kabuk olarak içe aktarıldı (su geçirmez değil): %d sınır kenarı, %d manifold olmayan kenar — %d üçgen → %d yüz. Kaynak mesh'te delikler veya yinelenen geometri var; boole unsurları bu mesh üzerinde başarısız olabilir"
 
+# AI Translated
 msgid "No importable geometry found"
-msgstr ""
+msgstr "İçe aktarılabilir geometri bulunamadı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s added to the sketch — Confirm to commit it"
-msgstr ""
+msgstr "%s eskize eklendi — kaydetmek için Onayla'ya basın"
 
+# AI Translated
 msgid " — drag to place/size, then Confirm"
-msgstr ""
+msgstr " — yerleştirmek/boyutlandırmak için sürükleyin, ardından Onayla'ya basın"
 
+# AI Translated
 msgid "Insert cancelled"
-msgstr ""
+msgstr "Ekleme iptal edildi"
 
+# AI Translated
 msgid "Drag a corner to scale, the centre to move — right-click when done"
-msgstr ""
+msgstr "Ölçeklendirmek için bir köşeyi, taşımak için merkezi sürükleyin — bitince sağ tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr ""
+msgstr "%s üzerine eskiz eklendi — seçin, ardından Ekstrüzyon için sağ tıklayın"
 
+# AI Translated
 msgid "Recompute error: "
-msgstr ""
+msgstr "Yeniden hesaplama hatası: "
 
+# AI Translated
 msgid "Add a solid (sketch + extrude) first"
-msgstr ""
+msgstr "Önce bir katı ekleyin (eskiz + ekstrüzyon)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Edge %d"
-msgstr ""
+msgstr "Kenar %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Thread standard: %s  (pitch %.3g mm)"
-msgstr ""
+msgstr "Diş standardı: %s  (adım %.3g mm)"
 
+# AI Translated
 msgid "Thread needs a solid body — add or import one first"
-msgstr ""
+msgstr "Diş için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Pick a sketch profile to revolve first"
-msgstr ""
+msgstr "Önce döndürülecek bir eskiz profili seçin"
 
+# AI Translated
 msgid "Revolve needs a solid body — add or import one first"
-msgstr ""
+msgstr "Döndürme için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Pick a profile sketch to sweep first"
-msgstr ""
+msgstr "Önce süpürülecek bir profil eskizi seçin"
 
+# AI Translated
 msgid "Pick a path sketch for the sweep"
-msgstr ""
+msgstr "Süpürme için bir yol eskizi seçin"
 
+# AI Translated
 msgid "Sweep needs a solid body — add or import one first"
-msgstr ""
+msgstr "Süpürme için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Check at least two profile sketches to loft"
-msgstr ""
+msgstr "Loft için en az iki profil eskizini işaretleyin"
 
+# AI Translated
 msgid "Loft needs a solid body — add or import one first"
-msgstr ""
+msgstr "Loft için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Pick a sketch profile to extrude first"
-msgstr ""
+msgstr "Önce ekstrüde edilecek bir eskiz profili seçin"
 
+# AI Translated
 msgid "Pick a sketch to fill first"
-msgstr ""
+msgstr "Önce doldurulacak bir eskiz seçin"
 
+# AI Translated
 msgid "Select a sheet body first"
-msgstr ""
+msgstr "Önce bir yüzey gövdesi seçin"
 
+# AI Translated
 msgid "Pick a solid face to thicken first"
-msgstr ""
+msgstr "Önce kalınlaştırılacak bir katı yüz seçin"
 
+# AI Translated
 msgid "Pick a sketch with an open line first"
-msgstr ""
+msgstr "Önce açık çizgi içeren bir eskiz seçin"
 
+# AI Translated
 msgid "Add at least one face to delete first"
-msgstr ""
+msgstr "Önce silinecek en az bir yüz ekleyin"
 
+# AI Translated
 msgid "Mate needs two CoordSys features — create them first"
-msgstr ""
+msgstr "Montaj ilişkisi için iki koordinat sistemi unsuru gerekir — önce bunları oluşturun"
 
+# AI Translated
 msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr ""
+msgstr "Montaj ilişkisi: KS A ve KS B farklı koordinat sistemi unsurları olmalıdır"
 
+# AI Translated
 msgid "Mate rejected"
-msgstr ""
+msgstr "Montaj ilişkisi reddedildi"
 
+# AI Translated
 msgid "No interference — need at least two solid bodies to check"
-msgstr ""
+msgstr "Girişim yok — kontrol için en az iki katı gövde gerekir"
 
+# AI Translated
 msgid "No interference found"
-msgstr ""
+msgstr "Girişim bulunamadı"
 
+# AI Translated
 #, c-format
 msgid "%zu interference pairs, worst %.2f mm³"
-msgstr ""
+msgstr "%zu girişim çifti, en kötüsü %.2f mm³"
 
+# AI Translated
 msgid ""
 "Interference pairs:\n"
 "\n"
 msgstr ""
+"Girişim çiftleri:\n"
+"\n"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
-msgstr ""
+msgstr "Gövde %d"
 
+# AI Translated
 msgid "Interference"
-msgstr ""
+msgstr "Girişim"
 
+# AI Translated
 msgid "Select a solid body first — its mass properties are what is reported"
-msgstr ""
+msgstr "Önce katı bir gövde seçin — raporlanan, onun kütle özellikleridir"
 
+# AI Translated
 msgid "Mass properties could not be computed for this body"
-msgstr ""
+msgstr "Bu gövde için kütle özellikleri hesaplanamadı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr ""
+msgstr "%s: yüzey gövdesi — %.2f cm² yüzey, hacim yok"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "%s\n"
@@ -24020,14 +24767,23 @@ msgid ""
 "\n"
 "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
 msgstr ""
+"%s\n"
+"\n"
+"Yüzey gövdesi (açık kabuk)\n"
+"Yüzey alanı: %.2f cm²\n"
+"\n"
+"Yüzey gövdesi hiç malzeme çevrelemediği için hacmi yoktur. Hacim elde etmek için onu kalınlaştırarak katıya dönüştürün."
 
+# AI Translated
 msgid "Mass properties"
-msgstr ""
+msgstr "Kütle özellikleri"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: %.3f cm³, %.2f cm²"
-msgstr ""
+msgstr "%s: %.3f cm³, %.2f cm²"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "%s\n"
@@ -24035,836 +24791,1110 @@ msgid ""
 "Volume: %.3f cm³\n"
 "Surface area: %.2f cm²"
 msgstr ""
+"%s\n"
+"\n"
+"Hacim: %.3f cm³\n"
+"Yüzey alanı: %.2f cm²"
 
+# AI Translated
 msgid "Pattern needs a solid body — add or import one first"
-msgstr ""
+msgstr "Çoğaltma için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr ""
+msgstr "Boole için iki katı gövde gerekir — ikinci bir gövde ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Cut needs a solid body — add or import one first"
-msgstr ""
+msgstr "Kesme için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "the picked face of Body %d"
-msgstr ""
+msgstr "Gövde %d üzerindeki seçilen yüz"
 
+# AI Translated
 msgid "the picked face"
-msgstr ""
+msgstr "seçilen yüz"
 
+# AI Translated
 #, c-format, boost-format
 msgid "  ·  %d picked"
-msgstr ""
+msgstr "  ·  %d seçildi"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr ""
+msgstr "%d seçildi  ·  Del bunları kaldırır  ·  Shift+tıklama ekler  ·  çift tıklama tüm döngüyü alır"
 
+# AI Translated
 msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
-msgstr ""
+msgstr "Seç — seçmek için bir öğeye tıklayın  ·  taşımak için bir uç noktayı veya merkezi sürükleyin  ·  Shift+tıklama ekler  ·  Del kaldırır"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
-msgstr ""
+msgstr "%d seçildi  ·  şimdi bir kısıtlama seçin (Yatay, Paralel, Teğet, Eşit…)"
 
+# AI Translated
 msgid "Constrain — click one or two entities, then choose a constraint"
-msgstr ""
+msgstr "Kısıtla — bir veya iki öğeye tıklayın, ardından bir kısıtlama seçin"
 
+# AI Translated
 msgid "Dimension — click an entity, or the first of two points"
-msgstr ""
+msgstr "Ölçü — bir öğeye veya iki noktadan ilkine tıklayın"
 
+# AI Translated
 msgid "Dimension — click the second point"
-msgstr ""
+msgstr "Ölçü — ikinci noktaya tıklayın"
 
+# AI Translated
 msgid "Line — click the start point"
-msgstr ""
+msgstr "Çizgi — başlangıç noktasına tıklayın"
 
+# AI Translated
 msgid "Line — click the end point, or type the length"
-msgstr ""
+msgstr "Çizgi — bitiş noktasına tıklayın veya uzunluğu yazın"
 
+# AI Translated
 msgid "Polyline — click the first point"
-msgstr ""
+msgstr "Çoklu çizgi — ilk noktaya tıklayın"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr ""
+msgstr "Çoklu çizgi — sonraki noktaya tıklayın  ·  kapatmak için başlangıç noktasına tıklayın  ·  zinciri bitirmek için sağ tıklayın"
 
+# AI Translated
 msgid "Rectangle — click one corner"
-msgstr ""
+msgstr "Dikdörtgen — bir köşeye tıklayın"
 
+# AI Translated
 msgid "Rectangle — click the opposite corner"
-msgstr ""
+msgstr "Dikdörtgen — karşı köşeye tıklayın"
 
+# AI Translated
 msgid "Centre rectangle — click the centre"
-msgstr ""
+msgstr "Merkez dikdörtgeni — merkeze tıklayın"
 
+# AI Translated
 msgid "Centre rectangle — click a corner"
-msgstr ""
+msgstr "Merkez dikdörtgeni — bir köşeye tıklayın"
 
+# AI Translated
 msgid "Oblique rectangle — click the start of the base edge"
-msgstr ""
+msgstr "Eğik dikdörtgen — taban kenarının başlangıcına tıklayın"
 
+# AI Translated
 msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
-msgstr ""
+msgstr "Eğik dikdörtgen — taban kenarının sonuna tıklayın (bu, açıyı belirler)"
 
+# AI Translated
 msgid "Oblique rectangle — click to set the width"
-msgstr ""
+msgstr "Eğik dikdörtgen — genişliği ayarlamak için tıklayın"
 
+# AI Translated
 msgid "Rounded rectangle — click one corner"
-msgstr ""
+msgstr "Yuvarlatılmış dikdörtgen — bir köşeye tıklayın"
 
+# AI Translated
 msgid "Rounded rectangle — click the opposite corner"
-msgstr ""
+msgstr "Yuvarlatılmış dikdörtgen — karşı köşeye tıklayın"
 
+# AI Translated
 msgid "Rounded rectangle — click to set the corner radius"
-msgstr ""
+msgstr "Yuvarlatılmış dikdörtgen — köşe yarıçapını ayarlamak için tıklayın"
 
+# AI Translated
 msgid "Circle — click the centre"
-msgstr ""
+msgstr "Daire — merkeze tıklayın"
 
+# AI Translated
 msgid "Circle — click to set the radius, or type it"
-msgstr ""
+msgstr "Daire — yarıçapı ayarlamak için tıklayın veya yazın"
 
+# AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
-msgstr ""
+msgstr "Daire (2 nokta) — çapın bir ucuna tıklayın"
 
+# AI Translated
 msgid "Circle (2 points) — click the other end of the diameter"
-msgstr ""
+msgstr "Daire (2 nokta) — çapın diğer ucuna tıklayın"
 
+# AI Translated
 msgid "Circle (3 points) — click the first point on the circle"
-msgstr ""
+msgstr "Daire (3 nokta) — daire üzerindeki ilk noktaya tıklayın"
 
+# AI Translated
 msgid "Circle (3 points) — click the second point"
-msgstr ""
+msgstr "Daire (3 nokta) — ikinci noktaya tıklayın"
 
+# AI Translated
 msgid "Circle (3 points) — click the third point"
-msgstr ""
+msgstr "Daire (3 nokta) — üçüncü noktaya tıklayın"
 
+# AI Translated
 msgid "Arc — click the start point"
-msgstr ""
+msgstr "Yay — başlangıç noktasına tıklayın"
 
+# AI Translated
 msgid "Arc — click the end point"
-msgstr ""
+msgstr "Yay — bitiş noktasına tıklayın"
 
+# AI Translated
 msgid "Arc — click a point the arc passes through"
-msgstr ""
+msgstr "Yay — yayın geçtiği bir noktaya tıklayın"
 
+# AI Translated
 msgid "Tangent arc — click the endpoint it leaves from"
-msgstr ""
+msgstr "Teğet yay — yayın çıkacağı uç noktaya tıklayın"
 
+# AI Translated
 msgid "Tangent arc — click its far end"
-msgstr ""
+msgstr "Teğet yay — diğer ucuna tıklayın"
 
+# AI Translated
 msgid "Centre arc — click the centre"
-msgstr ""
+msgstr "Merkez noktalı yay — merkeze tıklayın"
 
+# AI Translated
 msgid "Centre arc — click the start point (this sets the radius)"
-msgstr ""
+msgstr "Merkez noktalı yay — başlangıç noktasına tıklayın (bu, yarıçapı belirler)"
 
+# AI Translated
 msgid "Centre arc — click the end point"
-msgstr ""
+msgstr "Merkez noktalı yay — bitiş noktasına tıklayın"
 
+# AI Translated
 msgid "Slot — click one end of the centreline"
-msgstr ""
+msgstr "Kanal — merkez çizgisinin bir ucuna tıklayın"
 
+# AI Translated
 msgid "Slot — click the other end of the centreline"
-msgstr ""
+msgstr "Kanal — merkez çizgisinin diğer ucuna tıklayın"
 
+# AI Translated
 msgid "Slot — click to set the width"
-msgstr ""
+msgstr "Kanal — genişliği ayarlamak için tıklayın"
 
+# AI Translated
 msgid "Arc slot — click the centre the slot curves about"
-msgstr ""
+msgstr "Yay kanal — kanalın etrafında kıvrıldığı merkeze tıklayın"
 
+# AI Translated
 msgid "Arc slot — click the start of the centreline (this sets the radius)"
-msgstr ""
+msgstr "Yay kanal — merkez çizgisinin başlangıcına tıklayın (bu, yarıçapı belirler)"
 
+# AI Translated
 msgid "Arc slot — click the end of the centreline"
-msgstr ""
+msgstr "Yay kanal — merkez çizgisinin sonuna tıklayın"
 
+# AI Translated
 msgid "Arc slot — click to set the width"
-msgstr ""
+msgstr "Yay kanal — genişliği ayarlamak için tıklayın"
 
+# AI Translated
 msgid "Polygon — click the centre"
-msgstr ""
+msgstr "Çokgen — merkeze tıklayın"
 
+# AI Translated
 msgid "Polygon — click a vertex (this sets size and orientation)"
-msgstr ""
+msgstr "Çokgen — bir köşe noktasına tıklayın (bu, boyutu ve yönü belirler)"
 
+# AI Translated
 msgid "Ellipse — click the centre"
-msgstr ""
+msgstr "Elips — merkeze tıklayın"
 
+# AI Translated
 msgid "Ellipse — click the end of the major axis"
-msgstr ""
+msgstr "Elips — büyük eksenin ucuna tıklayın"
 
+# AI Translated
 msgid "Ellipse — click a point on the minor axis"
-msgstr ""
+msgstr "Elips — küçük eksen üzerinde bir noktaya tıklayın"
 
+# AI Translated
 msgid "Elliptical arc — click the centre"
-msgstr ""
+msgstr "Eliptik yay — merkeze tıklayın"
 
+# AI Translated
 msgid "Elliptical arc — click the end of the major axis"
-msgstr ""
+msgstr "Eliptik yay — büyük eksenin ucuna tıklayın"
 
+# AI Translated
 msgid "Elliptical arc — click a point on the minor axis"
-msgstr ""
+msgstr "Eliptik yay — küçük eksen üzerinde bir noktaya tıklayın"
 
+# AI Translated
 msgid "Elliptical arc — click where the arc starts"
-msgstr ""
+msgstr "Eliptik yay — yayın başladığı yere tıklayın"
 
+# AI Translated
 msgid "Elliptical arc — click where the arc ends"
-msgstr ""
+msgstr "Eliptik yay — yayın bittiği yere tıklayın"
 
+# AI Translated
 msgid "Spline — click the first control point"
-msgstr ""
+msgstr "Spline — ilk kontrol noktasına tıklayın"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr ""
+msgstr "Spline — sonraki kontrol noktasına tıklayın  ·  eğriyi bitirmek için sağ tıklayın"
 
+# AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
-msgstr ""
+msgstr "Nokta — yerleştirmek için tıklayın; araç daha fazlası için etkin kalır"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr ""
+msgstr "Kırp — bir segmente, başka bir öğeyle kesiştiği yerde tıklayın  ·  çıkmak için sağ tıklayın"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr ""
+msgstr "Uzat — en yakın öğeye kadar uzatmak için bir çizgiye veya yaya tıklayın  ·  çıkmak için sağ tıklayın"
 
+# AI Translated
 msgid "Fillet — click the first of two lines that meet"
-msgstr ""
+msgstr "Yuvarlatma — birleşen iki çizgiden ilkine tıklayın"
 
+# AI Translated
 msgid "Fillet — click the second line"
-msgstr ""
+msgstr "Yuvarlatma — ikinci çizgiye tıklayın"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Yuvarlatma — oku sürükleyin veya yarıçapı yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın  ·  sağ tıklama iptal eder"
 
+# AI Translated
 msgid "Chamfer — click the first of two lines that meet"
-msgstr ""
+msgstr "Pah — birleşen iki çizgiden ilkine tıklayın"
 
+# AI Translated
 msgid "Chamfer — click the second line"
-msgstr ""
+msgstr "Pah — ikinci çizgiye tıklayın"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Pah — oku sürükleyin veya pah mesafesini yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın  ·  sağ tıklama iptal eder"
 
+# AI Translated
 msgid "Offset — click the entity to offset"
-msgstr ""
+msgstr "Ofset — ofsetlenecek öğeye tıklayın"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Ofset — oku iki yönden birine sürükleyin veya mesafeyi yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın  ·  sağ tıklama iptal eder"
 
+# AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
-msgstr ""
+msgstr "Aynala — önce aynalama ekseni olacak ÇİZGİYE tıklayın (yardımcı çizgi de olur)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr ""
+msgstr "Aynala — eksen belirlendi  ·  şimdi aynalanacak öğelere tıklayın  ·  sağ tıklama iptal eder"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr ""
+msgstr "Aynala — eksen belirlendi  ·  aynalanacak: %d  ·  eklemek veya kaldırmak için başka bir öğeye tıklayın  ·  uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Move — click the entities to move"
-msgstr ""
+msgstr "Taşı — taşınacak öğelere tıklayın"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr ""
+msgstr "Taşı — tutamacı sürükleyin veya mesafeyi yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Rotate — click the entities to rotate"
-msgstr ""
+msgstr "Döndür — döndürülecek öğelere tıklayın"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr ""
+msgstr "Döndür — tutamacı sürükleyin veya açıyı yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Scale — click the entities to scale"
-msgstr ""
+msgstr "Ölçeklendir — ölçeklendirilecek öğelere tıklayın"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr ""
+msgstr "Ölçeklendir — tutamacı sürükleyin veya katsayıyı yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Array — click the entities to repeat"
-msgstr ""
+msgstr "Dizi — tekrarlanacak öğelere tıklayın"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "Dizi — adımı ayarlamak için tutamacı sürükleyin, adedi yazmak için adet değerine tıklayın  ·  uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Polar array — click the entities to repeat"
-msgstr ""
+msgstr "Dairesel dizi — tekrarlanacak öğelere tıklayın"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "Dairesel dizi — açıyı ayarlamak için tutamacı sürükleyin, adedi yazmak için adet değerine tıklayın  ·  uygulamak için boş alana tıklayın"
 
+# AI Translated
 msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
-msgstr ""
+msgstr "Ölçeklendirmek için bir köşeyi, taşımak için merkezi sürükleyin  ·  bitince sağ tıklayın"
 
+# AI Translated
 msgid "  ·  Esc goes back to Select"
-msgstr ""
+msgstr "  ·  Esc ile Seç aracına dönülür"
 
+# AI Translated
 msgid "  ·  click a constraint badge to remove it"
-msgstr ""
+msgstr "  ·  kaldırmak için bir kısıtlama rozetine tıklayın"
 
+# AI Translated
 msgid "select something first"
-msgstr ""
+msgstr "önce bir şey seçin"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mate: %s  →  %s"
-msgstr ""
+msgstr "Montaj ilişkisi: %s  →  %s"
 
+# AI Translated
 msgid "Fastened"
-msgstr ""
+msgstr "Sabit"
 
+# AI Translated
 msgid "Revolute"
-msgstr ""
+msgstr "Döner"
 
+# AI Translated
 msgid "Slider"
-msgstr ""
+msgstr "Kayar"
 
+# AI Translated
 msgid "Cylindrical"
-msgstr ""
+msgstr "Silindirik"
 
+# AI Translated
 msgid "Click a solid FACE in the viewport"
-msgstr ""
+msgstr "Görünüm penceresinde katı bir YÜZE tıklayın"
 
+# AI Translated
 msgid "Click a solid EDGE in the viewport"
-msgstr ""
+msgstr "Görünüm penceresinde katı bir KENARA tıklayın"
 
+# AI Translated
 msgid "An angled plane needs an edge to tilt about — pick Edge A"
-msgstr ""
+msgstr "Açılı bir düzlem, etrafında eğileceği bir kenar gerektirir — A Kenarını seçin"
 
+# AI Translated
 msgid "A midplane needs two faces — pick Face A and Face B"
-msgstr ""
+msgstr "Orta düzlem için iki yüz gerekir — A Yüzünü ve B Yüzünü seçin"
 
+# AI Translated
 msgid "Face A and Face B are the same face — a midplane needs two different faces"
-msgstr ""
+msgstr "A Yüzü ve B Yüzü aynı yüz — orta düzlem için iki farklı yüz gerekir"
 
+# AI Translated
 msgid "A tangent plane needs a cylindrical face — pick Face A"
-msgstr ""
+msgstr "Teğet düzlem için silindirik bir yüz gerekir — A Yüzünü seçin"
 
+# AI Translated
 msgid "This plane needs two edges — pick Edge A and Edge B"
-msgstr ""
+msgstr "Bu düzlem için iki kenar gerekir — A Kenarını ve B Kenarını seçin"
 
+# AI Translated
 msgid "Plane added — pick it as a sketch plane"
-msgstr ""
+msgstr "Düzlem eklendi — onu eskiz düzlemi olarak seçin"
 
+# AI Translated
 msgid "Axis added"
-msgstr ""
+msgstr "Eksen eklendi"
 
+# AI Translated
 msgid "Coord Sys added"
-msgstr ""
+msgstr "Koord. Sist. eklendi"
 
+# AI Translated
 msgid "Shell needs a solid body — add or import one first"
-msgstr ""
+msgstr "Kabuklama için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Draft needs a solid body — add or import one first"
-msgstr ""
+msgstr "Koniklik için katı bir gövde gerekir — önce bir tane ekleyin veya içe aktarın"
 
+# AI Translated
 msgid "Draft needs a picked face — click a side face first"
-msgstr ""
+msgstr "Koniklik için seçilmiş bir yüz gerekir — önce bir yan yüze tıklayın"
 
+# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
 "or click a reference plane and right-click it to start a sketch."
 msgstr ""
+"Henüz bir şey yok — araç çubuğundan bir STEP veya mesh içe aktarın\n"
+"ya da bir eskize başlamak için bir referans düzlemine tıklayıp sağ tıklayın."
 
+# AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
-msgstr ""
+msgstr "Henüz katı yok — Ekstrüzyon için bir eskiz seçip sağ tıklayın."
 
+# AI Translated
 msgid "Could not restore the CAD model from this project"
-msgstr ""
+msgstr "CAD modeli bu projeden geri yüklenemedi"
 
+# AI Translated
 msgid "Could not restore the CAD model: "
-msgstr ""
+msgstr "CAD modeli geri yüklenemedi: "
 
+# AI Translated
 #, c-format
 msgid "Body %zu — %s"
-msgstr ""
+msgstr "Gövde %zu — %s"
 
+# AI Translated
 msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
-msgstr ""
+msgstr "Kesit görünümü açık — içini görmek için modelin yarısını gizler; PageUp / PageDown düzlemi taşır, Çevir diğer yarıyı gösterir"
 
+# AI Translated
 msgid "Section view off"
-msgstr ""
+msgstr "Kesit görünümü kapalı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Section view — showing the %s half"
-msgstr ""
+msgstr "Kesit görünümü — %s yarı gösteriliyor"
 
+# AI Translated
 msgid "upper"
-msgstr ""
+msgstr "üst"
 
+# AI Translated
 msgid "lower"
-msgstr ""
+msgstr "alt"
 
+# AI Translated
 msgid "Boolean needs two bodies — create or import a second solid"
-msgstr ""
+msgstr "Boole için iki gövde gerekir — ikinci bir katı oluşturun veya içe aktarın"
 
+# AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr ""
+msgstr "Önce bir gövde seçin — görünüm penceresinde veya Gövdeler listesinde ona tıklayın"
 
+# AI Translated
 msgid "That body has no display mesh yet — recompute first"
-msgstr ""
+msgstr "Bu gövdenin henüz görüntüleme mesh'i yok — önce yeniden hesaplayın"
 
+# AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
-msgstr ""
+msgstr "Taşımak için okları, döndürmek için halkaları sürükleyin — ardından Onayla'ya basın (Esc iptal eder)"
 
+# AI Translated
 msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
-msgstr ""
+msgstr "Taşımak için okları, döndürmek için halkaları sürükleyin — sayılar buna göre güncellenir"
 
+# AI Translated
 msgid "Select a body first"
-msgstr ""
+msgstr "Önce bir gövde seçin"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d colour set"
-msgstr ""
+msgstr "Gövde %d rengi ayarlandı"
 
+# AI Translated
 msgid "Click a face on the solid, then press F"
-msgstr ""
+msgstr "Katı üzerinde bir yüze tıklayın, ardından F'ye basın"
 
+# AI Translated
 msgid "Placed on face — body laid flat on the bed"
-msgstr ""
+msgstr "Yüze yerleştirildi — gövde yatağa düz yatırıldı"
 
+# AI Translated
 msgid "Edit rejected: "
-msgstr ""
+msgstr "Düzenleme reddedildi: "
 
+# AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
-msgstr ""
+msgstr "Tüm unsurlar ve gövdeler silinip yeni bir tasarıma başlansın mı? Bu işlem geri alınamaz."
 
+# AI Translated
 msgid "New Design"
-msgstr ""
+msgstr "Yeni Tasarım"
 
+# AI Translated
 msgid "This body has no feature to delete — use New Design to start over"
-msgstr ""
+msgstr "Bu gövdenin silinecek unsuru yok — baştan başlamak için Yeni Tasarım'ı kullanın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "feature %d"
-msgstr ""
+msgstr "unsur %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Delete %s?\n"
 "\n"
 "That is the feature this body was made from. Features built on it may be removed or stop working."
 msgstr ""
+"%s silinsin mi?\n"
+"\n"
+"Bu, gövdenin oluşturulduğu unsurdur. Bunun üzerine kurulan unsurlar kaldırılabilir veya çalışmayı durdurabilir."
 
+# AI Translated
 msgid "Delete body"
-msgstr ""
+msgstr "Gövdeyi sil"
 
+# AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
-msgstr ""
+msgstr "Bu gövdeyi oluşturan UNSURU seçin (veya Yeni Tasarım'ı kullanın)"
 
+# AI Translated
 msgid "Select a feature in the tree first"
-msgstr ""
+msgstr "Önce ağaçta bir unsur seçin"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d shown"
-msgstr ""
+msgstr "Gövde %d gösterildi"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d hidden"
-msgstr ""
+msgstr "Gövde %d gizlendi"
 
+# AI Translated
 msgid "Feature shown"
-msgstr ""
+msgstr "Unsur gösterildi"
 
+# AI Translated
 msgid "Feature hidden"
-msgstr ""
+msgstr "Unsur gizlendi"
 
+# AI Translated
 msgid "Draw a sketch first, then Constrain"
-msgstr ""
+msgstr "Önce bir eskiz çizin, ardından Kısıtla'yı kullanın"
 
+# AI Translated
 msgid "Select a sketch in the tree first"
-msgstr ""
+msgstr "Önce ağaçta bir eskiz seçin"
 
+# AI Translated
 msgid "Selected feature is not a sketch"
-msgstr ""
+msgstr "Seçili unsur bir eskiz değil"
 
+# AI Translated
 msgid "Pick 1-2 lines, then a constraint; right-click exits"
-msgstr ""
+msgstr "1-2 çizgi, ardından bir kısıtlama seçin; çıkmak için sağ tıklayın"
 
+# AI Translated
 msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
-msgstr ""
+msgstr "1-2 öğe, ardından bir kısıtlama veya ölçü seçin; çıkmak için sağ tıklayın"
 
+# AI Translated
 msgid "Pick an entity first"
-msgstr ""
+msgstr "Önce bir öğe seçin"
 
+# AI Translated
 msgid "Pick two entities first"
-msgstr ""
+msgstr "Önce iki öğe seçin"
 
+# AI Translated
 msgid "Horizontal and Vertical apply to a line"
-msgstr ""
+msgstr "Yatay ve Dikey bir çizgiye uygulanır"
 
+# AI Translated
 msgid "Angle applies between two lines"
-msgstr ""
+msgstr "Açı iki çizgi arasında uygulanır"
 
+# AI Translated
 msgid "Collinear needs two lines"
-msgstr ""
+msgstr "Eş doğrusal için iki çizgi gerekir"
 
+# AI Translated
 msgid "Parallel, perpendicular and equal length apply to two lines"
-msgstr ""
+msgstr "Paralel, dik ve eşit uzunluk iki çizgiye uygulanır"
 
+# AI Translated
 msgid "Equal radius needs two circles or arcs"
-msgstr ""
+msgstr "Eşit yarıçap için iki daire veya yay gerekir"
 
+# AI Translated
 msgid "Concentric needs two circles or arcs"
-msgstr ""
+msgstr "Eş merkezli için iki daire veya yay gerekir"
 
+# AI Translated
 msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
-msgstr ""
+msgstr "Teğet için bir çizgi ve bir daire/yay veya iki daire/yay gerekir"
 
+# AI Translated
 msgid "This constraint needs two entities with a point to join"
-msgstr ""
+msgstr "Bu kısıtlama, birleştirilecek bir noktası olan iki öğe gerektirir"
 
+# AI Translated
 msgid "This dimension needs two entities with a point to measure between"
-msgstr ""
+msgstr "Bu ölçü, aralarında ölçüm yapılacak birer noktası olan iki öğe gerektirir"
 
+# AI Translated
 msgid "Midpoint needs a point and a line"
-msgstr ""
+msgstr "Orta nokta için bir nokta ve bir çizgi gerekir"
 
+# AI Translated
 msgid "Symmetric needs two points or two lines + an axis"
-msgstr ""
+msgstr "Simetrik için iki nokta veya iki çizgi + bir eksen gerekir"
 
+# AI Translated
 msgid "Symmetric needs two points or two lines"
-msgstr ""
+msgstr "Simetrik için iki nokta veya iki çizgi gerekir"
 
+# AI Translated
 msgid "Symmetric: pick two entities, then an axis line"
-msgstr ""
+msgstr "Simetrik: iki öğe, ardından bir eksen çizgisi seçin"
 
+# AI Translated
 msgid "Radius/Diameter needs a circle or arc"
-msgstr ""
+msgstr "Yarıçap/Çap için bir daire veya yay gerekir"
 
+# AI Translated
 msgid "Unsupported constraint"
-msgstr ""
+msgstr "Desteklenmeyen kısıtlama"
 
+# AI Translated
 msgid "Constraint rejected (over-constrained)"
-msgstr ""
+msgstr "Kısıtlama reddedildi (aşırı kısıtlı)"
 
+# AI Translated
 msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
-msgstr ""
+msgstr "Kısıtlama uygulandı  ·  rozeti eskizin üzerinde — kaldırmak için rozete tıklayın"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr ""
+msgstr "%s  —  %d seçili. Seç aracı için Esc'ye basın, bir çizgiye tıklayın, ardından diğerine Shift veya Ctrl ile tıklayın."
 
+# AI Translated
 msgid "Applied constraint"
-msgstr ""
+msgstr "Kısıtlama uygulandı"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
-msgstr ""
+msgstr "Sabit %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Lock X %s"
-msgstr ""
+msgstr "X kilidi %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Lock Y %s"
-msgstr ""
+msgstr "Y kilidi %s"
 
+# AI Translated
 msgid "Equal"
-msgstr ""
+msgstr "Eşit"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric %s — %s / %s"
-msgstr ""
+msgstr "Simetrik %s — %s / %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric about Y axis %s — %s"
-msgstr ""
+msgstr "Y eksenine göre simetrik %s — %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Symmetric about X axis %s — %s"
-msgstr ""
+msgstr "X eksenine göre simetrik %s — %s"
 
+# AI Translated
 msgid "On line"
-msgstr ""
+msgstr "Çizgi üzerinde"
 
+# AI Translated
 msgid "On edge"
-msgstr ""
+msgstr "Kenar üzerinde"
 
+# AI Translated
 msgid "Constraint"
-msgstr ""
+msgstr "Kısıtlama"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Constraints (%d)"
-msgstr ""
+msgstr "Kısıtlamalar (%d)"
 
+# AI Translated
 msgid "No constraints yet"
-msgstr ""
+msgstr "Henüz kısıtlama yok"
 
+# AI Translated
 msgid "Delete constraint"
-msgstr ""
+msgstr "Kısıtlamayı sil"
 
+# AI Translated
 msgid "Constraint deleted"
-msgstr ""
+msgstr "Kısıtlama silindi"
 
+# AI Translated
 msgid "Press Constrain on a sketch first"
-msgstr ""
+msgstr "Önce bir eskizde Kısıtla'ya basın"
 
+# AI Translated
 msgid "Pick the entity, then a mirror-axis line"
-msgstr ""
+msgstr "Öğeyi, ardından bir aynalama ekseni çizgisini seçin"
 
+# AI Translated
 msgid "Mirror axis must be a line"
-msgstr ""
+msgstr "Aynalama ekseni bir çizgi olmalıdır"
 
+# AI Translated
 msgid "Mirror produced nothing"
-msgstr ""
+msgstr "Aynalama hiçbir şey üretmedi"
 
+# AI Translated
 msgid "Offset distance (+left / -right of direction)"
-msgstr ""
+msgstr "Ofset mesafesi (yönün +solu / -sağı)"
 
+# AI Translated
 msgid "Offset collapsed the entity"
-msgstr ""
+msgstr "Ofset sonucunda öğe çöktü"
 
+# AI Translated
 msgid "Pick two lines to fillet"
-msgstr ""
+msgstr "Yuvarlatılacak iki çizgi seçin"
 
+# AI Translated
 msgid "Fillet needs two lines"
-msgstr ""
+msgstr "Yuvarlatma için iki çizgi gerekir"
 
+# AI Translated
 msgid "Fillet radius"
-msgstr ""
+msgstr "Yuvarlatma yarıçapı"
 
+# AI Translated
 msgid "Fillet failed (parallel lines or radius too large)"
-msgstr ""
+msgstr "Yuvarlatma başarısız (paralel çizgiler veya yarıçap çok büyük)"
 
+# AI Translated
 msgid "Pick two lines to chamfer"
-msgstr ""
+msgstr "Pah kırılacak iki çizgi seçin"
 
+# AI Translated
 msgid "Chamfer needs two lines"
-msgstr ""
+msgstr "Pah için iki çizgi gerekir"
 
+# AI Translated
 msgid "Chamfer distance"
-msgstr ""
+msgstr "Pah mesafesi"
 
+# AI Translated
 msgid "Chamfer failed (parallel lines or distance too large)"
-msgstr ""
+msgstr "Pah başarısız (paralel çizgiler veya mesafe çok büyük)"
 
+# AI Translated
 msgid "Trim works on lines, arcs and circles"
-msgstr ""
+msgstr "Kırpma çizgiler, yaylar ve daireler üzerinde çalışır"
 
+# AI Translated
 msgid "Extend works on lines and arcs"
-msgstr ""
+msgstr "Uzatma çizgiler ve yaylar üzerinde çalışır"
 
+# AI Translated
 msgid "Pick the edge to trim/extend"
-msgstr ""
+msgstr "Kırpılacak/uzatılacak kenarı seçin"
 
+# AI Translated
 msgid "Nothing to trim at the pick"
-msgstr ""
+msgstr "Seçilen yerde kırpılacak bir şey yok"
 
+# AI Translated
 msgid "No edge to extend to"
-msgstr ""
+msgstr "Uzatma için hedef kenar yok"
 
+# AI Translated
 msgid "Array count (incl. original)"
-msgstr ""
+msgstr "Dizi adedi (orijinal dahil)"
 
+# AI Translated
 msgid "Spacing (mm)"
-msgstr ""
+msgstr "Aralık (mm)"
 
+# AI Translated
 msgid "Array produced nothing"
-msgstr ""
+msgstr "Dizi hiçbir şey üretmedi"
 
+# AI Translated
 msgid "Move dX (mm)"
-msgstr ""
+msgstr "Taşı dX (mm)"
 
+# AI Translated
 msgid "Move dY (mm)"
-msgstr ""
+msgstr "Taşı dY (mm)"
 
+# AI Translated
 msgid "Move produced nothing"
-msgstr ""
+msgstr "Taşıma hiçbir şey üretmedi"
 
+# AI Translated
 msgid "Rotate angle (deg)"
-msgstr ""
+msgstr "Döndürme açısı (derece)"
 
+# AI Translated
 msgid "Rotate produced nothing"
-msgstr ""
+msgstr "Döndürme hiçbir şey üretmedi"
 
+# AI Translated
 msgid "Scale factor"
-msgstr ""
+msgstr "Ölçek katsayısı"
 
+# AI Translated
 msgid "Scale produced nothing"
-msgstr ""
+msgstr "Ölçeklendirme hiçbir şey üretmedi"
 
+# AI Translated
 msgid "Polar count (incl. original)"
-msgstr ""
+msgstr "Dairesel adet (orijinal dahil)"
 
+# AI Translated
 msgid "Total sweep (deg)"
-msgstr ""
+msgstr "Toplam açı (derece)"
 
+# AI Translated
 msgid "Polar array produced nothing"
-msgstr ""
+msgstr "Dairesel dizi hiçbir şey üretmedi"
 
+# AI Translated
 msgid "Applied edit"
-msgstr ""
+msgstr "Düzenleme uygulandı"
 
+# AI Translated
 msgid " — type a value, press Enter (or Confirm)"
-msgstr ""
+msgstr " — bir değer yazın, Enter'a basın (veya Onayla)"
 
+# AI Translated
 msgid "Pick a segment in the viewport first"
-msgstr ""
+msgstr "Önce görünüm penceresinde bir segment seçin"
 
+# AI Translated
 msgid "Applied Horizontal"
-msgstr ""
+msgstr "Yatay uygulandı"
 
+# AI Translated
 msgid "Applied Vertical"
-msgstr ""
+msgstr "Dikey uygulandı"
 
+# AI Translated
 msgid "Sketch: "
-msgstr ""
+msgstr "Eskiz: "
 
+# AI Translated
 #, c-format, boost-format
 msgid "On a face of Body %d"
-msgstr ""
+msgstr "Gövde %d üzerindeki bir yüzde"
 
+# AI Translated
 msgid "On a stored face"
-msgstr ""
+msgstr "Kayıtlı bir yüzde"
 
+# AI Translated
 msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr ""
+msgstr "Eskiz düzenleniyor — düzenlemek için bir tutamacı sürükleyin veya bir ölçüye tıklayın"
 
+# AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
-msgstr ""
+msgstr "İçe aktarılan bir katının parametresi yoktur — taşımak veya döndürmek için Dönüştür'ü kullanın"
 
+# AI Translated
 msgid "This feature type can't be edited yet"
-msgstr ""
+msgstr "Bu unsur türü henüz düzenlenemiyor"
 
+# AI Translated
 msgid "Nothing to export — add a feature first"
-msgstr ""
+msgstr "Dışa aktarılacak bir şey yok — önce bir unsur ekleyin"
 
+# AI Translated
 msgid "Export STEP"
-msgstr ""
+msgstr "STEP olarak dışa aktar"
 
+# AI Translated
 msgid "Exported STEP"
-msgstr ""
+msgstr "STEP dışa aktarıldı"
 
+# AI Translated
 msgid "STEP export failed: "
-msgstr ""
+msgstr "STEP dışa aktarma başarısız oldu: "
 
+# AI Translated
 msgid "Nothing to commit — add a feature first"
-msgstr ""
+msgstr "Aktarılacak bir şey yok — önce bir unsur ekleyin"
 
+# AI Translated
 msgid "All bodies hidden — show one before committing"
-msgstr ""
+msgstr "Tüm gövdeler gizli — aktarmadan önce birini gösterin"
 
+# AI Translated
 msgid "Plane ready"
-msgstr ""
+msgstr "Düzlem hazır"
 
+# AI Translated
 msgid "Axis ready"
-msgstr ""
+msgstr "Eksen hazır"
 
+# AI Translated
 msgid "Coord Sys ready"
-msgstr ""
+msgstr "Koord. Sist. hazır"
 
+# AI Translated
 msgid "Helix ready"
-msgstr ""
+msgstr "Helis hazır"
 
+# AI Translated
 msgid "Project ready"
-msgstr ""
+msgstr "İzdüşüm hazır"
 
+# AI Translated
 msgid "Sketch ready"
-msgstr ""
+msgstr "Eskiz hazır"
 
+# AI Translated
 msgid "Mate needs at least two CoordSys features"
-msgstr ""
+msgstr "Montaj ilişkisi için en az iki koordinat sistemi unsuru gerekir"
 
+# AI Translated
 msgid "Mate: CS A and CS B must be different"
-msgstr ""
+msgstr "Montaj ilişkisi: KS A ve KS B farklı olmalıdır"
 
+# AI Translated
 msgid "Mate ready"
-msgstr ""
+msgstr "Montaj ilişkisi hazır"
 
+# AI Translated
 msgid "Invalid: "
-msgstr ""
+msgstr "Geçersiz: "
 
+# AI Translated
 #, c-format
 msgid "Preview — %zu triangles"
-msgstr ""
+msgstr "Ön izleme — %zu üçgen"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
-msgstr ""
+msgstr "Gövde %d — taşındı (%.1f, %.1f, %.1f) mm, döndürüldü %.1f°"
 
+# AI Translated
 msgid "Profile: "
-msgstr ""
+msgstr "Profil: "
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d (push/pull)"
-msgstr ""
+msgstr "Yüz %d (it/çek)"
 
+# AI Translated
 msgid "Move cancelled"
-msgstr ""
+msgstr "Taşıma iptal edildi"
 
+# AI Translated
 msgid "Discard this sketch and everything drawn in it?"
-msgstr ""
+msgstr "Bu eskiz ve içinde çizilen her şey atılsın mı?"
 
+# AI Translated
 msgid "Discard sketch"
-msgstr ""
+msgstr "Eskizi at"
 
+# AI Translated
 msgid "Keep drawing"
-msgstr ""
+msgstr "Çizmeye devam et"
 
+# AI Translated
 msgid "Finish or cancel the current tool first (Esc)"
-msgstr ""
+msgstr "Önce geçerli aracı bitirin veya iptal edin (Esc)"
 
+# AI Translated
 msgid "Nothing to redo"
-msgstr ""
+msgstr "İleri alınacak bir şey yok"
 
+# AI Translated
 msgid "Nothing to undo"
-msgstr ""
+msgstr "Geri alınacak bir şey yok"
 
+# AI Translated
 #, c-format
 msgid "Redo  (%zu more)"
-msgstr ""
+msgstr "İleri al  (%zu tane daha)"
 
+# AI Translated
 #, c-format
 msgid "Undo  (%zu more)"
-msgstr ""
+msgstr "Geri al  (%zu tane daha)"
 
+# AI Translated
 msgid "Variable name:"
-msgstr ""
+msgstr "Değişken adı:"
 
+# AI Translated
 msgid "Add Variable"
-msgstr ""
+msgstr "Değişken Ekle"
 
+# AI Translated
 msgid "Variable name must not contain spaces"
-msgstr ""
+msgstr "Değişken adı boşluk içermemelidir"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Expression for '%s':"
-msgstr ""
+msgstr "'%s' için ifade:"
 
+# AI Translated
 msgid "Select a variable first"
-msgstr ""
+msgstr "Önce bir değişken seçin"
 
+# AI Translated
 msgid "Edit Variable"
-msgstr ""
+msgstr "Değişkeni Düzenle"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
-msgstr ""
+msgstr "'%s' değişkeni kaldırılamadı (muhtemelen hâlâ bir unsur ifadesinde başvuruluyor): %s"
 
+# AI Translated
 msgid "No binding for that field"
-msgstr ""
+msgstr "Bu alan için bağlama yok"
 
+# AI Translated
 msgid "Enter a number"
-msgstr ""
+msgstr "Bir sayı girin"
 
+# AI Translated
 msgid "Not a number"
-msgstr ""
+msgstr "Sayı değil"
 
+# AI Translated
 msgid "Primitive"
-msgstr ""
+msgstr "Şekil"
 
+# AI Translated
 msgid "Empty mesh generated"
-msgstr ""
+msgstr "Boş mesh oluşturuldu"
 
+# AI Translated
 msgid "Pocket (Cut)"
-msgstr ""
+msgstr "Cep (Kes)"
 
+# AI Translated
 msgid "Clear All"
-msgstr ""
+msgstr "Tümünü Temizle"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
-msgstr ""
+msgstr "Ins"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24876,13 +25906,15 @@ msgctxt "Keyboard Shortcut"
 msgid "End"
 msgstr "End"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgUp"
-msgstr ""
+msgstr "PgUp"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgDn"
-msgstr ""
+msgstr "PgDn"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24929,11 +25961,13 @@ msgstr "Seçimi pozitif Y yönünde 10 mm taşı"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Seçimi negatif Y yönünde 10 mm taşı"
 
+# AI Translated
 msgid "Rotate selection 45 degrees counterclockwise"
-msgstr ""
+msgstr "Seçimi saat yönünün tersine 45 derece döndür"
 
+# AI Translated
 msgid "Rotate selection 45 degrees clockwise"
-msgstr ""
+msgstr "Seçimi saat yönünde 45 derece döndür"
 
 msgid "Gizmo move"
 msgstr "Gizmo hareket"
@@ -24953,8 +25987,9 @@ msgstr "Gizmo kesim"
 msgid "Gizmo mesh boolean"
 msgstr "Gizmo mesh bölme"
 
+# AI Translated
 msgid "Gizmo FDM paint-on supports"
-msgstr ""
+msgstr "Gizmo FDM destek boyama"
 
 msgid "Gizmo FDM paint-on seam"
 msgstr "Gizmo FDM boyalı dikiş"
@@ -24962,8 +25997,9 @@ msgstr "Gizmo FDM boyalı dikiş"
 msgid "Gizmo FDM paint-on fuzzy skin"
 msgstr "Gizmo FDM boyama ile uygulanan pütürlü yüzey"
 
+# AI Translated
 msgid "Gizmo multi-material painting"
-msgstr ""
+msgstr "Gizmo çoklu malzeme boyama"
 
 msgid "Gizmo text emboss/engrave"
 msgstr "Gizmo metin kabartma/kazıma"
@@ -25016,8 +26052,9 @@ msgstr "Kamera Açısı - Sol"
 msgid "Camera Angle - Right side"
 msgstr "Kamera Açısı - Sağ"
 
+# AI Translated
 msgid "Camera view - Current plate"
-msgstr ""
+msgstr "Kamera görünümü - Geçerli plaka"
 
 msgid "Zoom in"
 msgstr "Yakınlaştır"
@@ -25028,8 +26065,9 @@ msgstr "Uzaklaştır"
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "3Dconnexion cihazları ayarları iletişim kutusunu Göster/Gizle"
 
+# AI Translated
 msgid "Show/Hide wireframe"
-msgstr ""
+msgstr "Wireframe Göster/Gizle"
 
 msgid "On/Off G-code window"
 msgstr "G-code penceresini aç/kapat"
@@ -25043,38 +26081,48 @@ msgstr "Hazırlama/Önizleme arasında geçiş yap"
 msgid "Collapse/Expand the sidebar"
 msgstr "Kenar çubuğunu daralt/genişlet"
 
+# AI Translated
 msgid "Reload the device page"
-msgstr ""
+msgstr "Cihaz sayfasını yeniden yükle"
 
 msgid "Show keyboard shortcuts list"
 msgstr "Klavye kısayolları listesini göster"
 
+# AI Translated
 msgid "Open the Speed Dial"
-msgstr ""
+msgstr "Hızlı Erişim'i aç"
 
+# AI Translated
 msgid "Slicing and printing"
-msgstr ""
+msgstr "Dilimleme ve yazdırma"
 
+# AI Translated
 msgid "Editing"
-msgstr ""
+msgstr "Düzenleme"
 
+# AI Translated
 msgid "Placement"
-msgstr ""
+msgstr "Yerleştirme"
 
+# AI Translated
 msgid "Gizmos"
-msgstr ""
+msgstr "Gizmolar"
 
+# AI Translated
 msgid "Sliders"
-msgstr ""
+msgstr "Kaydırıcılar"
 
+# AI Translated
 msgid "Painting tools"
-msgstr ""
+msgstr "Boyama araçları"
 
+# AI Translated
 msgid "Application"
-msgstr ""
+msgstr "Uygulama"
 
+# AI Translated
 msgid "Speed Dial"
-msgstr ""
+msgstr "Hızlı Erişim"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
