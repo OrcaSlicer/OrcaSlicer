@@ -25,6 +25,10 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include <string>
 #include <string_view>
 #include <vector>

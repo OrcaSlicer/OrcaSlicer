@@ -22,6 +22,7 @@
 #include "slic3r/GUI/WebPanel.hpp"
 #include <optional>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/GUI/LazyPage.hpp"
 #include <stdexcept>
 #include <string>
 #include <wx/app.h>

@@ -18,6 +18,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/ToolOrderUtils.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <set>

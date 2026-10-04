@@ -58,6 +58,8 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Utils.hpp"
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r {
 
 class AppConfig;

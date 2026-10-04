@@ -4,6 +4,7 @@
 ///|/
 #include "../include/Viewer.hpp"
 #include "ViewerImpl.hpp"
+#include <array>
 #include <string>
 #include <utility>
 #include "../include/Types.hpp"

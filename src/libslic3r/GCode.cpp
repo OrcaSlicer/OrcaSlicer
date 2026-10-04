@@ -133,6 +133,8 @@ using namespace std::literals::string_view_literals;
 
 #include <assert.h>
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r {
 
     //! macro used to mark string used at localization,

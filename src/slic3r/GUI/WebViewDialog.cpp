@@ -14,6 +14,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <utility>
 #include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>

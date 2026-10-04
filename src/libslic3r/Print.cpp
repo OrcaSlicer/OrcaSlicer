@@ -102,6 +102,8 @@
 
 #include <codecvt>
 
+namespace fs = boost::filesystem;
+
 using namespace nlohmann;
 
 // Mark string for localization and translate.
