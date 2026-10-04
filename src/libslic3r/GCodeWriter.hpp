@@ -92,6 +92,11 @@ public:
     //BBS: generate G2 or G3 extrude which moves by arc
     std::string extrude_arc_to_xy(const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    // Each appends its line to `out`.
+    void        set_speed(std::string &out, double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
+    void        extrude_to_xy(std::string &out, const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    void        extrude_arc_to_xy(std::string &out, const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    void        extrude_to_xyz(std::string &out, const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
@@ -299,8 +304,14 @@ public:
     }
 
     std::string string() {
+        std::string out;
+        this->append_to(out);
+        return out;
+    }
+
+    void append_to(std::string &out) {
         *ptr_err.ptr ++ = '\n';
-        return std::string(this->buf, ptr_err.ptr - buf);
+        out.append(this->buf, ptr_err.ptr - buf);
     }
 
 protected:

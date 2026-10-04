@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <cfloat>
@@ -715,6 +716,9 @@ private:
     
     bool m_enable_exclude_object;
     std::vector<size_t> m_label_objects_ids;
+    // Object label names by instance, built on first use from the ids set_object_info() assigns.
+    std::unordered_map<const PrintInstance*, std::string> m_instance_names;
+    const std::string& instance_name(const PrintInstance &instance);
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);
     // ORCA: Add support for role based fan speed control
     std::array<bool, ExtrusionRole::erCount> m_is_role_based_fan_on;
@@ -827,7 +831,7 @@ private:
     void update_layer_related_config(int layer_id);
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
-    std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
+    std::string _extrude(const ExtrusionPath &path, const std::string &path_description = "", double speed = -1);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
