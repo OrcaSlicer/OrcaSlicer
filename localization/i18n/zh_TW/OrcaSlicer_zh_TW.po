@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-04 19:00-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -295,6 +295,9 @@ msgstr "標準模式（100%）"
 msgid "TPU High Flow"
 msgstr "TPU高流量"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "未定義"
 
@@ -465,12 +468,6 @@ msgstr "筆刷類型"
 
 msgid "Gap fill"
 msgstr "縫隙填充"
-
-msgid "Reset direction"
-msgstr "重設方向"
-
-msgid "Section view"
-msgstr "剖面圖"
 
 msgid "Brush size"
 msgstr "筆刷尺寸"
@@ -1998,6 +1995,16 @@ msgstr "設定檔已被載入，但部分數值無法識別。"
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "設定檔「%1%」 已被載入，但部分數值無法識別。"
 
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
+
 msgid "Loading configuration"
 msgstr "正在讀取設定檔"
 
@@ -2594,6 +2601,9 @@ msgstr "新增支撐遮蔽"
 msgid "Add Support Enforcer"
 msgstr "新增支撐產生器"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "加文字"
 
@@ -2717,6 +2727,9 @@ msgstr "支撐去除器"
 
 msgid "Support Enforcer"
 msgstr "支撐添加器"
+
+msgid "Precise Seam"
+msgstr ""
 
 msgid "Change part type"
 msgstr "更換零件型別"
@@ -2859,6 +2872,30 @@ msgstr "沿 Z 軸鏡像"
 
 msgid "Mirror object"
 msgstr "鏡像物件"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "編輯文字"
@@ -4722,6 +4759,14 @@ msgstr ""
 "最大體積流量設定過小\n"
 "重設為 0.5"
 
+# AI Translated
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"熨燙線距過小。\n"
+"將重設為 0.1"
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "目前列印裝置內部溫度高於線材的安全溫度，可能會導致線材軟化和堵塞。線材的最高安全溫度為：%d"
@@ -4754,14 +4799,6 @@ msgid ""
 msgstr ""
 "層高過小。\n"
 "將重設為 0.2"
-
-# AI Translated
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"熨燙線距過小。\n"
-"將重設為 0.1"
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5562,6 +5599,12 @@ msgstr "速度："
 msgid "Actual speed profile"
 msgstr "實際速度設定檔"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "所有列印板統計資料"
 
@@ -5943,6 +5986,9 @@ msgstr "返回"
 msgid "Canvas Toolbar"
 msgstr "畫布工具列"
 
+msgid "Section view"
+msgstr "剖面圖"
+
 msgid "Fit camera to scene or selected object."
 msgstr "將攝影機對齊場景或選取的物件"
 
@@ -5980,17 +6026,32 @@ msgstr "網格線"
 msgid "Labels"
 msgstr "標籤"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "上色工具列"
 
-msgid "Explosion Ratio"
-msgstr "爆炸比例"
-
-msgid "Section View"
-msgstr "剖面檢視"
-
 msgid "Assembly Control"
 msgstr "拼裝視角控制"
+
+msgid "Explosion Ratio"
+msgstr "爆炸比例"
 
 msgid "Selection Mode"
 msgstr "選擇模式"
@@ -6007,7 +6068,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -6124,15 +6185,6 @@ msgstr "重新嘗試 Liveview"
 msgid "Resolution"
 msgstr "解析度"
 
-msgid "Enable"
-msgstr "啟用"
-
-msgid "Hostname or IP"
-msgstr "主機名稱或 IP"
-
-msgid "Custom camera source"
-msgstr "自訂相機來源"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "顯示「直播影片」引導。"
 
@@ -6205,11 +6257,17 @@ msgstr "否"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "將會被關閉以建立新模型，是否繼續？"
 
-msgid "Slice plate"
-msgstr "切片單一列印板"
+msgid "Print all"
+msgstr "列印所有列印板"
 
 msgid "Print plate"
 msgstr "列印單一列印板"
+
+msgid "Export plate sliced file"
+msgstr "匯出單一列印板切片檔案"
+
+msgid "Export all sliced file"
+msgstr "匯出所有列印板切片檔案"
 
 msgid "Export G-code file"
 msgstr "匯出 G-code 檔案"
@@ -6218,23 +6276,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "列印"
 
-msgid "Export plate sliced file"
-msgstr "匯出單一列印板切片檔案"
-
 msgid "Send"
 msgstr "傳送"
-
-msgid "Export all sliced file"
-msgstr "匯出所有列印板切片檔案"
-
-msgid "Print all"
-msgstr "列印所有列印板"
 
 msgid "Send all"
 msgstr "傳送所有列印板"
 
 msgid "Send to Multi-device"
 msgstr "傳送給多個列印裝置"
+
+msgid "Slice plate"
+msgstr "切片單一列印板"
 
 msgid "Keyboard Shortcuts"
 msgstr "快速鍵"
@@ -6253,6 +6305,12 @@ msgstr "疑難排解中心"
 
 msgid "Open Network Test"
 msgstr "開啟網路測試"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "顯示每日小提示"
@@ -6700,6 +6758,15 @@ msgstr "由於 GStreamer GTK 視訊接收器遺失或初始化失敗，因此未
 msgid "Please confirm if the printer is connected."
 msgstr "請確認列印裝置是否已連線。"
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "正在初始化..."
+
+msgid "Playing..."
+msgstr "正在播放中……"
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "列印裝置目前正忙於下載。請待下載完成後再試一次。"
 
@@ -6715,20 +6782,17 @@ msgstr "僅 LAN 模式的 LiveView 已關閉。請在列印裝置螢幕上開啟
 msgid "Please enter the IP of the printer to connect."
 msgstr "請輸入列印裝置的 IP 以進行連線。"
 
-msgid "Initializing..."
-msgstr "正在初始化..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "連線失敗。請檢查網路並重試"
+
+msgid "Video Stopped."
+msgstr "影片已停止。"
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "請檢查網路並重試。如果問題持續，您可以重新啟動或更新列印裝置。"
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "列印裝置已登出，無法連線。"
-
-msgid "Video Stopped."
-msgstr "影片已停止。"
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "區域網路連線失敗（無法啟動 Liveview）"
@@ -6764,9 +6828,6 @@ msgstr "網路不可存取"
 
 msgid "Information"
 msgstr "資訊"
-
-msgid "Playing..."
-msgstr "正在播放中……"
 
 msgid "Loading..."
 msgstr "正在載入影片……"
@@ -7106,9 +7167,6 @@ msgstr "儲存空間"
 
 msgid "Camera Setting"
 msgstr "攝影機設定"
-
-msgid "Switch Camera View"
-msgstr "切換相機視角"
 
 msgid "Control"
 msgstr "控制"
@@ -8191,6 +8249,9 @@ msgstr "同步噴嘴資訊和 AMS 數量"
 msgid "Click to edit preset"
 msgstr "點選編輯預設檔設定"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "噴嘴"
 
@@ -8280,6 +8341,9 @@ msgstr "線材類型和顏色資訊已同步，但不包括槽位資訊。"
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "是否儲存變更到「%1%」？"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8649,6 +8713,17 @@ msgstr ""
 msgid "Sync now"
 msgstr "立即同步"
 
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
+
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
 msgstr "紋理匯入失敗。模型中似乎包含紋理資料，但紋理匯入程序未能完成。將僅匯入模型的幾何資料。"
@@ -8694,6 +8769,9 @@ msgstr "正在準備 3MF 檔案..."
 msgid "Download failed; unknown file format."
 msgstr "下載失敗，未知的檔案格式。"
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "匯入 Orca Slicer 失敗。 請下載該檔案並手動匯入。"
+
 msgid "Downloading project..."
 msgstr "專案下載中..."
 
@@ -8703,9 +8781,6 @@ msgstr "下載失敗，檔案大小異常。"
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "專案已下載 %d%%"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "匯入 Orca Slicer 失敗。 請下載該檔案並手動匯入。"
 
 msgid "INFO:"
 msgstr "資訊："
@@ -9402,6 +9477,12 @@ msgstr "移除混合溫度限制"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "啟用此選項後，您可以同時列印溫度差異較大的材料。"
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "觸控板"
 
@@ -9520,18 +9601,34 @@ msgstr "Phong 著色"
 msgid "Uses Phong shading inside realistic view."
 msgstr "在擬真檢視中使用 Phong 著色。"
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 msgid "SSAO ambient occlusion"
 msgstr "SSAO 環境光遮蔽"
 
 msgid "Applies SSAO in realistic view."
 msgstr "在寫實渲染中套用 SSAO。"
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 msgid "Shadows"
 msgstr "陰影"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "在擬真檢視中，於列印板、其他物件以及每個物件自身上算繪投射陰影。"
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "抗鋸齒"
@@ -9621,9 +9718,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "G-code 預覽"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -9981,6 +10113,9 @@ msgstr "列印順序"
 msgid "Same as Global"
 msgstr "跟隨全域設定"
 
+msgid "Enable"
+msgstr "啟用"
+
 msgid "Disable"
 msgstr "停用"
 
@@ -10186,6 +10321,36 @@ msgstr "為「%1%」，增加「%2%」為一個新預設"
 msgid "Simply switch to \"%1%\""
 msgstr "直接切換到「%1%」"
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -10193,10 +10358,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -10219,7 +10380,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -10466,6 +10627,10 @@ msgstr "材料編號和 AMS 槽位中的線材材質不相符，請更新列印�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "選擇的列印裝置（%s）與列印檔案設定檔（%s）不相容。請在準備頁面中調整列印裝置預設，或在此頁面選擇相容的列印裝置。"
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "當啟用螺旋花瓶模式時，龍門結構的裝置不會產生縮時攝影影片。"
 
@@ -10548,6 +10713,12 @@ msgstr "清理"
 
 msgid "Preparing print job"
 msgstr "正在準備列印作業"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "名稱長度超過限制。"
@@ -10731,6 +10902,9 @@ msgstr "無法傳送空的列印板"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "需要插入儲存空間以錄製縮時攝影。"
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "您為一個擠出機同時選擇了外部料盤和 AMS 線材。列印期間您需要手動切換外部線材。"
 
@@ -10797,6 +10971,9 @@ msgstr "列印裝置需要與 Orca Slicer 在同一個區域網路內。"
 
 msgid "The printer does not support sending to printer storage."
 msgstr "列印裝置不支援傳送至列印裝置儲存空間。"
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "正在傳送..."
@@ -12143,7 +12320,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -12195,9 +12375,6 @@ msgstr "移動：以 1mm 為單位步進移動"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "支撐/顏色繪製：調整筆刷半徑"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "支撐/色彩繪製：調整剖面位置"
 
 msgid "Objects list"
 msgstr "物件清單"
@@ -12257,8 +12434,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -12329,6 +12509,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "存取代碼"
+
+msgid "HTTPS CA File"
+msgstr "HTTPS CA憑證 檔"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "憑證檔（*.crt, *.pem）|*.crt;*.pem|所有檔案|*.*"
+
+msgid "Open CA certificate file"
+msgstr "開啟 CA憑證檔"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "HTTPS CA 憑證檔案是可選的。 僅當您使用具有自行簽證的 HTTPS 時才需要它。"
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "列印裝置型號"
@@ -12549,6 +12744,29 @@ msgstr "分組錯誤：%1% 無法放入右噴嘴"
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "手動模式下分組錯誤。請檢查噴嘴數量或重新分組。"
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "內部橋接"
@@ -13037,9 +13255,6 @@ msgstr "Flashforge 本機 API 需要列印裝置序號。"
 
 msgid "Name of the printer."
 msgstr "列印裝置名稱"
-
-msgid "HTTPS CA File"
-msgstr "HTTPS CA憑證 檔"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "可以為 HTTPS OctoPrint 連線指定自訂 CA憑證 檔案，格式為 crt/pem。如果留空，則使用預設的操作系統 CA憑證 儲存庫。"
@@ -16678,6 +16893,9 @@ msgstr "遠程擠出機"
 msgid "Hybrid"
 msgstr "混合"
 
+msgid "Extra High Flow"
+msgstr ""
+
 msgid "Enable filament dynamic map"
 msgstr "啟用線材動態映射"
 
@@ -17150,6 +17368,17 @@ msgstr "取消稀疏層（Beta）"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "啟用後，換料塔不會在沒有換工具的層上列印。在有換工具的層上，擠出機會向下移動去列印換料塔，因此塔會低於模型，工具頭必須向下伸到該處。若這樣會與已列印的物件發生碰撞，該配置將被拒絕。對平滑模式的縮時攝影或噴嘴結塊偵測無效，因為它們需要每層都有塔。"
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "所有擠出機畫線"
@@ -18422,6 +18651,12 @@ msgstr "允許在排列時進行旋轉調整"
 
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "若啟用，物件排列時將允許旋轉調整"
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "在排列物件時避開擠出校正區域"
@@ -20485,15 +20720,6 @@ msgstr "在裝置頁籤中檢視列印主機的 Web UI"
 
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "將 BambuLab 的裝置頁籤替換為列印主機的 Web UI"
-
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "HTTPS CA 憑證檔案是可選的。 僅當您使用具有自行簽證的 HTTPS 時才需要它。"
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "憑證檔（*.crt, *.pem）|*.crt;*.pem|所有檔案|*.*"
-
-msgid "Open CA certificate file"
-msgstr "開啟 CA憑證檔"
 
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
@@ -24308,14 +24534,14 @@ msgstr "在準備/預覽模式之中切換"
 msgid "Collapse/Expand the sidebar"
 msgstr "摺疊/展開 側邊欄"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "顯示鍵盤快速鍵清單"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -24336,6 +24562,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -24658,6 +24887,28 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid "Reset direction"
+#~ msgstr "重設方向"
+
+#~ msgid "Section View"
+#~ msgstr "剖面檢視"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "主機名稱或 IP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "自訂相機來源"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "切換相機視角"
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "在擬真檢視中，於列印板、其他物件以及每個物件自身上算繪投射陰影。"
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "支撐/色彩繪製：調整剖面位置"
 
 #~ msgid "Tab"
 #~ msgstr "分頁"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-04 19:00-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -264,6 +264,9 @@ msgstr "Standart"
 msgid "TPU High Flow"
 msgstr "TPU Yüksek Akış"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Bilinmeyen"
 
@@ -462,12 +465,6 @@ msgstr "Araç türü"
 
 msgid "Gap fill"
 msgstr "Boşluk doldurma"
-
-msgid "Reset direction"
-msgstr "Yönü sıfırla"
-
-msgid "Section view"
-msgstr "Bölüm görünümü"
 
 msgid "Brush size"
 msgstr "Fırça boyutu"
@@ -2027,6 +2024,16 @@ msgstr "Yapılandırma paketi yüklendi ancak bazı değerler tanınamadı."
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "\"%1%\" yapılandırma dosyası yüklendi ancak bazı değerler tanınamadı."
 
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
+
 msgid "Loading configuration"
 msgstr "Yapılandırma yükleniyor"
 
@@ -2649,6 +2656,9 @@ msgstr "Destek engelleyici ekle"
 msgid "Add Support Enforcer"
 msgstr "Destek uygulayıcısı ekle"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "Yazı ekle"
 
@@ -2770,6 +2780,9 @@ msgstr "Destek Engelleyici"
 
 msgid "Support Enforcer"
 msgstr "Destek Uygulayıcısı"
+
+msgid "Precise Seam"
+msgstr ""
 
 # AI Translated
 msgid "Change part type"
@@ -2915,6 +2928,30 @@ msgstr "Z ekseni boyunca aynala"
 
 msgid "Mirror object"
 msgstr "Nesneyi aynala"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "Metni düzenle"
@@ -4813,6 +4850,13 @@ msgstr ""
 "Maksimum hacimsel hız çok küçük.\n"
 "Değer 0.5 olarak sıfırlandı"
 
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"Ütüleme satır aralığı çok küçük\n"
+"Değer 0.1 olarak yeniden ayarlandı"
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Mevcut hazne sıcaklığı malzemenin güvenli sıcaklığından yüksektir, malzemenin yumuşamasına ve tıkanmasına neden olabilir Malzeme için maksimum güvenli sıcaklık %d'dir"
@@ -4845,13 +4889,6 @@ msgid ""
 msgstr ""
 "Katman yüksekliği çok küçük\n"
 "Değer 0.2 olarak yeniden ayarlandı"
-
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"Ütüleme satır aralığı çok küçük\n"
-"Değer 0.1 olarak yeniden ayarlandı"
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5642,6 +5679,12 @@ msgstr "Hız: "
 msgid "Actual speed profile"
 msgstr "Gerçek hız profili"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "Tüm plakaların istatistikleri"
 
@@ -6025,6 +6068,9 @@ msgstr "Geri dön"
 msgid "Canvas Toolbar"
 msgstr "Kanvas Araç Çubuğu"
 
+msgid "Section view"
+msgstr "Bölüm görünümü"
+
 msgid "Fit camera to scene or selected object."
 msgstr "Kamerayı sahneye veya seçilen nesneye sığdırın."
 
@@ -6063,17 +6109,32 @@ msgstr "Kılavuz çizgileri"
 msgid "Labels"
 msgstr "Etiketler"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Boyama Araç Çubuğu"
 
-msgid "Explosion Ratio"
-msgstr "Patlama Oranı"
-
-msgid "Section View"
-msgstr "Bölüm Görünümü"
-
 msgid "Assembly Control"
 msgstr "Montaj Kontrolü"
+
+msgid "Explosion Ratio"
+msgstr "Patlama Oranı"
 
 msgid "Selection Mode"
 msgstr "Seçim Modu"
@@ -6090,7 +6151,7 @@ msgstr "Hacim:"
 msgid "Size:"
 msgstr "Boyut:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "%d katmanında G-code yollarında çakışmalar bulundu, Z = %.2lfmm. Lütfen çakışan nesneleri daha uzağa ayırın (%s <-> %s)."
 
@@ -6206,15 +6267,6 @@ msgstr "Canlı Görüntüleme Yeniden Deneme"
 msgid "Resolution"
 msgstr "Çözünürlük"
 
-msgid "Enable"
-msgstr "Aktif et"
-
-msgid "Hostname or IP"
-msgstr "Ana bilgisayar adı veya IP"
-
-msgid "Custom camera source"
-msgstr "Özel kamera kaynağı"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "\"Canlı Video\" kılavuz sayfasını gösterin."
 
@@ -6288,11 +6340,17 @@ msgstr "Hayır"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "yeni bir model oluşturulmadan önce kapatılacaktır. Devam etmek istiyor musun?"
 
-msgid "Slice plate"
-msgstr "Plakayı dilimle"
+msgid "Print all"
+msgstr "Tümünü yazdır"
 
 msgid "Print plate"
 msgstr "Plakayı Yazdır"
+
+msgid "Export plate sliced file"
+msgstr "Dilimlenmiş plaka dosyasını dışa aktar"
+
+msgid "Export all sliced file"
+msgstr "Tüm dilimlenmiş dosyayı dışa aktar"
 
 msgid "Export G-code file"
 msgstr "G-code dosyasını dışa aktar"
@@ -6301,23 +6359,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "Yazdır"
 
-msgid "Export plate sliced file"
-msgstr "Dilimlenmiş plaka dosyasını dışa aktar"
-
 msgid "Send"
 msgstr "Gönder"
-
-msgid "Export all sliced file"
-msgstr "Tüm dilimlenmiş dosyayı dışa aktar"
-
-msgid "Print all"
-msgstr "Tümünü yazdır"
 
 msgid "Send all"
 msgstr "Hepsini gönder"
 
 msgid "Send to Multi-device"
 msgstr "Çoklu cihaza gönder"
+
+msgid "Slice plate"
+msgstr "Plakayı dilimle"
 
 msgid "Keyboard Shortcuts"
 msgstr "Klavye kısayolları"
@@ -6336,6 +6388,12 @@ msgstr "Sorun giderme merkezi"
 
 msgid "Open Network Test"
 msgstr "Ağ testini aç"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "Günün ipucunu göster"
@@ -6790,6 +6848,15 @@ msgstr "GStreamer GTK video alıcısı eksik olduğundan veya başlatılamadığ
 msgid "Please confirm if the printer is connected."
 msgstr "Lütfen yazıcının bağlı olup olmadığını onaylayın."
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "Başlatılıyor..."
+
+msgid "Playing..."
+msgstr "Oynatılıyor..."
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "Yazıcı şu anda indirmeyle meşgul. Lütfen bittikten sonra tekrar deneyin."
 
@@ -6805,20 +6872,17 @@ msgstr "Yalnızca LAN Canlı İzleme kapalı. Lütfen yazıcı ekranındaki canl
 msgid "Please enter the IP of the printer to connect."
 msgstr "Lütfen bağlanmak için yazıcının IP’sini girin."
 
-msgid "Initializing..."
-msgstr "Başlatılıyor..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "Bağlantı Başarısız. Lütfen ağı kontrol edip tekrar deneyin"
+
+msgid "Video Stopped."
+msgstr "Video Durduruldu."
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Lütfen ağı kontrol edip tekrar deneyin. Sorun devam ederse yazıcıyı yeniden başlatabilir veya güncelleyebilirsiniz."
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "Yazıcıda oturum kapatıldı ve bağlanamıyor."
-
-msgid "Video Stopped."
-msgstr "Video Durduruldu."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "LAN Bağlantısı Başarısız Oldu (Canlı izleme başlatılamadı)"
@@ -6851,9 +6915,6 @@ msgstr "Ağa ulaşılamıyor"
 
 msgid "Information"
 msgstr "Bilgi"
-
-msgid "Playing..."
-msgstr "Oynatılıyor..."
 
 msgid "Loading..."
 msgstr "Yükleniyor..."
@@ -7195,9 +7256,6 @@ msgstr "Depolama"
 
 msgid "Camera Setting"
 msgstr "Kamera Ayarı"
-
-msgid "Switch Camera View"
-msgstr "Kamera Görünümünü Değiştir"
 
 msgid "Control"
 msgstr "Kontrol"
@@ -8290,6 +8348,9 @@ msgstr "Püskürtme ucu bilgilerini ve AMS sayısını senkronize edin"
 msgid "Click to edit preset"
 msgstr "Ön ayarı düzenlemek için tıklayın"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "Nozul"
 
@@ -8379,6 +8440,9 @@ msgstr "Filament türü ve renk bilgisi senkronize edilmiştir ancak slot bilgis
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "\"%1%\" dosyasındaki değişiklikleri kaydetmek istiyor musunuz?"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8754,6 +8818,17 @@ msgstr ""
 msgid "Sync now"
 msgstr "Şimdi senkronize et"
 
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
+
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
 msgstr "Doku içe aktarılamadı. Model doku verisi içeriyor gibi görünüyor, ancak içe aktarma işlemi tamamlanamadı. Model yalnızca geometri olarak içe aktarılacak."
@@ -8798,6 +8873,9 @@ msgstr "3mf dosyasını hazırla..."
 msgid "Download failed; unknown file format."
 msgstr "İndirme başarısız oldu, dosya türü bilinmiyor."
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "Orca Slicer'ya aktarma başarısız oldu. Lütfen dosyayı indirin ve manuel olarak İçe aktarın."
+
 msgid "Downloading project..."
 msgstr "Proje indiriliyor..."
 
@@ -8807,9 +8885,6 @@ msgstr "İndirme başarısız oldu, Dosya boyutu sorunlu."
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "Proje %d%% indirildi"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "Orca Slicer'ya aktarma başarısız oldu. Lütfen dosyayı indirin ve manuel olarak İçe aktarın."
 
 msgid "INFO:"
 msgstr "BİLGİ:"
@@ -9512,6 +9587,12 @@ msgstr "Karışık sıcaklık sınırlamasını kaldırın"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Bu seçenek etkinleştirildiğinde, sıcaklık farkı büyük olan malzemeleri bir arada yazdırabilirsiniz."
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "Dokunmatik yüzey"
 
@@ -9641,6 +9722,14 @@ msgstr "Phong gölgelendirme"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Gerçekçi görünümde Phong gölgelendirme kullanır."
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 # AI Translated
 msgid "SSAO ambient occlusion"
 msgstr "SSAO ortam örtüşmesi"
@@ -9649,13 +9738,21 @@ msgstr "SSAO ortam örtüşmesi"
 msgid "Applies SSAO in realistic view."
 msgstr "Gerçekçi görünümde SSAO uygular."
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 # AI Translated
 msgid "Shadows"
 msgstr "Gölgeler"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "Gerçekçi görünümde plakaya, diğer nesnelere ve her nesnenin kendi üzerine düşen gölgeleri işler."
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anti-Aliasing"
@@ -9753,9 +9850,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "G-code Önizleme"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10129,6 +10261,9 @@ msgstr "Yazdırma sırası"
 msgid "Same as Global"
 msgstr "Küresel ile aynı"
 
+msgid "Enable"
+msgstr "Aktif et"
+
 msgid "Disable"
 msgstr "Devre dışı bırak"
 
@@ -10334,6 +10469,36 @@ msgstr "\"%1%\" için \"%2%\"yi yeni ön ayar olarak ekleyin"
 msgid "Simply switch to \"%1%\""
 msgstr "Kolayca \"%1%\"e geçin"
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -10341,10 +10506,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -10367,7 +10528,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -10615,6 +10776,10 @@ msgstr "Filament, AMS yuvasındaki filamentle eşleşmiyor. AMS yuvası ataması
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Seçilen yazıcı (%s), yazdırma dosyası yapılandırmasıyla (%s) uyumlu değil. Lütfen hazırlama sayfasında yazıcı ön ayarını yapın veya bu sayfada uyumlu bir yazıcı seçin."
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Spiral vazo modu etkinleştirildiğinde, I3 yapısına sahip makineler zaman atlamalı videolar oluşturmayacaktır."
 
@@ -10697,6 +10862,12 @@ msgstr "Temizle"
 
 msgid "Preparing print job"
 msgstr "Yazdırma için hazırlanıyor"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "Ad uzunluğu sınırı aşıyor."
@@ -10884,6 +11055,9 @@ msgstr "Boş bir tabla için baskı işi gönderilemez."
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Hızlandırılmış çekimi kaydetmek için depolama biriminin eklenmesi gerekir."
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Bir ekstruder için hem harici hem de AMS filamentlerini seçtiniz. Yazdırma sırasında harici filamenti manuel olarak değiştirmeniz gerekecektir."
 
@@ -10951,6 +11125,9 @@ msgstr "Yazıcının Orca Slicer ile aynı LAN'da olması gerekir."
 
 msgid "The printer does not support sending to printer storage."
 msgstr "Yazıcı, yazıcı deposuna göndermeyi desteklemiyor."
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "Gönderiliyor..."
@@ -12331,7 +12508,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -12383,9 +12563,6 @@ msgstr "Hareket Ettir: 1 mm kadar yaslamak için basın"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "Destek/Renkli Boyama: kalem yarıçapını ayarlayın"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "Destek/Renkli Boyama: bölüm konumunu ayarlayın"
 
 msgid "Objects list"
 msgstr "Nesne listesi"
@@ -12445,8 +12622,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -12521,6 +12701,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "Giriş kodu"
+
+msgid "HTTPS CA File"
+msgstr "HTTPS CA Dosyası"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "Sertifika dosyaları (*.crt, *.pem)|*.crt;*.pem|Tüm dosyalar|*.*"
+
+msgid "Open CA certificate file"
+msgstr "CA sertifika dosyasını aç"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "HTTPS CA dosyası isteğe bağlıdır. Yalnızca HTTPS'yi kendinden imzalı bir sertifikayla kullanıyorsanız gereklidir."
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "Yazıcı modeli"
@@ -12749,6 +12944,29 @@ msgstr "Gruplama hatası: %1% sağ nozula yerleştirilemez"
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Elle modda gruplama hatası. Lütfen nozul sayısını denetleyin veya yeniden gruplayın."
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "İç köprü"
@@ -13262,9 +13480,6 @@ msgstr "Flashforge yerel API'si yazıcının seri numarasını gerektirir."
 
 msgid "Name of the printer."
 msgstr "Yazıcı adı."
-
-msgid "HTTPS CA File"
-msgstr "HTTPS CA Dosyası"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "HTTPS OctoPrint bağlantıları için crt/pem formatında özel CA sertifika dosyası belirtilebilir. Boş bırakılırsa varsayılan OS CA sertifika deposu kullanılır."
@@ -17022,6 +17237,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Hibrit"
 
+msgid "Extra High Flow"
+msgstr ""
+
 # AI Translated
 msgid "Enable filament dynamic map"
 msgstr "Filament dinamik eşlemesini etkinleştir"
@@ -17512,6 +17730,17 @@ msgstr "Seyrek katman yok (beta)"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Etkinleştirilirse, silme kulesi araç değişimi olmayan katmanlarda yazdırılmaz. Araç değişimi olan katmanlarda ekstruder silme kulesini yazdırmak için aşağı doğru hareket eder; böylece kule modelin altında kalır ve baskı kafasının ona uzanması gerekir. Bunun daha önce yazdırılmış bir nesneyle çarpışmasına yol açacak yerleşimler reddedilir. Her katmanda bir kule gerektiren pürüzsüz timelapse veya nozul birikme algılamayla birlikte etkisi yoktur."
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Tüm ekstruderleri temizle"
@@ -18816,6 +19045,12 @@ msgstr "Düzenlerken rotasyonlara izin ver"
 
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Etkinleştirilirse düzenleme, nesne yerleştirildiğinde dönüşlere izin verir."
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Düzenleme yaparken ekstrüzyon kalibrasyon bölgesinden kaçının"
@@ -20917,15 +21152,6 @@ msgstr "Aygıt sekmesinde yazdırma ana bilgisayarı web arayüzünü görüntü
 
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "BambuLab’ın aygıt sekmesini yazdırma ana bilgisayarı web arayüzüyle değiştirin"
-
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "HTTPS CA dosyası isteğe bağlıdır. Yalnızca HTTPS'yi kendinden imzalı bir sertifikayla kullanıyorsanız gereklidir."
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "Sertifika dosyaları (*.crt, *.pem)|*.crt;*.pem|Tüm dosyalar|*.*"
-
-msgid "Open CA certificate file"
-msgstr "CA sertifika dosyasını aç"
 
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
@@ -24817,14 +25043,14 @@ msgstr "Hazırlama/Önizleme arasında geçiş yap"
 msgid "Collapse/Expand the sidebar"
 msgstr "Kenar çubuğunu daralt/genişlet"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "Klavye kısayolları listesini göster"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -24845,6 +25071,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -25148,6 +25377,28 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Reset direction"
+#~ msgstr "Yönü sıfırla"
+
+#~ msgid "Section View"
+#~ msgstr "Bölüm Görünümü"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "Ana bilgisayar adı veya IP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "Özel kamera kaynağı"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "Kamera Görünümünü Değiştir"
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "Gerçekçi görünümde plakaya, diğer nesnelere ve her nesnenin kendi üzerine düşen gölgeleri işler."
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "Destek/Renkli Boyama: bölüm konumunu ayarlayın"
 
 # AI Translated
 #~ msgid "Tab"

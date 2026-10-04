@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-04 19:00-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -293,6 +293,9 @@ msgstr "Standard"
 msgid "TPU High Flow"
 msgstr "TPU haut débit"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Inconnu"
 
@@ -462,12 +465,6 @@ msgstr "Type d'outil"
 
 msgid "Gap fill"
 msgstr "Remplissage des espaces"
-
-msgid "Reset direction"
-msgstr "Réinitialiser la direction"
-
-msgid "Section view"
-msgstr "Vue en coupe"
 
 msgid "Brush size"
 msgstr "Taille du pinceau"
@@ -1995,6 +1992,16 @@ msgstr "Le paquet de configuration a été chargé, mais certaines valeurs n’o
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Le fichier de configuration \"%1%\" a été chargé, mais certaines valeurs n'ont pas été reconnues."
 
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
+
 msgid "Loading configuration"
 msgstr "Chargement de la configuration"
 
@@ -2580,6 +2587,9 @@ msgstr "Ajouter un bloqueur de support"
 msgid "Add Support Enforcer"
 msgstr "Ajouter un générateur de supports"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "Ajouter un texte"
 
@@ -2700,6 +2710,9 @@ msgstr "Bloqueur de Support"
 
 msgid "Support Enforcer"
 msgstr "Générateur de Support"
+
+msgid "Precise Seam"
+msgstr ""
 
 msgid "Change part type"
 msgstr "Changer le type de pièce"
@@ -2842,6 +2855,30 @@ msgstr "Symétrie le long de l'axe Z"
 
 msgid "Mirror object"
 msgstr "Symétriser l’objet"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "Modifier le texte"
@@ -4675,6 +4712,13 @@ msgstr ""
 "Vitesse volumétrique maximale trop faible.\n"
 "La valeur a été réinitialisée à 0,5"
 
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"Espacement de lissage trop petit.\n"
+"Réinitialisé à 0,1."
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "La température actuelle du caisson est supérieure à la température de sécurité du matériau, ce qui peut entraîner un ramollissement et un bouchage du filament. La température de sécurité maximale pour le matériau est %d"
@@ -4706,13 +4750,6 @@ msgid ""
 msgstr ""
 "Hauteur de couche trop petite.\n"
 "Réinitialisée à 0,2."
-
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"Espacement de lissage trop petit.\n"
-"Réinitialisé à 0,1."
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5499,6 +5536,12 @@ msgstr "Vitesse : "
 msgid "Actual speed profile"
 msgstr "Profil de vitesse réel"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "Statistiques de toutes les plaques"
 
@@ -5879,6 +5922,9 @@ msgstr "Retour"
 msgid "Canvas Toolbar"
 msgstr "Barre d'outils du canevas"
 
+msgid "Section view"
+msgstr "Vue en coupe"
+
 msgid "Fit camera to scene or selected object."
 msgstr "Ajuster la caméra à la scène ou à l'objet sélectionné."
 
@@ -5915,17 +5961,32 @@ msgstr "Quadrillage"
 msgid "Labels"
 msgstr "Étiquettes"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Barre d'outils de peinture"
 
-msgid "Explosion Ratio"
-msgstr "Taux d'explosion"
-
-msgid "Section View"
-msgstr "Vue en coupe"
-
 msgid "Assembly Control"
 msgstr "Contrôle de l'Assemblage"
+
+msgid "Explosion Ratio"
+msgstr "Taux d'explosion"
 
 msgid "Selection Mode"
 msgstr "Mode de sélection"
@@ -5942,7 +6003,7 @@ msgstr "Volume :"
 msgid "Size:"
 msgstr "Taille :"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Des conflits de chemins G-code ont été trouvés au niveau de la couche %d, z = %.2lfmm. Veuillez séparer davantage les objets en conflit (%s <-> %s)."
 
@@ -6058,15 +6119,6 @@ msgstr "Réessai de l’affichage en direct"
 msgid "Resolution"
 msgstr "Résolution"
 
-msgid "Enable"
-msgstr "Activer"
-
-msgid "Hostname or IP"
-msgstr "Nom d’hôte ou IP"
-
-msgid "Custom camera source"
-msgstr "Source caméra personnalisée"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "Afficher la page de guide « Vidéo en direct »."
 
@@ -6139,11 +6191,17 @@ msgstr "Non"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "sera fermé avant de créer un nouveau modèle. Voulez-vous continuer ?"
 
-msgid "Slice plate"
-msgstr "Découper le plateau"
+msgid "Print all"
+msgstr "Tout imprimer"
 
 msgid "Print plate"
 msgstr "Imprimer le plateau"
+
+msgid "Export plate sliced file"
+msgstr "Exporter le fichier découpé du plateau"
+
+msgid "Export all sliced file"
+msgstr "Exporter tous les fichiers découpés"
 
 msgid "Export G-code file"
 msgstr "Exporter le fichier G-code"
@@ -6152,23 +6210,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "Imprimer"
 
-msgid "Export plate sliced file"
-msgstr "Exporter le fichier découpé du plateau"
-
 msgid "Send"
 msgstr "Envoyer"
-
-msgid "Export all sliced file"
-msgstr "Exporter tous les fichiers découpés"
-
-msgid "Print all"
-msgstr "Tout imprimer"
 
 msgid "Send all"
 msgstr "Tout envoyer"
 
 msgid "Send to Multi-device"
 msgstr "Envoyer à plusieurs appareils"
+
+msgid "Slice plate"
+msgstr "Découper le plateau"
 
 msgid "Keyboard Shortcuts"
 msgstr "Raccourcis Clavier"
@@ -6187,6 +6239,12 @@ msgstr "Centre de dépannage"
 
 msgid "Open Network Test"
 msgstr "Ouvrir le Test de Réseau"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "Afficher l'Astuce du Jour"
@@ -6635,6 +6693,15 @@ msgstr "Le lecteur n’est pas chargé car le récepteur vidéo GStreamer GTK es
 msgid "Please confirm if the printer is connected."
 msgstr "Veuillez vérifier que l’imprimante est bien connectée."
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "Initialisation…"
+
+msgid "Playing..."
+msgstr "En cours…"
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "L’imprimante est actuellement occupée à télécharger. Veuillez réessayer une fois le téléchargement terminé."
 
@@ -6650,20 +6717,17 @@ msgstr "La fonction vue en direct sur réseau local est désactivée. Veuillez a
 msgid "Please enter the IP of the printer to connect."
 msgstr "Veuillez saisir l’IP de l’imprimante à connecter."
 
-msgid "Initializing..."
-msgstr "Initialisation…"
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "Échec de la connexion. Veuillez vérifier le réseau et réessayer"
+
+msgid "Video Stopped."
+msgstr "Vidéo arrêtée."
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Veuillez vérifier le réseau et réessayer, Vous pouvez redémarrer ou mettre à jour l’imprimante si le problème persiste."
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "L’imprimante a été déconnectée et ne peut pas se connecter."
-
-msgid "Video Stopped."
-msgstr "Vidéo arrêtée."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "Échec de la connexion au réseau local (échec du démarrage de l’affichage en direct)"
@@ -6696,9 +6760,6 @@ msgstr "Réseau inaccessible"
 
 msgid "Information"
 msgstr "Information"
-
-msgid "Playing..."
-msgstr "En cours…"
 
 msgid "Loading..."
 msgstr "Chargement…"
@@ -7038,9 +7099,6 @@ msgstr "Stockage"
 
 msgid "Camera Setting"
 msgstr "Réglage de la Caméra"
-
-msgid "Switch Camera View"
-msgstr "Changer la vue de la caméra"
 
 msgid "Control"
 msgstr "Contrôle"
@@ -8123,6 +8181,9 @@ msgstr "Synchroniser les informations de buse et le nombre d'AMS"
 msgid "Click to edit preset"
 msgstr "Cliquez pour éditer le préréglage"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "Buse"
 
@@ -8212,6 +8273,9 @@ msgstr "Les informations de type et de couleur du filament ont été synchronis�
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Voulez-vous enregistrer les modifications apportées à \"%1%\" ?"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8575,6 +8639,17 @@ msgstr ""
 msgid "Sync now"
 msgstr "Synchroniser maintenant"
 
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
+
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
 msgstr "Échec de l’importation de la texture. Le modèle semble contenir des données de texture, mais le processus d’importation n’a pas pu être mené à son terme. Le modèle sera importé en tant que géométrie uniquement."
@@ -8619,6 +8694,9 @@ msgstr "Préparation du fichier 3MF…"
 msgid "Download failed; unknown file format."
 msgstr "Échec du téléchargement, format de fichier inconnu."
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "L’importation vers OrcaSlicer a échoué. Veuillez télécharger le fichier et l’importer manuellement."
+
 msgid "Downloading project..."
 msgstr "Téléchargement du projet…"
 
@@ -8628,9 +8706,6 @@ msgstr "Le téléchargement a échoué, exception de taille de fichier."
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "Projet téléchargé à %d%%"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "L’importation vers OrcaSlicer a échoué. Veuillez télécharger le fichier et l’importer manuellement."
 
 msgid "INFO:"
 msgstr "INFO :"
@@ -9319,6 +9394,12 @@ msgstr "Supprimer la restriction de température mixte"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Avec cette option activée, vous pouvez imprimer ensemble des matériaux avec une grande différence de température."
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "Pavé tactile"
 
@@ -9437,18 +9518,34 @@ msgstr "Ombrage de Phong"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Utilise l’ombrage de Phong dans la vue réaliste."
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 msgid "SSAO ambient occlusion"
 msgstr "Occlusion ambiante SSAO"
 
 msgid "Applies SSAO in realistic view."
 msgstr "Applique le SSAO dans la vue réaliste."
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 msgid "Shadows"
 msgstr "Ombres"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "Rend les ombres portées sur le plateau, les autres objets et chaque objet sur lui-même en vue réaliste."
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anticrénelage"
@@ -9538,9 +9635,44 @@ msgstr "FPS : images affichées à l'écran par seconde."
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr "3D : images par seconde ayant redessiné la scène 3D."
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "Aperçu du G-code"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -9895,6 +10027,9 @@ msgstr "Séquence d'impression"
 msgid "Same as Global"
 msgstr "Identique à Global"
 
+msgid "Enable"
+msgstr "Activer"
+
 msgid "Disable"
 msgstr "Désactiver"
 
@@ -10100,6 +10235,36 @@ msgstr "Pour \"%1%\", ajoutez \"%2%\" comme nouveau préréglage"
 msgid "Simply switch to \"%1%\""
 msgstr "Passez simplement à \"%1%\""
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr "Expert"
 
@@ -10108,10 +10273,6 @@ msgstr "Simple"
 
 msgid "Search actions"
 msgstr "Rechercher des actions"
-
-#, c-format, boost-format
-msgid "Search %s actions"
-msgstr "Rechercher parmi %s actions"
 
 msgid "Recent"
 msgstr "Récent"
@@ -10133,8 +10294,8 @@ msgid "No tabs"
 msgstr "Aucun onglet"
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
-msgstr "Affichage de %s sur %s actions"
+msgid "Showing %s actions"
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s actions"
@@ -10380,6 +10541,10 @@ msgstr "Le filament ne correspond pas au filament du slot AMS. Veuillez mettre �
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "L'imprimante sélectionnée (%s) est incompatible avec la configuration du fichier d'impression (%s). Veuillez ajuster le préréglage d'imprimante sur la page de préparation ou choisir une imprimante compatible sur cette page."
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Lorsque vous activez le mode vase, les machines avec une structure I3 ne généreront pas de vidéos timelapse."
 
@@ -10462,6 +10627,12 @@ msgstr "Nettoyer"
 
 msgid "Preparing print job"
 msgstr "Préparation du travail d'impression"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "La longueur du nom dépasse la limite."
@@ -10645,6 +10816,9 @@ msgstr "Impossible d'envoyer une tâche d'impression d'un plateau vide"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Un stockage doit être inséré pour enregistrer le timelapse."
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Vous avez sélectionné à la fois des filaments externes et AMS pour un extrudeur. Vous devrez changer manuellement le filament externe pendant l'impression."
 
@@ -10711,6 +10885,9 @@ msgstr "L'imprimante doit être sur le même réseau local que OrcaSlicer."
 
 msgid "The printer does not support sending to printer storage."
 msgstr "L'imprimante ne prend pas en charge l'envoi vers le stockage de l'imprimante."
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "Envoi en cours…"
@@ -12047,8 +12224,11 @@ msgstr "Clic gauche"
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr "Disponible partout dans la fenêtre, même pendant la saisie dans un champ de texte."
 
-msgid "Run a speed dial favorite while the dial is open"
-msgstr "Lancer un favori de l'accès rapide lorsqu'il est ouvert"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
+msgstr ""
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -12099,9 +12279,6 @@ msgstr "Déplacer : appuyez pour aligner de 1 mm"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "Support/Peinture couleur : ajustez le rayon du stylet"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "Support/Peinture couleur : ajuster la position de la section"
 
 msgid "Objects list"
 msgstr "Liste des objets"
@@ -12161,9 +12338,12 @@ msgid ""
 "\"%s\""
 msgstr "Appuyez sur le nouveau raccourci pour\n\"%s\""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
-msgstr "Déjà utilisé comme étape de %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Already assigned to %s. Press OK to reassign it."
@@ -12233,6 +12413,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "Code d'Accès"
+
+msgid "HTTPS CA File"
+msgstr "Fichier HTTPS CA"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "Fichiers de certificat (*.crt, *.pem)|*.crt;*.pem|Tous les fichiers|*.*"
+
+msgid "Open CA certificate file"
+msgstr "Ouvrir le fichier de certificat CA"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "Le fichier CA HTTPS est facultatif. Il n'est nécessaire que si vous utilisez HTTPS avec un certificat auto-signé."
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "Modèle d’imprimante"
@@ -12452,6 +12647,29 @@ msgstr "Erreur de regroupement : %1% ne peut pas être placé dans la buse droit
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Erreur de regroupement en mode manuel. Veuillez vérifier le nombre de buses ou regrouper à nouveau."
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Pont interne"
@@ -12940,9 +13158,6 @@ msgstr "L’API locale Flashforge nécessite le numéro de série de l’imprima
 
 msgid "Name of the printer."
 msgstr "Nom de l'imprimante"
-
-msgid "HTTPS CA File"
-msgstr "Fichier HTTPS CA"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "Un fichier de certificat CA personnalisé peut être spécifié pour les connexions HTTPS OctoPrint, au format crt/pem. Si ce champ est laissé vide, le référentiel de certificats OS CA par défaut est utilisé."
@@ -16596,6 +16811,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Hybride"
 
+msgid "Extra High Flow"
+msgstr ""
+
 msgid "Enable filament dynamic map"
 msgstr "Activer le mappage dynamique des filaments"
 
@@ -17077,6 +17295,17 @@ msgstr "Pas de couches éparses (beta)"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Si cette option est activée, la tour d'essuyage n'est pas imprimée sur les couches sans changement d'outil. Sur les couches comportant un changement d'outil, l'extrudeur descend pour imprimer la tour d'essuyage : la tour se retrouve donc sous le modèle et la tête d'outil doit descendre jusqu'à elle. Les dispositions où cela entrerait en collision avec un objet déjà imprimé sont rejetées. Sans effet avec le timelapse fluide ou la détection d'agglomération de la buse, qui nécessitent une tour à chaque couche."
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Amorcer tous les extrudeurs d’impression"
@@ -18350,6 +18579,12 @@ msgstr "Autoriser des rotations dans le cadre d’un réagencement"
 
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Si cette option est activée, l’arrangement autorisera les rotations lors du placement de l’objet"
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Éviter la région d’étalonnage de l’extrusion lors de l’arrangement"
@@ -20412,15 +20647,6 @@ msgstr "Afficher l’interface web de l’hôte d’impression dans l’onglet P
 
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Remplacer l’onglet device de BambuLab par print host webui"
-
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "Le fichier CA HTTPS est facultatif. Il n'est nécessaire que si vous utilisez HTTPS avec un certificat auto-signé."
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "Fichiers de certificat (*.crt, *.pem)|*.crt;*.pem|Tous les fichiers|*.*"
-
-msgid "Open CA certificate file"
-msgstr "Ouvrir le fichier de certificat CA"
 
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
@@ -24185,14 +24411,14 @@ msgstr "Basculer entre Préparer/Aperçu"
 msgid "Collapse/Expand the sidebar"
 msgstr "Réduire/développer la barre latérale"
 
-msgid "Open the speed dial"
-msgstr "Ouvrir l'accès rapide"
-
 msgid "Reload the device page"
 msgstr "Recharger la page de l'appareil"
 
 msgid "Show keyboard shortcuts list"
 msgstr "Afficher la liste des raccourcis clavier"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr "Découpe et impression"
@@ -24214,6 +24440,9 @@ msgstr "Outils de peinture"
 
 msgid "Application"
 msgstr "Application"
+
+msgid "Speed Dial"
+msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -24514,6 +24743,28 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+#~ msgid "Reset direction"
+#~ msgstr "Réinitialiser la direction"
+
+#~ msgid "Section View"
+#~ msgstr "Vue en coupe"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "Nom d’hôte ou IP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "Source caméra personnalisée"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "Changer la vue de la caméra"
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "Rend les ombres portées sur le plateau, les autres objets et chaque objet sur lui-même en vue réaliste."
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "Support/Peinture couleur : ajuster la position de la section"
 
 #~ msgid "Tab"
 #~ msgstr "Onglet"
