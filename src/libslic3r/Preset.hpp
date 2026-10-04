@@ -1,20 +1,31 @@
 #ifndef slic3r_Preset_hpp_
 #define slic3r_Preset_hpp_
 
+#include <cstddef>
+#include <cassert>
+#include <cmath>
+#include <algorithm>
 #include <deque>
+#include <map>
+#include <limits>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <vector>
+#include <utility>
 
+#include "Config.hpp"
 #include "PrintConfig.hpp"
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
+#include "libslic3r.h"
 
 //BBS: change system directories
 #define PRESET_SYSTEM_DIR      "system"
@@ -62,6 +73,7 @@
 #define ORCA_JSON_KEY_UPDATE_TIME    "updated_time"
 #define ORCA_JSON_KEY_CREATED_TIME    "created_time"
 #define BBL_JSON_KEY_INHERITS       "inherits"
+#define BBL_JSON_KEY_INCLUDES       "include"
 #define BBL_JSON_KEY_INSTANTIATION  "instantiation"
 #define BBL_JSON_KEY_NOZZLE_DIAMETER            "nozzle_diameter"
 #define BBL_JSON_KEY_PRINTER_TECH                 "machine_tech"
@@ -93,8 +105,8 @@ class PresetBundle;
 
 // Deterministic preset setting_id: uuid5(vendor/type/name) -> 16 base62 chars.
 // Pure function of a system preset's identity, so the value can be assigned by
-// scripts/assign_vendor_setting_ids.py and recomputed here when a profile ships
-// without it. MUST stay byte-identical to scripts/assign_vendor_setting_ids.py.
+// scripts/orca_profile_tool.py and recomputed here when a profile ships without it.
+// MUST stay byte-identical to scripts/orca_profile_tool.py.
 // This is NOT the per-user cloud-sync setting_id
 // (OrcaCloudServiceAgent::generate_uuid_for_setting_id) - do not conflate them.
 std::string generate_preset_setting_id(const std::string& vendor,
@@ -329,7 +341,8 @@ public:
 
     //BBS: add logic for only difference save
     //if parent_config is null, save all keys, otherwise, only save difference
-    void                save(DynamicPrintConfig* parent_config);
+    // Returns false when the preset file could not be written.
+    bool                save(DynamicPrintConfig* parent_config);
     void                reload(Preset const & parent);
 
     // Return a label of this preset, consisting of a name and a "(modified)" suffix, if this preset is dirty.
@@ -402,6 +415,15 @@ public:
     std::string get_current_printer_type(PresetBundle *preset_bundle); // get current preset type
 
     static void get_extruder_names_and_keysets(Type type, std::string& extruder_id_name, std::string& extruder_variant_name, std::set<std::string>** p_key_set1, std::set<std::string>** p_key_set2);
+    // Config of a preset loaded from a project or config file: the project's values over the type's
+    // default preset config, without the print-host keys. When different_settings_list is not empty,
+    // every key not listed in it is then refreshed from the base system preset, which find_base returns
+    // for the project's "inherits" (nullptr when there is none), with the listed per-variant values
+    // mapped onto the base's extruder variants. keys, if given, receives the keys taken from the project.
+    static DynamicPrintConfig load_external_config(Type type, const DynamicPrintConfig &default_config, const DynamicPrintConfig &project_config,
+                                                   const std::set<std::string> &different_settings_list,
+                                                   const std::function<DynamicPrintConfig *(const std::string &inherits)> &find_base,
+                                                   t_config_option_keys *keys = nullptr);
     std::string get_printer_id() const { return vendor ? vendor->id : ""; }
 
     bool has_lidar(PresetBundle *preset_bundle);
@@ -444,7 +466,10 @@ public:
     static std::string                      remove_suffix_modified(const std::string& name);
     static void                             normalize(DynamicPrintConfig &config);
     // Report configuration fields, which are misplaced into a wrong group, remove them from the config.
-    static std::string                      remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config);
+    // `added`, when given, is the diff applied over a copy of default_config, and only
+    // its keys are checked, since no other key can be missing from default_config.
+    static std::string                      remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config,
+                                                                const DynamicPrintConfig *added = nullptr);
 
     // BBS: move constructor to public
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
@@ -459,6 +484,11 @@ protected:
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer);
+// ORCA: same check for callers that hold raw configs rather than Presets (the CLI). Wraps them in
+// throwaway Preset shells and delegates, so the compatibility policy -- including the fail-open on a
+// malformed compatible_printers_condition -- lives in one place for the GUI and the CLI alike.
+bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
+                                const DynamicPrintConfig &printer_config, const std::string &printer_name);
 
 // Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
 struct PresetOrigin {
@@ -478,6 +508,12 @@ std::string get_preset_canonical_name(const std::string &preset_bare_name, const
 
 // Tail segment of a canonical name — what's written to the bundle's .json filename and JSON "name" field.
 std::string get_preset_bare_name(const std::string &canonical_name);
+
+// Lock file guarding every user preset file under data_dir() against other
+// running instances and the preset sync thread. Empty without a data dir, and
+// for a read-only load (the CLI), which never rewrites or deletes and may run
+// many jobs on one data dir.
+std::string user_presets_lock_path(bool read_only = false);
 
 // Resolve an origin from a directory path when the caller passes Kind::Auto.
 PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const PresetOrigin &explicit_origin = PresetOrigin());
@@ -558,7 +594,7 @@ public:
     void            add_default_preset(const std::vector<std::string> &keys, const Slic3r::StaticPrintConfig &defaults, const std::string &preset_name);
 
     // Load ini files of the particular type from the provided directory path.
-    void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, std::function<void(Preset&)> preset_loaded_fn = nullptr, const PresetOrigin &load_origin = PresetOrigin());
+    void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, std::function<void(Preset&)> preset_loaded_fn = nullptr, const PresetOrigin &load_origin = PresetOrigin(), bool read_only = false);
 
     //BBS: update user presets directory
     void            update_user_presets_directory(const std::string& dir_path, const std::string& type);
@@ -631,6 +667,22 @@ public:
     // All presets are marked as not modified and the new preset is activated.
     //BBS: add project embedded preset logic
     void            save_current_preset(const std::string &new_name, bool detach = false, bool save_to_project = false, Preset* _curr_preset = nullptr);
+    // Insert a standalone user preset holding the full resolved config (no inheritance,
+    // no vendor links): the libslic3r equivalent of "Detach from parent". Takes a
+    // resolved config, clears parent/vendor/alias metadata, stamps filament_settings_id.
+    // Unlike save_current_preset it does not force-select or diff against a parent.
+    // Used by the published-3MF Full Publish path. The optional filament_id seeds the
+    // preset's stable material grouping (get_filament_presets groups user bases by
+    // filament_id); the published entry's filament_id is forwarded so the copy keeps
+    // the author's grouping.
+    // The copy is a project-embedded preset ("Preset Inside Project"): it lives inside
+    // the loaded project only, is serialized into the saved .3mf via
+    // get_current_project_embedded_presets(), and is never written to the user's
+    // library directory.
+    // Returns the final (uniquified) name; on collision the suffix rule is:
+    // "<base>" -> "<base> (Published)" -> "<base> (Published 2)" ...
+    std::string     add_detached_preset(const std::string &name_base, DynamicPrintConfig config,
+                                        const std::string &filament_id = std::string());
 
     // Delete the current preset, activate the first visible preset.
     // returns true if the preset was deleted successfully.
@@ -779,6 +831,8 @@ public:
     // Return number of presets including the "- default -" preset.
     size_t          size() const                { return m_presets.size(); }
     bool            has_defaults_only() const   { return m_presets.size() <= m_num_default_presets; }
+    // How many presets this collection refused or repaired while loading.
+    int             error_count() const         { return m_errors; }
 
     // For Print / Filament presets, disable those, which are not compatible with the printer.
     template<typename PreferedCondition>
@@ -840,21 +894,22 @@ public:
 
 protected:
     PresetCollection() = default;
-    // Copy constructor and copy operators are not to be used from outside PresetBundle,
-    // as the Profile::vendor points to an instance of VendorProfile stored at parent PresetBundle!
-    PresetCollection(const PresetCollection &other) = default;
-    //BBS: add operator= logic insteadof default
+    // Deleted by the std::recursive_mutex member. PresetBundle copies by assignment.
+    PresetCollection(const PresetCollection &other) = delete;
+    //BBS: hand-written because m_mutex cannot be copy-assigned.
     PresetCollection& operator=(const PresetCollection &other);
-    // After copying a collection with the default operators above, call this function
-    // to adjust Profile::vendor pointers.
+    // Copying leaves every Preset::vendor pointing into the source bundle's vendor map.
+    // This re-points them at the matching entries in vendors.
     void            update_vendor_ptrs_after_copy(const VendorMap &vendors);
 
     // Select a preset, if it exists. If it does not exist, select an invalid (-1) index.
     // This is a temporary state, which shall be fixed immediately by the following step.
     bool            select_preset_by_name_strict(const std::string &name);
 
-    // Merge one vendor's presets with the other vendor's presets, report duplicates.
-    std::vector<std::string> merge_presets(PresetCollection &&other, const VendorMap &new_vendors);
+    // Move the presets of `others` into this collection in one pass. A name this
+    // collection or an earlier one of `others` already has is left out, and reported
+    // in the list of the collection that repeats it.
+    std::vector<std::vector<std::string>> merge_presets(const std::vector<PresetCollection*> &others, const VendorMap &new_vendors);
 
     // Update m_map_alias_to_profile_name from loaded system profiles.
 	void 			update_map_alias_to_profile_name();
@@ -869,6 +924,56 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    // A preset file and its .info as read from disk, std::nullopt for one that is missing.
+    struct PresetFilesOnDisk
+    {
+        std::optional<std::string> json;
+        std::optional<std::string> info;
+
+        static PresetFilesOnDisk read(const boost::filesystem::path &file);
+        bool operator==(const PresetFilesOnDisk &rhs) const { return json == rhs.json && info == rhs.info; }
+    };
+
+    // One preset file read and flattened against the presets already in this
+    // collection, before anything the collection shares has been touched.
+    struct UserPresetLoad
+    {
+        Preset      preset;
+        // Joins the collection. A file that threw partway still joins it, without
+        // the steps that did not run.
+        bool        install { false };
+        // The whole of the load ran, so the preset is ready to be aliased.
+        bool        complete { false };
+        // A filament preset that named no compatible printer and was given one from
+        // its name, which commit writes back to its file.
+        bool        save_compatible_printers { false };
+        // Unreadable, so commit removes it and its .info file.
+        bool        discard_file { false };
+        // The .info file read beside the preset, which commit logs.
+        std::string info_file;
+        // Both files as they were before the preset was read from them. Resolve runs
+        // without the instance lock, so commit compares this with the disk under it.
+        PresetFilesOnDisk on_disk;
+        // Counted and logged by commit, in the order the directory listed the files.
+        std::vector<std::string>   errors;
+        PresetsConfigSubstitutions substitutions;
+    };
+
+    // Read and flatten one preset file. It reads only, and resolves against the presets
+    // loaded before this pass, never another file of the same pass, so the files of a
+    // pass are independent of each other.
+    UserPresetLoad  resolve_user_preset(const boost::filesystem::path &file, const std::string &canonical_name,
+                                        const PresetOrigin &load_origin, ForwardCompatibilitySubstitutionRule substitution_rule,
+                                        const std::string &extruder_id_name, const std::string &extruder_variant_name,
+                                        std::set<std::string> *key_set1, std::set<std::string> *key_set2) const;
+
+    // Install one resolved preset. The collection, its alias maps, the error count
+    // and the preset files on disk are touched here and only here.
+    void            commit_user_preset(UserPresetLoad &&loaded, std::deque<Preset> &presets_loaded,
+                                       PresetsConfigSubstitutions &substitutions,
+                                       const std::function<void(Preset&)> &preset_loaded_fn,
+                                       bool read_only);
+
     std::string canonical_preset_name(const std::string &name, const PresetOrigin &load_origin = PresetOrigin()) const;
 
     // Comparator that sorts "Generic " prefixed presets before others, then alphabetically within each group.
@@ -879,6 +984,10 @@ private:
             return a_generic; // generics first
         return a.name < b.name;
     }
+
+    // Append a preset without keeping the collection sorted, for a caller installing
+    // many at once; find_preset() is unusable until sort_presets() runs.
+    Preset& append_preset(std::string &&path, const std::string &name, DynamicPrintConfig &&config);
 
     // Sort presets: filament presets use generic-first ordering, others sort alphabetically.
     void sort_presets() {
@@ -984,7 +1093,8 @@ public:
     bool            only_default_printers() const;
 private:
     PrinterPresetCollection() = default;
-    PrinterPresetCollection(const PrinterPresetCollection &other) = default;
+    // Deleted along with the base copy constructor.
+    PrinterPresetCollection(const PrinterPresetCollection &other) = delete;
     PrinterPresetCollection& operator=(const PrinterPresetCollection &other) = default;
 
     friend class PresetBundle;
@@ -1032,7 +1142,7 @@ public:
 
     //BBS: change to json format
     //void                save() { this->config.save(this->file); }
-    void                save(DynamicPrintConfig* parent_config) { this->config.save_to_json(this->file, std::string("Physical_Printer"), std::string("User"), std::string(SLIC3R_VERSION)); }
+    void                save(DynamicPrintConfig* parent_config);
     void                save(const std::string& file_name_from, const std::string& file_name_to);
 
     void                update_from_preset(const Preset& preset);

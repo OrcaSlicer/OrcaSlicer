@@ -1,11 +1,58 @@
 #include "GLGizmoCut.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
+#include <cmath>
+#include <cstddef>
+#include <Standard_Real.hxx>
+#include <cereal/archives/binary.hpp>
+#include <cassert>
+#include <cstdlib>
+#include <functional>
+#include <Eigen/Geometry>
+#include <boost/log/trivial.hpp>
 #include <glad/gl.h>
 
 #include <algorithm>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
+#include <string>
+#include "slic3r/GUI/GLModel.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <wx/intl.h>
+#include <imgui.h>
+#include <vector>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <memory>
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Line.hpp"
+#include <wx/string.h>
+#include <wx/utils.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/AABBMesh.hpp"
+#include <wx/busycursor.h>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include "libslic3r/ObjectID.hpp"
+#include <wx/debug.h>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/enum_bitmask.hpp"
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/progdlg.h>
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -780,7 +827,7 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
 
     float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
     float slot_neck_outer_x = slot_mouth_half_width + flap_taper_offset; // lower_x extension
-    float slot_outer_x_max   = Max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
+    float slot_outer_x_max   = std::max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
 
     float slot_neck_inner_x = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
     float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
@@ -1310,7 +1357,7 @@ void GLGizmoCut3D::render_cut_line()
 bool GLGizmoCut3D::on_init()
 {
     m_grabbers.emplace_back();
-    m_shortcut_key = WXK_CONTROL_C;
+    m_shortcut = Shortcut::GizmoCut;
 
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();

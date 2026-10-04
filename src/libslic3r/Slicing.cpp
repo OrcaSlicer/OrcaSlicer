@@ -1,5 +1,13 @@
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
 #include <limits>
+#include <vector>
+#include <utility>
+#include <math.h>
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Slicing.hpp"
 #include "SlicingAdaptive.hpp"

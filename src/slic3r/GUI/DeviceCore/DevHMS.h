@@ -2,6 +2,8 @@
 #include "libslic3r/CommonDefs.hpp"
 
 #include "slic3r/Utils/json_diff.hpp"
+#include <vector>
+#include <string>
 #include <wx/string.h>
 #include <map>
 
@@ -21,7 +23,7 @@ public:
     const std::vector<DevHMSItem>& GetHMSItems() const { return m_hms_list; };
 
 private:
-    MachineObject* m_object = nullptr;
+    [[maybe_unused]] MachineObject* m_object = nullptr;
 
     // all hms for this machine
     std::vector<DevHMSItem>  m_hms_list;

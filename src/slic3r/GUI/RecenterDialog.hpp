@@ -2,9 +2,15 @@
 #define slic3r_GUI_RecenterDialog_hpp_
 
 #include "GUI_Utils.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/gdicmn.h>
 #include <wx/statbmp.h>
 #include "Widgets/Button.hpp"
 #include <wx/stattext.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r { namespace GUI {
 class RecenterDialog : public DPIDialog

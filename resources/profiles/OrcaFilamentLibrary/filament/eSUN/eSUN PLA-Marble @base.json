@@ -3,7 +3,7 @@
 	"name": "eSUN PLA-Marble @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFL06",
+	"filament_id": "OF7H3VJM",
 	"instantiation": "false",
 	"filament_cost": [
 		"28.99"

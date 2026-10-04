@@ -3,6 +3,34 @@
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/Monitor.hpp"
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <utility>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/timer.h>
+#include <map>
+#include <algorithm>
+#include <cmath>
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {
@@ -21,8 +49,9 @@ MultiMachineItem::MultiMachineItem(wxWindow* parent, MachineObject* obj)
     Bind(wxEVT_MOTION, &MultiMachineItem::OnMove, this);
     Bind(EVT_MULTI_DEVICE_VIEW, [obj](auto& e) {
         wxGetApp().mainframe->jump_to_monitor(obj->get_dev_id());
-        if (wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()) {
-            wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()->jump_to_play();
+        MonitorPanel* monitor = MonitorPanel::if_built();
+        if (monitor && monitor->get_status_panel()->get_media_play_ctrl()) {
+            monitor->get_status_panel()->get_media_play_ctrl()->jump_to_play();
         }
     });
     wxGetApp().UpdateDarkUIWin(this);
@@ -397,7 +426,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
 
     m_machine_list = new wxScrolledWindow(m_main_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_machine_list->SetBackgroundColour(*wxWHITE);
-    m_machine_list->SetScrollRate(0, 5);
+    m_machine_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
     m_machine_list->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_machine_list->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
 

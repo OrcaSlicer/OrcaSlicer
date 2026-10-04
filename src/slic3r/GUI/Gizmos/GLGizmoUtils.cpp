@@ -3,6 +3,12 @@
 #include "GLGizmosManager.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include <vector>
+#include <utility>
+#include <imgui.h>
+#include <algorithm>
+#include <string_view>
+#include <cstddef>
 #include <wx/app.h>
 #include <boost/algorithm/string.hpp>
 
@@ -31,6 +37,8 @@
         - If no warnings is shown, dont render the ImGui::Separator
 
 */
+
+using namespace std::string_view_literals;
 
 namespace Slic3r::GUI::GLGizmoUtils {
 

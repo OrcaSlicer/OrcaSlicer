@@ -6,6 +6,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <wx/gdicmn.h>
+#include <boost/filesystem/path.hpp>
 
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"
@@ -33,6 +41,7 @@
 #include <atomic>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -43,6 +52,8 @@ namespace Slic3r { namespace GUI {
 class GuideFrame : public DPIDialog
 {
 public:
+    using json = nlohmann::json;
+
     GuideFrame(GUI_App *pGUI, long style = wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU);
     virtual ~GuideFrame();
 
@@ -108,6 +119,9 @@ public:
     void on_dpi_changed(const wxRect &suggested_rect) {}
 
 private:
+    int GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList, const std::string& filepath,
+                        std::string& sVendor, std::string& sType, std::unordered_set<std::string>& visiting);
+
     GUI_App *m_MainPtr;
     AppConfig m_appconfig_new;
 

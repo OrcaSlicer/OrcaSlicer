@@ -2,6 +2,24 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/ProgressBar.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include <wx/utils.h>
+#include "slic3r/GUI/Jobs/Job.hpp"
 
 namespace Slic3r { namespace GUI {
 

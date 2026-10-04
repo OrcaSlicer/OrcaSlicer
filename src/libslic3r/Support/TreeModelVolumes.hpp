@@ -9,16 +9,25 @@
 #ifndef slic3r_TreeModelVolumes_hpp
 #define slic3r_TreeModelVolumes_hpp
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <cassert>
+#include <map>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 
 #include <boost/functional/hash.hpp>
+#include <vector>
+#include <utility>
 
 #include "TreeSupportCommon.hpp"
 
 #include "../Point.hpp"
 #include "../Polygon.hpp"
 #include "../PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r
 {

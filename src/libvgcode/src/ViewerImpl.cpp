@@ -9,14 +9,26 @@
 #include "OpenGLUtils.hpp"
 #include "Utils.hpp"
 
+#include <cstdint>
+#include "../include/Types.hpp"
+#include <array>
+#include "../include/PathVertex.hpp"
+#include "Bitset.hpp"
+#include "../include/ColorPrint.hpp"
+#include <cfloat>
+#include <iterator>
 #include <map>
 #include <assert.h>
+#include <optional>
 #include <stdexcept>
 #include <cstdio>
 #include <string>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <type_traits>
+#include <vector>
+#include <utility>
 
 namespace libvgcode {
 
@@ -349,7 +361,7 @@ void ViewerImpl::TextureData::init(size_t vertices_count)
     m_tex_ids = std::vector<TexIds>(m_count);
 }
 
-void ViewerImpl::TextureData::set_positions(const std::vector<Vec3>& positions)
+void ViewerImpl::TextureData::set_positions(const std::vector<Vec4>& positions)
 {
     if (m_count == 0)
         return;
@@ -383,17 +395,17 @@ void ViewerImpl::TextureData::set_positions(const std::vector<Vec3>& positions)
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
         if (remaining >= tex_capacity) {
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, &positions[offset]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, &positions[offset]));
             m_tex_ids[i].positions.second = w * h;
         }
         else {
             // the last row is only partially fitted with data, send it separately
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, nullptr));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGB, GL_FLOAT, &positions[offset]));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGB, GL_FLOAT, &positions[offset + w * (h - 1)]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGBA, GL_FLOAT, &positions[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGBA, GL_FLOAT, &positions[offset + w * (h - 1)]));
             m_tex_ids[i].positions.second = w * (h - 1) + remaining % w;
         }
-        m_positions_size += m_tex_ids[i].positions.second * sizeof(Vec3);
+        m_positions_size += m_tex_ids[i].positions.second * sizeof(Vec4);
 
         remaining = (remaining > tex_capacity) ? remaining - tex_capacity: 0;
     }
@@ -402,7 +414,7 @@ void ViewerImpl::TextureData::set_positions(const std::vector<Vec3>& positions)
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
-void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles)
+void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec4>& heights_widths_angles)
 {
     if (m_count == 0)
         return;
@@ -436,17 +448,17 @@ void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec3>&
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
         if (remaining >= tex_capacity) {
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, &heights_widths_angles[offset]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, &heights_widths_angles[offset]));
             m_tex_ids[i].heights_widths_angles.second = w * h;
         }
         else {
             // the last row is only partially fitted with data, send it separately
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, nullptr));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGB, GL_FLOAT, &heights_widths_angles[offset]));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGB, GL_FLOAT, &heights_widths_angles[offset + w * (h - 1)]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGBA, GL_FLOAT, &heights_widths_angles[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGBA, GL_FLOAT, &heights_widths_angles[offset + w * (h - 1)]));
             m_tex_ids[i].heights_widths_angles.second = w * (h - 1) + remaining % w;
         }
-        m_height_width_angle_size += m_tex_ids[i].heights_widths_angles.second * sizeof(Vec3);
+        m_height_width_angle_size += m_tex_ids[i].heights_widths_angles.second * sizeof(Vec4);
 
         remaining = (remaining > tex_capacity) ? remaining - tex_capacity : 0;
     }
@@ -732,6 +744,21 @@ ViewerImpl::ViewerImpl()
     reset_default_options_colors();
 }
 
+void ViewerImpl::SegmentsUniforms::init(unsigned int shader_id)
+{
+    view_matrix            = glGetUniformLocation(shader_id, "view_matrix");
+    projection_matrix      = glGetUniformLocation(shader_id, "projection_matrix");
+    camera_position        = glGetUniformLocation(shader_id, "camera_position");
+    positions_tex          = glGetUniformLocation(shader_id, "position_tex");
+    height_width_angle_tex = glGetUniformLocation(shader_id, "height_width_angle_tex");
+    colors_tex             = glGetUniformLocation(shader_id, "color_tex");
+    segment_index_tex      = glGetUniformLocation(shader_id, "segment_index_tex");
+    reverse_order          = glGetUniformLocation(shader_id, "reverse_order");
+    instances_count        = glGetUniformLocation(shader_id, "instances_count");
+    // ORCA: section view
+    clipping_plane         = glGetUniformLocation(shader_id, "clipping_plane");
+}
+
 void ViewerImpl::init(const std::string& opengl_context_version)
 {
     if (m_initialized)
@@ -756,21 +783,37 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader);
 #endif // ENABLE_OPENGL_ES
 
-    m_uni_segments_view_matrix_id            = glGetUniformLocation(m_segments_shader_id, "view_matrix");
-    m_uni_segments_projection_matrix_id      = glGetUniformLocation(m_segments_shader_id, "projection_matrix");
-    m_uni_segments_camera_position_id        = glGetUniformLocation(m_segments_shader_id, "camera_position");
-    m_uni_segments_positions_tex_id          = glGetUniformLocation(m_segments_shader_id, "position_tex");
-    m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
-    m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
-    m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+    m_uni_segments.init(m_segments_shader_id);
+    // ORCA: realistic view
+    m_uni_segments_shadow_map_id             = glGetUniformLocation(m_segments_shader_id, "shadow_map");
+    m_uni_segments_shadow_light_vp_id        = glGetUniformLocation(m_segments_shader_id, "shadow_light_vp");
+    m_uni_segments_shadow_intensity_id       = glGetUniformLocation(m_segments_shader_id, "shadow_intensity");
+    m_uni_segments_shadow_map_texel_id       = glGetUniformLocation(m_segments_shader_id, "shadow_map_texel");
+    m_uni_segments_exposure_id               = glGetUniformLocation(m_segments_shader_id, "exposure");
+    m_uni_segments_saturation_id             = glGetUniformLocation(m_segments_shader_id, "saturation");
+    m_uni_segments_light_top_dir_id          = glGetUniformLocation(m_segments_shader_id, "light_top_dir");
+    m_uni_segments_layer_colors.init(m_segments_shader_id);
     glcheck();
-    assert(m_uni_segments_view_matrix_id != -1 &&
-           m_uni_segments_projection_matrix_id != -1 &&
-           m_uni_segments_camera_position_id != -1 &&
-           m_uni_segments_positions_tex_id != -1 &&
-           m_uni_segments_height_width_angle_tex_id != -1 &&
-           m_uni_segments_colors_tex_id != -1 &&
-           m_uni_segments_segment_index_tex_id != -1);
+    assert(m_uni_segments.view_matrix != -1 &&
+           m_uni_segments.projection_matrix != -1 &&
+           m_uni_segments.camera_position != -1 &&
+           m_uni_segments.positions_tex != -1 &&
+           m_uni_segments.height_width_angle_tex != -1 &&
+           m_uni_segments.colors_tex != -1 &&
+           m_uni_segments.segment_index_tex != -1 &&
+           m_uni_segments.reverse_order != -1 &&
+           m_uni_segments.instances_count != -1);
+
+    // ORCA: realistic view
+#ifdef ENABLE_OPENGL_ES
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", Segments_Shadow_Caster_Vertex_Shader_ES, Segments_Shadow_Caster_Fragment_Shader_ES);
+#else
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", Segments_Shadow_Caster_Vertex_Shader, Segments_Shadow_Caster_Fragment_Shader);
+#endif // ENABLE_OPENGL_ES
+    m_uni_segments_caster.init(m_segments_caster_shader_id);
+    // The caster pulls its vertices from gl_VertexID, but a core profile needs a vertex array bound to draw.
+    glsafe(glGenVertexArrays(1, &m_segments_caster_vao_id));
+    glcheck();
 
     m_segment_template.init();
 
@@ -787,6 +830,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_options_height_width_angle_tex_id = glGetUniformLocation(m_options_shader_id, "height_width_angle_tex");
     m_uni_options_colors_tex_id             = glGetUniformLocation(m_options_shader_id, "color_tex");
     m_uni_options_segment_index_tex_id      = glGetUniformLocation(m_options_shader_id, "segment_index_tex");
+    // ORCA: section view
+    m_uni_options_clipping_plane_id         = glGetUniformLocation(m_options_shader_id, "clipping_plane");
+    m_uni_options_layer_colors.init(m_options_shader_id);
     glcheck();
     assert(m_uni_options_view_matrix_id != -1 &&
            m_uni_options_projection_matrix_id != -1 &&
@@ -860,6 +906,14 @@ void ViewerImpl::shutdown()
         glsafe(glDeleteProgram(m_segments_shader_id));
         m_segments_shader_id = 0;
     }
+    if (m_segments_caster_shader_id != 0) {
+        glsafe(glDeleteProgram(m_segments_caster_shader_id));
+        m_segments_caster_shader_id = 0;
+    }
+    if (m_segments_caster_vao_id != 0) {
+        glsafe(glDeleteVertexArrays(1, &m_segments_caster_vao_id));
+        m_segments_caster_vao_id = 0;
+    }
     m_initialized = false;
     OpenGLWrapper::unload_opengl();
 }
@@ -875,6 +929,12 @@ void ViewerImpl::reset()
     m_travels_time = { 0.0f, 0.0f };
     m_vertices.clear();
     m_vertices_colors.clear();
+    // swap rather than clear: these are sized by the print, and a reset means the memory
+    // should go back, not sit reserved until the next load
+    for (std::vector<float>& times : m_layer_start_times)
+        std::vector<float>().swap(times);
+    std::vector<uint32_t>().swap(m_layer_first_vertex);
+    m_layers_in_vertex_order = false;
     m_valid_lines_bitset.clear();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_cog_marker.reset();
@@ -904,9 +964,8 @@ void ViewerImpl::reset()
 // On some graphic cards texture buffers using GL_RGB32F format do not work, see:
 // https://dev.prusa3d.com/browse/SPE-2411
 // https://github.com/prusa3d/PrusaSlicer/issues/12908
-// To let all drivers be happy, we use GL_RGBA32F format, so we need to add an extra (currently unused) float
+// To let all drivers be happy, we use GL_RGBA32F format, so we need to add an extra float
 // to position and heights_widths_angles vectors
-using Vec4 = std::array<float, 4>;
 
 static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, float travels_radius, float wipes_radius, BitSet<>& valid_lines_bitset,
     std::vector<Vec4>* positions = nullptr, std::vector<Vec4>* heights_widths_angles = nullptr, bool update_bitset = false) {
@@ -943,8 +1002,8 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
         }
         
         if (positions != nullptr) {
-            // the last component is a dummy float to comply with GL_RGBA32F format
-            Vec4 position = { v.position[0], v.position[1], v.position[2], 0.0f };
+            // ORCA: the last component, there to comply with GL_RGBA32F format, carries the layer the shaders grey and dim by
+            Vec4 position = { v.position[0], v.position[1], v.position[2], static_cast<float>(v.layer_id) };
             if (move_type == EMoveType::Extrude)
                 // push down extrusion vertices by half height to render them at the right z
                 position[2] -= 0.5f * v.height;
@@ -1046,6 +1105,39 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     // Populate layer_duration for each vertex from the accumulated layer times
     for (PathVertex& v : m_vertices) {
         v.layer_duration = m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id));
+    }
+
+    // Index of the first vertex of each layer, walked back to front so that a layer with no
+    // vertex of its own inherits the next layer's index and the array stays non-decreasing.
+    if (!m_layers.empty()) {
+        const uint32_t vertices_count = static_cast<uint32_t>(m_vertices.size());
+        m_layer_first_vertex.assign(m_layers.count(), vertices_count);
+        for (uint32_t i = vertices_count; i > 0; --i) {
+            const uint32_t layer_id = m_vertices[i - 1].layer_id;
+            if (layer_id < m_layer_first_vertex.size())
+                m_layer_first_vertex[layer_id] = i - 1;
+        }
+        for (size_t i = m_layer_first_vertex.size() - 1; i > 0; --i)
+            m_layer_first_vertex[i - 1] = std::min(m_layer_first_vertex[i - 1], m_layer_first_vertex[i]);
+        m_layers_in_vertex_order = std::is_sorted(m_vertices.begin(), m_vertices.end(),
+            [](const PathVertex& a, const PathVertex& b) { return a.layer_id < b.layer_id; });
+
+        // the running time at each layer's first vertex, summed in vertex order so that
+        // get_estimated_time_at() matches a full accumulation exactly
+        std::array<float, TIME_MODES_COUNT> running{};
+        for (std::vector<float>& times : m_layer_start_times)
+            times.assign(m_layer_first_vertex.size(), 0.0f);
+        size_t layer = 0;
+        for (size_t i = 0; i <= m_vertices.size(); ++i) {
+            for (; layer < m_layer_first_vertex.size() && m_layer_first_vertex[layer] == i; ++layer) {
+                for (size_t j = 0; j < TIME_MODES_COUNT; ++j)
+                    m_layer_start_times[j][layer] = running[j];
+            }
+            if (i < m_vertices.size()) {
+                for (size_t j = 0; j < TIME_MODES_COUNT; ++j)
+                    running[j] += m_vertices[i].times[j];
+            }
+        }
     }
 
     if (!m_layers.empty())
@@ -1223,17 +1315,6 @@ static float encode_color(const Color& color) {
     return static_cast<float>(i_color);
 }
 
-// ORCA: returns the encoded color scaled towards black by 'brightness', preserving its hue.
-// 1.0 = no change, 0.0 = black.
-static float encode_color_dimmed(const Color& color, float brightness) {
-    const int r = static_cast<int>(color[0] * brightness);
-    const int g = static_cast<int>(color[1] * brightness);
-    const int b = static_cast<int>(color[2] * brightness);
-    const int i_color = r << 16 | g << 8 | b;
-    return static_cast<float>(i_color);
-}
-
-
 void ViewerImpl::update_colors_texture()
 {
 #if !defined(ENABLE_OPENGL_ES)
@@ -1241,6 +1322,32 @@ void ViewerImpl::update_colors_texture()
         return;
 #endif // ENABLE_OPENGL_ES
 
+    // ORCA: the colors of the vertices alone; the layers greyed or dimmed around the one the sliders
+    // show are left to the shaders, see set_layer_colors(), so that a slider step uploads nothing.
+    #ifdef ENABLE_OPENGL_ES
+        if (!m_vertices_colors.empty())
+            // update gpu buffer for colors
+            m_texture_data.set_colors(m_vertices_colors);
+    #else
+        m_colors_tex_size = m_vertices_colors.size() * sizeof(float);
+
+        // update gpu buffer for colors
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
+        glsafe(glBufferData(GL_TEXTURE_BUFFER, m_vertices_colors.size() * sizeof(float), m_vertices_colors.data(), GL_STATIC_DRAW));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
+    #endif // ENABLE_OPENGL_ES
+}
+
+void ViewerImpl::LayerColorsUniforms::init(unsigned int shader_id)
+{
+    lit_layers       = glGetUniformLocation(shader_id, "lit_layers");
+    grey_below_layer = glGetUniformLocation(shader_id, "grey_below_layer");
+    dim_brightness   = glGetUniformLocation(shader_id, "dim_brightness");
+    kept_vertex      = glGetUniformLocation(shader_id, "kept_vertex");
+}
+
+void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
+{
     const size_t top_layer_id = m_settings.top_layer_only_view_range ? m_layers.get_view_range()[1] : 0;
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
 
@@ -1259,39 +1366,14 @@ void ViewerImpl::update_colors_texture()
     const bool dim_previous_layers = m_settings.dim_previous_layers && m_settings.top_layer_only_view_range &&
                                      !m_layers.empty() && (inspecting_top_layer || inspecting_bottom_layer);
 
-    // Based on current settings and slider position, we might want to render some
-    // vertices as dark grey (or darkened, see above). Use either that or the normal color (from the cache).
-    std::vector<float> colors(m_vertices_colors.size());
-    assert(colors.size() == m_vertices.size() && m_vertices_colors.size() == m_vertices.size());
-    for (size_t i=0; i<m_vertices.size(); ++i) {
-        const PathVertex& v = m_vertices[i];
-        const bool keep_spiral_seam = m_settings.spiral_vase_mode && i == m_view_range.get_enabled()[0];
-        // ORCA: layers kept at full brightness by the dimming above are excluded from the greying below too
-        const bool inspected_layer = dim_previous_layers &&
-                                     ((inspecting_top_layer && v.layer_id == layers_range[1]) ||
-                                      (inspecting_bottom_layer && v.layer_id == layers_range[0]));
-        if (dim_previous_layers && !inspected_layer && !keep_spiral_seam)
-            colors[i] = encode_color_dimmed(get_vertex_color(v), m_settings.dim_previous_layers_brightness);
-        else if (!inspected_layer && color_top_layer_only && v.layer_id < top_layer_id && !keep_spiral_seam)
-            colors[i] = encode_color(DUMMY_COLOR);
-        else
-            colors[i] = m_vertices_colors[i];
-    }
-
-    #ifdef ENABLE_OPENGL_ES
-        if (!colors.empty())
-            // update gpu buffer for colors
-            m_texture_data.set_colors(colors);
-    #else
-        m_colors_tex_size = colors.size() * sizeof(float);
-
-        // update gpu buffer for colors
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW));
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
-    #endif // ENABLE_OPENGL_ES
+    // Without dimming, the layers below the top one go dark grey while the moves slider is short of
+    // the end. Neither touches the inspected layers, nor the first vertex of a spiral vase layer.
+    glsafe(glUniform2i(uni.lit_layers, dim_previous_layers && inspecting_bottom_layer ? static_cast<int>(layers_range[0]) : -1,
+                                       dim_previous_layers && inspecting_top_layer ? static_cast<int>(layers_range[1]) : -1));
+    glsafe(glUniform1i(uni.grey_below_layer, color_top_layer_only ? static_cast<int>(top_layer_id) : 0));
+    glsafe(glUniform1f(uni.dim_brightness, dim_previous_layers ? m_settings.dim_previous_layers_brightness : -1.0f));
+    glsafe(glUniform1i(uni.kept_vertex, m_settings.spiral_vase_mode ? static_cast<int>(m_view_range.get_enabled()[0]) : -1));
 }
-
 
 void ViewerImpl::update_colors()
 {
@@ -1312,7 +1394,7 @@ void ViewerImpl::update_colors()
     
     // Recalculate "normal" colors of all the vertices for current view settings.
     // If some part of the preview should be rendered in dark grey, it is taken
-    // care of in update_colors_texture. That is to avoid the need to recalculate
+    // care of in the shaders, see set_layer_colors(). That is to avoid the need to recalculate
     // the "normal" color on every slider move.
     for (size_t i = 0; i < m_vertices.size(); ++i)
         m_vertices_colors[i] = encode_color(get_vertex_color(m_vertices[i]));
@@ -1321,7 +1403,7 @@ void ViewerImpl::update_colors()
     m_settings.update_colors = false;
 }
 
-void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+void ViewerImpl::apply_pending_updates()
 {
     if (m_settings.update_view_full_range)
         update_view_full_range();
@@ -1331,6 +1413,11 @@ void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matr
 
     if (m_settings.update_colors)
         update_colors();
+}
+
+void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+{
+    apply_pending_updates();
 
     const Mat4x4 inv_view_matrix = inverse(view_matrix);
     const Vec3 camera_position = { inv_view_matrix[12], inv_view_matrix[13], inv_view_matrix[14] };
@@ -1343,6 +1430,30 @@ void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matr
     if (m_settings.options_visibility[size_t(EOptionType::CenterOfGravity)])
         render_cog_marker(view_matrix, projection_matrix);
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+}
+
+void ViewerImpl::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position)
+{
+    apply_pending_updates();
+
+    // Only the extrusions and travels cast: the option markers are indicators, not material.
+    m_rendering_shadow_casters = true;
+    render_segments(view_matrix, projection_matrix, light_position);
+    m_rendering_shadow_casters = false;
+}
+
+void ViewerImpl::set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size)
+{
+    m_shadow_map_texture_unit = texture_unit;
+    m_shadow_light_vp = light_view_projection;
+    m_shadow_intensity = intensity;
+    m_shadow_map_texel = texel_size;
+}
+
+void ViewerImpl::set_tone(float exposure, float saturation)
+{
+    m_exposure = exposure;
+    m_saturation = saturation;
 }
 
 void ViewerImpl::set_view_type(EViewType type)
@@ -1370,8 +1481,6 @@ void ViewerImpl::set_layers_view_range(Interval::value_type min, Interval::value
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
-    //m_settings.update_colors = true;
-    update_colors_texture();
 }
 
 void ViewerImpl::toggle_top_layer_only_view_range()
@@ -1380,8 +1489,6 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
-    //m_settings.update_colors = true;
-    update_colors_texture();
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
@@ -1390,9 +1497,6 @@ void ViewerImpl::set_dim_previous_layers(bool value)
     if (m_settings.dim_previous_layers == value)
         return;
     m_settings.dim_previous_layers = value;
-    // defer the actual color/texture rebuild to the next render(), when the GL context is current
-    // (this may be toggled from the Preferences dialog, outside the canvas context)
-    m_settings.update_colors = true;
 }
 
 // ORCA: set how bright the darkened layers are rendered, 1.0 = unchanged, 0.0 = black
@@ -1402,7 +1506,6 @@ void ViewerImpl::set_dim_previous_layers_brightness(float value)
     if (m_settings.dim_previous_layers_brightness == value)
         return;
     m_settings.dim_previous_layers_brightness = value;
-    m_settings.update_colors = true;
 }
 
 std::vector<ETimeMode> ViewerImpl::get_time_modes() const
@@ -1510,14 +1613,23 @@ void ViewerImpl::set_view_visible_range(Interval::value_type min, Interval::valu
     update_view_full_range();
     m_view_range.set_visible(min, max);
     update_enabled_entities();
-    //m_settings.update_colors = true;
-    update_colors_texture();
 }
 
 float ViewerImpl::get_estimated_time_at(size_t id) const
 {
-    return std::accumulate(m_vertices.begin(), m_vertices.begin() + id + 1, 0.0f, 
-        [this](float a, const PathVertex& v) { return a + v.times[static_cast<size_t>(m_settings.time_mode)]; });
+    const size_t mode = static_cast<size_t>(m_settings.time_mode);
+    if (mode >= TIME_MODES_COUNT || id >= m_vertices.size())
+        return 0.0f;
+    size_t first = 0;
+    float time = 0.0f;
+    const size_t layer = static_cast<size_t>(m_vertices[id].layer_id);
+    if (layer < m_layer_first_vertex.size() && m_layer_first_vertex[layer] <= id) {
+        first = m_layer_first_vertex[layer];
+        time = m_layer_start_times[mode][layer];
+    }
+    for (size_t i = first; i <= id; ++i)
+        time += m_vertices[i].times[mode];
+    return time;
 }
 
 Color ViewerImpl::get_vertex_color(const PathVertex& v) const
@@ -1722,6 +1834,9 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += sizeof(m_extrusion_roles_colors);
     ret += sizeof(m_options_colors);
     ret += STDVEC_MEMSIZE(m_vertices, PathVertex);
+    for (const std::vector<float>& times : m_layer_start_times)
+        ret += STDVEC_MEMSIZE(times, float);
+    ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);
     ret += m_valid_lines_bitset.size_in_bytes_cpu();
     ret += m_height_range.size_in_bytes_cpu();
     ret += m_width_range.size_in_bytes_cpu();
@@ -1787,7 +1902,11 @@ void ViewerImpl::update_view_full_range()
     const bool travels_visible = m_settings.options_visibility[size_t(EOptionType::Travels)];
     const bool wipes_visible   = m_settings.options_visibility[size_t(EOptionType::Wipes)];
 
+    // every vertex before m_layer_first_vertex[layers_range[0]] has a smaller layer_id, so the loop
+    // below would skip all of them anyway
     auto first_it = m_vertices.begin();
+    if (layers_range[0] < m_layer_first_vertex.size())
+        first_it += m_layer_first_vertex[layers_range[0]];
     while (first_it != m_vertices.end() &&
            (first_it->layer_id < layers_range[0] || !is_visible(*first_it, m_settings))) {
         ++first_it;
@@ -1810,6 +1929,11 @@ void ViewerImpl::update_view_full_range()
         }
 
         auto last_it = first_it;
+        // ORCA: skip straight to the layer above the range rather than walking there
+        if (m_layers_in_vertex_order && layers_range[1] + 1 < m_layer_first_vertex.size())
+            last_it = std::max(first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1] + 1]);
+        else if (m_layers_in_vertex_order)
+            last_it = m_vertices.end();
         while (last_it != m_vertices.end() && last_it->layer_id <= layers_range[1]) {
             ++last_it;
         }
@@ -1849,12 +1973,14 @@ void ViewerImpl::update_view_full_range()
 
         if (m_settings.top_layer_only_view_range) {
             const Interval& full_range = m_view_range.get_full();
-            auto top_first_it = m_vertices.begin() + full_range[0];
-            bool shortened = false;
-            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings))) {
+            const auto range_first_it = m_vertices.begin() + full_range[0];
+            auto top_first_it = range_first_it;
+            // ORCA: skip straight to the top layer rather than walking there
+            if (m_layers_in_vertex_order)
+                top_first_it = std::max(top_first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1]]);
+            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings)))
                 ++top_first_it;
-                shortened = true;
-            }
+            const bool shortened = top_first_it != range_first_it;
             if (shortened)
                 --top_first_it;
 
@@ -1936,7 +2062,7 @@ void ViewerImpl::update_color_ranges()
 void ViewerImpl::update_heights_widths()
 {
 #ifdef ENABLE_OPENGL_ES
-    std::vector<Vec3> heights_widths_angles;
+    std::vector<Vec4> heights_widths_angles;
     heights_widths_angles.reserve(m_vertices.size());
     extract_pos_and_or_hwa(m_vertices, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, nullptr, &heights_widths_angles);
     m_texture_data.set_heights_widths_angles(heights_widths_angles);
@@ -1968,7 +2094,10 @@ void ViewerImpl::update_heights_widths()
 
 void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position)
 {
-    if (m_segments_shader_id == 0)
+    // ORCA: realistic view. The shadow caster pass draws depth only.
+    const unsigned int shader_id = m_rendering_shadow_casters ? m_segments_caster_shader_id : m_segments_shader_id;
+    const SegmentsUniforms& uni = m_rendering_shadow_casters ? m_uni_segments_caster : m_uni_segments;
+    if (shader_id == 0)
         return;
 
 #ifdef ENABLE_OPENGL_ES
@@ -1985,23 +2114,54 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     const bool curr_cull_face = glIsEnabled(GL_CULL_FACE);
     glcheck();
 
-    glsafe(glUseProgram(m_segments_shader_id));
+    glsafe(glUseProgram(shader_id));
 
-    glsafe(glUniform1i(m_uni_segments_positions_tex_id, 0));
-    glsafe(glUniform1i(m_uni_segments_height_width_angle_tex_id, 1));
-    glsafe(glUniform1i(m_uni_segments_colors_tex_id, 2));
-    glsafe(glUniform1i(m_uni_segments_segment_index_tex_id, 3));
-    glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
-    glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
-    glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
+    glsafe(glUniform1i(uni.positions_tex, 0));
+    glsafe(glUniform1i(uni.height_width_angle_tex, 1));
+    glsafe(glUniform1i(uni.colors_tex, 2));
+    glsafe(glUniform1i(uni.segment_index_tex, 3));
+    glsafe(glUniformMatrix4fv(uni.view_matrix, 1, GL_FALSE, view_matrix.data()));
+    glsafe(glUniformMatrix4fv(uni.projection_matrix, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform3fv(uni.camera_position, 1, camera_position.data()));
+    // ORCA: view_matrix(2,2) > 0 is looking down, where the last segments printed are the nearest.
+    const bool reverse_order = view_matrix[10] > 0.0f;
+    glsafe(glUniform1i(uni.reverse_order, reverse_order ? 1 : 0));
+    glsafe(glUniform4fv(uni.clipping_plane, 1, m_clipping_plane.data()));
+    if (!m_rendering_shadow_casters) {
+        // ORCA: realistic view
+        glsafe(glUniform1i(m_uni_segments_shadow_map_id, m_shadow_map_texture_unit));
+        glsafe(glUniformMatrix4fv(m_uni_segments_shadow_light_vp_id, 1, GL_FALSE, m_shadow_light_vp.data()));
+        glsafe(glUniform1f(m_uni_segments_shadow_intensity_id, m_shadow_intensity));
+        glsafe(glUniform1f(m_uni_segments_shadow_map_texel_id, m_shadow_map_texel));
+        glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
+        glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
+        glsafe(glUniform3fv(m_uni_segments_light_top_dir_id, 1, m_light_top_dir.data()));
+        set_layer_colors(m_uni_segments_layer_colors);
+    }
 
     glsafe(glDisable(GL_CULL_FACE));
+
+    auto draw = [this, &uni](size_t count) {
+        glsafe(glUniform1i(uni.instances_count, static_cast<int>(count)));
+        if (!m_rendering_shadow_casters) {
+            m_segment_template.render(count);
+            return;
+        }
+        // ORCA: realistic view. 6 vertices per caster ribbon.
+        int curr_vertex_array = 0;
+        glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
+        glsafe(glBindVertexArray(m_segments_caster_vao_id));
+        glsafe(glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(6 * count)));
+        glsafe(glBindVertexArray(curr_vertex_array));
+    };
 
 #ifdef ENABLE_OPENGL_ES
     int curr_bound_texture = 0;
     glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
 
-    for (size_t i = 0; i < m_texture_data.get_count(); ++i) {
+    const size_t tex_count = m_texture_data.get_count();
+    for (size_t n = 0; n < tex_count; ++n) {
+        const size_t i = reverse_order ? tex_count - 1 - n : n;
         const auto [id, count] = m_texture_data.get_enabled_segments_tex_id(i);
         if (count == 0)
             continue;
@@ -2013,7 +2173,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
-        m_segment_template.render(count);
+        draw(count);
     }
 #else
     std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
@@ -2036,7 +2196,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
 
-    m_segment_template.render(m_enabled_segments_count);
+    draw(m_enabled_segments_count);
 #endif // ENABLE_OPENGL_ES
 
     if (curr_cull_face)
@@ -2081,6 +2241,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glUniform1i(m_uni_options_segment_index_tex_id, 3));
     glsafe(glUniformMatrix4fv(m_uni_options_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_options_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform4fv(m_uni_options_clipping_plane_id, 1, m_clipping_plane.data()));
+    set_layer_colors(m_uni_options_layer_colors);
 
     glsafe(glEnable(GL_CULL_FACE));
 

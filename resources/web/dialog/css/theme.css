@@ -55,8 +55,6 @@
   /* Speed dial icon tile treatment */
   --speed-tile-bg: #efefef;
   --speed-tile-border: #d8d8d8;
-  --speed-tile-text-s: 74%;
-  --speed-tile-text-l: 34%;
 }
 
 :root[data-orca-theme="dark"] {
@@ -95,8 +93,6 @@
   /* Speed dial icon tile treatment */
   --speed-tile-bg: #34343b;
   --speed-tile-border: #50505a;
-  --speed-tile-text-s: 82%;
-  --speed-tile-text-l: 84%;
 }
 
 /* Re-theme the shared common.css chrome through variables (replaces dark.css's

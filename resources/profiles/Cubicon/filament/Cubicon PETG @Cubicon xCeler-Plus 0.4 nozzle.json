@@ -3,6 +3,7 @@
 	"name": "Cubicon PETG @Cubicon xCeler-Plus 0.4 nozzle",
 	"inherits": "Cubicon PETG @base",
 	"setting_id": "5pfiRdyNz9dvT4Q6",
+	"filament_id": "OFoBTKmn",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Plus 0.4 nozzle"

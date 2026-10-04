@@ -1,12 +1,34 @@
 #include "EditGCodeDialog.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <set>
+#include <initializer_list>
+#include <map>
+#include "libslic3r/libslic3r.h"
+#include <utility>
+#include <memory>
+#include <algorithm>
+#include <cassert>
 #include <vector>
 #include <string>
 
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/event.h>
+#include <wx/dataview.h>
+#include <wx/log.h>
+#include <wx/chartype.h>
+#include <wx/dvrenderers.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
+#include <wx/toplevel.h>
+#include <wx/variant.h>
 #include <wx/wupdlock.h>
 
 #include "GUI.hpp"

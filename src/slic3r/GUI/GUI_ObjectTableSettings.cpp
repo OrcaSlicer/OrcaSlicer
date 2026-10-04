@@ -15,6 +15,20 @@
 #include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <wx/arrstr.h>
+#include <wx/event.h>
+#include <memory>
+#include <cstddef>
+#include <wx/string.h>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include <vector>
+#include <boost/log/trivial.hpp>
+#include <ostream>
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/any.hpp>
+#include <wx/sizer.h>
 #include <wx/wupdlock.h>
 
 namespace Slic3r
@@ -463,7 +477,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     m_table->reload_cell_data(m_current_row, category);
 }
 
-void ObjectTableSettings::UpdateAndShow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category)
+void ObjectTableSettings::UpdateAndShowRow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category)
 {
     m_current_row = row;
     m_current_category = category;

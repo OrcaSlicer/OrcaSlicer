@@ -8,6 +8,20 @@
 #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include <string>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/catch_message.hpp>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/libslic3r.h"
@@ -15,6 +29,9 @@
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
@@ -22,9 +39,61 @@
 #include <algorithm>
 #include <fstream>
 #include <iterator>
+#include <memory>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
+
+TEST_CASE("Timelapse g-code is emitted once per layer for Bambu and non-Bambu printers", "[Print][Regression]")
+{
+    struct PrinterCase {
+        std::string name;
+        std::string structure;
+        bool        is_bbl;
+    };
+    const PrinterCase printer = GENERATE(from_range(std::vector<PrinterCase>{
+        { "non-BBL undefined", "undefine", false },
+        { "non-BBL CoreXY",    "corexy",   false },
+        { "non-BBL i3",        "i3",       false },
+        { "non-BBL H-Bot",     "hbot",     false },
+        { "non-BBL Delta",     "delta",    false },
+        { "Bambu CoreXY",      "corexy",   true },
+        { "Bambu i3",          "i3",       true },
+    }));
+    INFO("printer: " << printer.name);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode",          ";TEST_LAYER_CHANGE" },
+        { "layer_height",                0.2 },
+        { "printer_structure",           printer.structure },
+        { "spiral_mode",                 false },
+        { "time_lapse_gcode",            "TIMELAPSE_TAKE_FRAME" },
+    });
+    Print print;
+    print.is_BBL_printer() = printer.is_bbl;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    const auto count = [&gcode](std::string_view token) {
+        size_t occurrences = 0;
+        size_t pos = 0;
+        while ((pos = gcode.find(token, pos)) != std::string::npos) {
+            ++occurrences;
+            pos += token.size();
+        }
+        return occurrences;
+    };
+
+    const size_t layer_changes = count("\n;TEST_LAYER_CHANGE\n");
+    REQUIRE(layer_changes > 0);
+    CHECK(count("\nTIMELAPSE_TAKE_FRAME\n") == layer_changes);
+}
 
 SCENARIO("Changing the number of solid shell layers does not make all surfaces internal", "[Print]") {
     GIVEN("sliced 20mm cube and config with top_shell_layers = 2 and bottom_shell_layers = 1") {
@@ -175,7 +244,87 @@ std::string resolved_output_name(Model& model, const std::string& format, const 
     return print.output_filename(filename_base);
 }
 
+struct ScopedLifecycleHook
+{
+    explicit ScopedLifecycleHook(LifecycleHookFn hook) { set_lifecycle_hook_fn(std::move(hook)); }
+    ~ScopedLifecycleHook() { set_lifecycle_hook_fn(nullptr); }
+};
+
 } // namespace
+
+TEST_CASE("Slicing lifecycle events identify the model", "[Print][LifecycleEvents]")
+{
+    struct ObservedEvent {
+        LifecycleEvent event;
+        std::string id;
+        std::string name;
+    };
+    std::vector<ObservedEvent> events;
+    ScopedLifecycleHook hook([&](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        events.push_back({ event, ctx.id, ctx.name });
+    });
+
+    Print print;
+    Model model;
+    ModelInfo info;
+    info.model_name = "Lifecycle test model";
+    model.model_info = std::make_shared<ModelInfo>(std::move(info));
+    init_print({cube(20)}, print, model);
+
+    print.process();
+    ScopedTemporaryFile temp(".gcode");
+    print.export_gcode(temp.string(), nullptr, nullptr);
+    GCodeProcessorResult result;
+    print.export_gcode_from_previous_file(temp.string(), &result);
+
+    const std::string expected_id = std::to_string(print.model().id().id);
+    const std::vector<LifecycleEvent> expected_events = {
+        LifecycleEvent::SliceStarted,
+        LifecycleEvent::SliceGeometryFinished,
+        LifecycleEvent::GCodeExportStarted,
+        LifecycleEvent::GCodeExportFinished,
+        LifecycleEvent::GCodeExportStarted,
+        LifecycleEvent::GCodeExportFinished,
+    };
+    REQUIRE(events.size() == expected_events.size());
+    for (size_t i = 0; i < expected_events.size(); ++i) {
+        CHECK(events[i].event == expected_events[i]);
+        CHECK(events[i].id == expected_id);
+        CHECK(events[i].name == "Lifecycle test model");
+    }
+}
+
+TEST_CASE("Slicing lifecycle event name is empty without model metadata", "[Print][LifecycleEvents]")
+{
+    std::string event_id;
+    std::string event_name = "unset";
+    ScopedLifecycleHook hook([&](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        if (event == LifecycleEvent::SliceStarted) {
+            event_id = ctx.id;
+            event_name = ctx.name;
+        }
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model);
+    print.process();
+
+    CHECK(event_id == std::to_string(print.model().id().id));
+    CHECK(event_name.empty());
+}
+
+TEST_CASE("Output filenames with numeric statistics fail before slicing finishes", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filename_format", new ConfigOptionString("{int(total_weight*10) / 10.0}"));
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+
+    CHECK_THROWS_AS(print.output_filename(), PlaceholderParserError);
+}
 
 TEST_CASE("Print: {first_object_name} names the first printable object on the plate", "[Print]")
 {
@@ -354,6 +503,25 @@ TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "
     CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
 }
 
+// Some firmwares only scan the last N lines of the file for "estimated printing time", so it
+// must stay close to EOF regardless of the resolved-settings config block's size.
+TEST_CASE("The estimated printing time comment stays near the end of the file", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {});
+    const size_t config_block_end = gcode.find("; CONFIG_BLOCK_END");
+    const size_t filament_stats   = gcode.find("; filament used [mm]");
+    const size_t time_comment     = gcode.find("estimated printing time");
+    REQUIRE(config_block_end != std::string::npos);
+    REQUIRE(filament_stats != std::string::npos);
+    REQUIRE(time_comment != std::string::npos);
+    CHECK(filament_stats > config_block_end);
+    CHECK(time_comment > filament_stats);
+
+    const size_t line_start = gcode.rfind('\n', time_comment) + 1;
+    const size_t trailing_lines = std::count(gcode.begin() + line_start, gcode.end(), '\n');
+    CHECK(trailing_lines <= 5);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
@@ -407,6 +575,40 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
     REQUIRE_FALSE(gcode.empty());
 }
 
+TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][export_gcode][Regression]")
+{
+    const int instances = GENERATE(1, 3);
+    CAPTURE(instances);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    TestMesh           mesh   = TestMesh::ipadstand;
+    SECTION("infill reversed by chaining") { config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}}); }
+    SECTION("support reversed by chaining") {
+        mesh = TestMesh::overhang;
+        config.set_deserialize_strict({{"enable_support", true}, {"support_interface_pattern", "concentric"}});
+    }
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::mesh(mesh)}, print, model, config, nullptr, true, instances);
+
+    const auto export_without_timestamp = [&print]() {
+        std::string gcode = Slic3r::Test::gcode(print);
+        const size_t line = gcode.find("; generated by ");
+        REQUIRE(line != std::string::npos);
+        gcode.erase(line, gcode.find('\n', line) - line);
+        return gcode;
+    };
+    const std::string first  = export_without_timestamp();
+    const std::string second = export_without_timestamp();
+
+    // Shows the first differing line on failure.
+    const size_t diff       = std::mismatch(first.begin(), first.end(), second.begin(), second.end()).first - first.begin();
+    const size_t line_start = diff == 0 ? 0 : first.rfind('\n', diff - 1) + 1;
+    INFO("first export:  " << first.substr(line_start, first.find('\n', diff) - line_start));
+    INFO("second export: " << second.substr(line_start, second.find('\n', diff) - line_start));
+    CHECK(diff == first.size());
+    CHECK(first.size() == second.size());
+}
+
 TEST_CASE("Sequential printing follows model order", "[Print]")
 {
     // Two objects of different heights, taller one added first. Orca prints
@@ -455,4 +657,30 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         });
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
+}
+
+TEST_CASE("Slicing errors are reported per object with the object's name", "[Print]")
+{
+    Print print;
+    Model model;
+    init_print({Slic3r::Test::cube(20.)}, print, model);
+    // Lift the cube off the bed: its first layer is empty, which G-code export reports per object.
+    ModelObject *object = model.objects.front();
+    object->name = "floating cube";
+    object->instances.front()->set_offset(object->instances.front()->get_offset() + Vec3d(0., 0., 2.));
+    print.apply(model, DynamicPrintConfig::full_print_config());
+    print.set_status_silent();
+
+    ScopedTemporaryFile temp(".gcode");
+    std::string message;
+    try {
+        print.process();
+        print.export_gcode(temp.string(), nullptr, nullptr);
+        FAIL("slicing did not report the empty first layer");
+    } catch (const SlicingErrors &errors) {
+        REQUIRE(errors.errors_.size() == 1);
+        message = print.slicing_errors_message(errors);
+    }
+    CHECK(message.rfind("floating cube: ", 0) == 0);
+    CHECK(message.find("empty first layer") != std::string::npos);
 }

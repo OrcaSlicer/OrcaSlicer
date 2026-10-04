@@ -5,9 +5,18 @@
 #include "libslic3r/ProjectTask.hpp"
 #include "DeviceManager.hpp"
 #include "GUI.hpp"
+#include <wx/gdicmn.h>
+#include <cstddef>
+#include <wx/event.h>
+#include <memory>
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/scrolwin.h>
+#include <wx/rtti.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/webrequest.h>
 #include "Widgets/PopupWindow.hpp"
 
@@ -28,7 +37,6 @@ public:
 
 private:
     wxScrolledWindow *m_panel;
-    BBLSliceInfo *m_info { nullptr };
 
     void OnMouse(wxMouseEvent &event);
     void OnSize(wxSizeEvent &event);

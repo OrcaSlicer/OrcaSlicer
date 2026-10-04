@@ -6,6 +6,13 @@
 #include "wx/cmdline.h"
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
+#include <wx/setup.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <functional>
+#include <wx/dialog.h>
+#include <wx/accel.h>
 #include <wx/webview.h>
 
 #if wxUSE_WEBVIEW_EDGE
@@ -24,6 +31,7 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 #include <wx/timer.h>
+#include "Lazy.hpp"
 
 
 namespace Slic3r {
@@ -33,7 +41,7 @@ class NetworkAgent;
 namespace GUI {
 
 
-class WebViewPanel : public wxPanel
+class WebViewPanel : public wxPanel, public LazyInstance<WebViewPanel>
 {
 public:
     WebViewPanel(wxWindow *parent);
@@ -105,16 +113,25 @@ public:
     int  get_model_mall_detail_url(std::string *url, std::string id);
 
     void update_mode();
+
+    bool Show(bool show = true) override;
 private:
+    void create_browser();
+    void reset_browser();
 
     wxWebView* m_browser;
+    wxString m_home_url;
+    bool m_reset_on_show{false};
+    wxButton *  m_button_stop;
+    wxTextCtrl *m_url;
+#if !BBL_RELEASE_TO_PUBLIC
+    // Created only by the internal-build toolbar in the constructor.
     wxBoxSizer *bSizer_toolbar;
     wxButton *  m_button_back;
     wxButton *  m_button_forward;
-    wxButton *  m_button_stop;
     wxButton *  m_button_reload;
-    wxTextCtrl *m_url;
     wxButton *  m_button_tools;
+#endif //BBL_RELEASE_TO_PUBLIC
 
     wxMenu* m_tools_menu;
     wxMenuItem* m_tools_handle_navigation;
@@ -143,7 +160,6 @@ private:
     wxMenuItem* m_dev_tools;
 
     wxInfoBar *m_info;
-    wxStaticText* m_info_text;
 
     long m_zoomFactor;
 

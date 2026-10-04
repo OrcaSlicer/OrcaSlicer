@@ -1,6 +1,17 @@
 #include "DownloadProgressDialog.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/chartype.h>
+#include <wx/panel.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
 #include <wx/settings.h>
+#include <wx/simplebook.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
@@ -11,6 +22,8 @@
 #include <wx/html/htmlwin.h>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <wx/string.h>
+#include <wx/toplevel.h>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"

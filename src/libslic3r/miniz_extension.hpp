@@ -11,6 +11,8 @@ bool open_zip_writer(mz_zip_archive *zip, const std::string &fname_utf8);
 bool close_zip_reader(mz_zip_archive *zip);
 bool close_zip_writer(mz_zip_archive *zip);
 std::string decode_archive_entry_path(mz_zip_archive *zip, const mz_zip_archive_file_stat &stat);
+// Extracts every entry of the archive under dest_dir. Nothing is written if any entry would resolve outside dest_dir.
+bool extract_archive_confined(const std::string &zip_path_utf8, const std::string &dest_dir);
 
 class MZ_Archive {
 public:

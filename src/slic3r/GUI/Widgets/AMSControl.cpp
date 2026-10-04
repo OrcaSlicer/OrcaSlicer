@@ -11,11 +11,37 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/AMSDryControl.hpp"
+#include <wx/scrolwin.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <cstddef>
+#include <wx/event.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include <utility>
+#include <cassert>
+#include <memory>
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <cstdlib>
+#include <algorithm>
+#include <tuple>
+#include <wx/font.h>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 #include <wx/artprov.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
 
 #include "CalibUtils.hpp"
 
@@ -278,7 +304,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
                 m_ams_dry_ctr_win->Move(popup_pos);
                 m_ams_dry_ctr_win->ShowModal();
             } else {
-                m_percent_humidity_dry_popup->Update(info);
+                m_percent_humidity_dry_popup->UpdateInfo(info);
 
                 wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
                 wxPoint popup_pos(img_pos.x - m_percent_humidity_dry_popup->GetSize().GetWidth() + FromDIP(150), img_pos.y - FromDIP(80));
@@ -1034,7 +1060,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
                 humidity_info.humidity_percent = the_info.humidity_raw;
                 humidity_info.left_dry_time = the_info.left_dray_time;
                 humidity_info.current_temperature = the_info.current_temperature;
-                m_percent_humidity_dry_popup->Update(&humidity_info);
+                m_percent_humidity_dry_popup->UpdateInfo(&humidity_info);
                 break;
             }
         }

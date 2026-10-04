@@ -17,12 +17,40 @@
 #include "ConnectPrinter.hpp"
 
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/popupwin.h>
+#include <boost/log/trivial.hpp>
+#include <memory>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <wx/chartype.h>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Auxiliary.hpp"
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <cstring>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
 #include <wx/mstream.h>
 #include <miniz.h>
 #include <algorithm>
+#include <wx/wx.h>
+#include <wx/timer.h>
+#include <wx/utils.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
 #include "Plater.hpp"
 #include "Notebook.hpp"
 #include "BitmapCache.hpp"
@@ -327,7 +355,7 @@ SelectMachinePopup::SelectMachinePopup(wxWindow *parent)
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_LIST_SIZE, wxHSCROLL | wxVSCROLL);
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
     m_scrolledWindow->SetMinSize(SELECT_MACHINE_LIST_SIZE);
-    m_scrolledWindow->SetScrollRate(0, 5);
+    m_scrolledWindow->SetScrollRate(0, SELECT_MACHINE_ITEM_SIZE.y);
     auto m_sizxer_scrolledWindow = new wxBoxSizer(wxVERTICAL);
     m_scrolledWindow->SetSizer(m_sizxer_scrolledWindow);
     m_scrolledWindow->Layout();

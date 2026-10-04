@@ -14,9 +14,16 @@
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include "slic3r/GUI/Widgets/AnimaController.hpp"
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <vector>
+#include <unordered_map>
 #include <wx/panel.h>
 #include <wx/simplebook.h>
 #include <memory>
+#include <wx/string.h>
+#include <wx/sizer.h>
 
 // Previous definitions
 class Button;
@@ -200,7 +207,7 @@ public:
     wgtDeviceNozzleRackNozzleItem(wxWindow* parent, int nozzle_id);
 
 public:
-    void Update(const std::shared_ptr<DevNozzleRack> rack, bool on_rack = true); // on_rack is false means extruder nozzle
+    void UpdateInfo(const std::shared_ptr<DevNozzleRack> rack, bool on_rack = true); // on_rack is false means extruder nozzle
 
     int  GetNozzleId() const { return m_nozzle_id; }
     void SetDisplayIdText(const wxString& text) { m_nozzle_label_id->SetLabel(text);};

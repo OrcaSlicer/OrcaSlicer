@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "377675245",
+	"filament_id": "OFSa39yP",
 	"instantiation": "false",
 	"filament_retraction_length": [
 		"nil"

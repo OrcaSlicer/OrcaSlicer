@@ -1,6 +1,22 @@
 #include "FilamentGroupUtils.hpp"
+#include <cassert>
+#include <ios>
+#include <iomanip>
+#include <map>
+#include <cstddef>
+#include "PrintConfig.hpp"
+#include "Config.hpp"
+#include <algorithm>
+#include <iterator>
+#include "libslic3r.h"
+#include "MultiNozzleUtils.hpp"
 #include <regex>
+#include <set>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <utility>
+#include <unordered_map>
 
 namespace Slic3r
 {

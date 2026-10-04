@@ -1,12 +1,59 @@
 #include "TroubleshootDialog.hpp"
 #include "I18N.hpp"
 
+#include "BuildCommit.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <vector>
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/dataobj.h>
+#include <wx/buffer.h>
+#include <cctype>
+#include <wx/chartype.h>
+#include <wx/datetime.h>
+#include "libslic3r/Config.hpp"
+#include <wx/arrstr.h>
+#include <wx/filefn.h>
+#include <map>
+#include <cstdio>
+#include <stdio.h>
+#include <algorithm>
+#include <boost/algorithm/string/trim_all.hpp>
+#include <cmath>
+#include <string>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <fstream>
+#include <ios>
+#include <boost/log/trivial.hpp>
+#include <exception>
+#include <utility>
+#include <ctime>
+#include <boost/filesystem/file_status.hpp>
+#include <cstdint>
+#include <wx/filedlg.h>
+#include <wx/dirdlg.h>
+#include <wx/dir.h>
+#include <wx/filename.h>
+#include <wx/sizer.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/stdpaths.h>
 #include <wx/display.h>
+#include <wx/string.h>
+#include <wx/utils.h>
+#include <wx/strconv.h>
 #include <wx/wfstream.h>
+#include "libslic3r_version.h"
 #include "wx/clipbrd.h"
 
 #include "libslic3r/libslic3r.h"
@@ -16,6 +63,9 @@
 #include "libslic3r/Preset.hpp"
 
 #include <nlohmann/json.hpp>
+#include <wx/wx.h>
+#include <wx/zipstrm.h>
+#include <wx/window.h>
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -137,9 +187,9 @@ TroubleshootDialog::TroubleshootDialog()
     version->SetFont(version_font);
     version->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
 
-    auto build = new Button(this, wxString(GIT_COMMIT_HASH));
+    auto build = new Button(this, wxString(build_commit_label));
     build->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-    auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(GIT_COMMIT_HASH);
+    auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(build_commit_hash);
     build->SetToolTip(hash_url);
     build->Bind(wxEVT_BUTTON, [hash_url](wxCommandEvent &e) {
          wxLaunchDefaultBrowser(hash_url);
@@ -371,7 +421,7 @@ wxString TroubleshootDialog::GetSysInfoAll()
 {
     wxString info;
     info += "Version   :  " + wxString(SoftFever_VERSION) + "\n"
-          + "Build     :  " + wxString(GIT_COMMIT_HASH)   + "\n"
+          + "Build     :  " + wxString(build_commit_label) + "\n"
           + "Package   :  " + GetPackageType() + "\n"
           + "Platform  :  " + GetOSinfo()      + "\n"
           + "Processor :  " + GetCPUinfo() + "\n"

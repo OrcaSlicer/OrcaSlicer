@@ -1,6 +1,15 @@
 #ifndef slic3r_GUI_SelectMachinePop_hpp_
 #define slic3r_GUI_SelectMachinePop_hpp_
 
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <cstddef>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <vector>
+#include <memory>
+#include <string>
+#include <map>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
@@ -181,13 +190,13 @@ private:
     PinCodePanel*                     m_panel_direct_connection{nullptr};
     wxWindow*                         m_placeholder_panel{nullptr};
     HyperLink*                        m_hyperlink{nullptr}; // ORCA
-    wxBoxSizer *                      m_sizer_body{nullptr};
     wxBoxSizer *                      m_sizer_my_devices{nullptr};
     wxBoxSizer *                      m_sizer_other_devices{nullptr};
+#if defined(__WINDOWS__)
     wxBoxSizer *                      m_sizer_search_bar{nullptr};
+#endif
     wxSearchCtrl*                     m_search_bar{nullptr};
     wxScrolledWindow *                m_scrolledWindow{nullptr};
-    wxWindow *                        m_panel_body{nullptr};
     wxTimer *                         m_refresh_timer{nullptr};
     std::vector<MachinePanel*>        m_user_list_machine_panel;
     std::vector<MachinePanel*>        m_other_list_machine_panel;

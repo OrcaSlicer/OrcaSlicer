@@ -1,7 +1,19 @@
 #include "ComboBox.hpp"
 #include "Label.hpp"
 
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <wx/clntdata.h>
+#include <vector>
+#include <wx/arrstr.h>
+#include <cstddef>
+#include <wx/containr.h>
 #include <wx/dcgraph.h>
+#include <wx/textctrl.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 
 BEGIN_EVENT_TABLE(ComboBox, TextInput)
 

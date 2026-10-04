@@ -40,6 +40,9 @@
 	"fan_min_speed": [
 		"70"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_max_volumetric_speed": [
 		"12"
 	],
@@ -53,7 +56,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"SILK"
+		"PLA"
 	],
 	"hot_plate_temp": [
 		"65"

@@ -1,6 +1,28 @@
 #include "ImGuiWrapper.hpp"
 
+#include <algorithm>
+#include <cstdint>
+#include <array>
+#include <cassert>
 #include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <map>
+#include <string>
+#include <imgui.h>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <cstdlib>
+#include <utility>
+#include <string_view>
+#include <cstring>
+#include "libslic3r/Point.hpp"
+#include <functional>
+#include <optional>
+#include <limits>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Exception.hpp"
+#include <tuple>
 #include <vector>
 #include <cmath>
 #include <stdexcept>
@@ -8,6 +30,9 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <wx/colour.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
@@ -505,6 +530,23 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
     if (evt.GetEventType() == wxEVT_CHAR) {
         // Char event
         const auto key = evt.GetUnicodeKey();
+        // THE MEASUREMENT THAT CANNOT LIE. This is the ONLY place in the application where ImGui
+        // is ever handed a character, so an ImGui text field that stays empty while reporting
+        // itself active has exactly two possible causes, and this line separates them: no output
+        // at all means the wxEVT_CHAR never reached the GL canvas (a focus problem, upstream of
+        // ImGui entirely), while output with unicode=0 means the character arrived empty and is
+        // being dropped right here.
+        //
+        // It lives here rather than on the canvas because a probe bound on the canvas CANNOT
+        // answer this: GLCanvas3D::on_char is bound later than any constructor-time probe, wx
+        // runs handlers in reverse bind order, and on_char returns without Skip() whenever this
+        // function returns true — so such a probe stays silent whether or not the key arrived.
+        // A day was lost to reading that silence as evidence.
+        if (std::getenv("ORCA_CAD_UXTRACE")) {
+            fprintf(stderr, "[UX] imgui_char unicode=%d keycode=%d want_text=%d\n",
+                    (int) key, evt.GetKeyCode(), (int) io.WantTextInput);
+            fflush(stderr);
+        }
         if (key != 0) {
             io.AddInputCharacter(key);
         }
@@ -573,11 +615,39 @@ void ImGuiWrapper::new_frame()
     // BBL: end copy & paste
 }
 
-void ImGuiWrapper::render()
+ImDrawData* ImGuiWrapper::end_frame()
 {
     ImGui::Render();
-    render_draw_data(ImGui::GetDrawData());
     m_new_frame_open = false;
+    return ImGui::GetDrawData();
+}
+
+void ImGuiWrapper::render(ImDrawData* draw_data)
+{
+    render_draw_data(draw_data);
+}
+
+ImGuiID ImGuiWrapper::draw_data_signature(const ImDrawData* draw_data)
+{
+    ImGuiID hash = 0;
+    if (draw_data == nullptr)
+        return hash;
+
+    for (int i = 0; i < draw_data->CmdListsCount; ++i) {
+        const ImDrawList* list = draw_data->CmdLists[i];
+        hash = ImHashData(list->VtxBuffer.Data, list->VtxBuffer.Size * sizeof(ImDrawVert), hash);
+        hash = ImHashData(list->IdxBuffer.Data, list->IdxBuffer.Size * sizeof(ImDrawIdx), hash);
+        // ImDrawCmd has padding, and a hovered ImageButton3() differs only in TextureId.
+        for (const ImDrawCmd& cmd : list->CmdBuffer) {
+            hash = ImHashData(&cmd.ClipRect, sizeof(cmd.ClipRect), hash);
+            hash = ImHashData(&cmd.TextureId, sizeof(cmd.TextureId), hash);
+            hash = ImHashData(&cmd.VtxOffset, sizeof(cmd.VtxOffset), hash);
+            hash = ImHashData(&cmd.IdxOffset, sizeof(cmd.IdxOffset), hash);
+            hash = ImHashData(&cmd.ElemCount, sizeof(cmd.ElemCount), hash);
+            hash = ImHashData(&cmd.UserCallback, sizeof(cmd.UserCallback), hash);
+        }
+    }
+    return hash;
 }
 
 ImVec2 ImGuiWrapper::calc_text_size(std::string_view text,
