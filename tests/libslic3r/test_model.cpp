@@ -71,3 +71,26 @@ TEST_CASE("An object's raw mesh keeps the triangles of each part on its own vert
     CHECK_THAT(min_x.front(), Catch::Matchers::WithinAbs(0., 1e-4));
     CHECK_THAT(min_x.back(), Catch::Matchers::WithinAbs(30., 1e-4));
 }
+
+TEST_CASE("An instance added from another's scale, rotation and mirror matches it", "[Model]")
+{
+    // Add instance and Fill bed copy an instance this way.
+    const int case_idx = GENERATE(0, 1);
+    Transform3d trafo = Transform3d::Identity();
+    if (case_idx == 0)
+        trafo.linear() = Eigen::AngleAxisd(0.5 * PI, Vec3d::UnitZ()).toRotationMatrix() * Vec3d(-1., 1., 1.).asDiagonal();
+    else
+        trafo.linear() << 4.4408921e-16,   0.819152044,    0.573576436,
+                          1.0,            -4.4408921e-16, -1.11022302e-16,
+                         -5.55111512e-17, -0.573576436,    0.819152044;
+    CAPTURE(case_idx);
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10, 20, 30));
+    ModelInstance *original = object->add_instance();
+    original->set_transformation(Geometry::Transformation(trafo));
+    const ModelInstance *copy = object->add_instance(original->get_offset(), original->get_scaling_factor(),
+                                                     original->get_rotation(), original->get_mirror());
+    CHECK(copy->get_matrix().linear().isApprox(original->get_matrix().linear(), 1e-9));
+}

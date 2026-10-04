@@ -1659,12 +1659,11 @@ void Selection::scale_and_translate(const Vec3d &scale, const Vec3d &world_trans
             if (transformation_type.instance()) {
                 const Vec3d world_inst_pivot = m_cache.dragging_center - inst_trafo.get_offset();
                 const Vec3d local_inst_pivot = inst_trafo.get_matrix_no_offset().inverse() * world_inst_pivot;
-                // Transformation keeps a mirror on a local axis, so scaling an axis of a mirrored instance adds no skew.
-                const Transform3d inst_rotation = inst_trafo.get_rotation_matrix();
-                const Transform3d inst_scale    = inst_rotation.inverse() * inst_trafo.get_matrix_no_offset();
-                const Transform3d offset_trafo  = Geometry::translation_transform(inst_trafo.get_offset() + world_translation);
-                const Transform3d scale_trafo   = inst_scale * Geometry::scale_transform(relative_scale);
-                v.set_instance_transformation(Geometry::translation_transform(world_inst_pivot) * offset_trafo * inst_rotation * scale_trafo *
+                Matrix3d    inst_rotation, inst_scale;
+                inst_trafo.get_matrix().computeRotationScaling(&inst_rotation, &inst_scale);
+                const Transform3d offset_trafo = Geometry::translation_transform(inst_trafo.get_offset() + world_translation);
+                const Transform3d scale_trafo  = Transform3d(inst_scale) * Geometry::scale_transform(relative_scale);
+                v.set_instance_transformation(Geometry::translation_transform(world_inst_pivot) * offset_trafo * Transform3d(inst_rotation) * scale_trafo *
                                               Geometry::translation_transform(-local_inst_pivot));
             } else
                 transform_instance_relative(v, volume_data, transformation_type, Geometry::translation_transform(world_translation) * Geometry::scale_transform(relative_scale),
