@@ -274,6 +274,26 @@ TEST_CASE("Arrange keeps a custom-aligned pile within the bed", "[Arrange]")
     require_no_overlap(items);
 }
 
+TEST_CASE("Arrange centers a pile that fits on the custom alignment point", "[Arrange]")
+{
+    ArrangePolygons items  = squares(4, 30.);
+    ArrangeParams   params = quiet_params(scaled(2.));
+    params.align_center    = Vec2d(0.3, 0.7);
+
+    arrange(items, bed(250, 250), params);
+
+    BoundingBox pile;
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        pile.merge(ap.transformed_poly().contour.bounding_box());
+    }
+    // best_object_pos is align_center scaled to the bed.
+    const Point expected(scaled(250. * 0.3), scaled(250. * 0.7));
+    REQUIRE(std::abs(pile.center().x() - expected.x()) <= scaled(0.5));
+    REQUIRE(std::abs(pile.center().y() - expected.y()) <= scaled(0.5));
+    require_no_overlap(items);
+}
+
 TEST_CASE("Sequential print floors the object distance by object height", "[Arrange]")
 {
     // The only place sequential-print clearance is enforced. The arrange menu offers

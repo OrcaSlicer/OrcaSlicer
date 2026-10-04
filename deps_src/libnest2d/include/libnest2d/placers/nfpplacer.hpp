@@ -1114,10 +1114,16 @@ private:
         auto d = cb - ci;
 
         // Keep the final pile inside the bed when a preferred position is near an edge.
-        setX(d, std::clamp(getX(d), getX(bbin.minCorner()) - getX(bb.minCorner()),
-                          getX(bbin.maxCorner()) - getX(bb.maxCorner())));
-        setY(d, std::clamp(getY(d), getY(bbin.minCorner()) - getY(bb.minCorner()),
-                          getY(bbin.maxCorner()) - getY(bb.maxCorner())));
+        // std::clamp is undefined when lo > hi (a pile, fixed items included, wider than
+        // the bed), so only clamp an axis whose range is valid.
+        const auto lo_x = getX(bbin.minCorner()) - getX(bb.minCorner());
+        const auto hi_x = getX(bbin.maxCorner()) - getX(bb.maxCorner());
+        if (lo_x <= hi_x)
+            setX(d, std::clamp(getX(d), lo_x, hi_x));
+        const auto lo_y = getY(bbin.minCorner()) - getY(bb.minCorner());
+        const auto hi_y = getY(bbin.maxCorner()) - getY(bb.maxCorner());
+        if (lo_y <= hi_y)
+            setY(d, std::clamp(getY(d), lo_y, hi_y));
 
         // BBS make sure the item won't clash with excluded regions
         // do we have wipe tower after arranging?
