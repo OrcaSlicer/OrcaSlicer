@@ -17,6 +17,7 @@
 #include "tbb/parallel_reduce.h"
 #include <atomic>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <cmath>
 #include <cstdlib>
 #include <cstddef>
@@ -334,10 +335,8 @@ struct GlobalModelInfo {
   // Precise Seam modifiers: weak modifiers (ENFORCED/BLOCKED/NEUTRAL) provide hints for seam placement
   std::vector<const ModelVolume*> precise_seam_weak_volumes;
 
-  // Pre-sliced modifier polygons, keyed by ModelVolume pointer.
-  // Populated once in SeamPlacer::init() to avoid re-slicing on every perimeter.
-  // Each value is a per-layer vector of Polygons for that modifier volume.
-  std::unordered_map<const ModelVolume*, std::vector<Polygons>> precise_seam_slices;
+  // Slice each modifier once; both consumers share structured regions and source provenance.
+  PreciseSeam::ModifierRegionsCache precise_seam_slices;
 
   bool is_enforced(const Vec3f &position, float radius) const {
     if (enforcers.empty()) {
@@ -518,20 +517,24 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
   const auto& strong_volumes = global_model_info.precise_seam_strong_volumes;
   const auto& weak_volumes = global_model_info.precise_seam_weak_volumes;
 
-  // Use pre-sliced cache from global_model_info instead of re-slicing on every call
-  auto seam_point = PreciseSeam::insert_strong_seam_point(strong_volumes, polygon, layer, global_model_info.precise_seam_slices, warnings);
+  std::optional<Point> seam_point;
+  std::vector<PreciseSeam::WeakModifierSegment> weak_segments;
+  if (layer != nullptr && (!strong_volumes.empty() || !weak_volumes.empty())) {
+    // Share validation, bounds and clipping line across all modifiers while the polygon is unchanged.
+    // A strong insertion ends processing; otherwise weak reads the same preparation before inserting.
+    const PreciseSeam::PreparedPerimeter prepared(polygon);
+    seam_point = PreciseSeam::insert_strong_seam_point(
+        strong_volumes, polygon, prepared, layer, global_model_info.precise_seam_slices, warnings);
+    if (!seam_point.has_value())
+      weak_segments = PreciseSeam::collect_weak_modifier_segments(
+          weak_volumes, polygon, prepared, layer, global_model_info.precise_seam_slices, warnings);
+  }
 
-  // Store the inserted point position for marking as central_enforcer later
+  // Store the inserted point position for marking as central_enforcer later.
   std::optional<Vec3f> inserted_seam_position;
   if (seam_point.has_value()) {
     Vec2f unscaled_p = unscale(seam_point.value()).cast<float>();
     inserted_seam_position = Vec3f(unscaled_p.x(), unscaled_p.y(), z_coord);
-  }
-
-  // Process weak modifiers (ENFORCED/BLOCKED/NEUTRAL) only if no strong modifier was inserted
-  std::vector<PreciseSeam::WeakModifierSegment> weak_segments;
-  if (!inserted_seam_position.has_value()) {
-    weak_segments = PreciseSeam::collect_weak_modifier_segments(weak_volumes, polygon, layer, global_model_info.precise_seam_slices, warnings);
   }
 
   float angle_arm_len = region != nullptr ? region->flow(FlowRole::frExternalPerimeter).nozzle_diameter() : 0.5f;
@@ -627,7 +630,8 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
         patches_starts_ends.push_back(next_index(i));
       }
     }
-    //if patches_starts_ends are empty, it means that the whole perimeter is enforced.. don't do anything in that case
+    // If patches_starts_ends are empty, the whole perimeter is enforced, or no point is enforced any more
+    // (Precise Seam weak zones retyped every painted enforcer); don't do anything in either case.
     if (!patches_starts_ends.empty()) {
       //if the first point in the patches is not enforced, it marks a patch end. in that case, put it to the end and start on next
       // to simplify the processing
@@ -795,6 +799,12 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
   auto obj_transform = po->trafo_centered();
 
   for (const ModelVolume *mv : po->model_object()->volumes) {
+    // Collect painting only from model parts (what the gizmo edits) and negative volumes (the only way
+    // to paint a hole's wall); painting left on modifiers and helpers after a type change is ignored.
+    // TODO: painting on negative volumes still affects the seam, but the gizmo neither shows nor edits it;
+    // making it editable also needs model_custom_seam_data_changed() to track it.
+    if (!mv->is_model_part() && !mv->is_negative_volume())
+      continue;
     if (mv->is_seam_painted()) {
       auto model_transformation = obj_transform * mv->get_matrix();
 
@@ -1508,9 +1518,10 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
 
 }
 
-void SeamPlacer::init(Print &print, std::function<void(void)> throw_if_canceled_func) {
+void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_canceled_func) {
   using namespace SeamPlacerImpl;
   m_seam_per_object.clear();
+  m_precise_seam_warning.clear();
 
   // Warning flags for Precise Seam processing — shared across all objects
   PreciseSeam::PreciseSeamWarnings precise_seam_warnings;
@@ -1529,13 +1540,17 @@ void SeamPlacer::init(Print &print, std::function<void(void)> throw_if_canceled_
           m_seam_per_object[po].has_precise_seam_strong_volumes,
           po->model_object());
 
-      // Pre-slice all precise seam modifier volumes once per object.
-      // Without this cache, slice_single_volume() would be called for every
-      // modifier × every perimeter × every layer — thousands of redundant slicing operations.
+      // Slice each Precise Seam modifier once per object; both consumers read the cache.
       for (const ModelVolume* vol : global_model_info.precise_seam_strong_volumes)
-          global_model_info.precise_seam_slices[vol] = po->slice_single_volume(vol);
+          global_model_info.precise_seam_slices[vol] = PreciseSeam::prepare_modifier_slices(po->slice_single_volume_regions(vol));
       for (const ModelVolume* vol : global_model_info.precise_seam_weak_volumes)
-          global_model_info.precise_seam_slices[vol] = po->slice_single_volume(vol);
+          global_model_info.precise_seam_slices[vol] = PreciseSeam::prepare_modifier_slices(po->slice_single_volume_regions(vol));
+      // Register usage tracking before the parallel phase; workers only set its flags. Several print
+      // objects of one model object share volumes, and try_emplace keeps what earlier ones recorded.
+      for (const ModelVolume* vol : global_model_info.precise_seam_strong_volumes)
+          precise_seam_warnings.modifier_usage.try_emplace(vol);
+      for (const ModelVolume* vol : global_model_info.precise_seam_weak_volumes)
+          precise_seam_warnings.modifier_usage.try_emplace(vol);
 
       throw_if_canceled_func();
       if (configured_seam_preference == spAligned || configured_seam_preference == spNearest || configured_seam_preference == spAlignedBack) {
@@ -1603,24 +1618,74 @@ void SeamPlacer::init(Print &print, std::function<void(void)> throw_if_canceled_
 #endif
   }
 
-  // Show Precise Seam warnings (once for all objects).
-  // Only ONE active_step_add_warning() call — multiple calls generate multiple UI events,
-  // each re-pushing ALL current warnings via Plater handler, causing NotificationManager::append()
-  // to duplicate text within each popup.
+  // Prepare one combined Precise Seam warning; G-code export issues it. Keep it single: separate
+  // warnings would each re-push all warnings and duplicate text in the notification.
   {
-      const bool mi = precise_seam_warnings.multiple_intersections.load(std::memory_order_relaxed);
-      const bool tb = precise_seam_warnings.through_body.load(std::memory_order_relaxed);
-      const bool mc = precise_seam_warnings.multiply_connected.load(std::memory_order_relaxed);
-      const bool fc = precise_seam_warnings.full_containment.load(std::memory_order_relaxed);
+      const unsigned failed_types = precise_seam_warnings.failed_types.load(std::memory_order_relaxed);
+      const unsigned mi = precise_seam_warnings.multiple_intersections.load(std::memory_order_relaxed);
+      const unsigned fc = precise_seam_warnings.full_containment.load(std::memory_order_relaxed);
+      const size_t failed = precise_seam_warnings.failed_fragments.load(std::memory_order_relaxed);
+      // All workers have finished; cancellation before this point may omit the summary.
+      if (failed > PreciseSeam::failed_fragment_log_limit)
+          BOOST_LOG_TRIVIAL(warning) << "[PreciseSeamIntersectionFailed] " << failed
+              << " fragments discarded; first " << PreciseSeam::failed_fragment_log_limit
+              << " logged (parallel processing order), " << (failed - PreciseSeam::failed_fragment_log_limit)
+              << " omitted";
+      // Recoveries are log-only: no user warning, but the same bounded detail and a total.
+      const size_t recovered = precise_seam_warnings.recovered_fragments.load(std::memory_order_relaxed);
+      if (recovered > PreciseSeam::failed_fragment_log_limit)
+          BOOST_LOG_TRIVIAL(warning) << "[PreciseSeamFragmentRecovered] " << recovered
+              << " fragments recovered; first " << PreciseSeam::failed_fragment_log_limit
+              << " logged (parallel processing order), " << (recovered - PreciseSeam::failed_fragment_log_limit)
+              << " omitted";
+      // Reasons name the modifier types, as the menu does, not individual modifiers: "Seam Left, Seam
+      // Enforced" in menu order, each type once. The same msgids as the menu share its translations.
+      const auto type_list = [](unsigned mask) {
+          const std::pair<ModelVolumeType, std::string> types[] = {
+              {ModelVolumeType::PRECISE_SEAM_CENTER, _u8L("Seam Center")},
+              {ModelVolumeType::PRECISE_SEAM_LEFT, _u8L("Seam Left")},
+              {ModelVolumeType::PRECISE_SEAM_RIGHT, _u8L("Seam Right")},
+              {ModelVolumeType::PRECISE_SEAM_ENFORCED, _u8L("Seam Enforced")},
+              {ModelVolumeType::PRECISE_SEAM_BLOCKED, _u8L("Seam Blocked")},
+              {ModelVolumeType::PRECISE_SEAM_NEUTRAL, _u8L("Seam Neutral")}};
+          std::string list;
+          for (const auto &[type, name] : types)
+              if (mask & PreciseSeam::PreciseSeamWarnings::type_bit(type))
+                  list += (list.empty() ? "" : ", ") + name;
+          return list;
+      };
       std::vector<std::string> parts;
-      if (mi)
-          parts.push_back(_u8L("multiple intersections with a perimeter detected"));
-      if (tb)
-          parts.push_back(_u8L("modifier fully crosses the printable perimeter"));
-      if (mc)
-          parts.push_back(_u8L("modifier shape is not solid (has holes inside) and was ignored"));
-      if (fc)
-          parts.push_back(_u8L("perimeter is fully contained inside modifier and was ignored"));
+      if (failed_types != 0)
+          parts.push_back((boost::format(_u8L("failed to process some intersections (%1%)")) % type_list(failed_types)).str());
+      if (mi != 0)
+          parts.push_back((boost::format(_u8L("multiple intersections with a perimeter, only one was used (%1%)")) % type_list(mi)).str());
+      if (fc != 0)
+          parts.push_back((boost::format(_u8L("a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)")) % type_list(fc)).str());
+      // Modifiers evaluated somewhere that never reached a perimeter; never-evaluated ones are not reported.
+      // Print and volume order make the named one deterministic; the log lists them all.
+      std::vector<const ModelVolume*> no_effect;
+      for (const PrintObject *po : print.objects())
+          for (const ModelVolume *volume : po->model_object()->volumes) {
+              const auto it = precise_seam_warnings.modifier_usage.find(volume);
+              if (it != precise_seam_warnings.modifier_usage.end() &&
+                  it->second.checked.load(std::memory_order_relaxed) &&
+                  !it->second.reached.load(std::memory_order_relaxed) &&
+                  std::find(no_effect.begin(), no_effect.end(), volume) == no_effect.end())
+                  no_effect.push_back(volume);
+          }
+      // The user warning names only the first one; the log lists them all.
+      for (const ModelVolume *volume : no_effect)
+          BOOST_LOG_TRIVIAL(warning) << "[PreciseSeamNoEffect] object=\"" << volume->get_object()->name
+              << "\" modifier=\"" << volume->name << "\"";
+      if (!no_effect.empty()) {
+          const ModelVolume *first = no_effect.front();
+          if (no_effect.size() == 1)
+              parts.push_back((boost::format(_u8L("modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"))
+                  % first->name % first->get_object()->name).str());
+          else
+              parts.push_back((boost::format(_u8L("modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"))
+                  % first->name % first->get_object()->name % no_effect.size()).str());
+      }
       if (!parts.empty()) {
           // One line: the export warnings dialog shows only the first line of each warning.
           std::string warning_text = _u8L("Precise Seam") + ": ";
@@ -1630,10 +1695,7 @@ void SeamPlacer::init(Print &print, std::function<void(void)> throw_if_canceled_
           }
           warning_text += ". ";
           warning_text += _u8L("Seam placement may differ from expected.");
-          print.active_step_add_warning(
-              PrintStateBase::WarningLevel::NON_CRITICAL,
-              warning_text,
-              PrintStateBase::SlicingPreciseSeamWarning);
+          m_precise_seam_warning = std::move(warning_text);
       }
   }
 }

@@ -5,6 +5,8 @@ add_executable(${_TEST_NAME}_tests
     test_3mf.cpp
     # Round-trip seam metadata and active/dormant volume settings in both formats.
     test_precise_seam_3mf.cpp
+    # Pure perimeter extraction is independent of Print/Layer fixtures.
+    test_precise_seam.cpp
     test_aabbindirect.cpp
     test_appconfig.cpp
     test_arachne_walls.cpp
