@@ -3396,7 +3396,7 @@ void GLGizmoTextureDisplacement::ensure_panel_icons()
         "texture_displacement_adjust.svg", "canvas_drag.svg", "texture_displacement_move_up.svg",
         "texture_displacement_move_down.svg", "texture_displacement_drag.svg",
         "texture_displacement_select_all.svg", "texture_displacement_erase_all.svg",
-        // Header help links: the video walkthrough and the wiki page.
+        // Help links on the action row: the wiki page and the video walkthrough.
         "texture_displacement_video_guide.svg", "texture_displacement_wiki.svg",
     };
     std::vector<std::string> paths;
@@ -5441,6 +5441,47 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             m_imgui->tooltip(tip_text, wrap_w);
         return clicked;
     };
+    // Round link button: a white glyph on a solid teal disc, for the help links on the action row.
+    // ImGui clamps an image button's frame rounding to its frame padding, so the disc cannot be the
+    // button's own background; it is drawn underneath on a separate draw-list channel, which is what
+    // lets it be filled in after the button has reported its hover state.
+    const auto link_button = [&](int uid, const std::string &iconfile, float sz, const wxString &label,
+                                 const wxString &tip_text) -> bool {
+        const auto  it      = m_panel_icon_map.find(iconfile);
+        const float pad     = std::max(1.f, std::round(sz * 0.26f));
+        ImDrawList *dl      = ImGui::GetWindowDrawList();
+        bool        clicked = false;
+        dl->ChannelsSplit(2);
+        dl->ChannelsSetCurrent(1);
+        ImGui::PushID(uid);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+        if (it != m_panel_icon_map.end() && !it->second.empty() && it->second[0]->is_valid()) {
+            const IconManager::Icon &ic = *it->second[0];
+            clicked = m_imgui->image_button((ImTextureID) (intptr_t) ic.tex_id, ImVec2(sz - 2.f * pad, sz - 2.f * pad),
+                                            ic.tl, ic.br, int(pad));
+        } else {
+            clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz));
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar();
+        ImGui::PopID();
+        // The disc is the button's whole surface, so it has to carry the hover feedback that the
+        // transparent ImGui background no longer gives: lighter under the cursor, darker while held.
+        const bool   hovered = ImGui::IsItemHovered();
+        const float  lift    = ImGui::IsItemActive() ? -0.12f : hovered ? 0.18f : 0.f;
+        const auto   shade   = [lift](float c) { return lift >= 0.f ? c + (1.f - c) * lift : c * (1.f + lift); };
+        const ImVec2 lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+        dl->ChannelsSetCurrent(0);
+        dl->AddCircleFilled(ImVec2(0.5f * (lo.x + hi.x), 0.5f * (lo.y + hi.y)), 0.5f * (hi.y - lo.y),
+                            ImGui::GetColorU32(ImVec4(shade(orca.x), shade(orca.y), shade(orca.z), orca.w)));
+        dl->ChannelsMerge();
+        if (!tip_text.empty() && hovered)
+            m_imgui->tooltip(tip_text, wrap_w);
+        return clicked;
+    };
     // A short vertical rule between groups of buttons on one row; call it right after an item.
     const auto vsep = [&](float h) {
         ImGui::SameLine(0.f, gap_s);
@@ -5509,10 +5550,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         const float       seg_pad   = m_imgui->scaled(0.5f);
         const float seg_w[2] = { ImGui::CalcTextSize(labels[0].c_str()).x + 2.f * seg_pad, ImGui::CalcTextSize(labels[1].c_str()).x + 2.f * seg_pad };
         ImGui::SameLine();
-        // Three icons now follow the segmented control (video guide, wiki, dock toggle), each preceded by
-        // its own gap - the reserved width has to cover all of them or the cluster runs past the panel edge.
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
-                                      x0 + panel_w - (seg_w[0] + seg_w[1] + 3.f * (gap_s + icon_sm))));
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + panel_w - (seg_w[0] + seg_w[1] + gap_s + icon_sm)));
 
         // Standard / Pro is a mode, not an option: Standard hides every mesh-preparation control and folds
         // the whole recipe into Bake, Pro shows all of it and hands the ordering to the user.
@@ -5553,15 +5591,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::PopStyleVar(2);
         ImGui::GetWindowDrawList()->AddRect(seg_min, ImVec2(ImGui::GetItemRectMax().x, seg_min.y + frame_h),
                                             ImGui::GetColorU32(col_frame), style.FrameRounding);
-
-        ImGui::SameLine(0.f, gap_s);
-        if (icon_button(807, "texture_displacement_video_guide.svg", icon_sm, _L("Video guide"),
-                        _L("Watch the texture displacement walkthrough on YouTube. Opens in your browser.")))
-            wxLaunchDefaultBrowser("https://www.youtube.com/watch?v=D7w3tG1kdvE");
-        ImGui::SameLine(0.f, gap_s);
-        if (icon_button(808, "texture_displacement_wiki.svg", icon_sm, _L("Documentation"),
-                        _L("Open the texture displacement page of the OrcaSlicer wiki. Opens in your browser.")))
-            wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/print_prepare/prepare_texture_displacement.html");
 
         ImGui::SameLine(0.f, gap_s);
         if (icon_button(806, "canvas_drag.svg", icon_sm, m_undocked ? _L("Dock panel") : _L("Undock panel"),
@@ -6904,7 +6933,22 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
 
         const float button_h = std::round(frame_h * 1.25f);
-        const float third    = std::floor((panel_w - style.ItemSpacing.x) / 3.f);
+
+        // The help links lead the action row rather than sitting in the header: this row is the part of
+        // the panel that is always on screen, so a user who does not yet know the guide exists still
+        // passes over it on the way to Bake.
+        if (link_button(807, "texture_displacement_wiki.svg", button_h, _L("Documentation"),
+                        _L("Open the texture displacement page of the OrcaSlicer wiki. Opens in your browser.")))
+            wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/print_prepare/prepare_texture_displacement.html");
+        ImGui::SameLine(0.f, gap_s);
+        if (link_button(808, "texture_displacement_video_guide.svg", button_h, _L("Video guide"),
+                        _L("Watch the texture displacement walkthrough on YouTube. Opens in your browser.")))
+            wxLaunchDefaultBrowser("https://www.youtube.com/watch?v=D7w3tG1kdvE");
+        ImGui::SameLine();
+
+        // Close and Bake keep their 1:2 split, over whatever the links left of the row.
+        const float links_w = 2.f * button_h + gap_s + style.ItemSpacing.x;
+        const float third   = std::floor((panel_w - links_w - style.ItemSpacing.x) / 3.f);
         if (busy) {
             if (ImGui::Button((_u8L("Stop") + "##stop").c_str(), ImVec2(third, button_h)))
                 wxGetApp().plater()->get_ui_job_worker().cancel_all();
