@@ -198,7 +198,7 @@ change, its line, and what it means for Orca.
 | `wxAuiGenericTabArt` subclasses (also via `wxAuiMSWTabArt`) override `DrawPageTab()`/`GetPageTabSize()` instead of `DrawTab()`/`GetTabSize()`; direct `wxAuiTabArt` subclasses still work | :115-120 | none: no Orca tab art |
 | `wxAuiNotebook` page index is logical (reorder-independent); `GetPagePosition()` gives the screen position | :122-126 | none; index math under `wxAUI_NB_TAB_MOVE` is what breaks |
 | `wxListbook`/`wxChoicebook` interpret mnemonics in page titles "just as the other wx*book classes already did" | :128-130 | Orca uses neither (`BedShapeDialog` uses `wxSimplebook` + a combo); every book interprets `&` (`interface/wx/bookctrl.h:141-147`) → rule 11 |
-| `wxAUI_MGR_HINT_FADE` is not in the default `wxAuiManager` style | :132-133 | Plater's `AuiMgr` keeps the default flags (minus `wxAUI_MGR_ALLOW_FLOATING` on Wayland, `Plater::priv::priv`), so the docking hint no longer fades; add the flag if wanted |
+| `wxAUI_MGR_HINT_FADE` is not in the default `wxAuiManager` style | :132-133 | Orca's `AuiMgr` keeps the default flags (minus `wxAUI_MGR_ALLOW_FLOATING` on Wayland, `AuiMgr::init`), so the docking hint no longer fades; add the flag if wanted |
 | `wxPrintDialogData::SetAllPages(false)`/`SetSelection(false)` changed meaning | :135-137 | none |
 | `wxGetTranslation()` returns `wxString` by value | :139-142 | pitfall below |
 | `wxWindow::Raise()` no longer shows a hidden window on any port | :144-146 | pitfall below; ba867cc534 |

@@ -98,9 +98,11 @@
 #include "nlohmann/json.hpp"
 
 #include "GCode/ConflictChecker.hpp"
-#include "ParameterUtils.hpp"
 
 #include <codecvt>
+#include "Format/STEP.hpp"
+#include "PlaceholderParser.hpp"
+#include "SurfaceCollection.hpp"
 
 namespace fs = boost::filesystem;
 

@@ -11,7 +11,6 @@
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
 #include <cstddef>
 #include "libslic3r/PrintConfig.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/FlushVolPredictor.hpp"
 #include "libslic3r/Utils.hpp"
@@ -31,16 +30,20 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
-#include "WebViewDialog.hpp"
 #include "MsgDialog.hpp"
 #include "format.hpp"
-#include "libslic3r/Color.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/Utils/json_diff.hpp"
 #include <boost/filesystem.hpp>
+
+class wxWindow;
 
 namespace fs = boost::filesystem;
 

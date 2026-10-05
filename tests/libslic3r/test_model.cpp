@@ -6,6 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Geometry.hpp"
 
 using namespace Slic3r;
 

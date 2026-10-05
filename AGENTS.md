@@ -36,6 +36,7 @@ ctest --test-dir ./tests/fff_print -C Release
 
 - C++17, selective C++20. PascalCase classes, snake_case functions/variables
 - `#pragma once` for headers. Smart pointers and RAII preferred
+- Include what you use: include the header for every symbol a file uses, and keep headers compilable on their own. Never rely on the precompiled header or a transitive include. The `clang-tidy` CI job enforces this on changed lines; run the same check locally with `scripts/run_clang_tidy.sh` (`scripts\run_clang_tidy.ps1` on Windows), which sets up everything it needs
 - Parallelization via TBB — be mindful of shared state
 - Always use `SetSizerAndFit(sizer)` instead of `SetSizer(sizer)` on top level window. Unless `SetSizer` must be called before the full layout is built, call `sizer->SetSizeHints(window)` afterwards in this case.
 

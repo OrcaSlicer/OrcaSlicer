@@ -1,6 +1,5 @@
 #include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
-#include "Geometry.hpp"
 #include "Point.hpp"
 #include "Line.hpp"
 #include "MultiPoint.hpp"
@@ -10,7 +9,6 @@
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 // BBS
-#include "MeshBoolean.hpp"
 #include "libslic3r.h"
 
 #include <algorithm>

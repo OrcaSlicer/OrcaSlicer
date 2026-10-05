@@ -147,6 +147,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/WebPanel.hpp
     GUI/Widgets/WebHosting.cpp
     GUI/Widgets/WebHosting.hpp
+    GUI/AuiMgr.cpp
+    GUI/AuiMgr.hpp
     GUI/AuiPaneLayout.cpp
     GUI/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
@@ -178,16 +180,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoCut.hpp
     GUI/Gizmos/GLGizmoEmboss.cpp
     GUI/Gizmos/GLGizmoEmboss.hpp
-    #GUI/Gizmos/GLGizmoFaceDetector.cpp
-    #GUI/Gizmos/GLGizmoFaceDetector.hpp
     GUI/Gizmos/GLGizmoFdmSupports.cpp
     GUI/Gizmos/GLGizmoFdmSupports.hpp
     GUI/Gizmos/GLGizmoFlatten.cpp
     GUI/Gizmos/GLGizmoFlatten.hpp
     GUI/Gizmos/GLGizmoFuzzySkin.cpp
     GUI/Gizmos/GLGizmoFuzzySkin.hpp
-    #GUI/Gizmos/GLGizmoHollow.cpp
-    #GUI/Gizmos/GLGizmoHollow.hpp
     GUI/Gizmos/GLGizmoMeasure.cpp
     GUI/Gizmos/GLGizmoMeasure.hpp
     GUI/Gizmos/GLGizmoMeshBoolean.cpp
@@ -208,8 +206,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoSeam.hpp
     GUI/Gizmos/GLGizmoSimplify.cpp
     GUI/Gizmos/GLGizmoSimplify.hpp
-    #GUI/Gizmos/GLGizmoSlaSupports.cpp
-    #GUI/Gizmos/GLGizmoSlaSupports.hpp
     GUI/Gizmos/GLGizmosManager.cpp
     GUI/Gizmos/GLGizmosManager.hpp
     GUI/Gizmos/GLGizmoSVG.cpp
@@ -218,8 +214,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoTextureDisplacement.hpp
     GUI/Gizmos/GLGizmoUtils.cpp
     GUI/Gizmos/GLGizmoUtils.hpp
-    #GUI/Gizmos/GLGizmoText.cpp
-    #GUI/Gizmos/GLGizmoText.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
     GUI/GLModel.cpp
@@ -428,8 +422,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/NotificationManager.hpp
     GUI/OAuthDialog.cpp
     GUI/OAuthDialog.hpp
-    GUI/ObjColorDialog.cpp
-    GUI/ObjColorDialog.hpp
     GUI/ObjectDataViewModel.cpp
     GUI/ObjectDataViewModel.hpp
     GUI/OG_CustomCtrl.cpp
@@ -483,8 +475,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/ProjectDirtyStateManager.cpp
     GUI/ProjectDirtyStateManager.hpp
     GUI/Project.hpp
-    GUI/PublishDialog.cpp
-    GUI/PublishDialog.hpp
     GUI/PublishSettingsDialog.cpp
     GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
@@ -808,7 +798,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/Process.cpp
     Utils/Process.hpp
-    Utils/ProfileDescription.hpp
     Utils/Profile.hpp
     Utils/RaycastManager.cpp
     Utils/RaycastManager.hpp
@@ -846,6 +835,10 @@ if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
         GUI/CAD/DesignPanel.cpp
         GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignRowList.cpp
+        GUI/CAD/DesignRowList.hpp
+        GUI/CAD/DesignTextDialog.cpp
+        GUI/CAD/DesignTextDialog.hpp
         GUI/CAD/DesignCanvas.cpp
         GUI/CAD/DesignCanvas.hpp
         GUI/CAD/DesignSketchTool.cpp

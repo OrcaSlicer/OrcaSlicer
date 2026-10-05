@@ -61,6 +61,7 @@
 #include <wx/utils.h>
 
 #include "slic3r/plugin/PluginDescriptor.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 #if defined(_WIN32)
 #include <Windows.h>

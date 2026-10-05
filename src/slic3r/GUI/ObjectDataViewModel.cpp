@@ -1,5 +1,4 @@
 #include "ObjectDataViewModel.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "wxExtensions.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"

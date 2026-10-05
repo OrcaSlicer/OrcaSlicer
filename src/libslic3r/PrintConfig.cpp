@@ -5301,7 +5301,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
 
     def           = this->add("input_shaping_freq_x", coFloat);
-    def->label    = L("X");
+    def->label    = L_CONTEXT("X", "Axis");
     def->tooltip  = L("Resonant frequency for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->sidetext = L("Hz");	// Hertz, CIS languages need translation
     def->min      = 0;
@@ -5310,7 +5310,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def           = this->add("input_shaping_freq_y", coFloat);
-    def->label    = L("Y");
+    def->label    = L_CONTEXT("Y", "Axis");
     def->tooltip  = L("Resonant frequency for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
     def->sidetext = L("Hz");	// Hertz, CIS languages need translation
     def->min      = 0;
@@ -5319,7 +5319,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def          = this->add("input_shaping_damp_x", coFloat);
-    def->label   = L("X");
+    def->label   = L_CONTEXT("X", "Axis");
     def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->min     = 0;
     def->max     = 1;
@@ -5327,7 +5327,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.1));
 
     def          = this->add("input_shaping_damp_y", coFloat);
-    def->label   = L("Y");
+    def->label   = L_CONTEXT("Y", "Axis");
     def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.");
     def->min     = 0;
     def->max     = 1;
@@ -8530,14 +8530,14 @@ void PrintConfigDef::init_sla_params()
 
     def = this->add("display_pixels_x", coInt);
     //def->full_label = L("");
-    def->label = ("X");
+    def->label = L_CONTEXT("X", "Axis");
     //def->tooltip = L("");
     def->min = 100;
     def->set_default_value(new ConfigOptionInt(2560));
 
     def = this->add("display_pixels_y", coInt);
     //def->full_label = L("");
-    def->label = ("Y");
+    def->label = L_CONTEXT("Y", "Axis");
     //def->tooltip = L("");
     def->min = 100;
     def->set_default_value(new ConfigOptionInt(1440));

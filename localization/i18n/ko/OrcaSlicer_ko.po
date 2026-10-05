@@ -4781,7 +4781,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
-msgstr "이 필라멘트 유형의 권장 노즐 온도는 [%d, %d]°C입니다"
+msgstr "이 필라멘트 유형의 권장 노즐 온도는 [%d, %d]℃입니다"
 
 # AI Translated
 msgid "Adaptive Pressure Advance model validation failed:\n"
@@ -22442,13 +22442,13 @@ msgstr "건조-제습"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "%s의 최대 건조 온도는 %d°C입니다."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "%s의 최대 건조 온도는 %d℃입니다."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "%s의 최소 건조 온도는 %d°C입니다."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "%s의 최소 건조 온도는 %d℃입니다."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25652,9 +25652,6 @@ msgstr ""
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Flow::with_spacing()에 잘못된 간격이 제공되었습니다. 레이어 높이와 돌출 너비를 확인하세요"
 
-#~ msgid "°C"
-#~ msgstr "°C"
-
 #~ msgid "Continue to sync filaments"
 #~ msgstr "필라멘트 동기화 계속하기"
 
@@ -27911,7 +27908,7 @@ msgstr ""
 #~ "Bed temperature of other layer is lower than bed temperature of initial layer for more than %d degrees Celsius.\n"
 #~ "This may cause model broken free from build plate during printing."
 #~ msgstr ""
-#~ "다른 레이어의 베드 온도가 초기 레이어의 베드 온도보다 %d°C 이상 낮습니다.\n"
+#~ "다른 레이어의 베드 온도가 초기 레이어의 베드 온도보다 %d℃ 이상 낮습니다.\n"
 #~ "이로 인해 출력 중에 모델이 빌드 플레이트에서 탈출할 수 있습니다"
 
 #~ msgid ""

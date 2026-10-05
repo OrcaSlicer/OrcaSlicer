@@ -1,8 +1,5 @@
 #include "FilamentLoad.hpp"
-#include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
-#include "../GUI_App.hpp"
 #include "../DeviceCore/DevFilaSystem.h"
 
 #include <wx/anybutton.h>
@@ -18,8 +15,10 @@
 
 #include <boost/log/trivial.hpp>
 #include <wx/string.h>
+#include "slic3r/GUI/DeviceManager.hpp"
 
-#include "CalibUtils.hpp"
+class wxWindow;
+
 
 namespace Slic3r {
     namespace GUI {

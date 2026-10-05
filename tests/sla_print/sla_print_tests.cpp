@@ -27,8 +27,9 @@
 
 #include <libslic3r/TriangleMeshSlicer.hpp>
 #include <libslic3r/SLA/SupportTreeMesher.hpp>
-#include <libslic3r/SLA/Concurrency.hpp>
 #include <vector>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
 namespace {
 

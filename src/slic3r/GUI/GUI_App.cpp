@@ -240,6 +240,21 @@
 #include "PluginsDialog.hpp"
 #include "SpeedDialDialog.hpp"
 #include "TerminalDialog.hpp"
+#include "libslic3r/Format/STEP.hpp"
+#include "libslic3r/Semver.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/ConfigWizard.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/HttpServer.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/ParamsDialog.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
+#include <wx/defs.h>
 
 //#ifdef WIN32
 //#include "BaseException.h"
@@ -3086,6 +3101,18 @@ bool GUI_App::on_init_inner()
         for (auto d : dialogStack)
             d->EndModal(wxID_ABORT);
     });
+
+#ifdef __APPLE__
+    // A quit request from the Dock, a logout or a restart ends with AppKit calling exit() right after this event, so
+    // OnExit() and ~GUI_App() never run. Shut the plugins and Python down here as ~GUI_App() does. Left to
+    // PluginManager's static destructor, the shutdown locks hook state that has already been destroyed and aborts.
+    wxGetApp().Bind(wxEVT_END_SESSION, [](wxCloseEvent &e) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
+        Slic3r::PluginManager::instance().shutdown();
+        Slic3r::PythonInterpreter::instance().shutdown();
+        e.Skip();
+    });
+#endif
 
     // Verify resources path
     const wxString resources_dir = from_u8(Slic3r::resources_dir());

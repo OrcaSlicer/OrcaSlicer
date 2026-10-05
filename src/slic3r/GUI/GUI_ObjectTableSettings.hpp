@@ -11,6 +11,9 @@
 #include "wxExtensions.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+class wxSizer;
+class wxWindow;
+
 class wxBoxSizer;
 
 namespace Slic3r {

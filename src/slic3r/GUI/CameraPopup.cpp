@@ -3,7 +3,6 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "libslic3r/Utils.hpp"
-#include "BitmapCache.hpp"
 #include <wx/object.h>
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include <wx/event.h>

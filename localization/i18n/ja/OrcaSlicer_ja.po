@@ -22566,13 +22566,13 @@ msgstr "乾燥 - 除湿"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "%s の最高乾燥温度は %d°C です。"
+msgid "%s maximum drying temperature is %d℃."
+msgstr "%s の最高乾燥温度は %d℃ です。"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "%s の最低乾燥温度は %d°C です。"
+msgid "%s minimum drying temperature is %d℃."
+msgstr "%s の最低乾燥温度は %d℃ です。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25800,9 +25800,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Flow::with_spacing()に無効な間隔が指定されました。レイヤー高さと押出幅を確認してください"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "フィラメントの同期を続行"

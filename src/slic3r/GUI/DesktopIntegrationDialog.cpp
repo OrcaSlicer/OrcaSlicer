@@ -16,6 +16,7 @@
 #include <wx/dialog.h>
 #include <wx/toplevel.h>
 #include <wx/sizer.h>
+#include "slic3r/GUI/Plater.hpp"
 #ifdef __linux__
 #include "DesktopIntegrationDialog.hpp"
 #include "GUI_App.hpp"

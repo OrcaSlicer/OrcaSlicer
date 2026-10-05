@@ -39,6 +39,13 @@
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r::GUI {
 

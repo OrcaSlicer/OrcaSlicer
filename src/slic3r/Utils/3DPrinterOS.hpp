@@ -8,7 +8,9 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "PrintHost.hpp"
-#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/enum_bitmask.hpp"
+
+namespace boost { template <class T> class optional; }
 
 
 

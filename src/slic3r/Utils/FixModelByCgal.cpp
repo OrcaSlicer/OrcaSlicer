@@ -28,6 +28,7 @@
 #include "libslic3r/format.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../GUI/I18N.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
 // Orca: This file provides utilities for repairing 3D model meshes using the CGAL library, handling mesh splitting, merging, and boolean operations.
 

@@ -1,13 +1,13 @@
 #ifndef slic3r_AvoidCrossingPerimeters_hpp_
 #define slic3r_AvoidCrossingPerimeters_hpp_
 
-#include "../libslic3r.h"
 #include "../ExPolygon.hpp"
 #include "../EdgeGrid.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include <vector>
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 namespace Slic3r {
 

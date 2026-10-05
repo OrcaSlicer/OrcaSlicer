@@ -45,7 +45,6 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/Utils.hpp"
 
 namespace Slic3r::GUI {
 

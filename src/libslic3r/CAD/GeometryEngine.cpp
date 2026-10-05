@@ -294,21 +294,21 @@ FaceGroup GeometryEngine::classify_face(const TopoDS_Face& face, const TopoDS_Sh
 
 std::vector<TopoDS_Edge> GeometryEngine::collect_edges(const TopoDS_Shape& solid, FaceGroup target)
 {
+    // Each edge ONCE. An explorer visits a shared edge from both of its faces, so walking one
+    // handed every edge to the fillet twice; the de-duplicated map is also what edge_by_index
+    // numbers edges by.
     std::vector<TopoDS_Edge> result;
+    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> edgeFaceMap;
+    TopExp::MapShapesAndAncestors(solid, TopAbs_EDGE, TopAbs_FACE, edgeFaceMap);
     if (target == FaceGroup::All) {
-        for (TopExp_Explorer exp(solid, TopAbs_EDGE); exp.More(); exp.Next())
-            result.push_back(TopoDS::Edge(exp.Current()));
+        for (int i = 1; i <= edgeFaceMap.Extent(); ++i)
+            result.push_back(TopoDS::Edge(edgeFaceMap.FindKey(i)));
         return result;
     }
 
-    // Build edge-to-face map once
-    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> edgeFaceMap;
-    TopExp::MapShapesAndAncestors(solid, TopAbs_EDGE, TopAbs_FACE, edgeFaceMap);
-
-    for (TopExp_Explorer edgeExp(solid, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
-        const TopoDS_Edge& edge = TopoDS::Edge(edgeExp.Current());
-        if (!edgeFaceMap.Contains(edge)) continue;
-        const NCollection_List<TopoDS_Shape>& faces = edgeFaceMap.FindFromKey(edge);
+    for (int ei = 1; ei <= edgeFaceMap.Extent(); ++ei) {
+        const TopoDS_Edge& edge = TopoDS::Edge(edgeFaceMap.FindKey(ei));
+        const NCollection_List<TopoDS_Shape>& faces = edgeFaceMap.FindFromIndex(ei);
 
         bool include = false;
         for (auto it = faces.begin(); it != faces.end(); ++it) {
@@ -344,12 +344,14 @@ std::vector<TopoDS_Edge> GeometryEngine::collect_edges(const TopoDS_Shape& solid
 
 // ---- Fillet/Chamfer ----
 
+// All four dress-up entry points fail the same way — with a reason — instead of two of them
+// handing the solid back unchanged, which recompute then reported as a success.
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, FaceGroup faces)
 {
-    if (radius <= 0.001) return solid;
+    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
 
     std::vector<TopoDS_Edge> edges = collect_edges(solid, faces);
-    if (edges.empty()) return solid;
+    if (edges.empty()) throw std::runtime_error("no edges to fillet in that group");
 
     BRepFilletAPI_MakeFillet fillet(solid);
     for (const auto& edge : edges)
@@ -365,10 +367,10 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
 
 TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, FaceGroup faces)
 {
-    if (distance <= 0.001) return solid;
+    if (distance <= 0.001) throw std::runtime_error("the chamfer distance must be greater than 0");
 
     std::vector<TopoDS_Edge> edges = collect_edges(solid, faces);
-    if (edges.empty()) return solid;
+    if (edges.empty()) throw std::runtime_error("no edges to chamfer in that group");
 
     BRepFilletAPI_MakeChamfer chamfer(solid);
     for (const auto& edge : edges)
@@ -381,28 +383,42 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
 
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, int edge_id)
 {
-    if (radius <= 0.001) return solid;
+    return apply_fillet(solid, radius, std::vector<int>{ edge_id });
+}
 
-    TopoDS_Edge edge = edge_by_index(solid, edge_id);
-    if (edge.IsNull()) throw std::runtime_error("apply_fillet: invalid edge id");
+TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, int edge_id)
+{
+    return apply_chamfer(solid, distance, std::vector<int>{ edge_id });
+}
+
+TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, const std::vector<int>& edge_ids)
+{
+    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (edge_ids.empty()) throw std::runtime_error("apply_fillet: no edge picked");
 
     BRepFilletAPI_MakeFillet mk(solid);
-    mk.Add(radius, edge);
+    for (int id : edge_ids) {
+        TopoDS_Edge edge = edge_by_index(solid, id);
+        if (edge.IsNull()) throw std::runtime_error("apply_fillet: invalid edge id");
+        mk.Add(radius, edge);
+    }
     mk.Build();
 
     if (!mk.IsDone()) throw std::runtime_error("apply_fillet: OCCT fillet failed");
     return mk.Shape();
 }
 
-TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, int edge_id)
+TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, const std::vector<int>& edge_ids)
 {
-    if (distance <= 0.001) return solid;
-
-    TopoDS_Edge edge = edge_by_index(solid, edge_id);
-    if (edge.IsNull()) throw std::runtime_error("apply_chamfer: invalid edge id");
+    if (distance <= 0.001) throw std::runtime_error("the chamfer distance must be greater than 0");
+    if (edge_ids.empty()) throw std::runtime_error("apply_chamfer: no edge picked");
 
     BRepFilletAPI_MakeChamfer mk(solid);
-    mk.Add(distance, edge);
+    for (int id : edge_ids) {
+        TopoDS_Edge edge = edge_by_index(solid, id);
+        if (edge.IsNull()) throw std::runtime_error("apply_chamfer: invalid edge id");
+        mk.Add(distance, edge);
+    }
     mk.Build();
 
     if (!mk.IsDone()) throw std::runtime_error("apply_chamfer: OCCT chamfer failed");
@@ -612,6 +628,27 @@ std::vector<Vec3d> GeometryEngine::sample_edge_world(const TopoDS_Edge& edge, do
         pts.emplace_back(p1.X(), p1.Y(), p1.Z());
     }
     return pts;
+}
+
+std::vector<std::vector<Vec3d>> GeometryEngine::display_edges(const TopoDS_Shape& shape, double chord_tol)
+{
+    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> faces_of_edge;
+    TopExp::MapShapesAndAncestors(shape, TopAbs_EDGE, TopAbs_FACE, faces_of_edge);
+    std::vector<std::vector<Vec3d>> out;
+    for (int i = 1; i <= faces_of_edge.Extent(); ++i) {
+        const TopoDS_Edge& edge = TopoDS::Edge(faces_of_edge.FindKey(i));
+        if (BRep_Tool::Degenerated(edge))
+            continue;
+        bool seam = false;
+        for (NCollection_List<TopoDS_Shape>::Iterator it(faces_of_edge.FindFromIndex(i)); it.More() && !seam; it.Next())
+            seam = BRep_Tool::IsClosed(edge, TopoDS::Face(it.Value()));
+        if (seam)
+            continue;
+        std::vector<Vec3d> pts = sample_edge_world(edge, chord_tol);
+        if (pts.size() >= 2)
+            out.push_back(std::move(pts));
+    }
+    return out;
 }
 
 Vec3d GeometryEngine::face_centroid_world(const TopoDS_Face& face)

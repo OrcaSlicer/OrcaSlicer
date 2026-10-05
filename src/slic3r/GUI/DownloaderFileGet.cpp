@@ -26,6 +26,7 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/Utils/Http.hpp"
 
 namespace Slic3r {
 namespace GUI {

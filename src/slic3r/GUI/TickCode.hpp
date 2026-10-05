@@ -2,7 +2,6 @@
 #define slic3r_GUI_TickCode_hpp_
 
 #include "libslic3r/CustomGCode.hpp"
-#include "libslic3r/Color.hpp"
 #include <set>
 #include <string>
 #include <vector>

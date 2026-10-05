@@ -11,6 +11,11 @@
 #include <wx/dialog.h>
 #include "wx/webview.h"
 
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+namespace Slic3r { class PrintHost; }
+
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"
 #endif
@@ -18,8 +23,6 @@
 #include "wx/msw/webview_edge.h"
 #endif
 
-#include "GUI_Utils.hpp"
-#include "PrintHost.hpp"
 
 namespace Slic3r { namespace GUI {
 
