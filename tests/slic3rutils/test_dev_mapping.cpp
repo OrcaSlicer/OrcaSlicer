@@ -13,6 +13,12 @@
     #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/ProjectTask.hpp"
+#include <vector>
+#include <catch2/catch_message.hpp>
+
 #include <catch2/catch_all.hpp>
 
 #include <wx/timer.h>

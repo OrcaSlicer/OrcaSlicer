@@ -1,11 +1,21 @@
+#include "ArcFitter.hpp"
 #include "BoundingBox.hpp"
 #include "Polyline.hpp"
 #include "Exception.hpp"
 #include "ExPolygon.hpp"
 #include "Line.hpp"
+#include "Point.hpp"
+#include "MultiPoint.hpp"
 #include "Polygon.hpp"
+#include <cstddef>
+#include <algorithm>
+#include <cmath>
+#include "libslic3r.h"
+#include <cassert>
 #include <iostream>
+#include <limits>
 #include <utility>
+#include <vector>
 
 namespace Slic3r {
 

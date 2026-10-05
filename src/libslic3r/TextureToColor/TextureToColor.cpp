@@ -1,5 +1,12 @@
 #include "TextureToColor.hpp"
 
+#include <string>
+#include <cstddef>
+#include <limits>
+#include <opencv2/core/mat.hpp>
+#include <algorithm>
+#include <memory>
+#include <ratio>
 #include <tbb/parallel_for.h>
 #include <array>
 #include <atomic>
@@ -9,14 +16,20 @@
 #include <functional>
 
 #include <boost/next_prior.hpp>
+#include "Callbacks.hpp"
 #include "CgalUtils.hpp"
 #include "ColorUtils.hpp"
+#include "TriMesh.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include <filesystem>
 #include <fstream>
 #include "Repair.hpp"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
+#include <unordered_map>
 
 namespace Slic3r { namespace tex2color {
 

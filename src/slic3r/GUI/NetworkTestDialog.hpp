@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_NetworkTestDialog_hpp_
 #define slic3r_GUI_NetworkTestDialog_hpp_
 
+#include <wx/event.h>
 #include <wx/wx.h>
 #include <boost/thread.hpp>
 

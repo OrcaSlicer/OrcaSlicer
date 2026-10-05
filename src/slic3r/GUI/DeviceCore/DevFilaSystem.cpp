@@ -1,5 +1,24 @@
+#include <array>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <ctime>
+#include <cstdlib>
+#include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/colour.h>
+#include <string>
+#include <wx/string.h>
+#include <optional>
+#include <unordered_map>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <set>
+#include <utility>
 #include "DevFilaSystem.h"
+#include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 

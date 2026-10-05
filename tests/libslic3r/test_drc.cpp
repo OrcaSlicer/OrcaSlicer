@@ -1,12 +1,21 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Format/DRC.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <boost/nowide/fstream.hpp>
 
+#include <draco/attributes/geometry_attribute.h>
+#include <cstdint>
+#include <draco/attributes/geometry_indices.h>
+#include <draco/compression/config/compression_shared.h>
 #include <draco/compression/encode.h>
+#include <draco/core/draco_types.h>
+#include <draco/core/encoder_buffer.h>
 #include <draco/mesh/mesh.h>
+#include <string>
+#include <ios>
 
 #include "test_utils.hpp"
 

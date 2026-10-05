@@ -34,6 +34,7 @@
 #include <thread>
 #include <unordered_map>
 #include <utility>
+#include <memory>
 
 namespace Slic3r {
 

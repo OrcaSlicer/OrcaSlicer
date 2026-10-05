@@ -8,6 +8,10 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include <initializer_list>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -72,9 +76,11 @@ Slic3r::Model model(const std::string& model_name, TriangleMesh&& _mesh);
 DynamicPrintConfig multifilament_config(unsigned int filaments,
     std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {});
 
-// Apply `meshes` and config to `print`/`model`; optional per-object overrides, auto-arranged unless `arrange` is false.
+// Apply `meshes` and config to `print`/`model`, each object with `instances` copies; optional per-object overrides,
+// auto-arranged unless `arrange` is false.
 void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r::Model &model, const DynamicPrintConfig &config_in,
-    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> *per_object_overrides = nullptr, bool arrange = true);
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> *per_object_overrides = nullptr, bool arrange = true,
+    size_t instances = 1);
 void init_print(std::initializer_list<TestMesh> meshes, Slic3r::Print &print, Slic3r::Model &model, const Slic3r::DynamicPrintConfig &config_in = Slic3r::DynamicPrintConfig::full_print_config());
 void init_print(std::initializer_list<TriangleMesh> meshes, Slic3r::Print &print, Slic3r::Model &model, const Slic3r::DynamicPrintConfig &config_in = Slic3r::DynamicPrintConfig::full_print_config());
 void init_print(std::initializer_list<TestMesh> meshes, Slic3r::Print &print, Slic3r::Model &model, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> config_items);

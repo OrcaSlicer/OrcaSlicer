@@ -1,5 +1,12 @@
 #include "MinAreaBoundingBox.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
 
+#include <cstdint>
+#include "libnest2d/common.hpp"
+#include <cmath>
+#include <cstdlib>
+#include "libnest2d/geometry_traits.hpp"
 #include <libslic3r/ExPolygon.hpp>
 
 #if defined(_MSC_VER) && defined(__clang__)

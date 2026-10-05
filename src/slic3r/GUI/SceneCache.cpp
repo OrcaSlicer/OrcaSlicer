@@ -8,6 +8,8 @@
 #include "GUI_App.hpp"
 
 #include <glad/gl.h>
+#include <utility>
+#include "libslic3r/Point.hpp"
 
 namespace Slic3r {
 namespace GUI {

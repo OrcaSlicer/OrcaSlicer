@@ -2,6 +2,7 @@
 #include "BBLNetworkPlugin.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
 #include "NetworkAgent.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -10,7 +11,12 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <exception>
+#include <functional>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <utility>
+#include <vector>
 using json = nlohmann::json;
 
 #include <type_traits>

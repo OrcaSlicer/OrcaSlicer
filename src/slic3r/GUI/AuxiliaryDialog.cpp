@@ -5,6 +5,11 @@
 #include "libslic3r/Utils.hpp"
 
 #include <boost/property_tree/ptree.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
 
 namespace pt = boost::property_tree;
 typedef pt::ptree JSON;

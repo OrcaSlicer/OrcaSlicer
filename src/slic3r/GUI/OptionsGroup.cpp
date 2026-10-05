@@ -11,11 +11,25 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/LabeledStaticBox.hpp"
 
+#include <boost/any.hpp>
 #include <boost/log/trivial.hpp>
+#include <functional>
+#include <cstddef>
+#include <iostream>
 #include <libslic3r/Config.hpp>
+#include "slic3r/GUI/Field.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <string>
 #include <utility>
+#include <vector>
 #include <wx/bookctrl.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/numformatter.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -26,6 +40,9 @@
 #include "I18N.hpp"
 #include <algorithm>
 #include <locale>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/utils.h>
 
 namespace Slic3r { namespace GUI {
 

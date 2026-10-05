@@ -2,9 +2,14 @@
 
 #include <slic3r/Utils/BBLPrinterAgent.hpp>
 #include <slic3r/Utils/MoonrakerPrinterAgent.hpp>
+#include "slic3r/Utils/ICloudServiceAgent.hpp"
+#include "slic3r/Utils/IPrinterAgent.hpp"
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <pybind11/pytypes.h>
+#include <catch2/catch_message.hpp>
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>

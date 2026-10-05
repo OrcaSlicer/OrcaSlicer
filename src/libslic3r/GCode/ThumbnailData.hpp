@@ -1,7 +1,10 @@
 #ifndef slic3r_ThumbnailData_hpp_
 #define slic3r_ThumbnailData_hpp_
 
+#include <functional>
+#include <string>
 #include <vector>
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "nlohmann/json.hpp"
 

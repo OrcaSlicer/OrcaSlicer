@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include "slic3r/Utils/bambu_networking.hpp"
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
@@ -12,7 +13,11 @@
 #include <memory>
 #include <string>
 
+#include <catch2/catch_test_macros.hpp>
 #include "plugin_test_utils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/eval.h>
+#include <pybind11/gil.h>
 
 namespace py = pybind11;
 using namespace Slic3r;

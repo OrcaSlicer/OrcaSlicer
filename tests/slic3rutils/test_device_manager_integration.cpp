@@ -1,3 +1,4 @@
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
@@ -7,6 +8,8 @@
 #include <libslic3r/AppConfig.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>

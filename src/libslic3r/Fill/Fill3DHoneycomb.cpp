@@ -1,8 +1,20 @@
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "FillBase.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cstdlib>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include <cassert>
+#include <cmath>
+#include <algorithm>
+#include "libslic3r/Polyline.hpp"
+#include <utility>
 #include "Fill3DHoneycomb.hpp"
 
 namespace Slic3r {

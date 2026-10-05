@@ -4,9 +4,24 @@
 #include "libslic3r/Format/bbs_3mf.hpp"
 
 
+#include <array>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <wx/filefn.h>
+#include <wx/dataview.h>
+#include <map>
+#include <wx/debug.h>
+#include <cstddef>
+#include <wx/arrstr.h>
 #include <wx/log.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/types.h>
+
+namespace fs = boost::filesystem;
 
 const static std::array<wxString, 4> s_default_folders = {
     _L("Model Pictures"),

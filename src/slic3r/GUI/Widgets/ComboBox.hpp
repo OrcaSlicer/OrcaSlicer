@@ -3,6 +3,16 @@
 
 #include "TextInput.hpp"
 #include "DropDown.hpp"
+#include <wx/containr.h>
+#include <wx/ctrlsub.h>
+#include <vector>
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/gdicmn.h>
+#include <cstddef>
+#include <wx/arrstr.h>
+#include <wx/clntdata.h>
+#include <wx/event.h>
 
 #define CB_NO_DROP_ICON DD_NO_CHECK_ICON
 #define CB_NO_TEXT DD_NO_TEXT

@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include "bambu_networking.hpp"
 #include <string>
 #include <mutex>
 #include <memory>

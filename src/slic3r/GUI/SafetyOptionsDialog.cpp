@@ -9,6 +9,20 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevPrintOptions.h"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <string>
+#include <wx/scrolwin.h>
+#include <wx/types.h>
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <boost/log/trivial.hpp>
+#include <wx/timer.h>
 
 static const wxColour STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
 static const wxColour STATIC_TEXT_CAPTION_COL = wxColour(100, 100, 100);

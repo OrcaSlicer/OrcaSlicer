@@ -2,7 +2,17 @@
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "FillCornerSmoothing.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <cstddef>
+#include <algorithm>
 #include "FillHoneycomb.hpp"
 
 namespace Slic3r {

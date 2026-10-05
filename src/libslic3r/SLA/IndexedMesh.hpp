@@ -1,6 +1,12 @@
 #ifndef SLA_INDEXEDMESH_H
 #define SLA_INDEXEDMESH_H
 
+#include <Eigen/Core>
+#include <cstddef>
+#include <limits>
+#include <cmath>
+#include <cassert>
+#include <functional>
 #include <memory>
 #include <vector>
 

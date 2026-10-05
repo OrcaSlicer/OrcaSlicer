@@ -1,5 +1,8 @@
 #include "libslic3r/CAD/SketchImport.hpp"
 
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/EmbossShape.hpp"
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -9,6 +12,11 @@
 
 #include <algorithm>
 #include <limits>
+#include <vector>
+#include <string>
+#include <memory>
+#include <utility>
+#include <nanosvg/nanosvg.h>
 
 namespace Slic3r {
 

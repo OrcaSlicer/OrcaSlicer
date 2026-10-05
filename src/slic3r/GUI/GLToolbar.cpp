@@ -8,8 +8,15 @@
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <boost/container_hash/hash.hpp>
 #include <boost/functional/hash.hpp>
 
+#include "slic3r/GUI/Event.hpp"
+#include "libslic3r/Utils.hpp"
+#include <cassert>
+#include <cstddef>
+#include <vector>
+#include <utility>
 #include <wx/event.h>
 #include <wx/bitmap.h>
 #include <wx/dcmemory.h>

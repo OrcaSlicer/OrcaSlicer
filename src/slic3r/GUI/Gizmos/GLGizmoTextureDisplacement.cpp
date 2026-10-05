@@ -1,8 +1,11 @@
 #include "GLGizmoTextureDisplacement.hpp"
 
+#include <Eigen/Core>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 
+#include "ColorSpaceConvert.hpp"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -34,7 +37,32 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <chrono>
+#include <cstdio>
 #include <glad/gl.h>
+#include <imgui.h>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <memory>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "libslic3r/TextureDisplacement.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include <math.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/IconManager.hpp"
+#include <optional>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TextureBake/TextureBakeDebug.hpp"
+#include <ratio>
 #include <tbb/parallel_for.h>
 #include <algorithm>
 #include <array>
@@ -42,6 +70,12 @@
 #include <limits>
 #include <queue>
 #include <set>
+#include <vector>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/busycursor.h>
+#include <wx/string.h>
+#include <wx/filedlg.h>
 
 namespace Slic3r::GUI {
 
@@ -5117,7 +5151,7 @@ void GLGizmoTextureDisplacement::render_debug_stage_panel(ModelVolume *mv)
                           m_imgui->scaled(20.f));
 
     ImGui::SameLine();
-    ImGui::Checkbox(_u8L("Check topology").c_str(), &m_debug_check_topology);
+    m_imgui->bbl_checkbox(_L("Check topology"), m_debug_check_topology);
     if (ImGui::IsItemHovered())
         m_imgui->tooltip(_u8L("Count open and non-manifold edges after each stage, which is how a stage "
                               "that tore the mesh is spotted. It scans every edge, so it adds noticeably "
@@ -5307,6 +5341,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     GizmoImguiBegin(get_name(), flags);
     ensure_panel_icons();
     process_uv_commands(); // clicks from the UV editor pane, run here where the GL context is current
+    const float previous_body_h   = m_panel_body_h;
+    const float previous_footer_h = m_panel_footer_h;
 
     // Pinned every frame while Standard is active, so what Preview shows is always what Bake will do.
     if (!pro_mode() && apply_standard_mode_presets(mv))
@@ -5328,20 +5364,16 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     const float       card_pad = std::round(m_imgui->scaled(0.55f));
     const float       wrap_w   = m_imgui->scaled(20.f);
     const ImVec4      orca     = ImGuiWrapper::COL_ORCA;
-    const ImVec4      col_link = dark ? ImVec4(0.30f, 0.71f, 0.67f, 1.f) : ImVec4(0.f, 0.47f, 0.42f, 1.f);
-    const ImVec4      col_frame = dark ? ImVec4(0.212f, 0.212f, 0.235f, 1.f) : ImVec4(0.808f, 0.808f, 0.808f, 1.f);
-    const ImU32       col_card = dark ? IM_COL32(255, 255, 255, 10) : IM_COL32(0, 0, 0, 12);
-    const ImU32       col_line = dark ? IM_COL32(255, 255, 255, 18) : IM_COL32(0, 0, 0, 23);
+    const ImVec4      col_link = ImGuiWrapper::COL_ORCA;
+    const ImVec4      col_frame = ImGui::GetStyleColorVec4(ImGuiCol_Separator);
+    const ImU32       col_card = ImGui::GetColorU32(ImGuiCol_Text, dark ? 0.045f : 0.047f);
+    const ImU32       col_line = ImGui::GetColorU32(ImGuiCol_Text, dark ? 0.08f : 0.09f);
     const ImU32       col_sep  = ImGui::GetColorU32(ImGuiCol_Separator);
 
-    // Combo drop-downs otherwise inherit ImGui's near-black default popup background; under the light
-    // theme that leaves the dark item text unreadable ("the dropbox is black"). Pushed only around each
-    // Combo below (never around a tooltip, whose own near-black default is what makes it readable).
-    const ImVec4 combo_popup_bg = dark ? ImVec4(0.18f, 0.18f, 0.19f, 1.f) : ImVec4(0.93f, 0.93f, 0.93f, 1.f);
     const auto   scoped_combo   = [&](const char *id, int *v, const char *const items[], int n) {
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, combo_popup_bg);
+        ImGuiWrapper::push_combo_style(m_parent.get_scale());
         const bool changed = ImGui::Combo(id, v, items, n);
-        ImGui::PopStyleColor();
+        ImGuiWrapper::pop_combo_style();
         return changed;
     };
     const auto hover_tip = [&](const auto &text) {
@@ -5748,10 +5780,10 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             wf_toggle = true;
 
         const std::string auto_label = _u8L("Auto");
-        const float       auto_w     = frame_h + style.ItemInnerSpacing.x + ImGui::CalcTextSize(auto_label.c_str()).x;
+        const float       auto_w     = frame_h * 0.78f /*ratio from BBLCheckbox*/ + style.ItemInnerSpacing.x + ImGui::CalcTextSize(auto_label.c_str()).x;
         ImGui::SameLine();
         ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowContentRegionMax().x - auto_w));
-        if (ImGui::Checkbox((auto_label + "##auto_update").c_str(), &m_auto_update) && m_auto_update)
+        if (m_imgui->bbl_checkbox(wxString::FromUTF8(auto_label) + "##auto_update", m_auto_update) && m_auto_update)
             rebuild_preview(); // catch up anything that changed while it was off
         hover_tip(_u8L("Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting "
                         "or dragging a slider starts to stutter - the preview then waits until you let go."));
@@ -5986,7 +6018,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                "costs fine detail."));
 
                 // Edge fade: the relief flattens toward the boundary of the painted area.
-                m_preview_params_dirty |= ImGui::Checkbox((_u8L("Edge fade") + "##edge_smoothing").c_str(), &layer.edge_smoothing);
+                m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Edge fade") + "##edge_smoothing", layer.edge_smoothing);
                 hover_tip(_u8L("Flattens the relief as it approaches the edge of the painted area, so it "
                                "blends into the bare surface instead of stopping at a step."));
                 ImGui::SameLine();
@@ -6001,7 +6033,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // Invert and Colours share a row.
                 {
                     const float x0 = ImGui::GetCursorPosX();
-                    m_preview_params_dirty |= ImGui::Checkbox(_u8L("Invert").c_str(), &layer.invert);
+                    m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Invert"), layer.invert);
                     hover_tip(_u8L("Turns the relief inside out: what stood out is cut in, and the other way "
                                    "round. The same as using a negative of the image."));
                     ImGui::SameLine();
@@ -6013,7 +6045,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                     const bool has_color     = decode_height_texture(layer).has_color();
                     bool       color_enabled = layer.color_enabled && has_color;
                     m_imgui->disabled_begin(!has_color);
-                    if (ImGui::Checkbox(_u8L("Colours").c_str(), &color_enabled)) {
+                    if (m_imgui->bbl_checkbox(_L("Colours"), color_enabled)) {
                         layer.color_enabled    = color_enabled;
                         m_preview_params_dirty = true;
                     }
@@ -6031,7 +6063,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                     // under whichever layer turned colour on.
                     if (color_enabled) {
                         TextureDisplacementOptions &opts = mv->texture_displacement_options;
-                        if (ImGui::Checkbox(_u8L("Mix filaments").c_str(), &opts.color_mix_enabled))
+                        if (m_imgui->bbl_checkbox(_L("Mix filaments"), opts.color_mix_enabled))
                             m_preview_params_dirty = true;
                         hover_tip(_u8L("Interleaves two filaments to fake the colours in between, so a handful "
                                        "of filaments can cover a photo or a gradient. An image of flat colours "
@@ -6150,7 +6182,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                     "a slide projector. Faces turned away from you stretch, so line the view up with "
                                     "the surface you care about first."));
 
-                    if (ImGui::Checkbox(_u8L("Project only on visible").c_str(), &m_project_only_visible)) {
+                    if (m_imgui->bbl_checkbox(_L("Project only on visible"), m_project_only_visible)) {
                         if (m_project_only_visible && select_visible_faces() == 0)
                             show_error(nullptr, _u8L("Nothing is visible from this angle - turn the model to face the "
                                                      "part you want to project onto."));
@@ -6161,7 +6193,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                     "behind anything - and projects onto those. Replaces what the layer had painted."));
 
                     bool projector_open = m_projector_frame != nullptr && m_projector_frame->IsShown();
-                    if (ImGui::Checkbox(_u8L("Projection frame").c_str(), &projector_open))
+                    if (m_imgui->bbl_checkbox(_L("Projection frame"), projector_open))
                         show_projector(projector_open);
                     hover_tip(_u8L("Opens a window you drag over the model. Whatever you can see through it is what "
                                     "gets the texture, and its border becomes the edge of the projection."));
@@ -6202,7 +6234,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // Tile, and how it repeats.
                 {
                     const float x0 = ImGui::GetCursorPosX();
-                    m_preview_params_dirty |= ImGui::Checkbox((_u8L("Tile") + "##tile_enabled").c_str(), &layer.tile_enabled);
+                    m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Tile") + "##tile_enabled", layer.tile_enabled);
                     hover_tip(_u8L("Repeats the texture across the painted area. Off places one copy, like a decal, "
                                     "at the size set by Tile size."));
                     ImGui::SameLine();
@@ -6390,7 +6422,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             const ImVec2                    mn(mouse.x - inner - 0.5f * grip_w, mouse.y - 0.5f * row_h);
             const ImVec2                    mx(mn.x + (content_rx - list_x), mn.y + row_h);
             fg->AddRectFilled(ImVec2(mn.x + 2.f, mn.y + 4.f), ImVec2(mx.x + 2.f, mx.y + 4.f), IM_COL32(0, 0, 0, 70), rounding);
-            fg->AddRectFilled(mn, mx, dark ? IM_COL32(0x3a, 0x3a, 0x40, 245) : IM_COL32(255, 255, 255, 245), rounding);
+            fg->AddRectFilled(mn, mx, ImGui::GetColorU32(ImGuiCol_WindowBg, 245.f / 255.f), rounding);
             fg->AddRect(mn, mx, ImGui::GetColorU32(orca), rounding, 0, 1.5f);
 
             float x = mn.x + inner;
@@ -6429,7 +6461,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::Separator();
         heading(_L("Subdivision"));
 
-        if (ImGui::Checkbox(_u8L("Only painted area (adaptive)").c_str(), &m_subdivide_adaptive)) {
+        if (m_imgui->bbl_checkbox(_L("Only painted area (adaptive)"), m_subdivide_adaptive)) {
             if (m_subdivide_editing)
                 rebuild_subdivide_preview(); // switch the wireframe between the uniform and adaptive result
             m_parent.set_as_dirty();
@@ -6460,7 +6492,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 m_parent.set_as_dirty();
             };
 
-            if (ImGui::Checkbox(_u8L("Follow texture detail").c_str(), &m_subdivide_feature))
+            if (m_imgui->bbl_checkbox(_L("Follow texture detail"), m_subdivide_feature))
                 preview_live();
             hover_tip(_u8L("Spends the triangles where the texture actually bends - packed along ridges and edges, "
                             "sparse over flat ground - instead of spreading them evenly. The same detail for fewer "
@@ -6587,7 +6619,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         hover_tip(_u8L("Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an "
                         "even mesh; this is what makes one out of an uneven import."));
 
-        ImGui::Checkbox((_u8L("Keep sharp edges") + "##remesh_sharp").c_str(), &m_remesh_keep_sharp_edges);
+        m_imgui->bbl_checkbox(_L("Keep sharp edges") + "##remesh_sharp", m_remesh_keep_sharp_edges);
         hover_tip(_u8L("Holds hard edges and open borders in place while the rest is remeshed. Without it "
                        "the remesher slides vertices along the surface and rounds every crisp edge off - "
                        "a cube comes back with wobbly edges."));
@@ -6614,12 +6646,12 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             ImGui::Separator();
             heading(_L("Result"));
 
-            m_preview_params_dirty |= ImGui::Checkbox(_u8L("Displace up to the border").c_str(), &opts.displace_border);
+            m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Displace up to the border"), opts.displace_border);
             hover_tip(_u8L("Lets the relief run right to the edge of the painted area. Turn it off to hold that "
                             "outer ring flat, which keeps the displacement strictly inside your paint but flattens "
                             "the pattern at the border."));
 
-            m_preview_params_dirty |= ImGui::Checkbox(_u8L("Smooth result").c_str(), &opts.smooth_enabled);
+            m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Smooth result"), opts.smooth_enabled);
             hover_tip(_u8L("Smooths the geometry after the texture has been applied, to take the hard steps out of a "
                             "low-resolution image. Only what the displacement moved is touched. The Smoothing slider "
                             "on a layer is a different thing: it blurs the image before it is used."));
@@ -6636,7 +6668,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 hover_tip(_u8L("How many smoothing passes to run. More passes spread the smoothing further across "
                                 "the surface; Strength decides how much each one moves."));
 
-                m_preview_params_dirty |= ImGui::Checkbox(_u8L("Ignore outer ring").c_str(), &opts.smooth_skip_border);
+                m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Ignore outer ring"), opts.smooth_skip_border);
                 hover_tip(_u8L("Keeps the outer ring of the painted area out of the smoothing. Its neighbours "
                                 "outside the paint never move, so smoothing it drags the relief down and leaves the "
                                 "pattern half-melted at the border."));
@@ -6661,7 +6693,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             // The classic path is the opt-in: the one-run pipeline is the default, and its resolution
             // control lives in the footer next to Bake (see below).
             bool classic = !opts.pipeline_v2;
-            if (ImGui::Checkbox(_u8L("Experimental: classic bake pipeline").c_str(), &classic)) {
+            if (m_imgui->bbl_checkbox(_L("Experimental: classic bake pipeline"), classic)) {
                 opts.pipeline_v2       = !classic;
                 m_preview_params_dirty = true;
             }
@@ -6690,13 +6722,13 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         if (SHOW_PIPELINE_DEV_CONTROLS && opts.pipeline_v2) {
             // Keeping the relief above the plate is not a checkbox: it is unconditional, in both pipelines
             // (see build_texture_displacement()).
-            m_preview_params_dirty |= ImGui::Checkbox(_u8L("Align mesh to texture edges").c_str(), &opts.v2_relocate);
+            m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Align mesh to texture edges"), opts.v2_relocate);
             hover_tip(_u8L("Slide vertices sideways onto the edges in the texture before displacing them. "
                            "Displacement can only move vertices up and down, so without this a sharp step "
                            "in the image lands wherever the triangles happen to be and comes out as a "
                            "staircase. Moving the vertices onto the step first gives a straight wall at the "
                            "same triangle count."));
-            m_preview_params_dirty |= ImGui::Checkbox(_u8L("Clean up slivers").c_str(), &opts.v2_regularize);
+            m_preview_params_dirty |= m_imgui->bbl_checkbox(_L("Clean up slivers"), opts.v2_regularize);
             hover_tip(_u8L("Collapse the thin triangles refinement inherits from the model's own "
                            "tessellation, before displacement samples them. A sliver's three corners "
                            "land on three unrelated parts of the texture, which is what makes the "
@@ -6776,7 +6808,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             // a fixed value, seeded with the recommendation so it starts from something sensible.
             bool auto_res = opts.v2_refine_mm <= 0.f;
             m_imgui->disabled_begin(busy);
-            if (ImGui::Checkbox("##v2auto", &auto_res)) {
+            if (m_imgui->bbl_checkbox(wxString::FromUTF8("##v2auto"), auto_res)) {
                 if (auto_res) {
                     opts.v2_refine_mm       = 0.f;
                     opts.v2_max_triangles_k = -1;
@@ -6874,11 +6906,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         const std::string bake_label = m_prepare_in_progress ? _u8L("Preparing...") :
                                        m_bake_in_progress    ? _u8L("Baking...") :
                                                                into_u8(m_desc.at("bake"));
-        ImGui::PushStyleColor(ImGuiCol_Button, orca);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiWrapper::COL_ORCA_HOVER);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, orca);
-        ImGui::PushStyleColor(ImGuiCol_Border, orca);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+        GLGizmoUtils::push_orca_button_style();
         m_imgui->push_bold_font();
         m_imgui->disabled_begin(!can_bake);
         if (ImGui::Button((bake_label + "##bake").c_str(), ImVec2(x0 + panel_w - ImGui::GetCursorPosX(), button_h))) {
@@ -6891,7 +6919,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
         m_imgui->disabled_end();
         m_imgui->pop_bold_font();
-        ImGui::PopStyleColor(5);
+        GLGizmoUtils::pop_orca_button_style();
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
             m_imgui->tooltip(mv != nullptr && !mv->is_texture_displacement_painted() ?
                                  (m_seam_edit_mode ? _u8L("Nothing is painted yet. The UV editor's seam tool is on, so "
@@ -6930,7 +6958,17 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
     }
     m_panel_footer_h = ImGui::GetCursorScreenPos().y - footer_top;
-
+    constexpr float resize_epsilon = 0.5f;
+    const float content_bottom = ImGui::GetCursorPosY() - style.ItemSpacing.y;
+    const float window_bottom  = ImGui::GetWindowContentRegionMax().y;
+    const bool  outer_window_needs_fit = content_bottom < window_bottom - resize_epsilon ||
+                                         (content_bottom > window_bottom + resize_epsilon &&
+                                          ImGui::GetWindowHeight() < ImGui::GetMainViewport()->Size.y -
+                                                                             2.f * style.DisplaySafeAreaPadding.y - resize_epsilon);
+    if (std::abs(m_panel_body_h - previous_body_h) > resize_epsilon ||
+        std::abs(m_panel_footer_h - previous_footer_h) > resize_epsilon || outer_window_needs_fit) {
+        m_parent.request_extra_frame();
+    }
     GizmoImguiEnd();
     ImGuiWrapper::pop_toolbar_style();
 

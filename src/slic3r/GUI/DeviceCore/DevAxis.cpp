@@ -1,7 +1,9 @@
 #include "DevAxis.h"
 #include "DevUtil.h"
 
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 namespace Slic3r
 {
