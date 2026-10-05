@@ -83,6 +83,7 @@ public:
     wxColour        wx_color;
     bool            is_bbl;
     bool            is_exists = false;
+    bool            is_empty = false;  // Explicitly reported as having no filament.
     bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
@@ -91,13 +92,15 @@ public:
     // operators
     bool operator==(DevAmsTray const& o) const
     {
-        return id == o.id && m_fila_type == o.m_fila_type && filament_setting_id == o.filament_setting_id && color == o.color;
+        return id == o.id && m_fila_type == o.m_fila_type && filament_setting_id == o.filament_setting_id &&
+               color == o.color && is_empty == o.is_empty;
     }
     bool operator!=(DevAmsTray const& o) const { return !operator==(o); }
 
     // setters
     void reset();
     void UpdateColorFromStr(const std::string& color);
+    void UpdateEmptyState(bool material_fields_present);
     void set_hold_count() { hold_count = HOLD_COUNT_MAX; }
 
     // getter

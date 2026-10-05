@@ -60,7 +60,7 @@
 namespace Slic3r {
 namespace GUI {
 
-class MediaFilePanel;
+class StoragePanel;
 
 class AddMachinePanel : public wxPanel
 {
@@ -86,7 +86,7 @@ private:
     wxSizer*        m_main_sizer{ nullptr };
 
     StatusPanel*        m_status_info_panel{ nullptr };
-    MediaFilePanel*     m_media_file_panel{ nullptr };
+    StoragePanel*       m_storage_panel{ nullptr };
     UpgradePanel*       m_upgrade_panel{ nullptr };
     HMSPanel*           m_hms_panel{ nullptr };
 

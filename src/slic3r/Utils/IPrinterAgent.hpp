@@ -13,6 +13,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <cstdint>
 #include <cmath>
 #include <nlohmann/json.hpp>
 #include <boost/format.hpp>
@@ -68,6 +69,34 @@ enum class CameraStreamMode {
     http_snapshot // HTTP endpoint returning one image per request
 };
 
+struct PrinterFileEntry {
+    std::string   path;      // gcodes-root-relative, e.g. "sub/foo.gcode"
+    std::string   name;      // basename for display
+    std::uint64_t size = 0;  // bytes
+    std::int64_t  modified = 0; // unix seconds
+};
+
+// Moonraker per-file metadata: print time and filament usage. Missing fields are 0.
+struct PrinterFileMetadata {
+    int    estimated_time = 0;   // seconds
+    double filament_total = 0;   // millimetres
+    double filament_weight = 0;  // grams
+};
+
+// Async listing of the printer's G-code files. The return value reports whether
+// the request was dispatched; `callback` is invoked once with the result.
+using PrinterFileListFn = std::function<void(int result, std::vector<PrinterFileEntry> files)>;
+
+// Async fetch of one G-code file's embedded thumbnail. `image` is the raw image
+// bytes (empty when the file has no thumbnail); result reports dispatch/transfer.
+using PrinterFileThumbnailFn = std::function<void(int result, std::string image)>;
+
+// Async deletion of one printer G-code file. `result` reports dispatch and outcome.
+using PrinterFileDeleteFn = std::function<void(int result)>;
+
+// Async fetch of one G-code file's Moonraker metadata. `meta` fields default to 0.
+using PrinterFileMetadataFn = std::function<void(int result, PrinterFileMetadata meta)>;
+
 /**
  * IPrinterAgent - Interface for printer operations.
  *
@@ -108,6 +137,16 @@ public:
      * Publish a JSON command to a printer through cloud relay.
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
+
+    // Capability queries are per-device because one agent may own many printers.
+    // Legacy agents keep their existing behavior unless they override these.
+    virtual bool supports_command(const std::string& /*dev_id*/, const std::string& /*command*/) const { return true; }
+    virtual bool supports_feature(const std::string& /*dev_id*/, const std::string& /*feature*/) const { return false; }
+
+    // Whether this agent serializes AMS lane selection into print.gcode_file's
+    // per-print filament_mapping field. A dialect question, not a capability one:
+    // the no-AMS external-spool normalization runs before capabilities are known.
+    virtual bool uses_filament_mapping() const { return false; }
 
     // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
     // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
@@ -314,6 +353,48 @@ public:
         (void) file_name;
         (void) callback;
         return -1;
+    }
+
+    /**
+     * List the printer's G-code files, delivered asynchronously via callback.
+     * Agents without a file listing report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+    {
+        (void) dev_id;
+        (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+
+    /**
+     * Fetch one G-code file's embedded thumbnail, delivered asynchronously via
+     * callback. Agents without thumbnail support report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
+    {
+        (void) dev_id; (void) path; (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+
+    /**
+     * Delete one G-code file from the printer, delivered asynchronously via
+     * callback. Agents without file deletion report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
+    {
+        (void) dev_id; (void) path; (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+
+    /**
+     * Fetch one G-code file's Moonraker metadata (print time and filament usage),
+     * delivered asynchronously via callback. Agents without metadata support
+     * report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
+    {
+        (void) dev_id; (void) path; (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
 
     /**

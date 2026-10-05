@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <slic3r/GUI/FilamentMappingUtils.hpp>
 #include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
@@ -22,6 +24,13 @@ struct Probe : OrcaPrinterAgent {
     using OrcaPrinterAgent::parse_lan_endpoint;
     using OrcaPrinterAgent::make_lan_client_id;
     using OrcaPrinterAgent::lan_connection_target;
+    using OrcaPrinterAgent::build_filament_mapping;
+    using OrcaPrinterAgent::build_gcode_file_payload;
+    using OrcaPrinterAgent::prepare_outgoing_request;
+    using OrcaPrinterAgent::parse_file_list;
+    using OrcaPrinterAgent::parse_thumbnail_path;
+    using OrcaPrinterAgent::encode_file_path;
+    using OrcaPrinterAgent::parse_file_metadata;
 };
 }
 
@@ -68,6 +77,91 @@ TEST_CASE("OrcaPrinterAgent stamps the get_capabilities nozzle diameter onto pus
     CHECK(last_payload.find("N/A") == std::string::npos);
 }
 
+TEST_CASE("OrcaPrinterAgent owns connector capabilities and fails closed for AMS commands", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("orca-caps", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"fms": true, "filament_slots": true, "filament_mapping": true},
+            "supported_commands": ["print.ams_get_rfid"],
+            "capabilities": {
+                "protocol": {
+                    "features": {"filament_mapping": true},
+                    "supported_commands": ["print.ams_change_filament"]
+                }
+            }
+        }
+    })", false);
+
+    CHECK(agent.supports_feature("orca-caps", "filament_mapping"));
+    CHECK(agent.supports_command("orca-caps", "print.ams_filament_setting"));
+    CHECK(agent.supports_command("orca-caps", "print.ams_change_filament"));
+    CHECK(agent.supports_command("orca-caps", "print.ams_get_rfid"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_control"));
+
+    agent.deliver_to_sink("orca-caps", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"fms": false, "filament_slots": false, "filament_mapping": false},
+            "supported_commands": ["print.ams_control"],
+            "capabilities": {"protocol": {"features": {}, "supported_commands": []}}
+        }
+    })", false);
+
+    CHECK_FALSE(agent.supports_feature("orca-caps", "filament_mapping"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_filament_setting"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_change_filament"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_control"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_calibrate"));
+    CHECK(agent.supports_command("orca-caps", "print.gcode_file"));
+}
+
+TEST_CASE("OrcaPrinterAgent clears cached capabilities when a device is unbound", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("orca-forget", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"filament_slots": true},
+            "supported_commands": [],
+            "capabilities": {"protocol": {"features": {}, "supported_commands": []}}
+        }
+    })", false);
+    REQUIRE(agent.supports_command("orca-forget", "print.ams_filament_setting"));
+
+    agent.unbind("orca-forget");
+    CHECK_FALSE(agent.supports_command("orca-forget", "print.ams_filament_setting"));
+}
+
+TEST_CASE("OrcaPrinterAgent removes setting_id from AMS metadata and gates the request", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("orca-ams-write", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"fms": false, "filament_slots": true},
+            "supported_commands": [],
+            "capabilities": {"protocol": {"features": {"filament_slots": true}, "supported_commands": []}}
+        }
+    })", false);
+
+    const std::string request = R"({"print":{"command":"ams_filament_setting","sequence_id":"9","tray_info_idx":"GFL99","setting_id":"preset-setting"}})";
+    std::string command;
+    std::string prepared;
+    CHECK(agent.prepare_outgoing_request("orca-ams-write", request, command, prepared) == BAMBU_NETWORK_SUCCESS);
+    CHECK(command == "print.ams_filament_setting");
+    const nlohmann::json parsed = nlohmann::json::parse(prepared);
+    CHECK_FALSE(parsed["print"].contains("setting_id"));
+    CHECK(parsed["print"]["tray_info_idx"] == "GFL99");
+
+    agent.deliver_to_sink("orca-ams-write", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"filament_slots": false},
+            "capabilities": {"protocol": {"features": {"filament_slots": false}}}
+        }
+    })", false);
+    CHECK(agent.prepare_outgoing_request("orca-ams-write", request, command, prepared) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+}
+
 TEST_CASE("OrcaPrinterAgent::parse_lan_endpoint", "[OrcaPrinterAgent]") {
     std::string h, p;
     REQUIRE(Probe::parse_lan_endpoint("192.168.1.9", h, p));
@@ -82,6 +176,276 @@ TEST_CASE("OrcaPrinterAgent::make_lan_client_id is stable and prefixed", "[OrcaP
     const auto b = Probe::make_lan_client_id("dev-1");
     CHECK(a == b);                                   // drawn once per process
     CHECK(a.rfind("orcaslicer-lan-dev-1-", 0) == 0);
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list normalizes Moonraker entries", "[OrcaPrinterAgent]") {
+    const std::vector<Slic3r::PrinterFileEntry> files = Probe::parse_file_list(R"({
+        "result": [
+            {"path": "sub/foo.gcode", "modified": 1700000000.75, "size": 1234, "permissions": "rw"},
+            {"path": "bar.gcode", "modified": 42, "size": 7}
+        ]
+    })");
+    REQUIRE(files.size() == 2);
+    CHECK(files[0].path == "sub/foo.gcode");
+    CHECK(files[0].name == "foo.gcode");
+    CHECK(files[0].size == 1234);
+    CHECK(files[0].modified == 1700000000);   // fractional seconds truncate
+    CHECK(files[1].path == "bar.gcode");
+    CHECK(files[1].name == "bar.gcode");
+    CHECK(files[1].size == 7);
+    CHECK(files[1].modified == 42);
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list handles an empty result", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_file_list(R"({"result": []})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list rejects malformed JSON", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_file_list("not json").empty());
+    CHECK(Probe::parse_file_list(R"({"result": "nope"})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list skips entries missing fields", "[OrcaPrinterAgent]") {
+    const std::vector<Slic3r::PrinterFileEntry> files = Probe::parse_file_list(R"({
+        "result": [
+            {"size": 5},
+            {"path": ""},
+            {"path": "kept.gcode"},
+            "not-an-object"
+        ]
+    })");
+    REQUIRE(files.size() == 1);
+    CHECK(files[0].path == "kept.gcode");
+    CHECK(files[0].name == "kept.gcode");
+    CHECK(files[0].size == 0);
+    CHECK(files[0].modified == 0);
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path picks the largest width", "[OrcaPrinterAgent]") {
+    const std::string path = Probe::parse_thumbnail_path(R"({
+        "result": [
+            {"width": 32, "height": 32, "thumbnail_path": ".thumbs/foo.gcode-32x32.png"},
+            {"width": 300, "height": 300, "thumbnail_path": ".thumbs/foo.gcode-300x300.png"},
+            {"width": 100, "height": 100, "thumbnail_path": ".thumbs/foo.gcode-100x100.png"}
+        ]
+    })");
+    CHECK(path == ".thumbs/foo.gcode-300x300.png");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path accepts both key spellings", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 32, "relative_path": ".thumbs/old.png"}]})") == ".thumbs/old.png");
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 32, "thumbnail_path": ".thumbs/new.png"}]})") == ".thumbs/new.png");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path handles an empty result", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path(R"({"result": []})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path rejects malformed JSON", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path("not json").empty());
+    CHECK(Probe::parse_thumbnail_path(R"({"result": "nope"})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path skips an entry without a path", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 300, "height": 300}]})").empty());
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 300, "thumbnail_path": 7}]})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::encode_file_path preserves separators and encodes segments", "[OrcaPrinterAgent]") {
+    CHECK(Probe::encode_file_path("foo.gcode") == "foo.gcode");                          // flat path
+    CHECK(Probe::encode_file_path("sub/foo.gcode") == "sub/foo.gcode");                  // '/' kept as separator
+    CHECK(Probe::encode_file_path("a/b/c.gcode") == "a/b/c.gcode");
+    CHECK(Probe::encode_file_path("sub dir/my file #1.gcode") == "sub%20dir/my%20file%20%231.gcode");
+    CHECK(Probe::encode_file_path("design+part.gcode") == "design%2Bpart.gcode");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_metadata parses the Moonraker fields", "[OrcaPrinterAgent]") {
+    using Catch::Matchers::WithinAbs;
+    const Slic3r::PrinterFileMetadata meta = Probe::parse_file_metadata(R"({
+        "result": {
+            "filename": "sub/foo.gcode",
+            "size": 1234,
+            "modified": 1700000000.5,
+            "estimated_time": 3725,
+            "filament_total": 10500.5,
+            "filament_weight_total": 31.6,
+            "thumbnails": []
+        }
+    })");
+    CHECK(meta.estimated_time == 3725);
+    CHECK_THAT(meta.filament_total, WithinAbs(10500.5, 1e-9));
+    CHECK_THAT(meta.filament_weight, WithinAbs(31.6, 1e-9));
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_metadata defaults missing fields to zero", "[OrcaPrinterAgent]") {
+    using Catch::Matchers::WithinAbs;
+    const Slic3r::PrinterFileMetadata meta = Probe::parse_file_metadata(R"({"result": {"filename": "foo.gcode"}})");
+    CHECK(meta.estimated_time == 0);
+    CHECK_THAT(meta.filament_total, WithinAbs(0.0, 1e-12));
+    CHECK_THAT(meta.filament_weight, WithinAbs(0.0, 1e-12));
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_metadata yields zeros for a malformed reply", "[OrcaPrinterAgent]") {
+    using Catch::Matchers::WithinAbs;
+    const Slic3r::PrinterFileMetadata malformed = Probe::parse_file_metadata("not json");
+    CHECK(malformed.estimated_time == 0);
+    CHECK_THAT(malformed.filament_total, WithinAbs(0.0, 1e-12));
+    CHECK_THAT(malformed.filament_weight, WithinAbs(0.0, 1e-12));
+
+    const Slic3r::PrinterFileMetadata wrong_type = Probe::parse_file_metadata(R"({"result": "nope"})");
+    CHECK(wrong_type.estimated_time == 0);
+    CHECK_THAT(wrong_type.filament_total, WithinAbs(0.0, 1e-12));
+}
+
+TEST_CASE("filament mapping is keyed by the ams_mapping2 array position", "[OrcaPrinterAgent]") {
+    const nlohmann::json mapping = Probe::build_filament_mapping(
+        R"([{"ams_id":1,"slot_id":5},{"ams_id":255,"slot_id":255},{"ams_id":255,"slot_id":0}])");
+    REQUIRE(mapping.is_array());
+    REQUIRE(mapping.size() == 2);
+    CHECK(mapping[0]["filament_index"] == 0);
+    CHECK(mapping[0]["ams_id"] == 1);
+    CHECK(mapping[0]["slot_id"] == 5);
+    // The unmatched middle entry is dropped; the third entry keeps index 2.
+    CHECK(mapping[1]["filament_index"] == 2);
+    CHECK(mapping[1]["ams_id"] == 255);
+    CHECK(mapping[1]["slot_id"] == 0);
+}
+
+// Index-correlation merge gate (plan PR 3). `ams_mapping2` is built one entry
+// per logical filament, so its array position is the identifier the generated
+// G-code toolchange passes to the Klipper macro (`next_filament_id`). The
+// serializer must key `filament_index` by that position and must never
+// re-densify after dropping unused/sentinel entries, or a used filament would
+// be aimed at the wrong lane. This test covers the plan's matrix: preset order
+// differing from used order, a middle filament unused, and external slots.
+TEST_CASE("filament mapping index correlates with the ams_mapping2 position", "[OrcaPrinterAgent]") {
+    // Positions 0..4. Used filaments are 0, 2 and 4; 1 and 3 are unused.
+    const nlohmann::json mapping = Probe::build_filament_mapping(
+        R"([{"ams_id":0,"slot_id":1},{"ams_id":255,"slot_id":255},{"ams_id":2,"slot_id":3},{"ams_id":255,"slot_id":255},{"ams_id":255,"slot_id":0}])");
+    REQUIRE(mapping.size() == 3);
+    CHECK(mapping[0]["filament_index"] == 0);
+    CHECK(mapping[1]["filament_index"] == 2);
+    CHECK(mapping[2]["filament_index"] == 4); // external slot keeps its position
+    CHECK(mapping[2]["ams_id"] == 255);
+    CHECK(mapping[2]["slot_id"] == 0);
+    // No re-densification: a used filament after a dropped sentinel keeps its
+    // original logical index.
+    for (const auto& entry : mapping)
+        CHECK(entry.contains("filament_index"));
+}
+
+TEST_CASE("filament mapping is omitted when nothing remains", "[OrcaPrinterAgent]") {
+    CHECK(Probe::build_filament_mapping("").empty());
+    CHECK(Probe::build_filament_mapping(R"([{"ams_id":255,"slot_id":255}])").empty());
+    CHECK(Probe::build_filament_mapping("not json").empty());
+    CHECK(Probe::build_filament_mapping(R"({"ams_id":1,"slot_id":0})").empty()); // not an array
+}
+
+// The GUI capability gate and the agent serializer must classify the same
+// entries as engaged. External slots ({255,0}/{254,0}) are normalized as-is, so
+// they engage; only the {255,255} unmatched sentinel is dropped. A mismatch lets
+// an entry past the GUI and refused late with a generic publish error.
+TEST_CASE("the GUI mapping gate engages exactly the entries the serializer sends", "[OrcaPrinterAgent]") {
+    using Slic3r::GUI::has_engaged_filament_mapping;
+    CHECK_FALSE(has_engaged_filament_mapping(""));
+    CHECK_FALSE(has_engaged_filament_mapping("[]"));
+    CHECK_FALSE(has_engaged_filament_mapping("not json"));
+    CHECK_FALSE(has_engaged_filament_mapping(R"([{"ams_id":255,"slot_id":255}])"));
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":255,"slot_id":0}])"));   // external main
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":254,"slot_id":0}])"));   // external deputy
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":0,"slot_id":0}])"));     // box slot
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":255,"slot_id":255},{"ams_id":1,"slot_id":2}])"));
+
+    for (const char* s : {"", "[]", "not json", R"([{"ams_id":255,"slot_id":255}])",
+                          R"([{"ams_id":255,"slot_id":0}])", R"([{"ams_id":254,"slot_id":0}])",
+                          R"([{"ams_id":0,"slot_id":0}])",
+                          R"([{"ams_id":255,"slot_id":255},{"ams_id":1,"slot_id":2}])"}) {
+        CHECK(has_engaged_filament_mapping(s) == !Probe::build_filament_mapping(s).empty());
+    }
+}
+
+// The used-unmapped refusal reads m_ams_mapping_result: an entry with no target carries
+// empty ams_id/slot_id, while an external-spool assignment (ams_id 255/254) is a real
+// target. A wholly unmapped print reports no target and falls to the existing send flow.
+TEST_CASE("used-filament targets split mapped from unmapped", "[OrcaPrinterAgent]") {
+    using Slic3r::GUI::has_any_mapped_target;
+    using Slic3r::GUI::has_used_filament_without_target;
+
+    Slic3r::FilamentInfo box;      box.ams_id      = "0";   box.slot_id = "1";   // box slot
+    Slic3r::FilamentInfo external; external.ams_id = "255"; external.slot_id = "0"; // external spool
+    Slic3r::FilamentInfo unmapped;                                                // no target
+
+    CHECK_FALSE(has_used_filament_without_target({box, external}));
+    CHECK(has_used_filament_without_target({box, unmapped}));
+    CHECK(has_used_filament_without_target({external, unmapped}));
+    CHECK(has_used_filament_without_target({unmapped}));   // wholly unmapped: all-invalid flow, not this refusal
+    CHECK(has_any_mapped_target({box, unmapped}));
+    CHECK(has_any_mapped_target({external, unmapped}));
+    CHECK_FALSE(has_any_mapped_target({unmapped}));
+}
+
+// A device with no AMS units has one source, the external spool. OrcaSlicer's
+// auto-mapping force-selects it for every filament; that is not a lane choice, so it
+// must not gate the print or reach print.gcode_file.
+TEST_CASE("a no-AMS device drops the forced external-spool selection", "[OrcaPrinterAgent]") {
+    using Slic3r::GUI::drop_forced_external_selection;
+    using Slic3r::GUI::has_engaged_filament_mapping;
+
+    std::string external_only = R"([{"ams_id":255,"slot_id":0}])";
+    drop_forced_external_selection(/*device_has_ams=*/false, external_only);
+    CHECK(external_only.empty());
+    CHECK_FALSE(has_engaged_filament_mapping(external_only));
+    CHECK(Probe::build_filament_mapping(external_only).empty());
+
+    std::string box_mapping = R"([{"ams_id":0,"slot_id":2}])";
+    drop_forced_external_selection(/*device_has_ams=*/true, box_mapping);
+    CHECK(box_mapping == R"([{"ams_id":0,"slot_id":2}])");
+    CHECK(has_engaged_filament_mapping(box_mapping));
+}
+
+// An empty mapping must leave the gcode_file payload byte-identical to today:
+// exactly command, sequence_id and param, with no filament_mapping key.
+TEST_CASE("gcode_file payload omits filament_mapping when the map is empty", "[OrcaPrinterAgent]") {
+    const nlohmann::json empty = Probe::build_gcode_file_payload("7", "job.gcode", nlohmann::json::array());
+    REQUIRE(empty.contains("print"));
+    CHECK(empty["print"].size() == 3);
+    CHECK(empty["print"]["command"] == "gcode_file");
+    CHECK(empty["print"]["sequence_id"] == "7");
+    CHECK(empty["print"]["param"] == "job.gcode");
+    CHECK_FALSE(empty["print"].contains("filament_mapping"));
+
+    const nlohmann::json mapping = Probe::build_filament_mapping(R"([{"ams_id":1,"slot_id":0},{"ams_id":255,"slot_id":255}])");
+    const nlohmann::json with    = Probe::build_gcode_file_payload("8", "job.gcode", mapping);
+    REQUIRE(with["print"].contains("filament_mapping"));
+    REQUIRE(with["print"]["filament_mapping"].size() == 1);
+    CHECK(with["print"]["filament_mapping"][0]["filament_index"] == 0);
+}
+
+// The defensive gate: a mapped print is refused before anything is published when the
+// connector never advertised filament_mapping. The GUI send gates make this visible first;
+// this covers callers that bypass them (calibration, plugin). A sentinel-only mapping does
+// not engage the gate and falls through to the normal publish path.
+TEST_CASE("an engaged mapping is refused when the connector never advertised filament_mapping", "[OrcaPrinterAgent]") {
+    OrcaPrinterAgent agent("/tmp");
+    Slic3r::PrintParams params;
+    params.dev_id       = "dev-no-mapping-cap";
+    params.dst_file     = "/tmp/job.gcode";
+    params.ams_mapping2 = R"([{"ams_id":0,"slot_id":2}])";
+
+    CHECK(agent.start_sdcard_print(params, {}, {}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+
+    params.ams_mapping2 = R"([{"ams_id":255,"slot_id":255}])";
+    CHECK(agent.start_sdcard_print(params, {}, {}) == BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED);
+}
+
+// The FTP "send with record" transport does not exist on OrcaSonar. It must
+// report a non-success result so PrintJob falls back to start_print() rather
+// than treating a print that was never sent as successful.
+TEST_CASE("start_local_print_with_record never reports silent success", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    Slic3r::PrintParams params;
+    const int rc = agent.start_local_print_with_record(params, {}, {}, {});
+    CHECK(rc < 0);
 }
 
 TEST_CASE("connect_printer wires up a LAN Config", "[OrcaPrinterAgent][.integration]") {

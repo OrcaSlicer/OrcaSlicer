@@ -432,6 +432,32 @@ NozzleVolumeType convert_to_nozzle_type(const std::string &str)
     return res;
 }
 
+std::string resolve_filament_printer_model(const std::string& printer_type, PresetBundle* preset_bundle)
+{
+    if (!preset_bundle)
+        return {};
+
+    // Devices with a shipped printer config (Bambu) resolve directly.
+    if (const std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type); !display_name.empty())
+        return display_name;
+
+    // A vendor model id the device reported (SSDP modelNumber, manual binding).
+    if (!printer_type.empty()) {
+        if (const std::string model_name = preset_bundle->get_printer_model_display_name(printer_type); !model_name.empty())
+            return model_name;
+    }
+
+    // OrcaSonar's model id is optional; a generic device resolves against the selected profile.
+    if (const ConfigOptionString* model = preset_bundle->printers.get_selected_preset().config.opt<ConfigOptionString>("printer_model");
+        model && !model->value.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "resolve_filament_printer_model: device type \"" << printer_type
+                                << "\" has no installed model; using the selected profile \"" << model->value << "\"";
+        return model->value;
+    }
+
+    return {};
+}
+
 wxString MachineObject::get_printer_type_display_str() const
 {
     std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type);
@@ -1734,6 +1760,10 @@ int MachineObject::check_resume_condition()
 }
 int MachineObject::command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp, int new_temp, std::optional<int> extruder_id)
 {
+    if (!printer_supports_command("print.ams_change_filament")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_change_filament: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     try {
         auto tray_id = 0;
@@ -1777,6 +1807,10 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
 
 int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag)
 {
+    if (!printer_supports_command("print.ams_user_setting")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_user_settings: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     j["print"]["command"] = "ams_user_setting";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -1785,22 +1819,59 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
     j["print"]["tray_read_option"]      = tray_read_opt;
     j["print"]["calibrate_remain_flag"] = remain_flag;
 
-    m_fila_system->GetAmsSystemSetting().SetDetectOnInsertEnabled(tray_read_opt);
-    m_fila_system->GetAmsSystemSetting().SetDetectOnPowerupEnabled(start_read_opt);
-    m_fila_system->GetAmsSystemSetting().SetDetectRemainEnabled(remain_flag);
-    ams_user_setting_start = time(nullptr);
-
-    return this->publish_json(j);
+    const int rc = this->publish_json(j);
+    if (rc == 0) {
+        m_fila_system->GetAmsSystemSetting().SetDetectOnInsertEnabled(tray_read_opt);
+        m_fila_system->GetAmsSystemSetting().SetDetectOnPowerupEnabled(start_read_opt);
+        m_fila_system->GetAmsSystemSetting().SetDetectRemainEnabled(remain_flag);
+        ams_user_setting_start = time(nullptr);
+    }
+    return rc;
 }
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
     if (!m_agent) return -1;
+    if (!m_agent->owns_agent(printer_agent_id))
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
+}
+
+bool MachineObject::printer_supports_command(const char* command) const
+{
+    if (!command || !m_agent)
+        return false;
+    return m_agent->supports_command(printer_agent_id, get_dev_id(), command);
+}
+
+bool MachineObject::printer_uses_filament_mapping() const
+{
+    if (!m_agent)
+        return false;
+    // An unrecorded owner goes through owns_agent() like any other, because
+    // whichever agent is active is also the one formatting the payload. Only a
+    // recorded owner that differs from the active agent is a mismatch.
+    return m_agent->uses_filament_mapping(printer_agent_id);
+}
+
+bool MachineObject::printer_supports_feature(const char* feature) const
+{
+    return feature && m_agent && m_agent->supports_feature(printer_agent_id, get_dev_id(), feature);
+}
+
+bool MachineObject::supports_extrusion_cali() const
+{
+    // Devices with no agent id predate the agent split and keep the Bambu path.
+    return printer_agent_id.empty() || printer_agent_id == BBL_PRINTER_AGENT_ID;
 }
 
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
 {
+    if (!printer_supports_command("print.ams_filament_setting")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_filament_settings: printer agent does not support slot metadata updates";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
+
     int tag_tray_id = 0;
     int tag_ams_id  = ams_id;
     int tag_slot_id = slot_id;
@@ -1835,6 +1906,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 int MachineObject::command_ams_refresh_rfid(int ams_id, int slot_id)
 {
     if (!m_agent) return -1;
+    if (!printer_supports_command("print.ams_get_rfid")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_refresh_rfid: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), ams_id, slot_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1848,11 +1923,19 @@ int MachineObject::command_start_camera()
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
     if (!m_agent) return -1;
+    if (!printer_supports_command("print.ams_change_filament")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_select_tray: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     return command_with_dialog(m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_ams_control(std::string action)
 {
+    if (!printer_supports_command("print.ams_control")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_control: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     if (action == "resume" && check_resume_condition()) return 0;
 
     //valid actions
@@ -1868,6 +1951,10 @@ int MachineObject::command_ams_control(std::string action)
 
 int MachineObject::command_ams_drying_stop()
 {
+    if (!printer_supports_command("print.auto_stop_ams_dry")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_drying_stop: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     j["print"]["command"] = "auto_stop_ams_dry";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -2818,7 +2905,9 @@ bool MachineObject::is_camera_busy_off()
 int MachineObject::publish_json(const json& json_item, int qos, int flag)
 {
     int rtn = 0;
-    if (is_lan_mode_printer()) {
+    if (m_agent && !m_agent->owns_agent(printer_agent_id)) {
+        rtn = ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    } else if (is_lan_mode_printer()) {
         rtn = local_publish_json(json_item.dump(), qos, flag);
     } else {
         rtn = cloud_publish_json(json_item.dump(), qos, flag);
@@ -2862,6 +2951,7 @@ int MachineObject::local_publish_json(std::string json_str, int qos, int flag)
 std::string MachineObject::setting_id_to_type(std::string setting_id, std::string tray_type)
 {
     std::string type;
+    if (wxTheApp == nullptr) return tray_type;
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
@@ -4198,6 +4288,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             vt_slot[0].setting_id = jj["tray_info_idx"].get<std::string>();
                             //vt_tray.type = jj["tray_type"].get<std::string>();
                             vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
+                            // The ack carries the whole slot; re-derive empty so the panel flips off
+                            // "Empty" without waiting out the hold.
+                            vt_slot[0].UpdateEmptyState(true);
                             // delay update
                             vt_slot[0].set_hold_count();
                         } else {
@@ -4223,6 +4316,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                                     tray_it->second->setting_id = jj["tray_info_idx"].get<std::string>();
                                     tray_it->second->m_fila_type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
+                                    // The ack carries the whole slot; re-derive empty so the panel flips off
+                                    // "Empty" without waiting out the hold.
+                                    tray_it->second->UpdateEmptyState(true);
                                     // delay update
                                     tray_it->second->set_hold_count();
                                 } else {
@@ -5161,7 +5257,7 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
             // vt_tray.setting_id is our OF id (translated on the way in); the two support ids below are the printer's own.
-            auto* agent = GUI::wxGetApp().getAgent();
+            auto* agent = wxTheApp != nullptr ? GUI::wxGetApp().getAgent() : nullptr;
             const std::string printer_filament_id = agent ? agent->from_orca_filament_id(vt_tray.setting_id) : vt_tray.setting_id;
             if (printer_filament_id == "GFS00") {
                 vt_tray.m_fila_type = "PLA-S";
@@ -5256,6 +5352,7 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
         else {
             vt_tray.remain = -1;
         }
+        vt_tray.UpdateEmptyState(vtray.contains("tray_info_idx") && vtray.contains("tray_type"));
     }
 
     return vt_tray;
@@ -5549,11 +5646,11 @@ void MachineObject::parse_new_info2(const json& info)
     if (capabilities_it == info.end() || !capabilities_it->is_object())
         return;
     const auto flags_it = capabilities_it->find("flags");
-    if (flags_it == capabilities_it->end() || !flags_it->is_object())
+    const bool has_flags = flags_it != capabilities_it->end() && flags_it->is_object();
+    if (!has_flags)
         return;
-
     const json& flags = *flags_it;
-    BOOST_LOG_TRIVIAL(info) << "parse_new_info2: OrcaSonar capability flags=" << flags.dump();
+    BOOST_LOG_TRIVIAL(info) << "parse_new_info2: capability flags=" << flags.dump();
 
     auto parse_bool = [&flags](const char* name, bool& target) {
         const auto it = flags.find(name);

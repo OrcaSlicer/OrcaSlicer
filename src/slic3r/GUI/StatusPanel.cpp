@@ -4695,12 +4695,14 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
                 }
 
                 m_filament_setting_dlg->m_is_third = !DevFilaSystem::IsBBL_Filament(tray->tag_uid);
+                // The tray's own temps pre-fill the dialog for every tray type; a BBL tray
+                // additionally carries the SN and brand.
+                temp_max = tray->nozzle_temp_max;
+                temp_min = tray->nozzle_temp_min;
                 if (!m_filament_setting_dlg->m_is_third)
                 {
                     sn_number = tray->uuid;
                     filament = tray->sub_brands;
-                    temp_max = tray->nozzle_temp_max;
-                    temp_min = tray->nozzle_temp_min;
                 }
             }
 
@@ -4761,11 +4763,11 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
             }
 
             m_filament_setting_dlg->m_is_third = !DevFilaSystem::IsBBL_Filament(obj->vt_slot[nozzle_index].tag_uid);
+            temp_max = obj->vt_slot[nozzle_index].nozzle_temp_max;
+            temp_min = obj->vt_slot[nozzle_index].nozzle_temp_min;
             if (!m_filament_setting_dlg->m_is_third) {
                 sn_number = obj->vt_slot[nozzle_index].uuid;
                 filament  = obj->vt_slot[nozzle_index].sub_brands;
-                temp_max  = obj->vt_slot[nozzle_index].nozzle_temp_max;
-                temp_min  = obj->vt_slot[nozzle_index].nozzle_temp_min;
             }
 
             m_filament_setting_dlg->Move(wxPoint(current_position_x,current_position_y));

@@ -806,6 +806,36 @@ int NetworkAgent::send_message(std::string dev_id, std::string json_str, int qos
     return -1;
 }
 
+bool NetworkAgent::owns_agent(const std::string& expected_agent_id) const
+{
+    if (!m_printer_agent)
+        return false;
+    return expected_agent_id.empty() || m_printer_agent->get_agent_info().id == expected_agent_id;
+}
+
+bool NetworkAgent::supports_command(const std::string& expected_agent_id, const std::string& dev_id,
+                                   const std::string& command) const
+{
+    if (!owns_agent(expected_agent_id))
+        return false;
+    return m_printer_agent->supports_command(dev_id, command);
+}
+
+bool NetworkAgent::supports_feature(const std::string& expected_agent_id, const std::string& dev_id,
+                                   const std::string& feature) const
+{
+    if (!owns_agent(expected_agent_id))
+        return false;
+    return m_printer_agent->supports_feature(dev_id, feature);
+}
+
+bool NetworkAgent::uses_filament_mapping(const std::string& expected_agent_id) const
+{
+    if (!owns_agent(expected_agent_id))
+        return false;
+    return m_printer_agent->uses_filament_mapping();
+}
+
 int NetworkAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
     if (m_printer_agent)
@@ -1104,6 +1134,34 @@ int NetworkAgent::get_hms_snapshot(std::string dev_id, std::string file_name, st
     if (m_printer_agent)
         return m_printer_agent->get_hms_snapshot(dev_id, file_name, callback);
     return -1;
+}
+
+int NetworkAgent::list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->list_printer_files(dev_id, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
+int NetworkAgent::get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_printer_file_thumbnail(dev_id, path, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
+int NetworkAgent::delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->delete_printer_file(dev_id, path, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
+int NetworkAgent::get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_printer_file_metadata(dev_id, path, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 }
 
 } // namespace Slic3r

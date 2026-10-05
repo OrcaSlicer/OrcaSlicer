@@ -61,6 +61,8 @@
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "FilamentMappingUtils.hpp"
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
@@ -746,6 +748,8 @@ bool SendMultiMachinePage::get_ams_mapping_result(std::string &mapping_array_str
     return true;
 }
 
+// Mapping helpers live in FilamentMappingUtils.hpp, shared with SelectMachine.
+
 void SendMultiMachinePage::on_send(wxCommandEvent& event)
 {
     event.Skip();
@@ -794,6 +798,30 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
 
             if (!wxGetApp().is_blocking_printing(obj)) {
                 PrintParams params = request_params(obj);
+                switch (prepare_filament_mapping_for_send(obj, params.ams_mapping2, m_ams_mapping_result)) {
+                case MappingSendError::unsupported:
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: connector does not advertise filament_mapping; refusing mapped print for "
+                                               << obj->get_dev_id();
+                    MessageDialog unavailable_msg(nullptr, _L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."), "", wxICON_WARNING | wxOK);
+                    unavailable_msg.ShowModal();
+                    return;
+                }
+                case MappingSendError::incomplete:
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: a used filament has no target; refusing print for " << obj->get_dev_id();
+                    MessageDialog incomplete_msg(nullptr, _L("A filament used by this print has no AMS mapping. Assign it before printing."), "", wxICON_WARNING | wxOK);
+                    incomplete_msg.ShowModal();
+                    return;
+                }
+                case MappingSendError::none:
+                    break;
+                default:
+                    // A refusal added without a handler here must not silently send.
+                    BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: unrecognized mapping refusal for "
+                                               << obj->get_dev_id();
+                    return;
+                }
                 print_params.push_back(params);
             }
         }
