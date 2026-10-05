@@ -54,11 +54,9 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
 
-#include "MsgDialog.hpp"
 #include "Printer/PrinterFileSystem.h"
 #include "PartSkipDialog.hpp"
 #include "SkipPartCanvas.hpp"
-#include "MediaPlayCtrl.h"
 
 #include "DeviceCore/DevManager.h"
 

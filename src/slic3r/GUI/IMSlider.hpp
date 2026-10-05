@@ -14,7 +14,8 @@
 
 #include <set>
 
-class wxMenu;
+class wxMouseEvent;
+
 struct IMGUI_API ImRect;
 
 namespace Slic3r {

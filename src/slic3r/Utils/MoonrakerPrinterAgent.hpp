@@ -2,7 +2,6 @@
 #define __MOONRAKER_PRINTER_AGENT_HPP__
 
 #include "IPrinterAgent.hpp"
-#include "ICloudServiceAgent.hpp"
 #include "bambu_networking.hpp"
 
 #include <functional>
@@ -20,6 +19,8 @@
 
 #include <nlohmann/json.hpp>
 #include <vector>
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 

@@ -24,7 +24,6 @@
 
 #include <catch2/catch_all.hpp>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Model.hpp"
@@ -43,6 +42,9 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

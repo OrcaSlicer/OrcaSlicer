@@ -4,7 +4,6 @@
 #include "slic3r/GUI/Shortcuts.hpp"
 //BBS: GUI refactor
 #include "slic3r/GUI/Plater.hpp"
-#include "libslic3r/AppConfig.hpp"
 
 
 #include <cassert>
@@ -27,6 +26,12 @@
 #include "libslic3r/Model.hpp"
 #include <wx/string.h>
 #include <wx/utils.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
 namespace GUI {

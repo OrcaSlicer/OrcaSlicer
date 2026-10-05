@@ -14,6 +14,8 @@
 #include <memory>
 #include <thread>
 
+namespace Slic3r { class ICloudServiceAgent; }
+
 namespace Slic3r {
 
 class OrcaCloudServiceAgent;

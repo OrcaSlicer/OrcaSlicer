@@ -9,6 +9,8 @@
 #include <wx/event.h>
 #include "Job.hpp"
 
+class wxWindow;
+
 namespace fs = boost::filesystem;
 
 namespace Slic3r {

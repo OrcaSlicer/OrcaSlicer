@@ -1,5 +1,6 @@
 #include "DevFilaAmsSetting.h"
 #include "DevUtil.h"
+#include "slic3r/GUI/DeviceCore/DevCtrl.h"
 
 namespace Slic3r {
 

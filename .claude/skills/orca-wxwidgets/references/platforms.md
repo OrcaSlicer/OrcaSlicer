@@ -474,7 +474,7 @@ start there when looking for prior art. The sites below are exemplars, cited by 
   data-view cell editors an explicit top-level transient parent.
   `DropDown::ShouldDismissOnTopWindowDeactivate` handles Wayland chains.
 - `CheckBox::CheckBox`, `SwitchButton`, `RadioBox`, `ScalableButton` (`wxExtensions.cpp`),
-  `ObjColorDialog`, `PresetComboBoxes` call `RemoveButtonBorder`; `TextInput` and `SpinInput` call
+  `PresetComboBoxes` call `RemoveButtonBorder`; `TextInput` and `SpinInput` call
   `RemoveInputBorder` on their inner `wxTextCtrl`.
 - `Plater::priv::priv` together with `sanitize_window_layout_for_wayland`: AUI floating is disabled on
   Wayland.
@@ -812,7 +812,7 @@ widgets do it in their constructors.
   (`"*.GtkBitmapToggleButton"`, class `"GtkEntry"`). The first call changes every matching widget in
   the process, not just the one passed in.
 
-**Callers:** `CheckBox::CheckBox`, `SwitchButton`, `RadioBox`, `ScalableButton`, `ObjColorDialog` and
+**Callers:** `CheckBox::CheckBox`, `SwitchButton`, `RadioBox`, `ScalableButton` and
 `PresetComboBoxes` (`RemoveButtonBorder`); the inner `wxTextCtrl` of `TextInput` and `SpinInput`
 (`RemoveInputBorder`). A new owner-drawn control built on a native GTK widget needs the same call.
 

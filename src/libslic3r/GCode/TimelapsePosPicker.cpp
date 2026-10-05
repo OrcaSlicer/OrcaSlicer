@@ -18,6 +18,9 @@
 #include <limits>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Slicing.hpp"
 
 constexpr int FILTER_THRESHOLD = 5;
 constexpr int MAX_CANDIDATE_SIZE = 5;

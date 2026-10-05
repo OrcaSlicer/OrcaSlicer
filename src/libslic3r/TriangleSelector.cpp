@@ -1,6 +1,5 @@
 #include "TriangleSelector.hpp"
 #include "Geometry.hpp"
-#include "Model.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "Point.hpp"
 #include "libslic3r.h"

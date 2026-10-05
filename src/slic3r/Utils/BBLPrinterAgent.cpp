@@ -26,6 +26,8 @@ using json = nlohmann::json;
 #include <cmath>
 #include <slic3r/GUI/DeviceManager.hpp>
 
+namespace Slic3r { class ICloudServiceAgent; }
+
 namespace Slic3r {
 
 namespace {

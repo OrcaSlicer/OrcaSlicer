@@ -14,7 +14,6 @@
 #include "OptionsGroup.hpp"
 #include "GLCanvas3D.hpp"
 #include "Selection.hpp"
-#include "format.hpp"
 //BBS: add partplate related logic
 #include "PartPlate.hpp"
 #include "Gizmos/GLGizmoEmboss.hpp"

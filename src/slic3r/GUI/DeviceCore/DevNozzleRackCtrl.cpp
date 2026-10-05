@@ -1,5 +1,4 @@
 #include "DevNozzleRack.h"
-#include "DevUtil.h"
 #include "DevExtruderSystem.h"
 
 #include "json_diff.hpp"
@@ -11,6 +10,8 @@
 #include <wx/string.h>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/thread.h>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 
 
 namespace Slic3r

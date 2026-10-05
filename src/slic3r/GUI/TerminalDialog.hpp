@@ -12,6 +12,8 @@
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
 
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 class ProcessRunner;

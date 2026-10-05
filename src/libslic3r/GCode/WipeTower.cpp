@@ -34,6 +34,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "Triangulation.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r

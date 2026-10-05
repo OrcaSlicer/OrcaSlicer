@@ -14,6 +14,11 @@
 #include <wx/event.h>
 #include <wx/webview.h>
 
+class wxCloseEvent;
+class wxSize;
+class wxWebViewEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // A host-owned webview window that renders plugin-supplied raw HTML and bridges

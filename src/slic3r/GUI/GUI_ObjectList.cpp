@@ -51,7 +51,6 @@
 #include "libslic3r/Point.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include "libslic3r/LocalesUtils.hpp"
-#include "libslic3r/Format/STEP.hpp"
 #include <exception>
 #include "slic3r/GUI/ParamsPanel.hpp"
 #include "slic3r/GUI/GUI_ObjectLayers.hpp"
@@ -103,6 +102,9 @@
 #include "Gizmos/GLGizmoScale.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
+
+class wxMenu;
+namespace Slic3r { class Step; }
 namespace Slic3r
 {
 namespace GUI

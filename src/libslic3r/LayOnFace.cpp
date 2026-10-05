@@ -14,6 +14,7 @@
 #include <numeric>
 #include <vector>
 #include <utility>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 

@@ -1,4 +1,3 @@
-#include "DevMapping.h"
 #include "DevMappingNozzle.h"
 
 #include "DevNozzleRack.h"
@@ -9,7 +8,6 @@
 
 #include "json_diff.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
-#include "libslic3r/Print.hpp"
 
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -29,6 +27,8 @@
 #include <string>
 #include <unordered_set>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ProjectTask.hpp"
 using namespace nlohmann;
 
 namespace Slic3r {

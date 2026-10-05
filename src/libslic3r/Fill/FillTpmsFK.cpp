@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include "libslic3r/Polygon.hpp"
 
 namespace marchsq {
 using namespace Slic3r;

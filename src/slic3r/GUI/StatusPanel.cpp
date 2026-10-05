@@ -14,7 +14,6 @@
 #include "MsgDialog.hpp"
 #include "bambu_networking.hpp"
 #include "slic3r/Utils/Http.hpp"
-#include "libslic3r/Thread.hpp"
 #include "DeviceErrorDialog.hpp"
 
 #include "RecenterDialog.hpp"

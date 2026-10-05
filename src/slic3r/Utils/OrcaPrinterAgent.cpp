@@ -36,6 +36,8 @@
 #include <utility>
 #include <memory>
 
+namespace Slic3r { class ICloudServiceAgent; }
+
 namespace Slic3r {
 
 const std::string OrcaPrinterAgent_VERSION = "0.0.1";

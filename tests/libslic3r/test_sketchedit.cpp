@@ -11,6 +11,7 @@
 #include <TopAbs.hxx>
 #include <math.h>
 #include <vector>
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
 

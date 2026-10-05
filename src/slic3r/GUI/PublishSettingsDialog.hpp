@@ -2,7 +2,6 @@
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
-#include "Widgets/TabCtrl.hpp"
 
 #include "libslic3r/PublishSettings.hpp"
 
@@ -19,6 +18,19 @@
 #include <utility>
 #include <vector>
 #include <string>
+
+class TabCtrl;
+class wxBoxSizer;
+class wxCommandEvent;
+class wxMouseEvent;
+class wxPanel;
+class wxScrolledWindow;
+class wxSizerItem;
+class wxStaticBitmap;
+class wxStaticText;
+class wxTextCtrl;
+class wxWindow;
+namespace Slic3r { class DynamicPrintConfig; }
 
 // Forward declarations (all are global classes, see Widgets/TextInput.hpp and
 // Widgets/StaticLine.hpp).

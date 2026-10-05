@@ -1,7 +1,6 @@
 #ifndef slic3r_Project_hpp_
 #define slic3r_Project_hpp_
 
-#include "Tabbook.hpp"
 #include "wx/artprov.h"
 #include "wx/cmdline.h"
 #include "wx/notifmsg.h"
@@ -14,7 +13,6 @@
 #include <wx/bookctrl.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 #if wxUSE_WEBVIEW_EDGE
 #include "wx/msw/webview_edge.h"
@@ -39,11 +37,13 @@
 #include <vector>
 #include <memory>
 #include <boost/thread.hpp>
-#include "Event.hpp"
-#include "libslic3r/ProjectTask.hpp"
-#include "wxExtensions.hpp"
-#include "Auxiliary.hpp"
 #include "Lazy.hpp"
+
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+namespace Slic3r::GUI { class AuxiliaryPanel; }
+namespace boost { class thread; }
 
 #define AUFILE_GREY700 wxColour(107, 107, 107)
 #define AUFILE_GREY500 wxColour(158, 158, 158)
