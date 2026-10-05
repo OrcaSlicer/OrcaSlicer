@@ -38,7 +38,7 @@ jobs:
       - name: Look for changed C++ files
         id: changes
         run: |
-          if git diff --name-only HEAD^1 -- src tests | grep -qE '\.(cpp|cc|cxx|hpp|h|hxx)$'; then
+          if git -c core.quotePath=false diff --name-only HEAD^1 -- src tests | grep -qE '\.(cpp|cc|cxx|hpp|h|hxx)$'; then
             echo "cpp=true" >> "$GITHUB_OUTPUT"
           else
             echo "No C++ changes under src/ or tests/."

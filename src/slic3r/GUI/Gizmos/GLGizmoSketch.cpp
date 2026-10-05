@@ -3,6 +3,7 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/format.hpp"
 #include "libslic3r/Model.hpp"
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
@@ -231,11 +232,11 @@ void GLGizmoSketch::draw_canvas()
 TopoDS_Shape GLGizmoSketch::build_combined_shape()
 {
     if (m_profiles.empty() || !m_profiles[0].closed)
-        throw std::runtime_error("No outer profile");
+        throw std::runtime_error(_u8L("No outer profile"));
 
     TopoDS_Wire outer_wire = m_profiles[0].to_occt_wire(m_plane);
     BRepBuilderAPI_MakeFace face_maker(outer_wire);
-    if (!face_maker.IsDone()) throw std::runtime_error("Failed to make outer face");
+    if (!face_maker.IsDone()) throw std::runtime_error(_u8L("Failed to make outer face"));
 
     for (size_t i = 1; i < m_profiles.size(); ++i) {
         if (!m_profiles[i].closed) continue;
@@ -243,7 +244,7 @@ TopoDS_Shape GLGizmoSketch::build_combined_shape()
         face_maker.Add(inner);
     }
     face_maker.Build();
-    if (!face_maker.IsDone()) throw std::runtime_error("Failed to build face with holes");
+    if (!face_maker.IsDone()) throw std::runtime_error(_u8L("Failed to build face with holes"));
 
     TopoDS_Face face = face_maker.Face();
 
@@ -253,7 +254,7 @@ TopoDS_Shape GLGizmoSketch::build_combined_shape()
         gp_Dir xd(m_plane.x_axis.x(), m_plane.x_axis.y(), m_plane.x_axis.z());
         gp_Ax1 axis(o, xd);
         BRepPrimAPI_MakeRevol rev(face, axis, m_sp.revolve_deg * M_PI / 180.0);
-        if (!rev.IsDone()) throw std::runtime_error("Revolve failed");
+        if (!rev.IsDone()) throw std::runtime_error(_u8L("Revolve failed"));
         shape = rev.Shape();
     } else {
         shape = SketchEngine::make_extrude_face(face, m_plane, m_sp.extrude_len, m_sp.extrude_sym);
@@ -320,8 +321,9 @@ void GLGizmoSketch::on_render_input_window(float x, float y, float bottom_limit)
                 bool outer = (i == 0);
                 ImVec4 col = outer ? ImVec4(0,1,0,1) : ImVec4(1,0.3f,0.3f,1);
                 const std::string label = outer ? _u8L("Outer") : _u8L("Hole");
-                ImGui::TextColored(col, "%s %d: %zu %s %s", label.c_str(), i+1, p.points.size(),
-                                   _u8L("points").c_str(), p.closed ? _u8L("closed").c_str() : "");
+                const std::string state = p.closed ? _u8L("closed") : std::string();
+                // TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
+                ImGui::TextColored(col, "%s", GUI::format(_u8L("%1% %2%: %3% points %4%"), label, i + 1, p.points.size(), state).c_str());
                 ImGui::SameLine();
                 if (ImGui::SmallButton("X")) delete_profile(i);
                 ImGui::PopID();
@@ -336,9 +338,9 @@ void GLGizmoSketch::on_render_input_window(float x, float y, float bottom_limit)
 
     if (ImGui::CollapsingHeader(_u8L("Operation").c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
         static int pi = 0;
-        const std::string planes = "XY (" + _u8L("Top") + ")" + std::string(1, '\0') + "XZ (" + _u8L("Front") + ")"
-                                 + std::string(1, '\0') + "YZ (" + _u8L("Side") + ")" + std::string(2, '\0');
-        if (ImGui::Combo(_u8L("Plane").c_str(), &pi, planes.c_str()))
+        const std::string plane_names[] = {_u8L("XY (Top)"), _u8L("XZ (Front)"), _u8L("YZ (Side)")};
+        const char* planes[] = {plane_names[0].c_str(), plane_names[1].c_str(), plane_names[2].c_str()};
+        if (ImGui::Combo(_u8L("Plane").c_str(), &pi, planes, 3))
             m_plane = (pi==0) ? SketchPlane::XY() : (pi==1) ? SketchPlane::XZ() : SketchPlane::YZ();
 
         is_revolve = (m_sp.revolve_deg > 0 && m_sp.revolve_deg < 360);
@@ -389,7 +391,8 @@ void GLGizmoSketch::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::Separator();
 
     bool ok = has_closed_profile();
-    if (ok) ImGui::TextColored({0,1,0,1}, "%zu %s", m_profiles.size(), _u8L("closed profile(s)").c_str());
+    if (ok) ImGui::TextColored({0,1,0,1}, "%s", wxString::Format(_L_PLURAL("%zu closed profile", "%zu closed profiles",
+                                                                             unsigned(m_profiles.size())), m_profiles.size()).ToUTF8().data());
     else ImGui::TextColored({0.6f,0.6f,0.6f,1}, "%s", _u8L("Draw a closed profile to enable").c_str());
 
     auto btn = [&](const char* label, bool enabled) {
@@ -404,7 +407,7 @@ void GLGizmoSketch::on_render_input_window(float x, float y, float bottom_limit)
     } else if (is_revolve) {
         if (btn(_u8L("Revolve").c_str(), ok)) apply_revolve();
     } else {
-        if (btn(_u8L("Extrude").c_str(), ok)) apply_extrude();
+        if (btn(_u8L_CONTEXT("Extrude", "Design").c_str(), ok)) apply_extrude();
     }
 
     if (ImGui::Button(_u8L("Clear all").c_str(), {-1,0})) clear_all();
@@ -419,7 +422,7 @@ void GLGizmoSketch::apply_extrude()
     try {
         TopoDS_Shape shape = build_combined_shape();
         TriangleMesh mesh = SketchEngine::tessellate(shape, m_sp.linear_deflection);
-        if (mesh.its.indices.empty()) throw std::runtime_error("Empty result");
+        if (mesh.its.indices.empty()) throw std::runtime_error(_u8L("Empty result"));
         wxGetApp().plater()->take_snapshot("Sketch Extrude");
         ModelObject* mo = wxGetApp().model().add_object();
         mo->name = "Extrusion";
@@ -428,7 +431,7 @@ void GLGizmoSketch::apply_extrude()
         wxGetApp().plater()->update();
         clear_all();
     } catch (const std::exception& e) {
-        wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel, std::string("Extrude: ")+e.what());
+        wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel, GUI::format(_u8L("Extrude: %1%"), e.what()));
     }
 }
 
@@ -437,7 +440,7 @@ void GLGizmoSketch::apply_revolve()
     try {
         TopoDS_Shape shape = build_combined_shape();
         TriangleMesh mesh = SketchEngine::tessellate(shape, m_sp.linear_deflection);
-        if (mesh.its.indices.empty()) throw std::runtime_error("Empty result");
+        if (mesh.its.indices.empty()) throw std::runtime_error(_u8L("Empty result"));
         wxGetApp().plater()->take_snapshot("Sketch Revolve");
         ModelObject* mo = wxGetApp().model().add_object();
         mo->name = "Revolve";
@@ -446,7 +449,7 @@ void GLGizmoSketch::apply_revolve()
         wxGetApp().plater()->update();
         clear_all();
     } catch (const std::exception& e) {
-        wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel, std::string("Revolve: ")+e.what());
+        wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel, GUI::format(_u8L("Revolve: %1%"), e.what()));
     }
 }
 
@@ -455,20 +458,20 @@ void GLGizmoSketch::apply_pocket()
     try {
         Selection& sel = m_parent.get_selection();
         int obj_idx = sel.get_object_idx();
-        if (obj_idx < 0) throw std::runtime_error("No object selected");
+        if (obj_idx < 0) throw std::runtime_error(_u8L("No object selected"));
         ModelObject* mo = wxGetApp().model().objects[obj_idx];
 
         TopoDS_Wire outer = m_profiles[0].to_occt_wire(m_plane);
         BRepBuilderAPI_MakeFace fm(outer);
-        if (!fm.IsDone()) throw std::runtime_error("Face failed");
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("Face failed"));
         for (size_t i = 1; i < m_profiles.size(); ++i)
             if (m_profiles[i].closed) fm.Add(m_profiles[i].to_occt_wire(m_plane));
         fm.Build();
-        if (!fm.IsDone()) throw std::runtime_error("Face with holes failed");
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("Face with holes failed"));
 
         TopoDS_Shape tool = SketchEngine::make_extrude_face(fm.Face(), m_plane, m_sp.extrude_len + 5.0, false);
         TriangleMesh tool_mesh = SketchEngine::tessellate(tool, m_sp.linear_deflection);
-        if (tool_mesh.its.indices.empty()) throw std::runtime_error("Tool mesh empty");
+        if (tool_mesh.its.indices.empty()) throw std::runtime_error(_u8L("Tool mesh empty"));
 
         wxGetApp().plater()->take_snapshot("Sketch Pocket");
         mo->add_volume(std::move(tool_mesh), ModelVolumeType::NEGATIVE_VOLUME)->set_new_unique_id();
@@ -477,7 +480,7 @@ void GLGizmoSketch::apply_pocket()
         clear_all();
         wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel, _u8L("Pocket added (negative volume)").c_str());
     } catch (const std::exception& e) {
-        wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel, std::string("Pocket: ")+e.what());
+        wxGetApp().notification_manager()->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel, GUI::format(_u8L("Pocket: %1%"), e.what()));
     }
 }
 

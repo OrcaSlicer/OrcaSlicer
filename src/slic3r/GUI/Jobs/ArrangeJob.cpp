@@ -527,7 +527,7 @@ void ArrangeJob::check_unprintable()
 #endif
             if (it->poly.area() < 0.001) {
                 auto msg = (boost::format(
-                    _utf8("Object %s has zero size and can't be arranged."))
+                    _u8L("Object %s has zero size and can't be arranged."))
                     % _utf8(it->name)).str();
                 m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
                     NotificationManager::NotificationLevel::WarningNotificationLevel, msg);

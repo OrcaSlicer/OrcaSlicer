@@ -1,4 +1,6 @@
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/I18N.hpp"
+#include "libslic3r/format.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
@@ -136,16 +138,16 @@ static TopoDS_Wire make_helix_spine(const CadFeature& f, std::string& err)
     const double R = f.helix_radius, P = f.helix_pitch, H = f.helix_height;
     const double taper = f.helix_taper_deg * M_PI / 180.0;
 
-    if (R <= 0)   { err = "helix radius must be > 0"; return TopoDS_Wire(); }
-    if (P <= 0)   { err = "helix pitch must be > 0";  return TopoDS_Wire(); }
-    if (H < 0)    { err = "helix height must be >= 0"; return TopoDS_Wire(); }
-    if (H == 0)   { err = "helix height of 0 (flat spiral) is not supported"; return TopoDS_Wire(); }
+    if (R <= 0)   { err = _u8L("helix radius must be > 0"); return TopoDS_Wire(); }
+    if (P <= 0)   { err = _u8L("helix pitch must be > 0");  return TopoDS_Wire(); }
+    if (H < 0)    { err = _u8L("helix height must be >= 0"); return TopoDS_Wire(); }
+    if (H == 0)   { err = _u8L("helix height of 0 (flat spiral) is not supported"); return TopoDS_Wire(); }
     const double turns = H / P;
-    if (turns > 10000) { err = "helix turn count exceeds limit (10000)"; return TopoDS_Wire(); }
+    if (turns > 10000) { err = _u8L("helix turn count exceeds limit (10000)"); return TopoDS_Wire(); }
     if (std::abs(taper) > 1e-12) {
         const double R_top = R + H * std::tan(taper);
         if (R_top <= 0) {
-            err = "helix taper drives radius negative before reaching height";
+            err = _u8L("helix taper drives radius negative before reaching height");
             return TopoDS_Wire();
         }
     }
@@ -295,7 +297,7 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
             prev_was_val = false;
             continue;
         }
-        throw std::runtime_error("bad character in expression");
+        throw std::runtime_error(_u8L("bad character in expression"));
     }
 
     // ---- shunting-yard: infix -> RPN ----
@@ -305,7 +307,7 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
         while (!stack.empty() && stack.back().type != Token::LParen) {
             rpn.push_back(stack.back()); stack.pop_back();
         }
-        if (stack.empty()) throw std::runtime_error("mismatched parentheses");
+        if (stack.empty()) throw std::runtime_error(_u8L("mismatched parentheses"));
         stack.pop_back(); // discard '('
 #if 0
         // If the '(' belonged to a function call, push the function name
@@ -333,7 +335,7 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
                 else {
                     auto it = vars.find(t.val);
                     if (it == vars.end())
-                        throw std::runtime_error("unknown identifier: " + t.val);
+                        throw std::runtime_error(format(_u8L("unknown identifier: %1%"), t.val));
                     v = it->second;
                 }
                 rpn.push_back({Token::Num, "", v});
@@ -362,7 +364,7 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
     }
     while (!stack.empty()) {
         if (stack.back().type == Token::LParen || stack.back().type == Token::RParen)
-            throw std::runtime_error("mismatched parentheses");
+            throw std::runtime_error(_u8L("mismatched parentheses"));
         rpn.push_back(stack.back()); stack.pop_back();
     }
 
@@ -373,22 +375,22 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
             vs.push_back(t.num);
         } else if (t.type == Token::Op) {
             if (t.val == "u") {
-                if (vs.empty()) throw std::runtime_error("missing operand for unary minus");
+                if (vs.empty()) throw std::runtime_error(_u8L("missing operand for unary minus"));
                 vs.back() = -vs.back();
             } else {
-                if (vs.size() < 2) throw std::runtime_error("not enough operands for '" + t.val + "'");
+                if (vs.size() < 2) throw std::runtime_error(format(_u8L("not enough operands for '%1%'"), t.val));
                 double b = vs.back(); vs.pop_back();
                 double a = vs.back(); vs.pop_back();
                 if (t.val == "+") vs.push_back(a + b);
                 else if (t.val == "-") vs.push_back(a - b);
                 else if (t.val == "*") vs.push_back(a * b);
-                else if (t.val == "/") { if (b == 0) throw std::runtime_error("division by zero"); vs.push_back(a / b); }
+                else if (t.val == "/") { if (b == 0) throw std::runtime_error(_u8L("division by zero")); vs.push_back(a / b); }
             }
         } else if (t.type == Token::Id) {
             // function call (already on RPN via shunting-yard)
             auto call_fn = [&](const std::string& name, int arity) {
                 if ((int)vs.size() < arity)
-                    throw std::runtime_error("not enough arguments for " + name + "()");
+                    throw std::runtime_error(format(_u8L("not enough arguments for %1%()"), name));
                 if (name == "sqrt") { double a = vs.back(); vs.pop_back(); vs.push_back(std::sqrt(a)); }
                 else if (name == "abs") { double a = vs.back(); vs.pop_back(); vs.push_back(std::abs(a)); }
                 else if (name == "sin") { double a = vs.back(); vs.pop_back(); vs.push_back(std::sin(a * M_PI / 180.0)); }
@@ -398,12 +400,12 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
                 else if (name == "rad") { double a = vs.back(); vs.pop_back(); vs.push_back(a * M_PI / 180.0); }
                 else if (name == "min") { double b = vs.back(); vs.pop_back(); double a = vs.back(); vs.pop_back(); vs.push_back(std::min(a, b)); }
                 else if (name == "max") { double b = vs.back(); vs.pop_back(); double a = vs.back(); vs.pop_back(); vs.push_back(std::max(a, b)); }
-                else throw std::runtime_error("unknown function: " + name);
+                else throw std::runtime_error(format(_u8L("unknown function: %1%"), name));
             };
             call_fn(t.val, (t.val == "min" || t.val == "max") ? 2 : 1);
         }
     }
-    if (vs.size() != 1) throw std::runtime_error("invalid expression");
+    if (vs.size() != 1) throw std::runtime_error(_u8L("invalid expression"));
     return vs[0];
 }
 
@@ -420,9 +422,9 @@ evaluate_variables(const std::map<std::string, std::string>& variables)
     std::function<double(const std::string&)> resolve = [&](const std::string& name) -> double {
         auto itd = done.find(name);
         if (itd != done.end()) return itd->second;
-        if (visiting.count(name)) throw std::runtime_error("variable cycle: " + name);
+        if (visiting.count(name)) throw std::runtime_error(format(_u8L("variable cycle: %1%"), name));
         auto itv = variables.find(name);
-        if (itv == variables.end()) throw std::runtime_error("unknown identifier: " + name);
+        if (itv == variables.end()) throw std::runtime_error(format(_u8L("unknown identifier: %1%"), name));
         visiting.insert(name);
         // pre-resolve every identifier `name` references: scan for identifiers in
         // its expression, resolve them first, then eval with the populated map.
@@ -440,7 +442,7 @@ evaluate_variables(const std::map<std::string, std::string>& variables)
                 // skip "pi" and function names — they're built-ins, not variables
                 if (id == "pi" || id == "sqrt" || id == "abs" || id == "sin" || id == "cos" ||
                     id == "tan" || id == "min" || id == "max" || id == "deg" || id == "rad") continue;
-                if (!variables.count(id)) throw std::runtime_error("unknown identifier: " + id);
+                if (!variables.count(id)) throw std::runtime_error(format(_u8L("unknown identifier: %1%"), id));
                 scope[id] = resolve(id);
                 continue;
             }
@@ -512,7 +514,7 @@ static void assign_field(CadFeature& f, const std::string& field, double value)
     if (field == "xf_angle_deg")      { f.xf_angle_deg = value; return; }
     // int fields (rounded)
     if (field == "pattern_count")     { f.pattern_count = (int)std::lround(value); return; }
-    throw std::runtime_error("unknown parameter: " + field);
+    throw std::runtime_error(format(_u8L("unknown parameter: %1%"), field));
 }
 
 bool CadDocument::produces_body(CadFeatureType t)
@@ -1086,7 +1088,7 @@ int CadDocument::add_hole_standard(const std::string& designation, int style, bo
 {
     const HoleStdEntry* e = hole_std_lookup(designation);
     if (e == nullptr)
-        throw std::runtime_error("unknown hole standard \"" + designation + "\"");
+        throw std::runtime_error(format(_u8L("unknown hole standard \"%1%\""), designation));
     return add_hole_styled(e->clearance, depth, through, x, y, plane, style,
                            e->cbore_d, e->cbore_depth, e->csink_d, e->csink_angle, e->desig, name);
 }
@@ -1506,11 +1508,12 @@ std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_
     };
     if (!is_connector(cs_a) || !is_connector(cs_b)) {
         const char side = is_connector(cs_a) ? 'B' : 'A';
-        for (auto& o : out) { o.viable = false; o.reason = std::string("connector ") + side + " is not a coordinate system"; }
+        const std::string reason = format(_u8L("connector %1% is not a coordinate system"), side);
+        for (auto& o : out) { o.viable = false; o.reason = reason; }
         return out;
     }
     if (cs_a == cs_b) {
-        for (auto& o : out) { o.viable = false; o.reason = "a mate needs two different connectors"; }
+        for (auto& o : out) { o.viable = false; o.reason = _u8L("a mate needs two different connectors"); }
         return out;
     }
 
@@ -1523,21 +1526,20 @@ std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_
     if (body_b < 0) {
         for (auto& o : out) {
             o.viable = false;
-            o.reason = "connector B is not attached to a body — a mate moves B's body";
+            o.reason = _u8L("connector B is not attached to a body — a mate moves B's body");
         }
         return out;
     }
     if (body_b >= int(bodies.size()) || bodies[body_b].shape.IsNull()) {
         for (auto& o : out) {
             o.viable = false;
-            o.reason = "connector B's body no longer exists";
+            o.reason = _u8L("connector B's body no longer exists");
         }
         return out;
     }
 
     const int ka = features[cs_a].coordsys_face_kind;
     const int kb = features[cs_b].coordsys_face_kind;
-    auto face_desc = [](int kind) -> std::string { return kind == GeomAbs_Plane ? "a flat face" : "a curved face"; };
 
     // Planar: needs a flat face at both ends.
     const bool plan_bad_a = ka >= 0 && ka != GeomAbs_Plane;
@@ -1545,11 +1547,10 @@ std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_
     if (plan_bad_a || plan_bad_b) {
         out[1].viable = false;
         if (plan_bad_a && plan_bad_b)
-            out[1].reason = "needs a flat face at both ends — both connectors are on curved faces";
-        else if (plan_bad_a)
-            out[1].reason = "needs a flat face at both ends — connector A is on " + face_desc(ka);
+            out[1].reason = _u8L("needs a flat face at both ends — both connectors are on curved faces");
         else
-            out[1].reason = "needs a flat face at both ends — connector B is on " + face_desc(kb);
+            out[1].reason = format(_u8L("needs a flat face at both ends — connector %1% is on a curved face"),
+                                   plan_bad_a ? 'A' : 'B');
     }
 
     // Revolute and Cylindrical: need a cylindrical face at both ends.
@@ -1560,12 +1561,13 @@ std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_
         out[k].viable = false;
         if (ax_bad_a && ax_bad_b)
             out[k].reason = (ka == GeomAbs_Plane && kb == GeomAbs_Plane)
-                ? "needs a cylindrical face at both ends — both connectors are on flat faces"
-                : "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces";
-        else if (ax_bad_a)
-            out[k].reason = "needs a cylindrical face at both ends — connector A is on " + face_desc(ka);
+                ? _u8L("needs a cylindrical face at both ends — both connectors are on flat faces")
+                : _u8L("needs a cylindrical face at both ends — both connectors are on non-cylindrical faces");
         else
-            out[k].reason = "needs a cylindrical face at both ends — connector B is on " + face_desc(kb);
+            out[k].reason = format((ax_bad_a ? ka : kb) == GeomAbs_Plane
+                                       ? _u8L("needs a cylindrical face at both ends — connector %1% is on a flat face")
+                                       : _u8L("needs a cylindrical face at both ends — connector %1% is on a curved face"),
+                                   ax_bad_a ? 'A' : 'B');
     }
 
     return out;
@@ -1844,23 +1846,23 @@ std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
         switch (f.axis_type) {
         case AxisType::TwoPoints: {
             Vec3d dir = f.axis_p2 - f.axis_p1;
-            if (dir.squaredNorm() < 1e-18) { da.error = "two points are coincident"; break; }
+            if (dir.squaredNorm() < 1e-18) { da.error = _u8L("two points are coincident"); break; }
             da.origin    = f.axis_p1;
             da.direction = dir.normalized();
             break;
         }
         case AxisType::FaceNormal: {
             TopoDS_Face fc = resolve_face(f.axis_body, f.axis_face);
-            if (fc.IsNull()) { da.error = "face not found"; break; }
+            if (fc.IsNull()) { da.error = _u8L("face not found"); break; }
             da.origin    = GeometryEngine::face_centroid_world(fc);
             da.direction = GeometryEngine::face_normal_world(fc);
             break;
         }
         case AxisType::CylinderCenterline: {
             TopoDS_Face fc = resolve_face(f.axis_body, f.axis_face);
-            if (fc.IsNull()) { da.error = "face not found"; break; }
+            if (fc.IsNull()) { da.error = _u8L("face not found"); break; }
             GeometryEngine::CylinderFace cyl = GeometryEngine::cylinder_of_face(fc);
-            if (!cyl.ok) { da.error = "face is not a cylinder"; break; }
+            if (!cyl.ok) { da.error = _u8L("face is not a cylinder"); break; }
             da.origin    = cyl.base;
             da.direction = cyl.axis;
             break;
@@ -1868,7 +1870,7 @@ std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
         case AxisType::AlongEdge: {
             Vec3d p0, dir;
             if (!resolve_edge(f.axis_body, f.axis_edge, p0, dir)) {
-                da.error = "edge not found"; break;
+                da.error = _u8L("edge not found"); break;
             }
             da.origin    = p0;
             da.direction = dir;
@@ -1899,11 +1901,11 @@ std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
             bool ok0 = base_plane(f.axis_plane_a, da.origin, da.direction); // direction reused as normal0
             Vec3d origin1, normal1;
             bool ok1 = base_plane(f.axis_plane_b, origin1, normal1);
-            if (!ok0 || !ok1) { da.error = "plane ref not found"; break; }
+            if (!ok0 || !ok1) { da.error = _u8L("plane ref not found"); break; }
             // Direction = cross product of the two plane normals.
             Vec3d dir = da.direction.cross(normal1); // da.direction was normal0
             if (dir.squaredNorm() < 1e-18) {
-                da.error = "planes are parallel (no intersection)"; break;
+                da.error = _u8L("planes are parallel (no intersection)"); break;
             }
             dir.normalize();
             // Find a point on the intersection line: closest points between two planes.
@@ -1917,7 +1919,7 @@ std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
             double d1 = n1.dot(p1);
             double n0n1 = n0.dot(n1);
             double det = 1.0 - n0n1 * n0n1;
-            if (std::abs(det) < 1e-18) { da.error = "planes are parallel (no intersection)"; break; }
+            if (std::abs(det) < 1e-18) { da.error = _u8L("planes are parallel (no intersection)"); break; }
             double t0 = (d0 - d1 * n0n1) / det;
             double t1 = (d1 - d0 * n0n1) / det;
             da.origin    = n0 * t0 + n1 * t1;
@@ -1964,7 +1966,7 @@ CadDocument::DatumCoordSys CadDocument::datum_frame(const std::vector<CadBody>& 
         TopoDS_Face fc = resolve_face(f.coordsys_body, f.coordsys_face);
         Vec3d p0, edge_dir;
         bool have_edge = resolve_edge(f.coordsys_body, f.coordsys_edge, p0, edge_dir);
-        if (fc.IsNull()) { ds.error = "face not found"; break; }
+        if (fc.IsNull()) { ds.error = _u8L("face not found"); break; }
         ds.origin = GeometryEngine::face_centroid_world(fc);
         Vec3d Z = GeometryEngine::face_normal_world(fc);
         // Tentative X: an explicit edge reference wins. Failing that, derive X from the
@@ -1990,7 +1992,7 @@ CadDocument::DatumCoordSys CadDocument::datum_frame(const std::vector<CadBody>& 
             }
             if (X_tent.squaredNorm() < 1e-18) X_tent = f.coordsys_x_hint;
         }
-        if (X_tent.squaredNorm() < 1e-18) { ds.error = "zero-length direction"; break; }
+        if (X_tent.squaredNorm() < 1e-18) { ds.error = _u8L("zero-length direction"); break; }
         X_tent.normalize();
         // Gram-Schmidt: ensure orthonormal, right-handed frame.
         // Y = Z x X_tent,  X = Y x Z  (this makes X perpendicular to Z, not X_tent)
@@ -2252,7 +2254,7 @@ static bool commit_or_rollback(CadDocument& doc, std::vector<CadFeature>& snapsh
     std::string fail_err = doc.error;   // why the attempted edit failed
     doc.features.swap(snapshot);
     doc.recompute();                    // restore the previous good body (clears error)
-    doc.error = fail_err.empty() ? std::string("feature is used by a later feature")
+    doc.error = fail_err.empty() ? _u8L("feature is used by a later feature")
                                  : fail_err;
     return false;
 }
@@ -2452,21 +2454,16 @@ bool CadDocument::replace_sketch_extrude(int sketch_idx, int extrude_idx,
 // two ways of reaching an open profile (Revolve via build_sketch_wire, Extrude via
 // build_sketch_face) report it identically.
 static std::string open_loop_message(const CadFeature& sketch,
-                                     const char* head = "sketch entities do not form a closed loop")
+                                     const std::string& head = _u8L("sketch entities do not form a closed loop"))
 {
     std::string msg = head;
     const std::vector<Vec2d> open = Slic3r::sketch_open_ends(sketch.entities, sketch.plane);
     if (!open.empty()) {
         const size_t shown = std::min<size_t>(open.size(), 3);
-        char buf[96];
-        for (size_t i = 0; i < shown; ++i) {
-            std::snprintf(buf, sizeof buf, "\n  Open at (%.3f, %.3f)", open[i].x(), open[i].y());
-            msg += buf;
-        }
-        if (open.size() > shown) {
-            std::snprintf(buf, sizeof buf, "\n  ...and %zu more open end(s)", open.size() - shown);
-            msg += buf;
-        }
+        for (size_t i = 0; i < shown; ++i)
+            msg += "\n  " + format(_u8L("Open at (%.3f, %.3f)"), open[i].x(), open[i].y());
+        if (open.size() > shown)
+            msg += "\n  " + format(_u8L("...and %1% more open end(s)"), open.size() - shown);
     }
     return msg;
 }
@@ -2506,15 +2503,15 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed
         // that legitimately carry no entities at all.
         throw std::runtime_error(
             open_loop_message(sketch,
-                "sketch has entities but they do not form a single closed wire — a closed "
-                "entity (circle/ellipse) combined with other entities, or several closed "
-                "entities, is not supported yet"));
+                _u8L("sketch has entities but they do not form a single closed wire — a closed "
+                     "entity (circle/ellipse) combined with other entities, or several closed "
+                     "entities, is not supported yet")));
     }
     if (!sketch.profile.points.empty()) {
         SketchProfile prof = sketch.profile;
         prof.closed = true;               // extrude needs a closed wire
         TopoDS_Wire w = prof.to_occt_wire(sketch.plane);
-        if (w.IsNull()) throw std::runtime_error("sketch profile wire failed");
+        if (w.IsNull()) throw std::runtime_error(_u8L("sketch profile wire failed"));
         return w;
     }
     if (sketch.shape == SketchShape::Circle) {
@@ -2523,7 +2520,7 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed
         gp_Circ circ(gp_Ax2(o, n), sketch.radius);
         TopoDS_Edge e = BRepBuilderAPI_MakeEdge(circ).Edge();
         BRepBuilderAPI_MakeWire wm(e);
-        if (!wm.IsDone()) throw std::runtime_error("circle wire failed");
+        if (!wm.IsDone()) throw std::runtime_error(_u8L("circle wire failed"));
         return wm.Wire();
     }
     // Rectangle centered on the plane origin
@@ -2598,7 +2595,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (f.extrude_src_face >= 0) {
             // The source face is read from `context` (the owner body), which for a New
             // face-extrude is the source solid while `result` is the empty new body.
-            if (context.IsNull()) throw std::runtime_error("face-extrude needs a body");
+            if (context.IsNull()) throw std::runtime_error(_u8L("face-extrude needs a body"));
             TopoDS_Face srcf = GeometryEngine::face_by_index(context, f.extrude_src_face);
             if (srcf.IsNull()) throw std::runtime_error("face-extrude: invalid face id");
             SketchPlane fpl = SketchPlane::from_face(srcf);
@@ -2639,7 +2636,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                           int nloops = 0;
                           for (TopExp_Explorer ex(profile, TopAbs_WIRE); ex.More(); ex.Next()) ++nloops;
                           if (nloops > 1)
-                              throw std::runtime_error("tapered extrude of a sketch with holes is not supported yet");
+                              throw std::runtime_error(_u8L("tapered extrude of a sketch with holes is not supported yet"));
                           return SketchEngine::make_extrude_taper(build_sketch_wire(sk, true), sk.plane, L, f.taper_deg);
                       };
                       TopoDS_Shape t;
@@ -2682,15 +2679,15 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             have_body = true;
         } else if (f.mode == BooleanMode::Add) {
             BRepAlgoAPI_Fuse fuse(result, tool);
-            if (!fuse.IsDone()) throw std::runtime_error("fuse failed");
+            if (!fuse.IsDone()) throw std::runtime_error(_u8L("fuse failed"));
             result = fuse.Shape();
         } else if (f.mode == BooleanMode::Cut) {
             BRepAlgoAPI_Cut cut(result, tool);
-            if (!cut.IsDone()) throw std::runtime_error("cut failed");
+            if (!cut.IsDone()) throw std::runtime_error(_u8L("cut failed"));
             result = cut.Shape();
         } else if (f.mode == BooleanMode::Intersect) {
             BRepAlgoAPI_Common common(result, tool);
-            if (!common.IsDone()) throw std::runtime_error("intersect failed");
+            if (!common.IsDone()) throw std::runtime_error(_u8L("intersect failed"));
             result = common.Shape();
         }
         break;
@@ -2710,15 +2707,15 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             have_body = true;
         } else if (f.mode == BooleanMode::Add) {
             BRepAlgoAPI_Fuse fuse(result, tool);
-            if (!fuse.IsDone()) throw std::runtime_error("fuse failed");
+            if (!fuse.IsDone()) throw std::runtime_error(_u8L("fuse failed"));
             result = fuse.Shape();
         } else if (f.mode == BooleanMode::Cut) {
             BRepAlgoAPI_Cut cut(result, tool);
-            if (!cut.IsDone()) throw std::runtime_error("cut failed");
+            if (!cut.IsDone()) throw std::runtime_error(_u8L("cut failed"));
             result = cut.Shape();
         } else if (f.mode == BooleanMode::Intersect) {
             BRepAlgoAPI_Common common(result, tool);
-            if (!common.IsDone()) throw std::runtime_error("intersect failed");
+            if (!common.IsDone()) throw std::runtime_error(_u8L("intersect failed"));
             result = common.Shape();
         }
         break;
@@ -2730,12 +2727,12 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
             throw std::runtime_error("surface-extrude: ref is not a sketch");
         TopoDS_Wire wire = build_sketch_wire(sk);
-        if (wire.IsNull()) throw std::runtime_error("surface-extrude: empty profile");
+        if (wire.IsNull()) throw std::runtime_error(_u8L("surface-extrude: empty profile"));
         gp_Dir nrm(sk.plane.normal.x(), sk.plane.normal.y(), sk.plane.normal.z());
         try {
             result = SketchEngine::make_prism(wire, gp_Vec(nrm.XYZ() * f.distance));
         } catch (const std::exception& e) {
-            throw std::runtime_error(std::string("surface-extrude: ") + (*e.what() ? e.what() : "prism failed"));
+            throw std::runtime_error(format(_u8L("surface-extrude: %1%"), *e.what() ? e.what() : _u8L("prism failed")));
         }
         have_body = true;
         break;
@@ -2747,7 +2744,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
             throw std::runtime_error("surface-revolve: ref is not a sketch");
         TopoDS_Wire wire = build_sketch_wire(sk);
-        if (wire.IsNull()) throw std::runtime_error("surface-revolve: empty profile");
+        if (wire.IsNull()) throw std::runtime_error(_u8L("surface-revolve: empty profile"));
         gp_Ax1 axis = revolve_axis_of(f, sk);
         // Same angle rules as the solid Revolve (flip reverses it, and a negative sweep is a
         // positive one about the reversed axis — MakeRevol wants (0, 2 pi]); this surface
@@ -2755,7 +2752,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         double ang = (f.flip ? -f.revolve_angle : f.revolve_angle) * M_PI / 180.0;
         if (ang < 0) { axis.Reverse(); ang = -ang; }
         BRepPrimAPI_MakeRevol rev(wire, axis, ang, false);
-        if (!rev.IsDone()) throw std::runtime_error("surface-revolve: revolve failed");
+        if (!rev.IsDone()) throw std::runtime_error(_u8L("surface-revolve: revolve failed"));
         result = rev.Shape(); have_body = true;
         break;
     }
@@ -2769,9 +2766,9 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             profiles.push_back(build_sketch_wire(features[ref]));
         }
         if (profiles.size() < 2)
-            throw std::runtime_error("surface-loft needs 2+ valid profile sketches");
+            throw std::runtime_error(_u8L("surface-loft needs 2+ valid profile sketches"));
         TopoDS_Shape skin = SketchEngine::make_loft_surface(profiles, f.loft_ruled);
-        if (skin.IsNull()) throw std::runtime_error("surface-loft: loft failed");
+        if (skin.IsNull()) throw std::runtime_error(_u8L("surface-loft: loft failed"));
         result = skin; have_body = true;
         break;
     }
@@ -2782,18 +2779,18 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
             throw std::runtime_error("surface-fill: ref is not a sketch");
         TopoDS_Wire wire = build_sketch_wire(sk);
-        if (wire.IsNull()) throw std::runtime_error("surface-fill: empty boundary");
+        if (wire.IsNull()) throw std::runtime_error(_u8L("surface-fill: empty boundary"));
         BRepOffsetAPI_MakeFilling fill;
         int nedges = 0;
         for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) {
             fill.Add(TopoDS::Edge(ex.Current()), GeomAbs_C0);
             ++nedges;
         }
-        if (nedges == 0) throw std::runtime_error("surface-fill: boundary has no edges");
+        if (nedges == 0) throw std::runtime_error(_u8L("surface-fill: boundary has no edges"));
         fill.Build();
-        if (!fill.IsDone()) throw std::runtime_error("surface-fill: fill failed");
+        if (!fill.IsDone()) throw std::runtime_error(_u8L("surface-fill: fill failed"));
         TopoDS_Shape face = fill.Shape();
-        if (face.IsNull()) throw std::runtime_error("surface-fill: produced no geometry");
+        if (face.IsNull()) throw std::runtime_error(_u8L("surface-fill: produced no geometry"));
         result = face; have_body = true;
         break;
     }
@@ -2803,17 +2800,17 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                                     || features[f.sketch_ref].type == CadFeatureType::Project))
                                ? features[f.sketch_ref] : f;
         if (f.sweep_path_ref < 0 || f.sweep_path_ref >= int(features.size()))
-            throw std::runtime_error("sweep needs a valid path reference");
+            throw std::runtime_error(_u8L("sweep needs a valid path reference"));
         const CadFeature& path_feat = features[f.sweep_path_ref];
         TopoDS_Wire path;
         if (path_feat.type == CadFeatureType::Helix) {
             std::string helix_err;
             path = make_helix_spine(path_feat, helix_err);
-            if (path.IsNull()) throw std::runtime_error("helix path: " + helix_err);
+            if (path.IsNull()) throw std::runtime_error(format(_u8L("helix path: %1%"), helix_err));
         } else if (path_feat.type == CadFeatureType::Sketch) {
             path = build_sketch_wire(path_feat);
         } else {
-            throw std::runtime_error("sweep path must be a sketch or helix");
+            throw std::runtime_error(_u8L("sweep path must be a sketch or helix"));
         }
         TopoDS_Wire profile = build_sketch_wire(sk, true);
         TopoDS_Shape tool   = SketchEngine::make_sweep(profile, path);
@@ -2822,15 +2819,15 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             have_body = true;
         } else if (f.mode == BooleanMode::Add) {
             BRepAlgoAPI_Fuse fuse(result, tool);
-            if (!fuse.IsDone()) throw std::runtime_error("fuse failed");
+            if (!fuse.IsDone()) throw std::runtime_error(_u8L("fuse failed"));
             result = fuse.Shape();
         } else if (f.mode == BooleanMode::Cut) {
             BRepAlgoAPI_Cut cut(result, tool);
-            if (!cut.IsDone()) throw std::runtime_error("cut failed");
+            if (!cut.IsDone()) throw std::runtime_error(_u8L("cut failed"));
             result = cut.Shape();
         } else if (f.mode == BooleanMode::Intersect) {
             BRepAlgoAPI_Common common(result, tool);
-            if (!common.IsDone()) throw std::runtime_error("intersect failed");
+            if (!common.IsDone()) throw std::runtime_error(_u8L("intersect failed"));
             result = common.Shape();
         }
         break;
@@ -2847,22 +2844,22 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             profiles.push_back(build_sketch_wire(features[ref], true));
         }
         if (profiles.size() < 2)
-            throw std::runtime_error("loft needs 2+ valid profile sketches");
+            throw std::runtime_error(_u8L("loft needs 2+ valid profile sketches"));
         TopoDS_Shape tool = SketchEngine::make_loft(profiles, f.loft_ruled);
         if (!have_body || f.mode == BooleanMode::New) {
             result = tool;
             have_body = true;
         } else if (f.mode == BooleanMode::Add) {
             BRepAlgoAPI_Fuse fuse(result, tool);
-            if (!fuse.IsDone()) throw std::runtime_error("fuse failed");
+            if (!fuse.IsDone()) throw std::runtime_error(_u8L("fuse failed"));
             result = fuse.Shape();
         } else if (f.mode == BooleanMode::Cut) {
             BRepAlgoAPI_Cut cut(result, tool);
-            if (!cut.IsDone()) throw std::runtime_error("cut failed");
+            if (!cut.IsDone()) throw std::runtime_error(_u8L("cut failed"));
             result = cut.Shape();
         } else if (f.mode == BooleanMode::Intersect) {
             BRepAlgoAPI_Common common(result, tool);
-            if (!common.IsDone()) throw std::runtime_error("intersect failed");
+            if (!common.IsDone()) throw std::runtime_error(_u8L("intersect failed"));
             result = common.Shape();
         }
         break;
@@ -2879,7 +2876,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 throw std::runtime_error("pattern-on-curve: ref is not a sketch");
             if (f.pattern_curve_entity < 0 || f.pattern_curve_entity >= (int)gs.entities.size())
                 throw std::runtime_error("pattern-on-curve: bad entity");
-            if (!have_body) throw std::runtime_error("pattern needs a body");
+            if (!have_body) throw std::runtime_error(_u8L("pattern needs a body"));
             const SketchEntity& gc = gs.entities[f.pattern_curve_entity];
             const int n = std::max(1, f.pattern_count);
             const TopoDS_Shape seed = result;
@@ -2892,7 +2889,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 trsf.SetTranslation(gp_Vec(d.x(), d.y(), d.z()));
                 TopoDS_Shape copy = BRepBuilderAPI_Transform(seed, trsf, true).Shape();
                 BRepAlgoAPI_Fuse fuse(result, copy);
-                if (!fuse.IsDone()) throw std::runtime_error("pattern fuse failed");
+                if (!fuse.IsDone()) throw std::runtime_error(_u8L("pattern fuse failed"));
                 result = fuse.Shape();
             }
             break;
@@ -2901,7 +2898,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         // fused into one body. Linear: i*spacing along plane axis pattern_dir
         // (0=X,1=Y). Circular: i*(angle/count) about the plane normal through the
         // plane origin (so a seed offset from the origin orbits the axis).
-        if (!have_body) throw std::runtime_error("pattern needs a body");
+        if (!have_body) throw std::runtime_error(_u8L("pattern needs a body"));
         const int n = std::max(1, f.pattern_count);
         const TopoDS_Shape seed = result;
         for (int i = 1; i < n; ++i) {
@@ -2922,13 +2919,13 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             }
             TopoDS_Shape copy = BRepBuilderAPI_Transform(seed, trsf, true).Shape();
             BRepAlgoAPI_Fuse fuse(result, copy);
-            if (!fuse.IsDone()) throw std::runtime_error("pattern fuse failed");
+            if (!fuse.IsDone()) throw std::runtime_error(_u8L("pattern fuse failed"));
             result = fuse.Shape();
         }
         break;
     }
     case CadFeatureType::Rib: {
-        if (!have_body) throw std::runtime_error("rib needs a body");
+        if (!have_body) throw std::runtime_error(_u8L("rib needs a body"));
         if (f.rib_sketch_ref < 0 || f.rib_sketch_ref >= (int)features.size())
             throw std::runtime_error("rib: bad sketch ref");
         const CadFeature& sk = features[f.rib_sketch_ref];
@@ -2941,43 +2938,43 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             throw std::runtime_error("rib: bad entity");
         const SketchEntity& ln = sk.entities[f.rib_entity];
         if (ln.type != SketchEntity::Type::Line)
-            throw std::runtime_error("rib: entity must be a line"); // ponytail: line-only for now
+            throw std::runtime_error(_u8L("rib: entity must be a line")); // ponytail: line-only for now
         // Thin rectangle centred on the line, in the sketch plane: offset both endpoints by
         // +/-thickness/2 along the in-plane perpendicular of the line direction.
         const SketchPlane& pl = sk.plane;
         Vec2d a = ln.p0, b = ln.p1;
         Vec2d dir = (b - a); double L = dir.norm();
-        if (L < 1e-9) throw std::runtime_error("rib: degenerate line");
+        if (L < 1e-9) throw std::runtime_error(_u8L("rib: degenerate line"));
         dir /= L;
         Vec2d perp(-dir.y(), dir.x());
         double h = f.rib_thickness * 0.5;
         Vec2d q0 = a + perp*h, q1 = b + perp*h, q2 = b - perp*h, q3 = a - perp*h;
         auto w3 = [&](const Vec2d& p){ Vec3d w = pl.to_world(p); return gp_Pnt(w.x(),w.y(),w.z()); };
         BRepBuilderAPI_MakePolygon poly(w3(q0), w3(q1), w3(q2), w3(q3), true);
-        if (!poly.IsDone()) throw std::runtime_error("rib: profile failed");
+        if (!poly.IsDone()) throw std::runtime_error(_u8L("rib: profile failed"));
         TopoDS_Shape wall = SketchEngine::make_extrude(poly.Wire(), pl, f.rib_depth, false, 0.0);
-        if (wall.IsNull()) throw std::runtime_error("rib: extrude failed");
+        if (wall.IsNull()) throw std::runtime_error(_u8L("rib: extrude failed"));
         BRepAlgoAPI_Fuse fuse(result, wall);
-        if (!fuse.IsDone()) throw std::runtime_error("rib: fuse failed");
+        if (!fuse.IsDone()) throw std::runtime_error(_u8L("rib: fuse failed"));
         result = fuse.Shape();
         break;
     }
     case CadFeatureType::Fillet:
-        if (!have_body) throw std::runtime_error("fillet needs a body");
+        if (!have_body) throw std::runtime_error(_u8L("fillet needs a body"));
         if (f.dressup_edge >= 0 || !f.dressup_edges.empty())
             result = GeometryEngine::apply_fillet(result, f.dressup_size, f.dressup_edge_ids());
         else
             result = GeometryEngine::apply_fillet(result, f.dressup_size, f.face_group);
         break;
     case CadFeatureType::Chamfer:
-        if (!have_body) throw std::runtime_error("chamfer needs a body");
+        if (!have_body) throw std::runtime_error(_u8L("chamfer needs a body"));
         if (f.dressup_edge >= 0 || !f.dressup_edges.empty())
             result = GeometryEngine::apply_chamfer(result, f.dressup_size, f.dressup_edge_ids());
         else
             result = GeometryEngine::apply_chamfer(result, f.dressup_size, f.face_group);
         break;
     case CadFeatureType::Hole: {
-        if (!have_body) throw std::runtime_error("hole needs a body");
+        if (!have_body) throw std::runtime_error(_u8L("hole needs a body"));
         // Circle wire centered at the positioned point on the plane
         Vec3d c = f.plane.to_world(Vec2d(f.hole_x, f.hole_y));
         gp_Pnt o(c.x(), c.y(), c.z());
@@ -2985,14 +2982,14 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         gp_Circ circ(gp_Ax2(o, n), f.hole_diameter * 0.5);
         TopoDS_Edge e = BRepBuilderAPI_MakeEdge(circ).Edge();
         BRepBuilderAPI_MakeWire wm(e);
-        if (!wm.IsDone()) throw std::runtime_error("hole wire failed");
+        if (!wm.IsDone()) throw std::runtime_error(_u8L("hole wire failed"));
         // Through = symmetric huge cut (passes fully through any body);
         // Blind = +normal extrude of hole_depth into the body.
         TopoDS_Shape tool = f.hole_through
             ? SketchEngine::make_extrude(wm.Wire(), f.plane, 1.0e5, true, 0.0)
             : SketchEngine::make_extrude(wm.Wire(), f.plane, f.hole_depth, false, 0.0);
         BRepAlgoAPI_Cut cut(result, tool);
-        if (!cut.IsDone()) throw std::runtime_error("hole cut failed");
+        if (!cut.IsDone()) throw std::runtime_error(_u8L("hole cut failed"));
         result = cut.Shape();
 
         // Enlarge the entry for a screw head (style 1 = counterbore, 2 = countersink).
@@ -3107,7 +3104,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                                                              f.thread_pitch, f.thread_depth,
                                                              f.thread_internal), ridge);
         if (f.thread_internal) {
-            if (!have_body) throw std::runtime_error("internal thread needs a body");
+            if (!have_body) throw std::runtime_error(_u8L("internal thread needs a body"));
             // Tapped bore: cut a clean pocket at radius - depth, then carve the helical groove
             // outward into its wall.
             const double bore_r = std::max(0.5, f.thread_radius - f.thread_depth);
@@ -3140,7 +3137,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         break;
     }
     case CadFeatureType::Shell: {
-        if (!have_body) throw std::runtime_error("shell needs a body");
+        if (!have_body) throw std::runtime_error(_u8L("shell needs a body"));
         // Hollow the body to a wall thickness; the picked face (if any) is removed so the
         // shell is open there. MakeThickSolidByJoin with a NEGATIVE offset shells inward.
         NCollection_List<TopoDS_Shape> remove;
@@ -3151,16 +3148,16 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         BRepOffsetAPI_MakeThickSolid mts;
         mts.MakeThickSolidByJoin(result, remove, -std::abs(f.shell_thickness), 1.0e-3);
         mts.Build();
-        if (!mts.IsDone()) throw std::runtime_error("shell failed");
+        if (!mts.IsDone()) throw std::runtime_error(_u8L("shell failed"));
         result = mts.Shape();
-        if (result.IsNull()) throw std::runtime_error("shell produced no geometry");
+        if (result.IsNull()) throw std::runtime_error(_u8L("shell produced no geometry"));
         break;
     }
     case CadFeatureType::Draft: {
-        if (!have_body) throw std::runtime_error("draft needs a body");
-        if (f.draft_face < 0) throw std::runtime_error("draft needs a picked face");
+        if (!have_body) throw std::runtime_error(_u8L("draft needs a body"));
+        if (f.draft_face < 0) throw std::runtime_error(_u8L("draft needs a picked face"));
         TopoDS_Face fc = GeometryEngine::face_by_index(result, f.draft_face);
-        if (fc.IsNull()) throw std::runtime_error("draft: face not found");
+        if (fc.IsNull()) throw std::runtime_error(_u8L("draft: face not found"));
         // Neutral plane = horizontal plane through the body's bbox bottom, pull direction +Z.
         // The face pivots about the line where it meets the neutral plane and tilts by the angle.
         // ponytail: neutral plane / pull direction fixed to world up; pick-based neutral plane
@@ -3173,27 +3170,27 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         BRepOffsetAPI_DraftAngle draft(result);
         draft.Add(fc, pull, f.draft_angle * M_PI / 180.0, neutral);
         if (!draft.AddDone())
-            throw std::runtime_error("draft: face cannot be drafted (is it parallel to the base?)");
+            throw std::runtime_error(_u8L("draft: face cannot be drafted (is it parallel to the base?)"));
         draft.Build();
-        if (!draft.IsDone()) throw std::runtime_error("draft failed");
+        if (!draft.IsDone()) throw std::runtime_error(_u8L("draft failed"));
         result = draft.Shape();
-        if (result.IsNull()) throw std::runtime_error("draft produced no geometry");
+        if (result.IsNull()) throw std::runtime_error(_u8L("draft produced no geometry"));
         break;
     }
     case CadFeatureType::DeleteFace: {
-        if (!have_body) throw std::runtime_error("delete_face needs a body");
-        if (f.delete_faces.empty()) throw std::runtime_error("delete_face needs at least one face");
+        if (!have_body) throw std::runtime_error(_u8L("delete_face needs a body"));
+        if (f.delete_faces.empty()) throw std::runtime_error(_u8L("delete_face needs at least one face"));
         BRepAlgoAPI_Defeaturing df;
         df.SetShape(result);
         for (int fi : f.delete_faces) {
             TopoDS_Face fc = GeometryEngine::face_by_index(result, fi);
-            if (fc.IsNull()) throw std::runtime_error("delete_face: face not found");
+            if (fc.IsNull()) throw std::runtime_error(_u8L("delete_face: face not found"));
             df.AddFaceToRemove(fc);
         }
         df.Build();
-        if (!df.IsDone()) throw std::runtime_error("delete_face failed");
+        if (!df.IsDone()) throw std::runtime_error(_u8L("delete_face failed"));
         result = df.Shape();
-        if (result.IsNull()) throw std::runtime_error("delete_face produced no geometry");
+        if (result.IsNull()) throw std::runtime_error(_u8L("delete_face produced no geometry"));
         break;
     }
     }
@@ -3259,7 +3256,7 @@ void CadDocument::apply_boolean(std::vector<CadBody>& bodies, const CadFeature& 
         bop.SetTools(tools);
         if (f.bool_tolerance > 0.0) bop.SetFuzzyValue(f.bool_tolerance);   // OCCT fuzzy: merge near-coincident faces
         bop.Build();
-        if (!bop.IsDone()) throw std::runtime_error("boolean operation failed");
+        if (!bop.IsDone()) throw std::runtime_error(_u8L("boolean operation failed"));
         return bop.Shape();
     };
     TopoDS_Shape result;
@@ -3269,7 +3266,7 @@ void CadDocument::apply_boolean(std::vector<CadBody>& bodies, const CadFeature& 
     case BooleanMode::Intersect: { BRepAlgoAPI_Common op; result = run(op); break; }   // overlap
     default: throw std::runtime_error("boolean: choose Union, Subtract or Intersect");   // New means nothing between two bodies
     }
-    if (result.IsNull()) throw std::runtime_error("boolean produced an empty shape");
+    if (result.IsNull()) throw std::runtime_error(_u8L("boolean produced an empty shape"));
 
     bodies[tgt].shape = result;
     if (!f.bool_keep_tool) bodies.erase(bodies.begin() + tool);   // consume the tool body
@@ -3278,19 +3275,19 @@ void CadDocument::apply_boolean(std::vector<CadBody>& bodies, const CadFeature& 
 void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nb  = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("cut: no target body");
+    if (nb == 0) throw std::runtime_error(_u8L("cut: no target body"));
     const int tgt = pick_body(f.target_body, nb);
-    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("cut: no target body");
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error(_u8L("cut: no target body"));
 
     if (!f.cut_keep_upper && !f.cut_keep_lower)
-        throw std::runtime_error("cut keeps nothing");
+        throw std::runtime_error(_u8L("cut keeps nothing"));
 
     SketchPlane cp;
     if (f.cut_face >= 0) {
         const int fb = f.cut_face_body == -1 ? tgt : pick_body(f.cut_face_body, nb);
-        if (bodies[fb].shape.IsNull()) throw std::runtime_error("cut: face body is empty");
+        if (bodies[fb].shape.IsNull()) throw std::runtime_error(_u8L("cut: face body is empty"));
         TopoDS_Face fc = GeometryEngine::face_by_index(bodies[fb].shape, f.cut_face);
-        if (fc.IsNull()) throw std::runtime_error("cut: face not found");
+        if (fc.IsNull()) throw std::runtime_error(_u8L("cut: face not found"));
         cp = SketchPlane::from_face(fc);
     } else {
         cp = f.plane;
@@ -3313,7 +3310,7 @@ void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) c
     poly.Add(p(-1, -1));
     poly.Add(p(-1,  1));
     poly.Close();
-    if (!poly.IsDone()) throw std::runtime_error("cut: failed to build cut wire");
+    if (!poly.IsDone()) throw std::runtime_error(_u8L("cut: failed to build cut wire"));
     TopoDS_Wire wire = poly.Wire();
 
     TopoDS_Shape upper_piece, lower_piece;
@@ -3322,7 +3319,7 @@ void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) c
     if (f.cut_keep_upper) {
         TopoDS_Shape upper_tool = SketchEngine::make_extrude(wire, cp, L, false, 0.0);
         BRepAlgoAPI_Common common(target, upper_tool);
-        if (!common.IsDone()) throw std::runtime_error("cut operation failed");
+        if (!common.IsDone()) throw std::runtime_error(_u8L("cut operation failed"));
         upper_piece = common.Shape();
     }
 
@@ -3331,7 +3328,7 @@ void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) c
         lp.normal = -lp.normal;
         TopoDS_Shape lower_tool = SketchEngine::make_extrude(wire, lp, L, false, 0.0);
         BRepAlgoAPI_Common common(target, lower_tool);
-        if (!common.IsDone()) throw std::runtime_error("cut operation failed");
+        if (!common.IsDone()) throw std::runtime_error(_u8L("cut operation failed"));
         lower_piece = common.Shape();
     }
 
@@ -3349,9 +3346,9 @@ void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) c
 void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nb  = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("mirror: no target body");
+    if (nb == 0) throw std::runtime_error(_u8L("mirror: no target body"));
     const int tgt = pick_body(f.target_body, nb);
-    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("mirror: no target body");
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error(_u8L("mirror: no target body"));
 
     const TopoDS_Shape& src = bodies[tgt].shape;
 
@@ -3359,7 +3356,7 @@ void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f
     trsf.SetMirror(gp_Ax2(gp_Pnt(f.plane.origin.x(), f.plane.origin.y(), f.plane.origin.z()),
                           gp_Dir(f.plane.normal.x(), f.plane.normal.y(), f.plane.normal.z())));
     BRepBuilderAPI_Transform xform(src, trsf, true /*copy*/);
-    if (!xform.IsDone()) throw std::runtime_error("mirror: transform failed");
+    if (!xform.IsDone()) throw std::runtime_error(_u8L("mirror: transform failed"));
     TopoDS_Shape mirrored = xform.Shape();
 
     // A mirror reverses orientation — verify the result has positive volume.
@@ -3371,21 +3368,21 @@ void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f
             mirrored.Reverse();
             BRepGProp::VolumeProperties(mirrored, props);
             if (props.Mass() <= 0.0)
-                throw std::runtime_error("mirror: result has zero or negative volume");
+                throw std::runtime_error(_u8L("mirror: result has zero or negative volume"));
         }
     }
 
     switch (f.mode) {
     case BooleanMode::Add: {
         BRepAlgoAPI_Fuse fuse(src, mirrored);
-        if (!fuse.IsDone()) throw std::runtime_error("mirror fuse failed");
+        if (!fuse.IsDone()) throw std::runtime_error(_u8L("mirror fuse failed"));
         bodies[tgt].shape = fuse.Shape();
         break;
     }
     case BooleanMode::New: {
         if (!f.mirror_keep_original)
             bodies.erase(bodies.begin() + tgt);   // replace: the mirrored copy takes the source slot
-        bodies.push_back({mirrored, f.name.empty() ? std::string("Mirror") : f.name});
+        bodies.push_back({mirrored, f.name.empty() ? _u8L("Mirror") : f.name});
         break;
     }
     default:
@@ -3396,14 +3393,14 @@ void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f
 void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nb  = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("transform: no target body");
+    if (nb == 0) throw std::runtime_error(_u8L("transform: no target body"));
     const int tgt = pick_body(f.target_body, nb);
-    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("transform: no target body");
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error(_u8L("transform: no target body"));
 
     gp_Trsf rot;
     if (std::abs(f.xf_angle_deg) > 1e-12) {
         if (f.xf_axis.norm() < 1e-9)
-            throw std::runtime_error("transform: rotation axis is degenerate");
+            throw std::runtime_error(_u8L("transform: rotation axis is degenerate"));
         rot.SetRotation(gp_Ax1(gp_Pnt(f.xf_pivot.x(), f.xf_pivot.y(), f.xf_pivot.z()),
                                gp_Dir(f.xf_axis.x(), f.xf_axis.y(), f.xf_axis.z())),
                         f.xf_angle_deg * M_PI / 180.0);
@@ -3413,11 +3410,11 @@ void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature
     const gp_Trsf trsf = tr * rot;          // rotate first, then translate
 
     BRepBuilderAPI_Transform xform(bodies[tgt].shape, trsf, true /*copy*/);
-    if (!xform.IsDone()) throw std::runtime_error("transform: failed");
+    if (!xform.IsDone()) throw std::runtime_error(_u8L("transform: failed"));
     TopoDS_Shape moved = xform.Shape();
 
     if (f.xf_copy)
-        bodies.push_back({moved, f.name.empty() ? std::string("Transform") : f.name});
+        bodies.push_back({moved, f.name.empty() ? _u8L("Transform") : f.name});
     else
         bodies[tgt].shape = moved;
 }
@@ -3425,13 +3422,13 @@ void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature
 void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nb = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("thicken: no target body");
+    if (nb == 0) throw std::runtime_error(_u8L("thicken: no target body"));
     const int tgt = pick_body(f.target_body, nb);
-    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("thicken: no target body");
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error(_u8L("thicken: no target body"));
 
     TopoDS_Face fc = GeometryEngine::face_by_index(bodies[tgt].shape, f.thicken_face);
-    if (fc.IsNull()) throw std::runtime_error("thicken: face not found");
-    if (std::abs(f.thicken_thickness) < 1e-9) throw std::runtime_error("thicken: thickness is zero");
+    if (fc.IsNull()) throw std::runtime_error(_u8L("thicken: face not found"));
+    if (std::abs(f.thicken_thickness) < 1e-9) throw std::runtime_error(_u8L("thicken: thickness is zero"));
 
     TopoDS_Shell shell;
     BRep_Builder bb;
@@ -3443,9 +3440,9 @@ void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& 
     BRepOffsetAPI_MakeThickSolid mts;
     mts.MakeThickSolidBySimple(shell, off);
     mts.Build();
-    if (!mts.IsDone()) throw std::runtime_error("thicken: failed");
+    if (!mts.IsDone()) throw std::runtime_error(_u8L("thicken: failed"));
     TopoDS_Shape solid = mts.Shape();
-    if (solid.IsNull()) throw std::runtime_error("thicken: produced no geometry");
+    if (solid.IsNull()) throw std::runtime_error(_u8L("thicken: produced no geometry"));
 
     // MakeThickSolidBySimple may produce a reversed solid. Ensure positive volume.
     {
@@ -3454,17 +3451,17 @@ void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& 
         if (props.Mass() < 0.0) solid.Reverse();
     }
 
-    bodies.push_back({solid, f.name.empty() ? std::string("Thicken") : f.name});
+    bodies.push_back({solid, f.name.empty() ? _u8L("Thicken") : f.name});
 }
 
 void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nb = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("thicken-surface: no target body");
+    if (nb == 0) throw std::runtime_error(_u8L("thicken-surface: no target body"));
     const int tgt = pick_body(f.target_body, nb);
-    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("thicken-surface: no target body");
-    if (!is_sheet_shape(bodies[tgt].shape)) throw std::runtime_error("thicken-surface: target is not a sheet body");
-    if (std::abs(f.thicken_thickness) < 1e-9) throw std::runtime_error("thicken-surface: thickness is zero");
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error(_u8L("thicken-surface: no target body"));
+    if (!is_sheet_shape(bodies[tgt].shape)) throw std::runtime_error(_u8L("thicken-surface: target is not a sheet body"));
+    if (std::abs(f.thicken_thickness) < 1e-9) throw std::runtime_error(_u8L("thicken-surface: thickness is zero"));
 
     const double off = f.thicken_flip ? -std::abs(f.thicken_thickness)
                                       :  std::abs(f.thicken_thickness);
@@ -3498,8 +3495,8 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         for (TopExp_Explorer we(fb.GetClosedWires(), TopAbs_WIRE); we.More(); we.Next()) {
             BRepBuilderAPI_MakeFace mk(TopoDS::Wire(we.Current()));
             if (!mk.IsDone())
-                throw std::runtime_error("thicken-surface: cannot cap the sheet rim "
-                                         "(is it planar?)");
+                throw std::runtime_error(_u8L("thicken-surface: cannot cap the sheet rim "
+                                              "(is it planar?)"));
             caps.Append(mk.Face());
         }
     }
@@ -3509,7 +3506,7 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         BRepOffsetAPI_MakeThickSolid mts;
         mts.MakeThickSolidBySimple(sheet, off);
         mts.Build();
-        if (!mts.IsDone()) throw std::runtime_error("thicken-surface: failed");
+        if (!mts.IsDone()) throw std::runtime_error(_u8L("thicken-surface: failed"));
         solid = mts.Shape();
     } else {
         BRepBuilderAPI_Sewing sewer(1.0e-3);
@@ -3521,12 +3518,12 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         TopoDS_Shell closed_shell;
         for (TopExp_Explorer se(sewer.SewedShape(), TopAbs_SHELL); se.More(); se.Next()) {
             if (!closed_shell.IsNull())
-                throw std::runtime_error("thicken-surface: the capped sheet split into "
-                                         "more than one shell");
+                throw std::runtime_error(_u8L("thicken-surface: the capped sheet split into "
+                                              "more than one shell"));
             closed_shell = TopoDS::Shell(se.Current());
         }
         if (closed_shell.IsNull() || !BRep_Tool::IsClosed(closed_shell))
-            throw std::runtime_error("thicken-surface: the capped sheet is not closed");
+            throw std::runtime_error(_u8L("thicken-surface: the capped sheet is not closed"));
 
         // A shell sewn from an extruded sheet carries no guarantee that its faces point outward,
         // and BRepBuilderAPI_MakeSolid does not fix that. Offsetting an inside-out solid sends the
@@ -3543,13 +3540,13 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         BRepOffsetAPI_MakeThickSolid mts;
         mts.MakeThickSolidByJoin(capped, caps, -std::abs(off), 1.0e-3);
         mts.Build();
-        if (!mts.IsDone()) throw std::runtime_error("thicken-surface: failed");
+        if (!mts.IsDone()) throw std::runtime_error(_u8L("thicken-surface: failed"));
         solid = mts.Shape();
     }
-    if (solid.IsNull()) throw std::runtime_error("thicken-surface: produced no geometry");
+    if (solid.IsNull()) throw std::runtime_error(_u8L("thicken-surface: produced no geometry"));
     // IsDone() is NOT a success test here — the failed attempts had IsDone() true and no solid.
     if (!TopExp_Explorer(solid, TopAbs_SOLID).More())
-        throw std::runtime_error("thicken-surface: produced a shell, not a solid");
+        throw std::runtime_error(_u8L("thicken-surface: produced a shell, not a solid"));
 
     {
         GProp_GProps props;
@@ -3563,18 +3560,18 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
 void CadDocument::apply_surface_offset(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nb = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("surface-offset: no target body");
+    if (nb == 0) throw std::runtime_error(_u8L("surface-offset: no target body"));
     const int tgt = pick_body(f.target_body, nb);
-    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("surface-offset: no target body");
-    if (!is_sheet_shape(bodies[tgt].shape)) throw std::runtime_error("surface-offset: target is not a sheet body");
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error(_u8L("surface-offset: no target body"));
+    if (!is_sheet_shape(bodies[tgt].shape)) throw std::runtime_error(_u8L("surface-offset: target is not a sheet body"));
     const double d = f.plane_offset;
-    if (std::abs(d) < 1e-9) throw std::runtime_error("surface-offset: zero offset");
+    if (std::abs(d) < 1e-9) throw std::runtime_error(_u8L("surface-offset: zero offset"));
 
     BRepOffsetAPI_MakeOffsetShape mos;
     mos.PerformBySimple(bodies[tgt].shape, d);
-    if (!mos.IsDone()) throw std::runtime_error("surface-offset: failed");
+    if (!mos.IsDone()) throw std::runtime_error(_u8L("surface-offset: failed"));
     TopoDS_Shape off_shape = mos.Shape();
-    if (off_shape.IsNull()) throw std::runtime_error("surface-offset: produced no geometry");
+    if (off_shape.IsNull()) throw std::runtime_error(_u8L("surface-offset: produced no geometry"));
 
     bodies.push_back({off_shape, f.name.empty() ? std::string("SurfaceOffset") : f.name});
 }
@@ -3655,21 +3652,21 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
 {
     f.entities.clear();
     const int nb = int(bodies.size());
-    if (nb == 0) throw std::runtime_error("project: no source body");
+    if (nb == 0) throw std::runtime_error(_u8L("project: no source body"));
     const int src = pick_body(f.project_source_body, nb);
-    if (src < 0 || bodies[src].shape.IsNull()) throw std::runtime_error("project: source body is empty");
+    if (src < 0 || bodies[src].shape.IsNull()) throw std::runtime_error(_u8L("project: source body is empty"));
     const TopoDS_Shape& shape = bodies[src].shape;
 
     std::vector<TopoDS_Edge> edges;
     if (!f.project_edges.empty()) {
         for (int id : f.project_edges) {
             TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
-            if (e.IsNull()) throw std::runtime_error("project: edge not found");
+            if (e.IsNull()) throw std::runtime_error(_u8L("project: edge not found"));
             edges.push_back(e);
         }
     } else if (f.project_face >= 0) {
         TopoDS_Face fc = GeometryEngine::face_by_index(shape, f.project_face);
-        if (fc.IsNull()) throw std::runtime_error("project: face not found");
+        if (fc.IsNull()) throw std::runtime_error(_u8L("project: face not found"));
         edges = GeometryEngine::edges_of_face(fc);
     } else {
         // No face and no explicit selection means "all edges" — the state the Project card
@@ -3678,11 +3675,11 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
         // zero-length lines.
         edges = GeometryEngine::edges_of(shape);
     }
-    if (edges.empty()) throw std::runtime_error("project: no edges to project");
+    if (edges.empty()) throw std::runtime_error(_u8L("project: no edges to project"));
 
     project_edges_to_entities(edges, f.plane, /*construction=*/false, f.entities);
 
-    if (f.entities.empty()) throw std::runtime_error("project: produced no entities");
+    if (f.entities.empty()) throw std::runtime_error(_u8L("project: produced no entities"));
 }
 
 void CadDocument::detect_mate_conflicts()
@@ -3712,12 +3709,11 @@ void CadDocument::detect_mate_conflicts()
         auto it = first_driver.find(dst);
         if (it != first_driver.end()) {
             int first_fi = it->second;
-            std::string first_name = features[first_fi].name.empty() ? "Mate" : features[first_fi].name;
-            std::string this_name = f.name.empty() ? "Mate" : f.name;
+            std::string first_name = features[first_fi].name.empty() ? _u8L("Mate") : features[first_fi].name;
+            std::string this_name = f.name.empty() ? _u8L("Mate") : f.name;
             mate_conflicts.push_back({fi,
-                "Body " + std::to_string(dst + 1) + " is already positioned by '" +
-                first_name + "' (feature " + std::to_string(first_fi + 1) +
-                ") — '" + this_name + "' overrides it; suppress one"});
+                format(_u8L("Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"),
+                       dst + 1, first_name, first_fi + 1, this_name)});
         } else {
             first_driver[dst] = fi;
         }
@@ -3726,7 +3722,7 @@ void CadDocument::detect_mate_conflicts()
         if (src >= 0 && dst >= 0) {
             if (src == dst) {
                 mate_conflicts.push_back({fi,
-                    "this mate positions Body " + std::to_string(dst + 1) + " against itself"});
+                    format(_u8L("This mate positions Body %1% against itself"), dst + 1)});
             } else {
                 graph[dst].push_back(src);
             }
@@ -3771,10 +3767,9 @@ void CadDocument::detect_mate_conflicts()
                         mate_conflicts.push_back({fi,
                             // Worded for ANY cycle length: "leads back" is true transitively,
                             // where "depends back on" would be a lie for a 3+ body chain.
-                            "circular mate chain: Body " + std::to_string(top.node + 1) +
-                            " depends on Body " + std::to_string(child + 1) +
-                            ", which leads back to Body " + std::to_string(top.node + 1) +
-                            " — the result depends on feature order"});
+                            format(_u8L("Mate chain is circular: Body %1% depends on Body %2%, which leads "
+                                        "back to Body %1% — the result depends on feature order"),
+                                   top.node + 1, child + 1)});
                         break;
                     }
                 }
@@ -3808,8 +3803,8 @@ void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) 
 
     CadDocument::DatumCoordSys A = datum_frame(bodies, fa);
     CadDocument::DatumCoordSys B = datum_frame(bodies, fb);
-    if (!A.error.empty()) throw std::runtime_error("mate: " + A.error);
-    if (!B.error.empty()) throw std::runtime_error("mate: " + B.error);
+    if (!A.error.empty()) throw std::runtime_error(format(_u8L("mate: %1%"), A.error));
+    if (!B.error.empty()) throw std::runtime_error(format(_u8L("mate: %1%"), B.error));
 
     const int tgt_body = fb.coordsys_body;
     if (tgt_body < 0)
@@ -3950,7 +3945,7 @@ void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) 
     }
 
     BRepBuilderAPI_Transform xform(bodies[tgt_body].shape, T, true /*copy*/);
-    if (!xform.IsDone()) throw std::runtime_error("mate: transform failed");
+    if (!xform.IsDone()) throw std::runtime_error(_u8L("mate: transform failed"));
     bodies[tgt_body].shape = xform.Shape();
 }
 
@@ -3998,9 +3993,9 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
         bool have_body = false;
         apply_feature(result, have_body, context, f);
         if (have_body && !result.IsNull())
-            bodies.push_back({ result, f.name.empty() ? std::string("Body") : f.name });
+            bodies.push_back({ result, f.name.empty() ? _u8L("Body") : f.name });
     } else {
-        if (t < 0) throw std::runtime_error("feature needs a body");
+        if (t < 0) throw std::runtime_error(_u8L("feature needs a body"));
         TopoDS_Shape result = bodies[t].shape;   // shallow handle; apply_feature mutates it
         bool have_body = true;
         // A subtraction whose tool misses the target is a legal boolean that removes nothing, so
@@ -4021,11 +4016,15 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
             // Relative tolerance: a cut that shaves a numerically invisible sliver is a miss too,
             // and an absolute epsilon would be wrong across the mm-to-metre range of real parts.
             if (after >= before - 1e-9 * std::max(1.0, before))
-                throw std::runtime_error(std::string(
-                    f.type == CadFeatureType::Hole   ? "hole" :
-                    f.type == CadFeatureType::Thread ? "thread" : "cut") +
-                    " removed no material — the tool does not intersect the target body"
-                    " (coordinates are in the sketch plane's frame, not world)");
+                throw std::runtime_error(
+                    f.type == CadFeatureType::Hole ?
+                        _u8L("hole removed no material — the tool does not intersect the target body"
+                             " (coordinates are in the sketch plane's frame, not world)") :
+                    f.type == CadFeatureType::Thread ?
+                        _u8L("thread removed no material — the tool does not intersect the target body"
+                             " (coordinates are in the sketch plane's frame, not world)") :
+                        _u8L("cut removed no material — the tool does not intersect the target body"
+                             " (coordinates are in the sketch plane's frame, not world)"));
         }
         bodies[t].shape = result;
     }
@@ -4085,13 +4084,13 @@ bool CadDocument::recompute()
         for (size_t fi = 0; fi < features.size(); ++fi)
             replay_feature(fi, built);
     } catch (const std::exception& e) {
-        error = *e.what() ? e.what() : "OCCT operation failed";
+        error = *e.what() ? e.what() : _u8L("OCCT operation failed");
         return false;
     } catch (...) {
-        error = "unknown geometry error";
+        error = _u8L("unknown geometry error");
         return false;
     }
-    if (built.empty() && any_solid_feature) { error = "no solid-producing features"; return false; }
+    if (built.empty() && any_solid_feature) { error = _u8L("no solid-producing features"); return false; }
 
     // A feature that leaves a body with a null shape must fail loudly. Until this existed,
     // recompute() returned true and the document kept advertising the body: describe_scene
@@ -4105,11 +4104,10 @@ bool CadDocument::recompute()
         // this message exists precisely to be trusted about which feature to look at.
         const std::string fname =
             (src < 0 || src >= int(features.size()))
-                ? std::string("an unidentified feature")
-                : (features[src].name.empty() ? ("feature " + std::to_string(src + 1))
+                ? _u8L("an unidentified feature")
+                : (features[src].name.empty() ? format(_u8L("feature %1%"), src + 1)
                                               : features[src].name);
-        error = "body " + std::to_string(i + 1) + " was destroyed by " + fname
-              + " (the operation produced an empty shape)";
+        error = format(_u8L("body %1% was destroyed by %2% (the operation produced an empty shape)"), i + 1, fname);
         return false;
     }
 
@@ -4176,8 +4174,8 @@ bool CadDocument::recompute()
         }
         if (f.coordsys_face_kind != kind || f.coordsys_face_edges != edges) {
             mate_conflicts.emplace_back(int(fi),
-                "connector \"" + f.name + "\" may have moved to a different face "
-                "(an upstream edit renumbered this body's faces)");
+                format(_u8L("Connector \"%1%\" may have moved to a different face (an upstream edit "
+                            "renumbered this body's faces)"), f.name));
         }
     }
 
@@ -4188,7 +4186,7 @@ bool CadDocument::recompute()
     if (display_mesh.its.indices.empty() && any_solid_feature) {
         // Empty only because there are no bodies to tessellate is the same legitimate state as
         // above: a sketch-only document has nothing to draw as a solid, and that is not a fault.
-        error = "tessellation produced an empty mesh";
+        error = _u8L("tessellation produced an empty mesh");
         return false;
     }
     return true;
@@ -4203,14 +4201,14 @@ bool CadDocument::preview(const CadFeature& candidate, TriangleMesh& out_mesh,
     try {
         route_feature(tmp, candidate);     // candidate may append a new body or mutate one
     } catch (const std::exception& e) {
-        err = *e.what() ? e.what() : "OCCT operation failed";
+        err = *e.what() ? e.what() : _u8L("OCCT operation failed");
         return false;
     } catch (...) {
-        err = "unknown geometry error";
+        err = _u8L("unknown geometry error");
         return false;
     }
     if (tmp.empty()) {
-        err = "preview produced no geometry";
+        err = _u8L("preview produced no geometry");
         return false;
     }
     // Tessellate per body (same path as recompute) so the GUI can re-apply its display-only
@@ -4218,7 +4216,7 @@ bool CadDocument::preview(const CadFeature& candidate, TriangleMesh& out_mesh,
     std::vector<int> tf, tb;
     out_mesh = tessellate_bodies(tmp, tf, tb, out_body_meshes, linear_deflection, angular_deflection);
     if (out_mesh.its.indices.empty()) {
-        err = "preview produced an empty mesh";
+        err = _u8L("preview produced an empty mesh");
         return false;
     }
     return true;
@@ -4500,9 +4498,8 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
         uint32_t v;
         ar(v);
         if (v > ORCA_CAD_RECIPE_VERSION) {
-            error = "saved with a newer version of the Design tab (format v"
-                  + std::to_string(v) + ", this build reads up to v"
-                  + std::to_string(ORCA_CAD_RECIPE_VERSION) + ")";
+            error = format(_u8L("saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"),
+                           v, ORCA_CAD_RECIPE_VERSION);
             return false;
         }
         // The framed layout has been byte-identical since v5 (v6 advanced the stamp without
@@ -4615,15 +4612,14 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
         }
         // v < 4: the field lists for v2/v3 no longer exist in this code, so those files
         // cannot be recovered here. This fix is for the future, not the past.
-        error = "saved with an older version of the Design tab (format v"
-              + std::to_string(v) + "); this project cannot be opened by this build";
+        error = format(_u8L("saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"), v);
         return false;
     } catch (const std::exception& e) {
-        error = std::string("CAD data could not be read")
-              + (*e.what() ? ": " + std::string(e.what()) : "");
+        error = *e.what() ? format(_u8L("CAD data could not be read: %1%"), e.what())
+                          : _u8L("CAD data could not be read");
         return false;
     } catch (...) {
-        error = "CAD data could not be read";
+        error = _u8L("CAD data could not be read");
         return false;
     }
 }
@@ -4633,7 +4629,7 @@ bool CadDocument::export_step(const std::string& path,
                              std::string& err) const
 {
     err.clear();
-    if (bodies.empty()) { err = "nothing to export"; return false; }
+    if (bodies.empty()) { err = _u8L("nothing to export"); return false; }
     try {
         // Compound every body at its displayed (Move-gizmo) position so the STEP matches
         // what Commit ships. Move transforms are rigid, so gp_Trsf::SetValues is valid.
@@ -4655,15 +4651,15 @@ bool CadDocument::export_step(const std::string& path,
         }
         STEPControl_Writer writer;
         if (writer.Transfer(comp, STEPControl_AsIs) != IFSelect_RetDone) {
-            err = "STEP transfer failed";
+            err = _u8L("STEP transfer failed");
             return false;
         }
         if (writer.Write(path.c_str()) != IFSelect_RetDone) {
-            err = "cannot write STEP file";
+            err = _u8L("cannot write STEP file");
             return false;
         }
     } catch (const std::exception& e) {
-        err = *e.what() ? e.what() : "OCCT failed to write STEP";
+        err = *e.what() ? e.what() : _u8L("OCCT failed to write STEP");
         return false;
     }
     return true;

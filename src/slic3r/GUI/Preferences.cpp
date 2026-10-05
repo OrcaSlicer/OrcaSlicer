@@ -1715,7 +1715,7 @@ void PreferencesDialog::create_items()
 
     std::vector<wxString> projectLoadSettingsBehaviourOptions = {_L("Load All"), _L("Ask When Relevant"), _L("Always Ask"), _L("Load Geometry Only")};
     std::vector<string>   projectLoadSettingsConfigOptions    = { OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_ALL, OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT, OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK, OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY };
-    auto item_project_load     = create_item_combobox(_L("Load behaviour"), _L("Should printer/filament/process settings be loaded when opening a 3MF file?"), SETTING_PROJECT_LOAD_BEHAVIOUR, projectLoadSettingsBehaviourOptions, projectLoadSettingsConfigOptions);
+    auto item_project_load     = create_item_combobox(_L("Load behavior"), _L("Should printer/filament/process settings be loaded when opening a 3MF file?"), SETTING_PROJECT_LOAD_BEHAVIOUR, projectLoadSettingsBehaviourOptions, projectLoadSettingsConfigOptions);
     g_sizer->Add(item_project_load);
 
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
@@ -1801,6 +1801,7 @@ void PreferencesDialog::create_items()
     auto item_speed_dial_recents = create_item_spinctrl(
         _L("Recent actions"),
         "",
+        // TRN Unit shown after the number of recent actions, as in "5 actions".
         _L("actions"),
         _L("How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."),
         SETTING_SPEED_DIAL_RECENT_COUNT,
@@ -1851,7 +1852,7 @@ void PreferencesDialog::create_items()
     g_sizer->AddGrowableCol(0, 1);
 
     //// CONTROL > Behaviour
-    g_sizer->Add(create_item_title(_L("Behaviour")), 1, wxEXPAND);
+    g_sizer->Add(create_item_title(_L("Behavior")), 1, wxEXPAND);
 
     std::vector<wxString> FlushOptionLabels = {_L("All"),_L("Color"),_L("None")};
     std::vector<std::string> FlushOptionValues = { "all","color change","disabled" };
@@ -1900,7 +1901,7 @@ void PreferencesDialog::create_items()
     if (wxGetApp().is_enable_cad_feature()) {
         auto item_connector_face_glyph = create_item_checkbox(_L("Draw mate connectors as a face"),
             _L("In the Design tab, draw a mate connector as a small face instead of the conventional "
-               "disc with a roll quadrant. A face's orientation is read without being learned. "
+               "disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. "
                "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
         g_sizer->Add(item_connector_face_glyph);
 
@@ -1999,7 +2000,11 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_ssao);
 
-    std::vector<wxString> ShadowsLabels = { _L("Off"), _L("Static"), _L("Orbit") };
+    std::vector<wxString> ShadowsLabels = { _L("Off"),
+                                            // TRN Realistic-view shadow mode: the light stays fixed in the scene.
+                                            _L("Static"),
+                                            // TRN Realistic-view shadow mode: the light turns with the camera.
+                                            _L("Orbit") };
     std::vector<std::string> ShadowsValues = { "off", "static", "orbit" };
     auto item_realistic_shadows = create_item_combobox(
         _L("Shadows"),
@@ -2305,17 +2310,17 @@ void PreferencesDialog::create_items()
     auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
     g_sizer->Add(item_show_unsupported);
 
-    auto item_plugin_printer_agents = create_item_checkbox(
-        _L("(Experimental) Use printer agents instead of print hosts"), _L(
-            "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\nWhen disabled, OrcaSlicer uses the legacy print-host behavior."),
-        "use_printer_agents");
-    g_sizer->Add(item_plugin_printer_agents);
-
     //// DEVELOPER > Experimental Features
     g_sizer->Add(create_item_title(_L("Experimental Features")), 1, wxEXPAND);
 
     auto item_keep_painting    = create_item_checkbox(_L("Keep painted feature after mesh change"), _L("Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\nHighly experimental! Slow and may create artifact."), "keep_painting");
     g_sizer->Add(item_keep_painting);
+
+    auto item_plugin_printer_agents = create_item_checkbox(
+        _L("Use printer agents instead of print hosts"), _L(
+            "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\nWhen disabled, OrcaSlicer uses the legacy print-host behavior."),
+        "use_printer_agents");
+    g_sizer->Add(item_plugin_printer_agents);
 
     //// DEVELOPER > Storage
 

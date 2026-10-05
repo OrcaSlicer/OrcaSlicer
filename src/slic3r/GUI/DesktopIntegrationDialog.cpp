@@ -652,7 +652,7 @@ DesktopIntegrationDialog::DesktopIntegrationDialog(wxWindow *parent)
 
 	wxString text = _L("Desktop Integration sets this binary to be searchable by the system.\n\nPress \"Perform\" to proceed.");
 	if (can_undo)
-		text += "\nPress \"Undo\" to remove previous integration.";
+		text += "\n" + _L("Press \"Undo\" to remove previous integration.");
 
     vbox->Add(
         new wxStaticText( this, wxID_ANY, text),
