@@ -925,8 +925,9 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
 
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
+    ImGui::PopStyleVar();
     imgui_wrapper->end();
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar();
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1131,10 +1132,11 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
 
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
+    ImGui::PopStyleVar();
     imgui_wrapper->end();
 
     // BBS
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar();
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1309,7 +1311,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (!is_avoid_one_update) {
         size_sel    = update(current_active_id, "size", original_size, m_buffered_size);
     }
-    ImGui::PopStyleVar(1);
+    ImGui::PopItemWidth();
     bool uniform_scale = this->m_uniform_scale;
 
     // BBS: when select multiple objects, uniform scale can be deselected
@@ -1381,10 +1383,11 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     m_last_active_item = current_active_id;
 
     last_scale_input_window_width = ImGui::GetWindowWidth();
+    ImGui::PopStyleVar();
     imgui_wrapper->end();
 
     //BBS
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar();
     ImGuiWrapper::pop_toolbar_style();
 }
 
