@@ -1,10 +1,13 @@
 #include <catch2/catch_all.hpp>
+#include <algorithm>
 #include <string>
 #include "libslic3r/Point.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/STL.hpp"
+#include "test_utils.hpp"
+#include <boost/nowide/fstream.hpp>
 
 using namespace Slic3r;
 
@@ -57,4 +60,26 @@ SCENARIO("Reading an STL file", "[stl]") {
 			}
 		}
 	}
+}
+
+TEST_CASE("A binary STL whose facet bytes never exceed 127 is read as binary", "[stl]")
+{
+    const indexed_triangle_set cube = its_make_cube(10., 10., 10.);
+    std::string stl(80, '\0');
+    const auto append = [&stl](const auto &value) { stl.append(reinterpret_cast<const char *>(&value), sizeof(value)); };
+    append(uint32_t(cube.indices.size()));
+    const stl_normal zero_normal = stl_normal::Zero();
+    for (const stl_triangle_vertex_indices &facet : cube.indices) {
+        append(zero_normal);
+        for (int i = 0; i < 3; ++i)
+            append(cube.vertices[facet[i]]);
+        append(uint16_t(0));
+    }
+    REQUIRE(std::none_of(stl.begin() + 84, stl.begin() + 84 + 128, [](unsigned char c) { return c > 127; }));
+
+    ScopedTemporaryFile file(".stl");
+    boost::nowide::ofstream(file.string(), std::ios::binary) << stl;
+    Model model;
+    REQUIRE(load_stl(file.string().c_str(), &model));
+    REQUIRE(is_approx(model.objects.front()->volumes.front()->mesh().size(), Vec3d(10, 10, 10)));
 }
