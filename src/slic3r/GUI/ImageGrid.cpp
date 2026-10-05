@@ -1,5 +1,6 @@
 #include "ImageGrid.h"
 #include "Printer/PrinterFileSystem.h"
+#include "Printer/BambuFileGridModel.h"
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
 #include "I18N.hpp"
@@ -8,6 +9,7 @@
 
 #include <utility>
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/make_shared_object.hpp>
 #include <wx/colour.h>
 #include <cstddef>
 #include <wx/dcclient.h>
@@ -76,19 +78,25 @@ ImageGrid::ImageGrid(wxWindow * parent)
 
 void ImageGrid::SetFileSystem(boost::shared_ptr<PrinterFileSystem> file_sys)
 {
-    if (m_file_sys) {
-        m_file_sys->Unbind(EVT_MODE_CHANGED, &ImageGrid::changedEvent, this);
-        m_file_sys->Unbind(EVT_FILE_CHANGED, &ImageGrid::changedEvent, this);
-        m_file_sys->Unbind(EVT_THUMBNAIL, &ImageGrid::changedEvent, this);
-        m_file_sys->Unbind(EVT_DOWNLOAD, &ImageGrid::changedEvent, this);
-    }
     m_file_sys = file_sys;
-    if (m_file_sys) {
-        m_file_sys->Bind(EVT_MODE_CHANGED, &ImageGrid::changedEvent, this);
-        m_file_sys->Bind(EVT_FILE_CHANGED, &ImageGrid::changedEvent, this);
-        m_file_sys->Bind(EVT_THUMBNAIL, &ImageGrid::changedEvent, this);
-        m_file_sys->Bind(EVT_DOWNLOAD, &ImageGrid::changedEvent, this);
+    m_model.reset();
+    if (file_sys) {
+        m_model = boost::make_shared<BambuFileGridModel>(file_sys);
+        m_model->SetChangeHandler([this](FileGridChange c) { onModelChange(c); });
     }
+    m_row_count = 0;
+    m_col_count = 1;
+    m_row_offset = 0;
+    m_scroll_offset = 0;
+    UpdateFileSystem();
+}
+
+void ImageGrid::SetModel(boost::shared_ptr<IFileGridModel> model)
+{
+    m_file_sys.reset();
+    m_model = std::move(model);
+    if (m_model)
+        m_model->SetChangeHandler([this](FileGridChange c) { onModelChange(c); });
     m_row_count = 0;
     m_col_count = 1;
     m_row_offset = 0;
@@ -98,7 +106,7 @@ void ImageGrid::SetFileSystem(boost::shared_ptr<PrinterFileSystem> file_sys)
 
 void ImageGrid::SetStatus(ScalableBitmap const & icon, wxString const &msg)
 {
-    int code     = m_file_sys ? m_file_sys->GetLastError() : 1;
+    int code     = m_model ? m_model->GetLastError() : 1;
     m_status_icon = icon;
     m_status_msg = wxString::Format(msg, code);
     BOOST_LOG_TRIVIAL(info) << "ImageGrid::SetStatus: " << m_status_msg.ToUTF8().data();
@@ -107,26 +115,26 @@ void ImageGrid::SetStatus(ScalableBitmap const & icon, wxString const &msg)
 
 void Slic3r::GUI::ImageGrid::SetFileType(int type, std::string const &storage)
 {
-    if (!m_file_sys)
+    if (!m_model)
         return;
-    m_file_sys->SetFileType((PrinterFileSystem::FileType) type, storage);
+    m_model->SetFileType((FileGridType) type, storage);
 }
 
 void Slic3r::GUI::ImageGrid::SetGroupMode(int mode)
 {
-    if (!m_file_sys)
+    if (!m_model)
         return;
-    if (m_file_sys->GetCount() == 0) {
-        m_file_sys->SetGroupMode((PrinterFileSystem::GroupMode) mode);
+    if (m_model->GetCount() == 0) {
+        m_model->SetGroupMode((FileGridGroup) mode);
         return;
     }
     wxSize size = GetClientSize();
     int index = (m_row_offset + 1 < m_row_count || m_row_count == 0) 
         ? m_row_offset / 4 * m_col_count 
-        : ((m_file_sys->GetCount() + m_col_count - 1) / m_col_count - (size.y + m_border_size.GetHeight() - 1) / m_cell_size.GetHeight()) * m_col_count;
-    auto & file = m_file_sys->GetFile(index);
-    m_file_sys->SetGroupMode((PrinterFileSystem::GroupMode) mode);
-    index = m_file_sys->GetIndexAtTime(file.time);
+        : ((m_model->GetCount() + m_col_count - 1) / m_col_count - (size.y + m_border_size.GetHeight() - 1) / m_cell_size.GetHeight()) * m_col_count;
+    time_t time = m_model->GetFile(index).time;
+    m_model->SetGroupMode((FileGridGroup) mode);
+    index = m_model->GetIndexAtTime(time);
     // UpdateFileSystem(); call by changed event
     m_row_offset = index / m_col_count * 4;
     if (m_row_offset >= m_row_count)
@@ -137,8 +145,8 @@ void Slic3r::GUI::ImageGrid::SetGroupMode(int mode)
 void Slic3r::GUI::ImageGrid::SetSelecting(bool selecting)
 {
     m_selecting = selecting;
-    if (m_file_sys)
-        m_file_sys->SelectAll(false);
+    if (m_model)
+        m_model->SelectAll(false);
     Refresh();
 }
 
@@ -166,14 +174,14 @@ void Slic3r::GUI::ImageGrid::Rescale()
 void Slic3r::GUI::ImageGrid::Select(size_t index)
 {
     if (m_selecting) {
-        m_file_sys->ToggleSelect(index);
+        m_model->ToggleSelect(index);
         Refresh();
         return;
     }
-    if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE) {
+    if (m_model->GetGroupMode() == FileGridGroup::All) {
         return;
     }
-    index = m_file_sys->EnterSubGroup(index);
+    index = m_model->EnterSubGroup(index);
     // UpdateFileSystem(); call by changed event
     m_row_offset = index / m_col_count * 4;
     if (m_row_offset >= m_row_count)
@@ -193,9 +201,9 @@ void Slic3r::GUI::ImageGrid::DoAction(size_t index, int action)
 
 void Slic3r::GUI::ImageGrid::UpdateFileSystem()
 {
-    if (!m_file_sys) return;
-    if (m_file_sys->GetFileType() < PrinterFileSystem::F_MODEL) {
-        if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE) {
+    if (!m_model) return;
+    if (m_model->GetFileType() < FileGridType::Model) {
+        if (m_model->GetGroupMode() == FileGridGroup::All) {
             m_cell_size.Set(396, 228);
             m_border_size.Set(384, 216);
         }
@@ -216,10 +224,10 @@ void Slic3r::GUI::ImageGrid::UpdateFileSystem()
 
 void ImageGrid::UpdateLayout()
 {
-    if (!m_file_sys) return;
+    if (!m_model) return;
     wxSize size = GetClientSize();
     wxSize title_mask_size{0, 60 * em_unit(this) / 10};
-    if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE) {
+    if (m_model->GetGroupMode() == FileGridGroup::All) {
         title_mask_size.y = 20 * em_unit(this) / 10;
         size.y -= title_mask_size.y;
     }
@@ -227,7 +235,7 @@ void ImageGrid::UpdateLayout()
     int cell_height = m_cell_size.GetHeight();
     int ncol = (size.GetWidth() - cell_width + m_border_size.GetWidth()) / cell_width;
     if (ncol <= 0) ncol = 1;
-    int total_height = (m_file_sys->GetCount() + ncol - 1) / ncol * cell_height + cell_height - m_border_size.GetHeight();
+    int total_height = (m_model->GetCount() + ncol - 1) / ncol * cell_height + cell_height - m_border_size.GetHeight();
     int nrow = (total_height - size.GetHeight() + cell_height / 4 - 1) / (cell_height / 4);
     m_row_offset = m_row_offset * m_col_count / ncol;
     m_col_count = ncol;
@@ -236,7 +244,7 @@ void ImageGrid::UpdateLayout()
         m_row_offset = m_row_count == 0 ? 0 : m_row_count - 1;
     m_scroll_offset = 0;
     // create mask
-    if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE) {
+    if (m_model->GetGroupMode() == FileGridGroup::All) {
         title_mask_size.x = (m_col_count - 1) * m_cell_size.GetWidth() + m_border_size.GetWidth();
     }
     else {
@@ -252,7 +260,7 @@ void ImageGrid::UpdateLayout()
 
 void Slic3r::GUI::ImageGrid::UpdateFocusRange()
 {
-    if (!m_file_sys) return;
+    if (!m_model) return;
     wxSize  size = GetClientSize();
     wxPoint off;
     int     index = firstItem(size, off);
@@ -261,15 +269,21 @@ void Slic3r::GUI::ImageGrid::UpdateFocusRange()
         count += m_col_count;
         off.y += m_cell_size.y;
     }
-    m_file_sys->SetFocusRange(index, count);
+    m_model->SetFocusRange(index, count);
+}
+
+bool Slic3r::GUI::ImageGrid::hasSecondAction(const FileGridCard &card) const
+{
+    return m_show_download || card.downloading ||
+           (m_model->GetFileType() == FileGridType::Model && m_model->supports_print_action());
 }
 
 std::pair<int, size_t> Slic3r::GUI::ImageGrid::HitTest(wxPoint const &pt)
 {
-    if (!m_file_sys)
+    if (!m_model)
         return {HIT_NONE, -1};
     wxSize size  = GetClientSize();
-    if (m_file_sys->GetCount() == 0) {
+    if (m_model->GetCount() == 0) {
         if (wxRect({0, 0}, m_border_size).CenterIn(wxRect({0, 0}, size)).Contains(pt))
             return {HIT_STATUS, 0};
         return {HIT_NONE, -1};
@@ -287,17 +301,19 @@ std::pair<int, size_t> Slic3r::GUI::ImageGrid::HitTest(wxPoint const &pt)
         index += m_col_count;
         off.y -= m_cell_size.GetHeight();
     }
-    if (index >= m_file_sys->GetCount()) { return {HIT_NONE, -1}; }
+    if (index >= m_model->GetCount()) { return {HIT_NONE, -1}; }
     if (!m_content_rect.Contains(off)) { return {HIT_NONE, -1}; }
     if (!m_selecting) {
         wxRect hover_rect{0, m_content_rect.GetHeight() - m_buttons_background.GetHeight(), m_content_rect.GetWidth(), m_buttons_background.GetHeight()};
-        auto & file = m_file_sys->GetFile(index);
-        int    btn  = file.IsDownload() && file.DownloadProgress() >= 0 ? 3 : 2;
-        if (m_file_sys->GetFileType() == PrinterFileSystem::F_MODEL) {
-            if (m_show_download)
+        const FileGridCard &card = m_model->GetFile(index);
+        int    btn  = card.downloading && card.download_progress >= 0 ? 3 : 2;
+        if (m_model->GetFileType() == FileGridType::Model) {
+            if (m_show_download && m_model->supports_print_action())
                 btn = 3;
             hover_rect.y -= m_content_rect.GetHeight() * 64 / 264;
         }
+        if (!hasSecondAction(card))
+            btn = 1;
         if (hover_rect.Contains(off.x, off.y)) {
             return {HIT_ACTION, index * 4 + off.x * btn / hover_rect.GetWidth()};
         } // Two buttons
@@ -315,12 +331,12 @@ void ImageGrid::mouseMoved(wxMouseEvent& event)
         m_hit_item = hit.second;
         if (hit.first == HIT_ITEM) {
             SetToolTip({});
-            auto & file = m_file_sys->GetFile(hit.second);
-            if (auto title = file.Title(); !title.empty()) {
-                auto tip = wxString::Format(_L("File: %s\nTitle: %s\n"), from_u8(file.name), from_u8(title));
+            const FileGridCard &card = m_model->GetFile(hit.second);
+            if (auto title = card.title; !title.empty()) {
+                auto tip = wxString::Format(_L("File: %s\nTitle: %s\n"), from_u8(card.name), from_u8(title));
                 SetToolTip(tip);
             } else {
-                SetToolTip(from_u8(file.name));
+                SetToolTip(from_u8(card.name));
             }
         } else
             SetToolTip({});
@@ -372,9 +388,9 @@ void ImageGrid::mouseReleased(wxMouseEvent& event)
         else if (m_hit_type == HIT_ACTION)
             DoAction(m_hit_item / 4, m_hit_item & 3);
         else if (m_hit_type == HIT_MODE)
-            SetGroupMode(static_cast<PrinterFileSystem::GroupMode>(2 - m_hit_item));
+            SetGroupMode(static_cast<int>(2 - m_hit_item));
         else if (m_hit_type == HIT_STATUS)
-            m_file_sys->Retry();
+            m_model->Retry();
         else
             Refresh();
     } else {
@@ -403,20 +419,11 @@ void ImageGrid::mouseWheelMoved(wxMouseEvent &event)
     Refresh();
 }
 
-void Slic3r::GUI::ImageGrid::changedEvent(wxCommandEvent& evt)
+void Slic3r::GUI::ImageGrid::onModelChange(FileGridChange change)
 {
-    evt.Skip();
-    BOOST_LOG_TRIVIAL(debug) << "ImageGrid::changedEvent: " << evt.GetEventType() << " index: " << evt.GetInt() 
-            << " name: " << evt.GetString().ToUTF8().data() << " extra: " << evt.GetExtraLong();
-    if (evt.GetEventType() == EVT_FILE_CHANGED) {
-        if (evt.GetInt() == -1)
-            m_file_sys->DownloadCheckFiles(wxGetApp().app_config->get("download_path"));
+    BOOST_LOG_TRIVIAL(debug) << "ImageGrid::onModelChange: " << (int) change;
+    if (change == FileGridChange::Files || change == FileGridChange::Mode)
         UpdateFileSystem();
-    }
-    else if (evt.GetEventType() == EVT_MODE_CHANGED)
-        UpdateFileSystem();
-    //else if (evt.GetEventType() == EVT_THUMBNAIL)
-    //    RefreshRect(itemRect(evt.GetInt()), false);
     else
         Refresh();
 }
@@ -431,7 +438,7 @@ void ImageGrid::paintEvent(wxPaintEvent& evt)
 size_t Slic3r::GUI::ImageGrid::firstItem(wxSize const &size, wxPoint &off)
 {
     int size_y = size.y;
-    if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE)
+    if (m_model->GetGroupMode() == FileGridGroup::All)
         size_y -= m_title_mask.GetHeight();
     int offx  = (size.x - (m_col_count - 1) * m_cell_size.GetWidth() - m_border_size.GetWidth()) / 2;
     int offy  = (m_row_offset + 1 < m_row_count || m_row_count == 0) ?
@@ -439,8 +446,8 @@ size_t Slic3r::GUI::ImageGrid::firstItem(wxSize const &size, wxPoint &off)
                     size_y - (size_y + m_border_size.GetHeight() - 1) / m_cell_size.GetHeight() * m_cell_size.GetHeight();
     int index = (m_row_offset + 1 < m_row_count || m_row_count == 0) ?
                     m_row_offset / 4 * m_col_count :
-                    ((m_file_sys->GetCount() + m_col_count - 1) / m_col_count - (size_y + m_border_size.GetHeight() - 1) / m_cell_size.GetHeight()) * m_col_count;
-    if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE)
+                    ((m_model->GetCount() + m_col_count - 1) / m_col_count - (size_y + m_border_size.GetHeight() - 1) / m_cell_size.GetHeight()) * m_col_count;
+    if (m_model->GetGroupMode() == FileGridGroup::All)
         offy += m_title_mask.GetHeight();
     off = wxPoint{offx, offy};
     return index;
@@ -534,7 +541,7 @@ void ImageGrid::render(wxDC& dc)
     wxSize size = GetClientSize();
     dc.SetPen(wxPen(GetBackgroundColour()));
     dc.SetBrush(wxBrush(GetBackgroundColour()));
-    if (!m_file_sys || m_file_sys->GetCount() == 0) {
+    if (!m_model || m_model->GetCount() == 0) {
         dc.DrawRectangle({ 0, 0, size.x, size.y });
         if (!m_status_msg.IsEmpty()) {
             auto   si = m_status_icon.GetBmpSize();
@@ -562,7 +569,7 @@ void ImageGrid::render(wxDC& dc)
     {
         // Draw one line
         wxPoint pt{off.x, off.y};
-        end = (index + m_col_count) < m_file_sys->GetCount() ? index + m_col_count : m_file_sys->GetCount();
+        end = (index + m_col_count) < m_model->GetCount() ? index + m_col_count : m_model->GetCount();
         while (index < end) {
             pt += m_content_rect.GetTopLeft();
             // Draw content
@@ -571,7 +578,7 @@ void ImageGrid::render(wxDC& dc)
                 &ImageGrid::renderContent1,
                 &ImageGrid::renderContent2
             };
-            (this->*contentRender[m_file_sys->GetFileType()])(dc, pt, index, hit_image == index);
+            (this->*contentRender[static_cast<int>(m_model->GetFileType())])(dc, pt, index, hit_image == index);
             pt -= m_content_rect.GetTopLeft();
             // Draw colume spacing at right
             dc.DrawRectangle({pt.x + m_border_size.GetWidth(), pt.y, m_cell_size.GetWidth() - m_border_size.GetWidth(), m_border_size.GetHeight()});
@@ -588,13 +595,13 @@ void ImageGrid::render(wxDC& dc)
         off.y += m_cell_size.GetHeight();
     }
     // Draw floating date range for non-group list
-    if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE && m_file_sys->GetCount() > 0) {
+    if (m_model->GetGroupMode() == FileGridGroup::All && m_model->GetCount() > 0) {
         //dc.DrawBitmap(m_title_mask, {off.x, 0});
         dc.DrawRectangle({off.x, 0}, m_title_mask.GetSize());
-        auto & file1 = m_file_sys->GetFile(start);
-        auto & file2 = m_file_sys->GetFile(end - 1);
-        auto date1 = wxDateTime((time_t) file1.time).Format(_L(TIME_FORMATS[m_file_sys->GetGroupMode()]));
-        auto date2 = wxDateTime((time_t) file2.time).Format(_L(TIME_FORMATS[m_file_sys->GetGroupMode()]));
+        const FileGridCard & file1 = m_model->GetFile(start);
+        const FileGridCard & file2 = m_model->GetFile(end - 1);
+        auto date1 = wxDateTime((time_t) file1.time).Format(_L(TIME_FORMATS[static_cast<int>(m_model->GetGroupMode())]));
+        auto date2 = wxDateTime((time_t) file2.time).Format(_L(TIME_FORMATS[static_cast<int>(m_model->GetGroupMode())]));
         dc.SetFont(Label::Head_16);
         dc.SetTextForeground(StateColor::darkModeColorFor("#262E30"));
         dc.DrawText(date1 + " - " + date2, wxPoint{off.x, 2});
@@ -604,7 +611,7 @@ void ImageGrid::render(wxDC& dc)
         dc.DrawRectangle({off.x, off.y, size.x - off.x * 2, size.y - off.y});
     // Draw position bar
     if (m_timer.IsRunning()) {
-        int total_height = (m_file_sys->GetCount() + m_col_count - 1) / m_col_count * m_cell_size.GetHeight() + m_cell_size.GetHeight() - m_border_size.GetHeight();
+        int total_height = (m_model->GetCount() + m_col_count - 1) / m_col_count * m_cell_size.GetHeight() + m_cell_size.GetHeight() - m_border_size.GetHeight();
         if (total_height > size.y) {
             int offset = (m_row_offset + 1 < m_row_count || m_row_count == 0) ? m_row_offset * (m_cell_size.GetHeight() / 4) : total_height - size.y;
             wxRect rect = {size.x - 16, offset * size.y / total_height, 8,
@@ -618,15 +625,35 @@ void ImageGrid::render(wxDC& dc)
 void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int index, bool hit)
 {
     bool selected = false;
-    auto &file = m_file_sys->GetFile(index, selected);
+    const FileGridCard &card = m_model->GetFile(index, selected);
     // Draw thumbnail
-    if (file.thumbnail.IsOk()) {
-        float hs = (float) m_content_rect.GetWidth() / file.thumbnail.GetWidth();
-        float vs = (float) m_content_rect.GetHeight() / file.thumbnail.GetHeight();
-        dc.SetUserScale(hs, vs);
-        dc.DrawBitmap(file.thumbnail, {(int) (pt.x / hs), (int) (pt.y / vs)});
-        dc.SetUserScale(1, 1);
-        if (m_file_sys->GetGroupMode() != PrinterFileSystem::G_NONE) { dc.DrawBitmap(m_title_mask, pt); }
+    if (card.thumbnail.IsOk()) {
+        if (m_model->preserve_thumbnail_aspect()) {
+            // Contain: fit the whole thumbnail and letterbox against the tile background.
+            float scale = std::min((float) m_content_rect.GetWidth() / card.thumbnail.GetWidth(),
+                                   (float) m_content_rect.GetHeight() / card.thumbnail.GetHeight());
+            int   thumb_w = (int) (card.thumbnail.GetWidth() * scale);
+            int   thumb_h = (int) (card.thumbnail.GetHeight() * scale);
+            int   offx    = (m_content_rect.GetWidth() - thumb_w) / 2;
+            int   offy    = (m_content_rect.GetHeight() - thumb_h) / 2;
+            auto  brush   = dc.GetBrush();
+            auto  pen     = dc.GetPen();
+            dc.SetBrush(StateColor::darkModeColorFor(0xEEEEEE));
+            dc.SetPen(StateColor::darkModeColorFor(0xEEEEEE));
+            dc.DrawRectangle(pt, m_content_rect.GetSize());
+            dc.SetUserScale(scale, scale);
+            dc.DrawBitmap(card.thumbnail, {(int) ((pt.x + offx) / scale), (int) ((pt.y + offy) / scale)});
+            dc.SetUserScale(1, 1);
+            dc.SetBrush(brush);
+            dc.SetPen(pen);
+        } else {
+            float hs = (float) m_content_rect.GetWidth() / card.thumbnail.GetWidth();
+            float vs = (float) m_content_rect.GetHeight() / card.thumbnail.GetHeight();
+            dc.SetUserScale(hs, vs);
+            dc.DrawBitmap(card.thumbnail, {(int) (pt.x / hs), (int) (pt.y / vs)});
+            dc.SetUserScale(1, 1);
+        }
+        if (m_model->GetGroupMode() != FileGridGroup::All) { dc.DrawBitmap(m_title_mask, pt); }
     }
     bool show_download_state_always = true;
     // Draw checked icon
@@ -634,14 +661,14 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
         dc.DrawBitmap(selected ? m_checked_icon.bmp() : m_unchecked_icon.bmp(), pt + wxPoint{10, 10});
     // can't handle alpha
     // dc.GradientFillLinear({pt.x, pt.y, m_border_size.GetWidth(), 60}, wxColour(0x6F, 0x6F, 0x6F, 0x99), wxColour(0x6F, 0x6F, 0x6F, 0), wxBOTTOM);
-    else if (m_file_sys->GetGroupMode() == PrinterFileSystem::G_NONE) {
+    else if (m_model->GetGroupMode() == FileGridGroup::All) {
         wxString nonHoverText;
         wxString secondAction = m_show_download ? _L("Download") : "";
         wxString thirdAction;
         int      states = 0;
         // Draw download progress
-        if (file.IsDownload()) {
-            int progress = file.DownloadProgress();
+        if (card.downloading) {
+            int progress = card.download_progress;
             if (progress == -1) {
                 secondAction = _L("Cancel");
                 nonHoverText = _L("Download waiting...");
@@ -659,7 +686,7 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
                 thirdAction  = wxString::Format(L"%d%%...", progress);
             }
         }
-        if (m_file_sys->GetFileType() == PrinterFileSystem::F_MODEL) {
+        if (m_model->GetFileType() == FileGridType::Model && m_model->supports_print_action()) {
             if (secondAction != _L("Play"))
                 thirdAction = secondAction;
             secondAction = _L_CONTEXT("Print", "Verb");
@@ -669,7 +696,8 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
         wxArrayString texts;
         if (hit) {
             texts.Add(_L("Delete"));
-            texts.Add(secondAction);
+            if (hasSecondAction(card))
+                texts.Add(secondAction);
             if (!thirdAction.IsEmpty())
                 texts.Add(thirdAction);
             renderButtons(dc, texts, rect, m_hit_type == HIT_ACTION ? m_hit_item & 3 : -1, states);
@@ -679,7 +707,7 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
         }
     } else {
         dc.SetTextForeground(*wxWHITE); // time text color
-        auto date = wxDateTime((time_t) file.time).Format(_L(TIME_FORMATS[m_file_sys->GetGroupMode()]));
+        auto date = wxDateTime((time_t) card.time).Format(_L(TIME_FORMATS[static_cast<int>(m_model->GetGroupMode())]));
         dc.DrawText(date, pt + wxPoint{24, 16});
     }
     if (m_selecting && show_download_state_always)
@@ -688,7 +716,7 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
 
 void Slic3r::GUI::ImageGrid::renderContent2(wxDC &dc, wxPoint const &pt, int index, bool hit)
 {
-    auto &file = m_file_sys->GetFile(index);
+    const FileGridCard &card = m_model->GetFile(index);
     // Draw thumbnail & buttons
     int h = m_content_rect.GetHeight() * 64 / 264;
     m_content_rect.SetHeight(m_content_rect.GetHeight() - h);
@@ -711,14 +739,14 @@ void Slic3r::GUI::ImageGrid::renderContent2(wxDC &dc, wxPoint const &pt, int ind
     auto em = em_unit(this);
     wxRect rect{pt.x, pt.y + m_content_rect.GetHeight() - h, m_content_rect.GetWidth(), h / 2};
     rect.Deflate(em, 0);
-    renderText2(dc, from_u8(file.name), rect);
+    renderText2(dc, from_u8(card.name), rect);
     rect.Offset(0, h / 2);
     rect.SetWidth(rect.GetWidth() / 2 - em);
     dc.SetFont(Label::Body_13);
     dc.SetTextForeground(StateColor::darkModeColorFor("#6B6B6B"));
-    renderIconText(dc, m_model_time_icon, file.Metadata("Time", "0m"), rect);
+    renderIconText(dc, m_model_time_icon, card.time_text.empty() ? wxString("0m") : from_u8(card.time_text), rect);
     rect.Offset(m_content_rect.GetWidth() / 2, 0);
-    renderIconText(dc, m_model_weight_icon, file.Metadata("Weight", "0g"), rect);
+    renderIconText(dc, m_model_weight_icon, card.weight_text.empty() ? wxString("0g") : from_u8(card.weight_text), rect);
 }
 
 void Slic3r::GUI::ImageGrid::renderButtons(wxDC &dc, wxArrayString const &texts, wxRect const &rect2, size_t hit, int states)

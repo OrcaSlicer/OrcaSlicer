@@ -37,6 +37,10 @@ public:
     void set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud) override;
     CameraStreamMode get_camera_stream_mode() const override;
     std::string get_camera_url() const override;
+    int list_printer_files(const std::string& dev_id, PrinterFileListFn callback) override;
+    int get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback) override;
+    int delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback) override;
+    int get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback) override;
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
@@ -162,6 +166,22 @@ protected:
     static nlohmann::json build_gcode_file_payload(const std::string& sequence_id,
                                                    const std::string& target,
                                                    const nlohmann::json& filament_mapping);
+
+    // Pure JSON -> entries normalization for OrcaSonar's /server/files/list reply.
+    // protected static so the test Probe reaches it.
+    static std::vector<PrinterFileEntry> parse_file_list(const std::string& body);
+
+    // Pick the widest thumbnail path from OrcaSonar's /server/files/thumbnails
+    // reply (the array is smallest-first). Empty when none carry a path.
+    static std::string parse_thumbnail_path(const std::string& body);
+
+    // Pure JSON -> metadata normalization for OrcaSonar's /server/files/metadata
+    // reply. Missing or malformed fields default to 0. protected static for the Probe.
+    static PrinterFileMetadata parse_file_metadata(const std::string& body);
+
+    // Percent-encode each '/'-separated segment for a Moonraker URL while keeping
+    // the separators intact. protected static for the test Probe.
+    static std::string encode_file_path(const std::string& path);
     // Test hook: the ws:// URL connect_printer built for the current LAN session ("" if none).
     std::string lan_connection_target() const;
     // Shared post-connect sequence: SUBSCRIBE, then pushing.start, pushall,

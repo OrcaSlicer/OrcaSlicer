@@ -230,7 +230,13 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
         });
     };
     Bind(wxEVT_SHOW, onShowHide);
-    parent->GetParent()->Bind(wxEVT_SHOW, onShowHide);
+    // Watch the page host's show/hide. Walk up past any wrapper containers (e.g. a
+    // StoragePanel) so the target stays the same regardless of nesting depth.
+    wxWindow* host = parent;
+    while (host && !host->IsTopLevel() && host->GetParent() && !host->GetParent()->IsTopLevel())
+        host = host->GetParent();
+    if (host && host != this)
+        host->Bind(wxEVT_SHOW, onShowHide);
 
     m_lan_user = "bblp";
 }

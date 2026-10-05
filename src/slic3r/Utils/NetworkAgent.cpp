@@ -1136,4 +1136,32 @@ int NetworkAgent::get_hms_snapshot(std::string dev_id, std::string file_name, st
     return -1;
 }
 
+int NetworkAgent::list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->list_printer_files(dev_id, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
+int NetworkAgent::get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_printer_file_thumbnail(dev_id, path, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
+int NetworkAgent::delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->delete_printer_file(dev_id, path, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
+int NetworkAgent::get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_printer_file_metadata(dev_id, path, callback);
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+}
+
 } // namespace Slic3r

@@ -198,6 +198,10 @@ public:
     std::string from_orca_filament_id(const std::string& orca_filament_id) const;
     int request_bind_ticket(std::string* ticket);
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback);
+    int list_printer_files(const std::string& dev_id, PrinterFileListFn callback);
+    int get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback);
+    int delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback);
+    int get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback);
 
 private:
     struct PrinterCallbacks {

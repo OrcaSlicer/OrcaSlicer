@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <slic3r/GUI/FilamentMappingUtils.hpp>
 #include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
@@ -26,6 +27,10 @@ struct Probe : OrcaPrinterAgent {
     using OrcaPrinterAgent::build_filament_mapping;
     using OrcaPrinterAgent::build_gcode_file_payload;
     using OrcaPrinterAgent::prepare_outgoing_request;
+    using OrcaPrinterAgent::parse_file_list;
+    using OrcaPrinterAgent::parse_thumbnail_path;
+    using OrcaPrinterAgent::encode_file_path;
+    using OrcaPrinterAgent::parse_file_metadata;
 };
 }
 
@@ -171,6 +176,125 @@ TEST_CASE("OrcaPrinterAgent::make_lan_client_id is stable and prefixed", "[OrcaP
     const auto b = Probe::make_lan_client_id("dev-1");
     CHECK(a == b);                                   // drawn once per process
     CHECK(a.rfind("orcaslicer-lan-dev-1-", 0) == 0);
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list normalizes Moonraker entries", "[OrcaPrinterAgent]") {
+    const std::vector<Slic3r::PrinterFileEntry> files = Probe::parse_file_list(R"({
+        "result": [
+            {"path": "sub/foo.gcode", "modified": 1700000000.75, "size": 1234, "permissions": "rw"},
+            {"path": "bar.gcode", "modified": 42, "size": 7}
+        ]
+    })");
+    REQUIRE(files.size() == 2);
+    CHECK(files[0].path == "sub/foo.gcode");
+    CHECK(files[0].name == "foo.gcode");
+    CHECK(files[0].size == 1234);
+    CHECK(files[0].modified == 1700000000);   // fractional seconds truncate
+    CHECK(files[1].path == "bar.gcode");
+    CHECK(files[1].name == "bar.gcode");
+    CHECK(files[1].size == 7);
+    CHECK(files[1].modified == 42);
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list handles an empty result", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_file_list(R"({"result": []})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list rejects malformed JSON", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_file_list("not json").empty());
+    CHECK(Probe::parse_file_list(R"({"result": "nope"})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_list skips entries missing fields", "[OrcaPrinterAgent]") {
+    const std::vector<Slic3r::PrinterFileEntry> files = Probe::parse_file_list(R"({
+        "result": [
+            {"size": 5},
+            {"path": ""},
+            {"path": "kept.gcode"},
+            "not-an-object"
+        ]
+    })");
+    REQUIRE(files.size() == 1);
+    CHECK(files[0].path == "kept.gcode");
+    CHECK(files[0].name == "kept.gcode");
+    CHECK(files[0].size == 0);
+    CHECK(files[0].modified == 0);
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path picks the largest width", "[OrcaPrinterAgent]") {
+    const std::string path = Probe::parse_thumbnail_path(R"({
+        "result": [
+            {"width": 32, "height": 32, "thumbnail_path": ".thumbs/foo.gcode-32x32.png"},
+            {"width": 300, "height": 300, "thumbnail_path": ".thumbs/foo.gcode-300x300.png"},
+            {"width": 100, "height": 100, "thumbnail_path": ".thumbs/foo.gcode-100x100.png"}
+        ]
+    })");
+    CHECK(path == ".thumbs/foo.gcode-300x300.png");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path accepts both key spellings", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 32, "relative_path": ".thumbs/old.png"}]})") == ".thumbs/old.png");
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 32, "thumbnail_path": ".thumbs/new.png"}]})") == ".thumbs/new.png");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path handles an empty result", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path(R"({"result": []})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path rejects malformed JSON", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path("not json").empty());
+    CHECK(Probe::parse_thumbnail_path(R"({"result": "nope"})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path skips an entry without a path", "[OrcaPrinterAgent]") {
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 300, "height": 300}]})").empty());
+    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 300, "thumbnail_path": 7}]})").empty());
+}
+
+TEST_CASE("OrcaPrinterAgent::encode_file_path preserves separators and encodes segments", "[OrcaPrinterAgent]") {
+    CHECK(Probe::encode_file_path("foo.gcode") == "foo.gcode");                          // flat path
+    CHECK(Probe::encode_file_path("sub/foo.gcode") == "sub/foo.gcode");                  // '/' kept as separator
+    CHECK(Probe::encode_file_path("a/b/c.gcode") == "a/b/c.gcode");
+    CHECK(Probe::encode_file_path("sub dir/my file #1.gcode") == "sub%20dir/my%20file%20%231.gcode");
+    CHECK(Probe::encode_file_path("design+part.gcode") == "design%2Bpart.gcode");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_metadata parses the Moonraker fields", "[OrcaPrinterAgent]") {
+    using Catch::Matchers::WithinAbs;
+    const Slic3r::PrinterFileMetadata meta = Probe::parse_file_metadata(R"({
+        "result": {
+            "filename": "sub/foo.gcode",
+            "size": 1234,
+            "modified": 1700000000.5,
+            "estimated_time": 3725,
+            "filament_total": 10500.5,
+            "filament_weight_total": 31.6,
+            "thumbnails": []
+        }
+    })");
+    CHECK(meta.estimated_time == 3725);
+    CHECK_THAT(meta.filament_total, WithinAbs(10500.5, 1e-9));
+    CHECK_THAT(meta.filament_weight, WithinAbs(31.6, 1e-9));
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_metadata defaults missing fields to zero", "[OrcaPrinterAgent]") {
+    using Catch::Matchers::WithinAbs;
+    const Slic3r::PrinterFileMetadata meta = Probe::parse_file_metadata(R"({"result": {"filename": "foo.gcode"}})");
+    CHECK(meta.estimated_time == 0);
+    CHECK_THAT(meta.filament_total, WithinAbs(0.0, 1e-12));
+    CHECK_THAT(meta.filament_weight, WithinAbs(0.0, 1e-12));
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_file_metadata yields zeros for a malformed reply", "[OrcaPrinterAgent]") {
+    using Catch::Matchers::WithinAbs;
+    const Slic3r::PrinterFileMetadata malformed = Probe::parse_file_metadata("not json");
+    CHECK(malformed.estimated_time == 0);
+    CHECK_THAT(malformed.filament_total, WithinAbs(0.0, 1e-12));
+    CHECK_THAT(malformed.filament_weight, WithinAbs(0.0, 1e-12));
+
+    const Slic3r::PrinterFileMetadata wrong_type = Probe::parse_file_metadata(R"({"result": "nope"})");
+    CHECK(wrong_type.estimated_time == 0);
+    CHECK_THAT(wrong_type.filament_total, WithinAbs(0.0, 1e-12));
 }
 
 TEST_CASE("filament mapping is keyed by the ams_mapping2 array position", "[OrcaPrinterAgent]") {

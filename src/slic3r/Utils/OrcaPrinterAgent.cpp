@@ -819,6 +819,8 @@ bool OrcaPrinterAgent::supports_feature(const std::string& dev_id, const std::st
         return capabilities.filament_slots;
     if (feature == "filament_mapping")
         return capabilities.filament_mapping;
+    if (feature == "printer_files")
+        return true;
     return false;
 }
 
@@ -1732,6 +1734,424 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
 
     if (update_fn)
         update_fn(PrintingStageUpload, 100, "File uploaded");
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+// Pure normalization of Moonraker's /server/files/list reply: the `result` array
+// of {path, modified, size}. `name` is the basename of `path`; malformed entries
+// (non-object, missing/empty path) are skipped. size/modified default to 0.
+std::vector<PrinterFileEntry> OrcaPrinterAgent::parse_file_list(const std::string& body)
+{
+    std::vector<PrinterFileEntry> files;
+
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return files;
+
+    const auto result_it = envelope.find("result");
+    if (result_it == envelope.end() || !result_it->is_array())
+        return files;
+
+    for (const auto& item : *result_it) {
+        if (!item.is_object())
+            continue;
+
+        const auto path_it = item.find("path");
+        if (path_it == item.end() || !path_it->is_string())
+            continue;
+        const std::string path = path_it->get<std::string>();
+        if (path.empty())
+            continue;
+
+        PrinterFileEntry entry;
+        entry.path = path;
+        entry.name = fs::path(path).filename().string();
+
+        const auto size_it = item.find("size");
+        if (size_it != item.end() && size_it->is_number())
+            entry.size = size_it->get<std::uint64_t>();
+
+        const auto modified_it = item.find("modified");
+        if (modified_it != item.end() && modified_it->is_number())
+            entry.modified = static_cast<std::int64_t>(modified_it->get<double>());
+
+        files.push_back(std::move(entry));
+    }
+    return files;
+}
+
+int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+{
+    std::string   origin;
+    bool          use_ssl = false;
+    std::string   ca_file;
+    QueueOnMainFn queue;
+    bool          live = false;
+    {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
+        if (live) {
+            origin  = http_origin_from_lan_ws(m_lan_url);
+            use_ssl = m_lan_use_ssl;
+            ca_file = m_lan_ca_file;
+            queue   = queue_on_main_fn;
+        }
+    }
+    if (!live) {
+        if (callback)
+            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+    if (origin.empty()) {
+        if (callback)
+            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
+    // perform_sync blocks, so the request runs off the UI thread. The worker captures
+    // only values (never `this`). A trusted LAN facade needs no API key.
+    std::thread([dev_id, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+        std::string body;
+        int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+        auto http = Http::get(origin + "/server/files/list?root=gcodes");
+        http.tls_verify(use_ssl);
+        if (!ca_file.empty())
+            http.ca_file(ca_file);
+        http.timeout_connect(5)
+            .timeout_max(15)
+            .on_complete([&](std::string b, unsigned status) {
+                if (status == 200) {
+                    body   = std::move(b);
+                    result = BAMBU_NETWORK_SUCCESS;
+                }
+            })
+            .on_error([&](std::string, std::string err, unsigned status) {
+                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file list request failed status=" << status << " err=" << err;
+            })
+            .perform_sync();
+
+        std::vector<PrinterFileEntry> files;
+        if (result == BAMBU_NETWORK_SUCCESS) {
+            files = parse_file_list(body);
+            // Empty is a valid listing; an unparseable body is not.
+            if (nlohmann::json::parse(body, nullptr, false).is_discarded())
+                result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+        }
+
+        if (!callback)
+            return;
+        if (queue)
+            queue([callback, result, files = std::move(files)]() mutable { callback(result, std::move(files)); });
+        else
+            callback(result, std::move(files));
+    }).detach();
+
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+// Pure pick of the widest thumbnail path from Moonraker's /server/files/thumbnails
+// reply. The `result` array is ordered smallest-first, so the largest `width` is
+// chosen. The key was renamed across Moonraker versions; both spellings are accepted.
+// Malformed replies and entries without a usable path yield an empty string.
+std::string OrcaPrinterAgent::parse_thumbnail_path(const std::string& body)
+{
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return {};
+
+    const auto result_it = envelope.find("result");
+    if (result_it == envelope.end() || !result_it->is_array())
+        return {};
+
+    std::string path;
+    int         best_width = -1;
+    for (const auto& item : *result_it) {
+        if (!item.is_object())
+            continue;
+
+        const char* key = item.contains("thumbnail_path") ? "thumbnail_path" : "relative_path";
+        if (!item.contains(key) || !item[key].is_string())
+            continue;
+
+        const int width = (item.contains("width") && item["width"].is_number()) ? item["width"].get<int>() : 0;
+        if (width > best_width) {
+            best_width = width;
+            path       = item[key].get<std::string>();
+        }
+    }
+    return path;
+}
+
+// Pure normalization of Moonraker's /server/files/metadata reply: the `result`
+// object's estimated_time (seconds), filament_total (mm) and filament_weight_total
+// (grams). A malformed reply or any non-numeric field defaults to 0.
+PrinterFileMetadata OrcaPrinterAgent::parse_file_metadata(const std::string& body)
+{
+    PrinterFileMetadata meta;
+
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return meta;
+
+    const auto result_it = envelope.find("result");
+    if (result_it == envelope.end() || !result_it->is_object())
+        return meta;
+
+    const auto time_it = result_it->find("estimated_time");
+    if (time_it != result_it->end() && time_it->is_number())
+        meta.estimated_time = static_cast<int>(time_it->get<double>());
+
+    const auto total_it = result_it->find("filament_total");
+    if (total_it != result_it->end() && total_it->is_number())
+        meta.filament_total = total_it->get<double>();
+
+    const auto weight_it = result_it->find("filament_weight_total");
+    if (weight_it != result_it->end() && weight_it->is_number())
+        meta.filament_weight = weight_it->get<double>();
+
+    return meta;
+}
+
+// Percent-encode each '/'-separated segment, leaving the separators themselves
+// intact so the caller keeps the directory structure of a gcodes-relative path.
+std::string OrcaPrinterAgent::encode_file_path(const std::string& path)
+{
+    std::string encoded;
+    size_t      segment_start = 0;
+    while (segment_start <= path.size()) {
+        const size_t segment_end = path.find('/', segment_start);
+        if (!encoded.empty() || segment_start > 0)
+            encoded += '/';
+        encoded += Http::url_encode(path.substr(segment_start, segment_end - segment_start));
+        if (segment_end == std::string::npos)
+            break;
+        segment_start = segment_end + 1;
+    }
+    return encoded;
+}
+
+// Fetch one file's embedded thumbnail: first resolve its path via the thumbnails
+// listing, then download the image bytes. Mirrors list_printer_files for the
+// connection snapshot and off-thread marshalling; the worker captures no `this`.
+int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
+{
+    std::string   origin;
+    bool          use_ssl = false;
+    std::string   ca_file;
+    QueueOnMainFn queue;
+    bool          live = false;
+    {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
+        if (live) {
+            origin  = http_origin_from_lan_ws(m_lan_url);
+            use_ssl = m_lan_use_ssl;
+            ca_file = m_lan_ca_file;
+            queue   = queue_on_main_fn;
+        }
+    }
+    if (!live) {
+        if (callback)
+            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+    if (origin.empty()) {
+        if (callback)
+            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
+    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+        std::string image;
+        int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+        std::string thumb_body;
+        bool        listed = false;
+        auto http = Http::get(origin + "/server/files/thumbnails?filename=" + Http::url_encode(path));
+        http.tls_verify(use_ssl);
+        if (!ca_file.empty())
+            http.ca_file(ca_file);
+        http.timeout_connect(5)
+            .timeout_max(15)
+            .on_complete([&](std::string b, unsigned status) {
+                if (status == 200) {
+                    thumb_body = std::move(b);
+                    listed     = true;
+                }
+            })
+            .on_error([&](std::string, std::string err, unsigned status) {
+                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail list request failed status=" << status << " err=" << err;
+            })
+            .perform_sync();
+
+        if (listed) {
+            if (nlohmann::json::parse(thumb_body, nullptr, false).is_discarded()) {
+                result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+            } else {
+                const std::string thumb_path = parse_thumbnail_path(thumb_body);
+                if (thumb_path.empty()) {
+                    // No embedded thumbnail: a success the caller caches.
+                    result = BAMBU_NETWORK_SUCCESS;
+                } else {
+                    // The returned path is relative to the gcodes root, served at
+                    // /server/files/gcodes; an explicit gcodes/ prefix is served at /server/files.
+                    const std::string root = thumb_path.rfind("gcodes/", 0) == 0 ? "/server/files/" : "/server/files/gcodes/";
+                    auto image_http = Http::get(origin + root + encode_file_path(thumb_path));
+                    image_http.tls_verify(use_ssl);
+                    if (!ca_file.empty())
+                        image_http.ca_file(ca_file);
+                    image_http.timeout_connect(5)
+                        .timeout_max(15)
+                        .on_complete([&](std::string b, unsigned status) {
+                            if (status == 200) {
+                                image  = std::move(b);
+                                result = BAMBU_NETWORK_SUCCESS;
+                            }
+                        })
+                        .on_error([&](std::string, std::string err, unsigned status) {
+                            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail fetch failed status=" << status << " err=" << err;
+                        })
+                        .perform_sync();
+                }
+            }
+        }
+
+        if (!callback)
+            return;
+        if (queue)
+            queue([callback, result, image = std::move(image)]() mutable { callback(result, std::move(image)); });
+        else
+            callback(result, std::move(image));
+    }).detach();
+
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+// Delete one G-code file via Moonraker's HTTP DELETE endpoint. Mirrors
+// list_printer_files for the connection snapshot and off-thread marshalling; the
+// worker captures no `this`.
+int OrcaPrinterAgent::delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
+{
+    std::string   origin;
+    bool          use_ssl = false;
+    std::string   ca_file;
+    QueueOnMainFn queue;
+    bool          live = false;
+    {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
+        if (live) {
+            origin  = http_origin_from_lan_ws(m_lan_url);
+            use_ssl = m_lan_use_ssl;
+            ca_file = m_lan_ca_file;
+            queue   = queue_on_main_fn;
+        }
+    }
+    if (!live) {
+        if (callback)
+            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+    if (origin.empty()) {
+        if (callback)
+            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE);
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
+    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+        int result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+        auto http = Http::del(origin + "/server/files/gcodes/" + encode_file_path(path));
+        http.tls_verify(use_ssl);
+        if (!ca_file.empty())
+            http.ca_file(ca_file);
+        http.timeout_connect(5)
+            .timeout_max(15)
+            .on_complete([&](std::string, unsigned status) {
+                if (status == 200)
+                    result = BAMBU_NETWORK_SUCCESS;
+            })
+            .on_error([&](std::string, std::string err, unsigned status) {
+                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file delete request failed status=" << status << " err=" << err;
+            })
+            .perform_sync();
+
+        if (!callback)
+            return;
+        if (queue)
+            queue([callback, result]() mutable { callback(result); });
+        else
+            callback(result);
+    }).detach();
+
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+// Fetch one file's Moonraker metadata (print time and filament usage). Mirrors
+// list_printer_files for the connection snapshot and off-thread marshalling; the
+// worker captures no `this`.
+int OrcaPrinterAgent::get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
+{
+    std::string   origin;
+    bool          use_ssl = false;
+    std::string   ca_file;
+    QueueOnMainFn queue;
+    bool          live = false;
+    {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
+        if (live) {
+            origin  = http_origin_from_lan_ws(m_lan_url);
+            use_ssl = m_lan_use_ssl;
+            ca_file = m_lan_ca_file;
+            queue   = queue_on_main_fn;
+        }
+    }
+    if (!live) {
+        if (callback)
+            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+    if (origin.empty()) {
+        if (callback)
+            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
+    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+        PrinterFileMetadata meta;
+        int                 result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+        auto http = Http::get(origin + "/server/files/metadata?filename=" + Http::url_encode(path));
+        http.tls_verify(use_ssl);
+        if (!ca_file.empty())
+            http.ca_file(ca_file);
+        http.timeout_connect(5)
+            .timeout_max(15)
+            .on_complete([&](std::string b, unsigned status) {
+                if (status == 200) {
+                    if (nlohmann::json::parse(b, nullptr, false).is_discarded())
+                        result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+                    else {
+                        meta   = parse_file_metadata(b);
+                        result = BAMBU_NETWORK_SUCCESS;
+                    }
+                }
+            })
+            .on_error([&](std::string, std::string err, unsigned status) {
+                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file metadata request failed status=" << status << " err=" << err;
+            })
+            .perform_sync();
+
+        if (!callback)
+            return;
+        if (queue)
+            queue([callback, result, meta]() mutable { callback(result, meta); });
+        else
+            callback(result, meta);
+    }).detach();
+
     return BAMBU_NETWORK_SUCCESS;
 }
 
