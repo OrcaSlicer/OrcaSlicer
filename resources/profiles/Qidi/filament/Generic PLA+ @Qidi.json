@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA+ @Qidi",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Qidi Generic PLA+",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "JhZ9hP9n1gBNGwBq",
 	"filament_id": "OFEWYR89",

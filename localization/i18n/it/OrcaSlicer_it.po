@@ -22025,13 +22025,13 @@ msgstr "Essiccazione - Deumidificazione"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "La temperatura massima di essiccazione di %s è %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "La temperatura massima di essiccazione di %s è %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "La temperatura minima di essiccazione di %s è %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "La temperatura minima di essiccazione di %s è %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25241,9 +25241,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Spaziatura non valida fornita a Flow::with_spacing(), controlla l'altezza dello strato e la larghezza di estrusione"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Continua la sincronizzazione dei filamenti"

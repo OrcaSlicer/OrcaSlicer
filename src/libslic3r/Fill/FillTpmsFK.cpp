@@ -1,12 +1,22 @@
 #include "../ClipperUtils.hpp"
 #include "../MarchingSquares.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Execution/ExecutionTBB.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "FillTpmsFK.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstddef>
+#include <math.h>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include "libslic3r/Polygon.hpp"
 
 namespace marchsq {
 using namespace Slic3r;

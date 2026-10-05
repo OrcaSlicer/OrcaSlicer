@@ -4,6 +4,10 @@
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
+#include <string>
+#include <wx/event.h>
+#include <cereal/archives/binary.hpp>
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -20,6 +24,7 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    bool on_is_selectable() const override;
     void on_render() override;
     void on_set_state() override;
     CommonGizmosDataID on_get_requirements() const override;

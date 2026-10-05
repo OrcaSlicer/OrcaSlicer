@@ -1,12 +1,15 @@
 #include "ConfigValueFormatter.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/erase.hpp>
 #include <cstdlib>
+#include "libslic3r/Point.hpp"
 #include <string>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"

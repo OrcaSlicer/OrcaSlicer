@@ -1,7 +1,9 @@
 #ifndef MTUTILS_HPP
 #define MTUTILS_HPP
 
+#include <array>
 #include <atomic>       // for std::atomic_flag and memory orders
+#include <cstddef>
 #include <mutex>        // for std::lock_guard
 #include <functional>   // for std::function
 #include <utility>      // for std::forward

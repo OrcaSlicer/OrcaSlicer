@@ -1,34 +1,82 @@
 #include "ReleaseNote.hpp"
 #include "I18N.hpp"
 
+#include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/StaticBox.hpp"
 #include "Widgets/WebView.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <boost/nowide/fstream.hpp>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <vector>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <md4c/src/md4c.h>
+#include <wx/image.h>
+#include <wx/datetime.h>
+#include <utility>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include <boost/bind/bind.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
 #include <wx/regex.h>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
+#include <wx/filedlg.h>
 #include <miniz.h>
 #include <algorithm>
+#include <cctype>
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/simplebook.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
+#include <wx/tglbtn.h>
+#include <wx/webrequest.h>
+#include <wx/timer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include "../Utils/Http.hpp"
 #include "md4c/src/md4c-html.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <boost/filesystem.hpp>
+
+namespace Slic3r::GUI { class Plater; }
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
@@ -76,7 +124,7 @@ ReleaseNoteDialog::ReleaseNoteDialog(Plater *plater /*= nullptr*/)
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)), wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(5, 5);
+    m_vebview_release_note->SetScrollRate(5, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_vebview_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
 
@@ -142,7 +190,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(5, 5);
+    m_vebview_release_note->SetScrollRate(5, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(260), FromDIP(150)));
     m_vebview_release_note->SetMaxSize(wxSize(FromDIP(260), FromDIP(150)));
@@ -277,7 +325,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     m_simplebook_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
 
     m_scrollwindows_release_note = new wxScrolledWindow(m_simplebook_release_note, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)), wxVSCROLL);
-    m_scrollwindows_release_note->SetScrollRate(5, 5);
+    m_scrollwindows_release_note->SetScrollRate(5, FromDIP(20));
     m_scrollwindows_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
 
     //webview
@@ -510,7 +558,7 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
         out_buf->append(text, size);
     }, (void*) &html_source, MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH | MD_FLAG_WIKILINKS, 0);
     html_source.append("</body></html>");
-    m_vebview_release_note->LoadURL("file://" + (boost::filesystem::path (resources_dir()) / "web/guide/0/index.html").string());
+    m_vebview_release_note->LoadURL(file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/0/index.html"));
 
     SetMinSize(GetSize());
     SetMaxSize(GetSize());
@@ -538,7 +586,7 @@ SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, cons
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(0, 5);
+    m_vebview_release_note->SetScrollRate(0, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(*wxWHITE);
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(400), FromDIP(380)));
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));
@@ -823,7 +871,7 @@ PrintErrorDialog::PrintErrorDialog(wxWindow* parent, wxWindowID id, const wxStri
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(5));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(0, 5);
+    m_vebview_release_note->SetScrollRate(0, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(*wxWHITE);
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(320), FromDIP(250)));
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));
@@ -1122,7 +1170,7 @@ ConfirmBeforeSendDialog::ConfirmBeforeSendDialog(wxWindow* parent, wxWindowID id
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(0, 5);
+    m_vebview_release_note->SetScrollRate(0, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(*wxWHITE);
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(400), FromDIP(380)));
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));
@@ -1461,6 +1509,45 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_input_top_sizer->Add(0, 0, 0, wxTOP, FromDIP(4));
     m_input_top_sizer->Add(m_input_area, 0, wxRIGHT | wxEXPAND, FromDIP(18));
 
+    m_tips_cafile = new Label(ip_input_top_panel, _L("HTTPS CA File"));
+    m_input_cafile = new wxTextCtrl(ip_input_top_panel, wxID_ANY);
+    m_input_cafile->SetMinSize(wxSize(FromDIP(260), FromDIP(28)));
+    m_input_cafile->SetMaxSize(wxSize(FromDIP(260), FromDIP(28)));
+
+    m_button_cafile = new Button(ip_input_top_panel, _L("Browse") + " " + dots);
+    m_button_cafile->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    m_button_cafile->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        static const auto filemasks = _L("Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*");
+        wxFileDialog openFileDialog(this, _L("Open CA certificate file"), "", "", filemasks,
+                                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (openFileDialog.ShowModal() != wxID_CANCEL)
+            m_input_cafile->SetValue(openFileDialog.GetPath());
+    });
+
+    auto cafile_input_sizer = new wxBoxSizer(wxHORIZONTAL);
+    cafile_input_sizer->Add(m_input_cafile, 1, wxALIGN_CENTER_VERTICAL);
+    cafile_input_sizer->Add(m_button_cafile, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+
+    m_cafile_hint = new Label(ip_input_top_panel, _L("HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."));
+    m_cafile_hint->Wrap(FromDIP(352));
+
+    m_input_top_sizer->Add(m_tips_cafile, 0, wxTOP | wxEXPAND, FromDIP(10));
+    m_input_top_sizer->Add(cafile_input_sizer, 0, wxTOP | wxEXPAND, FromDIP(4));
+    m_input_top_sizer->Add(m_cafile_hint, 0, wxTOP | wxEXPAND, FromDIP(4));
+
+    if (!Http::ca_file_supported()) {
+        m_input_cafile->Disable();
+        m_button_cafile->Disable();
+        m_cafile_hint->SetLabel(_L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
+        m_cafile_hint->Wrap(FromDIP(352));
+    }
+
+    if (wxGetApp().preset_bundle) {
+        const auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (config.has("printhost_cafile"))
+            m_input_cafile->SetValue(from_u8(config.opt_string("printhost_cafile")));
+    }
+
     ip_input_top_panel->SetSizer(m_input_top_sizer);
     ip_input_top_panel->Layout();
     ip_input_top_panel->Fit();
@@ -1736,7 +1823,8 @@ void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
     auto str_ip = m_input_ip->GetTextCtrl()->GetValue();
     auto str_access_code = m_input_access_code->GetTextCtrl()->GetValue();
     // ORCA enabling / disabling buttons with conditions enough to change its style
-    m_button_ok->Enable(isIp(str_ip.ToStdString()) && str_access_code.Length() == 8);
+    m_button_ok->Enable(isValidEndpoint(str_ip.ToStdString()) &&
+                        (str_access_code.IsEmpty() || str_access_code.Length() >= 8));
 
     Layout();
     Fit();
@@ -1773,19 +1861,29 @@ void InputIpAddressDialog::update_test_msg(wxString msg,bool connected)
     Fit();
 }
 
-bool InputIpAddressDialog::isIp(std::string ipstr)
+bool InputIpAddressDialog::isValidEndpoint(std::string endpoint)
 {
-    istringstream ipstream(ipstr);
-    int num[4];
-    char point[3];
-    string end;
-    ipstream >> num[0] >> point[0] >> num[1] >> point[1] >> num[2] >> point[2] >> num[3] >> end;
-    for (int i = 0; i < 3; ++i) {
-        if (num[i] < 0 || num[i]>255) return false;
-        if (point[i] != '.') return false;
-    }
-    if (num[3] < 0 || num[3]>255) return false;
-    if (!end.empty()) return false;
+    if (endpoint.empty() || std::any_of(endpoint.begin(), endpoint.end(), [](unsigned char c) {
+            return std::isspace(c) != 0;
+        }))
+        return false;
+
+    const bool has_http_scheme = endpoint.rfind("http://", 0) == 0;
+    const bool has_https_scheme = endpoint.rfind("https://", 0) == 0;
+    const auto scheme_pos = endpoint.find("://");
+    if (scheme_pos != std::string::npos && !has_http_scheme && !has_https_scheme)
+        return false;
+
+    std::string port;
+    const std::string host = Http::get_host_from_url(endpoint, &port);
+    if (host.empty())
+        return false;
+
+    // get_host_from_url returns its input when libcurl cannot parse it. For a
+    // URL with a scheme, that means a failed parse still needs to be rejected.
+    if (scheme_pos != std::string::npos && host == endpoint)
+        return false;
+
     return true;
 }
 
@@ -1801,6 +1899,8 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
     m_trouble_shoot->Hide();
     std::string str_ip = m_input_ip->GetTextCtrl()->GetValue().ToStdString();
     std::string str_access_code = m_input_access_code->GetTextCtrl()->GetValue().ToStdString();
+    if (str_access_code.empty())
+        str_access_code = "88888888";
     std::string str_name = m_input_printer_name->GetTextCtrl()->GetValue().Strip(wxString::both).ToStdString();
     // Serial number should not contain lower case letters, and bambu_network plugin crashes
     // if user entered the wrong serial number, so we call `Upper()` here.
@@ -1820,6 +1920,17 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
     Layout();
     Fit();
 
+    if (wxGetApp().preset_bundle) {
+        auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        std::string port;
+        Http::get_host_from_url(str_ip, &port);
+        config.opt_string("print_host") = str_ip;
+        if (!port.empty())
+            config.opt_string("printhost_port") = port;
+        if (Http::ca_file_supported())
+            config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
+    }
+
     token_.reset(this, nop_deleter);
     m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name));
 }
@@ -1835,6 +1946,8 @@ void InputIpAddressDialog::on_send_retry()
     Fit();
     wxString ip              = m_input_ip->GetTextCtrl()->GetValue();
     wxString str_access_code = m_input_access_code->GetTextCtrl()->GetValue();
+    if (str_access_code.IsEmpty())
+        str_access_code = "88888888";
 
     // check support function
     if (!m_obj) return;
@@ -2056,7 +2169,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     auto str_ip              = m_input_ip->GetTextCtrl()->GetValue();
     auto str_access_code     = m_input_access_code->GetTextCtrl()->GetValue();
 
-    if (str_access_code.empty()) {
+    if (str_access_code.IsEmpty()) {
         str_access_code = "88888888";
     }
 
@@ -2072,7 +2185,8 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     }
 
     // ORCA enabling / disabling buttons with conditions enough to change its style
-    bool enable_btns = isIp(str_ip.ToStdString()) && str_access_code.Length() == 8 && invalid_access_code;
+    bool valid_access_code_length = str_access_code.IsEmpty() || str_access_code.Length() >= 8;
+    bool enable_btns = isValidEndpoint(str_ip.ToStdString()) && valid_access_code_length && invalid_access_code;
     m_button_manual_setup->Enable(enable_btns);
     m_button_ok->Enable(enable_btns);
 
@@ -2087,7 +2201,7 @@ InputIpAddressDialog::~InputIpAddressDialog()
 
 void InputIpAddressDialog::on_dpi_changed(const wxRect& suggested_rect)
 {
-
+    m_button_cafile->Rescale();
 }
 
 

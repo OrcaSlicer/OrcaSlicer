@@ -1,14 +1,38 @@
 #ifndef slic3r_Plater_hpp_
 #define slic3r_Plater_hpp_
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <map>
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <functional>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include <atomic>
 #include <memory>
+#include "slic3r/GUI/Event.hpp"
+#include <string>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/arrstr.h>
 #include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
 // BBS
 #include <wx/notebook.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Selection.hpp"
 
@@ -92,12 +116,8 @@ enum class ActionButtonType : int;
 // (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
 inline constexpr int kSidebarContextMenuFilamentId = -2;
 
-#define EVT_PUBLISHING_START        1
-#define EVT_PUBLISHING_STOP         2
-
 //BBS: add EVT_SLICING_UPDATE declare here
 wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
-wxDECLARE_EVENT(EVT_PUBLISH,        wxCommandEvent);
 wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG,        wxCommandEvent);
 
 // Explanation of int param
@@ -319,6 +339,7 @@ public:
     bool is_presets_dirty() const;
     void set_plater_dirty(bool is_dirty);
     void update_project_dirty_from_presets();
+    void normalize_bed_types(bool printer_setting_changed);
     int  save_project_if_dirty(const wxString& reason);
     void reset_project_dirty_after_save();
     void reset_project_dirty_initial_presets();
@@ -351,8 +372,8 @@ public:
     // BBS: check snapshot
     bool up_to_date(bool saved, bool backup);
 
-    bool open_3mf_file(const fs::path &file_path);
-    int  get_3mf_file_count(std::vector<fs::path> paths);
+    bool open_3mf_file(const boost::filesystem::path &file_path);
+    int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
     bool add_model(bool imperial_units = false, std::string fname = "");
@@ -546,7 +567,6 @@ public:
     int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
 
     //BBS
-    void publish_project();
 
     void reload_from_disk();
     void replace_with_stl();
@@ -581,7 +601,6 @@ public:
     void send_calibration_job_finished(wxCommandEvent &evt);
     void print_job_finished(wxCommandEvent &evt);
     void send_job_finished(wxCommandEvent& evt);
-    void publish_job_finished(wxCommandEvent& evt);
     void open_platesettings_dialog(wxCommandEvent& evt);
     void open_filament_map_setting_dialog(wxCommandEvent &evt);
     void on_change_color_mode(SimpleEvent& evt);
@@ -672,6 +691,13 @@ public:
     GLCanvas3D* get_assmeble_canvas3D();
     wxWindow* get_select_machine_dialog();
 
+    // Docked UV-editor pane used by GLGizmoTextureDisplacement's LSCM projection preview (see
+    // UVEditorCanvas.hpp). Returns nullptr only before the main window is fully constructed.
+    class UVEditorCanvas* get_uv_editor_canvas();
+    // Shows or hides the UV-editor AUI pane, updating its docked layout accordingly. Safe to call
+    // repeatedly (e.g. every time the gizmo's active layer/projection method changes).
+    void show_uv_editor(bool show);
+
     void arrange();
     void orient();
     void find_new_position(const ModelInstancePtrs  &instances);
@@ -685,7 +711,6 @@ public:
     int get_send_calibration_finished_event();
     int get_print_finished_event();
     int get_send_finished_event();
-    int get_publish_finished_event();
 
     void set_current_canvas_as_dirty();
     void unbind_canvas_event_handlers();
@@ -810,7 +835,6 @@ public:
     //BBS: show object info
     void show_object_info();
     //BBS
-    bool show_publish_dialog(bool show = true);
     //BBS: post process string object exception strings by warning types
     void post_process_string_object_exception(StringObjectException &err);
     void update_objects_position_when_select_preset(const std::function<void()> &select_prest);

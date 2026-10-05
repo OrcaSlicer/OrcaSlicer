@@ -1,8 +1,13 @@
 #include "PluginManager.hpp"
 
+#include <atomic>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <exception>
-#include <libslic3r/Utils.hpp>
+#include <functional>
+#include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
+#include <optional>
 #include <pybind11/embed.h>
 
 #include "PluginFsUtils.hpp"
@@ -21,14 +26,21 @@
 #include <algorithm>
 #include <chrono>
 #include <mutex>
+#include "slic3r/plugin/CloudPluginService.hpp"
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
+#include <stdexcept>
 #include <thread>
+#include <unordered_set>
 #include <utility>
 #include <vector>
+#include <wx/app.h>
+#include <wx/thread.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 namespace {

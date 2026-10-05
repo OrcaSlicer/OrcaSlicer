@@ -22406,13 +22406,13 @@ msgstr "Сушка — вывод влаги"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Максимальная температура сушки для %s — %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Максимальная температура сушки для %s — %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Минимальная температура сушки для %s — %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Минимальная температура сушки для %s — %d℃."
 
 msgid "This filament may not be completely dried."
 msgstr "Сушка этого материала может не быть эффективной."
@@ -25583,9 +25583,6 @@ msgstr ""
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Для Flow::with_spacing() был указан недопустимый интервал. Проверьте высоту слоя и ширину линии."
 
-#~ msgid "°C"
-#~ msgstr "°C"
-
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Отрисовывать тени в режиме продвинутой графики."
 
@@ -26430,9 +26427,6 @@ msgstr ""
 
 #~ msgid "The AMS will estimate Bambu filament's remaining capacity after the filament info is updated. During printing, remaining capacity will be updated automatically."
 #~ msgstr "AMS считывает информацию о материале Bambu и рассчитывает его остаточную ёмкость на катушке. Остаточная ёмкость обновляется автоматически в процессе печати."
-
-#~ msgid "The recommended minimum temperature is less than 190℃ or the recommended maximum temperature is greater than 300°C.\n"
-#~ msgstr "Минимально рекомендуемая температура меньше 190℃ или максимально рекомендуемая температура выше 300℃.\n"
 
 #~ msgid "Spiral mode only works when wall loops is 1, support is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 #~ msgstr "Режим «Спиральной вазы» работает только в том случае, если количество петель стен равно 1, поддержка отключена, количество верхних слоев оболочки равно 0, плотность разреженного заполнения равна 0, а тип покадровой съемки — традиционный."
@@ -27357,3 +27351,35 @@ msgstr ""
 
 #~ msgid "Right click to reset value to system default."
 #~ msgstr "Правая кнопка мыши - сброс значения до системного по умолчанию."
+
+# AI Translated
+msgid "Precise Seam"
+msgstr "Точный шов"
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr "не удалось обработать некоторые пересечения (%1%)"
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr "несколько пересечений с периметром, использовано только одно (%1%)"
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr "периметр целиком внутри модификатора, модификатор для него не применён (%1%)"
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr "модификатор «%1%» модели «%2%» не повлиял на шов (возможно, он не достигает осевой линии печатаемого периметра)"
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr "модификатор «%1%» модели «%2%» (всего: %3%) не повлиял на шов (возможно, он не достигает осевой линии печатаемого периметра)"
+
+msgid "Seam placement may differ from expected."
+msgstr "Размещение шва может отличаться от ожидаемого."

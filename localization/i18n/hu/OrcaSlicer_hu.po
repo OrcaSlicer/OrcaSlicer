@@ -22002,13 +22002,13 @@ msgstr "Szárítás – páramentesítés"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "%s maximális szárítási hőmérséklete %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "%s maximális szárítási hőmérséklete %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "%s minimális szárítási hőmérséklete %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "%s minimális szárítási hőmérséklete %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25217,9 +25217,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Érvénytelen térköz lett megadva a Flow::with_spacing() függvényhez, ellenőrizd a rétegmagasságot és az extrudálási szélességet"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Filamentek szinkronizálásának folytatása"

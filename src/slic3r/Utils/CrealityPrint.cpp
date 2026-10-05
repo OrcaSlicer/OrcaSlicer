@@ -1,6 +1,20 @@
 #include "CrealityPrint.hpp"
 
 #include <algorithm>
+#include <boost/asio/io_context.hpp>
+#include <boost/beast/websocket/stream.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <chrono>
+#include <boost/beast/websocket/stream_base.hpp>
+#include <boost/beast/websocket/rfc6455.hpp>
+#include <boost/beast/http/field.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/error.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
 #include <map>
 #include <unordered_set>
 #include <sstream>
@@ -16,15 +30,17 @@
 #include <boost/nowide/convert.hpp>
 
 #include <curl/curl.h>
+#include <utility>
+#include <vector>
 #include <wx/progdlg.h>
 
+#include "PrintHost.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
 
 #include <boost/beast/core.hpp>
@@ -37,6 +53,7 @@
 
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 using json = nlohmann::json;
 using std::to_string;
 

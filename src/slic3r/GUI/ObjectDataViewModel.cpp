@@ -1,5 +1,4 @@
 #include "ObjectDataViewModel.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "wxExtensions.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
@@ -10,8 +9,28 @@
 
 #include "libslic3r/Model.hpp"
 
+#include <string>
+#include <map>
+#include <cassert>
+#include <vector>
+#include "slic3r/GUI/ExtraRenderers.hpp"
+#include <cstdio>
+#include <cstddef>
+#include <cstdlib>
+#include <algorithm>
+#include "slic3r/GUI/GUI_ObjectSettings.hpp"
+#include <tuple>
 #include <wx/bmpcbox.h>
+#include <wx/chartype.h>
+#include <wx/dataview.h>
 #include <wx/dc.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/strconv.h>
+#include <wx/debug.h>
+#include <wx/dynarray.h>
 
 
 namespace Slic3r {
@@ -546,7 +565,8 @@ void ObjectDataViewModel::UpdateBitmapForNode(ObjectDataViewModelNode *node)
 {
     bool is_volume_node = node->GetType() & itVolume;
     int  vol_type       = static_cast<int>(node->GetVolumeType());
-    is_volume_node &= (vol_type >= int(ModelVolumeType::MODEL_PART) && vol_type <= int(ModelVolumeType::SUPPORT_ENFORCER));
+    // Extended range to include Precise Seam modifier types
+    is_volume_node &= (vol_type >= int(ModelVolumeType::MODEL_PART) && vol_type <= int(ModelVolumeType::PRECISE_SEAM_NEUTRAL));
 
     if (!node->has_warning_icon() && !node->has_lock()) {
         node->SetBitmap(is_volume_node ? (

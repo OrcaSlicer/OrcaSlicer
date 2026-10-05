@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @DeltaMaker",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "DeltaMaker Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "XmKr3I3RjeI3hm6F",
 	"filament_id": "OFYPdQJh",

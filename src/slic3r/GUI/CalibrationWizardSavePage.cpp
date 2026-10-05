@@ -1,4 +1,5 @@
 #include "CalibrationWizardSavePage.hpp"
+#include "CalibUtils.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
@@ -6,6 +7,34 @@
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevNozzleRack.h"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include <utility>
+#include <unordered_set>
+#include <string>
+#include <algorithm>
+#include <wx/valtext.h>
+#include <wx/arrstr.h>
+#include <map>
+#include <wx/sizer.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
 
 
 namespace Slic3r { namespace GUI {
@@ -732,6 +761,7 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
                 case NozzleVolumeType::nvtStandard:    nozzle_id_str += _L("Standard Flow"); break;
                 case NozzleVolumeType::nvtHighFlow:    nozzle_id_str += _L("High Flow"); break;
                 case NozzleVolumeType::nvtTPUHighFlow: nozzle_id_str += _L("TPU High Flow"); break;
+                case NozzleVolumeType::nvtE3DHighFlow: nozzle_id_str += _L("E3D High Flow"); break;
                 default: break;
                 }
                 nozzle_id_value->SetLabel(nozzle_id_str);

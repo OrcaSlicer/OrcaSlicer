@@ -1,9 +1,13 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <vector>
+#include "libslic3r/AppConfig.hpp"
+#include <cstddef>
 
-#include "libslic3r/Utils.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include "slic3r/Utils/bambu_networking.hpp"
 
 #include "plugin_test_utils.hpp"

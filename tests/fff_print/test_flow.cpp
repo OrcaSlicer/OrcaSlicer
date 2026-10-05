@@ -1,14 +1,14 @@
 #include <catch2/catch_all.hpp>
 
+#include <cmath>
 #include <numeric>
 #include <sstream>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "test_helpers.hpp" // get access to init_print, etc
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/Model.hpp"
-#include "libslic3r/Config.hpp"
-#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/libslic3r.h"
 

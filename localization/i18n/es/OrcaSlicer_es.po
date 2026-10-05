@@ -17244,7 +17244,7 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
-"Esta es la temperatura de la recámara a la que debe comenzar la impresión, mientras la recámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la recámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la recámara alcance los 50 °C, sin esperar a los 60 °C completos.\n"
+"Esta es la temperatura de la recámara a la que debe comenzar la impresión, mientras la recámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la recámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la recámara alcance los 50 ℃, sin esperar a los 60 ℃ completos.\n"
 "\n"
 "Crea una variable de G-code llamada chamber_minimal_temperature, que puede pasarse a su macro de inicio de impresión o a una macro de precalentamiento, de esta forma: PRINT_START (otras variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
@@ -21273,13 +21273,13 @@ msgstr "Secado - Deshumidificación"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "La temperatura máxima de secado de %s es %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "La temperatura máxima de secado de %s es %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "La temperatura mínima de secado de %s es %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "La temperatura mínima de secado de %s es %d℃."
 
 msgid "This filament may not be completely dried."
 msgstr "Es posible que este filamento no esté completamente seco."
@@ -24443,9 +24443,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Espaciado no válido suministrado a Flow::with_spacing(), comprueba la altura de su capa y el ancho de extrusión."
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Anisotropic surfaces"
 #~ msgstr "Superficies anisótropas"

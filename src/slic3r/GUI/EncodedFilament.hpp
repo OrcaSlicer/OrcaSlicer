@@ -1,6 +1,9 @@
 #ifndef slic3r_ENCODED_FILAMENT_hpp_
 #define slic3r_ENCODED_FILAMENT_hpp_
 
+#include <algorithm>
+#include <cstddef>
+#include <string>
 #include <vector>
 #include <map>
 #include <math.h>

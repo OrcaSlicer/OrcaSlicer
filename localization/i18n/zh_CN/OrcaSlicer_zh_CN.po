@@ -21500,13 +21500,13 @@ msgstr "干燥-除湿"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "%s 的最高干燥温度为 %d°C。"
+msgid "%s maximum drying temperature is %d℃."
+msgstr "%s 的最高干燥温度为 %d℃。"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "%s 的最低干燥温度为 %d°C。"
+msgid "%s minimum drying temperature is %d℃."
+msgstr "%s 的最低干燥温度为 %d℃。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24727,9 +24727,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "提供给 Flow::with_spacing() 的间距无效，请检查层高和挤出宽度"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "在写实渲染中渲染投射到打印板上的阴影。"

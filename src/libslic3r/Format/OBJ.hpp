@@ -2,7 +2,14 @@
 #define slic3r_Format_OBJ_hpp_
 #include "libslic3r/Color.hpp"
 #include "objparser.hpp"
+#include "libslic3r/Point.hpp"
+#include <admesh/stl.h>
+#include <array>
+#include <functional>
+#include <map>
+#include <string>
 #include <unordered_map>
+#include <vector>
 namespace Slic3r {
 
 class TriangleMesh;
@@ -22,18 +29,6 @@ struct ObjInfo {
     std::vector<ObjParser::ObjUseMtl>      usemtls; // material spans, for texture import
 
 };
-struct ObjDialogInOut
-{ // input:colors array
-    std::vector<RGBA> input_colors;
-    bool              is_single_color{false};
-    // colors array output:
-    std::vector<unsigned char> filament_ids;
-    unsigned char              first_extruder_id;
-    bool                       deal_vertex_color;
-    Model *                    model{nullptr};
-    std::string lost_material_name{""};
-};
-typedef std::function<void(ObjDialogInOut &in_out)> ObjImportColorFn;
 extern bool load_obj(const char *path, TriangleMesh *mesh, ObjInfo &vertex_colors, std::string &message, ObjParser::MtlData *out_mtl = nullptr);
 extern bool load_obj(const char *path, Model *model, ObjInfo &vertex_colors, std::string &message, const char *object_name = nullptr, ObjParser::MtlData *out_mtl = nullptr);
 

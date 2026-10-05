@@ -5,6 +5,25 @@
 	"from": "system",
 	"setting_id": "eweNs9Rgfgftu6Nw",
 	"instantiation": "true",
+	"default_nozzle_volume_type": [
+		"Standard"
+	],
+	"extruder_type": [
+		"Direct Drive"
+	],
+	"extruder_variant_list": [
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow"
+	],
+	"printer_extruder_id": [
+		"1",
+		"1",
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
 	"printer_model": "Generic RRF Printer",
 	"nozzle_diameter": [
 		"0.4"

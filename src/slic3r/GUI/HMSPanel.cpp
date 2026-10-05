@@ -1,12 +1,24 @@
 #include "HMS.hpp"
 #include "HMSPanel.hpp"
+#include "slic3r/GUI/DeviceCore/DevHMS.h"
+#include <boost/log/trivial.hpp>
 #include <slic3r/GUI/Widgets/SideTools.hpp>
-#include <slic3r/GUI/Widgets/Label.hpp>
-#include <slic3r/GUI/I18N.hpp>
+#include <wx/event.h>
+#include <string>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/utils.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/scrolwin.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Monitor.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
@@ -171,7 +183,7 @@ HMSPanel::HMSPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
-    m_scrolledWindow->SetScrollRate(5, 5);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
 
     m_top_sizer = new wxBoxSizer(wxVERTICAL);
 

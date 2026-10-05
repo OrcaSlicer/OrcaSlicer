@@ -1,22 +1,48 @@
 #include "ClipperUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "ExtrusionEntity.hpp"
 #include "ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "Layer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "Print.hpp"
 #include "SupportMaterial.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/Support/SupportLayer.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "SupportCommon.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
 #include "MutablePolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
+#include <agg/agg_rendering_buffer.h>
+#include <agg/agg_renderer_base.h>
+#include <algorithm>
+#include <cfloat>
 #include <cmath>
+#include <iterator>
+#include <cstdint>
+#include <cstddef>
+#include <deque>
+#include <initializer_list>
+#include <limits>
+#include <map>
 #include <memory>
 #include <boost/log/trivial.hpp>
 #include <boost/container/static_vector.hpp>
 
+#include <set>
+#include <numeric>
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
 #include <tbb/task_group.h>
+#include <vector>
+#include <utility>
+#include <tuple>
 
 #define SUPPORT_USE_AGG_RASTERIZER
 
@@ -48,6 +74,11 @@
 
 // #undef NDEBUG
 #include <cassert>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {
 
@@ -63,9 +94,9 @@ namespace Slic3r {
 #define PILLAR_SIZE (2.5)
 #define PILLAR_SPACING 10
 
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 1.5
-#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
+#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 static constexpr bool support_with_sheath = false;
 
@@ -1634,7 +1665,7 @@ static inline std::tuple<Polygons, Polygons, double> detect_contacts(
                         offset(
                             diff_polygons,
                             scaled<float>(SUPPORT_MATERIAL_MARGIN / NUM_MARGIN_STEPS),
-                            ClipperLib::jtRound,
+                            jtRound,
                             // round mitter limit
                             scale_(0.05)),
                         slices_margin.polygons);

@@ -15,11 +15,27 @@
 #include "Plater.hpp"
 #include "Camera.hpp"
 
+#include <boost/version.hpp>
+#include <cstddef>
+#include <array>
 #include <glad/gl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GLModel.hpp"
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <math.h>
+#include <tuple>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 
 #if BOOST_VERSION >= 107800
 #include <boost/timer/timer.hpp>
@@ -625,6 +641,12 @@ void Bed3D::update_model_offset()
     shift(2) = -0.03;
     Vec3d* model_offset_ptr = const_cast<Vec3d*>(&m_model_offset);
     *model_offset_ptr = shift;
+    //BBS: TODO: hack for current stl for BBL printer
+    if (std::string::npos != m_model_filename.find("bbl-3dp-"))
+    {
+        (*model_offset_ptr)(0) -= m_bed_shape[2].x() / 2.0f;
+        (*model_offset_ptr)(1) -= m_bed_shape[2].y() / 2.0f;
+    }
     (*model_offset_ptr)(2) = -0.41 + GROUND_Z;
 
     // update extended bounding box

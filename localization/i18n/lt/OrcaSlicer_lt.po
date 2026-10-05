@@ -7220,13 +7220,13 @@ msgid "Layer: %d/%d"
 msgstr "Sluoksnis: %d/%d"
 
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
-msgstr "Prieš įverdami arba išverdami giją, įkaitinkite purkštuką virš 170°C."
+msgstr "Prieš įverdami arba išverdami giją, įkaitinkite purkštuką virš 170℃."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "Spausdinimo metu vėsinimo režimu negalima keisti kameros temperatūros."
 
 msgid "If the chamber temperature exceeds 40℃, the system will automatically switch to heating mode. Please confirm whether to switch."
-msgstr "Jei kameros temperatūra viršys 40°C, sistema automatiškai persijungs į šildymo režimą. Patvirtinkite, ar norite perjungti."
+msgstr "Jei kameros temperatūra viršys 40℃, sistema automatiškai persijungs į šildymo režimą. Patvirtinkite, ar norite perjungti."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Prieš kalibruodami pasirinkite AMS lizdą"
@@ -15734,7 +15734,7 @@ msgid "Infill overhang angle"
 msgstr "Užpildo iškyšos kampas"
 
 msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "Užpildo kampinių linijų kampas. Esant 180°C, 60° kampas sukurs gryną korį."
+msgstr "Užpildo kampinių linijų kampas. Esant 180℃, 60° kampas sukurs gryną korį."
 
 msgid "Lightning overhang angle"
 msgstr "Žaibo (Lightning) užpildo iškyšos kampas"
@@ -21733,13 +21733,13 @@ msgstr "Džiovinimas – sausinimas"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Didžiausia %s džiovinimo temperatūra yra %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Didžiausia %s džiovinimo temperatūra yra %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Mažiausia %s džiovinimo temperatūra yra %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Mažiausia %s džiovinimo temperatūra yra %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24946,9 +24946,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Srautui Flow::with_spacing() pateiktas neteisingas tarpas, patikrinkite sluoksnio aukštį ir išspaudimo plotį"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Realistiniame vaizde atvaizduoja krentančius šešėlius ant spausdinimo pagrindo."

@@ -1,5 +1,16 @@
 #include "DownloaderFileGet.hpp"
 
+#include <cstddef>
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include <atomic>
+#include <regex>
+#include <cassert>
+#include <boost/filesystem/exception.hpp>
+#include <cstdio>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <stdexcept>
 #include <thread>
 #include <curl/curl.h>
 #include <boost/nowide/fstream.hpp>
@@ -8,11 +19,14 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <wx/event.h>
+#include <utility>
 
 #include "format.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/Utils/Http.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -69,17 +83,6 @@ bool FileGet::is_subdomain(const std::string& url, const std::string& domain)
 	}
 	curl_url_cleanup(curl);
 	return false;
-}
-
-namespace {
-unsigned get_current_pid()
-{
-#ifdef WIN32
-	return GetCurrentProcessId();
-#else
-	return ::getpid();
-#endif
-}
 }
 
 // int = DOWNLOAD ID; string = file path
@@ -144,25 +147,10 @@ void FileGet::priv::get_perform()
 	std::string extension;
 	if (m_written == 0)
 	{
-		boost::filesystem::path dest_path = m_dest_folder / m_filename;
-		extension = dest_path.extension().string();
-		std::string just_filename = m_filename.substr(0, m_filename.size() - extension.size());
-		std::string final_filename = just_filename;
-        // Find unsed filename 
+		std::string final_filename;
+		bool found = false;
 		try {
-			size_t version = 0;
-			while (boost::filesystem::exists(m_dest_folder / (final_filename + extension)) || boost::filesystem::exists(m_dest_folder / (final_filename + extension + "." + std::to_string(get_current_pid()) + ".download")))
-			{
-				++version;
-				if (version > 999) {
-					wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_ERROR);
-					evt->SetString(GUI::format_wxstr(L"Failed to find suitable filename. Last name: %1%." , (m_dest_folder / (final_filename + extension)).string()));
-					evt->SetInt(m_id);
-					m_evt_handler->QueueEvent(evt);
-					return;
-				}
-				final_filename = GUI::format("%1%(%2%)", just_filename, std::to_string(version));
-			}
+			found = find_unused_filename(m_dest_folder, m_filename, m_tmp_path, final_filename);
 		} catch (const boost::filesystem::filesystem_error& e)
 		{
 			wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_ERROR);
@@ -171,10 +159,18 @@ void FileGet::priv::get_perform()
 			m_evt_handler->QueueEvent(evt);
 			return;
 		}
+		if (!found) {
+			wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_ERROR);
+			evt->SetString(GUI::format_wxstr(L"Failed to find suitable filename. Last name: %1%." , (m_dest_folder / final_filename).string()));
+			evt->SetInt(m_id);
+			m_evt_handler->QueueEvent(evt);
+			return;
+		}
 
-        m_filename = sanitize_filename(final_filename + extension);
+        m_filename = final_filename;
+		extension = boost::filesystem::path(m_filename).extension().string();
 
-        m_tmp_path = m_dest_folder / (m_filename + "." + std::to_string(get_current_pid()) + ".download");
+        m_tmp_path = download_marker_path(m_dest_folder, m_filename);
 
 		wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_NAME_CHANGE);
 		evt->SetString(boost::nowide::widen(m_filename));
@@ -221,7 +217,32 @@ void FileGet::priv::get_perform()
 			if(dest_path.empty()) {
 				std::string filename = extract_remote_filename(header);
 				if (!filename.empty()) {
-					m_filename = filename;
+					// The name comes from the server: keep it inside the destination folder and never
+					// replace an existing file. Keep the current name if nothing usable remains.
+					filename = sanitize_file_basename(filename);
+					std::string unused;
+					try {
+						if (filename.empty() || !find_unused_filename(m_dest_folder, filename, m_tmp_path, unused))
+							unused.clear();
+					} catch (const boost::filesystem::filesystem_error&) {
+						unused.clear();
+					}
+					const boost::filesystem::path tmp_path = unused.empty() ? m_tmp_path : download_marker_path(m_dest_folder, unused);
+					if (tmp_path != m_tmp_path) {
+						// Move the marker to the adopted name so that other downloads see the name as taken.
+						// Only before anything is written, so that no downloaded data has to be carried over.
+						FILE* tmp_file = m_written == 0 ? fopen(wxString(tmp_path.wstring()).c_str(), "wb") : nullptr;
+						if (tmp_file != nullptr) {
+							fclose(file);
+							boost::system::error_code ec;
+							boost::filesystem::remove(m_tmp_path, ec);
+							file = tmp_file;
+							m_tmp_path = tmp_path;
+						} else
+							unused.clear();
+					}
+					if (!unused.empty())
+						m_filename = unused;
 					dest_path = m_dest_folder / m_filename;
 					wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_NAME_CHANGE);
 					evt->SetString(boost::nowide::widen(m_filename));
@@ -327,6 +348,18 @@ void FileGet::priv::get_perform()
                     m_evt_handler->QueueEvent(evt);
                 }
 				fclose(file);
+				// Another file may have taken the name while downloading.
+				if (!dest_path.empty() && boost::filesystem::exists(dest_path)) {
+					std::string unused;
+					if (!find_unused_filename(m_dest_folder, m_filename, m_tmp_path, unused))
+						throw std::runtime_error("No unused file name.");
+					m_filename = unused;
+					dest_path = m_dest_folder / m_filename;
+					wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_NAME_CHANGE);
+					evt->SetString(boost::nowide::widen(m_filename));
+					evt->SetInt(m_id);
+					m_evt_handler->QueueEvent(evt);
+				}
 				boost::filesystem::rename(m_tmp_path, dest_path);
 			}
 			catch (const std::exception& /*e*/)

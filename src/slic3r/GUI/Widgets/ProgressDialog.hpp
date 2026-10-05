@@ -5,8 +5,23 @@
 #include "wx/progdlg.h"
 #include "wx/weakref.h"
 #include "wx/simplebook.h"
-#include "Button.hpp"
-#include "../wxExtensions.hpp"
+#include <wx/dlimpexp.h>
+#include <wx/string.h>
+#include <cstddef>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/translation.h>
+
+class Button;
+class wxCloseEvent;
+class wxCommandEvent;
+class wxPaintEvent;
+class wxPanel;
+class wxScrolledWindow;
+class wxSimplebook;
+class wxSizer;
+class wxWindow;
+namespace Slic3r::GUI { class ProgressDialog; }
 
 class WXDLLIMPEXP_FWD_CORE wxButton;
 class WXDLLIMPEXP_FWD_CORE wxEventLoop;

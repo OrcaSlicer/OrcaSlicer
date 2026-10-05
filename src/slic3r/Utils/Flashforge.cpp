@@ -1,8 +1,22 @@
 #include "Flashforge.hpp"
 #include <algorithm>
 #include <array>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <ctime>
 #include <chrono>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <exception>
+#include <ios>
 #include <thread>
 #include <sstream>
 #include <fstream>
@@ -16,11 +30,14 @@
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <vector>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
@@ -28,10 +45,10 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
 #include "TCPConsole.hpp"
 #include "SerialMessage.hpp"
@@ -510,11 +527,21 @@ bool Flashforge::fetch_material_slots(std::vector<FlashforgeMaterialSlot>& slots
     if (!request_local_api_json("detail", json{{"serialNumber", m_serial_number}, {"checkCode", m_check_code}}.dump(), body, msg))
         return false;
 
-    const auto parsed = json::parse(body, nullptr, false, true);
-    if (parsed.is_discarded()) {
+    if (!parse_material_slots(body, slots, supports_material_station)) {
         msg = _(L("Flashforge returned an invalid JSON response."));
         return false;
     }
+
+    return true;
+}
+
+bool Flashforge::parse_material_slots(const std::string& body, std::vector<FlashforgeMaterialSlot>& slots, bool* supports_material_station)
+{
+    slots.clear();
+
+    const auto parsed = json::parse(body, nullptr, false, true);
+    if (parsed.is_discarded())
+        return false;
 
     const auto& detail = parsed.contains("detail") ? parsed["detail"] : parsed;
     const auto& station = detail.contains("matlStationInfo") ? detail["matlStationInfo"] :
@@ -542,12 +569,21 @@ bool Flashforge::fetch_material_slots(std::vector<FlashforgeMaterialSlot>& slots
     if (supports_material_station != nullptr)
         *supports_material_station = reports_material_station;
 
+    // Fields are read leniently: firmware may send numbers as strings or flags as numbers.
     for (const auto& slot : slot_infos) {
+        if (!slot.is_object())
+            continue;
         FlashforgeMaterialSlot info;
-        info.slot_id        = slot.value("slotId", static_cast<int>(slots.size()) + 1);
-        info.has_filament   = slot.value("hasFilament", false);
-        info.material_name  = slot.value("materialName", std::string());
-        info.material_color = slot.value("materialColor", std::string());
+        info.slot_id = static_cast<int>(slots.size()) + 1;
+        if (const auto it = slot.find("slotId"); it != slot.end())
+            try_parse_json_int(*it, info.slot_id);
+        int has_filament = 0;
+        if (const auto it = slot.find("hasFilament"); it != slot.end() && try_parse_json_int(*it, has_filament))
+            info.has_filament = has_filament != 0;
+        if (const auto it = slot.find("materialName"); it != slot.end() && it->is_string())
+            info.material_name = it->get<std::string>();
+        if (const auto it = slot.find("materialColor"); it != slot.end() && it->is_string())
+            info.material_color = it->get<std::string>();
         slots.emplace_back(std::move(info));
     }
 
@@ -668,15 +704,6 @@ std::string Flashforge::extract_host_name() const
 
     curl_url_cleanup(hurl);
     return out;
-}
-
-int Flashforge::get_err_code_from_body(const std::string& body) const
-{
-    pt::ptree          root;
-    std::istringstream iss(body); // wrap returned json to istringstream
-    pt::read_json(iss, root);
-
-    return root.get<int>("err", 0);
 }
 
 } // namespace Slic3r

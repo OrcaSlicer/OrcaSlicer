@@ -2,12 +2,36 @@
 #include "PresetComboBoxes.hpp"
 #include "PrinterCloudAuthDialog.hpp"
 
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/any.hpp>
+#include <cassert>
+#include <algorithm>
 #include <cstddef>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/RoundedRectangle.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <memory>
+#include "slic3r/GUI/OptionsGroup.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <cstring>
+#include "libslic3r/Exception.hpp"
 #include <vector>
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/colour.h>
+#include <wx/busycursor.h>
+#include <wx/filedlg.h>
 #include <wx/sizer.h>
 #include <wx/tooltip.h>
 #include <wx/stattext.h>
@@ -15,9 +39,9 @@
 #include <wx/button.h>
 #include <wx/choicdlg.h>
 #include <wx/statbox.h>
+#include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
@@ -26,16 +50,12 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Tab.hpp"
-#include "wxExtensions.hpp"
+#include "libslic3r_version.h"
 #include "PrintHostDialogs.hpp"
-#include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Flashforge.hpp"
 #include "../Utils/UndoRedo.hpp"
-#include "RemovableDriveManager.hpp"
-#include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
 #include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"

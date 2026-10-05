@@ -23080,13 +23080,13 @@ msgstr "Sấy - Hút ẩm"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Nhiệt độ sấy tối đa của %s là %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Nhiệt độ sấy tối đa của %s là %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Nhiệt độ sấy tối thiểu của %s là %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Nhiệt độ sấy tối thiểu của %s là %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -26271,9 +26271,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Khoảng cách không hợp lệ được cung cấp cho Flow::with_spacing(), kiểm tra chiều cao lớp và độ rộng đùn của bạn"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

@@ -1,13 +1,25 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
-#include <libslic3r/Utils.hpp>
+#include <ios>
+#include <chrono>
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
 #include <slic3r/plugin/PluginConfig.hpp>
+#include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "fff_print/test_helpers.hpp"
 #include "plugin_test_utils.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
@@ -35,6 +47,9 @@ namespace {
 
 struct ScopedPluginManager
 {
+    // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
+    // which would otherwise land in the working directory.
+    ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }

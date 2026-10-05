@@ -4,9 +4,20 @@
 
 #include "slic3r/plugin/PythonInterpreter.hpp"
 
+#include <string>
+#include <cstddef>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <memory>
+#include <vector>
+#include <utility>
 #include <wx/sizer.h>
 
 #include <cctype>
+#include <wx/string.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

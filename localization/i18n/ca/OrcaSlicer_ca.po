@@ -4366,7 +4366,7 @@ msgid "Max volumetric speed"
 msgstr "Velocitat volumètrica màxima"
 
 msgid "℃"
-msgstr "°C"
+msgstr "℃"
 
 msgid "Bed temperature"
 msgstr "Temperatura del llit"
@@ -5249,7 +5249,7 @@ msgid "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In orde
 msgstr "Hi ha filament de baixa temperatura (PLA/PETG/TPU) carregat a l'extrusor. Per evitar l'obstrucció de l'extrusor, no es permet establir la temperatura de la cambra."
 
 msgid "When you set the chamber temperature below 40℃, the chamber temperature control will not be activated, and the target chamber temperature will automatically be set to 0℃."
-msgstr "Quan establiu la temperatura de la cambra per sota dels 40 °C, el control de temperatura de la cambra no s'activarà. I la temperatura de la cambra objectiu s'establirà automàticament a 0 °C."
+msgstr "Quan establiu la temperatura de la cambra per sota dels 40 ℃, el control de temperatura de la cambra no s'activarà. I la temperatura de la cambra objectiu s'establirà automàticament a 0 ℃."
 
 msgid "Failed to start print job"
 msgstr "No s'ha pogut començar a imprimir"
@@ -7337,7 +7337,7 @@ msgid "Layer: %d/%d"
 msgstr "Capa: %d/%d"
 
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
-msgstr "Escalfeu el broquet per sobre dels 170 °C abans de carregar o descarregar el filament."
+msgstr "Escalfeu el broquet per sobre dels 170 ℃ abans de carregar o descarregar el filament."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "La temperatura de la cambra no es pot canviar en mode de refredament durant la impressió."
@@ -19655,7 +19655,7 @@ msgid "Printing Parameters"
 msgstr "Paràmetres d'impressió"
 
 msgid "- ℃"
-msgstr "- °C"
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "Sincronitza la informació del broquet i l'AMS"
@@ -22277,13 +22277,13 @@ msgstr "Assecatge - Deshumidificació"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "La temperatura màxima d'assecatge de %s és %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "La temperatura màxima d'assecatge de %s és %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "La temperatura mínima d'assecatge de %s és %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "La temperatura mínima d'assecatge de %s és %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25498,9 +25498,6 @@ msgstr ""
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Espaiat no vàlid subministrat a Flow::with_spacing(  ), comproveu l'alçada de la capa i l'amplada d'extrusió"
 
-#~ msgid "°C"
-#~ msgstr "°C"
-
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Continua sincronitzant filaments"
 
@@ -26168,7 +26165,7 @@ msgstr ""
 #~ msgstr "L'AMS estimarà la capacitat restant del filament de Bambu després d'actualitzar la informació del filament. Durant la impressió, la capacitat restant s'actualitzarà automàticament."
 
 #~ msgid "The recommended minimum temperature is less than 190℃ or the recommended maximum temperature is greater than 300℃.\n"
-#~ msgstr "La temperatura mínima recomanada és inferior a 190 °C o la màxima recomanada és superior a 300 °C.\n"
+#~ msgstr "La temperatura mínima recomanada és inferior a 190 ℃ o la màxima recomanada és superior a 300 ℃.\n"
 
 #~ msgid "Spiral mode only works when wall loops is 1, support is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 #~ msgstr "El mode espiral només funciona quan els bucles de perímetre és 1, el suport està desactivat, les capes superiors de l'intèrpret d'ordres són 0, la densitat de farciment escassa és 0 i el tipus timelapse és tradicional."
@@ -26240,10 +26237,10 @@ msgstr ""
 #~ msgstr "Comú"
 
 #~ msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament (PLA/PETG/TPU) is not allowed to be loaded."
-#~ msgstr "La temperatura actual de la cambra o la temperatura de la cambra objectiu supera els 45 °C. Per evitar l'obstrucció de l'extrusora, no es permet carregar filaments de baixa temperatura ( PLA / PETG / TPU )."
+#~ msgstr "La temperatura actual de la cambra o la temperatura de la cambra objectiu supera els 45 ℃. Per evitar l'obstrucció de l'extrusora, no es permet carregar filaments de baixa temperatura ( PLA / PETG / TPU )."
 
 #~ msgid "Low temperature filament (PLA/PETG/TPU) is loaded in the extruder. In order to avoid extruder clogging, it is not allowed to set the chamber temperature above 45℃."
-#~ msgstr "El filament de baixa temperatura ( PLA/PETG/TPU ) está carregat a l'extrusor. Per evitar l'obstrucció de l'extrusora, no es permet establir la temperatura de la cambra per sobre dels 45 °C."
+#~ msgstr "El filament de baixa temperatura ( PLA/PETG/TPU ) está carregat a l'extrusor. Per evitar l'obstrucció de l'extrusora, no es permet establir la temperatura de la cambra per sobre dels 45 ℃."
 
 #~ msgid "Bambu PET-CF/PA6-CF is not supported by AMS."
 #~ msgstr "Bambu PET-CF/PA6-CF no és compatible amb AMS."
@@ -27211,9 +27208,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Heu canviat alguns paràmetres del perfil \"%1%\".\n"
 #~ "Voleu mantenir aquests paràmetres modificats després de canviar el perfil?"
-
-#~ msgid " ℃"
-#~ msgstr " °C"
 
 #~ msgid ""
 #~ "The speed setting exceeds the printer's maximum speed (machine_max_speed_x/machine_max_speed_y).\n"

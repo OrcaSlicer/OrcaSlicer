@@ -1,6 +1,10 @@
 #include "UltiMaker.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <cstdio>
+#include <cassert>
 #include <ctime>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
@@ -8,18 +12,23 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <utility>
+#include <exception>
+#include <sstream>
+#include <fstream>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
 
 #include <iostream>
@@ -652,15 +661,6 @@ bool UltiMaker::start_print(wxString &msg, const std::string &filename, Connecti
 		.perform_sync();
 
 	return res;
-}
-
-int UltiMaker::get_err_code_from_body(const std::string &body) const
-{
-	pt::ptree root;
-	std::istringstream iss (body); // wrap returned json to istringstream
-	pt::read_json(iss, root);
-
-	return root.get<int>("err", 0);
 }
 
 }

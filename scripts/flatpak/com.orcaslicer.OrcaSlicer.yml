@@ -301,10 +301,10 @@ modules:
         sha256: a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
         dest: external-packages/CURL
 
-      # OCCT (OpenCASCADE) V7_6_0
+      # OCCT (OpenCASCADE) V8_0_1
       - type: file
-        url: https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_6_0.zip
-        sha256: 28334f0e98f1b1629799783e9b4d21e05349d89e695809d7e6dfa45ea43e1dbc
+        url: https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V8_0_1.zip
+        sha256: 7c033d917ee8f040c0512d289dcc5f02c148889d5bac17c3e25639accb44f0da
         dest: external-packages/OCCT
 
       # OpenCV 4.6.0
@@ -330,6 +330,15 @@ modules:
         url: https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.0.3.tar.gz
         sha256: deedcabe339165214a3637df4c86a507aef0d793cf8774ff68735f4737e8ddbc
         dest: external-packages/FFMPEG
+
+      # libdatachannel v0.24.5
+      # The Git checkout includes the submodules that are missing from the
+      # GitHub source archive. DataChannel.cmake consumes it as SOURCE_DIR.
+      - type: git
+        url: https://github.com/paullouisageneau/libdatachannel.git
+        tag: v0.24.5
+        commit: 443f6934d9007eb7076ab7825ba330f355fcbead
+        dest: external-packages/DataChannel
 
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.

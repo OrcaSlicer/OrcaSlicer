@@ -4,11 +4,24 @@
 // Implementation of the AdaptivePAProcessor class, responsible for processing G-code layers with adaptive pressure advance.
 
 #include "../GCode.hpp"
+#include "libslic3r/GCode/AdaptivePAInterpolator.hpp"
+#include "libslic3r/libslic3r.h"
 #include "AdaptivePAProcessor.hpp"
+#include <memory>
+#include <cstddef>
+#include <regex>
+#include <iosfwd>
+#include <algorithm>
+#include <exception>
 #include <sstream>
 #include <iostream>
 #include <cmath>
 #include <cctype>
+#include <string>
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
@@ -21,38 +34,33 @@ namespace Slic3r {
  *
  * @param gcodegen A reference to the GCode object that generates the G-code.
  */
-AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen, const std::vector<unsigned int> &tools_used)
+AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen)
     : m_gcodegen(gcodegen),
       m_config(gcodegen.config()),
       m_last_predicted_pa(0.0),
       m_max_next_feedrate(0.0),
       m_next_feedrate(0.0),
       m_current_feedrate(0.0),
-      m_last_extruder_id(-1),
+      m_last_config_index(-1),
       m_pa_change_pattern(R"(; PA_CHANGE:T(\d+) MM3MM:([0-9]*\.[0-9]+) ACCEL:(\d+) BR:(\d+) RC:(\d+) OV:(\d+))"),
       m_g1_f_pattern(R"(G1 F([0-9]+))")
 {
-    // Constructor body can be used for further initialization if necessary
-    for (unsigned int tool : tools_used) {
-        // Only enable model for the tool if both PA and adaptive PA options are enabled
-        if(m_config.adaptive_pressure_advance.get_at(tool) && m_config.enable_pressure_advance.get_at(tool)){
-            auto interpolator = std::make_unique<AdaptivePAInterpolator>();
-            // Get calibration values from extruder
-            std::string pa_calibration_values = m_config.adaptive_pressure_advance_model.get_at(tool);
-            // Setup the model and store it in the tool-interpolation model map
-            interpolator->parseAndSetData(pa_calibration_values);
-            m_AdaptivePAInterpolators[tool] = std::move(interpolator);
-        }
-    }
+    const size_t indices = std::max(m_config.adaptive_pressure_advance.size(), m_config.enable_pressure_advance.size());
+    for (size_t i = 0; i < indices && !m_enabled; ++i)
+        m_enabled = m_config.adaptive_pressure_advance.get_at(i) && m_config.enable_pressure_advance.get_at(i);
 }
 
-// Method to get the interpolator for a specific tool ID
-AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int tool_id) {
-    auto it = m_AdaptivePAInterpolators.find(tool_id);
-    if (it != m_AdaptivePAInterpolators.end()) {
-        return it->second.get();
+// Method to get the interpolator for a specific filament config index.
+// The model is built the first time an index is requested, as the indices in use depend on
+// the extruder variant each filament prints with.
+AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int config_index) {
+    auto [it, inserted] = m_AdaptivePAInterpolators.try_emplace(config_index);
+    // Only enable model for the index if both PA and adaptive PA options are enabled
+    if (inserted && m_config.adaptive_pressure_advance.get_at(config_index) && m_config.enable_pressure_advance.get_at(config_index)) {
+        it->second = std::make_unique<AdaptivePAInterpolator>();
+        it->second->parseAndSetData(m_config.adaptive_pressure_advance_model.get_at(config_index));
     }
-    return nullptr;  // Handle the case where the tool_id was not found
+    return it->second.get();
 }
 
 /**
@@ -65,6 +73,12 @@ AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int tool_i
  * @return A string containing the processed G-code with adaptive pressure advance applied.
  */
 std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
+    // Without PA_CHANGE tags the loop below would only terminate the layer's last line.
+    if (!m_enabled && gcode.find("; PA_CHANGE") == std::string::npos) {
+        if (!gcode.empty() && gcode.back() != '\n')
+            gcode += '\n';
+        return std::move(gcode);
+    }
     std::istringstream stream(gcode);
     std::string line;
     std::ostringstream output;
@@ -108,16 +122,17 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
         // the PA for that material is set. As no tag below will be found for this extruder, the original PA is retained.
         if (line.find("; PA_CHANGE") == 0) { // prune lines quickly before running regex check as regex is more expensive to run
             if (std::regex_search(line, m_match, m_pa_change_pattern)) {
-                int extruder_id = std::stoi(m_match[1].str());
+                // The tag carries the filament config index, which selects the PA settings of the filament's extruder variant
+                int config_index = std::stoi(m_match[1].str());
                 mm3mm_value = std::stod(m_match[2].str());
                 accel_value = std::stod(m_match[3].str());
                 int isBridge = std::stoi(m_match[4].str());
                 int roleChange = std::stoi(m_match[5].str());
                 int isOverhang = std::stoi(m_match[6].str());
                 
-                // Check if the extruder ID has changed
-                bool extruder_changed = (extruder_id != m_last_extruder_id);
-                m_last_extruder_id = extruder_id;
+                // Check if the filament config index has changed
+                bool config_index_changed = (config_index != m_last_config_index);
+                m_last_config_index = config_index;
                 
                 // Save the PA_CHANGE line to output later after finding feedrate
                 pa_change_line = line;
@@ -212,23 +227,23 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                 
                 // Calculate the predicted PA using the upcomming feature maximum feedrate
                 // Get the interpolator for the active tool
-                AdaptivePAInterpolator* interpolator = getInterpolator(m_last_extruder_id);
+                AdaptivePAInterpolator* interpolator = getInterpolator(m_last_config_index);
                 
                 double predicted_pa = 0;
                 double adaptive_PA_speed = 0;
             
                 if(!interpolator){ // Tool not found in the interpolator map
                     // Tool not found in the PA interpolator to tool map
-                    predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
+                    predicted_pa = m_config.enable_pressure_advance.get_at(m_last_config_index) ? m_config.pressure_advance.get_at(m_last_config_index) : 0;
                     if(m_config.gcode_comments) output << "; APA: Tool doesnt have APA enabled\n";
-                } else if (!interpolator->isInitialised() || (!m_config.adaptive_pressure_advance.get_at(m_last_extruder_id)) )
+                } else if (!interpolator->isInitialised() || (!m_config.adaptive_pressure_advance.get_at(m_last_config_index)) )
                     // Check if the model is not initialised by the constructor for the active extruder
                     // Also check that adaptive PA is enabled for that extruder. This should not be needed
                     // as the PA change flag should not be set upstream (in the GCode.cpp file) if adaptive PA is disabled
                     // however check for robustness sake.
                 {
                     // Model failed or adaptive pressure advance not enabled - use default value from m_config
-                    predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
+                    predicted_pa = m_config.enable_pressure_advance.get_at(m_last_config_index) ? m_config.pressure_advance.get_at(m_last_config_index) : 0;
                     if(m_config.gcode_comments) output << "; APA: Interpolator setup failed, using default pressure advance\n";
                 } else { // Model setup succeeded
                     // Proceed to identify the print speed to use to calculate the adaptive PA value
@@ -249,18 +264,18 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     predicted_pa = (*interpolator)(mm3mm_value * adaptive_PA_speed, accel_value);
                     
                     // This is a bridge, use the dedicated PA setting.
-                    if(isBridge && m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id) > EPSILON)
-                        predicted_pa = m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id);
+                    if(isBridge && m_config.adaptive_pressure_advance_bridges.get_at(m_last_config_index) > EPSILON)
+                        predicted_pa = m_config.adaptive_pressure_advance_bridges.get_at(m_last_config_index);
                     
                     if (predicted_pa < 0) { // If extrapolation fails, fall back to the default PA for the extruder.
-                        predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
+                        predicted_pa = m_config.enable_pressure_advance.get_at(m_last_config_index) ? m_config.pressure_advance.get_at(m_last_config_index) : 0;
                         if(m_config.gcode_comments) output << "; APA: Interpolation failed, using fallback pressure advance value\n";
                     }
                 }
                 if(m_config.gcode_comments) {
                     // Output debug GCode comments
                     output << pa_change_line << '\n'; // Output PA change command tag
-                    if(isBridge && m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id) > EPSILON)
+                    if(isBridge && m_config.adaptive_pressure_advance_bridges.get_at(m_last_config_index) > EPSILON)
                         output << "; APA Model Override (bridge)\n";
                     output << "; APA Current Speed: " << std::to_string(m_current_feedrate) << "\n";
                     output << "; APA Next Speed: " << std::to_string(m_next_feedrate) << "\n";
@@ -269,7 +284,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     output << "; APA Flow rate: " << std::to_string(mm3mm_value * m_max_next_feedrate) << "\n";
                     output << "; APA Prev PA: " << std::to_string(m_last_predicted_pa) << " New PA: " << std::to_string(predicted_pa) << "\n"; 
                 }
-                if (extruder_changed || std::fabs(predicted_pa - m_last_predicted_pa) > EPSILON) {
+                if (config_index_changed || std::fabs(predicted_pa - m_last_predicted_pa) > EPSILON) {
                     output << m_gcodegen.writer().set_pressure_advance(predicted_pa); // Use m_writer to set pressure advance
                     m_last_predicted_pa = predicted_pa; // Update the last predicted PA value
                 }

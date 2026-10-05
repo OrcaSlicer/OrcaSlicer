@@ -3,8 +3,14 @@
 #include <chrono>
 
 #include <boost/log/trivial.hpp>
+#include <functional>
+#include <utility>
+#include <string>
+#include <wx/evtloop.h>
+#include <wx/timer.h>
 
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/PrebuildQueue.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -23,12 +29,9 @@ constexpr int quiet_ms = 500;
 // queued meanwhile are handled first; a click waits at most a slice plus the unit that
 // overran it.
 constexpr int slice_ms = 40;
-// On GTK a due timer runs ahead of repaints and posted events, so the next slice waits a few ms.
-#ifdef __WXGTK__
+// Delay before the next slice; on GTK a due timer runs ahead of repaints and posted events,
+// and wxOSX rejects a 0 ms timer.
 constexpr int next_slice_ms = 5;
-#else
-constexpr int next_slice_ms = 0;
-#endif
 
 // True when unhandled keyboard, button, touch or pen input is queued; only Windows can ask.
 bool input_pending()
@@ -40,6 +43,13 @@ bool input_pending()
 #else
     return false;
 #endif
+}
+
+// True inside a wxYield(), where a slice would build pages in the middle of the code that yielded.
+bool yielding()
+{
+    const wxEventLoopBase* loop = wxEventLoopBase::GetActive();
+    return loop != nullptr && loop->IsYielding();
 }
 
 } // namespace
@@ -69,7 +79,7 @@ void IdleScheduler::tick()
         stop();
         return;
     }
-    if (m_input_idle_ms() < quiet_ms || input_pending()) {
+    if (m_input_idle_ms() < quiet_ms || input_pending() || yielding()) {
         start();
         return;
     }

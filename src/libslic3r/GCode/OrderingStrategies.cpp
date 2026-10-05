@@ -4,14 +4,20 @@
 #include "OrderingStrategies.hpp"
 #include "../Geometry.hpp"
 #include "../ShortestPath.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "libslic3r/Print.hpp"
 
 namespace Slic3r {
 
