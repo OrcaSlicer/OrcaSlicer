@@ -47,6 +47,7 @@
 #include <boost/thread.hpp>
 #include <float.h>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <utility>
 #include <sstream>
