@@ -1059,6 +1059,8 @@ public:
     }
 
     size_t get_size() const { return m_size; }
+
+    void reserve(size_t lines_count) { m_gcode_lines_map.reserve(lines_count); }
 };
 
 void GCodeProcessor::run_post_process()
@@ -1159,6 +1161,8 @@ void GCodeProcessor::run_post_process()
     GCodeFileWriter writer(out, out_path, m_result.lines_ends, "GCode processor post process export failed.\nIs the disk full?");
     ExportLines export_line(m_result.backtrace_enabled ? ExportLines::EWriteType::ByTime : ExportLines::EWriteType::BySize,
         m_time_processor.machines, writer);
+    // The line map holds an entry for each line of the file, and the first pass counted them
+    export_line.reserve(m_line_id);
 
     // replace placeholder lines with the proper final value
     // gcode_line is in/out parameter, to reduce expensive memory allocation
