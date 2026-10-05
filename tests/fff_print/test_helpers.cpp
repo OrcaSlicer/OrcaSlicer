@@ -14,6 +14,7 @@
 #include <initializer_list>
 #include "libslic3r/Point.hpp"
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include <set>
 #include <string>
