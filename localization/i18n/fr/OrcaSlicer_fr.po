@@ -7436,7 +7436,7 @@ msgid "Max Volumetric Speed Calibration"
 msgstr "Calibration de la vitesse volumétrique maximale"
 
 msgid "Pressure Advance Calibration"
-msgstr "Calibration de l'avance de pression"
+msgstr "Calibration du Pressure Advance"
 
 msgid "Flow Ratio Calibration"
 msgstr "Calibration du rapport de débit"
@@ -7457,7 +7457,7 @@ msgid "VFA Calibration"
 msgstr "Calibration VFA"
 
 msgid "View: Top"
-msgstr "Vue : Dessus"
+msgstr "Vue : Haut"
 
 msgid "View: Bottom"
 msgstr "Vue : Dessous"
@@ -12092,7 +12092,7 @@ msgid "Painting"
 msgstr "Peinture"
 
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Disponible lorsqu'un gizmo de peinture est ouvert : supports, jointure, surface irrégulière ou peinture couleur."
+msgstr "Disponible lorsqu'un gizmo de peinture est ouvert : supports, couture, surface irrégulière ou peinture couleur."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Déplacer : appuyez pour aligner de 1 mm"
@@ -21896,7 +21896,7 @@ msgid "Create a solid body to pattern first"
 msgstr "Créez d'abord un corps solide à répéter"
 
 msgid "Pattern — needs a solid body to replicate"
-msgstr "Répétition — nécessite un corps solide à reproduire"
+msgstr "Motif — nécessite un corps solide à reproduire"
 
 msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
 msgstr "Surface (extrusion / révolution / lissage / remplissage / décalage / épaississement)"
@@ -23180,7 +23180,7 @@ msgid ""
 msgstr "%s\n\nVolume : %.3f cm³\nAire de surface : %.2f cm²"
 
 msgid "Pattern needs a solid body — add or import one first"
-msgstr "Répétition nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
+msgstr "Motif nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Boolean needs two solid bodies — add or import a second one"
 msgstr "Booléen nécessite deux corps solides — ajoutez-en ou importez-en un second"
@@ -24171,7 +24171,7 @@ msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "Afficher/Masquer la boîte de dialogue des paramètres des périphériques 3Dconnexion"
 
 msgid "Show/Hide wireframe"
-msgstr "Afficher/masquer le filaire"
+msgstr "Afficher/masquer le fil de fer"
 
 msgid "On/Off G-code window"
 msgstr "On/Off Fenêtre G-code"
