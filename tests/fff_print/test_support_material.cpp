@@ -6,10 +6,14 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <cmath>
 #include <cstddef>
@@ -271,16 +275,21 @@ static bool has_support_ironing(const Print &print)
     return false;
 }
 
+static bool support_layer_has_role(const SupportLayer &layer, ExtrusionRole role)
+{
+    for (const ExtrusionEntity *entity : layer.support_fills.flatten().entities)
+        if (entity->role() == role)
+            return true;
+    return false;
+}
+
 // print_z of every support layer that carries an extrusion of the given role.
 static std::vector<double> support_layers_with_role(const Print &print, ExtrusionRole role)
 {
     std::vector<double> zs;
     for (const SupportLayer *layer : print.objects().front()->support_layers())
-        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
-            if (entity->role() == role) {
-                zs.push_back(layer->print_z);
-                break;
-            }
+        if (support_layer_has_role(*layer, role))
+            zs.push_back(layer->print_z);
     return zs;
 }
 
@@ -307,6 +316,47 @@ TEST_CASE("Support interface ironing irons the top interface layer of normal tre
     for (const double ironed_z : support_layers_with_role(print, erIroning)) {
         CAPTURE(ironed_z, top_interface_z);
         REQUIRE_THAT(ironed_z, Catch::Matchers::WithinAbs(top_interface_z, 1e-6));
+    }
+}
+
+TEST_CASE("Support interface ironing irons the raft top of normal tree styles", "[SupportMaterial]")
+{
+    const std::string style = GENERATE("tree_slim", "tree_strong", "tree_hybrid");
+    const size_t raft_layers = 3;
+    const int raft_expansion = 2;
+    CAPTURE(style);
+
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+        { "enable_support",               1 },
+        { "support_type",                 "tree(auto)" },
+        { "support_style",                style },
+        { "support_interface_top_layers", 2 },
+        { "raft_layers",                  int(raft_layers) },
+        { "raft_first_layer_expansion",   raft_expansion },
+        { "support_ironing",              1 }
+    });
+
+    // Only the raft layer the object sits on is ironed, like the organic support does.
+    const auto layers = print.objects().front()->support_layers();
+    REQUIRE(layers.size() > raft_layers);
+    for (size_t i = 0; i < raft_layers; ++i) {
+        CAPTURE(i);
+        if (i + 1 == raft_layers)
+            REQUIRE(support_layer_has_role(*layers[i], erIroning));
+        else
+            REQUIRE_FALSE(support_layer_has_role(*layers[i], erIroning));
+    }
+
+    // The ironing stays under the object and its raft expansion, not over the rest of the raft interface.
+    BoundingBox allowed = get_extents(print.objects().front()->layers().front()->lslices);
+    allowed.offset(scale_(raft_expansion) + SCALED_EPSILON);
+    for (const ExtrusionEntity *entity : layers[raft_layers - 1]->support_fills.flatten().entities) {
+        if (entity->role() != erIroning)
+            continue;
+        const BoundingBox ironed = entity->as_polyline().bounding_box();
+        REQUIRE(allowed.contains(ironed.min));
+        REQUIRE(allowed.contains(ironed.max));
     }
 }
 

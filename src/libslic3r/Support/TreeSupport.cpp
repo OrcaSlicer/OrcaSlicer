@@ -1422,10 +1422,12 @@ void TreeSupport::generate_toolpaths()
 
     // calculate fill areas for raft layers
     ExPolygons raft_areas;
+    ExPolygons object_first_layer;
     if (m_object->layer_count() > 0) {
         const Layer *layer = m_object->layers().front();
         for (const ExPolygon &expoly : layer->lslices) {
             raft_areas.push_back(expoly);
+            object_first_layer.push_back(expoly);
         }
     }
 
@@ -1482,6 +1484,8 @@ void TreeSupport::generate_toolpaths()
     ExPolygons raft_interface_areas = diff_ex(raft_areas, raft_base_areas);
 
 
+    BoundingBox bbox_object(Point(-scale_(1.), -scale_(1.0)), Point(scale_(1.), scale_(1.)));
+
     // raft interfaces
     for (layer_nr = m_slicing_params.base_raft_layers;
          layer_nr < m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers;
@@ -1504,6 +1508,15 @@ void TreeSupport::generate_toolpaths()
         fill_params.density = object_config.raft_first_layer_density * 0.01;
         fill_expolygons_generate_paths(ts_layer->support_fills.entities, raft_base_areas,
             filler_interface, fill_params, erSupportMaterial, support_flow);
+
+        // Iron the raft top under the object, the surface the object sits on, like the organic support does.
+        if (m_support_params.ironing &&
+            layer_nr + 1 == m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers)
+            generate_support_ironing(ts_layer->support_fills.entities,
+                offset_ex(intersection_ex(raft_interface_areas, offset_ex(object_first_layer, scale_(object_config.raft_first_layer_expansion))),
+                          -0.5 * support_flow.scaled_spacing(), jtSquare),
+                m_support_params, bbox_object, ts_layer->id(), ts_layer->print_z,
+                m_support_params.support_interface_angle(ts_layer->interface_id()));
     }
 
     // layers between raft and object
@@ -1520,7 +1533,6 @@ void TreeSupport::generate_toolpaths()
     if (m_object->support_layer_count() <= m_raft_layers)
         return;
 
-    BoundingBox bbox_object(Point(-scale_(1.), -scale_(1.0)), Point(scale_(1.), scale_(1.)));
     // ORCA: base angle used for explicit interlaced interface orientation.
     const float base_support_angle = Geometry::deg2rad(object_config.support_angle.value);
 
