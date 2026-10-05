@@ -1,20 +1,51 @@
 #include <algorithm>
+#include <string>
+#include <wx/dialog.h>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/RammingChart.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/FlushVolPredictor.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/filename.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/spinctrl.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
 #include "libslic3r/FlushVolCalc.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
-#include "WebViewDialog.hpp"
 #include "MsgDialog.hpp"
 #include "format.hpp"
-#include "libslic3r/Color.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+#include <boost/filesystem.hpp>
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;

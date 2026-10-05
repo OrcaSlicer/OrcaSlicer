@@ -1,8 +1,17 @@
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <fstream>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <limits>
 #include <random>
 #include <catch2/catch_all.hpp>
+#include <vector>
+#include <string>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_utils.hpp"

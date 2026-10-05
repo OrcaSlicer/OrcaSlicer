@@ -1,5 +1,6 @@
 #include "DevStorage.h"
-#include "slic3r/GUI/DeviceManager.hpp"
+#include "json_diff.hpp"
+#include <string>
 
 
 namespace Slic3r {

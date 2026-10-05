@@ -1,6 +1,26 @@
 #include "PresetComboBoxes.hpp"
 
+#include <climits>
+#include <boost/log/trivial.hpp>
+#include <cassert>
+#include <boost/algorithm/string/replace.hpp>
+#include <cmath>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cctype>
 #include <cstddef>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include <map>
+#include <iterator>
+#include <deque>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/EncodedFilament.hpp"
+#include <unordered_set>
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
 #include <vector>
 #include <string>
 #include <set>
@@ -8,8 +28,16 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/image.h>
+#include <wx/anybutton.h>
+#include <wx/app.h>
+#include <wx/colourdata.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
 #include <wx/statbox.h>
@@ -24,7 +52,6 @@
 #include <wx/msw/private.h>
 #endif
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
@@ -36,9 +63,7 @@
 #include "format.hpp"
 #include "Tab.hpp"
 #include "ConfigWizard.hpp"
-#include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/UndoRedo.hpp"
-#include "../Utils/ColorSpaceConvert.hpp"
 #include "BitmapCache.hpp"
 #include "SavePresetDialog.hpp"
 #include "MsgDialog.hpp"

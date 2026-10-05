@@ -2,9 +2,15 @@
 #include "GeneratedConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "PluginAuditManager.hpp"
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cstdlib>
+#include <memory>
+#include <exception>
 #include <pytypedefs.h>
 #include "PluginFsUtils.hpp"
+#include <pybind11/pybind11.h>
 
 #include <pybind11/embed.h>
 
@@ -16,8 +22,14 @@
 #include <ctime>
 #include <iomanip>
 #include <mutex>
+#include <shared_mutex>
 #include <sstream>
+#include <utility>
+#include <string>
 #include <vector>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
+#include <Python.h>
 
 namespace Slic3r {
 

@@ -1,8 +1,13 @@
 #ifndef SLA_RASTERBASE_HPP
 #define SLA_RASTERBASE_HPP
 
+#include <cstddef>
+#include <functional>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
 #include <ostream>
 #include <memory>
+#include <string>
 #include <vector>
 #include <array>
 #include <utility>

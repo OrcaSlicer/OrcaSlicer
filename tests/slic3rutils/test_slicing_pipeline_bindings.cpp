@@ -1,4 +1,18 @@
 #include <catch2/catch_test_macros.hpp>
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include "libslic3r/libslic3r.h"
+#include <pybind11/cast.h>
+#include <pybind11/eval.h>
+#include <catch2/matchers/catch_matchers.hpp>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Print.hpp"
+#include <cstddef>
+#include "libslic3r/SurfaceCollection.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <initializer_list>
+#include <utility>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 using namespace Slic3r;
 
@@ -133,6 +147,10 @@ TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <sstream>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <pybind11/detail/common.h>
+#include <pybind11/detail/descr.h>
 
 // psGCodePostProcess is the merged post-processing seam: no live Print (print/object are None), the
 // plugin edits the file at ctx.gcode_path in place, and ctx.config_value() falls back to the config

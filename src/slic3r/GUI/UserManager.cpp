@@ -1,14 +1,13 @@
-#include "libslic3r/libslic3r.h"
+#include "json_diff.hpp"
 #include "UserManager.hpp"
-#include "DeviceManager.hpp"
 #include "BindDialog.hpp"
-#include "NetworkAgent.hpp"
-#include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <string>
+#include <wx/string.h>
 
 
 namespace Slic3r {

@@ -11,8 +11,29 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
+#include <Eigen/Core>
+#include <algorithm>
+#include <Eigen/Geometry>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <cassert>
+#include <cfloat>
+#include <utility>
+#include "libslic3r/AppConfig.hpp"
+#include <cstdint>
+#include <string>
+#include <exception>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <limits>
+#include "libslic3r/Geometry/Circle.hpp"
+#include <cmath>
+#include <math.h>
+#include <cstdlib>
+#include "libslic3r/Geometry.hpp"
 
 #if defined(L)
 #undef L

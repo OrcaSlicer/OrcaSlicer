@@ -1,13 +1,17 @@
 #include <catch2/catch_all.hpp>
 
-#include <libslic3r/Utils.hpp>
+#include <exception>
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "plugin_test_utils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/eval.h>
+#include <pybind11/gil.h>
 
 #include <nlohmann/json.hpp>
 #include <pybind11/embed.h>
@@ -15,6 +19,7 @@
 
 #include <memory>
 #include <string>
+#include <pybind11/cast.h>
 
 namespace py = pybind11;
 using namespace Slic3r;

@@ -3,9 +3,14 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <exception>
 #include <functional>
 #include "Job.hpp"
+#include <string>
+#include <wx/event.h>
 #include <wx/window.h>
+
+class wxWindow;
 
 namespace fs = boost::filesystem;
 

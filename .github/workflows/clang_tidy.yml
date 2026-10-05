@@ -1,0 +1,89 @@
+name: clang-tidy
+
+# Runs clang-tidy, with the checks in .clang-tidy, over the C++ lines a pull
+# request changes (scripts/clang_tidy_diff.py). The compile database is
+# configured without the precompiled header, so code that only builds because
+# the PCH supplied an include fails here.
+#
+# No paths filter: the job is a required check, and a workflow skipped by a
+# paths filter leaves a required check pending forever. A PR with no C++
+# changes finishes after the first step.
+on:
+  pull_request:
+    branches:
+      - main
+      - release/*
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  clang_tidy:
+    # Branch protection requires this check by name. Renaming the job disables
+    # that gate.
+    name: clang-tidy
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+          # The PR merge commit plus its first parent, the base it is diffed against.
+          fetch-depth: 2
+
+      - name: Look for changed C++ files
+        id: changes
+        run: |
+          if git diff --name-only HEAD^1 -- src tests | grep -qE '\.(cpp|cc|cxx|hpp|h|hxx)$'; then
+            echo "cpp=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No C++ changes under src/ or tests/."
+          fi
+
+      # Parsing needs the dependency headers, not a build of this PR's deps/, so
+      # a PR that changes deps/ falls back to the newest cache main has.
+      - name: Restore cached deps
+        if: steps.changes.outputs.cpp == 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep
+          key: linux-clang-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }}
+          restore-keys: linux-clang-cache-orcaslicer_deps-build-
+          fail-on-cache-miss: true
+
+      - name: Apt-Install Dependencies
+        if: steps.changes.outputs.cpp == 'true' && !vars.SELF_HOSTED
+        uses: ./.github/actions/apt-install-deps
+
+      - name: Install clang-tidy
+        if: steps.changes.outputs.cpp == 'true'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/clang-tidy"
+          "$RUNNER_TEMP/clang-tidy/bin/pip" install --quiet -r scripts/clang_tidy_requirements.txt
+
+      # DEP_BUILD_DIR is named outright: CMake would otherwise derive it from the build
+      # directory's name and look for the dependencies in deps/build-tidy.
+      - name: Configure without the precompiled header
+        if: steps.changes.outputs.cpp == 'true'
+        run: >
+          cmake -S . -B build-tidy -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DSLIC3R_PCH=OFF -DORCA_TOOLS=ON -DBUILD_TESTS=ON
+          -DDEP_BUILD_DIR=${{ github.workspace }}/deps/build
+
+      # The one header the build generates rather than the configure.
+      - name: Generate git_commit_hash.h
+        if: steps.changes.outputs.cpp == 'true'
+        run: cmake --build build-tidy --target git_commit_hash_header
+
+      - name: Run clang-tidy on the changed lines
+        if: steps.changes.outputs.cpp == 'true'
+        run: >
+          python3 scripts/clang_tidy_diff.py -p build-tidy --base HEAD^1
+          --clang-tidy "$RUNNER_TEMP/clang-tidy/bin/clang-tidy" -j "$(nproc)"

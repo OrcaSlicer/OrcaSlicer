@@ -1,12 +1,18 @@
 #ifndef SLA_SUPPORTTREEBUILDER_HPP
 #define SLA_SUPPORTTREEBUILDER_HPP
 
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <cassert>
+#include "libslic3r/libslic3r.h"
 #include <libslic3r/SLA/Concurrency.hpp>
 #include <libslic3r/SLA/SupportTree.hpp>
 //#include <libslic3r/SLA/Contour3D.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/SLA/Pad.hpp>
 #include <libslic3r/MTUtils.hpp>
+#include <vector>
+#include <mutex>
 
 namespace Slic3r {
 namespace sla {

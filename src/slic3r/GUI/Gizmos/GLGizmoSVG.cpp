@@ -23,6 +23,44 @@
 #include "libslic3r/ClipperUtils.hpp" // union_ex
 
 #include "imgui/imgui_stdlib.h" // using std::string for inputs
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/string.h>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/EmbossShape.hpp"
+#include <string_view>
+#include <memory>
+#include <atomic>
+#include "slic3r/GUI/IconManager.hpp"
+#include <utility>
+#include "slic3r/GUI/SurfaceDrag.hpp"
+#include <optional>
+#include <cassert>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <imgui.h>
+#include <vector>
+#include "libslic3r/Utils.hpp"
+#include <algorithm>
+#include "libslic3r/Line.hpp"
+#include <functional>
+#include <cmath>
+#include <cstdlib>
+#include "libslic3r/ExPolygon.hpp"
+#include <cstddef>
+#include "slic3r/GUI/Selection.hpp"
+#include <cstdint>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/GUI.hpp"
+#include <wx/filedlg.h>
+#include <wx/intl.h>
+#include <iomanip>
+#include <ios>
+#include <math.h>
+#include "libslic3r/Config.hpp"
+#include <wx/dataview.h>
+#include <wx/arrstr.h>
+#include <boost/algorithm/string/predicate.hpp>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif

@@ -1,12 +1,14 @@
 #ifndef ZIPPERARCHIVEIMPORT_HPP
 #define ZIPPERARCHIVEIMPORT_HPP
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <cstdint>
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {

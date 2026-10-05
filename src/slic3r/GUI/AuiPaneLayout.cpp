@@ -1,4 +1,6 @@
 #include "AuiPaneLayout.hpp"
+#include <string>
+#include <cstddef>
 
 namespace Slic3r { namespace GUI {
 

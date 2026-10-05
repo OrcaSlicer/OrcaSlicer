@@ -1,5 +1,10 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
@@ -8,8 +13,15 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <cmath>
+#include "libslic3r/Config.hpp"
+#include <cstddef>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 #include <string>
+#include <vector>
+#include "libslic3r/clonable_ptr.hpp"
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;

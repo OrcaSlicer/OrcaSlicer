@@ -5,9 +5,14 @@
 #include "GUI_Utils.hpp"
 #include "Widgets/Label.hpp"
 
+#include <wx/event.h>
+#include <string>
+#include <wx/panel.h>
+#include <wx/colour.h>
 #include <wx/simplebook.h>
 #include <wx/dialog.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <vector>
 

@@ -1,15 +1,30 @@
 #ifndef slic3r_GUI_KBShortcutsDialog_hpp_
 #define slic3r_GUI_KBShortcutsDialog_hpp_
 
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/KeyChord.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/wx.h>
 #include <map>
 #include <variant>
 #include <vector>
+#include <cstdint>
 
 #include "GUI_Utils.hpp"
-#include "Shortcuts.hpp"
-#include "wxExtensions.hpp"
 #include <wx/simplebook.h>
+
+class ScalableButton;
+class wxKeyEvent;
+class wxPanel;
+class wxSimplebook;
+class wxStaticText;
+class wxWindow;
+namespace Slic3r::GUI { enum class Shortcut : uint8_t; }
+namespace Slic3r::GUI { enum class ShortcutContext : uint8_t; }
+namespace Slic3r::GUI { enum class ShortcutSection : uint8_t; }
 
 class Button;
 class Label;

@@ -14,14 +14,41 @@
 #include "libslic3r/PrintBase.hpp"
 #include "format.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/bind/placeholders.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <imgui.h>
+#include <cstddef>
+#include <cassert>
+#include <functional>
+#include <cwctype>
+#include <cstdint>
+#include <iomanip>
 #include <iostream>
 
+#include <string>
+#include <utility>
+#include "libslic3r/Preset.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <limits>
+#include <sstream>
+#include <vector>
+#include "slic3r/GUI/Downloader.hpp"
+#include <memory>
+#include <iterator>
+#include "libslic3r/Model.hpp"
+#include <wx/dataview.h>
+#include "slic3r/GUI/Plater.hpp"
 #include <wx/glcanvas.h>
+#include <wx/utils.h>
+#include <wx/time.h>
 
 #include "GUI_App.hpp"
 #include "FilamentMapDialog.hpp"
@@ -2853,17 +2880,24 @@ void NotificationManager::update_slicing_notif_dailytips(bool need_change)
 	// Slicing progress notification was not found - init it thru plater so correct cancel callback function is appended
 	wxGetApp().plater()->init_notification_manager();
 }
+// Orca: Ensures the slicing-progress controller exists before applying the first slicing transition.
 void NotificationManager::set_slicing_progress_began()
 {
-	for (std::unique_ptr<PopNotification> & notification : m_pop_notifications) {
-		if (notification->get_type() == NotificationType::SlicingProgress) {
-			SlicingProgressNotification* spn = dynamic_cast<SlicingProgressNotification*>(notification.get());
-			spn->set_progress_state(SlicingProgressNotification::SlicingProgressState::SP_BEGAN);
-			return;
+	auto find_slicing_progress = [this]() -> SlicingProgressNotification* {
+		for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+			if (notification->get_type() == NotificationType::SlicingProgress)
+				return dynamic_cast<SlicingProgressNotification*>(notification.get());
 		}
+		return nullptr;
+	};
+
+	SlicingProgressNotification* notification = find_slicing_progress();
+	if (notification == nullptr) {
+		wxGetApp().plater()->init_notification_manager();
+		notification = find_slicing_progress();
 	}
-	// Slicing progress notification was not found - init it thru plater so correct cancel callback function is appended
-	wxGetApp().plater()->init_notification_manager();
+	if (notification != nullptr)
+		notification->set_progress_state(SlicingProgressNotification::SlicingProgressState::SP_BEGAN);
 }
 void NotificationManager::set_slicing_progress_percentage(const std::string& text, float percentage)
 {

@@ -1,16 +1,33 @@
 #include "DropDown.hpp"
 #include "Label.hpp"
 
+#include <cassert>
+#include <algorithm>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cstdio>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <vector>
+#include <utility>
+#include <iterator>
+#include <wx/dc.h>
+#include <wx/dcclient.h>
 #include <wx/display.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/popupwin.h>
+#include <wx/stattext.h>
+#include <wx/gdicmn.h>
+#include <wx/window.h>
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
 #endif
 
 #include <set>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 

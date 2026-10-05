@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "slic3r/Utils/Http.hpp"
 
 TEST_CASE("Check SSL certificates paths", "[Http][NotWorking]") {

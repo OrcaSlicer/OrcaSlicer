@@ -1,13 +1,15 @@
 #ifndef slic3r_TextureDisplacementDebugJob_hpp_
 #define slic3r_TextureDisplacementDebugJob_hpp_
 
+#include <cstddef>
+#include <exception>
 #include <functional>
+#include "libslic3r/Point.hpp"
 #include <vector>
 
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureBake/TextureBakeDebug.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 
 #include "Job.hpp"
 

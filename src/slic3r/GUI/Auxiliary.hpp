@@ -2,6 +2,16 @@
 #define slic3r_Auxiliary_hpp_
 
 #include "Tabbook.hpp"
+#include <array>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <boost/filesystem/path.hpp>
+#include <wx/bookctrl.h>
+#include <wx/event.h>
+#include <wx/dynarray.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <string>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -10,6 +20,7 @@
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/artprov.h>
+#include <wx/wrapsizer.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/string.h>
 #include <wx/stattext.h>
@@ -88,7 +99,7 @@ public:
     bool                m_cover{false};
     wxStaticText*       m_text_name {nullptr};
     ::TextInput*        m_input_name {nullptr};
-    fs::path m_file_path;
+    boost::filesystem::path m_file_path;
     wxString m_add_file;
     wxString m_file_name;
     wxString cover_text_left;
@@ -105,7 +116,7 @@ public:
     ScalableBitmap m_bitmap_txt;
 
 public:
-    AuFile(wxWindow *parent, fs::path file_path, wxString file_name, AuxiliaryFolderType type, wxWindowID id = wxID_ANY, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
+    AuFile(wxWindow *parent, boost::filesystem::path file_path, wxString file_name, AuxiliaryFolderType type, wxWindowID id = wxID_ANY, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
     void enter_rename_mode();
     void exit_rename_mode();
     void OnPaint(wxPaintEvent &evt);
@@ -153,7 +164,7 @@ public:
     
     void clear();
     void update_cover();
-    void update(std::vector<fs::path> paths);
+    void update(std::vector<boost::filesystem::path> paths);
     void msw_rescale();
 
 public:
@@ -229,7 +240,7 @@ public:
     bool Show(bool show);
 
     // core logic
-    std::map<std::string, std::vector<fs::path>>    m_paths_list;
+    std::map<std::string, std::vector<boost::filesystem::path>>    m_paths_list;
     wxString                                        m_root_dir;
     void                                            init_auxiliary();
     void                                            create_folder(wxString name = wxEmptyString);

@@ -9,13 +9,63 @@
 #include "../Geometry.hpp"
 #include "../GCode/ThumbnailData.hpp"
 #include "../Semver.hpp"
-#include "../Time.hpp"
 
 #include "../I18N.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r_version.h"
 
 #include "bbs_3mf.hpp"
 
+#include <boost/assert/source_location.hpp>
+#include <ios>
+#include <cstring>
+#include <boost/spirit/home/qi/parse.hpp>
+#include <boost/spirit/home/qi/numeric/int.hpp>
+#include <cstdlib>
+#include <cstddef>
+#include <boost/algorithm/string/constants.hpp>
+#include <algorithm>
+#include <boost/thread/lock_types.hpp>
+#include <cassert>
+#include <boost/optional/optional.hpp>
+#include <istream>
+#include <functional>
+#include <boost/algorithm/string/find.hpp>
+#include <cstdio>
+#include <exception>
+#include <boost/filesystem/fstream.hpp>
+#include <cstdint>
+#include <boost/spirit/home/karma/generate.hpp>
+#include <boost/spirit/home/support/common_terminals.hpp>
+#include <boost/spirit/home/karma.hpp>
+#include <deque>
+#include <boost/filesystem/directory.hpp>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/thread/thread_time.hpp>
+#include <boost/core/ref.hpp>
+#include <boost/assign/list_of.hpp>
+#include <cmath>
 #include <limits>
+#include <miniz.h>
+#include <ostream>
+#include <sstream>
+#include <set>
+#include <memory>
+#include <optional>
+#include <map>
+#include <list>
 #include <stdexcept>
 #include <iomanip>
 #include <regex>
@@ -39,6 +89,10 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
 #include <openssl/md5.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <string_view>
 
 namespace pt = boost::property_tree;
 
@@ -58,6 +112,7 @@ namespace pt = boost::property_tree;
 #include "NSVGUtils.hpp"
 
 #include <fast_float/fast_float.h>
+#include "libslic3r/ProjectTask.hpp"
 
 // Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
 // https://github.com/boostorg/spirit/pull/586
@@ -1961,7 +2016,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 else if (boost::algorithm::iequals(name, ORCA_CAD_RECIPE_FILE)
                       || boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE)) {
                     // Restore the editable CAD recipe (optional; absent in non-CAD projects).
-                    if (stat.m_uncomp_size > 0) {
+                    // The current name wins over the legacy one whichever the archive lists
+                    // first, and the size the archive claims is capped before it is allocated.
+                    constexpr mz_uint64 kMaxCadRecipe = mz_uint64(1) << 30;   // 1 GiB
+                    const bool legacy = boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE);
+                    if (stat.m_uncomp_size > kMaxCadRecipe) {
+                        BOOST_LOG_TRIVIAL(error) << "3MF: CAD recipe of " << stat.m_uncomp_size
+                                                 << " bytes exceeds the limit; not loaded";
+                    } else if (stat.m_uncomp_size > 0 && !(legacy && !model.cad_recipe.empty())) {
                         std::string buf((size_t)stat.m_uncomp_size, '\0');
                         if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
                             model.cad_recipe = std::move(buf);
@@ -4306,12 +4368,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
     void _BBS_3MF_Importer::_apply_transform(ModelInstance& instance, const Transform3d& transform)
     {
-        Slic3r::Geometry::Transformation t(transform);
-        // invalid scale value, return
-        if (!t.get_scaling_factor().all())
+        // Validate the affine matrix directly. Decomposing a valid mirrored transform to
+        // rotation and scale is not stable across Eigen versions and may yield a zero diagonal.
+        if (!transform.matrix().allFinite() || !transform.linear().fullPivLu().isInvertible())
             return;
 
-        instance.set_transformation(t);
+        instance.set_transformation(Slic3r::Geometry::Transformation(transform));
     }
 
     bool _BBS_3MF_Importer::_handle_start_config(const char** attributes, unsigned int num_attributes)

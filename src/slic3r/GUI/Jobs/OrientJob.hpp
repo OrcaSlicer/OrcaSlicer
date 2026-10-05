@@ -3,6 +3,9 @@
 
 #include "Job.hpp"
 #include "libslic3r/Orient.hpp"
+#include <vector>
+#include <exception>
+#include "libslic3r/Model.hpp"
 
 namespace Slic3r {
 

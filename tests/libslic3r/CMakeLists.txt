@@ -5,10 +5,13 @@ add_executable(${_TEST_NAME}_tests
     test_3mf.cpp
     # Round-trip seam metadata and active/dormant volume settings in both formats.
     test_precise_seam_3mf.cpp
+    # Pure perimeter extraction is independent of Print/Layer fixtures.
+    test_precise_seam.cpp
     test_aabbindirect.cpp
     test_appconfig.cpp
     test_arachne_walls.cpp
     test_arrange.cpp
+    test_assemble_list.cpp
     test_bambu_networking.cpp
     test_buildvolume.cpp
     test_calib.cpp
@@ -18,6 +21,7 @@ add_executable(${_TEST_NAME}_tests
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
     test_drc.cpp
+    test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
@@ -42,6 +46,7 @@ add_executable(${_TEST_NAME}_tests
     test_stl.cpp
     test_triangle_selector.cpp
     test_meshboolean.cpp
+    test_trianglemesh_slicer.cpp
     test_marchingsquares.cpp
     test_lay_on_face.cpp
     test_model.cpp
@@ -57,6 +62,7 @@ add_executable(${_TEST_NAME}_tests
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
     test_texture_displacement.cpp
+    test_instance_lock.cpp
     ../libnest2d/printer_parts.cpp
     )
 

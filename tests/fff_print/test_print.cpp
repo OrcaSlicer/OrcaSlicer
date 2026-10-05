@@ -8,9 +8,22 @@
 #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include <string>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/catch_message.hpp>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <catch2/catch_all.hpp>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Model.hpp"
@@ -29,6 +42,9 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

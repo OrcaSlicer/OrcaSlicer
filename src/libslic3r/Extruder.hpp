@@ -2,7 +2,7 @@
 #define slic3r_Extruder_hpp_
 
 #include "libslic3r.h"
-#include "Point.hpp"
+#include <vector>
 
 namespace Slic3r {
 

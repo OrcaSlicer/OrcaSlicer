@@ -7,7 +7,22 @@
 #include "libslic3r/Utils.hpp"
 #include "I18N.hpp"
 
+#include <string>
+#include <sstream>
+#include <ios>
+#include <cctype>
+#include <iomanip>
+#include <boost/filesystem/operations.hpp>
+#include <boost/log/trivial.hpp>
+#include <cstddef>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
+#include <wx/popupwin.h>
+#include <wx/sizer.h>
+#include <wx/timer.h>
+#include <wx/file.h>
+#include <wx/webview.h>
+#include <wx/window.h>
 
 namespace fs = boost::filesystem;
 

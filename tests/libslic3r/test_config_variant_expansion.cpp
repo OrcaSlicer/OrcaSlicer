@@ -1,5 +1,15 @@
 #include <catch2/catch_all.hpp>
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <vector>
+#include <set>
+#include <cmath>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_approx.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
 

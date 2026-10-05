@@ -2,12 +2,18 @@
 #define slic3r_FillBase_hpp_
 
 #include <assert.h>
+#include <map>
+#include <cstddef>
+#include <math.h>
 #include <memory.h>
 #include <float.h>
 #include <stdint.h>
 #include <stdexcept>
 
+#include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "../libslic3r.h"
 #include "../BoundingBox.hpp"
@@ -18,8 +24,11 @@
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
-#include "../ExtrusionEntityCollection.hpp"
-#include "../ShortestPath.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+
+namespace Slic3r { class ExtrusionEntityCollection; }
 
 namespace Slic3r {
 
