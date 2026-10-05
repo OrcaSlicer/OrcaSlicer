@@ -1023,6 +1023,9 @@ void PrintObject::generate_support_material()
             this->_generate_support_material();
             m_print->throw_if_canceled();
         }
+        // Orca: the tree support collision/avoidance caches and support nodes are only used while this step runs
+        // (detect_overhangs() rebuilds them from scratch), so don't keep them resident until the next slice.
+        this->clear_tree_support_preview_cache();
         this->set_done(posSupportMaterial);
     }
 }
