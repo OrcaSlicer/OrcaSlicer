@@ -4319,7 +4319,7 @@ msgid "Max volumetric speed"
 msgstr "Maksimum hacimsel hız"
 
 msgid "℃"
-msgstr "°C"
+msgstr "℃"
 
 msgid "Bed temperature"
 msgstr "Yatak Sıcaklığı"
@@ -5191,20 +5191,20 @@ msgstr "Güvenliğinizi sağlamak için belirli işleme görevleri (lazer gibi) 
 
 #, c-format, boost-format
 msgid "The chamber temperature is too high, which may cause the filament to soften. Please wait until the chamber temperature drops below %d℃. You may open the front door or enable fans to cool down."
-msgstr "Oda sıcaklığı çok yüksek, bu da filamentin yumuşamasına neden olabilir. Lütfen hazne sıcaklığı %d°C'nin altına düşene kadar bekleyin. Ön kapıyı açabilir veya fanların soğumasını sağlayabilirsiniz."
+msgstr "Oda sıcaklığı çok yüksek, bu da filamentin yumuşamasına neden olabilir. Lütfen hazne sıcaklığı %d℃'nin altına düşene kadar bekleyin. Ön kapıyı açabilir veya fanların soğumasını sağlayabilirsiniz."
 
 #, c-format, boost-format
 msgid "AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d℃."
-msgstr "AMS sıcaklığı çok yüksek, bu da filamentin yumuşamasına neden olabilir. Lütfen AMS sıcaklığı %d°C'nin altına düşene kadar bekleyin."
+msgstr "AMS sıcaklığı çok yüksek, bu da filamentin yumuşamasına neden olabilir. Lütfen AMS sıcaklığı %d℃'nin altına düşene kadar bekleyin."
 
 msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded."
-msgstr "Mevcut hazne sıcaklığı veya hedef hazne sıcaklığı 45°C'yi aşıyor. Ekstruderin tıkanmasını önlemek için düşük sıcaklık filamentinin (PLA/PETG/TPU) yüklenmesine izin verilmez."
+msgstr "Mevcut hazne sıcaklığı veya hedef hazne sıcaklığı 45℃'yi aşıyor. Ekstruderin tıkanmasını önlemek için düşük sıcaklık filamentinin (PLA/PETG/TPU) yüklenmesine izin verilmez."
 
 msgid "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr "Ekstrudere düşük sıcaklık filamenti (PLA/PETG/TPU) yüklenir. Ekstruderin tıkanmasını önlemek için hazne sıcaklığının ayarlanmasına izin verilmez."
 
 msgid "When you set the chamber temperature below 40℃, the chamber temperature control will not be activated, and the target chamber temperature will automatically be set to 0℃."
-msgstr "Hazne sıcaklığını 40°C'nin altına ayarladığınızda, hazne sıcaklık kontrolü etkinleştirilmeyecektir. Ve hedef hazne sıcaklığı otomatik olarak 0°C'ye ayarlanacaktır."
+msgstr "Hazne sıcaklığını 40℃'nin altına ayarladığınızda, hazne sıcaklık kontrolü etkinleştirilmeyecektir. Ve hedef hazne sıcaklığı otomatik olarak 0℃'ye ayarlanacaktır."
 
 msgid "Failed to start print job"
 msgstr "Yazdırma işi başlatılamadı"
@@ -7291,7 +7291,7 @@ msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "Yazdırma sırasında soğutma modunda hazne sıcaklığı değiştirilemez."
 
 msgid "If the chamber temperature exceeds 40℃, the system will automatically switch to heating mode. Please confirm whether to switch."
-msgstr "Oda sıcaklığı 40°C'yi aşarsa sistem otomatik olarak ısıtma moduna geçecektir. Lütfen geçiş yapıp yapmayacağınızı onaylayın."
+msgstr "Oda sıcaklığı 40℃'yi aşarsa sistem otomatik olarak ısıtma moduna geçecektir. Lütfen geçiş yapıp yapmayacağınızı onaylayın."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Lütfen kalibrasyondan önce bir AMS yuvası seçin"
@@ -17431,7 +17431,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "Ekstruder aktif olmadığında uygulanacak sıcaklık farkı. Filament ayarlarında ‘rölanti sıcaklığı’ sıfır olmayan bir değere ayarlandığında bu değer kullanılmaz."
 
 msgid "∆℃"
-msgstr "∆°C"
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "Ön ısıtma süresi"
@@ -19588,7 +19588,7 @@ msgid "Printing Parameters"
 msgstr "Yazdırma Parametreleri"
 
 msgid "- ℃"
-msgstr "- °C"
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "Nozul ve AMS bilgilerini senkronize edin"
@@ -22207,13 +22207,13 @@ msgstr "Kurutma-Nem Alma"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "%s için maksimum kurutma sıcaklığı %d°C'dir."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "%s için maksimum kurutma sıcaklığı %d℃'dir."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "%s için minimum kurutma sıcaklığı %d°C'dir."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "%s için minimum kurutma sıcaklığı %d℃'dir."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25422,9 +25422,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Flow::with_spacing()'e sağlanan geçersiz boşluk, kat yüksekliğinizi ve ekstrüzyon genişliğinizi kontrol edin"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Filamentleri senkronize etmeye devam edin"

@@ -12,7 +12,6 @@
 #include "ClipperUtils.hpp"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
-#include "Geometry.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
@@ -24,6 +23,7 @@
 #include <clipper2/clipper.h>
 #include <utility>
 #include <vector>
+#include "ExtrusionEntity.hpp"
 
 // #define CLIPPER_UTILS_DEBUG
 

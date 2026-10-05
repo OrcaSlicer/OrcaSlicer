@@ -22368,13 +22368,13 @@ msgstr "Сушіння — осушення"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Максимальна температура сушіння для %s — %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Максимальна температура сушіння для %s — %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Мінімальна температура сушіння для %s — %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Мінімальна температура сушіння для %s — %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25580,9 +25580,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Неправильний інтервал, переданий до Flow::with_spacing(), перевірте висоту шару та ширину екструзії"
-
-#~ msgid "°C"
-#~ msgstr "℃"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

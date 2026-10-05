@@ -24419,13 +24419,13 @@ msgstr "Torkning – avfuktning"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Maximal torktemperatur för %s är %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Maximal torktemperatur för %s är %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Minimal torktemperatur för %s är %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Minimal torktemperatur för %s är %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -27642,9 +27642,6 @@ msgstr ""
 #, boost-format
 #~ msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
 #~ msgstr "Misslyckades att kalkylera linjebredden av %1%. Kan inte få värdet av “%2%” "
-
-#~ msgid "°C"
-#~ msgstr "° C"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

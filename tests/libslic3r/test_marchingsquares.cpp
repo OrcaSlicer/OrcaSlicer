@@ -38,10 +38,9 @@
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <libslic3r/TriangleMeshSlicer.hpp>
-#include <libslic3r/TriangulateWall.hpp>
-#include <libslic3r/Tesselate.hpp>
 #include <libslic3r/SlicesToTriangleMesh.hpp>
 #include <libslic3r/StreamUtils.hpp>
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
 
 using namespace Slic3r;
 using namespace Catch::Matchers;

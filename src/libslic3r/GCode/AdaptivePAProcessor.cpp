@@ -18,6 +18,10 @@
 #include <cmath>
 #include <cctype>
 #include <string>
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 

@@ -7,7 +7,6 @@
 #include "Exception.hpp"
 #include "Flow.hpp"
 #include "Print.hpp"
-#include "Fill/Fill.hpp"
 #include "PrintConfig.hpp"
 #include "ShortestPath.hpp"
 #include "SVG.hpp"
@@ -23,6 +22,9 @@
 #include <utility>
 #include <cassert>
 #include <map>
+#include "Config.hpp"
+#include "MultiMaterialSegmentation.hpp"
+#include "ObjectID.hpp"
 
 namespace Slic3r {
 

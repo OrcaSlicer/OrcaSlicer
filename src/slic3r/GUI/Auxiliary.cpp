@@ -26,7 +26,6 @@
 #include "slic3r/GUI/Tabbook.hpp"
 #include <ctime>
 #include <map>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/app.h>
 #include <wx/bookctrl.h>
@@ -64,8 +63,10 @@
 #include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
-#include <wx/dcgraph.h>
-#include <wx/dcmemory.h>
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 

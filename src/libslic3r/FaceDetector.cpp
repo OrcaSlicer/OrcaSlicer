@@ -2,7 +2,6 @@
 #include "BoundingBox.hpp"
 #include "TriangleMesh.hpp"
 #include "SLA/IndexedMesh.hpp"
-#include "Model.hpp"
 #include <cstdint>
 #include <cstddef>
 #include <unordered_set>

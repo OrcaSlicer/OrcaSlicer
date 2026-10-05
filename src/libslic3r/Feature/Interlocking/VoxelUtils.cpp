@@ -10,13 +10,13 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Geometry.hpp"
-#include "libslic3r/Fill/FillRectilinear.hpp"
 #include "libslic3r/Surface.hpp"
 #include <functional>
 #include <limits>
 #include <cassert>
 #include <memory>
 #include <utility>
+#include "libslic3r/BoundingBox.hpp"
 
 namespace Slic3r
 {

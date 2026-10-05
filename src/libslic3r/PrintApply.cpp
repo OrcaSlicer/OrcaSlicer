@@ -30,6 +30,10 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <mutex>
+#include "MultiNozzleUtils.hpp"
+#include "ObjectID.hpp"
+#include "PlaceholderParser.hpp"
+#include "TriangleMesh.hpp"
 
 namespace Slic3r {
 
@@ -740,7 +744,10 @@ void print_objects_regions_invalidate_keep_some_volumes(PrintObjectRegions &prin
             for (; i_old < old_volumes.size(); ++ i_old)
                 if (old_volumes[i_old]->id() >= new_volumes[i_new]->id())
                     break;
-            if (i_old != old_volumes.size() && old_volumes[i_old]->id() == new_volumes[i_new]->id()) {
+            // IDs survive type changes: an old volume that was not a solid or modifier was never cached,
+            // so treat it as new instead of looking it up.
+            if (i_old != old_volumes.size() && old_volumes[i_old]->id() == new_volumes[i_new]->id() &&
+                model_volume_solid_or_modifier(*old_volumes[i_old])) {
                 if (old_volumes[i_old]->get_matrix().isApprox(new_volumes[i_new]->get_matrix())) {
                     // Reuse the volume.
                     for (; print_object_regions.cached_volume_ids[i_cached_volume] < old_volumes[i_old]->id(); ++ i_cached_volume)

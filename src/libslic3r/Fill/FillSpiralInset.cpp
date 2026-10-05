@@ -1,7 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
-#include "../Surface.hpp"
-#include "../VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -22,6 +20,9 @@
 #include <math.h>
 #include <utility>
 #include <vector>
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Line.hpp"
 
 namespace Slic3r {
 

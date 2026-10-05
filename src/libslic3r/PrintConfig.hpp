@@ -789,6 +789,12 @@ class StaticPrintConfig;
 // Minimum object distance for arrangement, based on printer technology.
 double min_object_distance(const ConfigBase &cfg);
 
+// Whether any value is set, a nil value included.
+template<bool NULLABLE> bool any_enabled(const ConfigOptionBoolsTempl<NULLABLE> &option)
+{
+    return std::any_of(option.values.begin(), option.values.end(), [](unsigned char enabled) { return enabled != 0; });
+}
+
 // One (extruder type x nozzle volume type) parameter variant a filament prints through, plus a
 // representative physical extruder observed using it. Ordering (and set-dedup identity) covers
 // the variant pair only, so the same variant reached through two extruders keeps one config slot.

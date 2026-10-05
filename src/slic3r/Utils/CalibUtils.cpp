@@ -58,6 +58,9 @@
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include <utility>
 #include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {

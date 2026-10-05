@@ -1,9 +1,7 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_App.hpp"
-#include "ConfigWizard.hpp"
 #include "I18N.hpp"
-#include "GUI_App.hpp"
 #include <cstddef>
 #include <chrono>
 #include <ctime>
@@ -12,7 +10,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <deque>
-#include <libslic3r/Config.hpp>
 #include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 #include <utility>
 #include <string>
@@ -35,6 +32,8 @@
 #include <miniz.h>
 #include <nlohmann/json.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+
+class wxWindow;
 
 using json = nlohmann::json;
 

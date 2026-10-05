@@ -47,15 +47,11 @@
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
-#include "Tab.hpp"
 #include "PartPlate.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/TextInput.hpp"
 #include "Notebook.hpp"
-#include "Jobs/BoostThreadWorker.hpp"
-#include "Jobs/PlaterWorker.hpp"
 #include <chrono>
 #include <wx/string.h>
 #include <wx/toplevel.h>
@@ -63,7 +59,6 @@
 #include <wx/timer.h>
 #include <wx/wxcrt.h>
 #include "Widgets/Label.hpp"
-#include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "CapsuleButton.hpp"
@@ -77,6 +72,19 @@
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
 #include "FilamentBitmapUtils.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;

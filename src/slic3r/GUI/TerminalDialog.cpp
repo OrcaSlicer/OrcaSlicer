@@ -17,6 +17,8 @@
 #include <cctype>
 #include <wx/string.h>
 
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 namespace {

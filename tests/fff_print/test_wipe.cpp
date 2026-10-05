@@ -29,6 +29,7 @@
 #include "libslic3r/Layer.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/Polyline.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

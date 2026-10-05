@@ -3,11 +3,8 @@
 #include "MultiPoint.hpp"
 #include "BoundingBox.hpp"
 #include "libslic3r.h"
-#include "Exception.hpp"
 #include "Geometry.hpp"
 #include "ClipperUtils.hpp"
-#include "ExPolygon.hpp"
-#include "Line.hpp"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
@@ -31,6 +28,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/log/trivial.hpp>
+
+namespace boost::polygon { template <typename T> class point_data; }
 
 #if defined(_MSC_VER) && defined(__clang__)
 #define BOOST_NO_CXX17_HDR_STRING_VIEW

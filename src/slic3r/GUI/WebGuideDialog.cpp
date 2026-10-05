@@ -12,7 +12,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
 #include <boost/log/trivial.hpp>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <map>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -36,8 +35,8 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "libslic3r_version.h"
 
 #include <string>
@@ -74,10 +73,16 @@
 #include "Plater.hpp"
 #include <boost/dll.hpp>
 #include <slic3r/GUI/Widgets/WebView.hpp>
-#include <slic3r/Utils/Http.hpp>
-#include <libslic3r/miniz_extension.hpp>
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PresetUpdater.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 using namespace nlohmann;
 
@@ -835,7 +840,7 @@ int GuideFrame::SaveProfile()
     m_MainPtr->app_config->set_bool("stealth_mode", StealthMode);
 
     //finish
-    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", "1");
+    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", true);
 
     m_MainPtr->app_config->save();
 

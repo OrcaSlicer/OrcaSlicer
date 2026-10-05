@@ -1,13 +1,12 @@
 #include "ParamsDialog.hpp"
-#include "I18N.hpp"
 #include "ParamsPanel.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
 
-#include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Preset.hpp"
 #include <wx/wx.h>
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
@@ -17,6 +16,8 @@
 #include <wx/event.h>
 #include <wx/utils.h>
 #include "slic3r/GUI/Event.hpp"
+
+class wxWindow;
 
 namespace pt = boost::property_tree;
 typedef pt::ptree JSON;

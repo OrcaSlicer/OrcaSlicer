@@ -40,8 +40,16 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include <vector>
 #include <utility>
-#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include <queue>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
+
+namespace Slic3r::GUI { class ImGuiWrapper; }
+namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
 

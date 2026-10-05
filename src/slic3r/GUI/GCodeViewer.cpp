@@ -2,7 +2,6 @@
 #include "GCodeViewer.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
@@ -10,24 +9,19 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 //BBS: add convex hull logic for toolpath check
-#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
-#include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
-#include "GUI_Preview.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/Layer.hpp"
-#include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
+#include <boost/container_hash/hash.hpp>
+#include "slic3r/GUI/MeshUtils.hpp"
 #include <string>
 #include "libvgcode/include/Types.hpp"
 #include <vector>
@@ -64,7 +58,6 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Color.hpp"
 #include <map>
-#include "libslic3r/PrintBase.hpp"
 #include <wx/event.h>
 #include <wx/string.h>
 #include <wx/slider.h>
@@ -93,6 +86,15 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+namespace Slic3r { class PrintBase; }
 
 
 namespace Slic3r {

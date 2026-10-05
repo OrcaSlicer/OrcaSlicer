@@ -7,7 +7,6 @@
 
 #include <boost/filesystem/path.hpp>
 
-#include "libslic3r/FileParserError.hpp"
 #include "libslic3r/Semver.hpp"
 
 namespace Slic3r { 

@@ -1,19 +1,14 @@
 #include "PrinterNetworkTypes.hpp"
 #include "json_diff.hpp"
-#include "libslic3r/libslic3r.h"
 #include "DeviceManager.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
-#include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
-#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
-#include "GuiColor.hpp"
 
 #include "GUI_App.hpp"
-#include "MsgDialog.hpp"
 #include "DeviceErrorDialog.hpp"
 #include "Plater.hpp"
 #include "GUI_App.hpp"
@@ -90,12 +85,10 @@
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevCtrl.h"
-#include "DeviceCore/DevInfo.h"
 #include "DeviceCore/DevPrintOptions.h"
 #include "DeviceCore/DevPrintTaskInfo.h"
 #include "DeviceCore/DevHMS.h"
 
-#include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
@@ -107,6 +100,14 @@
 #include "DeviceCore/DevUpgrade.h"
 
 #include "IPrinterAgent.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms

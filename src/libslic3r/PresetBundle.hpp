@@ -473,8 +473,8 @@ public:
 
     // Orca: Bundle metadata and cached preset names
     // std::map<std::string, BundleMetadata>  m_bundles;
-    fs::path dir_user_presets_local;
-    fs::path dir_user_presets_subscribed;
+    boost::filesystem::path dir_user_presets_local;
+    boost::filesystem::path dir_user_presets_subscribed;
     PresetBundleMetadata bundles;
 
         struct ObsoletePresets

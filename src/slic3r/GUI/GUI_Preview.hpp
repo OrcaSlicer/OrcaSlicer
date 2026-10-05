@@ -7,16 +7,18 @@
 #include <wx/event.h>
 #include <wx/panel.h>
 
-#include "libslic3r/Point.hpp"
 #include "libslic3r/CustomGCode.hpp"
 
 //BBS: add print base
-#include "libslic3r/PrintBase.hpp"
 
 #include <string>
-#include "libslic3r/GCode/GCodeProcessor.hpp"
-#include <slic3r/GUI/GCodeViewer.hpp>
 #include <wx/window.h>
+
+class wxDropTarget;
+class wxSizeEvent;
+class wxWindow;
+namespace Slic3r { class PrintBase; }
+namespace Slic3r { struct GCodeProcessorResult; }
 
 class wxGLCanvas;
 class wxBoxSizer;
@@ -156,7 +158,7 @@ public:
     //BBS: add m_loaded_print logic
     bool is_loaded() const { return (m_loaded_print != nullptr); }
     //BBS
-    void on_tick_changed(Type type);
+    void on_tick_changed(CustomGCode::Type type);
 
     void show_sliders(bool show = true);
     void show_moves_sliders(bool show = true);

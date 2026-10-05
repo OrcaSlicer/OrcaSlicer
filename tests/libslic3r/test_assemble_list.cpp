@@ -1,10 +1,16 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Format/AssembleList.hpp"
 
 #include "test_utils.hpp"
 
 #include <boost/nowide/fstream.hpp>
+#include <cstddef>
 #include <nlohmann/json.hpp>
 
 #include <string>

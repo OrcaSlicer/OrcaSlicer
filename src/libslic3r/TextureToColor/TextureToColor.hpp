@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+namespace cv { class Mat; }
+
 namespace Slic3r { namespace tex2color {
 
 enum class MeshRepairDecision {

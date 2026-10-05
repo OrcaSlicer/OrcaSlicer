@@ -2,7 +2,6 @@
 
 #include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/Utils/NetworkAgent.hpp"
 #include <string>
 #include <cstdlib>
 #include <cstdio>

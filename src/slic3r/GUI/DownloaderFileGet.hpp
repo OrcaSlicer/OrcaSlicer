@@ -1,7 +1,6 @@
 #ifndef slic3r_DownloaderFileGet_hpp_
 #define slic3r_DownloaderFileGet_hpp_
 
-#include "../Utils/Http.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <memory>

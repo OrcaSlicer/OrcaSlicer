@@ -10,6 +10,8 @@
 #include <wx/event.h>
 #include <wx/window.h>
 
+class wxWindow;
+
 namespace fs = boost::filesystem;
 
 namespace Slic3r {

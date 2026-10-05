@@ -606,8 +606,6 @@ protected:
     virtual void on_axis_ctrl_e_up_10(wxCommandEvent &event) { event.Skip(); }
     virtual void on_axis_ctrl_e_down_10(wxCommandEvent &event) { event.Skip(); }
     virtual void on_nozzle_selected(wxCommandEvent &event) { event.Skip(); }
-    void remove_controls();
-    void on_webview_navigating(wxWebViewEvent& evt);
 
 public:
     StatusBasePanel(wxWindow *      parent,

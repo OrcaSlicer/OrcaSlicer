@@ -1,14 +1,13 @@
 #include "PrinterWebView.hpp"
 
-#include "I18N.hpp"
 #include "PrinterWebViewHandler.hpp"
 #include "slic3r/GUI/PrinterWebView.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/filesystem/path.hpp>
+#include <utility>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
 #include <memory>
@@ -23,6 +22,8 @@
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <wx/utils.h>
 #include <wx/webview.h>
+
+class wxWindow;
 
 #ifdef __linux__
 #include <webkit2/webkit2.h>

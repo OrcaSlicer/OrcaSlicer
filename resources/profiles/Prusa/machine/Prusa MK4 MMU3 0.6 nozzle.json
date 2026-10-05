@@ -1,0 +1,24 @@
+{
+	"type": "machine",
+	"name": "Prusa MK4 MMU3 0.6 nozzle",
+	"inherits": "fdm_machine_common_mk4_mmu3",
+	"from": "system",
+	"setting_id": "gf4NGRIRW2yBCW9l",
+	"instantiation": "true",
+	"max_layer_height": [
+		"0.40"
+	],
+	"min_layer_height": [
+		"0.15"
+	],
+	"nozzle_diameter": [
+		"0.6"
+	],
+	"printer_model": "Prusa MK4 MMU3",
+	"printer_variant": "0.6",
+	"default_filament_profile": [
+		"Generic PLA @System"
+	],
+	"default_print_profile": "0.25mm SPEED @MK4 MMU3 0.6",
+	"printer_notes": "Don't remove the following keywords! These keywords are used in the \"compatible printer\" condition of the print and filament profiles to link the particular print and filament profiles to this printer profile.\nPRINTER_MODEL_MK4IS\nPRINTER_MODEL_MK4MMU3\nPG"
+}

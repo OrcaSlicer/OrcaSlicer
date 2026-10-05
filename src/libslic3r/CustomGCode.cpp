@@ -1,7 +1,4 @@
 #include "CustomGCode.hpp"
-#include "Config.hpp"
-#include "GCode.hpp"
-#include "GCodeWriter.hpp"
 #include <vector>
 #include <utility>
 #include <cstddef>

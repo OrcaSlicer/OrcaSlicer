@@ -20108,11 +20108,11 @@ msgid "Drying-Dehumidifying"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s maximum drying temperature is %d°C."
+msgid "%s maximum drying temperature is %d℃."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s minimum drying temperature is %d°C."
+msgid "%s minimum drying temperature is %d℃."
 msgstr ""
 
 msgid "This filament may not be completely dried."
@@ -22854,4 +22854,29 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid "Avoid warping\nDid you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
+msgstr ""
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
 msgstr ""

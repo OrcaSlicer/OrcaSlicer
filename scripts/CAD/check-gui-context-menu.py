@@ -95,7 +95,8 @@ def load_table():
         f.append(cur.strip())
         if len(f) < 12:
             continue
-        lit = lambda s: None if s == "nullptr" else s.strip('"')
+        # User-facing fields are wrapped in the L("...") gettext marker; strip it.
+        lit = lambda s: None if s == "nullptr" else re.sub(r'^L\((.*)\)$', r'\1', s).strip('"')
         out.append({"id": lit(f[0]), "name": lit(f[1]), "row": int(f[2]), "key": lit(f[3]),
                     "action": lit(f[4]), "accepts": int(f[6].rstrip("u"), 0),
                     "need_bodies": int(f[7]), "need_sketches": int(f[8]),

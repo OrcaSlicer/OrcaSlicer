@@ -2,11 +2,9 @@
 
 #include "CloudProvider.hpp"
 #include "I18N.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "libslic3r_version.h"
-#include "../Utils/Http.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
@@ -14,6 +12,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <utility>
 #include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>

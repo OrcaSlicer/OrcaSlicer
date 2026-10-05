@@ -9,7 +9,6 @@
 #include "../Geometry.hpp"
 #include "../GCode/ThumbnailData.hpp"
 #include "../Semver.hpp"
-#include "../Time.hpp"
 
 #include "../I18N.hpp"
 #include "libslic3r/Point.hpp"
@@ -113,6 +112,7 @@ namespace pt = boost::property_tree;
 #include "NSVGUtils.hpp"
 
 #include <fast_float/fast_float.h>
+#include "libslic3r/ProjectTask.hpp"
 
 // Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
 // https://github.com/boostorg/spirit/pull/586
@@ -2016,7 +2016,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 else if (boost::algorithm::iequals(name, ORCA_CAD_RECIPE_FILE)
                       || boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE)) {
                     // Restore the editable CAD recipe (optional; absent in non-CAD projects).
-                    if (stat.m_uncomp_size > 0) {
+                    // The current name wins over the legacy one whichever the archive lists
+                    // first, and the size the archive claims is capped before it is allocated.
+                    constexpr mz_uint64 kMaxCadRecipe = mz_uint64(1) << 30;   // 1 GiB
+                    const bool legacy = boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE);
+                    if (stat.m_uncomp_size > kMaxCadRecipe) {
+                        BOOST_LOG_TRIVIAL(error) << "3MF: CAD recipe of " << stat.m_uncomp_size
+                                                 << " bytes exceeds the limit; not loaded";
+                    } else if (stat.m_uncomp_size > 0 && !(legacy && !model.cad_recipe.empty())) {
                         std::string buf((size_t)stat.m_uncomp_size, '\0');
                         if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
                             model.cad_recipe = std::move(buf);
@@ -4361,12 +4368,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
     void _BBS_3MF_Importer::_apply_transform(ModelInstance& instance, const Transform3d& transform)
     {
-        Slic3r::Geometry::Transformation t(transform);
-        // invalid scale value, return
-        if (!t.get_scaling_factor().all())
+        // Validate the affine matrix directly. Decomposing a valid mirrored transform to
+        // rotation and scale is not stable across Eigen versions and may yield a zero diagonal.
+        if (!transform.matrix().allFinite() || !transform.linear().fullPivLu().isInvertible())
             return;
 
-        instance.set_transformation(t);
+        instance.set_transformation(Slic3r::Geometry::Transformation(transform));
     }
 
     bool _BBS_3MF_Importer::_handle_start_config(const char** attributes, unsigned int num_attributes)

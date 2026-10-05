@@ -47,6 +47,11 @@
 #endif
 
 #include <cassert>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 namespace Slic3r {
 

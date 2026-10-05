@@ -17,7 +17,6 @@
 #include <ostream>
 #include <vector>
 
-namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
@@ -85,9 +84,9 @@ class StepProgressIncdicator : public Message_ProgressIndicator
 public:
     StepProgressIncdicator(std::atomic<bool>& stop_flag) : should_stop(stop_flag){}
 
-    Standard_Boolean UserBreak() override { return should_stop.load(); }
+    bool UserBreak() override { return should_stop.load(); }
 
-    void Show(const Message_ProgressScope&, const Standard_Boolean) override {
+    void Show(const Message_ProgressScope&, const bool) override {
         std::cout << "Progress: " << std::fixed << std::setprecision(2) << 100.0 * GetPosition() << "%" << std::endl;
     }
 private:
@@ -104,7 +103,7 @@ public:
         MESH_SUCCESS,
         MESH_ERROR
     };
-    Step(fs::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
+    Step(boost::filesystem::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     Step(std::string path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     ~Step();
     Step_Status load();

@@ -57,6 +57,22 @@ TEST_CASE("Part names with multi-byte UTF-8 survive import", "[Step]")
     CHECK(object->volumes[2]->name == "bracket");
 }
 
+TEST_CASE("A security classification assignment does not crash import", "[Step]")
+{
+    const std::string path = std::string(TEST_DATA_DIR) + PATH_SEPARATOR "security_classification.step";
+
+    Model model;
+    bool  cancel = false;
+    Step  step(path);
+
+    REQUIRE(step.load() == Step::Step_Status::LOAD_SUCCESS);
+    REQUIRE(step.mesh(&model, cancel, false) == Step::Step_Status::MESH_SUCCESS);
+
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE(model.objects.front()->volumes.size() == 1);
+    CHECK(model.objects.front()->volumes.front()->mesh().facets_count() == 4); // a tetrahedron
+}
+
 TEST_CASE("isUtf8 recognises two, three and four byte sequences", "[Step]")
 {
     CHECK(StepPreProcessor::isUtf8("\xC3\xA9"));         // U+00E9

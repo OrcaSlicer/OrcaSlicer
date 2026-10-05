@@ -57,6 +57,10 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/STEP.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 namespace po = boost::program_options;

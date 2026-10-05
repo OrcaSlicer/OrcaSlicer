@@ -6,7 +6,6 @@
 #include <exception>
 #include <functional>
 #include "libslic3r/LifecycleEvents.hpp"
-#include <libslic3r/Utils.hpp>
 #include <memory>
 #include <optional>
 #include <pybind11/embed.h>
@@ -40,6 +39,8 @@
 #include <vector>
 #include <wx/app.h>
 #include <wx/thread.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 namespace {

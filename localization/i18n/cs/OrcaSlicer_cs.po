@@ -22252,13 +22252,13 @@ msgstr "Sušení – odvlhčování"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s maximum drying temperature is %d°C."
-msgstr "Maximální teplota sušení pro %s je %d°C."
+msgid "%s maximum drying temperature is %d℃."
+msgstr "Maximální teplota sušení pro %s je %d℃."
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s minimum drying temperature is %d°C."
-msgstr "Minimální teplota sušení pro %s je %d°C."
+msgid "%s minimum drying temperature is %d℃."
+msgstr "Minimální teplota sušení pro %s je %d℃."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -25468,9 +25468,6 @@ msgstr ""
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Byly zadány neplatné rozestupy pro Flow::with_spacing(), zkontrolujte svou výšku vrstvy a šířku extruze"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Align infill direction to model"
 #~ msgstr "Zarovnat směr výplně podle modelu"

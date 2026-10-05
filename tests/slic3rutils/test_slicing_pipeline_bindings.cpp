@@ -147,6 +147,10 @@ TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <sstream>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <pybind11/detail/common.h>
+#include <pybind11/detail/descr.h>
 
 // psGCodePostProcess is the merged post-processing seam: no live Print (print/object are None), the
 // plugin edits the file at ctx.gcode_path in place, and ctx.config_value() falls back to the config
