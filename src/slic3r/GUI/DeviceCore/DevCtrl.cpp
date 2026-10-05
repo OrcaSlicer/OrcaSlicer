@@ -1,8 +1,10 @@
+#include <ctime>
 #include <nlohmann/json.hpp>
+#include <string>
 #include "DevCtrl.h"
 
 // TODO: remove this include
-#include "DevUtil.h"
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 
 using namespace nlohmann;

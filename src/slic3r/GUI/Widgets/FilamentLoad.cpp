@@ -1,16 +1,24 @@
 #include "FilamentLoad.hpp"
-#include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
-#include "../GUI_App.hpp"
 #include "../DeviceCore/DevFilaSystem.h"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StepCtrl.hpp"
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <string>
+#include <wx/colour.h>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include "slic3r/GUI/DeviceManager.hpp"
 
-#include "CalibUtils.hpp"
+class wxWindow;
+
 
 namespace Slic3r {
     namespace GUI {

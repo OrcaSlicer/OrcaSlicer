@@ -5,8 +5,22 @@
 #include "Arachne/WallToolPaths.hpp"
 
 #include "FillConcentric.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <cassert>
 #include <libslic3r/ShortestPath.hpp>
+#include <utility>
+#include <vector>
+#include "libslic3r/ExtrusionEntity.hpp"
 
 namespace Slic3r {
 

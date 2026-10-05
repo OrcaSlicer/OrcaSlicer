@@ -2,10 +2,14 @@
 #define slic3r_AppConfig_hpp_
 
 #include <set>
+#include <chrono>
 #include <map>
 #include <string>
+#include "LocalesUtils.hpp"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string/trim_all.hpp>
+#include <utility>
+#include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"
@@ -36,10 +40,13 @@ using namespace nlohmann;
 #define SETTING_OPENGL_SCENE_CACHE "opengl_scene_cache"
 #define SETTING_OPENGL_SKIP_IDENTICAL_FRAMES "opengl_skip_identical_frames"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
+#define SETTING_OPENGL_SHOW_RENDER_TIMINGS "opengl_show_render_timings"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
 #define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
+// off, static (light fixed in the world) or orbit (light turning with the camera)
+#define SETTING_OPENGL_REALISTIC_SHADOWS "opengl_realistic_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 #define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
@@ -122,14 +129,18 @@ public:
 
 	// Load the slic3r.ini from a user profile directory (or a datadir, if configured).
 	// Return an error string, or an empty string on success.
-	std::string         load();
+	std::string         load(bool read_only = false);
 	// Treat a missing config as default state; otherwise load it normally.
+	// The CLI's load: it never saves, so it takes no lock and creates no lock file.
 	std::string         load_if_exists();
 	// Store the slic3r.ini into a user profile directory (or a datadir, if configured).
 	void 			   	save();
 
 	// Does this config need to be saved?
 	bool 				dirty() const { return m_dirty; }
+	// False for ten seconds after a failed write, so the idle handler does not
+	// repeat a hopeless attempt on every event; an explicit save() always tries.
+	bool 				save_due() const { return std::chrono::steady_clock::now() >= m_retry_save_at; }
 
 
 	void				set_dirty() { m_dirty = true; }
@@ -152,7 +163,7 @@ public:
 	std::string 		get(const std::string &key) const
 		{ std::string value; this->get("app", key, value); return value; }
 	bool				get_bool(const std::string &section, const std::string &key) const
-		{ return this->get(section, key) == "true" || this->get(key) == "1"; }
+		{ const std::string value = this->get(section, key); return value == "true" || value == "1"; }
 	bool				get_bool(const std::string &key) const
 		{ return this->get_bool("app", key); }
 	void			    set(const std::string &section, const std::string &key, const std::string &value)
@@ -188,6 +199,9 @@ public:
 			m_dirty = true;
 		}
 	}
+
+	void                set(const std::string& section, const std::string& key, const char* value)
+		{ this->set(section, key, std::string(value)); }
 
 	void				set(const std::string& section, const std::string &key, bool value)
 	{
@@ -339,6 +353,8 @@ public:
 
 	// Get the default config path from Slic3r::data_dir().
 	std::string			config_path();
+	// Lock file guarding config_path() against other running instances; empty without a data dir.
+	std::string			lock_path();
 
 	// Returns true if the user's data directory comes from before Slic3r 1.40.0 (no updating)
 	bool 				legacy_datadir() const { return m_legacy_datadir; }
@@ -449,8 +465,16 @@ private:
 
 	// Preset for each machine
 	MachineSettingMap											m_printer_settings;
+	// Writes the assembled config text, and on Windows its checksum and a backup copy; false when the
+	// config itself could not be written, in which case the caller stays dirty and retries. `checksum_source`
+	// is the text load() will verify, which for the JSON config ends before the trailing newline.
+	bool												write_config_file(const std::string &path, std::string body, const std::string &checksum_source);
+
 	// Has any value been modified since the config.ini has been last saved or loaded?
 	bool														m_dirty;
+	// After a failed write, save_due() is false for the next ten seconds, so the
+	// idle handler does not repeat a hopeless write on every event.
+	std::chrono::steady_clock::time_point						m_retry_save_at{};
 	// Original version found in the ini file before it was overwritten
 	Semver                                                      m_orig_version;
 	// Whether the existing version is before system profiles & configuration updating

@@ -1,6 +1,7 @@
 #ifndef slic3r_GeometryEngine_hpp_
 #define slic3r_GeometryEngine_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -8,6 +9,8 @@
 #include <BRepPrimAPI_MakeSphere.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeTorus.hxx>
+#include <TopoDS_Shape.hxx>
+#include <array>
 #include <gp_Ax2.hxx>
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_Face.hxx>
@@ -36,8 +39,9 @@ struct PrimitiveParams {
     double dressup_radius{1.0};    // fillet radius
     double dressup_chamfer_dist{1.0}; // chamfer distance (symmetric)
 
-    // Mesh quality
-    double linear_deflection{0.01};
+    // Mesh quality — the Design tab's own density (CadDocument::linear_deflection), so a
+    // primitive and the same body modelled in the Design tab reach the screen alike.
+    double linear_deflection{0.003};
     double angular_deflection{0.5};
 
     template<class Archive>
@@ -119,9 +123,14 @@ public:
                                        FaceGroup faces = FaceGroup::All);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        int edge_id);
+    // Several edges in one operation, all ids resolved against `solid`.
+    static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
+                                     const std::vector<int>& edge_ids);
+    static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
+                                       const std::vector<int>& edge_ids);
 
     static TriangleMesh tessellate(const TopoDS_Shape& shape,
-                                   double linear_deflection = 0.01,
+                                   double linear_deflection = 0.003,
                                    double angular_deflection = 0.5);
     static std::string  primitive_name(PrimitiveType type);
 
@@ -143,6 +152,10 @@ public:
     static Vec3d face_normal_world(const TopoDS_Face& face);
     // Sample an edge into a world-space polyline (>=2 pts) for pick-distance + highlight.
     static std::vector<Vec3d> sample_edge_world(const TopoDS_Edge& edge, double chord_tol = 0.05);
+    // The edges a viewer draws over a body, each as a polyline: every edge of the shape once,
+    // without degenerate edges (a cone apex) and without the seam of a closed surface (the line
+    // down a cylinder's side), which is where OCCT closes the parameter space, not a real edge.
+    static std::vector<std::vector<Vec3d>> display_edges(const TopoDS_Shape& shape, double chord_tol);
     // 0-based edge index into TopExp::MapShapes(shape, TopAbs_EDGE, map).
     static int          edge_count(const TopoDS_Shape& shape);
     static TopoDS_Edge  edge_by_index(const TopoDS_Shape& shape, int index);

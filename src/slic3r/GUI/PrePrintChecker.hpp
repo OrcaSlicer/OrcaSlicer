@@ -2,6 +2,11 @@
 #define slic3r_GUI_PRE_PRINT_CHECK_hpp_
 
 #include <functional>
+#include <wx/string.h>
+#include <vector>
+#include <string>
+#include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/wx.h>
 #include "Widgets/Label.hpp"
 namespace Slic3r { namespace GUI {

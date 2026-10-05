@@ -1,12 +1,21 @@
 #ifndef slic3r_GUI_BackgroundSlicingProcess_hpp_
 #define slic3r_GUI_BackgroundSlicingProcess_hpp_
 
+#include <exception>
+#include <cassert>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <memory>
+#include <functional>
 #include <string>
 #include <condition_variable>
 #include <mutex>
 
 #include <boost/thread.hpp>
 
+#include <utility>
+#include <vector>
 #include <wx/event.h>
 
 #include "libslic3r/PrintBase.hpp"
@@ -14,7 +23,11 @@
 #include "libslic3r/Format/SL1.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "PartPlate.hpp"
+
+namespace Slic3r { class Polygon; }
+namespace Slic3r { class Print; }
+namespace Slic3r::GUI { class PartPlate; }
+namespace Slic3r::GUI { class Plater; }
 
 namespace boost { namespace filesystem { class path; } }
 

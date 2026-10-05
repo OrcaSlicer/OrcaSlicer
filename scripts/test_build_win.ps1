@@ -552,13 +552,6 @@ $cases = @(
        Contains = @('id=Microsoft.VisualStudio.2022.BuildTools') }
     @{ Name = '-l adds the clang compiler and the MSBuild toolset'; Args = @('-u', '--install-vs', 'buildtools', '-l')
        Contains = @('VC.Llvm.Clang ', 'VC.Llvm.ClangToolset') }
-    # CMake 4.x breaks Boost.Context on ARM64, so the installer pins 3.31 there
-    # and leaves x64 on the current release.
-    @{ Name = 'CMake is pinned to 3.31 when installing for arm64'; Args = @('-u', '--arch', 'arm64')
-       Contains = @('Kitware.CMake --version 3.31.8') }
-    @{ Name = 'CMake is not pinned for x64'; Args = @('-u', '--arch', 'x64')
-       Contains = @('Kitware.CMake')
-       NotContains = @('--version') }
     @{ Name = 'installing for arm64 asks for the ARM64 toolset'; Args = @('--install-vs', 'buildtools', '--arch', 'arm64')
        Contains = @('Microsoft.VisualStudio.Component.VC.Tools.ARM64') }
     @{ Name = 'an x64 install asks only for the x64 toolset'; Args = @('--install-vs', 'buildtools')

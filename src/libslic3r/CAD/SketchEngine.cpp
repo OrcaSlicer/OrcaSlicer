@@ -1,13 +1,26 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
+#include <Standard_Handle.hxx>
+#include <GeomAbs_SurfaceType.hxx>
+#include <GeomAbs_JoinType.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <Standard_TypeDef.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
+#include <TopAbs_State.hxx>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepCheck_Analyzer.hxx>
+#include <BRepAdaptor_Curve.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepClass_FaceClassifier.hxx>
@@ -16,9 +29,7 @@
 #include <GC_MakeArcOfEllipse.hxx>
 #include <Geom_TrimmedCurve.hxx>
 #include <Geom_BSplineCurve.hxx>
-#include <TColgp_Array1OfPnt.hxx>
-#include <TColStd_Array1OfReal.hxx>
-#include <TColStd_Array1OfInteger.hxx>
+#include <NCollection_Array1.hxx>
 #include <gp_Circ.hxx>
 #include <gp_Elips.hxx>
 #include <gp_Ax2.hxx>
@@ -47,28 +58,28 @@
 #include <TopoDS_Wire.hxx>
 #include <GeomAPI_IntCS.hxx>
 #include <map>
+#include <atomic>
+#include <math.h>
 #include <tuple>
 #include <stdexcept>
+#include <vector>
+#include <utility>
+
+class Geom_TrimmedCurve;
 
 namespace Slic3r {
 
-// Single source of truth for the weld tolerance the viewport and the kernel share.
-// Defaults ON so headless/kernel-only callers keep welding; the GUI pushes the
-// "auto_close_sketch_loops" preference in via set_sketch_auto_close().
-static bool s_auto_close = true;
+// Single source of truth for the weld tolerance the viewport and the kernel share. Defaults ON
+// so headless/kernel-only callers keep welding. It is the DOCUMENT's setting
+// (CadDocument::auto_close_loops, saved with the recipe), pushed in by CadDocument::recompute:
+// the same project must rebuild into the same solid on every machine. Atomic because the GUI
+// rebuilds on a worker thread while the viewport reads it.
+static std::atomic<bool> s_auto_close{true};
 
-double sketch_join_tol() { return s_auto_close ? kSketchJoinTol : 0.0; }
-void   set_sketch_auto_close(bool on) { s_auto_close = on; }
+double sketch_join_tol() { return s_auto_close.load() ? kSketchJoinTol : 0.0; }
+void   set_sketch_auto_close(bool on) { s_auto_close.store(on); }
 
 // ---- SketchPlane ----
-
-gp_Pln SketchPlane::to_occt() const
-{
-    gp_Pnt o(origin.x(), origin.y(), origin.z());
-    gp_Dir n(normal.x(), normal.y(), normal.z());
-    gp_Dir x(x_axis.x(), x_axis.y(), x_axis.z());
-    return gp_Pln(gp_Ax3(o, n, x));
-}
 
 SketchPlane SketchPlane::from_face(const TopoDS_Face& face)
 {
@@ -124,26 +135,6 @@ Vec3d SketchPlane::to_world(const Vec2d& pt) const
 
 // ---- SketchProfile ----
 
-bool SketchProfile::is_closed(double tolerance) const
-{
-    if (points.size() < 3) return false;
-    return (points.front() - points.back()).norm() < tolerance;
-}
-
-bool SketchProfile::try_close(double tolerance)
-{
-    if (is_closed(tolerance)) {
-        closed = true;
-        return true;
-    }
-    if (points.size() < 2) return false;
-    if ((points.front() - points.back()).norm() < tolerance) {
-        closed = true;
-        return true;
-    }
-    return false;
-}
-
 TopoDS_Wire SketchProfile::to_occt_wire(const SketchPlane& plane) const
 {
     if (points.size() < 2)
@@ -165,21 +156,23 @@ TopoDS_Wire SketchProfile::to_occt_wire(const SketchPlane& plane) const
 
 // ---- SketchEngine ----
 
+TopoDS_Shape SketchEngine::make_prism(const TopoDS_Shape& base, const gp_Vec& vec)
+{
+    if (vec.Magnitude() < 1e-9) throw std::runtime_error("extrude depth is zero");
+    BRepPrimAPI_MakePrism prism(base, vec);
+    if (!prism.IsDone()) throw std::runtime_error("extrude failed");
+    return prism.Shape();
+}
+
 static TopoDS_Shape extrude_face_internal(const TopoDS_Face& face, const gp_Dir& dir, double length, bool symmetric)
 {
-    gp_Vec vec = gp_Vec(dir) * length;
     if (symmetric) {
         gp_Vec halfVec = gp_Vec(dir) * (length / 2.0);
-        BRepPrimAPI_MakePrism pos(face, halfVec);
-        BRepPrimAPI_MakePrism neg(face, -halfVec);
-        if (!pos.IsDone() || !neg.IsDone()) throw std::runtime_error("Symmetric extrude failed");
-        BRepAlgoAPI_Fuse fuse(pos.Shape(), neg.Shape());
+        BRepAlgoAPI_Fuse fuse(SketchEngine::make_prism(face, halfVec), SketchEngine::make_prism(face, -halfVec));
         if (!fuse.IsDone()) throw std::runtime_error("Fuse failed");
         return fuse.Shape();
     }
-    BRepPrimAPI_MakePrism prism(face, vec);
-    if (!prism.IsDone()) throw std::runtime_error("Extrude failed");
-    return prism.Shape();
+    return SketchEngine::make_prism(face, gp_Vec(dir) * length);
 }
 
 TopoDS_Shape SketchEngine::make_extrude(const TopoDS_Wire& wire, const SketchPlane& plane,
@@ -210,12 +203,9 @@ TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Face& face, const
 {
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
     const double u = std::abs(up), d = std::abs(down);
-    if (u < 1e-9 && d < 1e-9) return TopoDS_Shape();
-    if (d < 1e-9) { BRepPrimAPI_MakePrism p(face, gp_Vec(dir) *  u); return p.Shape(); }
-    if (u < 1e-9) { BRepPrimAPI_MakePrism p(face, gp_Vec(dir) * -d); return p.Shape(); }
-    BRepPrimAPI_MakePrism pos(face, gp_Vec(dir) *  u);
-    BRepPrimAPI_MakePrism neg(face, gp_Vec(dir) * -d);
-    BRepAlgoAPI_Fuse fuse(pos.Shape(), neg.Shape());
+    if (d < 1e-9) return make_prism(face, gp_Vec(dir) *  u);
+    if (u < 1e-9) return make_prism(face, gp_Vec(dir) * -d);
+    BRepAlgoAPI_Fuse fuse(make_prism(face, gp_Vec(dir) * u), make_prism(face, gp_Vec(dir) * -d));
     if (!fuse.IsDone()) throw std::runtime_error("two-sided extrude fuse failed");
     return fuse.Shape();
 }
@@ -226,8 +216,8 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
     auto straight = [&]() -> TopoDS_Shape {
         BRepBuilderAPI_MakeFace fm(wire);
-        BRepPrimAPI_MakePrism prism(fm.Face(), gp_Vec(dir) * length);
-        return prism.Shape();
+        if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+        return make_prism(fm.Face(), gp_Vec(dir) * length);
     };
     if (std::abs(taper_deg) >= 89.0 || std::abs(length) < 1e-9) return straight();
     const double off = length * std::tan(taper_deg * M_PI / 180.0);
@@ -244,10 +234,10 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
         if (topFlat.IsNull()) return straight();
         // 2) lift it along the normal by `length`
         gp_Trsf tr; tr.SetTranslation(gp_Vec(dir) * length);
-        BRepBuilderAPI_Transform xf(topFlat, tr, Standard_True);
+        BRepBuilderAPI_Transform xf(topFlat, tr, true);
         TopoDS_Wire topWire = TopoDS::Wire(xf.Shape());
         // 3) loft base -> top into a solid
-        BRepOffsetAPI_ThruSections loft(Standard_True /*solid*/, Standard_False /*ruled*/);
+        BRepOffsetAPI_ThruSections loft(true /*solid*/, false /*ruled*/);
         loft.AddWire(wire);
         loft.AddWire(topWire);
         loft.Build();
@@ -271,12 +261,17 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
     const std::vector<std::vector<std::vector<Vec2d>>>& regions,
     const SketchPlane& plane, double length, bool symmetric)
 {
+    // The loop below skips regions that fail, so a zero depth is rejected before it.
+    if (std::abs(length) < 1e-9) throw std::runtime_error("extrude depth is zero");
+
     // Drop consecutive coincident points and the closing duplicate. FreeType /
     // SVG flattening routinely emits repeated points which would build a
     // degenerate OCCT edge and make the wire builder throw — sanitising keeps a
     // single bad glyph from killing the whole extrude.
     auto clean = [](const std::vector<Vec2d>& pts) {
-        const double eps2 = 1e-12;   // ~1e-6 mm
+        // The sketch's own joint tolerance: points closer than this are one point everywhere
+        // else in the sketcher, so they must not become a sub-micron edge here either.
+        const double eps2 = kSketchJoinTol * kSketchJoinTol;
         std::vector<Vec2d> out;
         out.reserve(pts.size());
         for (const Vec2d& p : pts)
@@ -304,6 +299,10 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
     };
 
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
+    // Faces are built ON the sketch plane, as wires_to_face does: a surface inferred from the
+    // outer wire need not share the sketch normal, and then the extrude direction and the hole
+    // classification disagree with it.
+    const gp_Pln pln(gp_Pnt(plane.origin.x(), plane.origin.y(), plane.origin.z()), dir);
 
     // Accumulate each region's solid into a compound rather than boolean-fusing:
     // glyphs are independent profiles, so a compound avoids every boolean-failure
@@ -324,7 +323,10 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
             // classify outer vs holes by area/containment and set correct wire
             // orientations. This is winding-independent, so holed glyphs extrude
             // with a solid body and empty counters regardless of source winding.
-            BRepBuilderAPI_MakeFace fm(outer);
+            // Probe on the inferred surface first: naming a plane makes MakeFace accept a wire
+            // that bounds nothing, and this check is what skips such a contour.
+            if (!BRepBuilderAPI_MakeFace(outer).IsDone()) continue;
+            BRepBuilderAPI_MakeFace fm(pln, outer);
             if (!fm.IsDone()) continue;
             for (size_t h = 1; h < region.size(); ++h) {
                 TopoDS_Wire hole = contour_wire(region[h]);
@@ -350,20 +352,35 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
     return count == 1 ? last : TopoDS_Shape(comp);   // avoid a compound-of-one
 }
 
-TopoDS_Shape SketchEngine::make_revolve(const TopoDS_Wire& wire, const SketchPlane& plane,
-                                        double angle_deg, int axis_sel)
+TopoDS_Shape SketchEngine::make_revolve(const TopoDS_Wire& wire, const gp_Ax1& axis_in, double angle_deg)
 {
     BRepBuilderAPI_MakeFace faceMaker(wire);
     if (!faceMaker.IsDone())
         throw std::runtime_error("Failed to make face from wire");
     TopoDS_Face face = faceMaker.Face();
 
-    // Revolution axis lies in the sketch plane through its origin: X (0) or Y (1).
-    const Vec3d& adir = (axis_sel == 1) ? plane.y_axis : plane.x_axis;
-    gp_Pnt o(plane.origin.x(), plane.origin.y(), plane.origin.z());
-    gp_Dir xd(adir.x(), adir.y(), adir.z());
-    gp_Ax1 axis(o, xd);
-
+    // A profile on both sides of the axis sweeps through itself; MakeRevol then fails with no
+    // reason, or builds an invalid solid. Sample every edge and name the cause instead.
+    {
+        const gp_Pnt o = axis_in.Location();
+        const gp_Dir d = axis_in.Direction();
+        bool pos = false, neg = false;
+        gp_Vec side_ref;
+        for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) {
+            BRepAdaptor_Curve c(TopoDS::Edge(ex.Current()));
+            for (int i = 0; i <= 16; ++i) {
+                const gp_Pnt p = c.Value(c.FirstParameter() + (c.LastParameter() - c.FirstParameter()) * i / 16.0);
+                const gp_Vec off = gp_Vec(o, p) - gp_Vec(d) * gp_Vec(o, p).Dot(gp_Vec(d));   // from the axis
+                if (off.Magnitude() < 1e-6)
+                    continue;
+                if (side_ref.Magnitude() == 0.0) { side_ref = off; pos = true; continue; }
+                (off.Dot(side_ref) > 0.0 ? pos : neg) = true;
+            }
+        }
+        if (pos && neg)
+            throw std::runtime_error("the profile crosses the revolve axis — it must lie on one side of it");
+    }
+    gp_Ax1 axis = axis_in;
     double angle_rad = angle_deg * M_PI / 180.0;
     // A negative angle is expressed as a positive sweep about the reversed axis,
     // since BRepPrimAPI_MakeRevol expects an angle in (0, 2*pi].
@@ -371,6 +388,8 @@ TopoDS_Shape SketchEngine::make_revolve(const TopoDS_Wire& wire, const SketchPla
     BRepPrimAPI_MakeRevol rev(face, axis, angle_rad);
     if (!rev.IsDone())
         throw std::runtime_error("Failed to revolve");
+    if (!BRepCheck_Analyzer(rev.Shape()).IsValid())
+        throw std::runtime_error("the profile crosses the revolve axis — it must lie on one side of it");
     return rev.Shape();
 }
 
@@ -392,8 +411,7 @@ TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, b
 {
     if (profiles.size() < 2)
         throw std::runtime_error("loft needs at least 2 profiles");
-    BRepOffsetAPI_ThruSections loft(Standard_True /*solid*/,
-                                    ruled ? Standard_True : Standard_False);
+    BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
@@ -410,8 +428,7 @@ TopoDS_Shape SketchEngine::make_loft_surface(const std::vector<TopoDS_Wire>& pro
 {
     if (profiles.size() < 2)
         throw std::runtime_error("loft needs at least 2 profiles");
-    BRepOffsetAPI_ThruSections loft(Standard_False /*shell, no end caps*/,
-                                    ruled ? Standard_True : Standard_False);
+    BRepOffsetAPI_ThruSections loft(false /*shell, no end caps*/, ruled);
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
@@ -567,7 +584,12 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
     auto make_elips = [&](const SketchEntity& c) -> gp_Elips {
         Vec3d  c3 = plane.to_world(c.center);
         gp_Pnt center(c3.x(), c3.y(), c3.z());
-        gp_Dir n(plane.normal.x(), plane.normal.y(), plane.normal.z());
+        // The frame's normal is x_axis x y_axis, not plane.normal: OCCT takes the ellipse's Y
+        // as N x X, and the parametric angles were measured in the sketch's own (x, y). The two
+        // agree on XY and YZ; the XZ base plane stores normal = +Y while x x y = -Y, so there
+        // every elliptical arc came out mirrored against what the sketch showed.
+        const Vec3d nz = plane.x_axis.cross(plane.y_axis);
+        gp_Dir n(nz.x(), nz.y(), nz.z());
         Vec2d  maj2(std::cos(c.rotation), std::sin(c.rotation));
         Vec3d  x3 = plane.to_world(c.center + maj2) - c3;
         gp_Dir xdir(x3.x(), x3.y(), x3.z());
@@ -583,15 +605,15 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
         const int n = int(c.ctrl.size());
         const int p = n >= 4 ? 3 : (n >= 2 ? n - 1 : 0);
         if (p < 1) return Handle(Geom_BSplineCurve)();
-        TColgp_Array1OfPnt poles(1, n);
+        NCollection_Array1<gp_Pnt> poles(1, n);
         for (int i = 0; i < n; ++i) {
             Vec3d w = plane.to_world(c.ctrl[i]);
             poles.SetValue(i + 1, gp_Pnt(w.x(), w.y(), w.z()));
         }
         const int interior = n - p - 1;        // count of single interior knots
         const int nknots   = interior + 2;
-        TColStd_Array1OfReal    knots(1, nknots);
-        TColStd_Array1OfInteger mults(1, nknots);
+        NCollection_Array1<double> knots(1, nknots);
+        NCollection_Array1<int>    mults(1, nknots);
         knots.SetValue(1, 0.0);                mults.SetValue(1, p + 1);
         for (int i = 1; i <= interior; ++i) { knots.SetValue(i + 1, double(i)); mults.SetValue(i + 1, 1); }
         knots.SetValue(nknots, double(interior + 1)); mults.SetValue(nknots, p + 1);
@@ -691,6 +713,9 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
                 if (c.radius <= 1e-9 || c.rminor <= 1e-9) return {};
                 e = BRepBuilderAPI_MakeEdge(make_elips(c)).Edge();
             } else {
+                // Same guard as the ellipse above: a zero radius would reach OCCT and throw from
+                // .Edge() instead of reporting a sketch that cannot be built.
+                if (c.radius <= 1e-9) return {};
                 Vec3d  c3 = plane.to_world(c.center);
                 gp_Pnt center(c3.x(), c3.y(), c3.z());
                 gp_Dir n(plane.normal.x(), plane.normal.y(), plane.normal.z());
@@ -794,7 +819,7 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
                     wm.Add(BRepBuilderAPI_MakeEdge(va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::EllipseArc) {
                     if (e->radius <= 1e-9 || e->rminor <= 1e-9) return {};
-                    GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, Standard_True);
+                    GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, true);
                     if (!arc_maker.IsDone()) return {};
                     wm.Add(BRepBuilderAPI_MakeEdge(arc_maker.Value(), va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::Arc) {
@@ -889,6 +914,18 @@ std::vector<Vec2d> sketch_open_ends(const std::vector<SketchEntity>& entities,
     return out;
 }
 
+// A closed wire can still fail to bound a region: a loop that crosses itself, or one that
+// doubles back along itself (a cusp, e.g. an arc leaving a line tangent to it but in the
+// opposite direction). MakeFace reports success on both and the prism built from the face is
+// an invalid solid with no caps. Refuse it here, with the reason, instead of shipping that.
+static TopoDS_Face checked_profile_face(const TopoDS_Face& f)
+{
+    BRepCheck_Analyzer an(f);
+    if (!an.IsValid())
+        throw std::runtime_error("the profile crosses or folds back on itself, so it does not bound one region");
+    return f;
+}
+
 TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
                                         const SketchPlane& plane)
 {
@@ -908,7 +945,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     if (wires.size() == 1) {
         BRepBuilderAPI_MakeFace fm(wires[0]);
         if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
-        return fm.Face();
+        return checked_profile_face(fm.Face());
     }
 
     // Two or more loops: build a face per wire and let the largest area be the outer
@@ -964,7 +1001,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     // while a holed SKETCH did not.
     ShapeFix_Face sff(fm.Face());
     sff.FixOrientation();
-    return sff.Face();
+    return checked_profile_face(sff.Face());
 }
 
 std::vector<SketchEntity> SketchEngine::mirror_entities(
@@ -1036,8 +1073,11 @@ std::vector<SketchEntity> SketchEngine::mirror_entities(
             } else {
                 m.p0 = reflect(e.p0);
                 m.p1 = reflect(e.p1);
-                // Reflection reverses orientation: recompute parametric angles in
-                // the reflected frame, original end -> new start (CCW sense kept).
+                // Reflection reverses orientation. Like the Arc branch above, this pass keeps
+                // each angle with ITS point (start with p0) and lets the sweep run clockwise;
+                // the reversal pass below then swaps points and angles together, giving a CCW
+                // arc whose start is p0. Pairing them crosswise here, as this used to, was
+                // undone by that same swap and produced the complementary arc.
                 auto param = [&](const Vec2d& P) {
                     const Vec2d d  = P - m.center;
                     const double cu = std::cos(m.rotation), su = std::sin(m.rotation);
@@ -1045,8 +1085,9 @@ std::vector<SketchEntity> SketchEngine::mirror_entities(
                     const double v = -d.x() * su + d.y() * cu;
                     return std::atan2(v / std::max(e.rminor, 1e-9), u / std::max(e.radius, 1e-9));
                 };
-                m.start_angle = param(m.p1);
-                m.end_angle   = param(m.p0);
+                m.start_angle = param(m.p0);
+                m.end_angle   = param(m.p1);
+                while (m.end_angle >= m.start_angle) m.end_angle -= 2.0 * M_PI;
             }
             break;
         }
@@ -1106,9 +1147,14 @@ std::vector<SketchEntity> SketchEngine::mirror_entities(
 // get their last-to-first seam repaired too, which is what makes the result closed again.
 namespace {
 
-constexpr double kOffJoinEps = 1e-6;
-
-bool off_same(const Vec2d& a, const Vec2d& b) { return (a - b).squaredNorm() < kOffJoinEps * kOffJoinEps; }
+// Two ends are the same point when the WIRE BUILDER would weld them: a loop the viewport and
+// the kernel treat as closed must offset as one closed chain, not as separate open pieces with
+// unrepaired seams. The floor keeps exact coincidence meaningful with auto-close switched off.
+bool off_same(const Vec2d& a, const Vec2d& b)
+{
+    const double tol = std::max(sketch_join_tol(), 1e-6);
+    return (a - b).squaredNorm() <= tol * tol;
+}
 
 // Does this entity type take part in chaining (i.e. does it have two ends)?
 bool off_is_open_curve(const SketchEntity& e)
@@ -1214,7 +1260,10 @@ bool off_one(const SketchEntity& e, double d, SketchEntity& out)
         return true;
     }
     case SketchEntity::Type::Circle: {
-        const double r = e.radius + d;
+        // A circle runs CCW (it is what a 360° CCW arc chain closes into), so the rule below
+        // applies to it too: +d is the left side, the inside, and the radius SHRINKS. It used to
+        // grow, so a full circle and the same outline drawn as arcs offset opposite ways.
+        const double r = e.radius - d;
         if (r <= 1e-9) return false;
         out = e; out.radius = r; out.p0 = out.center;
         return true;
@@ -1453,6 +1502,9 @@ std::vector<SketchEntity> SketchEngine::transform_entities(
     out.reserve(src.size());
     const double ca = std::cos(angle), sa = std::sin(angle);
     const double rs = std::abs(scale);   // radii are unsigned magnitudes
+    // A negative scale is |scale| plus a half turn about the pivot: points get that from xf()
+    // below, and angle-valued fields (arc ends, ellipse axis) need the same extra pi.
+    const double turn = angle + (scale < 0.0 ? M_PI : 0.0);
     // Affine map: translate pivot to origin, scale, rotate, then translate by `move`.
     auto xf = [&](const Vec2d& p) -> Vec2d {
         const Vec2d d = scale * (p - pivot);
@@ -1475,8 +1527,8 @@ std::vector<SketchEntity> SketchEngine::transform_entities(
         case SketchEntity::Type::Arc: {
             m.center      = xf(e.center);
             m.radius      = e.radius * rs;
-            m.start_angle = e.start_angle + angle;
-            m.end_angle   = e.end_angle   + angle;   // rigid sweep, shifted by rotation
+            m.start_angle = e.start_angle + turn;
+            m.end_angle   = e.end_angle   + turn;    // rigid sweep, shifted by rotation
             m.p0 = m.center + m.radius * Vec2d(std::cos(m.start_angle), std::sin(m.start_angle));
             m.p1 = m.center + m.radius * Vec2d(std::cos(m.end_angle),   std::sin(m.end_angle));
             break;
@@ -1486,7 +1538,7 @@ std::vector<SketchEntity> SketchEngine::transform_entities(
             m.center   = xf(e.center);
             m.radius   = e.radius * rs;
             m.rminor   = e.rminor * rs;
-            m.rotation = e.rotation + angle;          // major axis rotates with the body
+            m.rotation = e.rotation + turn;           // major axis rotates with the body
             if (e.type == SketchEntity::Type::Ellipse) {
                 m.p0 = m.center;
             } else {
@@ -1833,6 +1885,15 @@ static double wrap_2pi(double x)
     return x;
 }
 
+// An arc's endpoints are stored twice: as angles and as p0/p1. Everything downstream reads
+// p0/p1 (the wire builder welds on them, the solver seeds from them, snapping uses them), so
+// any edit of the angles must write them back or the arc's ends silently stay where they were.
+static void sync_arc_ends(SketchEntity& e)
+{
+    e.p0 = e.center + e.radius * Vec2d(std::cos(e.start_angle), std::sin(e.start_angle));
+    e.p1 = e.center + e.radius * Vec2d(std::cos(e.end_angle),   std::sin(e.end_angle));
+}
+
 bool SketchEngine::trim_entity(SketchEntity& e, const std::vector<SketchEntity>& others,
                                const Vec2d& pick)
 {
@@ -1867,6 +1928,7 @@ bool SketchEngine::trim_entity(SketchEntity& e, const std::vector<SketchEntity>&
             if (uc == -std::numeric_limits<double>::max()) return false;
             e.end_angle = e.start_angle + uc * sweep;      // drop (uc, 1]
         }
+        sync_arc_ends(e);
         return true;
     }
 
@@ -1898,6 +1960,7 @@ bool SketchEngine::trim_entity(SketchEntity& e, const std::vector<SketchEntity>&
         e.type        = SketchEntity::Type::Arc;
         e.start_angle = hi;
         e.end_angle   = lo + 2.0 * M_PI;
+        sync_arc_ends(e);   // p0 was the circle's centre (circle convention); now the arc's start
         return true;
     }
 
@@ -1970,6 +2033,7 @@ bool SketchEngine::extend_entity(SketchEntity& e, const std::vector<SketchEntity
         if (best == std::numeric_limits<double>::max()) return false;
         if (extend_end) e.end_angle   += sgn * best;
         else            e.start_angle -= sgn * best;
+        sync_arc_ends(e);
         return true;
     }
 
@@ -2010,7 +2074,9 @@ bool SketchEngine::extend_entity(SketchEntity& e, const std::vector<SketchEntity
 }
 
 // Bridge: cubic Bézier with G1 continuity at both ends.
-// Poles = {Pa, Pa + Ta*d/3, Pb - Tb*d/3, Pb}, where d = |Pb - Pa|.
+// Poles = {Pa, Pa + Ta*d/3, Pb + Tb*d/3, Pb}, where d = |Pb - Pa| and Ta/Tb are the OUTWARD
+// tangents at the two ends (the direction you would leave each entity in). The curve leaves
+// Pa along Ta and arrives at Pb along -Tb, i.e. continuing INTO b.
 SketchEntity SketchEngine::make_bridge(const SketchEntity& a, int a_end,
                                        const SketchEntity& b, int b_end)
 {
@@ -2056,7 +2122,9 @@ SketchEntity SketchEngine::make_bridge(const SketchEntity& a, int a_end,
     SketchEntity e;
     e.type         = SketchEntity::Type::BSpline;
     e.construction = false;
-    e.ctrl = { Pa, Pa + Ta * k, Pb - Tb * k, Pb };
+    // Pb + Tb*k, not minus: with Tb outward, minus put the last inner pole on b's side, so the
+    // curve overshot Pb (and against a line arrived with a cusp instead of continuing into it).
+    e.ctrl = { Pa, Pa + Ta * k, Pb + Tb * k, Pb };
     e.p0 = e.ctrl.front();
     e.p1 = e.ctrl.back();
     return e;
@@ -2082,6 +2150,153 @@ int sketch_entity_ends(const SketchEntity& e, std::pair<SketchPointRole, Vec2d> 
         out[0] = {R::Center, e.center}; return 1;
     }
     return 0;
+}
+
+namespace {
+
+// An arc's signed angular offset of `ang` from its start, within its sweep: true when the angle
+// lies on the arc (with `tol` radians of slack at either end).
+bool angle_on_arc(const SketchEntity& e, double ang, double tol)
+{
+    const double TWO_PI = 2.0 * M_PI;
+    const double sweep  = e.end_angle - e.start_angle;
+    double d = (sweep >= 0.0) ? ang - e.start_angle : e.start_angle - ang;
+    d = std::fmod(d, TWO_PI);
+    if (d < 0.0) d += TWO_PI;
+    if (d > TWO_PI - tol) d -= TWO_PI;     // just before the start counts as the start
+    return d >= -tol && d <= std::abs(sweep) + tol;
+}
+
+// Every point where two lines/arcs meet (tangent contact included). Exact, no sampling.
+void entity_intersections(const SketchEntity& A, const SketchEntity& B, std::vector<Vec2d>& out)
+{
+    using T = SketchEntity::Type;
+    const double eps = 1e-9;
+    auto on_seg = [](const SketchEntity& L, const Vec2d& p) {
+        const Vec2d d = L.p1 - L.p0;
+        const double l2 = d.squaredNorm();
+        if (l2 < 1e-24) return false;
+        const double t = (p - L.p0).dot(d) / l2;
+        return t >= -1e-9 && t <= 1.0 + 1e-9;
+    };
+    if (A.type == T::Line && B.type == T::Line) {
+        const Vec2d r = A.p1 - A.p0, q = B.p1 - B.p0, w = B.p0 - A.p0;
+        const double den = r.x() * q.y() - r.y() * q.x();
+        if (std::abs(den) < eps * r.norm() * q.norm()) {
+            // Parallel. Collinear overlap is a crossing wherever it is: report the overlap's
+            // nearest end, which the caller then tests against the shared joints.
+            if (std::abs(r.x() * w.y() - r.y() * w.x()) > 1e-9 * std::max(1.0, r.norm())) return;
+            for (const Vec2d& p : { B.p0, B.p1 }) if (on_seg(A, p)) out.push_back(p);
+            for (const Vec2d& p : { A.p0, A.p1 }) if (on_seg(B, p)) out.push_back(p);
+            return;
+        }
+        const double t = (w.x() * q.y() - w.y() * q.x()) / den;
+        const double u = (w.x() * r.y() - w.y() * r.x()) / den;
+        if (t >= -1e-9 && t <= 1.0 + 1e-9 && u >= -1e-9 && u <= 1.0 + 1e-9) out.push_back(A.p0 + t * r);
+        return;
+    }
+    if (A.type == T::Arc && B.type == T::Line) { entity_intersections(B, A, out); return; }
+    if (A.type == T::Line && B.type == T::Arc) {
+        const Vec2d d = A.p1 - A.p0, f = A.p0 - B.center;
+        const double a = d.squaredNorm(), b = 2.0 * f.dot(d), c = f.squaredNorm() - B.radius * B.radius;
+        if (a < 1e-24) return;
+        double disc = b * b - 4.0 * a * c;
+        if (disc < -1e-9 * a * B.radius * B.radius) return;
+        disc = std::sqrt(std::max(0.0, disc));
+        for (double t : { (-b - disc) / (2.0 * a), (-b + disc) / (2.0 * a) }) {
+            if (t < -1e-9 || t > 1.0 + 1e-9) continue;
+            const Vec2d p = A.p0 + t * d;
+            if (angle_on_arc(B, std::atan2(p.y() - B.center.y(), p.x() - B.center.x()), 1e-9))
+                out.push_back(p);
+        }
+        return;
+    }
+    if (A.type == T::Arc && B.type == T::Arc) {
+        const Vec2d dc = B.center - A.center;
+        const double dd = dc.norm();
+        if (dd < 1e-12) {
+            // Concentric: they overlap only on the same circle, and then everywhere they share.
+            if (std::abs(A.radius - B.radius) > 1e-9) return;
+            for (const Vec2d& p : { B.p0, B.p1 })
+                if (angle_on_arc(A, std::atan2(p.y() - A.center.y(), p.x() - A.center.x()), 1e-9)) out.push_back(p);
+            for (const Vec2d& p : { A.p0, A.p1 })
+                if (angle_on_arc(B, std::atan2(p.y() - B.center.y(), p.x() - B.center.x()), 1e-9)) out.push_back(p);
+            return;
+        }
+        if (dd > A.radius + B.radius + 1e-9 || dd < std::abs(A.radius - B.radius) - 1e-9) return;
+        const double x = (dd * dd + A.radius * A.radius - B.radius * B.radius) / (2.0 * dd);
+        const double h = std::sqrt(std::max(0.0, A.radius * A.radius - x * x));
+        const Vec2d  u = dc / dd, m = A.center + x * u, n(-u.y(), u.x());
+        for (const Vec2d& p : { Vec2d(m + h * n), Vec2d(m - h * n) }) {
+            if (angle_on_arc(A, std::atan2(p.y() - A.center.y(), p.x() - A.center.x()), 1e-9) &&
+                angle_on_arc(B, std::atan2(p.y() - B.center.y(), p.x() - B.center.x()), 1e-9))
+                out.push_back(p);
+            if (h < 1e-12) break;
+        }
+    }
+}
+
+} // namespace
+
+bool sketch_loop_defect(const std::vector<SketchEntity>& ents, const std::vector<int>& order, Vec2d& at)
+{
+    using T = SketchEntity::Type;
+    const size_t n = order.size();
+    if (n < 2) return false;
+    for (int ei : order)
+        if (ei < 0 || ei >= int(ents.size()) || (ents[ei].type != T::Line && ents[ei].type != T::Arc))
+            return false;
+    const double tol = std::max(1e-6, sketch_join_tol());
+
+    // Traversal direction of each entity: the end it shares with the NEXT one is where it
+    // finishes. start[k]/end[k] are the traversal's ends.
+    std::vector<Vec2d> start(n), end(n);
+    std::vector<bool>  rev(n, false);
+    for (size_t k = 0; k < n; ++k) {
+        const SketchEntity& e = ents[order[k]];
+        const SketchEntity& nx = ents[order[(k + 1) % n]];
+        const double to_next_p1 = std::min((e.p1 - nx.p0).norm(), (e.p1 - nx.p1).norm());
+        const double to_next_p0 = std::min((e.p0 - nx.p0).norm(), (e.p0 - nx.p1).norm());
+        rev[k]   = to_next_p0 < to_next_p1;
+        start[k] = rev[k] ? e.p1 : e.p0;
+        end[k]   = rev[k] ? e.p0 : e.p1;
+    }
+    auto tangent = [&](size_t k, bool at_end) {
+        const SketchEntity& e = ents[order[k]];
+        Vec2d t;
+        if (e.type == T::Line) {
+            t = e.p1 - e.p0;
+        } else {
+            const double a = at_end ? (rev[k] ? e.start_angle : e.end_angle)
+                                    : (rev[k] ? e.end_angle   : e.start_angle);
+            const double s = (e.end_angle >= e.start_angle) ? 1.0 : -1.0;
+            t = s * Vec2d(-std::sin(a), std::cos(a));
+        }
+        if (rev[k]) t = -t;
+        const double l = t.norm();
+        return l > 1e-15 ? Vec2d(t / l) : Vec2d(0, 0);
+    };
+
+    // Cusps: the curve arriving at a joint and the one leaving it point opposite ways.
+    for (size_t k = 0; k < n; ++k) {
+        const size_t j = (k + 1) % n;
+        if (tangent(k, true).dot(tangent(j, false)) < -0.9999) { at = end[k]; return true; }
+    }
+
+    // Crossings: any contact between two entities away from the joints they share.
+    for (size_t i = 0; i < n; ++i)
+        for (size_t j = i + 1; j < n; ++j) {
+            std::vector<Vec2d> hits;
+            entity_intersections(ents[order[i]], ents[order[j]], hits);
+            const bool next = (j == i + 1), prev = (i == 0 && j == n - 1);
+            for (const Vec2d& p : hits) {
+                bool joint = false;
+                if (next && (p - end[i]).norm() < tol) joint = true;
+                if (prev && (p - start[i]).norm() < tol) joint = true;
+                if (!joint) { at = p; return true; }
+            }
+        }
+    return false;
 }
 
 bool sketch_closest_ends(const SketchEntity& A, const SketchEntity& B,

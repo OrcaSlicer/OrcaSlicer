@@ -6,9 +6,14 @@
 #include "wx/hashmap.h"
 #include "wx/vector.h"
 
-#include "I18N.hpp"
 
 #include <boost/filesystem.hpp>
+#include <wx/dynarray.h>
+#include <boost/filesystem/path.hpp>
+#include <cstddef>
+#include <wx/string.h>
+#include <wx/arrstr.h>
+#include <wx/variant.h>
 
 class AuxiliaryModelNode;
 WX_DEFINE_ARRAY_PTR(AuxiliaryModelNode*, AuxiliaryModelNodePtrArray);

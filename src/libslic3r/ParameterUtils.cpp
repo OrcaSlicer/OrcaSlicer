@@ -1,5 +1,10 @@
 #include "ParameterUtils.hpp"
+#include "PrintConfig.hpp"
 #include <cassert>
+#include <vector>
+#include <cstddef>
+#include <utility>
+#include <string>
 
 namespace Slic3r {
 

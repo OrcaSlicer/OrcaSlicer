@@ -11,16 +11,19 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"enable_pressure_advance": [
+		"1",
 		"1"
 	],
 	"filament_end_gcode": [
 		""
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
-		"20"
+		"20",
+		"30"
 	],
 	"filament_start_gcode": [
 		""
@@ -41,54 +44,69 @@
 		"65"
 	],
 	"filament_flow_ratio": [
+		"0.98",
 		"0.98"
 	],
 	"filament_max_volumetric_speed": [
-		"15"
+		"15",
+		"20"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"50",
 		"50"
 	],
 	"filament_multitool_ramming_volume": [
+		"5",
 		"5"
 	],
 	"filament_retract_length_toolchange": [
-		"5"
+		"5",
+		"15"
 	],
 	"filament_retraction_length": [
-		"1"
+		"1",
+		"0.8"
 	],
 	"filament_type": [
 		"PLA-CF"
 	],
 	"filament_z_hop": [
+		"0.4",
 		"0.4"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"nozzle_temperature": [
-		"240"
+		"240",
+		"230"
 	],
 	"nozzle_temperature_initial_layer": [
-		"240"
+		"240",
+		"230"
 	],
 	"nozzle_temperature_range_high": [
+		"250",
 		"250"
 	],
 	"nozzle_temperature_range_low": [
+		"200",
 		"200"
 	],
 	"pressure_advance": [
-		"0.01"
+		"0.01",
+		"0.02"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
 		"0"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -98,18 +116,22 @@
 		"45"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"filament_cost": [
 		"20"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"overhang_fan_threshold": [
@@ -128,6 +150,19 @@
 		"45"
 	],
 	"additional_cooling_fan_speed": [
-		"0"
+		"0",
+		"100"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
 	]
 }

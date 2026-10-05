@@ -37,6 +37,12 @@ def cstr(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def tstr(s):
+    # User-facing text: wrapped in the no-op L() marker so xgettext puts it in the catalogue.
+    # The DesignPanel translates it at use; without the marker it compiles and never translates.
+    return "nullptr" if s is None else "L(" + cstr(s) + ")"
+
+
 def validate(A):
     """Refuse an atlas the header cannot represent, naming every fault at once.
 
@@ -81,6 +87,10 @@ def main():
         "",
         "#include <cstdint>",
         "",
+        "#ifndef L",
+        "#define L(s) s   // gettext marker, as in slic3r/GUI/I18N.hpp",
+        "#endif",
+        "",
         "namespace Slic3r { namespace GUI {",
         "",
         "// What the viewport has selected. Ordered as in tool_atlas.json; the bitmask in",
@@ -103,8 +113,8 @@ def main():
         "//   nullptr          -> kernel support exists, no GUI path yet (row shows disabled)",
         "struct OfferVerb {",
         "    const char* id;",
-        "    const char* name;        // drawing-office word (L10); translated at use with wxGetTranslation",
-        "    int         row;         // 0..7, the ratified index — NEVER reorder",
+        "    const char* name;        // drawing-office word (L10); marked L(); translated at use",
+        "    int         row;         // index into kOfferRowNames, the ratified address — NEVER reorder",
         "    const char* key;         // shortcut shown in the row, or nullptr",
         "    const char* action;",
         "    const char* refusal;     // why this row is greyed, in the product's own words",
@@ -125,11 +135,20 @@ def main():
         "// Row labels, in ratified order.",
         "static const char* const kOfferRowNames[] = {",
     ]
+    # A flat row's label is never shown, so it is not marked for translation.
     for s in A["slots"]:
-        lines.append(f'    "{s["label"]}",')
+        lines.append(f'    {cstr(s["label"]) if s.get("flat") else tstr(s["label"])},')
     lines += [
         "};",
         f"static const int kOfferRowCount = {len(slots)};",
+        "// A flat row is not a family: its verbs come first, at the top level of the offer, each",
+        "// an item of its own.",
+        "static const bool kOfferRowFlat[] = {",
+    ]
+    for s in A["slots"]:
+        lines.append(f'    {"true" if s.get("flat") else "false"},')
+    lines += [
+        "};",
         "",
         "static const OfferVerb kOfferVerbs[] = {",
     ]
@@ -151,12 +170,12 @@ def main():
         n = v.get("needs") or {}
         lines.append(
             "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s}," % (
-                cstr(v["id"]), cstr(v["name"]), slots.index(v["slot"]),
-                cstr(v.get("key")), cstr(v.get("action")), cstr(v.get("refusal")),
+                cstr(v["id"]), tstr(v["name"]), slots.index(v["slot"]),
+                cstr(v.get("key")), cstr(v.get("action")), tstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
                 "true" if n.get("sheet") else "false",
                 "true" if v.get("mode") == "sketch" else "false",
-                cstr(v.get("family")), cstr(v.get("icon")), cstr(v.get("hint"))))
+                tstr(v.get("family")), cstr(v.get("icon")), tstr(v.get("hint"))))
     lines += [
         "};",
         f"static const int kOfferVerbCount = {len(A['verbs'])};",

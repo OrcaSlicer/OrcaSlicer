@@ -2,6 +2,28 @@
 #define NOMINMAX
 #endif
 
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <algorithm>
+#include <iterator>
+#include "libslic3r/SLA/RasterBase.hpp"
+#include <agg/agg_gamma_functions.h>
+#include <vector>
+#include <cmath>
+#include <string>
+#include "libslic3r/ExPolygon.hpp"
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include <cstdlib>
+#include <catch2/benchmark/catch_benchmark.hpp>
+
 #include <catch2/catch_all.hpp>
 #include "test_utils.hpp"
 
@@ -16,10 +38,9 @@
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <libslic3r/TriangleMeshSlicer.hpp>
-#include <libslic3r/TriangulateWall.hpp>
-#include <libslic3r/Tesselate.hpp>
 #include <libslic3r/SlicesToTriangleMesh.hpp>
 #include <libslic3r/StreamUtils.hpp>
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
 
 using namespace Slic3r;
 using namespace Catch::Matchers;

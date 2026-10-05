@@ -1,6 +1,9 @@
 #ifndef slic3r_Model_hpp_
 #define slic3r_Model_hpp_
 
+#include "BoundingBox.hpp"
+#include "Polygon.hpp"
+#include "Semver.hpp"
 #include "libslic3r.h"
 #include "enum_bitmask.hpp"
 #include "Geometry.hpp"
@@ -30,6 +33,13 @@
 #include "Format/OBJ.hpp"
 
 #include <array>
+#include <cereal/access.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cassert>
+#include <cstddef>
+#include <iterator>
+#include <initializer_list>
+#include <cereal/specialize.hpp>
 #include <map>
 #include <memory>
 #include <string>
@@ -360,7 +370,6 @@ enum class ModelVolumeType : int {
 };
 
 // Free functions for checking ModelVolumeType without a ModelVolume object.
-// Keep in sync with ModelVolume::is_precise_seam*() methods below.
 inline bool is_precise_seam(ModelVolumeType t)       { return t >= ModelVolumeType::PRECISE_SEAM_CENTER && t <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
 inline bool is_precise_seam_strong(ModelVolumeType t) { return t >= ModelVolumeType::PRECISE_SEAM_CENTER && t <= ModelVolumeType::PRECISE_SEAM_RIGHT; }
 inline bool is_precise_seam_weak(ModelVolumeType t)   { return t >= ModelVolumeType::PRECISE_SEAM_ENFORCED && t <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
@@ -997,13 +1006,13 @@ public:
 	bool                is_support_blocker()    const { return m_type == ModelVolumeType::SUPPORT_BLOCKER; }
 	bool                is_support_modifier()   const { return m_type == ModelVolumeType::SUPPORT_BLOCKER || m_type == ModelVolumeType::SUPPORT_ENFORCER; }
 	// Check if this volume is any of the precise seam modifier subtypes
-	bool                is_precise_seam()       const { return m_type >= ModelVolumeType::PRECISE_SEAM_CENTER && m_type <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
+	bool                is_precise_seam()       const { return Slic3r::is_precise_seam(m_type); }
 	// Helper to check if volume is a "strong" Precise Seam type (center, left, right)
 	// Strong modifiers have priority and always appear above weak modifiers in UI
-	bool                is_precise_seam_strong() const { return m_type >= ModelVolumeType::PRECISE_SEAM_CENTER && m_type <= ModelVolumeType::PRECISE_SEAM_RIGHT; }
+	bool                is_precise_seam_strong() const { return Slic3r::is_precise_seam_strong(m_type); }
 	// Helper to check if volume is a "weak" Precise Seam type (enforced, blocked, neutral)
 	// Weak modifiers always appear below strong modifiers in UI
-	bool                is_precise_seam_weak()   const { return m_type >= ModelVolumeType::PRECISE_SEAM_ENFORCED && m_type <= ModelVolumeType::PRECISE_SEAM_NEUTRAL; }
+	bool                is_precise_seam_weak()   const { return Slic3r::is_precise_seam_weak(m_type); }
     bool                is_text()               const { return text_configuration.has_value(); }
     bool                is_svg() const { return emboss_shape.has_value()  && !text_configuration.has_value(); }
     bool                is_the_only_one_part() const; // behave like an object
@@ -1746,8 +1755,7 @@ public:
         std::vector<Preset*>* project_presets = nullptr, bool* is_xxx = nullptr, Semver* file_version = nullptr, Import3mfProgressFn proFn = nullptr,
                                 ImportstlProgressFn        stlFn                = nullptr,
                                 BBLProject *               project              = nullptr,
-                                int                        plate_id             = 0,
-                                ObjImportColorFn           objFn                = nullptr
+                                int                        plate_id             = 0
                                 );
     // BBS
     static bool    obj_import_vertex_color_deal(const std::vector<unsigned char> &vertex_filament_ids, const unsigned char &first_extruder_id, Model *model);

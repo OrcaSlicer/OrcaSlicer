@@ -2,8 +2,13 @@
 #define slic3r_SurfaceMesh_hpp_
 
 #include <admesh/stl.h>
+#include <cassert>
+#include <cstddef>
+#include <algorithm>
 #include <libslic3r/TriangleMesh.hpp>
+#include <vector>
 
+#include "Point.hpp"
 #include "boost/container/small_vector.hpp"
 
 namespace Slic3r {

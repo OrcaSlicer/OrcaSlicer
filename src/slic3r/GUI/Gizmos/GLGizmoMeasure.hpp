@@ -7,7 +7,21 @@
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/Measure.hpp"
-#include "libslic3r/Model.hpp"
+#include "libslic3r/Color.hpp"
+#include <string>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <optional>
+#include <map>
+#include <memory>
+#include <vector>
+#include <wx/event.h>
+#include <utility>
+#include <wx/string.h>
+
+namespace Slic3r { class GLVolume; }
+namespace Slic3r::GUI { class GLCanvas3D; }
 
 namespace Slic3r {
 

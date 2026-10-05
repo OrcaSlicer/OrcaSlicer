@@ -1,6 +1,7 @@
 #ifndef EXECUTION_HPP
 #define EXECUTION_HPP
 
+#include <functional>
 #include <type_traits>
 #include <utility>
 #include <cstddef>

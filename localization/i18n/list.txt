@@ -74,11 +74,8 @@ src/slic3r/GUI/Gizmos/GizmoObjectManipulation.cpp
 src/slic3r/GUI/Gizmos/GLGizmoCut.cpp
 src/slic3r/GUI/Gizmos/GLGizmoCut.hpp
 src/slic3r/GUI/Gizmos/GLGizmoSimplify.cpp
-src/slic3r/GUI/Gizmos/GLGizmoFaceDetector.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSeam.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSeam.hpp
-src/slic3r/GUI/Gizmos/GLGizmoText.cpp
-src/slic3r/GUI/Gizmos/GLGizmoText.hpp
 src/slic3r/GUI/Gizmos/GLGizmoEmboss.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSVG.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMeasure.cpp
@@ -177,9 +174,9 @@ src/slic3r/GUI/PresetHints.cpp
 src/slic3r/GUI/ProgressStatusBar.cpp
 src/slic3r/GUI/PlateSettingsDialog.cpp
 src/slic3r/GUI/PrivacyUpdateDialog.cpp
-src/slic3r/GUI/PublishDialog.cpp
 src/slic3r/GUI/PublishSettingsDialog.cpp
 src/slic3r/GUI/SavePresetDialog.cpp
+src/slic3r/GUI/SceneBenchmark.cpp
 src/slic3r/GUI/Search.cpp
 src/slic3r/GUI/SettingsIndex.cpp
 src/slic3r/GUI/SpeedDialDialog.cpp
@@ -195,7 +192,6 @@ src/slic3r/GUI/Tab.hpp
 src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/Auxiliary.cpp
 src/slic3r/GUI/UpdateDialogs.cpp
-src/slic3r/GUI/ObjColorDialog.cpp
 src/slic3r/GUI/SyncAmsInfoDialog.cpp
 src/slic3r/GUI/WipeTowerDialog.cpp
 src/slic3r/GUI/wxExtensions.cpp
@@ -257,7 +253,6 @@ src/slic3r/Utils/MKS.cpp
 src/slic3r/Utils/Moonraker.cpp
 src/slic3r/Utils/OctoPrint.cpp
 src/slic3r/Utils/Repetier.cpp
-src/slic3r/Utils/ProfileDescription.hpp
 src/slic3r/GUI/SendMultiMachinePage.cpp
 src/slic3r/GUI/MultiMachinePage.cpp
 src/slic3r/GUI/MultiMachineManagerPage.cpp
@@ -298,7 +293,10 @@ src/slic3r/GUI/AMSDryControl.cpp
 src/slic3r/GUI/AMSDryControl.hpp
 src/libslic3r/PresetBundle.cpp
 src/slic3r/GUI/CAD/DesignPanel.cpp
+src/slic3r/GUI/CAD/DesignSketchTool.cpp
 src/slic3r/GUI/CAD/SketchInlineEditor.cpp
+src/slic3r/GUI/CAD/DesignOffer.hpp
+src/slic3r/GUI/CAD/DesignTextDialog.cpp
 src/slic3r/GUI/Gizmos/GLGizmoPrimitive.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSketch.cpp
 src/slic3r/GUI/KeyChord.cpp

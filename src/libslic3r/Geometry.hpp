@@ -9,7 +9,18 @@
 #include "Polyline.hpp"
 
 // Serialization through the Cereal library
+#include <cassert>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <cereal/access.hpp>
+#include <cstdint>
+#include <cstddef>
+#include <cstdlib>
+#include <utility>
+#include <vector>
+#include <type_traits>
+#include <string>
+#include <cmath>
 
 namespace Slic3r {
 

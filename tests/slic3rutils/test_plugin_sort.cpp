@@ -1,7 +1,10 @@
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <slic3r/GUI/PluginSort.hpp>
 
+#include "slic3r/GUI/PluginSource.hpp"
+#include "slic3r/GUI/PluginStatus.hpp"
 #include <string>
 #include <vector>
 

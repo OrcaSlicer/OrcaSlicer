@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "GLTexture.hpp"
-#include "Event.hpp"
 #include <imgui/imgui.h>
 
 #define DEFAULT_TOOLBAR_BUTTON_WIDTH    80.0f

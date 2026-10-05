@@ -12,6 +12,9 @@
     #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include "libslic3r/ProjectTask.hpp"
+
 #include <catch2/catch_all.hpp>
 
 #include <stdexcept>

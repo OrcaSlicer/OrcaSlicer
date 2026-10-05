@@ -1,8 +1,15 @@
 #ifndef slic3r_PrintBase_hpp_
 #define slic3r_PrintBase_hpp_
 
+#include "Config.hpp"
+#include "Polygon.hpp"
 #include "libslic3r.h"
+#include <exception>
+#include <cstddef>
+#include <cassert>
+#include <initializer_list>
 #include <set>
+#include <utility>
 #include <vector>
 #include <string>
 #include <functional>

@@ -6,6 +6,18 @@
 #include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include <functional>
+#include <vector>
+#include "libslic3r/TextureBake/TextureBakeDebug.hpp"
+#include <utility>
+#include <string>
+#include "libslic3r/TextureDisplacement.hpp"
+#include <exception>
+#include <cstddef>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <memory>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r::GUI {
 

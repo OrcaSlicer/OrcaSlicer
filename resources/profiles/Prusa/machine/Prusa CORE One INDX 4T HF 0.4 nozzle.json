@@ -126,5 +126,35 @@
 		"Slope Lift",
 		"Slope Lift",
 		"Slope Lift"
+	],
+	"default_nozzle_volume_type": [
+		"High Flow",
+		"High Flow",
+		"High Flow",
+		"High Flow"
+	],
+	"extruder_variant_list": [
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow"
+	],
+	"nozzle_type": [
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow"
+	],
+	"printer_extruder_id": [
+		"1",
+		"2",
+		"3",
+		"4"
 	]
 }

@@ -17,7 +17,6 @@
 #include "../../src/libvgcode/include/Types.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "slic3r/GUI/GUI_Preview.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Point.hpp"
 

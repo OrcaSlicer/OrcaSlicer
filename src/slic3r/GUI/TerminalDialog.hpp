@@ -6,6 +6,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

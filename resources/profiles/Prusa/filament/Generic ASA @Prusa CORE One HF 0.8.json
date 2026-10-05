@@ -11,6 +11,11 @@
 		"Prusa CORE One HF 0.8 nozzle"
 	],
 	"fan_max_speed": [
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
 		"30"
 	],
 	"filament_max_volumetric_speed": [

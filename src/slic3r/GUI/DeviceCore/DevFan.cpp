@@ -1,9 +1,13 @@
+#include <boost/log/trivial.hpp>
+#include <cstdint>
+#include <cmath>
 #include <nlohmann/json.hpp>
 #include "DevFan.h"
+#include <string>
+#include <vector>
 #include <wx/app.h>
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/GUI.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
 using namespace nlohmann;
 
 void Slic3r::DevFan::converse_to_duct(bool is_suppt_part_fun, bool is_suppt_aux_fun, bool is_suppt_cham_fun)

@@ -1,8 +1,12 @@
+#include <string>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+#include <cstddef>
+#include <cstdint>
 #include <wx/wx.h>
 #include <type_traits>
 #include "FileTransferUtils.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/DeviceCore/DevManager.h"
 
 namespace Slic3r {
 

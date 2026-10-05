@@ -53,12 +53,12 @@ python_exe="$(find "${find_args[@]}" -print -quit 2>/dev/null)"
 if [ -z "${python_exe}" ]; then
     numpy_unavailable "no bundled Python under ${TEST_DIR}"
 elif ! has_pinned_numpy; then
+    # Git Bash resolves this to uv.exe on Windows. Never fall back to a uv on PATH:
+    # the app only runs its bundled uv, so the tests must too.
     uv_exe="${python_exe%/python/*}/tools/uv/uv"
-    # Builds that bundle no uv (Windows arm64) fall back to one on PATH.
-    [ -x "${uv_exe}" ] || uv_exe="$(command -v uv)"
     echo "Installing numpy ${NUMPY_VERSION} into the embedded test interpreter (${python_exe})..."
-    if [ -z "${uv_exe}" ]; then
-        numpy_unavailable "no uv staged beside the tests or on PATH"
+    if [ ! -x "${uv_exe}" ]; then
+        numpy_unavailable "no uv staged beside the tests"
     elif ! "${uv_exe}" pip install --python "${python_exe}" --only-binary :all: "numpy==${NUMPY_VERSION}" \
             || ! has_pinned_numpy; then
         numpy_unavailable "could not install numpy ${NUMPY_VERSION} into ${python_exe}"

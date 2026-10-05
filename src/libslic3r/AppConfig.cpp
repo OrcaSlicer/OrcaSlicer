@@ -1,3 +1,8 @@
+#include "Technologies.hpp"
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+#include "calib.hpp"
+#include "Semver.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Format/DRC.hpp"
@@ -5,12 +10,22 @@
 //BBS
 #include "Preset.hpp"
 #include "Exception.hpp"
+#include "InstanceLock.hpp"
 #include "LocalesUtils.hpp"
 #include "Thread.hpp"
 #include "format.hpp"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <string>
+#include <exception>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <system_error>
+#include <chrono>
+#include <map>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -303,6 +318,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
 
+    if (get(SETTING_OPENGL_SHOW_RENDER_TIMINGS).empty())
+        set_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS, false);
+
     if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
         set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
 
@@ -315,8 +333,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 
-    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
-        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+    // Replaces the on/off setting, whose shadows turned with the camera.
+    if (get(SETTING_OPENGL_REALISTIC_SHADOWS).empty())
+        set(SETTING_OPENGL_REALISTIC_SHADOWS, get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) ? "orbit" : "off");
 
     if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
         set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
@@ -743,9 +762,12 @@ static bool verify_config_file_checksum(boost::nowide::ifstream &ifs)
 
 
 #ifdef USE_JSON_CONFIG
-std::string AppConfig::load()
+std::string AppConfig::load(bool read_only)
 {
     json j;
+
+    // Keep another instance from replacing or restoring the file mid-read.
+    InstanceLock instance_lock(read_only ? std::string() : lock_path());
 
     // 1) Read the complete config file into a boost::property_tree.
     namespace pt = boost::property_tree;
@@ -996,7 +1018,6 @@ void AppConfig::save()
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
     const auto path = config_path();
-    std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
 
     json j;
 
@@ -1126,43 +1147,18 @@ void AppConfig::save()
 
         j["local_machines"][local_machine.first] = m_json;
     }
-    boost::nowide::ofstream c;
-    c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << j.dump(1, '\t') << std::endl;
-
-#ifdef WIN32
-    // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
-    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
-    // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(j.dump(1, '\t'));
-#endif
-
-    c.close();
-    if (c.fail()) {
-      BOOST_LOG_TRIVIAL(error) << "Failed to write new configuration to " << path_pid << "; aborting attempt to overwrite original configuration";
-      return;
-    }
-
-#ifdef WIN32
-    // Make a backup of the configuration file before copying it to the final destination.
-    std::string error_message;
-    std::string backup_path = (boost::format("%1%.bak") % path).str();
-    // Copy configuration file with PID suffix into the configuration file with "bak" suffix.
-    if (copy_file(path_pid, backup_path, error_message, false) != SUCCESS)
-        BOOST_LOG_TRIVIAL(error) << "Copying from " << path_pid << " to " << backup_path << " failed. Failed to create a backup configuration.";
-#endif
-
-    // Rename the config atomically.
-    // On Windows, the rename is likely NOT atomic, thus it may fail if PrusaSlicer crashes on another thread in the meanwhile.
-    // To cope with that, we already made a backup of the config on Windows.
-    rename_file(path_pid, path);
-    m_dirty = false;
+    const std::string config_str = j.dump(1, '\t');
+    if (write_config_file(path, config_str + "\n", config_str))
+        m_dirty = false;
 }
 
 #else
 
-std::string AppConfig::load()
+std::string AppConfig::load(bool read_only)
 {
+    // Keep another instance from replacing or restoring the file mid-read.
+    InstanceLock instance_lock(read_only ? std::string() : lock_path());
+
     // 1) Read the complete config file into a boost::property_tree.
     namespace pt = boost::property_tree;
     pt::ptree tree;
@@ -1300,7 +1296,6 @@ void AppConfig::save()
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
     const auto path = config_path();
-    std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
 
     std::stringstream config_ss;
     if (m_mode == EAppMode::Editor)
@@ -1336,38 +1331,38 @@ void AppConfig::save()
     // One empty line before the MD5 sum.
     config_ss << std::endl;
 
-    std::string config_str = config_ss.str();
-    boost::nowide::ofstream c;
-    c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << config_str;
-#ifdef WIN32
-    // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
-    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
-    // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(config_str);
-#endif
-    c.close();
-    if (c.fail()) {
-      BOOST_LOG_TRIVIAL(error) << "Failed to write new configuration to " << path_pid << "; aborting attempt to overwrite original configuration";
-      return;
-    }
-
-#ifdef WIN32
-    // Make a backup of the configuration file before copying it to the final destination.
-    std::string error_message;
-    std::string backup_path = (boost::format("%1%.bak") % path).str();
-    // Copy configuration file with PID suffix into the configuration file with "bak" suffix.
-    if (copy_file(path_pid, backup_path, error_message, false) != SUCCESS)
-        BOOST_LOG_TRIVIAL(error) << "Copying from " << path_pid << " to " << backup_path << " failed. Failed to create a backup configuration.";
-#endif
-
-    // Rename the config atomically.
-    // On Windows, the rename is likely NOT atomic, thus it may fail if PrusaSlicer crashes on another thread in the meanwhile.
-    // To cope with that, we already made a backup of the config on Windows.
-    rename_file(path_pid, path);
-    m_dirty = false;
+    const std::string config_str = config_ss.str();
+    if (write_config_file(path, config_str, config_str))
+        m_dirty = false;
 }
 #endif
+
+bool AppConfig::write_config_file(const std::string &path, std::string body, const std::string &checksum_source)
+{
+    // Everything before this is assembly; only the writes need the other instances kept out.
+    InstanceLock instance_lock(lock_path());
+#ifdef WIN32
+    // WIN32 specific: the final replace is not safe in case of an application crash, there is no atomic "rename file" API
+    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
+    // we save the config file into a backup first before moving it to the final destination.
+    body += appconfig_md5_hash_line(checksum_source);
+#endif
+    // Not flushed to the device: the idle handler saves on the GUI thread after
+    // any change, and the rename already gives a complete old or new file.
+    if (const std::error_code ec = write_file_atomically(path, body)) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to write the configuration " << path << ": " << ec.message() << "; trying again in 10 s";
+        m_retry_save_at = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        return false;
+    }
+    m_retry_save_at = {};
+#ifdef WIN32
+    // Written after the config, so the backup never holds a state that was not confirmed written.
+    const std::string backup_path = (boost::format("%1%.bak") % path).str();
+    if (const std::error_code ec = write_file_atomically(backup_path, body))
+        BOOST_LOG_TRIVIAL(error) << "Failed to write the backup configuration " << backup_path << ": " << ec.message();
+#endif
+    return true;
+}
 
 bool AppConfig::get_variant(const std::string &vendor, const std::string &model, const std::string &variant) const
 {
@@ -1857,6 +1852,11 @@ void AppConfig::reset_selections()
     }
 }
 
+std::string AppConfig::lock_path()
+{
+    return Slic3r::data_dir().empty() ? std::string() : config_path() + ".lock";
+}
+
 std::string AppConfig::config_path()
 {
 #ifdef USE_JSON_CONFIG
@@ -1893,7 +1893,7 @@ bool AppConfig::exists()
 
 std::string AppConfig::load_if_exists()
 {
-    return boost::filesystem::exists(loading_path()) ? load() : std::string();
+    return boost::filesystem::exists(loading_path()) ? load(/*read_only=*/true) : std::string();
 }
 
 }; // namespace Slic3r

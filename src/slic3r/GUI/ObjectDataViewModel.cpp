@@ -1,5 +1,4 @@
 #include "ObjectDataViewModel.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "wxExtensions.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
@@ -10,8 +9,28 @@
 
 #include "libslic3r/Model.hpp"
 
+#include <string>
+#include <map>
+#include <cassert>
+#include <vector>
+#include "slic3r/GUI/ExtraRenderers.hpp"
+#include <cstdio>
+#include <cstddef>
+#include <cstdlib>
+#include <algorithm>
+#include "slic3r/GUI/GUI_ObjectSettings.hpp"
+#include <tuple>
 #include <wx/bmpcbox.h>
+#include <wx/chartype.h>
+#include <wx/dataview.h>
 #include <wx/dc.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/strconv.h>
+#include <wx/debug.h>
+#include <wx/dynarray.h>
 
 
 namespace Slic3r {

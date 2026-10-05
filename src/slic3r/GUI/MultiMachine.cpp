@@ -3,6 +3,10 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {

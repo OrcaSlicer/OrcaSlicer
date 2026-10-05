@@ -1,16 +1,15 @@
 #ifndef slic3r_TextureDisplacementPrepareJob_hpp_
 #define slic3r_TextureDisplacementPrepareJob_hpp_
 
+#include <exception>
 #include <functional>
 #include <string>
 #include <vector>
 
 #include "Job.hpp"
 
-#include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r {
 class ModelVolume;

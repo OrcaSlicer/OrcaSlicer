@@ -84,5 +84,8 @@
 	],
 	"pressure_advance": [
 		"0.052"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive High Flow"
 	]
 }

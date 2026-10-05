@@ -25,6 +25,11 @@
 		"40"
 	],
 	"fan_min_speed": [
+		"85",
+		"85",
+		"85",
+		"85",
+		"85",
 		"85"
 	],
 	"filament_cost": [
@@ -125,6 +130,11 @@
 		"45"
 	],
 	"filament_multitool_ramming_volume": [
+		"10",
+		"10",
+		"10",
+		"10",
+		"10",
 		"10"
 	],
 	"temperature_vitrification": [
@@ -142,6 +152,11 @@
 		"0"
 	],
 	"nozzle_temperature_range_high": [
+		"230",
+		"230",
+		"230",
+		"230",
+		"230",
 		"230"
 	],
 	"during_print_exhaust_fan_speed": [
@@ -156,6 +171,11 @@
 		"35"
 	],
 	"filament_multitool_ramming": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
 		"0"
 	],
 	"complete_print_exhaust_fan_speed": [

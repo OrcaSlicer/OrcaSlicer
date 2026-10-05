@@ -1,3 +1,5 @@
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "../libslic3r.h"
 #include "../Model.hpp"
@@ -6,9 +8,23 @@
 #include "svg.hpp"
 #include "nanosvg/nanosvg.h"
 
+#include <cstdlib>
+#include <cstddef>
+#include <TopAbs_ShapeEnum.hxx>
+#include <TopLoc_Location.hxx>
+#include <Standard_Handle.hxx>
+#include <Poly_Triangulation.hxx>
+#include <BRep_Tool.hxx>
+#include <cstdint>
+#include <Standard_TypeDef.hxx>
+#include <gp_Trsf.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 #include "BRepBuilderAPI_MakeWire.hxx"
 #include "BRepBuilderAPI_MakeEdge.hxx"
@@ -20,8 +36,8 @@
 #include "TopExp_Explorer.hxx"
 #include "TopoDS.hxx"
 #include "BRepExtrema_SelfIntersection.hxx"
-#include "libslic3r/clipper.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 const double STEP_TRANS_CHORD_ERROR = 0.005;
@@ -211,26 +227,15 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
             Polygons polygons;
             bool close_polygon = false;
             for (int i = 0; i < path_line_points.size(); ++i) {
-                ClipperLib::Path pt_path;
-                for (auto line_point : path_line_points[i]) { 
-                    pt_path.push_back(ClipperLib::IntPoint(line_point.first.X() * scale_size, line_point.first.Y() * scale_size));
+                Polyline pt_path;
+                for (auto line_point : path_line_points[i]) {
+                    pt_path.points.push_back(Point(line_point.first.X() * scale_size, line_point.first.Y() * scale_size));
                 }
-                pt_path.push_back(ClipperLib::IntPoint(path_line_points[i].back().second.X() * scale_size, path_line_points[i].back().second.Y() * scale_size));
+                pt_path.points.push_back(Point(path_line_points[i].back().second.X() * scale_size, path_line_points[i].back().second.Y() * scale_size));
 
-                ClipperLib::Paths         out_paths;
-                ClipperLib::ClipperOffset co;
-                if (pt_path.front() == pt_path.back()) {
-                    co.AddPath(pt_path, ClipperLib::jtMiter, ClipperLib::etClosedLine);
-                    close_polygon = true;
-                } else {
-                    co.AddPath(pt_path, ClipperLib::jtMiter, ClipperLib::etOpenSquare);
-                    close_polygon = false;
-                }
-                co.Execute(out_paths, stroke_width / 2);
-
-                for (auto out_path : out_paths) {
-                    polygons.emplace_back(Polygon(out_path));
-                }
+                close_polygon = pt_path.points.front() == pt_path.points.back();
+                if (stroke_width > 0)
+                    append(polygons, offset(pt_path, stroke_width / 2, jtMiter, 2., close_polygon ? etClosedLine : etOpenSquare));
             }
 
             if (!close_polygon)
@@ -335,10 +340,10 @@ bool load_svg(const char *path, Model *model, std::string &message)
         std::vector<Vec3f> points;
         points.reserve(aNbNodes);
         // BBS: count faces missing triangulation
-        Standard_Integer aNbFacesNoTri = 0;
+        int aNbFacesNoTri = 0;
         // BBS: fill temporary triangulation
-        Standard_Integer aNodeOffset    = 0;
-        Standard_Integer aTriangleOffet = 0;
+        int aNodeOffset    = 0;
+        int aTriangleOffet = 0;
         for (TopExp_Explorer anExpSF(namedSolids[i].shape, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
             const TopoDS_Shape &aFace = anExpSF.Current();
             TopLoc_Location     aLoc;
@@ -349,15 +354,15 @@ bool load_svg(const char *path, Model *model, std::string &message)
             }
             // BBS: copy nodes
             gp_Trsf aTrsf = aLoc.Transformation();
-            for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
+            for (int aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                 gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                 aPnt.Transform(aTrsf);
                 points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
             }
             // BBS: copy triangles
             const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
-            Standard_Integer         anId[3];
-            for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
+            int anId[3];
+            for (int aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
                 Poly_Triangle aTri = aTriangulation->Triangle(aTriIter);
 
                 aTri.Get(anId[0], anId[1], anId[2]);

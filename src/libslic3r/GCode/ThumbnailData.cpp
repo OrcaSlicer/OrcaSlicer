@@ -1,4 +1,5 @@
 #include "ThumbnailData.hpp"
+#include <vector>
 
 namespace Slic3r {
 

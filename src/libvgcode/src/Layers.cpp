@@ -9,6 +9,11 @@
 
 #include <assert.h>
 #include <algorithm>
+#include "../include/Types.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include <iterator>
 
 namespace libvgcode {
 
