@@ -2190,3 +2190,71 @@ TEST_CASE("a load that fails to install partway counts no errors of the sub-file
     CHECK(bundle.error_count() == 2);
     CHECK(bundle.prints.find_preset("Acme A", false) != nullptr);
 }
+
+TEST_CASE("load_system_models_from_json and load_vendor_only serve from cache when json is pruned", "[VendorCache]")
+{
+    InstallDirs dirs;
+    write_full_vendor_tree(dirs.profiles, "Acme", "1.0.0");
+    PresetBundle from_json;
+    from_json.set_generate_vendor_caches(true);
+    from_json.load_vendor_configs_from_json(dirs.profiles.string(), "Acme", PresetBundle::LoadSystem,
+                                            ForwardCompatibilitySubstitutionRule::EnableSilent);
+    REQUIRE(fs::exists(dirs.profiles / "Acme.opc"));
+
+    // Simulate release package pruning: delete Acme/ and Acme.json, leaving only Acme.opc
+    fs::remove_all(dirs.profiles / "Acme");
+    fs::remove(dirs.profiles / "Acme.json");
+    REQUIRE(! fs::exists(dirs.profiles / "Acme.json"));
+    REQUIRE(fs::exists(dirs.profiles / "Acme.opc"));
+
+    // 1. Direct VendorCacheFile::load_vendor_only
+    VendorMap vendors;
+    REQUIRE(VendorCacheFile::load_vendor_only((dirs.profiles / "Acme.opc").string(), "Acme", Semver("1.0.0"), vendors));
+    CHECK(vendors.find("Acme") != vendors.end());
+    CHECK(vendors["Acme"].models.size() == 1);
+    CHECK(vendors["Acme"].models.front().id == "Test Model");
+
+    // 2. load_vendor_configs_from_json with LoadVendorOnly
+    PresetBundle vendor_only_bundle;
+    vendor_only_bundle.load_vendor_configs_from_json(dirs.profiles.string(), "Acme", PresetBundle::LoadVendorOnly,
+                                                     ForwardCompatibilitySubstitutionRule::EnableSilent);
+    CHECK(vendor_only_bundle.vendors.find("Acme") != vendor_only_bundle.vendors.end());
+    CHECK(vendor_only_bundle.vendors["Acme"].models.size() == 1);
+    CHECK(vendor_only_bundle.printers.get_presets().empty());
+
+    // 3. load_system_models_from_json discovers Acme from profiles with only .opc present
+    PresetBundle system_models_bundle;
+    system_models_bundle.load_system_models_from_json(ForwardCompatibilitySubstitutionRule::EnableSilent);
+    CHECK(system_models_bundle.vendors.find("Acme") != system_models_bundle.vendors.end());
+    CHECK(system_models_bundle.vendors["Acme"].models.size() == 1);
+    CHECK(system_models_bundle.vendors["Acme"].models.front().id == "Test Model");
+}
+
+TEST_CASE("load_system_filaments_json serves from cache when json is pruned", "[VendorCache]")
+{
+    InstallDirs dirs;
+    write_lib_tree(dirs.profiles, "1.0.0", "10");
+    write_full_vendor_tree(dirs.profiles, "Acme", "1.0.0");
+
+    const std::string lib(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    PresetBundle gen;
+    gen.set_generate_vendor_caches(true);
+    gen.load_vendor_configs_from_json(dirs.profiles.string(), lib, PresetBundle::LoadSystem,
+                                      ForwardCompatibilitySubstitutionRule::EnableSilent);
+    gen.load_vendor_configs_from_json(dirs.profiles.string(), "Acme", PresetBundle::LoadSystem,
+                                      ForwardCompatibilitySubstitutionRule::EnableSilent);
+    REQUIRE(fs::exists(dirs.profiles / (lib + ".opc")));
+    REQUIRE(fs::exists(dirs.profiles / "Acme.opc"));
+
+    // Prune json files
+    fs::remove_all(dirs.profiles / lib);
+    fs::remove(dirs.profiles / (lib + ".json"));
+    fs::remove_all(dirs.profiles / "Acme");
+    fs::remove(dirs.profiles / "Acme.json");
+
+    PresetBundle fila_bundle;
+    auto [substitutions, errs] = fila_bundle.load_system_filaments_json(ForwardCompatibilitySubstitutionRule::EnableSilent);
+    CHECK(errs.empty());
+    CHECK(fila_bundle.filaments.find_preset("Acme PLA @0.4", false) != nullptr);
+}
+

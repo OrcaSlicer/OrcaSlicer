@@ -152,8 +152,18 @@ for target in "$@"; do
             pruned=$(( pruned + 1 ))
         fi
         [ -d "$resolved/$vendor" ] || continue
-        n=$(find "$resolved/$vendor" -name '*.json' | wc -l)
-        find "$resolved/$vendor" -name '*.json' -delete
+        n=$(find "$resolved/$vendor" -name '*.json' \
+            ! -name 'filaments_color_codes.json' \
+            ! -name 'cli_config.json' \
+            ! -name 'filament_id_map.json' \
+            ! -name 'filament_name_map.json' \
+            ! -name 'support_recommended_params.json' | wc -l)
+        find "$resolved/$vendor" -name '*.json' \
+            ! -name 'filaments_color_codes.json' \
+            ! -name 'cli_config.json' \
+            ! -name 'filament_id_map.json' \
+            ! -name 'filament_name_map.json' \
+            ! -name 'support_recommended_params.json' -delete
         find "$resolved/$vendor" -type d -empty -delete
         pruned=$(( pruned + n ))
     done

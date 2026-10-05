@@ -741,7 +741,8 @@ private:
     // Install a cache's entries. False, with this bundle left clean, when one of them
     // cannot be installed.
     bool install_vendor_cache(const std::string& cache_path, const std::string& vendor_name, VendorCacheData&& data,
-                              const PresetBundle* base_bundle);
+                              const PresetBundle* base_bundle,
+                              LoadConfigBundleAttributes flags = LoadConfigBundleAttribute::LoadSystem);
 
     // Log and count errors reported by a resolve or a parse.
     void log_errors(const std::vector<std::string>& errors);

@@ -2263,13 +2263,16 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
             // cross-vendor inheritance path.
             // Orca: served from the vendor's preset cache where one covers it — a shipped
             // build carries that instead of the raw preset JSONs — and parsed otherwise.
-            temp_preset_bundle.load_vendor_configs_from_json((boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).string(),
+            const auto vendor_dir      = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
+            const auto rsrc_vendor_dir = (boost::filesystem::path(Slic3r::resources_dir()) / "profiles").make_preferred();
+            const auto load_dir        = is_vendor_installed(selected_vendor_id) ? vendor_dir : rsrc_vendor_dir;
+            temp_preset_bundle.load_vendor_configs_from_json(load_dir.string(),
                                                              selected_vendor_id,
                                                              PresetBundle::LoadConfigBundleAttribute::LoadSystem,
                                                              ForwardCompatibilitySubstitutionRule::EnableSilent,
                                                              wxGetApp().preset_bundle);
         } catch (...) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "load vendor fonfigs form json failed";
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "load vendor configs from json failed";
             MessageDialog dlg(this, _L("The printer model was not found, please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();

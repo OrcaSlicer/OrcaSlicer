@@ -169,6 +169,10 @@ public:
     static bool load(const std::string& path, const std::string& expected_vendor_name,
                      const Semver& expected_vendor_version, VendorCacheData& data);
 
+    // Read only the vendor profile map from a cache into `vendors`, skipping preset deserialization.
+    static bool load_vendor_only(const std::string& path, const std::string& expected_vendor_name,
+                                 const Semver& expected_vendor_version, VendorMap& vendors);
+
     // Read the profile version a cache was stamped with, without deserializing
     // its presets. Empty if the file is unreadable, not a cache this build
     // understands, or not this vendor's. This is how an installed vendor's

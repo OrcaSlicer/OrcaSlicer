@@ -2799,23 +2799,30 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_mod
         // Loading system presets, throw on unknown option value.
         compatibility_rule = ForwardCompatibilitySubstitutionRule::Disable;
 
-    // Here the vendor specific read only Config Bundles are stored.
-    boost::filesystem::path    dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
     PresetsConfigSubstitutions substitutions;
     std::string                errors_cummulative;
-    for (auto &dir_entry : boost::filesystem::directory_iterator(dir)) {
-        std::string vendor_file = dir_entry.path().string();
-        if (Slic3r::is_json_file(vendor_file)) {
-            std::string vendor_name = dir_entry.path().filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            try {
-                // Load the config bundle, flatten it.
-                append(substitutions, load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadVendorOnly, compatibility_rule).first);
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
+
+    const auto vendor_dir = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
+    const auto rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
+
+    std::map<std::string, boost::filesystem::path> vendor_sources;
+    for (const boost::filesystem::path& dir : { vendor_dir, rsrc_vendor_dir }) {
+        boost::system::error_code ec;
+        if (boost::filesystem::exists(dir, ec)) {
+            for (const std::string& name : vendor_names_in(dir)) {
+                if (name != "blacklist")
+                    vendor_sources.emplace(name, dir);
             }
+        }
+    }
+
+    for (const auto& [vendor_name, dir] : vendor_sources) {
+        try {
+            // Load the config bundle, flatten it.
+            append(substitutions, load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadVendorOnly, compatibility_rule).first);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
         }
     }
 
@@ -2833,46 +2840,61 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_fil
         // Loading system presets, throw on unknown option value.
         compatibility_rule = ForwardCompatibilitySubstitutionRule::Disable;
 
-    // Here the vendor specific read only Config Bundles are stored.
-    boost::filesystem::path    dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
     PresetsConfigSubstitutions substitutions;
     std::string                errors_cummulative;
-    bool                       first = true;
-    for (auto &dir_entry : boost::filesystem::directory_iterator(dir)) {
-        std::string vendor_file = dir_entry.path().string();
-        if (Slic3r::is_json_file(vendor_file)) {
-            std::string vendor_name = dir_entry.path().filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            try {
-                if (first) {
-                    // Reset this PresetBundle and load the first vendor config.
-                    append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
-                    first = false;
-                } else {
-                    // Load the other vendor configs, merge them with this PresetBundle.
-                    // Report duplicate profiles.
-                    PresetBundle other;
-                    append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
-                    std::vector<std::string> duplicates = std::move(this->merge_presets({ &other }).front());
-                    if (!duplicates.empty()) {
-                        errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
-                        for (size_t i = 0; i < duplicates.size(); ++i) {
-                            if (i > 0) errors_cummulative += ", ";
-                            errors_cummulative += duplicates[i];
-                        }
-                    }
-                }
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
+
+    const auto vendor_dir = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
+    const auto rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
+
+    std::map<std::string, boost::filesystem::path> vendor_sources;
+    for (const boost::filesystem::path& dir : { vendor_dir, rsrc_vendor_dir }) {
+        boost::system::error_code ec;
+        if (boost::filesystem::exists(dir, ec)) {
+            for (const std::string& name : vendor_names_in(dir)) {
+                if (name != "blacklist")
+                    vendor_sources.emplace(name, dir);
             }
+        }
+    }
+
+    const std::string filament_library(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    if (auto it = vendor_sources.find(filament_library); it != vendor_sources.end()) {
+        try {
+            append(substitutions, this->load_vendor_configs_from_json(it->second.string(), filament_library,
+                                                                      PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly,
+                                                                      compatibility_rule).first);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
+        }
+    }
+
+    for (const auto& [vendor_name, dir] : vendor_sources) {
+        if (vendor_name == filament_library) continue;
+        try {
+            PresetBundle other;
+            append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name,
+                                                                      PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly,
+                                                                      compatibility_rule,
+                                                                      this).first);
+            std::vector<std::string> duplicates = std::move(this->merge_presets({ &other }).front());
+            if (!duplicates.empty()) {
+                errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
+                for (size_t i = 0; i < duplicates.size(); ++i) {
+                    if (i > 0) errors_cummulative += ", ";
+                    errors_cummulative += duplicates[i];
+                }
+            }
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
         }
     }
 
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%") % errors_cummulative;
     return std::make_pair(std::move(substitutions), errors_cummulative);
 }
+
 
 VendorProfile PresetBundle::get_custom_vendor_models() const
 {
@@ -7146,9 +7168,12 @@ PresetBundle::VendorRead PresetBundle::read_vendor(const std::string& dir, const
         // Reset this bundle, delete user profile files if SaveImported.
         this->reset(flags.has(LoadConfigBundleAttribute::SaveImported));
 
-    // Orca: only a whole-vendor load has a cache — the vendor-only and filament-only
-    // scans want a slice of one. Validation reads the JSONs whatever is cached.
-    read.cacheable = allow_cache && flags.has(LoadConfigBundleAttribute::LoadSystem) && ! flags.has(LoadConfigBundleAttribute::LoadFilamentOnly);
+    // Orca: whole-vendor, vendor-only and filament-only loads can be served from cache.
+    // Validation reads the JSONs whatever is cached.
+    read.cacheable = allow_cache &&
+        (flags.has(LoadConfigBundleAttribute::LoadSystem) ||
+         flags.has(LoadConfigBundleAttribute::LoadVendorOnly) ||
+         flags.has(LoadConfigBundleAttribute::LoadFilamentOnly));
     if (read.cacheable && ! validation_mode) {
         // A vendor is loaded from where it is installed and nowhere else; resources
         // reaches the app by being installed into `dir` first. The cache there is
@@ -7159,9 +7184,17 @@ PresetBundle::VendorRead PresetBundle::read_vendor(const std::string& dir, const
         const boost::filesystem::path profile = dir_path / (vendor_name + ".json");
         const Semver version = boost::filesystem::exists(profile) ? get_version_from_json(profile.string()) : Semver::inf();
         read.cache_path = (dir_path / (vendor_name + ".opc")).string();
-        read.from_cache = VendorCacheFile::load(read.cache_path, vendor_name, version, read.data);
-        if (read.from_cache)
-            return read;
+        if (flags.has(LoadConfigBundleAttribute::LoadVendorOnly)) {
+            read.from_cache = VendorCacheFile::load_vendor_only(read.cache_path, vendor_name, version, read.data.vendors);
+            if (read.from_cache) {
+                read.vendor_only = true;
+                return read;
+            }
+        } else {
+            read.from_cache = VendorCacheFile::load(read.cache_path, vendor_name, version, read.data);
+            if (read.from_cache)
+                return read;
+        }
     }
     this->parse_vendor_json(read);
     return read;
@@ -7528,7 +7561,12 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::install_vendor_read(
     const std::string&         vendor_name = read.vendor_name;
     PresetsConfigSubstitutions substitutions;
     if (read.from_cache) {
-        if (this->install_vendor_cache(read.cache_path, vendor_name, std::move(read.data), base_bundle)) {
+        if (read.vendor_only) {
+            for (auto& [k, v] : read.data.vendors)
+                this->vendors.insert_or_assign(k, std::move(v));
+            return std::make_pair(PresetsConfigSubstitutions{}, 0);
+        }
+        if (this->install_vendor_cache(read.cache_path, vendor_name, std::move(read.data), base_bundle, read.flags)) {
             size_t presets_loaded = 0;
             for (const PresetCollection* coll : std::initializer_list<const PresetCollection*>{
                      &this->prints, &this->sla_prints, &this->filaments, &this->sla_materials, &this->printers })
@@ -8299,14 +8337,15 @@ bool PresetBundle::load_vendor_cache(const std::string& cache_path, const std::s
 }
 
 bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std::string& vendor_name, VendorCacheData&& data,
-                                        const PresetBundle* base_bundle)
+                                        const PresetBundle* base_bundle, LoadConfigBundleAttributes flags)
 {
     // What this bundle had counted before the cache was tried. The caller
     // measures its own parse against this same baseline, so a rejection must
     // put it back rather than reset it to zero.
     const int errors_at_entry = this->m_errors;
     try {
-        this->vendors = std::move(data.vendors);
+        for (auto& [k, v] : data.vendors)
+            this->vendors.insert_or_assign(k, std::move(v));
 
         // What the parse counted before install took over; install recounts its
         // own below, so m_errors comes out as a JSON parse would leave it.
@@ -8315,7 +8354,7 @@ bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std
         // Stays empty, since the entries were substituted when they were parsed.
         PresetsConfigSubstitutions substitutions;
         install_vendor(boost::filesystem::path(cache_path).parent_path().string(), vendor_name, base_bundle,
-                       LoadConfigBundleAttribute::LoadSystem, data, nullptr, true, substitutions);
+                       flags, data, nullptr, true, substitutions);
         return true;
     } catch (const std::exception& e) {
         // A cancellation of the caller's task group stops the install without

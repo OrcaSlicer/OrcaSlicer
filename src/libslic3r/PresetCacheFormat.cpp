@@ -503,6 +503,31 @@ bool VendorCacheFile::load(const std::string& path, const std::string& expected_
 }
 
 // static
+bool VendorCacheFile::load_vendor_only(const std::string& path, const std::string& expected_vendor_name,
+                                      const Semver& expected_vendor_version, VendorMap& vendors)
+{
+    std::string blob;
+    if (! read_cache_blob(path, blob))
+        return false;
+    try {
+        boost::iostreams::stream<boost::iostreams::array_source> body(blob.data(), blob.size());
+        cereal::BinaryInputArchive ar(body);
+        const std::string vendor_version = read_cache_stamps(ar, expected_vendor_name);
+        if (vendor_version.empty() || ! cache_covers_version(vendor_version, expected_vendor_version))
+            return false;
+        CacheDictionary dict;
+        dict.load(ar);
+        ar(vendors);
+        if (vendors.find(expected_vendor_name) == vendors.end())
+            throw std::runtime_error("vendor cache does not carry its own vendor profile");
+        return true;
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: rejecting vendor cache " << path << ": " << e.what();
+        return false;
+    }
+}
+
+// static
 std::string VendorCacheFile::peek_version(const std::string& path, const std::string& expected_vendor_name)
 {
     try {

@@ -123,8 +123,18 @@ for %%c in ("%PROFILES%\*.opc") do (
         set /a PRUNED+=1
     )
     if exist "%TARGET%\!VENDOR!\" (
-        for /f %%n in ('dir /s /b "%TARGET%\!VENDOR!\*.json" 2^>nul ^| find /c /v ""') do set /a PRUNED+=%%n
-        del /s /q "%TARGET%\!VENDOR!\*.json" >nul 2>&1
+        for /f "delims=" %%f in ('dir /s /b "%TARGET%\!VENDOR!\*.json" 2^>nul') do (
+            set "SKIP="
+            if /i "%%~nxf"=="filaments_color_codes.json" set "SKIP=1"
+            if /i "%%~nxf"=="cli_config.json" set "SKIP=1"
+            if /i "%%~nxf"=="filament_id_map.json" set "SKIP=1"
+            if /i "%%~nxf"=="filament_name_map.json" set "SKIP=1"
+            if /i "%%~nxf"=="support_recommended_params.json" set "SKIP=1"
+            if not defined SKIP (
+                del /q "%%f" >nul 2>&1
+                set /a PRUNED+=1
+            )
+        )
         rem Deepest first, so a directory the delete above emptied goes too; rd
         rem refuses the ones still holding covers or meshes.
         for /f "delims=" %%d in ('dir /s /b /ad "%TARGET%\!VENDOR!" 2^>nul ^| sort /r') do rd "%%d" 2>nul
