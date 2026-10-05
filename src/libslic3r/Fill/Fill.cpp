@@ -41,6 +41,13 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r.h"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
+
+namespace Slic3r::FillAdaptive { struct Octree; }
+namespace Slic3r::FillLightning { class Generator; }
 
 namespace Slic3r {
 

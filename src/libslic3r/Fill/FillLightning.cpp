@@ -1,6 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../Print.hpp"
-#include "../ShortestPath.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Fill/Lightning/Layer.hpp"
 #include "FillBase.hpp"

@@ -493,7 +493,8 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
         page_num_enter_evt();
     });
 
-    m_page_num_enter = new Button(m_flipping_panel, _("Go"));
+    // TRN Button that jumps to the page number typed next to it
+    m_page_num_enter = new Button(m_flipping_panel, _L("Go"));
     m_page_num_enter->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetMaxSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetBackgroundColor(ctrl_bg);

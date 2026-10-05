@@ -18,6 +18,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/eval.h>
 #include <pybind11/gil.h>
+#include <pybind11/cast.h>
 
 namespace py = pybind11;
 using namespace Slic3r;

@@ -30,6 +30,9 @@
 #include <wx/msgdlg.h>
 #include <wx/string.h>
 #include <wx/thread.h>
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include <Python.h>
 
 namespace Slic3r {
 

@@ -24,6 +24,9 @@
 #include <vector>
 #include <utility>
 
+namespace boost::asio::ip { class address_v4; }
+namespace boost::asio::ip { class address_v6; }
+
 namespace Slic3r {
 
 

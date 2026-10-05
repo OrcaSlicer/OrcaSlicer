@@ -3,13 +3,11 @@
 
 #include <vector>
 #include "libslic3r/Point.hpp"
-#include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/Color.hpp"
 #include <utility>
 #include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/panel.h>
-#include <wx/popupwin.h>
 
 #include <functional>
 #include <memory>
@@ -18,12 +16,19 @@
 
 #include "slic3r/GUI/3DBed.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLToolbar.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 
+class wxActivateEvent;
+class wxEvent;
+class wxIconizeEvent;
+class wxPopupWindow;
+class wxWindow;
+namespace Slic3r { struct CadBody; }
+
 class wxGLCanvas;
-class wxFrame;
 class wxStaticText;
 
 namespace Slic3r {
@@ -41,10 +46,10 @@ public:
     explicit DesignCanvas(wxWindow* parent);
     ~DesignCanvas() override;
 
-    void set_mesh(const TriangleMesh& mesh);
     // Multi-body display: one GLVolume per body, each coloured distinctly (per-body colour).
-    // `visible` (optional, indexed by body) hides bodies whose flag is false.
-    void set_bodies(const std::vector<TriangleMesh>& body_meshes,
+    // `visible` (optional, indexed by body) hides bodies whose flag is false. `body_meshes` is kept
+    // by address (a stable panel member) and read again whenever the selection changes.
+    void set_bodies(const std::vector<TriangleMesh>* body_meshes,
                     const std::vector<bool>& visible = {});
     void clear_mesh();
 
@@ -71,7 +76,7 @@ public:
     // Is the sketch tool on Select (as opposed to a draw/edit tool being armed)? The
     // Construction box needs it to tell "convert what I picked" from "arm what I draw next".
     bool sketch_is_selecting() const { return m_sketch_tool.mode() == DesignSketchTool::Mode::Select; }
-    // Text / SVG art into the LIVE sketch, as ordinary editable lines. False = no session.
+    // SVG art into the LIVE sketch, as ordinary editable lines. False = no session.
     bool add_sketch_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_sketch_polygon_sides(int n);
     void set_sketch_polygon_circumscribed(bool c);
@@ -88,6 +93,10 @@ public:
     void unbind_canvas_event_handlers();   // app close / language switch, from the plater's teardown
     void reset_canvas_volumes();
     void set_show_bed(bool b);   // view option: draw the printer bed + plate grid, or not
+    // The sidebar's collapse button, as Prepare's: drawn on the edge `side` reports, it runs
+    // `toggle` on a click and on Shift+Tab. Set before the first paint.
+    void set_sidebar_collapse(std::function<CollapseSide()> side, std::function<void()> toggle);
+    void set_sidebar_collapse_tooltip(const std::string& tooltip);
     // N: look straight down the sketch plane's normal, keeping the current zoom. A sketch drawn
     // at an angle is a sketch drawn wrong, and no amount of orbiting by hand lands exactly square.
     bool view_normal_to_sketch();
@@ -120,7 +129,12 @@ public:
     // consumed loop must be compared against.
     std::vector<std::vector<int>> region_entity_indices_with_holes(const std::vector<SketchEntity>& ents) const;
     void clear_loop_pick();  // drop the click-selected loop highlight (e.g. after extrude)
+    void clear_solid_pick(); // drop the solid pick and its highlight; no callback, no repaint
     void set_loop_pick(int feature, int region);  // adopt a loop pick made before the commit
+    // The picked committed sketch (feature index, -1 = none) and its closed region (-1 also when
+    // the click hit a stroke on no closed loop). The panel reads the pick here and keeps no copy.
+    int  loop_pick_feature() const;
+    int  loop_pick_region() const;
     void set_escalate_on_repick(bool on);         // off while a card has armed a face/edge pick
     // Solid whole/face/edge selection: point the tool at the bodies + concatenated
     // tessellation (with per-triangle face & body ids), and a callback fired on each
@@ -130,7 +144,8 @@ public:
                         const std::vector<bool>* visible = nullptr,
                         const std::vector<Transform3d>* xform = nullptr);
     void set_on_solid_selection_changed(std::function<void(int, int, int, int)> cb);
-    void set_on_place_on_face(std::function<bool()> cb);   // F key: Place on Face
+    void set_on_empty_pick(std::function<void()> cb);   // a click or rubber band took nothing
+    std::vector<int> selected_solid_edges() const;   // the Shift/Ctrl+click edge set, last-clicked at the end
     void select_body(int body);   // Parts-list -> highlight a whole body by index
     // Effective display colour of a body: the per-body override (Color tool) when set,
     // otherwise the auto body-index palette. Single source of truth shared with reload().
@@ -169,11 +184,11 @@ public:
     void clear_shell_gizmo();
     bool shelling() const;
     void set_on_shell_thickness_changed(std::function<void(double)> cb);
-    // Visual Revolve angle-arc gizmo: the panel feeds the sketch plane + profile centroid + axis
-    // (0=plane X, 1=plane Y) + angle + flip while its Revolve card is open; drag/edit fire the
-    // angle callback.
+    // Visual Revolve angle-arc gizmo: the panel feeds the sketch plane + profile centroid + the
+    // world axis (a point on it, unit direction) + angle + flip while its Revolve card is open;
+    // drag/edit fire the angle callback.
     void begin_revolve_gizmo(const SketchPlane& plane, const Vec2d& centroid,
-                             int axis_sel, double angle, bool flip);
+                             const Vec3d& axis_origin, const Vec3d& axis_dir, double angle, bool flip);
     void clear_revolve_gizmo();
     bool revolving() const;
     void set_on_revolve_angle_changed(std::function<void(double)> cb);
@@ -221,7 +236,7 @@ public:
     void set_on_datum_base_picked(std::function<void(int)> cb);
     void set_on_sketch_exit(std::function<void()> cb);           // Esc -> exit the tool
     void set_on_sketch_exit_refused(std::function<void()> cb);   // Esc declined: sketch has work
-    void set_on_undo_redo(std::function<void(bool /*redo*/)> cb); // Ctrl+Z / Ctrl+Shift+Z
+    void set_on_sketch_notice(std::function<void(const std::string&, bool)> cb);   // tool refusals/side effects
     // Persistently draw committed sketches (un-consumed ones stay visible).
     void set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds);
     void set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl);
@@ -230,26 +245,23 @@ public:
     // Mate connectors, drawn as frames so their verse and polarity are visible (wgsc).
     void set_mate_connectors(std::vector<DesignSketchTool::MateConnectorGlyph> g);
     void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l);
-    void set_body_highlight(bool on);   // tint the solid when its feature is tree-selected
+    // Draw these (body, face id) faces as selected: the faces the Feature tree's selected feature
+    // made (CadDocument::faces_made_by). Empty clears them.
+    void set_highlight_faces(const std::vector<std::pair<int, int>>& faces);
     // The status line, shown along the BASE OF THE VIEWPORT rather than in the side panel:
     // the panel clips it at ~73 characters with no warning (8cc), the viewport's
     // bottom margin has the whole window width to spare. Empty text hides it.
     void set_status_text(const wxString& text, const wxColour& colour);
-    // Take the status line down / bring it back when the Design page leaves and re-enters view.
-    // A popup is a TOP-LEVEL window: hiding the page it belongs to does not hide it. Keeps the
-    // text, so coming back needs no re-selection.
-    void show_status_hud(bool on);
     void set_operand_bodies(int target_body, int tool_body);  // -1,-1 clears
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
     void set_xray_focus(int body);      // >=0: fade+lock out every other body (CoordSys picking)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
-    void set_on_move_exit(std::function<void()> cb);   // right-click finished the move-body gizmo
     // Right-click (or its platform equivalent) on the viewport with no tool running: open the
     // object-driven offer there. Fires with SCREEN coordinates. Deliberately NOT fired while a
     // tool is live — right-click already ends a polyline chain and finishes the move gizmo, and
     // taking those over would break two working interactions in order to add a third.
     void set_on_context_menu(std::function<void(const wxPoint&)> cb);
-    void delete_selected_sketch_entities();
+    bool delete_selected_sketch_entities();           // false when nothing was selected
     bool inline_busy() const;                         // a sketch value field is open (guard keys)
     bool inline_has_focus() const;                    // the field itself holds keyboard focus
     void inline_commit();                             // accept the typed value (Enter/Tab)
@@ -259,8 +271,10 @@ public:
     // panel can do it when focus is not on the canvas.
     void request_sketch_exit();
     bool live_sketch_has_work() const;                // the live sketch holds entities a cancel would destroy
-    bool undo_last_sketch_entity();                   // Ctrl+Z in a sketch: drop the last entity
-    bool delete_selected_or_last_sketch_entity();     // Delete in a sketch: selected, else last
+    bool undo_last_sketch_entity();                   // Ctrl+Z in a sketch: drop the last drawn shape
+    bool redo_last_sketch_entity();                   // Ctrl+Y in a sketch: bring it back
+    bool can_undo_sketch_entity() const { return m_sketch_tool.can_undo_entity(); }
+    bool can_redo_sketch_entity() const { return m_sketch_tool.can_redo_entity(); }
     void clear_sketch_selection();
 
     // View toggles (keys P / A): origin planes, world axis triad. Each returns the new on/off
@@ -307,11 +321,12 @@ public:
     // Esc routing (DesignInteraction.hpp). The panel decides WHICH level one press belongs to;
     // these are the levels it can act on inside the canvas. Each returns whether it did anything,
     // so the panel can fall through to the next level without asking twice.
-    bool sketch_abort_gesture();     // CadLevel::Gesture — drop the entity being drawn
+    bool sketch_abort_gesture();     // CadLevel::Gesture — drop the entity being drawn, or the tool's picks
     bool sketch_disarm_tool();       // CadLevel::Tool    — armed sketch tool falls back to Select
-    bool drawing_in_progress() const;// an entity has clicks down but is not committed
-    bool has_any_selection() const;  // model pick or sketch pick
-    bool clear_any_selection();      // CadLevel::Idle — drop both; true if anything was dropped
+    bool sketch_confirm_pending();   // Enter — apply a ready edit-op or transform
+    bool drawing_in_progress() const;// clicks or picks are down but nothing is committed yet
+    bool has_any_selection() const;  // model pick, committed-loop pick or sketch pick
+    bool clear_any_selection();      // CadLevel::Idle — drop all three; true if anything was dropped
     bool sketch_first_selected_type(SketchEntity::Type& out) const;
     // Live sketch session (Fase 4.2 live constraint path): the panel reads the in-session
     // selection and entities, and commits a planned constraint through the tool's
@@ -368,14 +383,30 @@ private:
     void reload(bool keep_view);
     void swap_camera();   // enter_viewport / leave_viewport, in the one direction they share
 
+    // Selected faces are filled by the canvas: each body's selected faces become a volume of their
+    // own, drawn opaque in the selection colour with the body's shader and lighting, so a selection
+    // is the same colour on every body. The faces are the sketch tool's selected_faces() (the
+    // Feature tree row's and the committed face or body pick), which the tool outlines.
+    void rebuild_bodies();          // object 0 from m_body_meshes, split by m_lit_faces
+    void sync_selected_faces();     // re-split and reload, once queued, if the selection changed
+    struct BodyVolume { int body; bool lit; };   // an object 0 volume: its body, and whether it holds selected faces
+    const std::vector<TriangleMesh>* m_body_meshes{nullptr};  // set_bodies
+    const std::vector<int>*          m_tri_face{nullptr};     // per-triangle face id, all bodies in order
+    std::vector<std::pair<int, int>> m_lit_faces;             // what object 0 is split by now
+    std::vector<BodyVolume>          m_volumes;               // object 0's volumes, in order
+    bool                             m_split_pending{false};
+    std::function<void(int, int, int, int)> m_on_solid_selection_changed;
+
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};
     int         m_sw_gl{-1};   // -1 unknown, 0 hardware GL, 1 software GL
+    GLToolbar   m_collapse_toolbar{GLToolbar::Normal, "Collapse"};
 
     std::function<void(const wxPoint&)> m_on_context_menu;
     bool        m_ctx_bound{false};   // bind the RIGHT_UP handler once, however often the cb is set
     wxPoint     m_ctx_press{0, 0};    // right-press origin: a right-DRAG orbits, it must not offer
-    long long   m_ctx_press_ms{0};    // and a right-HOLD is navigation too, however still it is held
+    bool        m_ctx_travelled{false};   // the right press wandered past the budget at ANY point,
+                                          // so an orbit that ends where it began is still an orbit
 
     Bed3D       m_bed;
     // The half of the camera swap above that is NOT on screen: the editor tabs' view while
@@ -385,7 +416,6 @@ private:
     bool        m_camera_swapped{false};   // guards a leave without an enter, and the reverse
     Model       m_model;
     bool        m_first_frame{true};
-    bool        m_body_selected{false};   // tree selected a body feature → tint the solid
     int         m_hl_body_target{-1};
     int         m_hl_body_tool{-1};
     bool        m_body_translucent{false};// fillet/chamfer preview → render the body see-through
@@ -403,36 +433,15 @@ private:
     bool m_section_on{false};
 
     std::unique_ptr<SketchInlineEditor> m_inline_editor;  // floating in-canvas value editor
-    // Bottom-right viewport HUD: a borderless float label over the GL canvas showing the
-    // active tool's current values (fed by the tool's on_readout). Empty text hides it.
-    // A wxPopupWindow for the SAME reason as the status chip below, and it was a wxFrame until
-    // the reason was measured rather than assumed: "it appears mid-gesture and the next input is
-    // the mouse" is false. The chip keeps the last value on screen AFTER the gesture ends, and a
-    // frame holds the X input focus once it has it — so the next keystroke went to a 119x31
-    // window that has no use for it. Measured on :10: focus on the chip, `r` produced no
-    // CHAR_HOOK line at all; one bare canvas click moved focus back and the same key armed the
-    // tool. That is every sketch shortcut dead after every dimensioned entity.
-    wxPopupWindow* m_hud{nullptr};
-    wxStaticText* m_hud_label{nullptr};
+    // The viewport chips, drawn in the tool's ImGui pass (render_hud): bottom-right the active
+    // tool's current values (fed by the tool's on_readout), bottom-left the status line written by
+    // DesignPanel. Empty text draws nothing. They were top-level popups once; a popup does not
+    // follow its frame, so it floated over other applications and outlived the tab.
     std::string   m_hud_last;
-    void set_readout(const std::string& text);
-    void place_readout_hud();            // anchor + show, using m_hud_last
-    void show_readout_hud(bool on);      // iconise/deactivate: a popup would float on the desktop
-
-    // Bottom-LEFT viewport HUD: the selection / tool status line, written by DesignPanel.
-    // A wxPopupWindow, NOT the wxFrame the readout HUD uses: a frame accepts keyboard focus,
-    // and this one is on screen permanently and re-raised on every status change, so it stole
-    // the keyboard from the canvas and killed every sketch shortcut in the tab.
-    wxPopupWindow* m_status_hud{nullptr};
-    wxStaticText* m_status_hud_label{nullptr};
     wxString      m_status_hud_last;
-    wxColour      m_status_hud_colour;
-    void place_status_hud();          // re-anchors to the canvas corner (also on resize)
-    void apply_status_label();        // SetLabel + Wrap to the canvas width + Fit, always together
-    // On the top-level frame, which outlives this canvas — members so they can be unbound.
-    void on_frame_iconize(wxIconizeEvent& e);
-    void on_frame_activate(wxActivateEvent& e);
-    void on_status_hud_reanchor(wxEvent& e);   // frame wxEVT_MOVE and canvas wxEVT_SIZE
+    wxColour      m_status_hud_colour;   // wxNullColour: the overlay's own text colour
+    void set_readout(const std::string& text);
+    void render_hud();
     std::function<void(const SketchProfile&, const SketchPlane&)> m_on_sketch_commit;
     std::function<void(const std::vector<SketchEntity>&,
                        const std::vector<SketchEntityConstraintDef>&,

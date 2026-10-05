@@ -24,10 +24,11 @@
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
-#include "../ExtrusionEntityCollection.hpp"
-#include "../ShortestPath.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+
+namespace Slic3r { class ExtrusionEntityCollection; }
 
 namespace Slic3r {
 

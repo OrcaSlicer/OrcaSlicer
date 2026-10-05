@@ -5,7 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "PythonPluginInterface.hpp"
+namespace Slic3r { class PluginCapabilityInterface; }
+namespace Slic3r { class PluginCapabilityInterface; }
+namespace Slic3r { class PluginCapabilityInterface; }
+namespace Slic3r { class PluginCapabilityInterface; }
+
 
 namespace Slic3r {
 

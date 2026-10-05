@@ -4,7 +4,6 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "EncodedFilament.hpp"
-#include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StateColor.hpp"
 #include "Widgets/DialogButtons.hpp"

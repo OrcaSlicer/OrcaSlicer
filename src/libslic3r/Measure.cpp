@@ -31,6 +31,8 @@
 #include <vector>
 #include <utility>
 
+namespace Slic3r { enum Face_index : int; }
+
 #define DEBUG_EXTRACT_ALL_FEATURES_AT_ONCE 0
 
 namespace Slic3r {

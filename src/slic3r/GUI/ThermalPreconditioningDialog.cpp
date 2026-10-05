@@ -1,8 +1,6 @@
 #include "ThermalPreconditioningDialog.hpp"
 #include "I18N.hpp"
-#include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "wxExtensions.hpp"
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include <wx/wx.h>
@@ -16,6 +14,8 @@
 #include <wx/sizer.h>
 #include <wx/font.h>
 #include <wx/event.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

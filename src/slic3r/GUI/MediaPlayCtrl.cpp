@@ -12,7 +12,6 @@
 #include "libslic3r_version.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
-#include "libslic3r/Thread.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
@@ -35,6 +34,7 @@
 #include <boost/nowide/utf8_codecvt.hpp>
 #include <map>
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Thread.hpp"
 #include <cstring>
 #include <boost/thread/lock_types.hpp>
 #include <memory>
@@ -73,6 +73,8 @@
 
 #include <wx/clipbrd.h>
 #include "wx/evtloop.h"
+
+class wxImage;
 
 static std::map<int, std::string> error_messages = {
     {1, L("The device cannot handle more conversations. Please retry later.")},

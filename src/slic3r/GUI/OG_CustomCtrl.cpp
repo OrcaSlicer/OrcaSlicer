@@ -4,7 +4,6 @@
 #include "Plater.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
-#include "libslic3r/AppConfig.hpp"
 
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
@@ -27,9 +26,7 @@
 #include <algorithm>
 #include <wx/utils.h>
 #include <boost/algorithm/string/split.hpp>
-#include "libslic3r/Utils.hpp"
 #include "I18N.hpp"
-#include "format.hpp"
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <wx/validate.h>
 

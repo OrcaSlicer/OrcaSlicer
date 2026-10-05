@@ -16,6 +16,7 @@
 #include "libslic3r/Polyline.hpp"
 #include <utility>
 #include "Fill3DHoneycomb.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 

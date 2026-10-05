@@ -15,6 +15,8 @@
 
 #include <boost/process.hpp>
 
+namespace boost::process { class child; }
+
 namespace Slic3r { namespace GUI {
 
 class ProcessRunner : public wxEvtHandler

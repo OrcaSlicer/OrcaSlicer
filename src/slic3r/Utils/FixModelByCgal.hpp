@@ -3,7 +3,8 @@
 
 #include <string>
 #include <wx/string.h>
-#include "../GUI/Widgets/ProgressDialog.hpp"
+
+namespace Slic3r::GUI { class ProgressDialog; }
 
 namespace Slic3r {
 

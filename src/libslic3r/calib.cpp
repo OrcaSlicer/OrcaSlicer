@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <vector>
 #include <cstddef>
+#include "clonable_ptr.hpp"
 
 namespace Slic3r {
 

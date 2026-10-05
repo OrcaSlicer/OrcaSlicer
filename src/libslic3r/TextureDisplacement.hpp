@@ -18,7 +18,6 @@
 #include <array>
 
 #include "Point.hpp"
-#include "TriangleMesh.hpp"
 #include "TriangleSelector.hpp"
 
 namespace Slic3r {

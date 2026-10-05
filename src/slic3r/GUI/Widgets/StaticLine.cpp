@@ -11,6 +11,9 @@
 #include <wx/gdicmn.h>
 #include <wx/event.h>
 #include <wx/utils.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 BEGIN_EVENT_TABLE(StaticLine, wxWindow)
 

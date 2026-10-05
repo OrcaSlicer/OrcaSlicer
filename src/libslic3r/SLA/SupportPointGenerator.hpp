@@ -11,7 +11,6 @@
 #include <random>
 
 #include <libslic3r/SLA/SupportPoint.hpp>
-#include <libslic3r/SLA/IndexedMesh.hpp>
 
 #include <libslic3r/BoundingBox.hpp>
 #include <libslic3r/ClipperUtils.hpp>
@@ -21,6 +20,8 @@
 #include <vector>
 #include <unordered_map>
 #include <utility>
+
+namespace Slic3r::sla { class IndexedMesh; }
 
 // #define SLA_SUPPORTPOINTGEN_DEBUG
 

@@ -80,6 +80,11 @@
 #include "wxExtensions.hpp"
 
 #include <nlohmann/json.hpp>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/defs.h>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -2045,7 +2050,8 @@ void CrealityPrintHostSendDialog::init()
                 wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
                 wxString label_str;
                 if (slot.box_id == 0)
-                    label_str = wxString::Format("Ext - %s", slot.type.c_str());
+                    // TRN External spool slot, followed by its filament type
+                    label_str = wxString::Format(_L("Ext - %s"), slot.type.c_str());
                 else
                     label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
                 combo->Append(label_str, bmp ? *bmp : wxNullBitmap);

@@ -1,5 +1,4 @@
 #include "PerimeterGenerator.hpp"
-#include "AABBTreeLines.hpp"
 #include "Arachne/utils/ExtrusionLine.hpp"
 #include "Arachne/utils/ExtrusionJunction.hpp"
 #include "BridgeDetector.hpp"
@@ -37,7 +36,9 @@
 #include "libslic3r.h"
 #include <utility>
 #include "libslic3r/AABBTreeLines.hpp"
-#include "Print.hpp"
+#include "BoundingBox.hpp"
+#include "MultiMaterialSegmentation.hpp"
+#include "SurfaceCollection.hpp"
 static const int overhang_sampling_number = 6;
 static const double narrow_loop_length_threshold = 10;
 //BBS: when the width of expolygon is smaller than

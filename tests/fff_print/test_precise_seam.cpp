@@ -16,6 +16,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <vector>
 #include <utility>
 #include "libslic3r/libslic3r.h"

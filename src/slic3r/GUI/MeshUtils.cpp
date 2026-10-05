@@ -1,7 +1,6 @@
 #include "MeshUtils.hpp"
 
 #include "libslic3r/Tesselate.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Model.hpp"
@@ -39,6 +38,9 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/AABBMesh.hpp"
+#include "libslic3r/CSGMesh/CSGMesh.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "slic3r/GUI/GLModel.hpp"
 
 
 namespace Slic3r {
