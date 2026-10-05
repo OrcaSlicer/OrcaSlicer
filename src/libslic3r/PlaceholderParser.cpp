@@ -861,10 +861,13 @@ namespace client
             if (external_config != nullptr) {
                 const ConfigOptionInts * filament_map_opt = external_config->option<ConfigOptionInts>("filament_map");
                 if (filament_map_opt && current_extruder_id < filament_map_opt->values.size()) {
-                    return filament_map_opt->values[current_extruder_id];
+                    int extruder_id = filament_map_opt->values[current_extruder_id];
+                    // filament_map is 1-based (1 = Extruder 0, 2 = Extruder 1, etc.)
+                    if (extruder_id > 0)
+                        return size_t(extruder_id - 1);
                 }
             }
-            return 0;
+            return current_extruder_id;
         }
 
         static bool             evaluate_full_macro(const MyContext *ctx) { return ! ctx->just_boolean_expression; }
