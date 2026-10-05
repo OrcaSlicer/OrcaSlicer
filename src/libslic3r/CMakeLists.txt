@@ -648,9 +648,16 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
+if (TARGET TKXDESTEP)
+    # OCCT 7.6 exposes the STEP/XDE exchange toolkit as TKXDESTEP. Older
+    # dependency bundles used the TKDESTEP/TKDE pair instead.
+    set(_occt_step_exchange_libs TKXDESTEP TKSTEP TKSTEPAttr TKSTEP209 TKSTEPBase)
+else ()
+    set(_occt_step_exchange_libs TKDESTEP TKDE)
+endif ()
+
 set(OCCT_LIBS
-    TKDESTEP
-    TKDE
+    ${_occt_step_exchange_libs}
     TKXCAF
     TKXSBase
     TKVCAF
