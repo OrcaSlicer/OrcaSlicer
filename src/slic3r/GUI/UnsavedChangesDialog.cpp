@@ -1788,7 +1788,12 @@ static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* 
 //------------------------------------------
 static std::string get_selection(PresetComboBox* preset_combo)
 {
-    return into_u8(preset_combo->GetString(preset_combo->GetSelection()));
+    if (!preset_combo)
+        return std::string();
+    int sel = preset_combo->GetSelection();
+    if (sel == wxNOT_FOUND)
+        return std::string();
+    return Preset::remove_suffix_modified(into_u8(preset_combo->GetString(sel)));
 }
 
 void DiffPresetDialog::create_presets_sizer()
@@ -1797,13 +1802,12 @@ void DiffPresetDialog::create_presets_sizer()
 
     for (auto new_type : { Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT, Preset::TYPE_SLA_MATERIAL, Preset::TYPE_PRINT, Preset::TYPE_SLA_PRINT })
     {
-        const PresetCollection* collection = get_preset_collection(new_type);
         wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
         PresetComboBox* presets_left;
         PresetComboBox* presets_right;
         ScalableButton* equal_bmp = new ScalableButton(this, wxID_ANY, "equal");
 
-        auto add_preset_combobox = [collection, sizer, new_type, this](PresetComboBox** cb_, PresetBundle* preset_bundle) {
+        auto add_preset_combobox = [sizer, new_type, this](PresetComboBox** cb_, PresetBundle* preset_bundle) {
             *cb_ = new PresetComboBox(this, new_type, wxSize(em_unit() * 35, -1), preset_bundle);
             PresetComboBox* cb = (*cb_);
             cb->set_selection_changed_function([this, new_type, preset_bundle, cb](int selection) {
@@ -1813,7 +1817,8 @@ void DiffPresetDialog::create_presets_sizer()
                 }
                 update_tree();
             });
-            if (collection->get_selected_idx() != (size_t)-1)
+            const PresetCollection* collection = get_preset_collection(new_type, preset_bundle);
+            if (collection && collection->get_selected_idx() != (size_t)-1)
                 cb->update(collection->get_selected_preset().name);
 
             sizer->Add(cb, 1);
@@ -2119,9 +2124,13 @@ void DiffPresetDialog::update_tree()
             continue;
         Preset::Type type = preset_combos.presets_left->get_type();
 
-        const PresetCollection* presets = get_preset_collection(type);
-        const Preset* left_preset  = presets->find_preset(get_selection(preset_combos.presets_left));
-        const Preset* right_preset = presets->find_preset(get_selection(preset_combos.presets_right));
+        const PresetCollection* presets_left  = get_preset_collection(type, m_preset_bundle_left.get());
+        const PresetCollection* presets_right = get_preset_collection(type, m_preset_bundle_right.get());
+        if (!presets_left || !presets_right)
+            continue;
+
+        const Preset* left_preset  = presets_left->find_preset(get_selection(preset_combos.presets_left));
+        const Preset* right_preset = presets_right->find_preset(get_selection(preset_combos.presets_right));
         if (!left_preset || !right_preset) {
             bottom_info = _L("One of the presets does not exist");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
@@ -2143,10 +2152,14 @@ void DiffPresetDialog::update_tree()
         // Collect dirty options.
         const bool deep_compare = (type == Preset::TYPE_PRINTER ||
                                    type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
-        auto dirty_options = type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
-                             left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size() < right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size() ?
-                             presets->dirty_options(right_preset, left_preset, deep_compare) :
-                             presets->dirty_options(left_preset, right_preset, deep_compare);
+        auto* left_colours  = left_config.opt<ConfigOptionStrings>("extruder_colour");
+        auto* right_colours = right_congig.opt<ConfigOptionStrings>("extruder_colour");
+        bool swap_order = type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
+                          left_colours && right_colours && left_colours->values.size() < right_colours->values.size();
+
+        auto dirty_options = swap_order ?
+                             presets_left->dirty_options(right_preset, left_preset, deep_compare) :
+                             presets_left->dirty_options(left_preset, right_preset, deep_compare);
 
         if (dirty_options.empty()) {
             //bottom_info = _L("Presets are the same");
@@ -2165,18 +2178,21 @@ void DiffPresetDialog::update_tree()
 
         m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
 
-        const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
-        auto get_category_icon = [&category_icon_map](const wxString& key) {
+        Tab* tab = wxGetApp().get_tab(type);
+        auto get_category_icon = [tab](const wxString& key) -> std::string {
+            if (!tab) return std::string();
+            const auto& category_icon_map = tab->get_category_icon_map();
             auto it = category_icon_map.find(key);
             return it != category_icon_map.end() ? it->second : std::string();
         };
 
         // process changes of extruders count
         if (type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
-            left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size() != right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()) {
+            left_colours && right_colours &&
+            left_colours->values.size() != right_colours->values.size()) {
             wxString local_label = _L("Extruder count");
-            wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
-            wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
+            wxString left_val = from_u8((boost::format("%1%") % left_colours->values.size()).str());
+            wxString right_val = from_u8((boost::format("%1%") % right_colours->values.size()).str());
 
             m_tree->Append("extruders_count", type, _L("General"), _L("Capabilities"), local_label, left_val, right_val,
                 get_category_icon("Basic information"));
@@ -2187,9 +2203,16 @@ void DiffPresetDialog::update_tree()
             wxString right_val = get_string_value(opt_key, right_congig);
 
             const std::string lookup_key = get_pure_opt_key(opt_key);
-            Search::Option option = index.get_option(lookup_key, get_full_label(lookup_key, left_config), type);
-            if (get_pure_opt_key(option.opt_key()) != lookup_key)
-                option = index.get_option(opt_key, get_full_label(opt_key, left_config), type);
+            wxString full_label = get_full_label(lookup_key, left_config);
+            if (full_label == _L("N/A"))
+                full_label = get_full_label(lookup_key, right_congig);
+            Search::Option option = index.get_option(lookup_key, full_label, type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key) {
+                wxString opt_label = get_full_label(opt_key, left_config);
+                if (opt_label == _L("N/A"))
+                    opt_label = get_full_label(opt_key, right_congig);
+                option = index.get_option(opt_key, opt_label, type);
+            }
             if (get_pure_opt_key(option.opt_key()) != lookup_key) {
                 // When the found option is not the requested one.
                 // This can happen for dirty_options such as:
