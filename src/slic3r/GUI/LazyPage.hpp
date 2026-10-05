@@ -58,6 +58,11 @@ public:
     // virtual from the book's ShowWithEffect() only for wxSHOW_EFFECT_NONE, the default.
     bool Show(bool show = true) override
     {
+        // Built before this page is shown, as an idle prebuild builds it. On MSW every control
+        // created or moved inside a shown window re-clips and repaints its shown siblings, so
+        // building a large panel into a shown page took seconds.
+        if (show && wxGetTopLevelParent(this)->IsShown())
+            this->ensure();
         const bool changed = wxPanel::Show(show);
         if (show) {
             // The book shows its first page as it is inserted, before startup has chosen the

@@ -2665,6 +2665,11 @@ void ObjectList::load_shape_object(const std::string &type_name)
 
 void ObjectList::load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center)
 {
+    load_mesh_object(std::vector<std::pair<const TriangleMesh*, wxString>>{{&mesh, name}}, name, center);
+}
+
+void ObjectList::load_mesh_object(const std::vector<std::pair<const TriangleMesh*, wxString>> &parts, const wxString &name, bool center)
+{
     // Add mesh to model as a new object
     Model& model = wxGetApp().plater()->model();
 
@@ -2673,14 +2678,19 @@ void ObjectList::load_mesh_object(const TriangleMesh &mesh, const wxString &name
 #endif /* _DEBUG */
 
     std::vector<size_t> object_idxs;
-    auto bb = mesh.bounding_box();
+    BoundingBoxf3 bb;
     ModelObject* new_object = model.add_object();
     new_object->name = into_u8(name);
     new_object->add_instance(); // each object should have at least one instance
 
-    ModelVolume* new_volume = new_object->add_volume(mesh);
+    // add_volume() centres each part on its own geometry, so the part offsets carry the
+    // meshes' placement relative to each other.
+    for (const auto& [mesh, part_name] : parts) {
+        bb.merge(mesh->bounding_box());
+        ModelVolume* new_volume = new_object->add_volume(*mesh);
+        new_volume->name = into_u8(part_name);
+    }
     new_object->sort_volumes(true);
-    new_volume->name = into_u8(name);
     // set a default extruder value, since user can't add it manually
     // BBS
     new_object->config.set_key_value("extruder", new ConfigOptionInt(1));

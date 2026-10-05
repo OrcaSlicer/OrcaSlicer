@@ -147,6 +147,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/WebPanel.hpp
     GUI/Widgets/WebHosting.cpp
     GUI/Widgets/WebHosting.hpp
+    GUI/AuiMgr.cpp
+    GUI/AuiMgr.hpp
     GUI/AuiPaneLayout.cpp
     GUI/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
@@ -833,6 +835,10 @@ if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
         GUI/CAD/DesignPanel.cpp
         GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignRowList.cpp
+        GUI/CAD/DesignRowList.hpp
+        GUI/CAD/DesignTextDialog.cpp
+        GUI/CAD/DesignTextDialog.hpp
         GUI/CAD/DesignCanvas.cpp
         GUI/CAD/DesignCanvas.hpp
         GUI/CAD/DesignSketchTool.cpp

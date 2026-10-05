@@ -209,7 +209,7 @@ FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* ar
 
     m_avc = new ArchiveViewCtrl(this, wxSize(45 * em, 30 * em));
     wxDataViewColumn*  toggle_column = m_avc->AppendToggleColumn(L"\u2714", 0, wxDATAVIEW_CELL_ACTIVATABLE, 6 * em);
-    m_avc->AppendTextColumn("filename", 1);
+    m_avc->AppendTextColumn(_L("filename"), 1);
     
     std::vector<std::shared_ptr<ArchiveViewNode>> stack;
 

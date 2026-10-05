@@ -411,7 +411,7 @@ bool GLGizmoTextureDisplacement::on_init()
     m_desc["circle"]        = _L("Circle");
     m_desc["sphere"]        = _L("Sphere");
     m_desc["remove_layer"]  = _L("Remove");
-    m_desc["bake"]          = _L("Bake");
+    m_desc["bake"]          = _L_CONTEXT("Bake", "Texture Displacement");
     return true;
 }
 
@@ -3509,7 +3509,7 @@ void GLGizmoTextureDisplacement::set_layer_texture(TextureDisplacementLayer &lay
 
 void GLGizmoTextureDisplacement::import_custom_texture(TextureDisplacementLayer &layer)
 {
-    const wxString wildcard = "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp";
+    const wxString wildcard = _L("Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp");
     wxFileDialog   dialog(nullptr, _L("Choose a texture image (height map)"), wxEmptyString, wxEmptyString, wildcard,
                          wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dialog.ShowModal() != wxID_OK)
@@ -6001,8 +6001,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // Midlevel: the height that means "don't move". At 0 the surface only ever bulges outwards;
                 // at 0.5 mid-grey is neutral and darker texels cut inwards.
                 m_preview_params_dirty |= float_row("##midlevel", _L("Midlevel"), &layer.midlevel, 0.f, 10.f, "%.2f", false, card_pad);
-                hover_tip(_u8L("Which grey stays where the surface already is. At 0 the texture only pushes "
-                               "outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones "
+                hover_tip(_u8L("Which gray stays where the surface already is. At 0 the texture only pushes "
+                               "outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones "
                                "still push out - one image both embosses and engraves.\n\n"
                                "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep "
                                "cut can pass through the other side."));
@@ -6045,18 +6045,18 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                     const bool has_color     = decode_height_texture(layer).has_color();
                     bool       color_enabled = layer.color_enabled && has_color;
                     m_imgui->disabled_begin(!has_color);
-                    if (m_imgui->bbl_checkbox(_L("Colours"), color_enabled)) {
+                    if (m_imgui->bbl_checkbox(_L("Colors"), color_enabled)) {
                         layer.color_enabled    = color_enabled;
                         m_preview_params_dirty = true;
                     }
                     m_imgui->disabled_end();
                     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
                         m_imgui->tooltip(has_color ?
-                                             _u8L("Prints the painted area in the texture's colours as well as its "
-                                                  "relief. Each colour is matched to the nearest of your loaded "
+                                             _u8L("Prints the painted area in the texture's colors as well as its "
+                                                  "relief. Each color is matched to the nearest of your loaded "
                                                   "filaments; anything you did not paint keeps the object's own.") :
-                                             _u8L("This texture is a grayscale height map, so it has no colours to "
-                                                  "apply. Import a colour image to use this."),
+                                             _u8L("This texture is a grayscale height map, so it has no colors to "
+                                                  "apply. Import a color image to use this."),
                                          wrap_w);
 
                     // The rest of colour belongs to the whole stack, not to this layer, so it only appears once -
@@ -6065,13 +6065,13 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                         TextureDisplacementOptions &opts = mv->texture_displacement_options;
                         if (m_imgui->bbl_checkbox(_L("Mix filaments"), opts.color_mix_enabled))
                             m_preview_params_dirty = true;
-                        hover_tip(_u8L("Interleaves two filaments to fake the colours in between, so a handful "
-                                       "of filaments can cover a photo or a gradient. An image of flat colours "
+                        hover_tip(_u8L("Interleaves two filaments to fake the colors in between, so a handful "
+                                       "of filaments can cover a photo or a gradient. An image of flat colors "
                                        "prints the same either way. Off uses one filament per area."));
                         if (opts.color_mix_enabled) {
                             slider_label(_L("Mix by"));
                             const std::string mix_z       = _u8L("Layers");
-                            const std::string mix_xy      = _u8L("Surface");
+                            const std::string mix_xy      = _u8L_CONTEXT("Surface", "Texture Displacement");
                             const std::string mix_auto    = _u8L("Automatic");
                             const char       *mix_items[] = { mix_z.c_str(), mix_xy.c_str(), mix_auto.c_str() };
                             int               mix_mode    = int(opts.color_mix_mode);
@@ -6087,12 +6087,12 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                            "any angle but can read as texture rather than as a blend.\n"
                                            "Automatic: layers on upright faces; flat-facing faces take the nearer "
                                            "single filament, since a checkerboard there shows as a pattern."));
-                            ImGui::TextDisabled("%s", Slic3r::format(_u8L("%1% printable colours from %2% filaments"),
+                            ImGui::TextDisabled("%s", Slic3r::format(_u8L("%1% printable colors from %2% filaments"),
                                                                      int(cached_palette().size()), int(m_palette_filaments.size())).c_str());
                         }
                         if (int_row("##color_despeckle", _L("Denoise"), &opts.color_despeckle, 0, 6, "%d", card_pad))
                             m_preview_params_dirty = true;
-                        hover_tip(_u8L("Cleans up single stray triangles of the wrong colour, which detail finer "
+                        hover_tip(_u8L("Cleans up single stray triangles of the wrong color, which detail finer "
                                        "than the mesh leaves behind. Raise it if the result looks speckled, "
                                        "lower it if small features are being swallowed."));
                     }
@@ -6102,7 +6102,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 {
                     const float x0 = ImGui::GetCursorPosX();
                     ImGui::AlignTextToFramePadding();
-                    ImGui::TextDisabled("%s", _u8L("Mapping").c_str());
+                    ImGui::TextDisabled("%s", _u8L_CONTEXT("Mapping", "Texture Displacement").c_str());
                     ImGui::SameLine();
                     ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
                     struct MappingIcon
@@ -6116,9 +6116,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                           _L("Triplanar - projects the texture from all three axes at once and blends between them, so a "
                              "patch wrapping around a sharp edge has no seam.") },
                         { "menu_obj_cylinder.svg", _L("Cylindrical"),
-                          _L("Cylindrical - wraps the texture around the painted area's own centre, for round shapes.") },
+                          _L("Cylindrical - wraps the texture around the painted area's own center, for round shapes.") },
                         { "menu_obj_sphere.svg", _L("Spherical"),
-                          _L("Spherical - wraps the texture around the painted area's own centre in both directions.") },
+                          _L("Spherical - wraps the texture around the painted area's own center in both directions.") },
                         { "texture_displacement_map_unwrap.svg", _L("Unwrap (LSCM)"),
                           _L("Unwrap - flattens the painted area and maps the texture onto it with as little stretching as "
                              "possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each "
@@ -6261,9 +6261,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                     ImGui::TextDisabled("%s", _u8L("Blend").c_str());
                     ImGui::SameLine();
                     ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-                    const std::string blend_add      = _u8L("Add");
-                    const std::string blend_subtract = _u8L("Subtract");
-                    const std::string blend_multiply = _u8L("Multiply");
+                    const std::string blend_add      = _u8L_CONTEXT("Add", "Texture Displacement");
+                    const std::string blend_subtract = _u8L_CONTEXT("Subtract", "Texture Displacement");
+                    const std::string blend_multiply = _u8L_CONTEXT("Multiply", "Texture Displacement");
                     const std::string blend_divide   = _u8L("Divide");
                     const char *blend_items[] = { blend_add.c_str(), blend_subtract.c_str(), blend_multiply.c_str(), blend_divide.c_str() };
                     // The first layer has nothing before it to combine with - build_texture_displacement() makes it
@@ -6535,11 +6535,11 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             // Only worth showing when a layer is actually colouring: with no colour there is no boundary for it
             // to refine and the control would do nothing whatever it is set to.
             if (mv != nullptr && any_layer_colors(*mv)) {
-                if (float_row("##subdiv_color", _L("Colour detail"), &m_subdivide_color_mm, 0.f, 5.f, "%.3f mm", false, 0.f))
+                if (float_row("##subdiv_color", _L("Color detail"), &m_subdivide_color_mm, 0.f, 5.f, "%.3f mm", false, 0.f))
                     preview_live();
-                hover_tip(_u8L("Triangle size where two colours meet. Each triangle prints in one filament, so a "
-                                "colour edge can only be as sharp as the triangles along it - and nothing else "
-                                "refines there, since the surface is flat across a change of colour. 0 turns it off."));
+                hover_tip(_u8L("Triangle size where two colors meet. Each triangle prints in one filament, so a "
+                                "color edge can only be as sharp as the triangles along it - and nothing else "
+                                "refines there, since the surface is flat across a change of color. 0 turns it off."));
             }
 
             ImGui::TextDisabled("%s", _u8L("Triangle budget: set with Triangles, below.").c_str());
@@ -6657,7 +6657,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                             "on a layer is a different thing: it blurs the image before it is used."));
             if (opts.smooth_enabled) {
                 float percent = opts.smooth_strength * 100.f;
-                if (float_row("##dispsmooth", _L("Strength"), &percent, 1.f, 100.f, "%.0f %%", false, 0.f)) {
+                if (float_row("##dispsmooth", _L_CONTEXT("Strength", "Texture Displacement"), &percent, 1.f, 100.f, "%.0f %%", false, 0.f)) {
                     opts.smooth_strength   = std::clamp(percent / 100.f, 0.01f, 1.f);
                     m_preview_params_dirty = true;
                 }
@@ -6699,16 +6699,17 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             }
             hover_tip(_u8L("Bake by moving the vertices the mesh already has, after preparing it (remesh, "
                            "adaptive subdivision, and a cut along sharp steps in the texture). Keeps the "
-                           "topology, which is what colours need. The default pipeline instead refines, "
+                           "topology, which is what colors need. The default pipeline instead refines, "
                            "cleans up sliver triangles, displaces and simplifies in one run; nothing needs "
-                           "preparing first, but it does not produce colours yet."));
+                           "preparing first, but it does not produce colors yet."));
         }
         if (opts.pipeline_v2) {
             // -1 is "auto": the row shows the recommendation, greyed; editing it makes it a fixed value.
             const bool auto_budget = opts.v2_max_triangles_k < 0;
             int        shown_k     = auto_budget ? v2_recommendation(*mv).budget_k : opts.v2_max_triangles_k;
             m_imgui->disabled_begin(auto_budget);
-            if (int_row("##v2budget", _L("Budget"), &shown_k, 0, 4000, auto_budget ? "%d k (auto)" : "%d k", 0.f)) {
+            // TRN Slider value: %d is the triangle budget in thousands
+            if (int_row("##v2budget", _L("Budget"), &shown_k, 0, 4000, auto_budget ? _u8L("%d k (auto)").c_str() : "%d k", 0.f)) {
                 opts.v2_max_triangles_k = shown_k;
                 m_preview_params_dirty  = true;
             }
@@ -6827,7 +6828,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             ImGui::SetNextItemWidth(x0 + panel_w - ImGui::GetCursorPosX());
             float shown = auto_res ? rec.edge_mm : opts.v2_refine_mm;
             m_imgui->disabled_begin(busy || auto_res);
-            if (ImGui::SliderFloat("##v2edge", &shown, 0.02f, 2.f, auto_res ? "%.2f mm (auto)" : "%.2f mm",
+            if (ImGui::SliderFloat("##v2edge", &shown, 0.02f, 2.f, auto_res ? _u8L("%.2f mm (auto)").c_str() : "%.2f mm",
                                    ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic)) {
                 opts.v2_refine_mm      = shown;
                 m_preview_params_dirty = true;

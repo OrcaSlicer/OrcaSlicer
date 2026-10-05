@@ -1228,7 +1228,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
         for (auto it = m_materialList.begin(); it != m_materialList.end(); it++) {
-            wxString ams_id  = "Ext";
+            wxString ams_id  = _L("Ext");
             wxColour ams_col = wxColour(0xCE, 0xCE, 0xCE);
             it->second->item->set_ams_info(ams_col, ams_id, true); // sync_ams_mapping_result
         }
@@ -1248,7 +1248,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 wxColour ams_col;
 
                 if (f->tray_id == VIRTUAL_TRAY_MAIN_ID || f->tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
-                    ams_id = "Ext";
+                    ams_id = _L("Ext");
                 }
 
                 else if (f->tray_id >= 0) {
@@ -1567,13 +1567,13 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
         if (nozzle_volume_type_opt) {
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType) (nozzle_volume_type_opt->get_at(used_extruders[i]));
             if (nozzle_volume_type == NozzleVolumeType::nvtStandard) {
-                used_extruders_flow[used_extruders[i]] = "Standard";
+                used_extruders_flow[used_extruders[i]] = L("Standard");
             } else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
-                used_extruders_flow[used_extruders[i]] = "TPU High Flow";
+                used_extruders_flow[used_extruders[i]] = L("TPU High Flow");
             } else if (nozzle_volume_type == NozzleVolumeType::nvtE3DHighFlow) {
-                used_extruders_flow[used_extruders[i]] = "E3D High Flow";
+                used_extruders_flow[used_extruders[i]] = L("E3D High Flow");
             } else {
-                used_extruders_flow[used_extruders[i]] = "High Flow";
+                used_extruders_flow[used_extruders[i]] = L("High Flow");
             }
         }
     }
@@ -1584,13 +1584,13 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
     std::vector<std::string> flow_type_of_machine;
     for (auto it = data.GetExtruders().begin(); it != data.GetExtruders().end(); it++) {
         if (it->GetNozzleFlowType() == NozzleFlowType::H_FLOW) {
-            flow_type_of_machine.push_back("High Flow");
+            flow_type_of_machine.push_back(L("High Flow"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::S_FLOW) {
-            flow_type_of_machine.push_back("Standard");
+            flow_type_of_machine.push_back(L("Standard"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::U_FLOW) {
-            flow_type_of_machine.push_back("TPU High Flow");
+            flow_type_of_machine.push_back(L("TPU High Flow"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::E_FLOW) {
-            flow_type_of_machine.push_back("E3D High Flow");
+            flow_type_of_machine.push_back(L("E3D High Flow"));
         }
     }
 
@@ -1612,7 +1612,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
                     error_message = wxString::Format(_L("The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "
                                                         "Please make sure the nozzle installed matches with settings in printer, "
                                                         "then set the corresponding printer preset while slicing."),
-                                                     pos, flow_type_of_machine[target_machine_nozzle_id], used_extruders_flow[it->first]);
+                                                     pos, _L(flow_type_of_machine[target_machine_nozzle_id]), _L(used_extruders_flow[it->first]));
                     return false;
                 }
             }
@@ -2063,7 +2063,7 @@ void SyncAmsInfoDialog::on_refresh(wxCommandEvent &event)
 void SyncAmsInfoDialog::on_set_finish_mapping(wxCommandEvent &evt)
 {
     auto selection_data     = evt.GetString();
-    auto selection_data_arr = wxSplit(selection_data.ToStdString(), '|');
+    auto selection_data_arr = wxSplit(selection_data, '|');
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 

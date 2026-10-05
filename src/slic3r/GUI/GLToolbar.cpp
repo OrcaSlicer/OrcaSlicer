@@ -13,6 +13,7 @@
 #include "libslic3r/Utils.hpp"
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <vector>
 #include <utility>
 #include <wx/event.h>
@@ -1673,6 +1674,28 @@ int GLToolbar::generate_image_textures()
 float GLToolbar::get_scaled_icon_size()
 {
     return m_layout.icons_size * m_layout.scale;
+}
+
+bool setup_collapse_toolbar(GLToolbar& toolbar, std::function<void()> toggle)
+{
+    toolbar.set_layout_type(GLToolbar::Layout::Vertical);
+    toolbar.set_horizontal_orientation(GLToolbar::Layout::HO_Right);
+    toolbar.set_vertical_orientation(GLToolbar::Layout::VO_Top);
+    toolbar.set_border(4.0f);
+    toolbar.set_separator_size(4);
+    toolbar.set_gap_size(2);
+
+    toolbar.del_all_item();
+
+    GLToolbarItem::Data item;
+
+    item.name = "collapse_sidebar";
+    // set collapse svg name
+    item.icon_filename = "collapse.svg";
+    item.sprite_id = 0;
+    item.left.action_callback = std::move(toggle);
+
+    return toolbar.add_item(item);
 }
 
 } // namespace GUI

@@ -60,7 +60,7 @@ void wgtMsgPanelItem::CreateGui()
     text_sizer->Add(m_text_label, 0, wxALIGN_CENTER_VERTICAL);
 
     if (!m_wiki_url.IsEmpty()) {
-        m_wiki_link = new wxHyperlinkCtrl(this, wxID_ANY, "Wiki->", m_wiki_url);
+        m_wiki_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki->"), m_wiki_url);
         m_wiki_link->SetNormalColour(m_colour);
         m_wiki_link->SetHoverColour(wxColour(0, 0, 200));
         m_wiki_link->SetVisitedColour(*wxBLUE);
