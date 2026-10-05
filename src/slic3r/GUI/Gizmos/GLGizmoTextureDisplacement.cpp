@@ -489,7 +489,15 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // volume for a shaded pass that then draws nothing is what made the model vanish - most obviously
     // with zero layers, but equally with a layer that has no texture picked yet.
     const bool use_shaded = m_use_shaded_preview && m_shaded_preview_glmodel.is_initialized() && shaded_preview_ready();
-    const bool use_true_preview = !use_shaded && m_preview_glmodel.is_initialized();
+    // Checker/Distortion are built from the *base* patch and drawn with a polygon offset, which biases
+    // depth values - it does not move the geometry. It therefore cannot win against a surface that
+    // genuinely stands in front, and the displaced preview does exactly that: it rises above the base
+    // surface by the layer's depth. Drawn underneath a UV-check overlay it simply occludes it, which is
+    // why those two modes looked like they did nothing. Leave it out and let the undisplaced volume show
+    // through instead (toggle_model_objects_visibility below) - that one *is* coincident with the
+    // overlay, which is what the offset assumes, and it is the surface whose mapping is being inspected.
+    const bool use_true_preview = !use_shaded && m_uv_check_mode == UVCheckMode::None &&
+                                  m_preview_glmodel.is_initialized();
     // In Checker/Distortion mode the UV-check overlay *is* the surface visualization the user is
     // looking at, so the opaque paint-selection highlight must not be drawn on top of it - same
     // reasoning as skipping it for the shaded preview (see bug #12). Without this the painted area
@@ -517,7 +525,13 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
             render_triangles(selection);
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
         }
-    } else if (show_paint_overlay) {
+    } else {
+        // render_triangles() *is* the model in a painter gizmo (it draws every model-part volume with the
+        // selector's colours), not an overlay on top of one - so it still has to run under a UV-check
+        // overlay, or nothing draws the surface at all and the checker floats alone over an empty scene.
+        // Deliberately without the depth bias the branch above applies: the checker/heatmap is drawn later
+        // with its own -1 offset and has to win against this. Biasing both by the same amount is what made
+        // the painted area cover the checker and is why this call used to be skipped outright.
         render_triangles(selection);
     }
 
@@ -5710,14 +5724,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         const int cur_mode = m_use_shaded_preview                               ? 1 :
                              m_uv_check_mode == UVCheckMode::Checker    ? 2 :
                              m_uv_check_mode == UVCheckMode::Distortion ? 3 : 0;
-        int  new_mode  = cur_mode;
-        bool wf_toggle = false;
-        const wxString distortion_na = active == nullptr ? _L("Add a layer first.") :
-                                       active->projection_method != TextureProjectionMethod::LSCM ?
-                                                           _L("Needs the active layer mapped with Unwrap (LSCM).") :
-                                                           wxString();
-        // Distortion over a layer that stopped being an unwrap shows nothing at all, so fall back to Normal.
-        if (cur_mode == 3 && !distortion_na.empty())
+        int  new_mode       = cur_mode;
+        bool wf_toggle      = false;
+        bool open_uv_editor = false;
+        // Checker and Distortion both draw *the unwrap* - the first the texture grid laid over it, the second
+        // its stretch - so they only mean anything for a layer mapped with Unwrap (LSCM). On the default
+        // triplanar mapping (or cylindrical / spherical / from view) they are faded out with the reason in the
+        // tooltip, rather than being offered and then showing nothing.
+        const wxString uv_view_na = active == nullptr ? _L("Add a layer first.") :
+                                    active->projection_method != TextureProjectionMethod::LSCM ?
+                                                        _L("Only for a layer mapped with Unwrap (LSCM) - set the "
+                                                           "active layer's Mapping to Unwrap to use this view.") :
+                                                        wxString();
+        // Either view over a layer that stopped being an unwrap shows nothing at all, so fall back to Normal.
+        if ((cur_mode == 2 || cur_mode == 3) && !uv_view_na.empty())
             new_mode = 0;
 
         const float x0 = ImGui::GetCursorPosX();
@@ -5736,12 +5756,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(703, "texture_displacement_checker.svg", cur_mode == 2, icon_md, _L("Checker"),
                         _L("Checker - a test grid instead of the texture. Where the squares stay square the "
-                           "texture is undistorted; where they stretch, it will too")))
-            new_mode = 2;
+                           "texture is undistorted; where they stretch, it will too. Opens the UV editor if "
+                           "it is closed"),
+                        uv_view_na)) {
+            new_mode       = 2;
+            open_uv_editor = true;
+        }
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(704, "texture_displacement_distortion.svg", cur_mode == 3, icon_md, _L("Distortion"),
-                        _L("Distortion - blue-to-red stretch heatmap over the unwrap"), distortion_na))
-            new_mode = 3;
+                        _L("Distortion - blue-to-red stretch heatmap over the unwrap. Opens the UV editor if "
+                           "it is closed"),
+                        uv_view_na)) {
+            new_mode       = 3;
+            open_uv_editor = true;
+        }
         vsep(icon_md);
         if (icon_toggle(705, "texture_displacement_wireframe.svg", m_wireframe_overlay, icon_md, _L("Wireframe"),
                         _L("Wireframe - overlay the mesh edges; independent of the view above")))
@@ -5756,6 +5784,13 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         hover_tip(_u8L("Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting "
                         "or dragging a slider starts to stutter - the preview then waits until you let go."));
 
+        // Both are views of the unwrap, so picking one brings the UV editor up with it - including when that
+        // view is already the active one and only the pane is missing.
+        if (open_uv_editor && !m_show_uv_editor) {
+            m_show_uv_editor = true;
+            if (new_mode == cur_mode)
+                update_uv_editor(); // otherwise apply_view_mode() below does it
+        }
         if (new_mode != cur_mode)
             apply_view_mode(new_mode);
         if (wf_toggle) {
