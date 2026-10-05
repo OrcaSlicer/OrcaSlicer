@@ -374,6 +374,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/MarkdownTip.hpp
     GUI/MediaFilePanel.cpp
     GUI/MediaFilePanel.h
+    GUI/OrcaFilesPanel.cpp
+    GUI/OrcaFilesPanel.h
+    GUI/StoragePanel.cpp
+    GUI/StoragePanel.h
     GUI/MediaPlayCtrl.cpp
     GUI/MediaPlayCtrl.h
     GUI/WebRtcMediaController.cpp
@@ -465,6 +469,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/PresetHints.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
+    GUI/Printer/BambuFileGridModel.cpp
+    GUI/Printer/BambuFileGridModel.h
+    GUI/Printer/IFileGridModel.h
+    GUI/Printer/RemoteFileGridModel.cpp
+    GUI/Printer/RemoteFileGridModel.h
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
     GUI/PrinterWebView.cpp
