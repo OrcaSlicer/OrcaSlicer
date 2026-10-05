@@ -49,7 +49,6 @@ public:
     int GetLastError() const override;
     void DownloadCheckFiles(const std::string& path) override;
     bool preserve_thumbnail_aspect() const override { return true; }
-    bool supports_print_action() const override { return false; }
 
     // Delete `path` from the printer; `done` reports success on the UI thread.
     void DeleteFile(const std::string& path, std::function<void(bool ok)> done);

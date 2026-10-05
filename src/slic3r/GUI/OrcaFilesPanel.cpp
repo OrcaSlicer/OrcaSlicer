@@ -10,6 +10,8 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/StaticBox.hpp"
 #include "Widgets/StateColor.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 #include <boost/make_shared.hpp>
 #include <wx/colour.h>
@@ -102,8 +104,7 @@ OrcaFilesPanel::OrcaFilesPanel(wxWindow* parent)
     });
 
     m_image_grid->Bind(EVT_ITEM_ACTION, [this](wxCommandEvent& event) {
-        if (event.GetInt() != 0)   // only Delete is wired for this grid
-            return;
+        const int action = event.GetInt();
         if (!m_model || m_device_id.empty())
             return;
 
@@ -116,18 +117,39 @@ OrcaFilesPanel::OrcaFilesPanel(wxWindow* parent)
         const std::string path = card.id;
         const std::string name = card.name;
 
-        MessageDialog dlg(this,
-            wxString::Format(_L("Do you want to delete the file '%s' from printer?"), from_u8(name)),
-            _L("Delete file"), wxYES_NO | wxICON_WARNING);
-        if (dlg.ShowModal() != wxID_YES)
-            return;
-
-        m_model->DeleteFile(path, [this](bool ok) {
-            if (ok)
+        if (action == 0) {
+            MessageDialog dlg(this,
+                wxString::Format(_L("Do you want to delete the file '%s' from printer?"), from_u8(name)),
+                _L("Delete file"), wxYES_NO | wxICON_WARNING);
+            if (dlg.ShowModal() != wxID_YES)
                 return;
-            MessageDialog(this, _L("Failed to delete the file from printer."), _L("Delete file"),
-                          wxOK | wxICON_ERROR).ShowModal();
-        });
+
+            m_model->DeleteFile(path, [this](bool ok) {
+                if (ok)
+                    return;
+                MessageDialog(this, _L("Failed to delete the file from printer."), _L("Delete file"),
+                              wxOK | wxICON_ERROR).ShowModal();
+            });
+        } else if (action == 1) {
+            // Print is .gcode-only for now; .gcode.3mf support to be added later.
+            MessageDialog dlg(this,
+                wxString::Format(_L("Do you want to print the file '%s' from printer?"), from_u8(name)),
+                _L("Print file"), wxYES_NO | wxICON_WARNING);
+            if (dlg.ShowModal() != wxID_YES)
+                return;
+
+            NetworkAgent* agent = wxGetApp().getAgent();
+            if (!agent)
+                return;
+
+            PrintParams params;
+            params.dev_id          = m_device_id;
+            params.dst_file        = path;
+            params.connection_type = "lan";
+            if (agent->start_sdcard_print(params, {}, {}) != BAMBU_NETWORK_SUCCESS)
+                MessageDialog(this, _L("Failed to start the print job."), _L("Print file"),
+                              wxOK | wxICON_ERROR).ShowModal();
+        }
     });
 }
 

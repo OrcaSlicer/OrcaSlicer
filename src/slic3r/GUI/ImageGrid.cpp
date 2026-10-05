@@ -275,7 +275,7 @@ void Slic3r::GUI::ImageGrid::UpdateFocusRange()
 bool Slic3r::GUI::ImageGrid::hasSecondAction(const FileGridCard &card) const
 {
     return m_show_download || card.downloading ||
-           (m_model->GetFileType() == FileGridType::Model && m_model->supports_print_action());
+           (m_model->GetFileType() == FileGridType::Model && card.printable);
 }
 
 std::pair<int, size_t> Slic3r::GUI::ImageGrid::HitTest(wxPoint const &pt)
@@ -308,7 +308,7 @@ std::pair<int, size_t> Slic3r::GUI::ImageGrid::HitTest(wxPoint const &pt)
         const FileGridCard &card = m_model->GetFile(index);
         int    btn  = card.downloading && card.download_progress >= 0 ? 3 : 2;
         if (m_model->GetFileType() == FileGridType::Model) {
-            if (m_show_download && m_model->supports_print_action())
+            if (m_show_download && card.printable)
                 btn = 3;
             hover_rect.y -= m_content_rect.GetHeight() * 64 / 264;
         }
@@ -686,7 +686,7 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
                 thirdAction  = wxString::Format(L"%d%%...", progress);
             }
         }
-        if (m_model->GetFileType() == FileGridType::Model && m_model->supports_print_action()) {
+        if (m_model->GetFileType() == FileGridType::Model && card.printable) {
             if (secondAction != _L("Play"))
                 thirdAction = secondAction;
             secondAction = _L_CONTEXT("Print", "Verb");

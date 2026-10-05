@@ -2239,7 +2239,10 @@ int OrcaPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn up
 
     // dst_file, when set, names a file already on the printer (print-from-SD flow);
     // otherwise start what start_send_gcode_to_sdcard just uploaded to `gcodes`.
-    const std::string target = params.dst_file.empty() ? remote_gcode_name(params) : fs::path(params.dst_file).filename().string();
+    // Keep the gcodes-relative path with subfolders preserved, minus a leading '/'.
+    std::string target = params.dst_file.empty() ? remote_gcode_name(params) : params.dst_file;
+    if (!target.empty() && target.front() == '/')
+        target.erase(target.begin());
 
     // Per-print mapping. A mapped print is refused when the connector did not
     // advertise filament_mapping: the GUI send gates make this visible first, and
