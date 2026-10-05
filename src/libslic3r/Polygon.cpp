@@ -317,13 +317,21 @@ Points Polygon::concave_points(double angle_threshold) const
     return filter_convex_concave_points_by_angle_threshold(this->points, angle_threshold, [](const Vec2d &v1, const Vec2d &v2){ return cross2(v1, v2) < 0.; });
 }
 
-// Projection of a point onto the polygon.
-Point Polygon::point_projection(const Point &point) const
+// Projection of a point onto the polygon (single-parameter forwarder).
+Point Polygon::point_projection(const Point &point) const 
+{ 
+    return this->point_projection(point, nullptr); 
+}
+
+// Projection of a point onto the polygon with closest segment index.
+Point Polygon::point_projection(const Point& point, size_t* segment_index) const
 {
     Point proj = point;
     double dmin = std::numeric_limits<double>::max();
-    if (! this->points.empty()) {
-        for (size_t i = 0; i < this->points.size(); ++ i) {
+    size_t closest_segment = 0;
+
+    if (!this->points.empty()) {
+        for (size_t i = 0; i < this->points.size(); ++i) {
             const Point &pt0 = this->points[i];
             const Point &pt1 = this->points[(i + 1 == this->points.size()) ? 0 : i + 1];
             double d = (point - pt0).cast<double>().norm();
@@ -342,16 +350,22 @@ Point Polygon::point_projection(const Point &point) const
                 Vec2d v2(coordf_t(point(0) - pt0(0)), coordf_t(point(1) - pt0(1)));
                 coordf_t t = v1.dot(v2) / div;
                 if (t > 0. && t < 1.) {
-                    Point foot(coord_t(floor(coordf_t(pt0(0)) + t * v1(0) + 0.5)), coord_t(floor(coordf_t(pt0(1)) + t * v1(1) + 0.5)));
+                    Point foot(coord_t(std::floor(coordf_t(pt0(0)) + t * v1(0) + 0.5)),
+                               coord_t(std::floor(coordf_t(pt0(1)) + t * v1(1) + 0.5)));
                     d = (point - foot).cast<double>().norm();
                     if (d < dmin) {
                         dmin = d;
                         proj = foot;
+                        closest_segment = i;
                     }
                 }
             }
         }
     }
+
+    if (segment_index != nullptr)
+        *segment_index = closest_segment;
+
     return proj;
 }
 

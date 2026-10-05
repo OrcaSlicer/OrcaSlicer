@@ -404,9 +404,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         if (is_last_use) {
             // Toolhead has finished its last layer -> turn off heater completely (0 °C)
-            gcode += gcodegen.writer().set_temperature(0, false, extruder_id);
-            gcode.pop_back();
-            gcode += " ;cooldown\n";
+            std::string temp_cmd = gcodegen.writer().set_temperature(0, false, extruder_id);
+            if (!temp_cmd.empty()) {
+                if (temp_cmd.back() == '\n')
+                    temp_cmd.pop_back();
+                temp_cmd += " ;cooldown\n";
+                gcode += temp_cmd;
+            }
             return gcode;
         }
 
