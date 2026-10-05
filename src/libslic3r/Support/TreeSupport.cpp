@@ -1565,19 +1565,8 @@ void TreeSupport::generate_toolpaths()
                         polys_to_iron = diff_ex(polys_to_iron, support_above);
                     if (polys_to_iron.empty())
                         return;
-                    std::unique_ptr<Fill> filler_ironing(Fill::new_from_type(m_support_params.ironing_pattern));
-                    filler_ironing->set_bounding_box(bbox_object);
-                    filler_ironing->layer_id        = ts_layer->id();
-                    filler_ironing->z               = ts_layer->print_z;
-                    filler_ironing->overlap         = 0;
-                    filler_ironing->angle           = m_support_params.support_interface_angle(area_group.interface_id);
-                    filler_ironing->spacing         = m_support_params.ironing_spacing;
-                    filler_ironing->link_max_length = coord_t(scale_(3. * filler_ironing->spacing));
-                    FillParams ironing_params;
-                    ironing_params.density     = 1.f;
-                    ironing_params.dont_adjust = true;
-                    fill_expolygons_generate_paths(ts_layer->support_fills.entities, polys_to_iron,
-                        filler_ironing.get(), ironing_params, erIroning, m_support_params.ironing_flow);
+                    generate_support_ironing(ts_layer->support_fills.entities, std::move(polys_to_iron), m_support_params,
+                        bbox_object, ts_layer->id(), ts_layer->print_z, m_support_params.support_interface_angle(area_group.interface_id));
                 };
 
                 // Ironing needs a solid surface under it, so the roof is filled solid when it is on.

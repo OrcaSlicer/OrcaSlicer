@@ -486,6 +486,26 @@ static inline void fill_expolygons_generate_paths(
     fill_expolygons_generate_paths(dst, std::move(expolygons), filler, fill_params, density, role, flow);
 }
 
+void generate_support_ironing(
+    ExtrusionEntitiesPtr    &dst,
+    ExPolygons             &&polys_to_iron,
+    const SupportParameters &support_params,
+    const BoundingBox       &bbox_object,
+    size_t                   layer_id,
+    coordf_t                 print_z,
+    float                    angle)
+{
+    auto f = std::unique_ptr<Fill>(Fill::new_from_type(support_params.ironing_pattern));
+    f->set_bounding_box(bbox_object);
+    f->layer_id        = layer_id;
+    f->z               = print_z;
+    f->overlap         = 0;
+    f->angle           = angle;
+    f->spacing         = support_params.ironing_spacing;
+    f->link_max_length = (coord_t) scale_(3. * f->spacing);
+    fill_expolygons_generate_paths(dst, std::move(polys_to_iron), f.get(), 1.f, ExtrusionRole::erIroning, support_params.ironing_flow);
+}
+
 static Polylines draw_perimeters(const ExPolygon &expoly, double clip_length)
 {
     // Draw the perimeters.
@@ -1896,15 +1916,6 @@ void generate_support_toolpaths(
 
             // Orca: Generate iron toolpath for contact layer
             if (!layer_cache.polys_to_iron.empty()) {
-                auto f = std::unique_ptr<Fill>(Fill::new_from_type(support_params.ironing_pattern));
-                f->set_bounding_box(bbox_object);
-                f->layer_id        = support_layer.id();
-                f->z               = support_layer.print_z;
-                f->overlap         = 0;
-                f->angle           = layer_cache.ironing_angle;
-                f->spacing         = support_params.ironing_spacing;
-                f->link_max_length = (coord_t) scale_(3. * f->spacing);
-
                 ExPolygons polys_to_iron = union_safety_offset_ex(layer_cache.polys_to_iron);
                 layer_cache.polys_to_iron.clear();
 
@@ -1916,15 +1927,8 @@ void generate_support_toolpaths(
                     }
                 }
 
-                fill_expolygons_generate_paths(
-                    // Destination
-                    support_layer.support_fills.entities,
-                    // Regions to fill
-                    std::move(polys_to_iron),
-                    // Filler and its parameters
-                    f.get(), 1.f,
-                    // Extrusion parameters
-                    ExtrusionRole::erIroning, support_params.ironing_flow);
+                generate_support_ironing(support_layer.support_fills.entities, std::move(polys_to_iron), support_params,
+                    bbox_object, support_layer.id(), support_layer.print_z, layer_cache.ironing_angle);
             }
         }
     });

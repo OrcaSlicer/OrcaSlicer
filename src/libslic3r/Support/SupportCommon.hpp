@@ -1,14 +1,17 @@
 #ifndef slic3r_SupportCommon_hpp_
 #define slic3r_SupportCommon_hpp_
 
+#include "../BoundingBox.hpp"
 #include "../Polygon.hpp"
 #include "../Print.hpp"
+#include "../libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
 #include <utility>
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 namespace Slic3r { class Fill; }
@@ -77,6 +80,18 @@ void generate_support_toolpaths(
     const SupportGeneratorLayersPtr   	&intermediate_layers,
 	const SupportGeneratorLayersPtr   	&interface_layers,
     const SupportGeneratorLayersPtr   	&base_interface_layers);
+
+// Iron the support interface surface that touches the model: fill polys_to_iron with the support ironing
+// pattern and append the paths to dst as ironing extrusions.
+// Used by both the organic and the normal tree support, so that they iron the same way.
+void generate_support_ironing(
+    ExtrusionEntitiesPtr    &dst,
+    ExPolygons             &&polys_to_iron,
+    const SupportParameters &support_params,
+    const BoundingBox       &bbox_object,
+    size_t                   layer_id,
+    coordf_t                 print_z,
+    float                    angle);
 
 // FN_HIGHER_EQUAL: the provided object pointer has a Z value >= of an internal threshold.
 // Find the first item with Z value >= of an internal threshold of fn_higher_equal.
