@@ -30443,7 +30443,7 @@ msgstr "Verifica se due corpi si sovrappongono — segnala soltanto, non modific
 # AI Translated
 msgctxt "Design"
 msgid "Edit"
-msgstr "Modifica"
+msgstr "Modifica funzione"
 
 # AI Translated
 msgid "Reopen the selected feature to change what it was made from"

@@ -12122,7 +12122,7 @@ msgid "Invalid value provided for parameter %1%: %2%"
 msgstr "Byla zadána neplatná hodnota parametru %1%: %2%"
 
 msgid "G-code flavor is switched"
-msgstr "G-code flavor byl změněn"
+msgstr "Typ G-code byl změněn"
 
 msgid "Cooling Fan"
 msgstr "Chladicí ventilátor"
@@ -13439,7 +13439,7 @@ msgid ""
 "Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Input Shaping není podporován v Marlinu < 2.1.2.\n"
-"Zkontrolujte verzi firmwaru a nastavte variantu G-code na „Marlin 2“."
+"Zkontrolujte verzi firmwaru a nastavte typ G-code na „Marlin 2“."
 
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input Shaping je podporován pouze v Klipperu, RepRapFirmware a Marlinu 2"
@@ -16541,7 +16541,7 @@ msgstr "Povolte tuto možnost, pokud tiskárna podpěruje filtr pro chlazení"
 
 # AI Translated
 msgid "G-code flavor"
-msgstr "G-code flavor"
+msgstr "Typ G-code"
 
 msgid "What kind of G-code the printer is compatible with."
 msgstr "Jaký typ G-code je s tiskárnou kompatibilní."
@@ -16965,7 +16965,7 @@ msgid ""
 "This option will be ignored if the G-code flavor is set to Klipper."
 msgstr ""
 "Je-li povoleno, limity stroje budou zapsány do G-code souboru.\n"
-"Tato volba bude ignorována, pokud je G-code flavor nastaven na Klipper."
+"Tato volba bude ignorována, pokud je typ G-code nastaven na Klipper."
 
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
 msgstr "Tento G-code bude použit jako kód pro pozastavení tisku. Uživatelé mohou vložit G-code pro pauzu v prohlížeči G-codu."
@@ -30716,7 +30716,7 @@ msgstr "Zkontrolovat, zda se dvě tělesa překrývají — pouze hlásí, nic n
 # AI Translated
 msgctxt "Design"
 msgid "Edit"
-msgstr "Upravit"
+msgstr "Upravit prvek"
 
 # AI Translated
 msgid "Reopen the selected feature to change what it was made from"

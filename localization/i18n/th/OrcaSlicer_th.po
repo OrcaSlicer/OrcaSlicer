@@ -11949,7 +11949,7 @@ msgid "Invalid value provided for parameter %1%: %2%"
 msgstr "ค่าที่ระบุสำหรับพารามิเตอร์ %1% ไม่ถูกต้อง: %2%"
 
 msgid "G-code flavor is switched"
-msgstr "รสชาติ G-code ถูกเปลี่ยน"
+msgstr "ชนิด G-code ถูกเปลี่ยน"
 
 msgid "Cooling Fan"
 msgstr "พัดลมระบายความร้อน"
@@ -13202,7 +13202,7 @@ msgid ""
 "Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Marlin < 2.1.2 ไม่รองรับการสร้างรูปร่างอินพุต\n"
-"ตรวจสอบเวอร์ชันเฟิร์มแวร์ของคุณและอัปเดตรสชาติ G-code ของคุณเป็น 'Marlin 2'"
+"ตรวจสอบเวอร์ชันเฟิร์มแวร์ของคุณและอัปเดตชนิด G-code ของคุณเป็น 'Marlin 2'"
 
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "รูปร่างอินพุตรองรับเฉพาะ Klipper, RepRapFirmware และ Marlin 2 เท่านั้น"
@@ -13450,7 +13450,7 @@ msgid "Ooze prevention is only supported with the wipe tower when 'single_extrud
 msgstr "รองรับการป้องกันน้ำซึมด้วย Wipe Tower เมื่อปิด 'single_extruder_multi_material' เท่านั้น"
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "ขณะนี้ Prime Tower รองรับเฉพาะรสชาติ Marlin, RepRap/Sprinter, RepRapFirmware และ Repetier G-code เท่านั้น"
+msgstr "ขณะนี้ Prime Tower รองรับเฉพาะชนิด Marlin, RepRap/Sprinter, RepRapFirmware และ Repetier G-code เท่านั้น"
 
 msgid "A prime tower is not supported in “By object” print."
 msgstr "ไม่รองรับ Prime Tower ในการพิมพ์ \"ตามวัตถุ\""
@@ -16252,7 +16252,7 @@ msgstr "เปิดใช้งานหากเครื่องพิมพ
 
 # AI Translated
 msgid "G-code flavor"
-msgstr "รสชาติ G-code"
+msgstr "ชนิด G-code"
 
 msgid "What kind of G-code the printer is compatible with."
 msgstr "เครื่องพิมพ์ G-code ชนิดใดที่เข้ากันได้กับ"
@@ -16666,7 +16666,7 @@ msgid ""
 "This option will be ignored if the G-code flavor is set to Klipper."
 msgstr ""
 "หากเปิดใช้งาน ขีดจำกัดของเครื่องจะถูกส่งไปยังไฟล์ G-code\n"
-"ตัวเลือกนี้จะถูกละเว้นหากตั้งค่ารสชาติ G-code เป็น Klipper"
+"ตัวเลือกนี้จะถูกละเว้นหากตั้งค่าชนิด G-code เป็น Klipper"
 
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
 msgstr "G-code นี้จะใช้เป็นรหัสสำหรับการหยุดการพิมพ์ชั่วคราว ผู้ใช้สามารถแทรก G-code หยุดชั่วคราวในโปรแกรมดู G-code"

@@ -30824,7 +30824,7 @@ msgstr "Перевірити, чи перекриваються два тіла 
 # AI Translated
 msgctxt "Design"
 msgid "Edit"
-msgstr "Змінити"
+msgstr "Редагувати елемент"
 
 # AI Translated
 msgid "Reopen the selected feature to change what it was made from"

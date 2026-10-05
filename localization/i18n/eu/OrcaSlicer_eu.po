@@ -11758,7 +11758,7 @@ msgid "Invalid value provided for parameter %1%: %2%"
 msgstr "Balio baliogabea eman da %1% parametrorako: %2%"
 
 msgid "G-code flavor is switched"
-msgstr "G-code aldaera aldatu da"
+msgstr "G-code mota aldatu da"
 
 msgid "Cooling Fan"
 msgstr "Hozte-haizagailua"
@@ -13241,7 +13241,7 @@ msgid "Ooze prevention is only supported with the wipe tower when 'single_extrud
 msgstr "Jarioaren prebentzioa purgatze-dorrearekin soilik onartzen da 'single_extruder_multi_material' desaktibatuta dagoenean."
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "Purgatze-dorrea oraingoz Marlin, RepRap/Sprinter, RepRapFirmware eta Repetier G-code aldaeretarako soilik onartzen da."
+msgstr "Purgatze-dorrea oraingoz Marlin, RepRap/Sprinter, RepRapFirmware eta Repetier G-code motetarako soilik onartzen da."
 
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Purgatze-dorrea ez da onartzen \"objektuz objektu\" inprimaketan."
@@ -16025,7 +16025,7 @@ msgid "Enable this if printer support cooling filter"
 msgstr "Gaitu hau inprimagailuak hozte-iragazkia onartzen badu"
 
 msgid "G-code flavor"
-msgstr "G-code zaporea"
+msgstr "G-code mota"
 
 msgid "What kind of G-code the printer is compatible with."
 msgstr "Inprimagailua zer G-code motarekin den bateragarria."
@@ -16444,7 +16444,7 @@ msgid ""
 "This option will be ignored if the G-code flavor is set to Klipper."
 msgstr ""
 "Gaituta badago, makinaren mugak G-code fitxategira bidaliko dira.\n"
-"Aukera hau ez da kontuan hartuko G-code zaporea Klipper gisa ezarrita badago."
+"Aukera hau ez da kontuan hartuko G-code mota Klipper gisa ezarrita badago."
 
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
 msgstr "G-code hau inprimatzea pausatzeko kode gisa erabiliko da. Erabiltzaileek pausa G-codea txerta dezakete G-code ikustailean."
