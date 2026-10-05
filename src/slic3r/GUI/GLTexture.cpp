@@ -720,9 +720,6 @@ void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right,
     // does not treat anti-aliased icon edges as window transparency.
     glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
 
-    glsafe(::glEnable(GL_TEXTURE_2D));
-    glsafe(::glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE));
-
     glsafe(::glBindTexture(GL_TEXTURE_2D, (GLuint)tex_id));
 
     GLModel::Geometry init_data;
@@ -754,7 +751,6 @@ void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right,
 
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 
-    glsafe(::glDisable(GL_TEXTURE_2D));
     glsafe(::glDisable(GL_BLEND));
 }
 
