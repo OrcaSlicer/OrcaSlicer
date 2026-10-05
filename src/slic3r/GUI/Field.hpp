@@ -29,13 +29,17 @@
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/Utils.hpp"
 
-#include "GUI.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/SpinInput.hpp"
-#include "Widgets/TextInput.hpp"
-#include "Widgets/ComboBox.hpp"
+
+class ComboBox;
+class TextInput;
+class wxBitmap;
+class wxBoxSizer;
+class wxCommandEvent;
+class wxEvent;
+class wxSizer;
 
 #ifdef __WXMSW__
 #define wxMSW true

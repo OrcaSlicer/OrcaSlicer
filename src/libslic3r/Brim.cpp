@@ -32,6 +32,11 @@
 #include <boost/log/trivial.hpp>
 #include <utility>
 #include <vector>
+#include "Config.hpp"
+#include "ExtrusionEntityCollection.hpp"
+#include "MultiMaterialSegmentation.hpp"
+#include "SurfaceCollection.hpp"
+#include "TriangleMesh.hpp"
 
 #ifndef NDEBUG
     // #define BRIM_DEBUG_TO_SVG

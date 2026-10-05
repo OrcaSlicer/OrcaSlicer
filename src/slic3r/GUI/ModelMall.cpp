@@ -20,10 +20,11 @@
 #include <wx/statbox.h>
 #include "wx/evtloop.h"
 
-#include "libslic3r/Model.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
+
+namespace Slic3r::GUI { class Plater; }
 
 namespace Slic3r {
 namespace GUI {

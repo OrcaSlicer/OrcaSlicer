@@ -2,7 +2,6 @@
 #include "GCodeViewer.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
@@ -10,23 +9,16 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 //BBS: add convex hull logic for toolpath check
-#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
-#include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
-#include "GUI_Preview.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/Layer.hpp"
-#include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
@@ -66,7 +58,6 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Color.hpp"
 #include <map>
-#include "libslic3r/PrintBase.hpp"
 #include <wx/event.h>
 #include <wx/string.h>
 #include <wx/slider.h>
@@ -95,6 +86,15 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+namespace Slic3r { class PrintBase; }
 
 
 namespace Slic3r {
@@ -675,7 +675,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+
+                ImVec4 scroll_col    = ImVec4(0.77f, 0.77f, 0.77f, m_is_dark ? .6f : 1.0f); // same color with sliced plates toolbar scrollbar
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f)); // ORCA using background color with opacity creates a second color. This prevents secondary color
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, scroll_col);
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered , style.Colors[ImGuiCol_TableHeaderBg]);
+
                 const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.f, plot_height});
                 const ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | (needs_scroll ? ImGuiTableFlags_ScrollY : 0);
                 if (ImGui::BeginTable("ToolPositionTable", 2, table_flags, ImVec2(0.0f, needs_scroll ? table_view_h : 0.0f))) {
@@ -703,7 +710,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGui::EndTable();
                 }
                 ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(1);
+                ImGui::PopStyleColor(5);
                 imgui.end();
             }
 

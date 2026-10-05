@@ -24,10 +24,14 @@
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
+#ifdef SLIC3R_CAD
+#include "CAD/DesignPanel.hpp"
+#endif
 #include "WebViewDialog.hpp"
 #include "PartPlate.hpp"
 
 #include <boost/log/trivial.hpp>
+#include "libslic3r/AppConfig.hpp"
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
@@ -46,7 +50,6 @@ enum CUSTOM_ID
     ID_TOP_DROPDOWN_MENU,
     ID_TITLE,
     ID_MODEL_STORE,
-    ID_PUBLISH,
     ID_CALIB,
     ID_TOOL_BAR = 3200,
     ID_AMS_NOTEBOOK,
@@ -339,10 +342,6 @@ void BBLTopbar::Init(wxFrame* parent)
     this->AddSpacer(FromDIP(25));
     //this->AddStretchSpacer(1);
 
-    //m_publish_bitmap = create_scaled_bitmap("topbar_publish", nullptr, TOPBAR_ICON_SIZE);
-    //m_publish_item = this->AddTool(ID_PUBLISH, "", m_publish_bitmap);
-    //m_publish_disable_bitmap = create_scaled_bitmap("topbar_publish_disable", nullptr, TOPBAR_ICON_SIZE);
-    //m_publish_item->SetDisabledBitmap(m_publish_disable_bitmap);
     //this->EnableTool(m_publish_item->GetId(), false);
     //this->AddSpacer(FromDIP(4));
 
@@ -403,7 +402,6 @@ void BBLTopbar::Init(wxFrame* parent)
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnRedo, this, wxID_REDO);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnUndo, this, wxID_UNDO);
     //this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnModelStoreClicked, this, ID_MODEL_STORE);
-    //this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnPublishClicked, this, ID_PUBLISH);
 }
 
 BBLTopbar::~BBLTopbar()
@@ -420,12 +418,6 @@ void BBLTopbar::OnOpenProject(wxAuiToolBarEvent& event)
     plater->load_project();
 }
 
-//void BBLTopbar::show_publish_button(bool show)
-//{
-//    this->EnableTool(m_publish_item->GetId(), show);
-//    Refresh();
-//}
-
 void BBLTopbar::OnSaveProject(wxAuiToolBarEvent& event)
 {
     MainFrame* main_frame = dynamic_cast<MainFrame*>(m_frame);
@@ -436,6 +428,9 @@ void BBLTopbar::OnSaveProject(wxAuiToolBarEvent& event)
 void BBLTopbar::OnUndo(wxAuiToolBarEvent& event)
 {
     MainFrame* main_frame = dynamic_cast<MainFrame*>(m_frame);
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = main_frame->shown_design_panel()) { design->menu_undo_redo(false); return; }
+#endif
     Plater* plater = main_frame->plater();
     plater->undo();
 }
@@ -443,6 +438,9 @@ void BBLTopbar::OnUndo(wxAuiToolBarEvent& event)
 void BBLTopbar::OnRedo(wxAuiToolBarEvent& event)
 {
     MainFrame* main_frame = dynamic_cast<MainFrame*>(m_frame);
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = main_frame->shown_design_panel()) { design->menu_undo_redo(true); return; }
+#endif
     Plater* plater = main_frame->plater();
     plater->redo();
 }
@@ -452,6 +450,13 @@ void BBLTopbar::EnableUndoRedoItems()
     this->EnableTool(m_undo_item->GetId(), true);
     this->EnableTool(m_redo_item->GetId(), true);
     this->EnableTool(m_calib_item->GetId(), true);
+    Refresh();
+}
+
+void BBLTopbar::EnableUndoRedo(bool undo, bool redo)
+{
+    this->EnableTool(m_undo_item->GetId(), undo);
+    this->EnableTool(m_redo_item->GetId(), redo);
     Refresh();
 }
 
@@ -480,22 +485,6 @@ void BBLTopbar::ShowCalibrationButton(bool show)
 void BBLTopbar::OnModelStoreClicked(wxAuiToolBarEvent& event)
 {
     //GUI::wxGetApp().load_url(wxString(wxGetApp().app_config->get_web_host_url() + MODEL_STORE_URL));
-}
-
-void BBLTopbar::OnPublishClicked(wxAuiToolBarEvent& event)
-{
-    if (!wxGetApp().getAgent()) {
-        BOOST_LOG_TRIVIAL(info) << "publish: no agent";
-        return;
-    }
-
-    //no more check
-    //if (GUI::wxGetApp().plater()->model().objects.empty()) return;
-
-#ifdef ENABLE_PUBLISHING
-    wxGetApp().plater()->show_publish_dialog();
-#endif
-    wxGetApp().open_publish_page_dialog();
 }
 
 void BBLTopbar::SetFileMenu(wxMenu* file_menu)
@@ -578,10 +567,6 @@ void BBLTopbar::Rescale() {
 
     if (m_title_ctrl)
         m_title_ctrl->SetTitle(m_titleText);
-
-    /*item = this->FindTool(ID_PUBLISH);
-    item->SetBitmap(create_scaled_bitmap("topbar_publish", this, TOPBAR_ICON_SIZE));
-    item->SetDisabledBitmap(create_scaled_bitmap("topbar_publish_disable", nullptr, TOPBAR_ICON_SIZE));*/
 
     /*item = this->FindTool(ID_MODEL_STORE);
     item->SetBitmap(create_scaled_bitmap("topbar_store", this, TOPBAR_ICON_SIZE));

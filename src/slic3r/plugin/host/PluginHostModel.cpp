@@ -12,6 +12,14 @@
 
 #include <memory>
 #include <string>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <pybind11/detail/common.h>
+#include <pybind11/detail/descr.h>
 
 namespace py = pybind11;
 

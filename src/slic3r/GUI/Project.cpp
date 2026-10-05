@@ -1,8 +1,6 @@
-#include "Tab.hpp"
 #include "Project.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <atomic>
@@ -18,10 +16,10 @@
 #include <string>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Auxiliary.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <cstddef>
 #include <memory>
 #include <map>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <exception>
 #include <cmath>
 #include <fstream>
@@ -52,11 +50,13 @@
 #include <wx/arrstr.h>
 #include <wx/tglbtn.h>
 
-#include "wxExtensions.hpp"
 #include "GUI_App.hpp"
-#include "GUI_ObjectList.hpp"
-#include "MainFrame.hpp"
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+
+class wxWindow;
 
 namespace fs = boost::filesystem;
 

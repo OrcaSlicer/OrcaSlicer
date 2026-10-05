@@ -4,7 +4,6 @@
 
 #include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
-#include <libslic3r/Utils.hpp>
 #include <memory>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>

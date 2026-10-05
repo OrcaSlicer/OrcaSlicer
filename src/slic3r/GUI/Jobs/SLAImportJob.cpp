@@ -15,11 +15,13 @@
 #include "libslic3r/Config.hpp"
 #include <memory>
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <exception>
 #include "libslic3r/PrintConfig.hpp"
 #include <utility>
 #include <wx/filename.h>
+#include "libslic3r/SLAPrint.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {
 

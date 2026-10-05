@@ -9,9 +9,7 @@
 #include <memory>
 #include <vector>
 
-#include "libslic3r/Color.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 
 #include "Job.hpp"
 

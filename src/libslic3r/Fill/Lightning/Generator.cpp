@@ -30,6 +30,9 @@
 #include <cmath>
 #include <utility>
 #include <cassert>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees

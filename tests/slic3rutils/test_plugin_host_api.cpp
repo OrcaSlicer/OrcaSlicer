@@ -7,7 +7,6 @@
 #include <slic3r/GUI/DockPanel.hpp>
 #include <slic3r/GUI/AuiPaneLayout.hpp>
 #include <slic3r/GUI/Widgets/WebHosting.hpp>
-#include <slic3r/plugin/PythonPluginBridge.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
@@ -25,6 +24,11 @@
 
 #include <wx/string.h>
 #include <wx/uri.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <pybind11/detail/common.h>
 
 namespace py = pybind11;
 

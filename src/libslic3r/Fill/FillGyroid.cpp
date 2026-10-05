@@ -1,7 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../MarchingSquares.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstddef>
@@ -18,6 +16,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polyline.hpp"
 #include "FillGyroid.hpp"
+#include "libslic3r/Polygon.hpp"
 
 // ---------------------------------------------------------------------------
 // Marching-squares scalar field for the optimized gyroid branch.

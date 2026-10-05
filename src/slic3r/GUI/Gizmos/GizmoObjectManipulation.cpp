@@ -35,6 +35,10 @@
 #include <vector>
 #include <string_view>
 #include "libslic3r/Color.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}

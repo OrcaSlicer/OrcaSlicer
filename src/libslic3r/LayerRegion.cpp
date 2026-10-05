@@ -39,6 +39,9 @@
 #include <boost/algorithm/clamp.hpp>
 #include <utility>
 #include <vector>
+#include "ExtrusionEntityCollection.hpp"
+#include "MultiMaterialSegmentation.hpp"
+#include "SurfaceCollection.hpp"
 
 namespace Slic3r {
 

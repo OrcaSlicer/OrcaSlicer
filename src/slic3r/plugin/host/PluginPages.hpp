@@ -16,6 +16,9 @@
 #include <wx/string.h>
 #include <wx/webview.h>
 
+class wxWebViewEvent;
+class wxWindow;
+
 class Notebook;
 
 namespace Slic3r {

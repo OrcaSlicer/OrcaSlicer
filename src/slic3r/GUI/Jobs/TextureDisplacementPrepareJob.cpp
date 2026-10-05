@@ -21,6 +21,8 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r::GUI {
 

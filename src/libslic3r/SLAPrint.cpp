@@ -8,12 +8,10 @@
 #include "Config.hpp"
 #include "PrintBase.hpp"
 #include "SLA/SupportPoint.hpp"
-#include "Polygon.hpp"
 #include "ExPolygon.hpp"
 #include "SLA/Hollowing.hpp"
 #include "SLAPrintSteps.hpp"
 
-#include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include "MTUtils.hpp"
 #include "Thread.hpp"
@@ -45,6 +43,9 @@
 #endif
 
 #include "I18N.hpp"
+#include "PlaceholderParser.hpp"
+
+namespace Slic3r { class Polygon; }
 
 //! macro used to mark string used at localization,
 //! return same string

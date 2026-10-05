@@ -1,5 +1,4 @@
 #include "ObjectDataViewModel.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "wxExtensions.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
@@ -135,13 +134,13 @@ ObjectDataViewModelNode::ObjectDataViewModelNode(ObjectDataViewModelNode* parent
         m_name = "Settings to modified";
     }
     else if (type == itInstanceRoot) {
-        m_name = _(_devL("Instances"));
+        m_name = _L("Instances");
         m_extruder = parent->m_extruder;
     }
     else if (type == itInstance)
     {
         m_idx = parent->GetChildCount();
-        m_name = wxString::Format(_(_devL("Instance %d")), m_idx + 1);
+        m_name = wxString::Format(_L("Instance %d"), m_idx + 1);
         m_extruder = parent->GetParent()->m_extruder;
         set_icons();
     }
@@ -399,10 +398,11 @@ void ObjectDataViewModelNode::SetIdx(const int &idx)
     // update name if this node is instance
     if (m_type == itInstance) {
         if (m_plate_idx > 0) {
-            m_name = wxString::Format(_(_devL("[P%d]Instance %d")), m_plate_idx, m_idx + 1);
+            // TRN Object list item: plate number, then instance number
+            m_name = wxString::Format(_L("[P%d]Instance %d"), m_plate_idx, m_idx + 1);
         }
         else {
-            m_name = wxString::Format(_(_devL("Instance %d")), m_idx + 1);
+            m_name = wxString::Format(_L("Instance %d"), m_idx + 1);
         }
     }
 }
