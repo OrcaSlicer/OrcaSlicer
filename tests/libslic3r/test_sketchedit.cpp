@@ -118,7 +118,10 @@ TEST_CASE("Offset Line by positive d", "[SketchEdit]")
     REQUIRE_THAT(o.p1.y(), WithinAbs(2.0, 1e-9));
 }
 
-TEST_CASE("Offset Circle: expand and collapse", "[SketchEdit]")
+// CONTRACT CHANGED: a circle follows the arc's "+d = left of travel" rule and counts as CCW, so
+// +d shrinks it and -d grows it. It used to grow on +d, the opposite of the same outline drawn
+// as a CCW chain of arcs.
+TEST_CASE("Offset Circle: +d shrinks (a circle is CCW), -d grows, too far collapses", "[SketchEdit]")
 {
     SketchEntity e;
     e.type   = SketchEntity::Type::Circle;
@@ -126,12 +129,34 @@ TEST_CASE("Offset Circle: expand and collapse", "[SketchEdit]")
     e.p0     = Vec2d(0, 0);
     e.radius = 5;
 
-    auto expanded = SketchEngine::offset_entities({e}, 2.0);
-    REQUIRE(expanded.size() == 1);
-    REQUIRE_THAT(expanded[0].radius, WithinAbs(7.0, 1e-9));
+    auto inward = SketchEngine::offset_entities({e}, 2.0);
+    REQUIRE(inward.size() == 1);
+    REQUIRE_THAT(inward[0].radius, WithinAbs(3.0, 1e-9));
 
-    auto collapsed = SketchEngine::offset_entities({e}, -5.0);
+    auto outward = SketchEngine::offset_entities({e}, -2.0);
+    REQUIRE(outward.size() == 1);
+    REQUIRE_THAT(outward[0].radius, WithinAbs(7.0, 1e-9));
+
+    auto collapsed = SketchEngine::offset_entities({e}, 5.0);
     REQUIRE(collapsed.empty());
+}
+
+TEST_CASE("Offset: a full circle and the same CCW outline drawn as arcs go the same way", "[SketchEdit]")
+{
+    SketchEntity c;
+    c.type = SketchEntity::Type::Circle; c.center = Vec2d(0, 0); c.p0 = c.center; c.radius = 5;
+    SketchEntity a0, a1;
+    a0.type = a1.type = SketchEntity::Type::Arc;
+    a0.center = a1.center = Vec2d(0, 0);
+    a0.radius = a1.radius = 5;
+    a0.start_angle = 0.0;  a0.end_angle = M_PI;       a0.p0 = Vec2d(5, 0);  a0.p1 = Vec2d(-5, 0);
+    a1.start_angle = M_PI; a1.end_angle = 2.0 * M_PI; a1.p0 = Vec2d(-5, 0); a1.p1 = Vec2d(5, 0);
+    const auto oc = SketchEngine::offset_entities({ c }, 1.0);
+    const auto oa = SketchEngine::offset_entities({ a0, a1 }, 1.0);
+    REQUIRE(oc.size() == 1);
+    REQUIRE(oa.size() == 2);
+    CHECK_THAT(oc[0].radius, WithinAbs(oa[0].radius, 1e-9));
+    CHECK_THAT(oc[0].radius, WithinAbs(oa[1].radius, 1e-9));
 }
 
 // CONTRACT CHANGED: +d used to mean "radius + d" for every arc regardless of its sweep, while
@@ -383,6 +408,9 @@ TEST_CASE("Trim arc drops the picked (start) side", "[SketchEdit]")
     REQUIRE_THAT(e.radius, WithinAbs(5.0, 1e-9));
     REQUIRE_THAT(e.start_angle, WithinAbs(M_PI / 2.0, 1e-9));
     REQUIRE_THAT(e.end_angle,   WithinAbs(M_PI, 1e-9));
+    // The stored endpoints follow the angles: everything downstream reads p0/p1.
+    CHECK_THAT(e.p0.x(), WithinAbs(0.0, 1e-9));  CHECK_THAT(e.p0.y(), WithinAbs(5.0, 1e-9));
+    CHECK_THAT(e.p1.x(), WithinAbs(-5.0, 1e-9)); CHECK_THAT(e.p1.y(), WithinAbs(0.0, 1e-9));
 }
 
 TEST_CASE("Trim arc drops the picked (end) side", "[SketchEdit]")
@@ -405,6 +433,8 @@ TEST_CASE("Trim arc drops the picked (end) side", "[SketchEdit]")
     REQUIRE(e.type == SketchEntity::Type::Arc);
     REQUIRE_THAT(e.start_angle, WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(e.end_angle,   WithinAbs(M_PI / 2.0, 1e-9));
+    CHECK_THAT(e.p0.x(), WithinAbs(5.0, 1e-9)); CHECK_THAT(e.p0.y(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(e.p1.x(), WithinAbs(0.0, 1e-9)); CHECK_THAT(e.p1.y(), WithinAbs(5.0, 1e-9));
 }
 
 TEST_CASE("Trim circle opens into an arc excluding the pick", "[SketchEdit]")
@@ -414,7 +444,7 @@ TEST_CASE("Trim circle opens into an arc excluding the pick", "[SketchEdit]")
     SketchEntity e;
     e.type   = SketchEntity::Type::Circle;
     e.center = Vec2d(0, 0);
-    e.p0     = Vec2d(5, 0);
+    e.p0     = e.center;          // circle convention: p0 mirrors the centre
     e.radius = 5;
 
     SketchEntity cut;
@@ -431,6 +461,11 @@ TEST_CASE("Trim circle opens into an arc excluding the pick", "[SketchEdit]")
     double mid = 0.5 * (e.start_angle + e.end_angle);
     REQUIRE_THAT(5 * std::cos(mid), WithinAbs(-5.0, 1e-9));
     REQUIRE_THAT(5 * std::sin(mid), WithinAbs(0.0, 1e-9));
+    // p0 was the circle's centre; as an arc it must be the arc's start, on the rim.
+    CHECK_THAT((e.p0 - e.center).norm(), WithinAbs(5.0, 1e-9));
+    CHECK_THAT((e.p1 - e.center).norm(), WithinAbs(5.0, 1e-9));
+    CHECK_THAT(e.p0.x(), WithinAbs(5.0 * std::cos(e.start_angle), 1e-9));
+    CHECK_THAT(e.p1.x(), WithinAbs(5.0 * std::cos(e.end_angle), 1e-9));
 }
 
 TEST_CASE("Extend arc forward (end) to a crossing", "[SketchEdit]")
@@ -454,6 +489,7 @@ TEST_CASE("Extend arc forward (end) to a crossing", "[SketchEdit]")
     REQUIRE(e.type == SketchEntity::Type::Arc);
     REQUIRE_THAT(e.start_angle, WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(e.end_angle,   WithinAbs(M_PI, 1e-9));
+    CHECK_THAT(e.p1.x(), WithinAbs(-5.0, 1e-9)); CHECK_THAT(e.p1.y(), WithinAbs(0.0, 1e-9));
 }
 
 TEST_CASE("Extend arc backward (start) to a crossing", "[SketchEdit]")
@@ -483,7 +519,7 @@ TEST_CASE("Extend circle returns false (closed)", "[SketchEdit]")
     SketchEntity e;
     e.type   = SketchEntity::Type::Circle;
     e.center = Vec2d(0, 0);
-    e.p0     = Vec2d(5, 0);
+    e.p0     = e.center;          // circle convention: p0 mirrors the centre
     e.radius = 5;
 
     SketchEntity cut;
@@ -735,4 +771,67 @@ TEST_CASE("sketch_open_ends names where a chain fails to close", "[SketchEngine]
     REQUIRE_THAT(got[0].y(), WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(got[1].x(), WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(got[1].y(), WithinAbs(10.0, 1e-9));
+}
+
+TEST_CASE("Mirror EllipseArc keeps the same arc, not its complement", "[SketchEdit]")
+{
+    // A quarter of an ellipse a=6 b=3 centred at (10,0), CCW from param 0 to pi/2, mirrored
+    // across the Y axis: the image is a quarter again (the complement would be three quarters),
+    // its start angle belongs to its p0, and its middle is still above the X axis.
+    SketchEntity e;
+    e.type = SketchEntity::Type::EllipseArc;
+    e.center = Vec2d(10, 0); e.radius = 6; e.rminor = 3; e.rotation = 0.0;
+    e.start_angle = 0.0; e.end_angle = M_PI / 2.0;
+    e.p0 = Vec2d(16, 0); e.p1 = Vec2d(10, 3);
+    const auto out = SketchEngine::mirror_entities({ e }, Vec2d(0, -1), Vec2d(0, 1));
+    REQUIRE(out.size() == 1);
+    const SketchEntity& m = out[0];
+    REQUIRE(m.type == SketchEntity::Type::EllipseArc);
+    CHECK_THAT(m.end_angle - m.start_angle, WithinAbs(M_PI / 2.0, 1e-9));
+    const double cr = std::cos(m.rotation), sr = std::sin(m.rotation);
+    auto at = [&](double t) {
+        return Vec2d(m.center.x() + m.radius * std::cos(t) * cr - m.rminor * std::sin(t) * sr,
+                     m.center.y() + m.radius * std::cos(t) * sr + m.rminor * std::sin(t) * cr);
+    };
+    CHECK((at(m.start_angle) - m.p0).norm() < 1e-6);
+    CHECK((at(m.end_angle)   - m.p1).norm() < 1e-6);
+    CHECK(at(0.5 * (m.start_angle + m.end_angle)).y() > 1.0);
+}
+
+TEST_CASE("Bridge between two collinear lines is straight and stays between them", "[SketchEdit]")
+{
+    SketchEntity a, b;
+    a.type = b.type = SketchEntity::Type::Line;
+    a.p0 = Vec2d(-10, 0); a.p1 = Vec2d(0, 0);    // ends at x=0 heading +X
+    b.p0 = Vec2d(9, 0);   b.p1 = Vec2d(19, 0);   // starts at x=9 heading +X
+    const SketchEntity br = SketchEngine::make_bridge(a, 1, b, 0);
+    REQUIRE(br.ctrl.size() == 4);
+    // G1 into b: the last inner pole sits BEFORE b's start, on the side the curve arrives from.
+    CHECK(br.ctrl[1].x() > 0.0);
+    CHECK(br.ctrl[2].x() < 9.0);
+    for (const Vec2d& p : br.ctrl) CHECK_THAT(p.y(), WithinAbs(0.0, 1e-9));
+}
+
+TEST_CASE("Transform with a negative scale keeps an arc on its endpoints", "[SketchEdit]")
+{
+    SketchEntity e;
+    e.type = SketchEntity::Type::Arc;
+    e.center = Vec2d(3, 0); e.radius = 2; e.start_angle = 0.0; e.end_angle = M_PI / 2.0;
+    e.p0 = Vec2d(5, 0); e.p1 = Vec2d(3, 2);
+    const auto out = SketchEngine::transform_entities({ e }, Vec2d(0, 0), 0.0, -1.0, Vec2d(0, 0));
+    REQUIRE(out.size() == 1);
+    const SketchEntity& m = out[0];
+    // A point reflection through the origin: centre (-3,0), start (-5,0), end (-3,-2).
+    CHECK((m.center - Vec2d(-3, 0)).norm() < 1e-9);
+    CHECK((m.p0 - Vec2d(-5, 0)).norm() < 1e-9);
+    CHECK((m.p1 - Vec2d(-3, -2)).norm() < 1e-9);
+}
+
+TEST_CASE("A zero-radius circle does not build a wire (and does not throw)", "[SketchEdit]")
+{
+    SketchEntity c;
+    c.type = SketchEntity::Type::Circle; c.center = Vec2d(0, 0); c.p0 = c.center; c.radius = 0.0;
+    std::vector<TopoDS_Wire> w;
+    REQUIRE_NOTHROW(w = SketchEngine::entities_to_wires({ c }, SketchPlane::XY(), true));
+    CHECK(w.empty());
 }

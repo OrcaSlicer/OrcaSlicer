@@ -974,7 +974,7 @@ void WebViewPanel::OnError(wxWebViewEvent& evt)
         wxLogMessage("%s", "Error; url='" + evt.GetURL() + "', error='" + category + " (" + evt.GetString() + ")'");
 
         // Show the info bar with an error
-        m_info->ShowMessage(_L("An error occurred loading ") + evt.GetURL() + "\n" + "'" + category + "'", wxICON_ERROR);
+        m_info->ShowMessage(wxString::Format(_L("An error occurred loading %s"), evt.GetURL()) + "\n" + "'" + category + "'", wxICON_ERROR);
     }
 
     UpdateState();

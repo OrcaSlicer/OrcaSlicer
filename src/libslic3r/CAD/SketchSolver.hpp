@@ -19,6 +19,10 @@ struct SketchSolveResult {
     int              dof{-1};     // remaining degrees of freedom (>0 under-constrained)
     int              result{0};   // raw SLVS_RESULT_* code
     std::vector<int> bad;         // indices (into `constraints`) of conflicting constraints
+    // Indices of constraints that were NOT applied because an entity they reference has no
+    // solver representation for the role they need (an ellipse rim, a spline curve, a
+    // zero-radius circle...). A solve can be ok with some skipped; callers should say so.
+    std::vector<int> skipped;
 };
 
 // Solve `constraints` over `entities` in place (writes solved coordinates back into the

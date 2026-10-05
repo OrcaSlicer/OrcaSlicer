@@ -18,6 +18,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Line.hpp"
 #include <stddef.h>
+#include <functional>
 #include <memory>
 #include <chrono>
 #include <cstdint>
@@ -599,6 +600,9 @@ private:
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};
+    // The collapse button of a sidebar other than Prepare's, from set_collapse_toolbar().
+    GLToolbar*                    m_collapse_toolbar{nullptr};
+    std::function<CollapseSide()> m_collapse_side;
     bool m_plate_chrome_enabled{true};
     // Design tab: render the world-axis triad at the bed centre (= modeling origin) instead of
     // the bed corner. Default false preserves the main editor's corner triad.
@@ -606,6 +610,9 @@ private:
     // Design tab: draw the printer bed and its plate grid at all. Default true, so the
     // main editor is untouched; the Design tab lets the user hide it to model without a bed.
     bool m_show_bed{true};
+    // Design tab: draw the outline where a volume crosses the bed. GLVolume::SinkingContours slices
+    // the plater model's mesh by the volume's ids, so a canvas over its own Model must turn it off.
+    bool m_sinking_contours_enabled{true};
     // Design tab: CAD grid drawn on the bed plane in place of the plate's corner-origin grid.
     // Two GLModels (10 mm minor / 50 mm major) generated from the bed centre so a line passes
     // exactly through the modeling origin; built once and rebuilt only when the bed shape changes.
@@ -622,6 +629,9 @@ private:
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
+    // Objects drawn with the phong shader's studio lighting whatever the realistic-view settings
+    // (the Design tab's canvas). Off for every canvas of the slicer, which render as before.
+    bool m_studio_lighting{false};
     std::array<ClippingPlane, 2> m_clipping_planes;
     ClippingPlane m_camera_clipping_plane;
     bool m_use_clipping_planes;
@@ -659,11 +669,6 @@ private:
     std::array<unsigned int, 2> m_old_size{ 0, 0 };
 
     bool m_is_touchpad_navigation{ false };
-    // CAD navigation (Design tab only): left-drag is a selection rubber band, so orbit moves
-    // to middle-drag and pan to right-drag — the Onshape/SolidWorks mapping. Off everywhere
-    // else, so Prepare/Preview keep the mouse the user already learned.
-    bool m_cad_navigation{ false };
-
     // Screen is only refreshed from the OnIdle handler if it is dirty.
     bool m_dirty;
     // A frame is needed, and only for the overlay.
@@ -866,6 +871,7 @@ public:
 
     void set_context(wxGLContext* context) { m_context = context; }
     void set_type(ECanvasType type) { m_canvas_type = type; }
+    void set_studio_lighting(bool on) { m_studio_lighting = on; }
     ECanvasType get_canvas_type() { return m_canvas_type; }
 
     wxGLCanvas* get_wxglcanvas() { return m_canvas; }
@@ -1014,10 +1020,15 @@ public:
     void enable_return_toolbar(bool enable);
     void enable_separator_toolbar(bool enable);
     void enable_collapse_toolbar(bool enable);
+    // A canvas beside a sidebar other than Prepare's shows that sidebar's collapse button: `toolbar`,
+    // set up with setup_collapse_toolbar(), on the edge `side` reports. Call before the canvas is
+    // initialized, which loads the toolbar's background.
+    void set_collapse_toolbar(GLToolbar* toolbar, std::function<CollapseSide()> side);
     void enable_plate_chrome(bool enable);
     void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
     void set_show_bed(bool b) { m_show_bed = b; }
     bool get_show_bed() const { return m_show_bed; }
+    void enable_sinking_contours(bool enable) { m_sinking_contours_enabled = enable; }
 #ifdef SLIC3R_CAD
     void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
     DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
@@ -1199,7 +1210,6 @@ public:
     bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
-    void set_cad_navigation(bool b) { m_cad_navigation = b; }
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
@@ -1381,6 +1391,8 @@ private:
     // BBS
     //bool _init_view_toolbar();
     bool _init_collapse_toolbar();
+    GLToolbar&   collapse_toolbar() const;
+    CollapseSide collapse_side() const;
 
     bool _set_current();
     bool _set_shown_canvas_current();

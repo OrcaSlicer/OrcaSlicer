@@ -13,8 +13,9 @@ known.
 Its coupling to the rest of the application is deliberately narrow. It adds no stage to the
 slicing pipeline and touches neither the preset system nor `Tab`. It reaches the rest of Orca
 in two places: **Commit to Plate**, which hands finished solids to Prepare as ordinary model
-objects, and one optional 3MF archive entry that carries the recipe. Everything else is
-contained in `src/libslic3r/CAD/` and `src/slic3r/GUI/CAD/`.
+objects (by default one assembly object with a part per body, which keeps the bodies' relative
+placement, or one object per body), and one optional 3MF archive entry that carries the recipe.
+Everything else is contained in `src/libslic3r/CAD/` and `src/slic3r/GUI/CAD/`.
 
 The user-facing manual lives in the wiki
 ([Design Tab](https://www.orcaslicer.com/wiki/design_tab)), not here. This document covers the
@@ -118,6 +119,9 @@ referencing the source file, so a project opens without the STEP or mesh it was 
 The cost is that saved projects are coupled to an OCCT BRep revision.
 `tests/data/cad_brep_occt76.brep` holds a solid written by OCCT 7.6, and its test fails if the
 bundled OCCT can no longer read it.
+A Text feature follows the same rule: it stores the outlines it was vectorised into alongside
+its string, font and height, so the project opens identically on a machine that lacks the font;
+the three parameters are only what an edit reopens the dialog with.
 
 ## The interaction contract
 
@@ -132,7 +136,7 @@ contract between them is stated in code rather than spread across handlers.
 | `Transient` | a value field or a popup menu | closes it; the tool stays armed |
 | `Gesture` | an uncommitted delta — an entity being drawn, a body being dragged | reverts it; committed work is untouched |
 | `Tool` | a feature card, an armed sketch tool, a constrain session | exits it; drawn entities survive |
-| `Idle` | nothing transient | clears the selection; leaves a sketch session only if it is empty |
+| `Idle` | nothing transient | clears the selection, a Feature tree or Bodies row included; leaves a sketch session only if it is empty |
 
 `cad_escape_level()` is a `constexpr` free function over a POD of four booleans rather than a
 method on the panel, so the ordering that is the entire contract is checkable without a window,
@@ -145,12 +149,20 @@ explicit selection, the sketch ribbon's Cancel, which asks first, or `Ctrl+Z`. A
 *session* is deliberately not a `Tool` level; it is the environment the `Idle` level lives in,
 which makes the destructive path unrepresentable rather than merely unlikely.
 
-Right-click is read at button-up against two independent budgets — 3 px of drift and 200 ms —
-because drift alone still popped a menu at the end of a slow, careful orbit. The raycast uses
-the press position, not the release. An armed sketch tool that already consumed the right
+Right-click is read at button-up against one budget, 3 px of drift, applied to the whole press
+rather than to its end points: a press that wandered past the budget at any moment is
+navigation, even if it comes back to where it started, which is what stops a slow, careful
+orbit from ending in a menu. There is no time budget — a gesture that means something different
+when it is slow is exactly what the interaction charter rules out. The raycast uses the press
+position, not the release. An armed sketch tool that already consumed the right
 button (to terminate a chain, say) declines to also open a menu, through a read-and-clear flag.
 Past either budget the event is navigation, and navigation does not transition the state
 machine.
+
+Navigation itself is Prepare's: the camera reads the drag actions set in Preferences > Control
+for each button. The left button is shared with picking, so a whole body is swept with a
+rectangle on plain left-drag only while no camera action is assigned to it, and with
+Shift+left-drag otherwise — Prepare's own rectangle selection.
 
 Entering a sketch changes three things at once so the mode is legible: a banner above the
 canvas (a sibling of the canvas, not a child over it — on GTK a child window over a
@@ -158,13 +170,96 @@ canvas (a sibling of the canvas, not a child over it — on GTK a child window o
 a plate grid is never read as a sketch grid, and `N` to look normal to the plane. Code that
 changes any of the three belongs with a change to this section.
 
+## Rendering the bodies
+
+The tab draws its bodies through the same `GLCanvas3D` object path as Prepare, so how they look
+is decided in the shared object shader, not in the tab. The slicer's two lights both sit near
+the camera, which leaves the sides of a part in nearly one tone; the Design canvas asks for a
+studio model instead — a world-space sky/ground hemisphere, a key and a fill light, a
+plastic-like highlight and a darker silhouette — through `GLCanvas3D::set_studio_lighting()`
+and the phong shader's `lighting_model` uniform. The program is shared by every canvas, so each
+use sets the uniform (0 for the slicer's canvases) rather than relying on a default: a canvas
+that left it alone would inherit whatever the last canvas chose.
+
+The B-rep edges of every body are drawn over it by the sketch overlay as thin view-facing
+ribbons, depth tested and pulled a few pixels toward the eye so they win against the faces that
+meet at them and still hide behind faces in front; lines are not used because they do not
+rasterise under the software GL context the tab also supports. Seams of closed surfaces and
+degenerate edges are left out (`GeometryEngine::display_edges`), and the polylines are sampled
+once per shape, keyed by its `TShape`, because a recompute that leaves a body unchanged is the
+common case.
+
+## Showing what is selected
+
+A selection is drawn on the faces it names, never as a tint over the body: a translucent
+selection colour blended into the body's own colour turns a different hue on every body and
+vanishes on one close to it. Selected faces are split out of their body into a volume of their
+own, which the canvas draws opaque in the selection colour through the same shader and lighting
+as the body (`DesignCanvas::rebuild_bodies`); the sketch overlay outlines them with a cased line
+— a dark band under a selection-coloured one — so the outline still reads on a body that wears
+the selection colour itself. A body picked whole, a face picked in the viewport and the faces of
+the Feature tree's selected feature all draw this way. The hover pre-highlight is the outline
+alone, uncased: it promises a click, it is not one. The automatic body colours keep clear of the
+selection colour's blues and teals, so no body looks selected before anything is picked; a colour
+the user sets on a body is theirs, and the cased outline keeps its selection readable.
+
+Selecting a feature row lights the faces that feature made, not the whole body it sits on, so a
+fillet row shows its round and the extrude under it keeps the faces the fillet trimmed.
+`CadDocument::faces_made_by` answers it without per-feature history: it replays the recipe to
+just before the feature and then the feature alone, and a face of the finished model belongs to
+the feature when an interior point of it lies on the boundary afterwards and not before, facing
+the same way — the facing keeps a block stacked on a base the owner of its bottom face. A feature
+that makes no face of its own, such as a Boolean union, answers with the bodies it changed. The
+replay costs up to a recompute, so the panel finds the faces once per row and topology
+generation, off the UI thread, and only while no feature card is open. One selection is live at
+a time: a viewport pick clears the feature row and a feature row clears the viewport pick, as the
+Feature tree and Bodies list do between themselves. `Esc`, a click on empty space and an
+empty rubber band all let go of it, whichever list or pick made it.
+
+## Following the app
+
+The tab is a page of Orca's main window and answers to the same settings as Prepare.
+
+- **Theme.** Its chrome is coloured from a table of light/dark token pairs. A theme switch
+  reaches `DesignPanel::on_sys_color_changed` from `MainFrame`, which moves every colour that is
+  one theme's token onto the other theme's and then runs the app's own dark pass; the icons are
+  Orca's sidebar grey, which the icon cache maps per theme, so they are re-rasterised rather
+  than re-tinted.
+- **Scale.** Sizes are in DIP, and a DPI change reaches `DesignPanel::msw_rescale`, which
+  re-rasterises every icon (button faces, flyout rows, card headers, the feature and body lists'
+  row icons).
+- **Sidebar icons.** Every clickable icon in the sidebar shows a hover chip. The card-header and
+  constraint-row buttons are Orca's self-painted `Button`, because a native button cannot take a
+  hover background on macOS. The Feature tree and Bodies lists are a custom-drawn
+  `DesignRowList` rather than a `wxTreeCtrl`, so each row carries its own actions — Edit,
+  Show/hide and Delete on a feature, Move, Show/hide and Delete on a body — and the eye shows
+  whether that row is hidden.
+- **Viewport text.** The status line and the active tool's values are drawn by the canvas in
+  its ImGui pass, so they go with the canvas: a top-level window over GL does not follow its
+  frame and was left floating over other applications.
+- **Undo.** The tab keeps its own history (the recipe is not part of Prepare's snapshots), but
+  it has no Undo/Redo of its own: the top bar, `Ctrl+Z` and Edit drive it while the tab is
+  shown, greyed to what an undo would actually do.
+- **Docking.** The sidebar docks like Prepare's — either side, floating, resized, or collapsed
+  with the canvas's collapse button or `Shift+Tab` — through its own AUI manager under the
+  toolbar, because Prepare's manages the Plater and the Plater is not on this page. The button is
+  the canvas's own toolbar rather than Prepare's, which collapses Prepare's sidebar. The layout,
+  collapse included, is kept apart from Prepare's (`design_window_layout`) and starts where
+  Prepare's sidebar is, at its width, so the canvas edge holds still across the tab switch until
+  the user moves one of them. A floating sidebar is a top-level window, so it is hidden with the
+  tab rather than left over the other pages, and View > Reset Window Layout resets both tabs.
+
 ## The offer is generated, not hand-written
 
 Right-clicking geometry opens the *offer*: eight families in a fixed order, each verb at a
 permanent row index, verbs that do not apply shown disabled **in place with their reason**
 rather than removed. The invariant is that a verb's row index is identical in every selection
 where it appears and that adding a verb never moves an existing one — the hand learns the
-position, so the menu is never re-sorted, compacted or adaptively ordered.
+position, so the menu is never re-sorted, compacted or adaptively ordered. Above the families
+sits one *flat* row, holding Rename and Color — what a selection is opened for most: its verbs are
+items of their own at the top of the menu rather than a family's submenu. It is appended after
+the eight, so it moved no existing index, and it reads the same from the viewport and from a row
+of the Bodies list.
 
 An invariant across 92 verbs and 20 selection kinds does not survive by review, so the map
 exists once, as data: `scripts/CAD/tool_atlas.json` carries every verb with its row, key, icon,
@@ -195,6 +290,7 @@ scripted action and a clicked one cannot diverge. It is off unless the variable 
 | `src/libslic3r/CAD/SketchSolver.*` | constraint solving, over the vendored solver |
 | `src/libslic3r/slvs/` | vendored 2D constraint solver (GPLv3) |
 | `src/slic3r/GUI/CAD/DesignPanel.*` | the tab: toolbar, feature cards, tree, key maps |
+| `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
