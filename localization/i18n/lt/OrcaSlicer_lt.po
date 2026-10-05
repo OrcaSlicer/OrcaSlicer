@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:42-0300\n"
+"POT-Creation-Date: 2026-10-05 10:49-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -6031,6 +6031,19 @@ msgstr "Vengti ekstruzijos kalibravimo srities"
 
 msgid "Align to Y axis"
 msgstr "Išlygiuoti pagal Y ašį"
+
+msgctxt "Axis"
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgctxt "Axis"
+msgid "Z"
+msgstr "Z"
+
+msgctxt "Axis"
+msgid "X"
+msgstr "X"
 
 # AI Translated
 msgctxt "Camera View"
@@ -16893,9 +16906,6 @@ msgstr "3HUMP_EI"
 msgid "DAA"
 msgstr "DAA"
 
-msgid "X"
-msgstr "X"
-
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
 "Zero will use the firmware frequency.\n"
@@ -16909,9 +16919,6 @@ msgstr ""
 
 msgid "Hz"
 msgstr "Hz"
-
-msgid "Y"
-msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -23518,10 +23525,6 @@ msgid "Distance Z"
 msgstr "Atstumas Z"
 
 # AI Translated
-msgid "Z"
-msgstr "Z"
-
-# AI Translated
 msgid "Rotation axis"
 msgstr "Sukimosi ašis"
 
@@ -23623,14 +23626,17 @@ msgid "Size (r/dist)"
 msgstr "Dydis (r/atst.)"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XY"
 msgstr "XY"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XZ"
 msgstr "XZ"
 
 # AI Translated
+msgctxt "Axis"
 msgid "YZ"
 msgstr "YZ"
 
@@ -30789,6 +30795,28 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
+
+# AI Translated
+#~ msgid "Z"
+#~ msgstr "Z"
+
+# AI Translated
+#~ msgid "XY"
+#~ msgstr "XY"
+
+# AI Translated
+#~ msgid "XZ"
+#~ msgstr "XZ"
+
+# AI Translated
+#~ msgid "YZ"
+#~ msgstr "YZ"
 
 # AI Translated
 #~ msgid "Equal"

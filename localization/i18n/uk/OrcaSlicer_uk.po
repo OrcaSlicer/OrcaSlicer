@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:42-0300\n"
+"POT-Creation-Date: 2026-10-05 10:49-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -6020,6 +6020,19 @@ msgstr "Уникайте області калібрування екструз�
 
 msgid "Align to Y axis"
 msgstr "Розташувати вздовж осі Y"
+
+msgctxt "Axis"
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgctxt "Axis"
+msgid "Z"
+msgstr "Z"
+
+msgctxt "Axis"
+msgid "X"
+msgstr "X"
 
 # AI Translated
 msgctxt "Camera View"
@@ -17236,9 +17249,6 @@ msgstr "3HUMP_EI"
 msgid "DAA"
 msgstr "DAA"
 
-msgid "X"
-msgstr "X"
-
 # AI Translated
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -17253,9 +17263,6 @@ msgstr ""
 
 msgid "Hz"
 msgstr "Гц"
-
-msgid "Y"
-msgstr "Y"
 
 # AI Translated
 msgid ""
@@ -24003,10 +24010,6 @@ msgid "Distance Z"
 msgstr "Відстань Z"
 
 # AI Translated
-msgid "Z"
-msgstr "Z"
-
-# AI Translated
 msgid "Rotation axis"
 msgstr "Вісь повороту"
 
@@ -24108,14 +24111,17 @@ msgid "Size (r/dist)"
 msgstr "Розмір (r/відст.)"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XY"
 msgstr "XY"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XZ"
 msgstr "XZ"
 
 # AI Translated
+msgctxt "Axis"
 msgid "YZ"
 msgstr "YZ"
 
@@ -31289,6 +31295,28 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
+
+# AI Translated
+#~ msgid "Z"
+#~ msgstr "Z"
+
+# AI Translated
+#~ msgid "XY"
+#~ msgstr "XY"
+
+# AI Translated
+#~ msgid "XZ"
+#~ msgstr "XZ"
+
+# AI Translated
+#~ msgid "YZ"
+#~ msgstr "YZ"
 
 # AI Translated
 #~ msgid "Equal"

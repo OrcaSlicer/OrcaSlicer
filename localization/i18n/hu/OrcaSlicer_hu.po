@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:42-0300\n"
+"POT-Creation-Date: 2026-10-05 10:49-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -6043,6 +6043,19 @@ msgstr "Extrudáláskalibráció környékének elkerülése"
 
 msgid "Align to Y axis"
 msgstr "Igazítás az Y-tengelyhez"
+
+msgctxt "Axis"
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgctxt "Axis"
+msgid "Z"
+msgstr "Z"
+
+msgctxt "Axis"
+msgid "X"
+msgstr "X"
 
 # AI Translated
 msgctxt "Camera View"
@@ -17008,9 +17021,6 @@ msgstr "3HUMP_EI"
 msgid "DAA"
 msgstr "DAA"
 
-msgid "X"
-msgstr "X"
-
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
 "Zero will use the firmware frequency.\n"
@@ -17024,9 +17034,6 @@ msgstr ""
 
 msgid "Hz"
 msgstr "Hz"
-
-msgid "Y"
-msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -23796,10 +23803,6 @@ msgid "Distance Z"
 msgstr "Távolság Z"
 
 # AI Translated
-msgid "Z"
-msgstr "Z"
-
-# AI Translated
 msgid "Rotation axis"
 msgstr "Forgástengely"
 
@@ -23901,14 +23904,17 @@ msgid "Size (r/dist)"
 msgstr "Méret (r/táv.)"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XY"
 msgstr "XY"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XZ"
 msgstr "XZ"
 
 # AI Translated
+msgctxt "Axis"
 msgid "YZ"
 msgstr "YZ"
 
@@ -31054,6 +31060,28 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
+
+# AI Translated
+#~ msgid "Z"
+#~ msgstr "Z"
+
+# AI Translated
+#~ msgid "XY"
+#~ msgstr "XY"
+
+# AI Translated
+#~ msgid "XZ"
+#~ msgstr "XZ"
+
+# AI Translated
+#~ msgid "YZ"
+#~ msgstr "YZ"
 
 # AI Translated
 #~ msgid "Equal"

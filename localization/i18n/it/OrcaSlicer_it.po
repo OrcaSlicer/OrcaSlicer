@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:42-0300\n"
+"POT-Creation-Date: 2026-10-05 10:49-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6016,6 +6016,19 @@ msgstr "Evitare la regione di calibrazione dell'estrusione"
 
 msgid "Align to Y axis"
 msgstr "Allinea all'asse Y"
+
+msgctxt "Axis"
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgctxt "Axis"
+msgid "Z"
+msgstr "Z"
+
+msgctxt "Axis"
+msgid "X"
+msgstr "X"
 
 # AI Translated
 msgctxt "Camera View"
@@ -16908,9 +16921,6 @@ msgstr "3HUMP_EI"
 msgid "DAA"
 msgstr "DAA"
 
-msgid "X"
-msgstr "X"
-
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
 "Zero will use the firmware frequency.\n"
@@ -16924,9 +16934,6 @@ msgstr ""
 
 msgid "Hz"
 msgstr "Hz"
-
-msgid "Y"
-msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -23670,10 +23677,6 @@ msgid "Distance Z"
 msgstr "Distanza Z"
 
 # AI Translated
-msgid "Z"
-msgstr "Z"
-
-# AI Translated
 msgid "Rotation axis"
 msgstr "Asse di rotazione"
 
@@ -23775,14 +23778,17 @@ msgid "Size (r/dist)"
 msgstr "Dimensione (r/dist)"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XY"
 msgstr "XY"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XZ"
 msgstr "XZ"
 
 # AI Translated
+msgctxt "Axis"
 msgid "YZ"
 msgstr "YZ"
 
@@ -30917,6 +30923,28 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
+
+# AI Translated
+#~ msgid "Z"
+#~ msgstr "Z"
+
+# AI Translated
+#~ msgid "XY"
+#~ msgstr "XY"
+
+# AI Translated
+#~ msgid "XZ"
+#~ msgstr "XZ"
+
+# AI Translated
+#~ msgid "YZ"
+#~ msgstr "YZ"
 
 # AI Translated
 #~ msgid "Equal"

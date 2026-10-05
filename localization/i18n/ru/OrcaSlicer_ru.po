@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:42-0300\n"
+"POT-Creation-Date: 2026-10-05 10:49-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -6042,6 +6042,19 @@ msgstr "Избегать зону калибровки экструзии"
 
 msgid "Align to Y axis"
 msgstr "Выравнивать по оси Y"
+
+msgctxt "Axis"
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgctxt "Axis"
+msgid "Z"
+msgstr "Z"
+
+msgctxt "Axis"
+msgid "X"
+msgstr "X"
 
 msgctxt "Camera View"
 msgid "Front"
@@ -17124,9 +17137,6 @@ msgstr "3HUMP_EI"
 msgid "DAA"
 msgstr "DAA"
 
-msgid "X"
-msgstr "X"
-
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
 "Zero will use the firmware frequency.\n"
@@ -17141,9 +17151,6 @@ msgstr ""
 
 msgid "Hz"
 msgstr "Гц"
-
-msgid "Y"
-msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -24014,10 +24021,6 @@ msgid "Distance Z"
 msgstr "Расстояние Z"
 
 # AI Translated
-msgid "Z"
-msgstr "Z"
-
-# AI Translated
 msgid "Rotation axis"
 msgstr "Ось вращения"
 
@@ -24120,14 +24123,17 @@ msgid "Size (r/dist)"
 msgstr "Размер (R/расст.)"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XY"
 msgstr "XY"
 
 # AI Translated
+msgctxt "Axis"
 msgid "XZ"
 msgstr "XZ"
 
 # AI Translated
+msgctxt "Axis"
 msgid "YZ"
 msgstr "YZ"
 
@@ -31277,6 +31283,28 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
+
+# AI Translated
+#~ msgid "Z"
+#~ msgstr "Z"
+
+# AI Translated
+#~ msgid "XY"
+#~ msgstr "XY"
+
+# AI Translated
+#~ msgid "XZ"
+#~ msgstr "XZ"
+
+# AI Translated
+#~ msgid "YZ"
+#~ msgstr "YZ"
 
 # AI Translated
 #~ msgid "Equal"

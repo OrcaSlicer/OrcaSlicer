@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:42-0300\n"
+"POT-Creation-Date: 2026-10-05 10:49-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5603,6 +5603,18 @@ msgid "Avoid extrusion calibration region"
 msgstr ""
 
 msgid "Align to Y axis"
+msgstr ""
+
+msgctxt "Axis"
+msgid "Y"
+msgstr ""
+
+msgctxt "Axis"
+msgid "Z"
+msgstr ""
+
+msgctxt "Axis"
+msgid "X"
 msgstr ""
 
 msgctxt "Camera View"
@@ -15273,9 +15285,6 @@ msgstr ""
 msgid "DAA"
 msgstr ""
 
-msgid "X"
-msgstr ""
-
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
 "Zero will use the firmware frequency.\n"
@@ -15284,9 +15293,6 @@ msgid ""
 msgstr ""
 
 msgid "Hz"
-msgstr ""
-
-msgid "Y"
 msgstr ""
 
 msgid ""
@@ -21150,9 +21156,6 @@ msgstr ""
 msgid "Distance Z"
 msgstr ""
 
-msgid "Z"
-msgstr ""
-
 msgid "Rotation axis"
 msgstr ""
 
@@ -21231,12 +21234,15 @@ msgstr ""
 msgid "Size (r/dist)"
 msgstr ""
 
+msgctxt "Axis"
 msgid "XY"
 msgstr ""
 
+msgctxt "Axis"
 msgid "XZ"
 msgstr ""
 
+msgctxt "Axis"
 msgid "YZ"
 msgstr ""
 
