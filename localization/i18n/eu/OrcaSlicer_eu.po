@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -24917,17 +24917,9 @@ msgstr "Blokeatu X %s"
 msgid "Lock Y %s"
 msgstr "Blokeatu Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Berdina"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Perpendikularra"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Erdiko puntua"
 
 # AI Translated
 #, c-format, boost-format
@@ -30330,6 +30322,18 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Berdina"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Perpendikularra"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Erdiko puntua"
 
 # AI Translated
 #~ msgid "Equal length"

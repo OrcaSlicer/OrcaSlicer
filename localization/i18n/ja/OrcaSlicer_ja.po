@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -26046,17 +26046,9 @@ msgstr "X固定 %s"
 msgid "Lock Y %s"
 msgstr "Y固定 %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "等しい"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "直角"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "中点"
 
 # AI Translated
 #, c-format, boost-format
@@ -31458,6 +31450,18 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "等しい"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "直角"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "中点"
 
 # AI Translated
 #~ msgid "Equal length"

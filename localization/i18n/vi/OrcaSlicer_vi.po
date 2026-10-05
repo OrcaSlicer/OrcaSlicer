@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -26556,17 +26556,9 @@ msgstr "Khóa X %s"
 msgid "Lock Y %s"
 msgstr "Khóa Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Bằng nhau"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Vuông góc"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Trung điểm"
 
 # AI Translated
 #, c-format, boost-format
@@ -31966,6 +31958,18 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Bằng nhau"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Vuông góc"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Trung điểm"
 
 # AI Translated
 #~ msgid "Equal length"

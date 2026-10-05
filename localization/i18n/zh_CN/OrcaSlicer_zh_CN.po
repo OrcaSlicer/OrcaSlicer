@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -24986,17 +24986,9 @@ msgstr "锁定 X %s"
 msgid "Lock Y %s"
 msgstr "锁定 Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "相等"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "垂直"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "中点"
 
 # AI Translated
 #, c-format, boost-format
@@ -30404,6 +30396,18 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "相等"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "垂直"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "中点"
 
 # AI Translated
 #~ msgid "Equal length"

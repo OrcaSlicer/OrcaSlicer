@@ -8420,27 +8420,27 @@ wxString DesignPanel::constraint_label(const SketchEntityConstraintDef& d) const
     };
     switch (d.type) {
     case T::Fix:           return wxString::Format(_L("Fix %s"), tag(d.ea, d.ra));
-    case T::Coincident:    return two(_L("Coincident"));
+    case T::Coincident:    return two(_L_CONTEXT("Coincident", "Sketch Constraint"));
     case T::Horizontal:    return two(_L_CONTEXT("Horizontal", "Sketch Constraint"));
     case T::Vertical:      return two(_L_CONTEXT("Vertical", "Sketch Constraint"));
     case T::Distance:      return wxString::Format("%s = %s", two(_L("Distance")), en_format(d.value));
     case T::LockX:         return wxString::Format(_L("Lock X %s"), tag(d.ea, d.ra));
     case T::LockY:         return wxString::Format(_L("Lock Y %s"), tag(d.ea, d.ra));
-    case T::EqualLength:   return two(_L("Equal"));
+    case T::EqualLength:   return two(_L_CONTEXT("Equal", "Sketch Constraint"));
     case T::Parallel:      return two(_L_CONTEXT("Parallel", "Sketch Constraint"));
-    case T::Perpendicular: return two(_L("Perpendicular"));
+    case T::Perpendicular: return two(_L_CONTEXT("Perpendicular", "Sketch Constraint"));
     case T::Concentric:    return two(_L_CONTEXT("Concentric", "Sketch Constraint"));
-    case T::Tangent:       return two(_L("Tangent"));
-    case T::Midpoint:      return two(_L("Midpoint"));
+    case T::Tangent:       return two(_L_CONTEXT("Tangent", "Sketch Constraint"));
+    case T::Midpoint:      return two(_L_CONTEXT("Midpoint", "Sketch Constraint"));
     case T::Symmetric:     return wxString::Format(_L("Symmetric %s — %s / %s"),
                                                    tag(d.ea, d.ra), tag(d.eb, d.rb), tag(d.ec, d.rc));
     case T::SymmetricAboutY: return wxString::Format(_L("Symmetric about Y axis %s — %s"),
                                                      tag(d.ea, d.ra), tag(d.eb, d.rb));
     case T::SymmetricAboutX: return wxString::Format(_L("Symmetric about X axis %s — %s"),
                                                      tag(d.ea, d.ra), tag(d.eb, d.rb));
-    case T::Angle:         return wxString::Format(wxString::FromUTF8("%s = %s°"), two(_L("Angle")), en_format(d.value * 180.0 / M_PI, 1));
-    case T::Radius:        return wxString::Format("%s %s = %s", _L("Radius"),   tag(d.ea, d.ra), en_format(d.value));
-    case T::Diameter:      return wxString::Format("%s %s = %s", _L("Diameter"), tag(d.ea, d.ra), en_format(d.value));
+    case T::Angle:         return wxString::Format(wxString::FromUTF8("%s = %s°"), two(_L_CONTEXT("Angle", "Sketch Constraint")), en_format(d.value * 180.0 / M_PI, 1));
+    case T::Radius:        return wxString::Format("%s %s = %s", _L_CONTEXT("Radius", "Sketch Constraint"),   tag(d.ea, d.ra), en_format(d.value));
+    case T::Diameter:      return wxString::Format("%s %s = %s", _L_CONTEXT("Diameter", "Sketch Constraint"), tag(d.ea, d.ra), en_format(d.value));
     case T::PointOnLine:   return two(_L("On line"));
     case T::PointOnObject: return two(_L("On edge"));
     }

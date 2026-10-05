@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -27576,17 +27576,9 @@ msgstr "X van %s vergrendelen"
 msgid "Lock Y %s"
 msgstr "Y van %s vergrendelen"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Gelijk"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Loodrecht"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Middenpunt"
 
 # AI Translated
 #, c-format, boost-format
@@ -32995,6 +32987,18 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Gelijk"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Loodrecht"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Middenpunt"
 
 # AI Translated
 #~ msgid "Equal length"

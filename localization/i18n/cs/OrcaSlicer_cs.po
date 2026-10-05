@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -25780,17 +25780,9 @@ msgstr "Zámek X %s"
 msgid "Lock Y %s"
 msgstr "Zámek Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Shodnost"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Kolmost"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Střední bod"
 
 # AI Translated
 #, c-format, boost-format
@@ -31199,6 +31191,18 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Shodnost"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Kolmost"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Střední bod"
 
 # AI Translated
 #~ msgid "Equal length"

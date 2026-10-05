@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -26125,17 +26125,9 @@ msgstr "Blokada X %s"
 msgid "Lock Y %s"
 msgstr "Blokada Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Równość"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Prostopadłość"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Punkt środkowy"
 
 # AI Translated
 #, c-format, boost-format
@@ -31448,6 +31440,18 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Równość"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Prostopadłość"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Punkt środkowy"
 
 # AI Translated
 #~ msgid "Equal length"

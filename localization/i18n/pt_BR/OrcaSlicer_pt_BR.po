@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-07-26 11:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -2215,7 +2215,9 @@ msgstr ""
 msgid ""
 "A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
-msgstr "Uma predefinição com o mesmo nome foi excluída anteriormente da nuvem.\n\"Excluir\" excluirá sua predefinição local. \"Forçar subida\" a sobrescreve com a sua predefinição local."
+msgstr ""
+"Uma predefinição com o mesmo nome foi excluída anteriormente da nuvem.\n"
+"\"Excluir\" excluirá sua predefinição local. \"Forçar subida\" a sobrescreve com a sua predefinição local."
 
 msgid ""
 "There was an unexpected or unidentified preset conflict.\n"
@@ -2399,14 +2401,12 @@ msgstr "Falha ao abrir a caixa de diálogo de Plugins (erro desconhecido)."
 msgid "Plugins refreshed."
 msgstr "Plugins atualizados."
 
-# AI Translated
 #, c-format, boost-format
 msgid "Failed to refresh plugins: %s"
-msgstr "Falha ao atualizar os plugins: %s"
+msgstr "Falha ao atualizar plugins: %s"
 
-# AI Translated
 msgid "Select plugin package"
-msgstr "Selecionar pacote de plugin"
+msgstr "Selecione o pacote de plugins"
 
 # AI Translated
 msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
@@ -4128,13 +4128,11 @@ msgstr "Plugin de script concluído."
 msgid "Printer"
 msgstr "Impressora"
 
-# AI Translated
 msgid "Recent Projects"
-msgstr "Projetos recentes"
+msgstr "Projetos Recentes"
 
-# AI Translated
 msgid "Go to Plate"
-msgstr "Ir para a placa"
+msgstr "Ir para Placa"
 
 msgid "AMS Materials Setting"
 msgstr "Configuração de Materiais AMS"
@@ -5125,7 +5123,7 @@ msgid "Calibration error"
 msgstr "Erro de calibração"
 
 msgid "This printer is not configured with the hardware this control needs."
-msgstr "Esta impressora não está configurada com o hardware que este controle precisa."
+msgstr "Esta impressora não está configurada com o hardware de que este controle precisa."
 
 msgid "This control is not supported on this printer."
 msgstr "Este controle não é suportado nesta impressora."
@@ -7434,41 +7432,34 @@ msgstr "Consulte o Wiki antes de usar->"
 msgid "Plates are a filament (FFF) feature."
 msgstr "As placas são um recurso de impressão com filamento (FFF)."
 
-# AI Translated
 msgid "Open the 3D view first."
-msgstr "Abra a vista 3D primeiro."
+msgstr "Abra a visualização 3D antes."
 
-# AI Translated
 msgid "Select an object first."
-msgstr "Selecione um objeto primeiro."
+msgstr "Selecione um objeto antes."
 
 # AI Translated
 msgid "Slice and Preview"
 msgstr "Fatiar e pré-visualizar"
 
-# AI Translated
 msgid "Slice & Export"
-msgstr "Fatiar e exportar"
+msgstr "Fatiar e Exportar"
 
-# AI Translated
 msgid "Go to layer (percent)"
-msgstr "Ir para a camada (porcentagem)"
+msgstr "Ir para camada (percentual)"
 
 # AI Translated
 msgid "Commands"
 msgstr "Comandos"
 
-# AI Translated
 msgid "Go to tab..."
-msgstr "Ir para a aba..."
+msgstr "Ir para aba…"
 
-# AI Translated
 msgid "Load Project"
-msgstr "Carregar projeto"
+msgstr "Carregar Projeto"
 
-# AI Translated
 msgid "Save Project As"
-msgstr "Salvar projeto como"
+msgstr "Salvar Projeto Como"
 
 # AI Translated
 msgid "Mode: Simple"
@@ -7500,13 +7491,11 @@ msgstr "Exportar STL"
 msgid "Export 3MF"
 msgstr "Exportar 3MF"
 
-# AI Translated
 msgid "Export Sliced File"
-msgstr "Exportar arquivo fatiado"
+msgstr "Exportar Arquivo Fatiado"
 
-# AI Translated
 msgid "Export All Sliced Files"
-msgstr "Exportar todos os arquivos fatiados"
+msgstr "Exportar Todos os Arquivos Fatiados"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "Calibração de Velocidade Volumétrica Máxima"
@@ -7518,21 +7507,17 @@ msgstr "Calibração de Pressure Advance"
 msgid "Flow Ratio Calibration"
 msgstr "Calibração de Taxa de Fluxo"
 
-# AI Translated
 msgid "Retraction Calibration"
-msgstr "Calibração de retração"
+msgstr "Calibração de Retração"
 
-# AI Translated
 msgid "Cornering Calibration"
-msgstr "Calibração de quinas"
+msgstr "Calibração de Quinas"
 
-# AI Translated
 msgid "Input Shaping Frequency Calibration"
-msgstr "Calibração de frequência da modelagem de entrada"
+msgstr "Calibração da Frequência da Modelagem de Entrada"
 
-# AI Translated
 msgid "Input Shaping Damping Calibration"
-msgstr "Calibração de amortecimento da modelagem de entrada"
+msgstr "Calibração do Amortecimento da Modelagem de Entrada"
 
 # AI Translated
 msgid "VFA Calibration"
@@ -7546,13 +7531,11 @@ msgstr "Vista: Topo"
 msgid "View: Bottom"
 msgstr "Vista: Inferior"
 
-# AI Translated
 msgid "View: Front"
-msgstr "Vista: Frente"
+msgstr "Vista: Frontal"
 
-# AI Translated
 msgid "View: Rear"
-msgstr "Vista: Atrás"
+msgstr "Vista: Traseira"
 
 # AI Translated
 msgid "View: Left"
@@ -7574,9 +7557,8 @@ msgstr "Vista: Padrão"
 msgid "Fit Bed to View"
 msgstr "Enquadrar a mesa na vista"
 
-# AI Translated
 msgid "Toggle Perspective"
-msgstr "Alternar perspectiva"
+msgstr "Alternar Perspectiva"
 
 msgid "Delete All Objects"
 msgstr "Excluir Todos os Objetos"
@@ -7614,43 +7596,36 @@ msgstr "Dimensionar para caber no volume de impressão"
 
 # AI Translated
 msgid "Increase Instances"
-msgstr "Aumentar instâncias"
+msgstr "Aumentar Instâncias"
 
-# AI Translated
 msgid "Decrease Instances"
-msgstr "Diminuir instâncias"
+msgstr "Reduzir Instâncias"
 
-# AI Translated
 msgid "Auto-Arrange"
-msgstr "Organizar automaticamente"
+msgstr "Organizar Automaticamente"
 
-# AI Translated
 msgid "Auto-Orient"
-msgstr "Orientar automaticamente"
+msgstr "Auto-Orientar"
 
-# AI Translated
 msgid "Add Plate"
-msgstr "Adicionar placa"
+msgstr "Adicionar Placa"
 
 # AI Translated
 msgid "Cannot add another plate (maximum reached)."
 msgstr "Não é possível adicionar outra placa (máximo atingido)."
 
-# AI Translated
 msgid "Duplicate Plate"
-msgstr "Duplicar placa"
+msgstr "Duplicar Placa"
 
-# AI Translated
 msgid "Cannot duplicate a plate (maximum reached)."
-msgstr "Não é possível duplicar uma placa (máximo atingido)."
+msgstr "Não é possível duplicar a placa (máximo atingido)."
 
 # AI Translated
 msgid "Cannot delete the only plate."
 msgstr "Não é possível excluir a única placa."
 
-# AI Translated
 msgid "Rename Plate"
-msgstr "Renomear placa"
+msgstr "Renomear Placa"
 
 # AI Translated
 msgid "Toggle Plate Lock"
@@ -7700,9 +7675,8 @@ msgstr "Sobre o OrcaSlicer"
 msgid "Open Wiki"
 msgstr "Abrir Wiki"
 
-# AI Translated
 msgid "Open YouTube Channel"
-msgstr "Abrir canal do YouTube"
+msgstr "Abrir Canal do YouTube"
 
 # AI Translated
 msgid "Open Plugins"
@@ -7712,13 +7686,11 @@ msgstr "Abrir plugins"
 msgid "Refresh Plugins"
 msgstr "Atualizar plugins"
 
-# AI Translated
 msgid "Install Plugin"
-msgstr "Instalar plugin"
+msgstr "Instalar Plugin"
 
-# AI Translated
 msgid "Install Local Plugin"
-msgstr "Instalar plugin local"
+msgstr "Instalar Plugin Local"
 
 # AI Translated
 msgid "Unknown command."
@@ -8507,7 +8479,7 @@ msgstr "Um objeto com múltiplas peças foi detectado"
 
 # AI Translated
 msgid "Auto-Drop"
-msgstr "Queda Automática"
+msgstr "Soltura Automática"
 
 #, c-format, boost-format
 msgid "Connected printer is %s. It must match the project preset for printing.\n"
@@ -8577,7 +8549,7 @@ msgstr "O objeto selecionado não pôde ser dividido."
 
 # AI Translated
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
-msgstr "Desativar a Queda Automática para preservar o posicionamento Z?\n"
+msgstr "Desativar a Soltura Automática para preservar o posicionamento Z?\n"
 
 msgid "Object with floating parts was detected"
 msgstr "Foi detectado um objeto com partes flutuantes"
@@ -8897,7 +8869,9 @@ msgstr "Publicar arquivo 3MF como:"
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
-msgstr "Falha ao exportar o arquivo 3MF publicado.\nVerifique se a pasta existe online ou se outros programas estão com o arquivo aberto."
+msgstr ""
+"Falha ao exportar o arquivo 3MF publicado.\n"
+"Verifique se a pasta existe online ou se outros programas estão com o arquivo aberto."
 
 msgid "Publish"
 msgstr "Publicar"
@@ -9825,7 +9799,9 @@ msgstr "Brilho das camadas escurecidas"
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
 "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr "Com que brilho as camadas escurecidas são exibidas quando \"Escurecer camadas inferiores\" está ativado.\n99% quase não escurece, 0% as deixa pretas. Limitado a 99% porque 100% seria o mesmo que desativar a opção."
+msgstr ""
+"Com que brilho as camadas escurecidas são exibidas quando \"Escurecer camadas inferiores\" está ativado.\n"
+"99% quase não escurece, 0% as deixa pretas. Limitado a 99% porque 100% seria o mesmo que desativar a opção."
 
 msgid "Login region"
 msgstr "Região de login"
@@ -9957,7 +9933,9 @@ msgstr "(Experimental) Usar agentes de impressora em vez de hosts de impressão"
 msgid ""
 "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
 "When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr "Encaminha os trabalhos de impressão de impressoras que não são Bambu pelos agentes de plugin de impressora em vez do fluxo clássico de envio ao host de impressão.\nQuando desativado, o OrcaSlicer usa o comportamento antigo do host de impressão."
+msgstr ""
+"Encaminha os trabalhos de impressão de impressoras que não são Bambu pelos agentes de plugin de impressora em vez do fluxo clássico de envio ao host de impressão.\n"
+"Quando desativado, o OrcaSlicer usa o comportamento antigo do host de impressão."
 
 msgid "Experimental Features"
 msgstr "Recursos Experimentais"
@@ -9968,7 +9946,9 @@ msgstr "Manter o elemento pintado após a alteração da malha"
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
-msgstr "Tenta manter recursos pintados (cor/costura/suporte/textura difusa etc.) após alterar a malha do objeto (como cortar/recarregar do disco/simplificar/corrigir etc.)\nAltamente experimental! Lento e pode criar artefatos."
+msgstr ""
+"Tenta manter recursos pintados (cor/costura/suporte/textura difusa etc.) após alterar a malha do objeto (como cortar/recarregar do disco/simplificar/corrigir etc.)\n"
+"Altamente experimental! Lento e pode criar artefatos."
 
 msgid "Allow Abnormal Storage"
 msgstr "Permitir Armazenamento Anormal"
@@ -10201,7 +10181,7 @@ msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% precisa de %2%, cujo material não será publicado."
 
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "Para publicar um filamento misto, ative todos os filamentos que ele usa e escolha Publicação Completa ou atenda ao seu requisito de Tipo."
+msgstr "Para publicar um filamento misto, ative todos os filamentos que ele usa e escolha Publicação Completa ou marque o seu requisito de Tipo."
 
 msgid "Publish anyway"
 msgstr "Publicar mesmo assim"
@@ -10354,7 +10334,6 @@ msgctxt "Settings Mode"
 msgid "Advanced"
 msgstr "Avançado"
 
-# AI Translated
 msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Especialista"
@@ -10364,7 +10343,6 @@ msgctxt "Settings Mode"
 msgid "Developer"
 msgstr "Desenvolvedor"
 
-# AI Translated
 msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Simples"
@@ -10373,7 +10351,6 @@ msgstr "Simples"
 msgid "Search actions"
 msgstr "Buscar ações"
 
-# AI Translated
 msgid "Recent"
 msgstr "Recentes"
 
@@ -10389,9 +10366,8 @@ msgstr "Nenhuma ação corresponde (Total: %s)"
 msgid "No actions yet"
 msgstr "Nenhuma ação ainda"
 
-# AI Translated
 msgid "No tabs match"
-msgstr "Nenhuma aba corresponde"
+msgstr "Nenhuma aba correspondente"
 
 # AI Translated
 msgid "No tabs"
@@ -10436,9 +10412,8 @@ msgstr "Insira uma porcentagem de camada (0-100)"
 msgid "Go to layer %% (0-100)"
 msgstr "Ir para a camada em %% (0-100)"
 
-# AI Translated
 msgid "Go to tab"
-msgstr "Ir para a aba"
+msgstr "Ir para aba"
 
 # AI Translated
 #, c-format, boost-format
@@ -10503,12 +10478,10 @@ msgstr "\"%s\" é uma configuração do modo %s. Mudar do modo %s para o modo %s
 msgid "Switch settings mode"
 msgstr "Mudar o modo de configurações"
 
-# AI Translated
 #, c-format, boost-format
 msgid "Run \"%s\"?"
 msgstr "Executar \"%s\"?"
 
-# AI Translated
 msgid "Run plugin"
 msgstr "Executar plugin"
 
@@ -12270,9 +12243,8 @@ msgctxt "Keyboard Shortcut"
 msgid "Key"
 msgstr "Tecla"
 
-# AI Translated
 msgid "Left mouse"
-msgstr "Botão esquerdo do mouse"
+msgstr "Mouse esquerdo"
 
 # AI Translated
 msgid "Available anywhere in the window, even while typing in a text field."
@@ -12316,13 +12288,11 @@ msgstr "Passo de movimento definido para 1mm"
 msgid "Movement in camera space"
 msgstr "Movimento no espaço da câmera"
 
-# AI Translated
 msgid "Middle mouse"
-msgstr "Botão do meio do mouse"
+msgstr "Mouse do meio"
 
-# AI Translated
 msgid "Right mouse"
-msgstr "Botão direito do mouse"
+msgstr "Mouse direito"
 
 msgid "Zoom View"
 msgstr "Aproximar Vista"
@@ -12375,7 +12345,6 @@ msgstr "Mover o controle deslizante 5 vezes mais rápido"
 msgid "Scroll slider 5x faster"
 msgstr "Rolar o controle deslizante 5 vezes mais rápido"
 
-# AI Translated
 msgid "Not customizable"
 msgstr "Não personalizável"
 
@@ -12646,14 +12615,14 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Falha ao copiar o arquivo %1% para %2%: %3%"
 
 msgid "Downloading new vendor profile(s): "
-msgstr "Baixando novo(s) perfi(s) de fornecedor: "
+msgstr "Baixando novo(s) perfil(is) de fornecedor: "
 
 #, boost-format
 msgid "Configuration package: %1% updated to %2%"
 msgstr "Pacote de configuração: %1% atualizado para %2%"
 
 msgid "Failed to download vendor profile(s): "
-msgstr "Falha ao baixar o(s) perfi(s) de fornecedor: "
+msgstr "Falha ao baixar o(s) perfil(is) de fornecedor: "
 
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Verifique as alterações não salvas antes de atualizar a configuração."
@@ -14254,7 +14223,7 @@ msgid "Concentric"
 msgstr "Concêntrico"
 
 msgid "Spiral Inset"
-msgstr "Inserção em Espiral"
+msgstr "Espiral interna"
 
 msgid "Hilbert Curve"
 msgstr "Curva de Hilbert"
@@ -17832,7 +17801,11 @@ msgid ""
 "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
 "Affects line and grid patterns and rotation-template infills.\n"
 "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
-msgstr "Centraliza o preenchimento interno de cada peça em si mesmo, como se fosse fatiada isoladamente, em vez de no conjunto inteiro. Peças que se tocam ou se sobrepõem são tratadas como um único corpo e compartilham um centro; peças separadas (ou objetos 3D distintos) recebem cada uma o seu próprio.\nÚtil quando um conjunto agrupa vários objetos que devem manter, cada um, um preenchimento consistente e autocentrado.\nAfeta os padrões de linha e grade e os preenchimentos com gabarito de rotação.\nOs padrões fixados em coordenadas globais (Giroide, Favo de mel, TPMS, …) não são afetados."
+msgstr ""
+"Centraliza o preenchimento interno de cada peça em si mesma, como se fosse fatiada isoladamente, em vez de no conjunto inteiro. Peças que se tocam ou se sobrepõem são tratadas como um único corpo e compartilham um centro; peças separadas (ou objetos 3D distintos) recebem cada uma o seu próprio.\n"
+"Útil quando um conjunto agrupa vários objetos que devem manter, cada um, um preenchimento consistente e autocentrado.\n"
+"Afeta os padrões de linha e grade e os preenchimentos com gabarito de rotação.\n"
+"Os padrões fixados em coordenadas globais (Giroide, Favo de mel, TPMS, …) não são afetados."
 
 msgid "Center surface pattern on"
 msgstr "Centralizar padrão de superfície em"
@@ -19145,7 +19118,9 @@ msgstr "O tamanho do valor de entrada deve ser 3."
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
-msgstr "Esse tipo de máquina só pode manter 16 resultados históricos por bico. Você pode excluir resultados anteriores existentes e então começar a calibração. Ou você pode continuar a calibração, mas não poderá criar novos resultados históricos.\nVocê ainda quer continuar a calibração?"
+msgstr ""
+"Esse tipo de máquina só pode manter 16 resultados históricos por bico. Você pode excluir resultados anteriores existentes e então começar a calibração. Ou você pode continuar a calibração, mas não poderá criar novos resultados históricos.\n"
+"Você ainda quer continuar a calibração?"
 
 #, c-format, boost-format
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
@@ -20674,7 +20649,7 @@ msgstr "Sucesso!"
 
 # AI Translated
 msgid "Generate API Key"
-msgstr "Gerar chave da API"
+msgstr "Gerar Chave da API"
 
 # AI Translated
 msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
@@ -21952,11 +21927,9 @@ msgstr "Eixos globais ocultos"
 msgid "Axonometric view, fitted"
 msgstr ""
 
-# AI Translated
 msgid "Bed shown"
-msgstr "Mesa exibida"
+msgstr "Mesa mostrada"
 
-# AI Translated
 msgid "Bed hidden"
 msgstr "Mesa oculta"
 
@@ -22299,9 +22272,8 @@ msgstr "Casca"
 msgid "Hollow the body to a wall thickness, opening a picked face"
 msgstr "Esvaziar o corpo até uma espessura de parede, abrindo uma face selecionada"
 
-# AI Translated
 msgid "Delete Face"
-msgstr "Excluir face"
+msgstr "Excluir Face"
 
 # AI Translated
 msgid "Remove faces from a body and heal the solid"
@@ -22671,17 +22643,14 @@ msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Coincidente"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Equal length"
-msgstr "Comprimento igual"
+msgstr "Mesmo comprimento"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Equal radius"
-msgstr "Raio igual"
+msgstr "Mesmo raio"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Colinear"
@@ -22706,15 +22675,13 @@ msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Simétrico"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
-msgstr "Simétrico em relação ao eixo vertical"
+msgstr "Simétrico no eixo vertical"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
-msgstr "Simétrico em relação ao eixo horizontal"
+msgstr "Simétrico no eixo horizontal"
 
 msgctxt "Sketch Constraint"
 msgid "Angle"
@@ -22733,12 +22700,10 @@ msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Fixar ponto (ancorar no lugar)"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Distância horizontal"
 
-# AI Translated
 msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Distância vertical"
@@ -22928,13 +22893,11 @@ msgstr "Plano do furo"
 msgid "Depth (blind)"
 msgstr "Profundidade (cego)"
 
-# AI Translated
 msgid "Pos X"
-msgstr "Pos. X"
+msgstr "Pos X"
 
-# AI Translated
 msgid "Pos Y"
-msgstr "Pos. Y"
+msgstr "Pos Y"
 
 # AI Translated
 msgid "Through"
@@ -22980,7 +22943,6 @@ msgstr "Perfil: —"
 msgid "Path"
 msgstr "Caminho"
 
-# AI Translated
 msgctxt "Design"
 msgid "Linear"
 msgstr "Linear"
@@ -23455,7 +23417,6 @@ msgstr "Mover para cima"
 msgid "Move down"
 msgstr "Mover para baixo"
 
-# AI Translated
 msgid "Show / hide"
 msgstr "Mostrar / ocultar"
 
@@ -24322,9 +24283,8 @@ msgstr ""
 msgid "%d sketch entities"
 msgstr ""
 
-# AI Translated
 msgid "select something first"
-msgstr "selecione algo primeiro"
+msgstr "selecione algo antes"
 
 # AI Translated
 #, c-format, boost-format
@@ -24656,17 +24616,9 @@ msgstr "Travar X %s"
 msgid "Lock Y %s"
 msgstr "Travar Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Igual"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Perpendicular"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Ponto médio"
 
 # AI Translated
 #, c-format, boost-format
@@ -25432,7 +25384,6 @@ msgstr ""
 msgid "Report the volume and surface area of the selected body"
 msgstr "Informar o volume e a área de superfície do corpo selecionado"
 
-# AI Translated
 msgctxt "Design"
 msgid "Interference"
 msgstr "Interferência"
@@ -26196,7 +26147,6 @@ msgstr "Abrir o Menu rápido"
 msgid "Slicing and printing"
 msgstr "Fatiamento e impressão"
 
-# AI Translated
 msgid "Editing"
 msgstr "Edição"
 
@@ -26216,9 +26166,8 @@ msgstr "Controles deslizantes"
 msgid "Painting tools"
 msgstr "Ferramentas de pintura"
 
-# AI Translated
 msgid "Application"
-msgstr "Aplicativo"
+msgstr "Aplicação"
 
 # AI Translated
 msgid "Speed Dial"
@@ -30062,6 +30011,18 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Igual"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Perpendicular"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Ponto médio"
 
 # AI Translated
 #~ msgid "Equal length"

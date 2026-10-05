@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -3428,7 +3428,7 @@ msgid "Outer wall speed"
 msgstr "Geschwindigkeit Außenwand"
 
 msgid "Plate"
-msgstr "Aktuelle Platte drucken"
+msgstr "Platte"
 
 msgid "Brim"
 msgstr "Umrandung"
@@ -25180,17 +25180,9 @@ msgstr "X sperren %s"
 msgid "Lock Y %s"
 msgstr "Y sperren %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Gleich"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Senkrecht"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Mittelpunkt"
 
 # AI Translated
 #, c-format, boost-format
@@ -30583,6 +30575,18 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Gleich"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Senkrecht"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Mittelpunkt"
 
 # AI Translated
 #~ msgid "Equal length"

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -25184,17 +25184,9 @@ msgstr "鎖定 X %s"
 msgid "Lock Y %s"
 msgstr "鎖定 Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "相等"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "互相垂直"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "中點"
 
 # AI Translated
 #, c-format, boost-format
@@ -30618,6 +30610,18 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "相等"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "互相垂直"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "中點"
 
 # AI Translated
 #~ msgid "Equal length"

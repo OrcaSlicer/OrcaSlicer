@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -25871,17 +25871,9 @@ msgstr "Блокування X %s"
 msgid "Lock Y %s"
 msgstr "Блокування Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Рівний"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Перпендикулярний"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Середня точка"
 
 # AI Translated
 #, c-format, boost-format
@@ -31297,6 +31289,18 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Рівний"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Перпендикулярний"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Середня точка"
 
 # AI Translated
 #~ msgid "Equal length"

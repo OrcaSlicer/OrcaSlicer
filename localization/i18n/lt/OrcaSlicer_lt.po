@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -25378,17 +25378,9 @@ msgstr "Fiksuoti X %s"
 msgid "Lock Y %s"
 msgstr "Fiksuoti Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Vienodi"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Statmenai"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Vidurio taškas"
 
 # AI Translated
 #, c-format, boost-format
@@ -30797,6 +30789,18 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Vienodi"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Statmenai"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Vidurio taškas"
 
 # AI Translated
 #~ msgid "Equal length"

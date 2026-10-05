@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -22619,13 +22619,8 @@ msgstr ""
 msgid "Lock Y %s"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Equal"
-msgstr ""
-
-msgid "Perpendicular"
-msgstr ""
-
-msgid "Midpoint"
 msgstr ""
 
 #, c-format, boost-format

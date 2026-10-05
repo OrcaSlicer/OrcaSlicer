@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -5126,7 +5126,7 @@ msgid "Cooling chamber"
 msgstr "ห้องทำความเย็น"
 
 msgid "Pause (G-code inserted by user)"
-msgstr "หยุดชั่วคราว (ใส่รหัส G-code โดยผู้ใช้)"
+msgstr "หยุดชั่วคราว (ใส่ G-code โดยผู้ใช้)"
 
 msgid "Motor noise showoff"
 msgstr "โชว์เสียงมอเตอร์"
@@ -10463,7 +10463,7 @@ msgstr "เส้นพลาสติกผสม"
 
 # AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr "เส้นพลาสติกผสมบางส่วนขึ้นอยู่กับเส้นพลาสติกที่จะไม่ได้รับการเผยแพร่:"
+msgstr "เส้นพลาสติกผสมบางเส้นขึ้นอยู่กับเส้นพลาสติกที่จะไม่ได้รับการเผยแพร่:"
 
 # AI Translated
 #, c-format, boost-format
@@ -16048,7 +16048,7 @@ msgid ""
 msgstr ""
 "เริ่มพัดลมตามจำนวนวินาทีนี้เร็วกว่าเวลาเริ่มต้นเป้าหมาย (คุณสามารถใช้เศษส่วนวินาทีได้) โดยจะใช้ความเร่งอนันต์สำหรับการประมาณเวลานี้ และจะพิจารณาเฉพาะการเคลื่อนที่ของ G1 และ G0 เท่านั้น (ไม่รองรับการปรับส่วนโค้ง)\n"
 "มันจะไม่ย้ายคำสั่งพัดลมจาก G-code ที่กำหนดเอง (คำสั่งเหล่านั้นทำหน้าที่เป็น 'อุปสรรค')\n"
-"มันจะไม่ย้ายคำสั่งพัดลมไปที่รหัส G เริ่มต้นหากเปิดใช้งาน 'รหัส G-รหัสเริ่มต้นแบบกำหนดเองเท่านั้น'\n"
+"มันจะไม่ย้ายคำสั่งพัดลมไปที่ G-code เริ่มต้นหากเปิดใช้งาน 'G-code เริ่มต้นแบบกำหนดเองเท่านั้น'\n"
 "ใช้ 0 เพื่อปิดใช้งาน"
 
 msgid "Only overhangs"
@@ -25268,17 +25268,9 @@ msgstr "ล็อก X %s"
 msgid "Lock Y %s"
 msgstr "ล็อก Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "เท่ากัน"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "ตั้งฉาก"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "จุดกึ่งกลาง"
 
 # AI Translated
 #, c-format, boost-format
@@ -30430,7 +30422,7 @@ msgid ""
 "G-code window\n"
 "You can turn on/off the G-code window by pressing the <b>C</b> key."
 msgstr ""
-"หน้าต่างรหัส G\n"
+"หน้าต่าง G-code\n"
 "คุณสามารถเปิด/ปิดหน้าต่าง G-code ได้โดยการกดปุ่ม <b>C</b>"
 
 #: resources/data/hints.ini: [hint:Switch workspaces]
@@ -30676,6 +30668,18 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "เท่ากัน"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "ตั้งฉาก"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "จุดกึ่งกลาง"
 
 # AI Translated
 #~ msgid "Equal length"

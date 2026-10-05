@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:03-0300\n"
+"POT-Creation-Date: 2026-10-05 10:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -24744,17 +24744,9 @@ msgstr "Bloquear X %s"
 msgid "Lock Y %s"
 msgstr "Bloquear Y %s"
 
-# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal"
 msgstr "Igual"
-
-# AI Translated
-msgid "Perpendicular"
-msgstr "Perpendicular"
-
-# AI Translated
-msgid "Midpoint"
-msgstr "Punto medio"
 
 # AI Translated
 #, c-format, boost-format
@@ -30139,6 +30131,18 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+# AI Translated
+#~ msgid "Equal"
+#~ msgstr "Igual"
+
+# AI Translated
+#~ msgid "Perpendicular"
+#~ msgstr "Perpendicular"
+
+# AI Translated
+#~ msgid "Midpoint"
+#~ msgstr "Punto medio"
 
 # AI Translated
 #~ msgid "Equal length"
