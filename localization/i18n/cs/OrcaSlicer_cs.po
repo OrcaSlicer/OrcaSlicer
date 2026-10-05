@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -23779,22 +23779,27 @@ msgid "Parallel"
 msgstr "Rovnoběžnost"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Kolmost"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Totožnost"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Stejná délka"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Stejný poloměr"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Kolinearita"
 
@@ -23804,34 +23809,54 @@ msgid "Concentric"
 msgstr "Soustřednost"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Tečnost"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Střední bod"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Symetrie"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Symetrie podle svislé osy"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Symetrie podle vodorovné osy"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Úhel"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Poloměr"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Průměr"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Zafixovat bod (ukotvit na místě)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Vodorovná vzdálenost"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Svislá vzdálenost"
 
@@ -23921,6 +23946,10 @@ msgstr "Vzdál. vysunutí"
 # AI Translated
 msgid "Blind"
 msgstr "Naslepo"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Symetrie"
 
 # AI Translated
 msgid "Two-sided"
@@ -24068,6 +24097,7 @@ msgid "Path"
 msgstr "Trajektorie"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Lineární"
 
@@ -24125,8 +24155,16 @@ msgid "Midplane"
 msgstr "Střední rovina"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Tečnost"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Dvě hrany"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Totožnost"
 
 # AI Translated
 msgid "Plane type"
@@ -25745,6 +25783,14 @@ msgstr "Zámek Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Shodnost"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Kolmost"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Střední bod"
 
 # AI Translated
 #, c-format, boost-format
@@ -31153,6 +31199,42 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Stejná délka"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Stejný poloměr"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Kolinearita"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Symetrie podle svislé osy"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Symetrie podle vodorovné osy"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Zafixovat bod (ukotvit na místě)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Vodorovná vzdálenost"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Svislá vzdálenost"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Lineární"
 
 #~ msgid "Face recognition"
 #~ msgstr "Rozpoznání plochy"

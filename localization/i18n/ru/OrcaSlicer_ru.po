@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -23873,22 +23873,27 @@ msgid "Parallel"
 msgstr "Параллельно"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Перпендикулярно"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Совпадение"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Равная длина"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Равный радиус"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Коллинеарно"
 
@@ -23898,34 +23903,54 @@ msgid "Concentric"
 msgstr "Концентрично"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Касательно"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Середина"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Симметрично"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Симметрично относительно вертикальной оси"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Симметрично относительно горизонтальной оси"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Угол"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Радиус"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Диаметр"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Зафиксировать точку (закрепить на месте)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Расстояние по горизонтали"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Расстояние по вертикали"
 
@@ -24015,6 +24040,10 @@ msgstr "Расст. выдавливания"
 # AI Translated
 msgid "Blind"
 msgstr "На расстояние"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Симметрично"
 
 # AI Translated
 msgid "Two-sided"
@@ -24163,6 +24192,7 @@ msgid "Path"
 msgstr "Траектория"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Линейный"
 
@@ -24220,8 +24250,16 @@ msgid "Midplane"
 msgstr "Средняя плоскость"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Касательно"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Два ребра"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Совпадение"
 
 # AI Translated
 msgid "Plane type"
@@ -25840,6 +25878,14 @@ msgstr "Фиксация Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Равенство"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Перпендикулярно"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Середина"
 
 # AI Translated
 #, c-format, boost-format
@@ -31239,6 +31285,42 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Равная длина"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Равный радиус"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Коллинеарно"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Симметрично относительно вертикальной оси"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Симметрично относительно горизонтальной оси"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Зафиксировать точку (закрепить на месте)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Расстояние по горизонтали"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Расстояние по вертикали"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Линейный"
 
 #~ msgid "Face recognition"
 #~ msgstr "Распознавание граней"

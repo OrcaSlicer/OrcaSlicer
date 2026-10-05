@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -24124,22 +24124,27 @@ msgid "Parallel"
 msgstr "Równoległość"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Prostopadłość"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Zgodność"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Równa długość"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Równy promień"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Współliniowość"
 
@@ -24149,34 +24154,54 @@ msgid "Concentric"
 msgstr "Współśrodkowość"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Styczność"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Punkt środkowy"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Symetria"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Symetria względem osi pionowej"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Symetria względem osi poziomej"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Kąt"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Promień"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Średnica"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Ustal punkt (zakotwicz w miejscu)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Odległość pozioma"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Odległość pionowa"
 
@@ -24266,6 +24291,10 @@ msgstr "Odl. wyciągnięcia"
 # AI Translated
 msgid "Blind"
 msgstr "Na odległość"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Symetria"
 
 # AI Translated
 msgid "Two-sided"
@@ -24413,6 +24442,7 @@ msgid "Path"
 msgstr "Ścieżka"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Liniowy"
 
@@ -24470,8 +24500,16 @@ msgid "Midplane"
 msgstr "Płaszczyzna środkowa"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Styczność"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Dwie krawędzie"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Zgodność"
 
 # AI Translated
 msgid "Plane type"
@@ -26090,6 +26128,14 @@ msgstr "Blokada Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Równość"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Prostopadłość"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Punkt środkowy"
 
 # AI Translated
 #, c-format, boost-format
@@ -31402,6 +31448,42 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Równa długość"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Równy promień"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Współliniowość"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Symetria względem osi pionowej"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Symetria względem osi poziomej"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Ustal punkt (zakotwicz w miejscu)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Odległość pozioma"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Odległość pionowa"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Liniowy"
 
 #~ msgid "Face recognition"
 #~ msgstr "Rozpoznawanie twarzy"

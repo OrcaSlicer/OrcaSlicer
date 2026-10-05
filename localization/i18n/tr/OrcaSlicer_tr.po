@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -23717,22 +23717,27 @@ msgid "Parallel"
 msgstr "Paralel"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Dik"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Çakışık"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Eşit uzunluk"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Eşit yarıçap"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Eş doğrusal"
 
@@ -23742,34 +23747,54 @@ msgid "Concentric"
 msgstr "Eş merkezli"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Teğet"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Orta nokta"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Simetrik"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Dikey eksene göre simetrik"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Yatay eksene göre simetrik"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Açı"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Yarıçap"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Çap"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Noktayı sabitle (yerine kilitle)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Yatay mesafe"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Dikey mesafe"
 
@@ -23859,6 +23884,10 @@ msgstr "Ekstrüzyon mesafesi"
 # AI Translated
 msgid "Blind"
 msgstr "Kör"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Simetrik"
 
 # AI Translated
 msgid "Two-sided"
@@ -24006,6 +24035,7 @@ msgid "Path"
 msgstr "Yol"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Doğrusal"
 
@@ -24063,8 +24093,16 @@ msgid "Midplane"
 msgstr "Orta düzlem"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Teğet"
+
+# AI Translated
 msgid "Two edges"
 msgstr "İki kenar"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Çakışık"
 
 # AI Translated
 msgid "Plane type"
@@ -25675,6 +25713,14 @@ msgstr "Y kilidi %s"
 # AI Translated
 msgid "Equal"
 msgstr "Eşit"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Dik"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Orta nokta"
 
 # AI Translated
 #, c-format, boost-format
@@ -31081,6 +31127,42 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Eşit uzunluk"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Eşit yarıçap"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Eş doğrusal"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Dikey eksene göre simetrik"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Yatay eksene göre simetrik"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Noktayı sabitle (yerine kilitle)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Yatay mesafe"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Dikey mesafe"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Doğrusal"
 
 #~ msgid "Face recognition"
 #~ msgstr "Yüz tanıma"

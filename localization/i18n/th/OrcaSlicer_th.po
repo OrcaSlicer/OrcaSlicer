@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -23283,22 +23283,27 @@ msgid "Parallel"
 msgstr "ขนาน"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "ตั้งฉาก"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "ทับกัน"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "ความยาวเท่ากัน"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "รัศมีเท่ากัน"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "อยู่ในแนวเส้นเดียวกัน"
 
@@ -23308,34 +23313,54 @@ msgid "Concentric"
 msgstr "ร่วมศูนย์กลาง"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "สัมผัส"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "จุดกึ่งกลาง"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "สมมาตร"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "สมมาตรรอบแกนแนวตั้ง"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "สมมาตรรอบแกนแนวนอน"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "มุม"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "รัศมี"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "เส้นผ่านศูนย์กลาง"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "ตรึงจุด (ยึดไว้กับที่)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "ระยะแนวนอน"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "ระยะแนวตั้ง"
 
@@ -23425,6 +23450,10 @@ msgstr "ระยะยืดขึ้นรูป"
 # AI Translated
 msgid "Blind"
 msgstr "ระยะที่กำหนด"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "สมมาตร"
 
 # AI Translated
 msgid "Two-sided"
@@ -23572,6 +23601,7 @@ msgid "Path"
 msgstr "เส้นทาง"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "เชิงเส้น"
 
@@ -23629,8 +23659,16 @@ msgid "Midplane"
 msgstr "ระนาบกึ่งกลาง"
 
 # AI Translated
+msgid "Tangent"
+msgstr "สัมผัส"
+
+# AI Translated
 msgid "Two edges"
 msgstr "สองขอบ"
+
+# AI Translated
+msgid "Coincident"
+msgstr "ทับกัน"
 
 # AI Translated
 msgid "Plane type"
@@ -25233,6 +25271,14 @@ msgstr "ล็อก Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "เท่ากัน"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "ตั้งฉาก"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "จุดกึ่งกลาง"
 
 # AI Translated
 #, c-format, boost-format
@@ -30630,6 +30676,42 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "ความยาวเท่ากัน"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "รัศมีเท่ากัน"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "อยู่ในแนวเส้นเดียวกัน"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "สมมาตรรอบแกนแนวตั้ง"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "สมมาตรรอบแกนแนวนอน"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "ตรึงจุด (ยึดไว้กับที่)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "ระยะแนวนอน"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "ระยะแนวตั้ง"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "เชิงเส้น"
 
 #~ msgid "Face recognition"
 #~ msgstr "การจดจำผิวหน้า"

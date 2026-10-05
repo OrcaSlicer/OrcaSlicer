@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -25582,22 +25582,27 @@ msgid "Parallel"
 msgstr "Parallel"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Loodrecht"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Samenvallend"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Gelijke lengte"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Gelijke straal"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Collineair"
 
@@ -25607,34 +25612,55 @@ msgid "Concentric"
 msgstr "Concentrisch"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Rakend"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Middenpunt"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Symmetrisch"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Symmetrisch t.o.v. de verticale as"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Symmetrisch t.o.v. de horizontale as"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Hoek"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Straal"
+
 # AI Translated
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Diameter"
+
+# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Punt vastzetten (op zijn plaats verankeren)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Horizontale afstand"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Verticale afstand"
 
@@ -25724,6 +25750,10 @@ msgstr "Extrusieafstand"
 # AI Translated
 msgid "Blind"
 msgstr "Vaste diepte"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Symmetrisch"
 
 # AI Translated
 msgid "Two-sided"
@@ -25871,6 +25901,7 @@ msgid "Path"
 msgstr "Pad"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Lineair"
 
@@ -25928,8 +25959,16 @@ msgid "Midplane"
 msgstr "Middenvlak"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Rakend"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Twee randen"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Samenvallend"
 
 # AI Translated
 msgid "Plane type"
@@ -27540,6 +27579,14 @@ msgstr "Y van %s vergrendelen"
 # AI Translated
 msgid "Equal"
 msgstr "Gelijk"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Loodrecht"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Middenpunt"
 
 # AI Translated
 #, c-format, boost-format
@@ -32948,6 +32995,42 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Gelijke lengte"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Gelijke straal"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Collineair"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Symmetrisch t.o.v. de verticale as"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Symmetrisch t.o.v. de horizontale as"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Punt vastzetten (op zijn plaats verankeren)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Horizontale afstand"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Verticale afstand"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Lineair"
 
 #~ msgid "Face recognition"
 #~ msgstr "Gezichtsherkenning"

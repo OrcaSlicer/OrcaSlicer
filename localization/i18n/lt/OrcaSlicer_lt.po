@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -23377,22 +23377,27 @@ msgid "Parallel"
 msgstr "Lygiagrečiai"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Statmenai"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Sutapimas"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Vienodas ilgis"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Vienodas spindulys"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Kolineariai"
 
@@ -23402,34 +23407,54 @@ msgid "Concentric"
 msgstr "Koncentriškai"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Liestinė"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Vidurio taškas"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Simetriškai"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Simetriškai vertikaliosios ašies atžvilgiu"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Simetriškai horizontaliosios ašies atžvilgiu"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Kampas"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Spindulys"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Skersmuo"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Fiksuoti tašką (įtvirtinti vietoje)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Horizontalus atstumas"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Vertikalus atstumas"
 
@@ -23519,6 +23544,10 @@ msgstr "Išspaudimo atst."
 # AI Translated
 msgid "Blind"
 msgstr "Nurodytu atstumu"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Simetriškai"
 
 # AI Translated
 msgid "Two-sided"
@@ -23666,6 +23695,7 @@ msgid "Path"
 msgstr "Trajektorija"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Linijinis"
 
@@ -23723,8 +23753,16 @@ msgid "Midplane"
 msgstr "Vidurio plokštuma"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Liestinė"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Dvi briaunos"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Sutapimas"
 
 # AI Translated
 msgid "Plane type"
@@ -25343,6 +25381,14 @@ msgstr "Fiksuoti Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Vienodi"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Statmenai"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Vidurio taškas"
 
 # AI Translated
 #, c-format, boost-format
@@ -30751,6 +30797,42 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Vienodas ilgis"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Vienodas spindulys"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Kolineariai"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Simetriškai vertikaliosios ašies atžvilgiu"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Simetriškai horizontaliosios ašies atžvilgiu"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Fiksuoti tašką (įtvirtinti vietoje)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Horizontalus atstumas"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Vertikalus atstumas"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Linijinis"
 
 #~ msgid "Face recognition"
 #~ msgstr "Paviršių atpažinimas"

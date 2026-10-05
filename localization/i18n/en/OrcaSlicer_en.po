@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -21030,18 +21030,23 @@ msgctxt "Sketch Constraint"
 msgid "Parallel"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr ""
 
@@ -21049,27 +21054,47 @@ msgctxt "Sketch Constraint"
 msgid "Concentric"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr ""
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr ""
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr ""
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr ""
+
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr ""
 
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr ""
 
@@ -21140,6 +21165,9 @@ msgid "Extrude dist"
 msgstr ""
 
 msgid "Blind"
+msgstr ""
+
+msgid "Symmetric"
 msgstr ""
 
 msgid "Two-sided"
@@ -21253,6 +21281,7 @@ msgstr ""
 msgid "Path"
 msgstr ""
 
+msgctxt "Design"
 msgid "Linear"
 msgstr ""
 
@@ -21296,7 +21325,13 @@ msgstr ""
 msgid "Midplane"
 msgstr ""
 
+msgid "Tangent"
+msgstr ""
+
 msgid "Two edges"
+msgstr ""
+
+msgid "Coincident"
 msgstr ""
 
 msgid "Plane type"
@@ -22585,6 +22620,12 @@ msgid "Lock Y %s"
 msgstr ""
 
 msgid "Equal"
+msgstr ""
+
+msgid "Perpendicular"
+msgstr ""
+
+msgid "Midpoint"
 msgstr ""
 
 #, c-format, boost-format

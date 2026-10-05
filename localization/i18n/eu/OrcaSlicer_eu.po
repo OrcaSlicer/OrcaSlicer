@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -22924,22 +22924,27 @@ msgid "Parallel"
 msgstr "Paraleloa"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Perpendikularra"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Kointzidentea"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Luzera berdina"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Erradio berdina"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Kolineala"
 
@@ -22949,34 +22954,54 @@ msgid "Concentric"
 msgstr "Kontzentrikoa"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Tangentea"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Erdiko puntua"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Simetrikoa"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Simetrikoa ardatz bertikalarekiko"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Simetrikoa ardatz horizontalarekiko"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Angelua"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Erradioa"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Diametroa"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Finkatu puntua (ainguratu bere lekuan)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Distantzia horizontala"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Distantzia bertikala"
 
@@ -23066,6 +23091,10 @@ msgstr "Estrusio-dist."
 # AI Translated
 msgid "Blind"
 msgstr "Itsua"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Simetrikoa"
 
 # AI Translated
 msgid "Two-sided"
@@ -23213,6 +23242,7 @@ msgid "Path"
 msgstr "Ibilbidea"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Lineala"
 
@@ -23270,8 +23300,16 @@ msgid "Midplane"
 msgstr "Erdiko planoa"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Tangentea"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Bi ertz"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Kointzidentea"
 
 # AI Translated
 msgid "Plane type"
@@ -24882,6 +24920,14 @@ msgstr "Blokeatu Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Berdina"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Perpendikularra"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Erdiko puntua"
 
 # AI Translated
 #, c-format, boost-format
@@ -30284,6 +30330,42 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Luzera berdina"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Erradio berdina"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Kolineala"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Simetrikoa ardatz bertikalarekiko"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Simetrikoa ardatz horizontalarekiko"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Finkatu puntua (ainguratu bere lekuan)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Distantzia horizontala"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Distantzia bertikala"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Lineala"
 
 #~ msgid "Face recognition"
 #~ msgstr "Aurpegiak hauteman"

@@ -1569,23 +1569,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
         cbtn("design_c_horizontal",    _L_CONTEXT("Horizontal", "Sketch Constraint"),    SketchConstraintType::Horizontal);
         cbtn("design_c_vertical",      _L_CONTEXT("Vertical", "Sketch Constraint"),      SketchConstraintType::Vertical);
         cbtn("design_c_parallel",      _L_CONTEXT("Parallel", "Sketch Constraint"),      SketchConstraintType::Parallel);
-        cbtn("design_c_perpendicular", _L("Perpendicular"), SketchConstraintType::Perpendicular);
-        cbtn("design_c_coincident",    _L("Coincident"),    SketchConstraintType::Coincident);
-        cbtn("design_c_equal",         _L("Equal length"),  SketchConstraintType::EqualLength);
-        cbtn("design_c_equal_radius", _L("Equal radius"), SketchConstraintType::EqualRadius);
-        cbtn("design_c_collinear",    _L("Collinear"),    SketchConstraintType::Collinear);
+        cbtn("design_c_perpendicular", _L_CONTEXT("Perpendicular", "Sketch Constraint"), SketchConstraintType::Perpendicular);
+        cbtn("design_c_coincident",    _L_CONTEXT("Coincident", "Sketch Constraint"),    SketchConstraintType::Coincident);
+        cbtn("design_c_equal",         _L_CONTEXT("Equal length", "Sketch Constraint"),  SketchConstraintType::EqualLength);
+        cbtn("design_c_equal_radius", _L_CONTEXT("Equal radius", "Sketch Constraint"), SketchConstraintType::EqualRadius);
+        cbtn("design_c_collinear",    _L_CONTEXT("Collinear", "Sketch Constraint"),    SketchConstraintType::Collinear);
         cbtn("design_c_concentric",    _L_CONTEXT("Concentric", "Sketch Constraint"),    SketchConstraintType::Concentric);
-        cbtn("design_c_tangent",       _L("Tangent"),       SketchConstraintType::Tangent);
-        cbtn("design_c_midpoint",      _L("Midpoint"),      SketchConstraintType::Midpoint);
-        cbtn("design_c_symmetric",     _L("Symmetric"),     SketchConstraintType::Symmetric);
-        cbtn("design_c_sym_v", _L("Symmetric about the vertical axis"),   SketchConstraintType::SymmetricAboutY);
-        cbtn("design_c_sym_h", _L("Symmetric about the horizontal axis"), SketchConstraintType::SymmetricAboutX);
-        cbtn("design_c_angle",         _L("Angle"),         SketchConstraintType::Angle);
-        cbtn("design_c_radius",        _L("Radius"),        SketchConstraintType::Radius);
-        cbtn("design_c_diameter",      _L("Diameter"),      SketchConstraintType::Diameter);
-        cbtn("design_c_fix",           _L("Fix point (anchor in place)"), SketchConstraintType::Fix);
-        cbtn("design_c_dist_x", _L("Horizontal distance"), SketchConstraintType::DistanceX);
-        cbtn("design_c_dist_y", _L("Vertical distance"),   SketchConstraintType::DistanceY);
+        cbtn("design_c_tangent",       _L_CONTEXT("Tangent", "Sketch Constraint"),       SketchConstraintType::Tangent);
+        cbtn("design_c_midpoint",      _L_CONTEXT("Midpoint", "Sketch Constraint"),      SketchConstraintType::Midpoint);
+        cbtn("design_c_symmetric",     _L_CONTEXT("Symmetric", "Sketch Constraint"),     SketchConstraintType::Symmetric);
+        cbtn("design_c_sym_v", _L_CONTEXT("Symmetric about the vertical axis", "Sketch Constraint"),   SketchConstraintType::SymmetricAboutY);
+        cbtn("design_c_sym_h", _L_CONTEXT("Symmetric about the horizontal axis", "Sketch Constraint"), SketchConstraintType::SymmetricAboutX);
+        cbtn("design_c_angle",         _L_CONTEXT("Angle", "Sketch Constraint"),         SketchConstraintType::Angle);
+        cbtn("design_c_radius",        _L_CONTEXT("Radius", "Sketch Constraint"),        SketchConstraintType::Radius);
+        cbtn("design_c_diameter",      _L_CONTEXT("Diameter", "Sketch Constraint"),      SketchConstraintType::Diameter);
+        cbtn("design_c_fix",           _L_CONTEXT("Fix point (anchor in place)", "Sketch Constraint"), SketchConstraintType::Fix);
+        cbtn("design_c_dist_x", _L_CONTEXT("Horizontal distance", "Sketch Constraint"), SketchConstraintType::DistanceX);
+        cbtn("design_c_dist_y", _L_CONTEXT("Vertical distance", "Sketch Constraint"),   SketchConstraintType::DistanceY);
         // Trim/Extend are now standalone SKETCH scissors (Mode::Trim/Extend) in the sketch
         // toolbar, NOT Constrain buttons. The other edit ops (Mirror/Offset/Fillet/Chamfer/
         // Move/…) are first-class sketch tools too. Done constraining = the action-bar ✓.
@@ -2171,7 +2171,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* pform = two_col_form();
 
         m_pattern_type = make_combo(m_cards);
-        m_pattern_type->Append(_L("Linear"));
+        m_pattern_type->Append(_L_CONTEXT("Linear", "Design"));
         m_pattern_type->Append(_L_CONTEXT("Circular", "Design"));
         m_pattern_type->SetSelection(0);
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxALIGN_CENTER_VERTICAL);

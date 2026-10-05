@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -23862,22 +23862,27 @@ msgid "Parallel"
 msgstr "Паралельний"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Перпендикулярний"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Збіжний"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Рівна довжина"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Рівний радіус"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Колінеарний"
 
@@ -23887,34 +23892,54 @@ msgid "Concentric"
 msgstr "Концентричний"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Дотичний"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Середня точка"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Симетричний"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Симетричний відносно вертикальної осі"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Симетричний відносно горизонтальної осі"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Кут"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Радіус"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Діаметр"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Фіксувати точку (закріпити на місці)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Горизонтальна відстань"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Вертикальна відстань"
 
@@ -24004,6 +24029,10 @@ msgstr "Відстань видавлювання"
 # AI Translated
 msgid "Blind"
 msgstr "На задану відстань"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Симетричний"
 
 # AI Translated
 msgid "Two-sided"
@@ -24151,6 +24180,7 @@ msgid "Path"
 msgstr "Траєкторія"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Лінійний"
 
@@ -24208,8 +24238,16 @@ msgid "Midplane"
 msgstr "Серединний"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Дотичний"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Два ребра"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Збіжний"
 
 # AI Translated
 msgid "Plane type"
@@ -25836,6 +25874,14 @@ msgstr "Блокування Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Рівний"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Перпендикулярний"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Середня точка"
 
 # AI Translated
 #, c-format, boost-format
@@ -31251,6 +31297,42 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Рівна довжина"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Рівний радіус"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Колінеарний"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Симетричний відносно вертикальної осі"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Симетричний відносно горизонтальної осі"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Фіксувати точку (закріпити на місці)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Горизонтальна відстань"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Вертикальна відстань"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Лінійний"
 
 #~ msgid "Face recognition"
 #~ msgstr "Розпізнавання обличчя"

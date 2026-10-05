@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -23001,22 +23001,27 @@ msgid "Parallel"
 msgstr "平行"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "垂直"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "重合"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "等长"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "等半径"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "共线"
 
@@ -23026,34 +23031,54 @@ msgid "Concentric"
 msgstr "同心"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "相切"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "中点"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "对称"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "关于竖直轴对称"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "关于水平轴对称"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "角度"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "半径"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "直径"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "固定点（锚定在原位）"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "水平距离"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "竖直距离"
 
@@ -23143,6 +23168,10 @@ msgstr "拉伸距离"
 # AI Translated
 msgid "Blind"
 msgstr "给定深度"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "对称"
 
 # AI Translated
 msgid "Two-sided"
@@ -23290,6 +23319,7 @@ msgid "Path"
 msgstr "路径"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "线性"
 
@@ -23347,8 +23377,16 @@ msgid "Midplane"
 msgstr "中间平面"
 
 # AI Translated
+msgid "Tangent"
+msgstr "相切"
+
+# AI Translated
 msgid "Two edges"
 msgstr "两条边"
+
+# AI Translated
+msgid "Coincident"
+msgstr "重合"
 
 # AI Translated
 msgid "Plane type"
@@ -24951,6 +24989,14 @@ msgstr "锁定 Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "相等"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "垂直"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "中点"
 
 # AI Translated
 #, c-format, boost-format
@@ -30358,6 +30404,42 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "等长"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "等半径"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "共线"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "关于竖直轴对称"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "关于水平轴对称"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "固定点（锚定在原位）"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "水平距离"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "竖直距离"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "线性"
 
 #~ msgid "Face recognition"
 #~ msgstr "外观面检测"

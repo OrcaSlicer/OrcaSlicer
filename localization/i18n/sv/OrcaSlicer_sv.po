@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -25925,22 +25925,27 @@ msgid "Parallel"
 msgstr "Parallell"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Vinkelrät"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Sammanfallande"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Lika längd"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Lika radie"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Kolinjär"
 
@@ -25950,34 +25955,55 @@ msgid "Concentric"
 msgstr "Koncentrisk"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Tangerande"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Mittpunkt"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Symmetrisk"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Symmetrisk kring den vertikala axeln"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Symmetrisk kring den horisontella axeln"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Vinkel"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Radie"
+
 # AI Translated
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Diameter"
+
+# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Fixera punkt (förankra på plats)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Horisontellt avstånd"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Vertikalt avstånd"
 
@@ -26067,6 +26093,10 @@ msgstr "Extr.avstånd"
 # AI Translated
 msgid "Blind"
 msgstr "Fast djup"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Symmetrisk"
 
 # AI Translated
 msgid "Two-sided"
@@ -26214,6 +26244,7 @@ msgid "Path"
 msgstr "Bana"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Linjär"
 
@@ -26271,8 +26302,16 @@ msgid "Midplane"
 msgstr "Mittplan"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Tangerande"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Två kanter"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Sammanfallande"
 
 # AI Translated
 msgid "Plane type"
@@ -27883,6 +27922,14 @@ msgstr "Lås Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Lika"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Vinkelrät"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Mittpunkt"
 
 # AI Translated
 #, c-format, boost-format
@@ -33296,6 +33343,42 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Lika längd"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Lika radie"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Kolinjär"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Symmetrisk kring den vertikala axeln"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Symmetrisk kring den horisontella axeln"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Fixera punkt (förankra på plats)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Horisontellt avstånd"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Vertikalt avstånd"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Linjär"
 
 #~ msgid "Face recognition"
 #~ msgstr "Ansiktsigenkänning"

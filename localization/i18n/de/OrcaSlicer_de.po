@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -23187,22 +23187,27 @@ msgid "Parallel"
 msgstr "Parallel"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Senkrecht"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Koinzident"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Gleiche Länge"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Gleicher Radius"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Kollinear"
 
@@ -23212,34 +23217,54 @@ msgid "Concentric"
 msgstr "Konzentrisch"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Tangential"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Mittelpunkt"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Symmetrisch"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Symmetrisch zur vertikalen Achse"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Symmetrisch zur horizontalen Achse"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Winkel"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Radius"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Durchmesser"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Punkt fixieren (an Ort und Stelle verankern)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Horizontaler Abstand"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Vertikaler Abstand"
 
@@ -23329,6 +23354,10 @@ msgstr "Extrusionsabstand"
 # AI Translated
 msgid "Blind"
 msgstr "Feste Tiefe"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Symmetrisch"
 
 # AI Translated
 msgid "Two-sided"
@@ -23476,6 +23505,7 @@ msgid "Path"
 msgstr "Pfad"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Linear"
 
@@ -23533,8 +23563,16 @@ msgid "Midplane"
 msgstr "Mittelebene"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Tangential"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Zwei Kanten"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Koinzident"
 
 # AI Translated
 msgid "Plane type"
@@ -25145,6 +25183,14 @@ msgstr "Y sperren %s"
 # AI Translated
 msgid "Equal"
 msgstr "Gleich"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Senkrecht"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Mittelpunkt"
 
 # AI Translated
 #, c-format, boost-format
@@ -30537,6 +30583,42 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Gleiche Länge"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Gleicher Radius"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Kollinear"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Symmetrisch zur vertikalen Achse"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Symmetrisch zur horizontalen Achse"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Punkt fixieren (an Ort und Stelle verankern)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Horizontaler Abstand"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Vertikaler Abstand"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Linear"
 
 #~ msgid "Face recognition"
 #~ msgstr "Gesichtserkennung"

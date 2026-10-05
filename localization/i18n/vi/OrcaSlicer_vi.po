@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -24571,22 +24571,27 @@ msgid "Parallel"
 msgstr "Song song"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Vuông góc"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Trùng nhau"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Độ dài bằng nhau"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Bán kính bằng nhau"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Cộng tuyến"
 
@@ -24596,34 +24601,54 @@ msgid "Concentric"
 msgstr "Đồng tâm"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Tiếp tuyến"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Trung điểm"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Đối xứng"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Đối xứng qua trục dọc"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Đối xứng qua trục ngang"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Góc"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Bán kính"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Đường kính"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Cố định điểm (neo tại chỗ)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Khoảng cách ngang"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Khoảng cách dọc"
 
@@ -24713,6 +24738,10 @@ msgstr "Khoảng cách đùn"
 # AI Translated
 msgid "Blind"
 msgstr "Theo khoảng cách"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Đối xứng"
 
 # AI Translated
 msgid "Two-sided"
@@ -24860,6 +24889,7 @@ msgid "Path"
 msgstr "Đường dẫn"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Tuyến tính"
 
@@ -24917,8 +24947,16 @@ msgid "Midplane"
 msgstr "Mặt giữa"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Tiếp tuyến"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Hai cạnh"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Trùng nhau"
 
 # AI Translated
 msgid "Plane type"
@@ -26521,6 +26559,14 @@ msgstr "Khóa Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Bằng nhau"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Vuông góc"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Trung điểm"
 
 # AI Translated
 #, c-format, boost-format
@@ -31920,6 +31966,42 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Độ dài bằng nhau"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Bán kính bằng nhau"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Cộng tuyến"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Đối xứng qua trục dọc"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Đối xứng qua trục ngang"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Cố định điểm (neo tại chỗ)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Khoảng cách ngang"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Khoảng cách dọc"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Tuyến tính"
 
 #~ msgid "Face recognition"
 #~ msgstr "Nhận dạng mặt"

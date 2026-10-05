@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -23780,22 +23780,27 @@ msgid "Parallel"
 msgstr "Paral·lel"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Perpendicular"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Coincident"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Longitud igual"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Radi igual"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Col·lineal"
 
@@ -23805,34 +23810,55 @@ msgid "Concentric"
 msgstr "Concèntric"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Tangent"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Punt mitjà"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Simètric"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Simètric respecte a l'eix vertical"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Simètric respecte a l'eix horitzontal"
 
 # AI Translated
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Angle"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Radi"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Diàmetre"
+
+# AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Fixar punt (ancorar-lo al seu lloc)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Distància horitzontal"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Distància vertical"
 
@@ -23923,6 +23949,10 @@ msgstr "Dist. d'extrusió"
 # Needs human review: Extrude end-condition option (Blind/Symmetric/Two-sided/Through all...) rendered as 'Distància fixa' rather than the literal 'Cec' used for the blind hole depth; check it reads naturally in the Design tab's extrude End dropdown
 msgid "Blind"
 msgstr "Distància fixa"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Simètric"
 
 # AI Translated
 msgid "Two-sided"
@@ -24070,6 +24100,7 @@ msgid "Path"
 msgstr "Trajectòria"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Lineal"
 
@@ -24127,8 +24158,16 @@ msgid "Midplane"
 msgstr "Pla mitjà"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Tangent"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Dues arestes"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Coincident"
 
 # AI Translated
 msgid "Plane type"
@@ -25739,6 +25778,14 @@ msgstr "Bloquejar Y %s"
 # AI Translated
 msgid "Equal"
 msgstr "Igual"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Perpendicular"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Punt mitjà"
 
 # AI Translated
 #, c-format, boost-format
@@ -31141,6 +31188,42 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Longitud igual"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Radi igual"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Col·lineal"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Simètric respecte a l'eix vertical"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Simètric respecte a l'eix horitzontal"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Fixar punt (ancorar-lo al seu lloc)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Distància horitzontal"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Distància vertical"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Lineal"
 
 #~ msgid "Face recognition"
 #~ msgstr "Reconeixement facial"

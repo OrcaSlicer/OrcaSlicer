@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -23655,22 +23655,27 @@ msgid "Parallel"
 msgstr "Párhuzamos"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "Merőleges"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "Egybeeső"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "Egyenlő hossz"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "Egyenlő sugár"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "Kollineáris"
 
@@ -23680,34 +23685,54 @@ msgid "Concentric"
 msgstr "Koncentrikus"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "Érintő"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "Felezőpont"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "Szimmetrikus"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "Szimmetrikus a függőleges tengelyre"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "Szimmetrikus a vízszintes tengelyre"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "Szög"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "Sugár"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "Átmérő"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "Pont rögzítése (helyben tartás)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "Vízszintes távolság"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "Függőleges távolság"
 
@@ -23797,6 +23822,10 @@ msgstr "Extrudálási táv."
 # AI Translated
 msgid "Blind"
 msgstr "Adott mélységig"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "Szimmetrikus"
 
 # AI Translated
 msgid "Two-sided"
@@ -23944,6 +23973,7 @@ msgid "Path"
 msgstr "Útvonal"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "Lineáris"
 
@@ -24001,8 +24031,16 @@ msgid "Midplane"
 msgstr "Középsík"
 
 # AI Translated
+msgid "Tangent"
+msgstr "Érintő"
+
+# AI Translated
 msgid "Two edges"
 msgstr "Két él"
+
+# AI Translated
+msgid "Coincident"
+msgstr "Egybeeső"
 
 # AI Translated
 msgid "Plane type"
@@ -25613,6 +25651,14 @@ msgstr "Y zárolása %s"
 # AI Translated
 msgid "Equal"
 msgstr "Egyenlő"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "Merőleges"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "Felezőpont"
 
 # AI Translated
 #, c-format, boost-format
@@ -31016,6 +31062,42 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "Egyenlő hossz"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "Egyenlő sugár"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "Kollineáris"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "Szimmetrikus a függőleges tengelyre"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "Szimmetrikus a vízszintes tengelyre"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "Pont rögzítése (helyben tartás)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "Vízszintes távolság"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "Függőleges távolság"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "Lineáris"
 
 #~ msgid "Face recognition"
 #~ msgstr "Arcfelismerés"

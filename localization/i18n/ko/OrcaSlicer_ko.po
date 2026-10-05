@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 09:22-0300\n"
+"POT-Creation-Date: 2026-10-05 10:03-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -24077,22 +24077,27 @@ msgid "Parallel"
 msgstr "평행"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Perpendicular"
 msgstr "직각"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Coincident"
 msgstr "일치"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal length"
 msgstr "길이 같음"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Equal radius"
 msgstr "반지름 같음"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Collinear"
 msgstr "동일 선상"
 
@@ -24102,34 +24107,54 @@ msgid "Concentric"
 msgstr "동심"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Tangent"
 msgstr "접선"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Midpoint"
 msgstr "중간점"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric"
 msgstr "대칭"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the vertical axis"
 msgstr "수직 축 기준 대칭"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Symmetric about the horizontal axis"
 msgstr "수평 축 기준 대칭"
 
+msgctxt "Sketch Constraint"
+msgid "Angle"
+msgstr "각도"
+
+msgctxt "Sketch Constraint"
+msgid "Radius"
+msgstr "반경"
+
+msgctxt "Sketch Constraint"
+msgid "Diameter"
+msgstr "직경"
+
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Fix point (anchor in place)"
 msgstr "점 고정(제자리에 고정)"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Horizontal distance"
 msgstr "수평 거리"
 
 # AI Translated
+msgctxt "Sketch Constraint"
 msgid "Vertical distance"
 msgstr "수직 거리"
 
@@ -24219,6 +24244,10 @@ msgstr "돌출 거리"
 # AI Translated
 msgid "Blind"
 msgstr "블라인드"
+
+# AI Translated
+msgid "Symmetric"
+msgstr "대칭"
 
 # AI Translated
 msgid "Two-sided"
@@ -24366,6 +24395,7 @@ msgid "Path"
 msgstr "경로"
 
 # AI Translated
+msgctxt "Design"
 msgid "Linear"
 msgstr "선형"
 
@@ -24423,8 +24453,16 @@ msgid "Midplane"
 msgstr "중간 평면"
 
 # AI Translated
+msgid "Tangent"
+msgstr "접선"
+
+# AI Translated
 msgid "Two edges"
 msgstr "두 모서리"
+
+# AI Translated
+msgid "Coincident"
+msgstr "일치"
 
 # AI Translated
 msgid "Plane type"
@@ -26027,6 +26065,14 @@ msgstr "%s Y 잠금"
 # AI Translated
 msgid "Equal"
 msgstr "같음"
+
+# AI Translated
+msgid "Perpendicular"
+msgstr "직각"
+
+# AI Translated
+msgid "Midpoint"
+msgstr "중간점"
 
 # AI Translated
 #, c-format, boost-format
@@ -31420,6 +31466,42 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "Equal length"
+#~ msgstr "길이 같음"
+
+# AI Translated
+#~ msgid "Equal radius"
+#~ msgstr "반지름 같음"
+
+# AI Translated
+#~ msgid "Collinear"
+#~ msgstr "동일 선상"
+
+# AI Translated
+#~ msgid "Symmetric about the vertical axis"
+#~ msgstr "수직 축 기준 대칭"
+
+# AI Translated
+#~ msgid "Symmetric about the horizontal axis"
+#~ msgstr "수평 축 기준 대칭"
+
+# AI Translated
+#~ msgid "Fix point (anchor in place)"
+#~ msgstr "점 고정(제자리에 고정)"
+
+# AI Translated
+#~ msgid "Horizontal distance"
+#~ msgstr "수평 거리"
+
+# AI Translated
+#~ msgid "Vertical distance"
+#~ msgstr "수직 거리"
+
+# AI Translated
+#~ msgid "Linear"
+#~ msgstr "선형"
 
 #~ msgid "Face recognition"
 #~ msgstr "바닥면 인식"
