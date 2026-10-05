@@ -20,7 +20,7 @@ namespace GUI {
 
 
 AuxiliaryDialog::AuxiliaryDialog(wxWindow * parent)
-	: DPIDialog(parent, wxID_ANY,  _L("Auxiliaryies"), wxDefaultPosition,
+	: DPIDialog(parent, wxID_ANY,  _L("Auxiliaries"), wxDefaultPosition,
 		wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	m_aux_list = new AuxiliaryList(this);

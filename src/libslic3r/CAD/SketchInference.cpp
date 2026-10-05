@@ -80,6 +80,18 @@ InferenceSnap infer_point_snap(const std::vector<SketchEntity>& entities,
             offer(InferenceSnap::Kind::Midpoint, ei, SketchPointRole::P0,
                   Vec2d(e.center.x() + e.radius * std::cos(am),
                         e.center.y() + e.radius * std::sin(am)));
+            // Nearest point on the arc itself (PointOnObject candidate), as for a line or a
+            // circle — the solver now takes a point on an arc's rim.
+            const Vec2d v = query - e.center;
+            const double n = v.norm();
+            const double sweep = e.end_angle - e.start_angle;
+            if (n > 1e-9 && e.radius > 1e-9 && std::abs(sweep) > 1e-9) {
+                double u = (std::atan2(v.y(), v.x()) - e.start_angle) / sweep;
+                while (u < 0.0) u += 2.0 * M_PI / std::abs(sweep);
+                if (u > 0.02 && u < 0.98)
+                    offer(InferenceSnap::Kind::OnEdge, ei, SketchPointRole::Center,
+                          e.center + v * (e.radius / n));
+            }
             break;
         }
         case SketchEntity::Type::Circle: {
@@ -147,6 +159,10 @@ infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
 {
     std::vector<SketchEntityConstraintDef> out;
     if (new_ei <= 0 || new_ei >= int(entities.size())) return out;
+    // Ends count as meeting at the same tolerance the wire builder welds them at; floor keeps
+    // exact coincidence meaningful when auto-close is switched off.
+    const double weld = std::max(sketch_join_tol(), 1e-7);
+    auto joined = [weld](const Vec2d& a, const Vec2d& b) { return (a - b).squaredNorm() <= weld * weld; };
 
     // AT MOST ONE constraint per rule per new entity, not one per PAIR. Without this the
     // function is quadratic in the sketch: a drawing with 200 equal holes yields ~20000
@@ -176,10 +192,9 @@ infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
         if (n_line && o_line) {
             // R1 — parallel / perpendicular, restricted to CONNECTED lines. Connection is
             // what keeps this from firing on every distant line that is roughly parallel.
-            const bool connected = (n.p0 - o.p0).squaredNorm() <= 1e-14 ||
-                                   (n.p0 - o.p1).squaredNorm() <= 1e-14 ||
-                                   (n.p1 - o.p0).squaredNorm() <= 1e-14 ||
-                                   (n.p1 - o.p1).squaredNorm() <= 1e-14;
+            // "Connected" is the wire builder's weld, so what the viewport shows joined is.
+            const bool connected = joined(n.p0, o.p0) || joined(n.p0, o.p1) ||
+                                   joined(n.p1, o.p0) || joined(n.p1, o.p1);
             if (!connected) continue;
             const double ang = unsigned_angle(n.p1 - n.p0, o.p1 - o.p0);
             const double par_err = std::min(ang, M_PI - ang);
@@ -208,7 +223,7 @@ infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
                 if (cv.type == SketchEntity::Type::Arc) {
                     const Vec2d ce[2] = { cv.p0, cv.p1 };
                     for (int m = 0; m < 2; ++m) {
-                        if ((le[k] - ce[m]).squaredNorm() > 1e-14) continue;
+                        if (!joined(le[k], ce[m])) continue;
                         const Vec2d r = ce[m] - cv.center;
                         if (r.squaredNorm() < 1e-18) continue;
                         tangent = std::abs(unsigned_angle(ldir, r) - M_PI / 2.0) <= ang_tol_rad;
@@ -216,7 +231,7 @@ infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
                     }
                 } else { // Circle: shared point is a line endpoint on the rim.
                     const Vec2d r = le[k] - cv.center;
-                    if (std::abs(r.norm() - cv.radius) > 1e-7) continue;
+                    if (std::abs(r.norm() - cv.radius) > weld) continue;
                     if (r.squaredNorm() < 1e-18) continue;
                     tangent = std::abs(unsigned_angle(ldir, r) - M_PI / 2.0) <= ang_tol_rad;
                 }

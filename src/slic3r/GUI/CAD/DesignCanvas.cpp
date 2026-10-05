@@ -8,6 +8,9 @@
 #include "slic3r/GUI/Camera.hpp"   // N: look down the sketch plane normal
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLToolbar.hpp"
+#include "slic3r/GUI/Event.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/3DScene.hpp"
@@ -15,9 +18,11 @@
 #include "libslic3r/Config.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include <algorithm>
+#include <climits>
 #include <cstdio>
 #include <cstdlib>
 
+#include <imgui.h>
 #include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -34,6 +39,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include <wx/glcanvas.h>
 #include <wx/panel.h>
+#include <wx/setup.h>
 #include <wx/stopwatch.h>   // wxGetLocalTimeMillis: the right-click vs right-hold budget
 #include <wx/sizer.h>
 #include <wx/frame.h>
@@ -43,6 +49,11 @@
 #include <wx/toplevel.h>
 #include <wx/window.h>
 #include "libslic3r/PrintConfig.hpp"
+
+#if defined(__WXMSW__) && wxUSE_POPUPWIN
+#include <wx/popupwin.h>
+extern wxPopupWindow* wxCurrentPopupWindow;
+#endif
 
 namespace Slic3r {
 namespace GUI {
@@ -66,12 +77,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // cannot be null. Borrow the plater's, as the editor canvases do.
     m_canvas->set_process(&wxGetApp().plater()->background_process());
     m_canvas->set_type(GLCanvas3D::ECanvasType::CanvasView3D);
-
-    // CAD navigation, this canvas only: left-drag sweeps a selection rubber band, so orbit
-    // moves to middle-drag and pan to right-drag. Design is a different modality from
-    // Prepare/Preview and every CAD the user already knows maps the mouse this way; the other
-    // tabs are untouched.
-    m_canvas->set_cad_navigation(true);
+    m_canvas->set_studio_lighting(true);   // see GLCanvas3D::m_studio_lighting and phong.fs
 
     m_canvas->enable_picking(false);   // viewport face/edge picking is custom (TODO)
     m_canvas->enable_moving(false);
@@ -84,6 +90,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_canvas->enable_collapse_toolbar(false);
     m_canvas->enable_plate_chrome(false);
     m_canvas->enable_labels(false);
+    m_canvas->enable_sinking_contours(false); // they would be sliced from the plater's meshes
     m_canvas->set_axes_at_bed_center(true);   // triad at bed centre = modeling origin
 
     m_canvas->set_design_sketch_tool(&m_sketch_tool);
@@ -155,6 +162,8 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
             [this, commit](double v) {
                 m_sketch_tool.set_inline_busy(false);
                 if (commit) commit(v);
+                // A refused value re-opens the same field (SketchInlineEditor::refuse).
+                if (m_inline_editor && m_inline_editor->is_open()) m_sketch_tool.set_inline_busy(true);
                 request_repaint();
             },
             [this, cancel]() {
@@ -172,76 +181,11 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         if (m_inline_editor) m_inline_editor->commit();
     };
 
-    // Bottom-right viewport HUD: a borderless, non-focusable float label showing the active
-    // tool's current values. Top-level (a child widget is hidden by the GL surface, same as
-    // the inline editor). Fed every frame by the tool's on_readout; empty text hides it.
-    // NON-FOCUSABLE IS THE LOAD-BEARING WORD, and a wxFrame is not: see the header. The chip
-    // outlives the gesture that drew it, and while it held the X input focus every sketch
-    // shortcut was swallowed until the user clicked the canvas. Same window class as the status
-    // chip below for the same reason. Do not "simplify" it back to a wxFrame.
-    {
-        wxWindow* top = wxGetTopLevelParent(m_canvas_widget);
-        m_hud = new wxPopupWindow(top, wxBORDER_NONE);
-        m_hud->SetBackgroundColour(wxColour(28, 30, 34));
-        m_hud_label = new wxStaticText(m_hud, wxID_ANY, wxEmptyString);
-        m_hud_label->SetForegroundColour(wxColour(0x46, 0xE0, 0xC8));   // teal, reads on dark bed
-        wxFont f = m_hud_label->GetFont(); f.MakeBold(); m_hud_label->SetFont(f);
-        auto* hs = new wxBoxSizer(wxHORIZONTAL);
-        hs->Add(m_hud_label, 0, wxALL, 6);
-        m_hud->SetSizerAndFit(hs);
-        m_hud->Hide();
-    }
-    m_sketch_tool.on_readout = [this](const std::string& s) { set_readout(s); };
-
-    // Bottom-LEFT twin, carrying the status line. Top-level for the same reason as the readout
-    // (a child widget is hidden by the GL surface) but a wxPopupWindow rather than a wxFrame,
-    // because a popup cannot take keyboard focus. The readout gets away with a frame only
-    // because it appears mid-gesture and the next input is the mouse; this one is up
-    // permanently and is re-raised on every status change. As a frame it took the WM's focus
-    // each time and the canvas stopped receiving keys at all — every sketch shortcut silently
-    // dead, which reads as a broken tool. Do not "simplify" it back to a wxFrame.
-    // Its colour is set per message — the panel decides whether a line is neutral or an error.
-    {
-        wxWindow* top = wxGetTopLevelParent(m_canvas_widget);
-        m_status_hud = new wxPopupWindow(top, wxBORDER_NONE);
-        m_status_hud->SetBackgroundColour(wxColour(28, 30, 34));
-        m_status_hud_label = new wxStaticText(m_status_hud, wxID_ANY, wxEmptyString);
-        auto* ss = new wxBoxSizer(wxHORIZONTAL);
-        // The line never wraps — there is a whole window's width down here — so the chip is
-        // ONE LINE tall. Spacers rather than a wxALL border because the two axes want
-        // different numbers: roomy at the sides so it reads as a label, and just enough top
-        // and bottom to clear the descenders. Zero vertical clips the glyphs; 6 (what the
-        // readout chip uses) makes it look like a two-line box.
-        ss->AddSpacer(10);
-        ss->Add(m_status_hud_label, 0, wxTOP | wxBOTTOM, 3);
-        ss->AddSpacer(10);
-        m_status_hud->SetSizerAndFit(ss);
-        m_status_hud->Hide();
-    }
-    // A floating frame does not follow its parent, so the anchor has to be recomputed whenever
-    // the canvas changes size (that bind is below bind_event_handlers(), for the reason given
-    // there). The readout HUD gets away without this because it is transient; the status line is
-    // on screen almost permanently and would visibly detach.
-    // ...and it does not follow the WINDOW either. A popup is override-redirect: the window
-    // manager does not own it, so minimising the app leaves the chip sitting on the bare desktop
-    // (seen on the rig: whole screen black, chip still there), and it stacks above other
-    // applications rather than behind them. IsShownOnScreen does not catch this — an iconised
-    // frame still counts as shown — so the frame has to say so itself. Deactivating the app is
-    // the same case one step weaker: the chip belongs to a viewport the user is no longer
-    // looking at. Showing it back is safe because a popup cannot take focus, so neither event
-    // can be re-triggered by our own Show().
-    // Members rather than lambdas so unbind_canvas_event_handlers() can Unbind them: these sit on
-    // a frame that OUTLIVES this canvas, and a lambda cannot be unbound.
-    if (wxWindow* top = wxGetTopLevelParent(m_canvas_widget)) {
-        top->Bind(wxEVT_ICONIZE,  &DesignCanvas::on_frame_iconize,  this);
-        top->Bind(wxEVT_ACTIVATE, &DesignCanvas::on_frame_activate, this);
-        // The anchor is an ABSOLUTE SCREEN position (ClientToScreen below), so moving the window
-        // moves the canvas out from under a chip that stays where it was. Dragging the frame by
-        // its title bar left the chip stranded mid-viewport until the next size, status or tab
-        // change happened to re-place it. Nothing on the canvas fires for a move that does not
-        // also resize, so it has to come from the frame.
-        top->Bind(wxEVT_MOVE,     &DesignCanvas::on_status_hud_reanchor, this);
-    }
+    // The two viewport chips — the active tool's values bottom-right, the status line bottom-left
+    // — are drawn by the canvas itself, in the tool's ImGui pass: they go away with the canvas,
+    // the tab and the window, and never take the keyboard.
+    m_sketch_tool.on_readout      = [this](const std::string& s) { set_readout(s); };
+    m_sketch_tool.render_overlays = [this] { render_hud(); };
 
     refresh_bed();
 
@@ -253,15 +197,9 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // reverse order of binding, and GLCanvas3D swallows several events without skipping them —
     // wxEVT_RIGHT_UP and wxEVT_ENTER_WINDOW in on_mouse, and wxEVT_SIZE in on_size, which is
     // just `m_dirty = true;`. For those, whatever is bound LAST is the only handler that runs.
-    // The context menu, the focus-follows-mouse and the status-chip re-anchor all depend on
-    // running first, which is only true while this call stays ahead of them.
+    // The context menu and the focus-follows-mouse depend on running first, which is only true
+    // while this call stays ahead of them.
     m_canvas->bind_event_handlers();
-
-    // The status-chip re-anchor promised above, bound AFTER the call so it runs first — ahead of
-    // it the handler never ran at all, leaving a stale anchor and wrap width after any resize
-    // that did not also move the frame or change the text. Its e.Skip() is load-bearing the
-    // other way: it falls through to on_size, which is what still marks the canvas dirty.
-    m_canvas_widget->Bind(wxEVT_SIZE, &DesignCanvas::on_status_hud_reanchor, this);
 
     // The Design GL canvas only receives key events (Esc to exit/enter Select, Ctrl+Z undo)
     // while it holds keyboard focus. Clicking a side-panel button steals focus, after which
@@ -271,7 +209,14 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         // …but NOT while an inline value field is open: the field floats over the canvas, so
         // the smallest pointer jiggle re-enters the viewport and would yank focus off the
         // field (the "no cursor focus on the number, click to focus" bug).
-        if (m_canvas_widget && !m_sketch_tool.inline_busy()) m_canvas_widget->SetFocus();
+        bool take_focus = m_canvas_widget && !m_sketch_tool.inline_busy();
+#if defined(__WXMSW__) && wxUSE_POPUPWIN
+        // …nor while a popup is open. A ribbon dropdown opens over the viewport, and the pointer
+        // crosses the viewport on its way to it: taking focus then reactivates the frame, which
+        // on MSW dismisses the popup under the pointer. GLCanvas3D::on_mouse has the same guard.
+        take_focus = take_focus && !wxCurrentPopupWindow;
+#endif
+        if (take_focus) m_canvas_widget->SetFocus();
         e.Skip();
     });
 
@@ -285,18 +230,6 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
 // Both are idempotent, and neither destroys anything: the destructor still owns that.
 void DesignCanvas::unbind_canvas_event_handlers()
 {
-    if (wxWindow* top = wxGetTopLevelParent(m_canvas_widget)) {
-        top->Unbind(wxEVT_ICONIZE,  &DesignCanvas::on_frame_iconize,      this);
-        top->Unbind(wxEVT_ACTIVATE, &DesignCanvas::on_frame_activate,     this);
-        top->Unbind(wxEVT_MOVE,     &DesignCanvas::on_status_hud_reanchor, this);
-    }
-    // Before the popups go down, or a resize still in flight re-places and re-shows the chip.
-    if (m_canvas_widget)
-        m_canvas_widget->Unbind(wxEVT_SIZE, &DesignCanvas::on_status_hud_reanchor, this);
-    // A popup is override-redirect: it does not go down with the frame, so one left showing sits
-    // on the bare desktop for however long the teardown takes.
-    show_status_hud(false);
-    if (m_hud) m_hud->Hide();
     if (m_canvas) m_canvas->unbind_event_handlers();
 }
 
@@ -307,18 +240,19 @@ void DesignCanvas::reset_canvas_volumes()
 
 DesignCanvas::~DesignCanvas()
 {
-    if (m_hud) m_hud->Destroy();
     delete m_canvas;
     delete m_canvas_widget;
 }
 
 // Distinct per-body colours (Onshape-style). Body 0 keeps the familiar gold; the rest
-// cycle through a small saturated palette so coexisting solids read as separate parts.
+// cycle through a small saturated palette so coexisting solids read as separate parts. No entry
+// may sit near the selection cyan (design_selection_color): a blue or teal body would look
+// selected, and its selected faces would barely stand out.
 static ColorRGBA body_palette(int body_idx)
 {
     static const ColorRGBA kPalette[] = {
         ColorRGBA(0.86f, 0.66f, 0.20f, 1.0f),  // gold
-        ColorRGBA(0.30f, 0.62f, 0.90f, 1.0f),  // blue
+        ColorRGBA(0.84f, 0.42f, 0.66f, 1.0f),  // rose
         ColorRGBA(0.45f, 0.78f, 0.42f, 1.0f),  // green
         ColorRGBA(0.86f, 0.45f, 0.40f, 1.0f),  // coral
         ColorRGBA(0.70f, 0.52f, 0.86f, 1.0f),  // violet
@@ -363,14 +297,22 @@ void DesignCanvas::request_repaint()
     }
 }
 
+// ImGui's display size is shared by every canvas and only refreshed when a canvas sees its own
+// size change, so the canvas taking over must re-announce its size (Plater does the same between
+// Prepare and Preview). Otherwise the overlays anchored to it, the FPS counter first, are laid
+// out for the other canvas.
 void DesignCanvas::enter_viewport()
 {
     if (!m_camera_swapped) swap_camera();
+    if (m_canvas) { m_canvas->reset_old_size(); m_canvas->set_as_dirty(); }
 }
 
 void DesignCanvas::leave_viewport()
 {
     if (m_camera_swapped) swap_camera();
+    if (Plater* plater = wxGetApp().plater())
+        if (GLCanvas3D* editor = plater->get_current_canvas3D())
+            editor->reset_old_size();
 }
 
 void DesignCanvas::swap_camera()
@@ -410,33 +352,25 @@ void DesignCanvas::reload(bool keep_view)
     for (int i = 0; i < (int)m_model.objects.size(); ++i)
         m_canvas->load_object(m_model, i);
 
-    const ColorRGBA sel_gold = design_selection_color();   // same colour as every other selection
     const ColorRGBA ghost(0.26f, 0.66f, 1.0f, 0.45f);
 
     const auto& volumes = m_canvas->get_volumes().volumes;
     for (auto* v : volumes) {
         int obj_idx = v->object_idx();
         if (obj_idx == 0) {
-            // Object 0 holds one volume per body — colour each by its body index so
-            // multiple coexisting solids are visually distinct (Onshape per-part colour).
-            const int b = v->volume_idx();
+            // Object 0 holds the bodies (rebuild_bodies): each volume in its body's colour, so
+            // coexisting solids read as distinct parts (Onshape per-part colour), or in the
+            // selection colour when it holds the body's selected faces.
+            const int  vi  = v->volume_idx();
+            const int  b   = vi < int(m_volumes.size()) ? m_volumes[vi].body : vi;
+            const bool lit = vi < int(m_volumes.size()) && m_volumes[vi].lit;
             bool hidden = (b >= 0 && b < int(m_body_visible.size())) && !m_body_visible[b];
             // Preview-only mode (fillet/chamfer/draft, once a valid target is picked): hide
             // every base body so only the result ghost is on screen until Confirm.
             if (m_body_hidden) hidden = true;
             v->is_active = !hidden;   // per-body visibility toggle
             if (!hidden) {
-                // An EXPLICIT colour outranks the selection tint. m_body_selected is a
-                // document-wide flag raised whenever a non-Sketch feature row is selected —
-                // the normal resting state after any modelling operation — so painting every
-                // body gold on it made the Color tool look broken: the override was written,
-                // carried across recompute and read back correctly, and then overpainted here
-                // every single frame. A body the user deliberately coloured keeps its colour;
-                // the rest still tint, which is all the tint was ever for.
-                const bool overridden = m_color_bodies != nullptr && b >= 0
-                                        && b < int(m_color_bodies->size())
-                                        && (*m_color_bodies)[b].has_color;
-                ColorRGBA c = (m_body_selected && !overridden) ? sel_gold : body_color(b);
+                ColorRGBA c = lit ? design_selection_color() : body_color(b);
                 if (b == m_hl_body_target)    c = ColorRGBA(0.30f, 0.90f, 0.70f, 1.0f); // target = teal-green
                 else if (b == m_hl_body_tool) c = ColorRGBA(1.00f, 0.55f, 0.15f, 1.0f); // tool = orange
                 if (m_body_translucent) c.a(0.30f);
@@ -464,45 +398,23 @@ void DesignCanvas::reload(bool keep_view)
         m_canvas_widget->Refresh();
 }
 
-void DesignCanvas::set_mesh(const TriangleMesh& mesh)
-{
-    if (m_model.objects.empty()) {
-        auto* obj = m_model.add_object();
-        obj->add_volume(mesh);
-        obj->add_instance();
-    } else {
-        ModelObject* obj = m_model.objects.front();
-        obj->clear_volumes();
-        obj->add_volume(mesh);
-        if (obj->instances.empty())
-            obj->add_instance();
-    }
-
-    reload(!m_first_frame);
-}
-
-void DesignCanvas::set_bodies(const std::vector<TriangleMesh>& body_meshes,
+void DesignCanvas::set_bodies(const std::vector<TriangleMesh>* body_meshes,
                               const std::vector<bool>& visible)
 {
-    // Object 0 carries one GLVolume per body so reload() can colour each distinctly.
-    // Falls back to a single-volume object when there's only one body (identical look
-    // to the old set_mesh path). Picking still uses the combined mesh via set_solid_pick.
+    // Object 0 is built by rebuild_bodies; picking uses the combined mesh from set_solid_pick.
     m_body_visible = visible;   // empty => all visible; reload() reads this per volume
-    if (body_meshes.empty()) { clear_mesh(); return; }
+    if (body_meshes == nullptr || body_meshes->empty()) { clear_mesh(); return; }
 
-    ModelObject* obj = m_model.objects.empty() ? m_model.add_object()
-                                               : m_model.objects.front();
-    obj->clear_volumes();
-    for (const TriangleMesh& m : body_meshes)
-        obj->add_volume(m);
-    if (obj->instances.empty())
-        obj->add_instance();
-
+    m_body_meshes = body_meshes;
+    m_lit_faces   = m_sketch_tool.selected_faces();
+    rebuild_bodies();
     reload(!m_first_frame);
 }
 
 void DesignCanvas::clear_mesh()
 {
+    m_body_meshes = nullptr;
+    m_volumes.clear();
     if (!m_model.objects.empty()) {
         m_model.delete_object((size_t)0);
         reload(true);
@@ -649,6 +561,21 @@ void DesignCanvas::set_show_bed(bool b)
     request_repaint();
 }
 
+void DesignCanvas::set_sidebar_collapse(std::function<CollapseSide()> side, std::function<void()> toggle)
+{
+    if (!m_canvas || !m_canvas_widget || !setup_collapse_toolbar(m_collapse_toolbar, toggle))
+        return;
+    m_canvas->set_collapse_toolbar(&m_collapse_toolbar, std::move(side));
+    m_canvas->enable_collapse_toolbar(true);
+    // Shift+Tab: the canvas posts this for its sidebar, as Prepare's canvases do.
+    m_canvas_widget->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [toggle](SimpleEvent&) { toggle(); });
+}
+
+void DesignCanvas::set_sidebar_collapse_tooltip(const std::string& tooltip)
+{
+    m_collapse_toolbar.set_tooltip(m_collapse_toolbar.get_item_id("collapse_sidebar"), tooltip);
+}
+
 bool DesignCanvas::is_sketching() const { return m_sketch_tool.is_active(); }
 
 void DesignCanvas::cancel_sketch()
@@ -743,10 +670,26 @@ void DesignCanvas::clear_loop_pick()
     m_sketch_tool.clear_display_pick();
 }
 
+void DesignCanvas::clear_solid_pick()
+{
+    m_sketch_tool.clear_solid_selection();
+    sync_selected_faces();
+}
+
 void DesignCanvas::set_loop_pick(int feature, int region)
 {
     m_sketch_tool.set_display_pick(feature, region);
     request_repaint();
+}
+
+int DesignCanvas::loop_pick_feature() const
+{
+    return m_sketch_tool.display_pick();
+}
+
+int DesignCanvas::loop_pick_region() const
+{
+    return m_sketch_tool.display_pick_region();
 }
 
 void DesignCanvas::set_escalate_on_repick(bool on)
@@ -760,7 +703,9 @@ void DesignCanvas::set_solid_pick(const std::vector<CadBody>* bodies, const Tria
                                   const std::vector<Transform3d>* xform)
 {
     m_color_bodies = bodies;   // stable address (m_doc.bodies); reload() reads colour overrides
+    m_tri_face     = tri_face;
     m_sketch_tool.set_solid_pick(bodies, mesh, tri_face, tri_body, visible, xform);
+    sync_selected_faces();     // the tool just reset its pick
 }
 
 // Effective display colour for a body: per-body override (Color tool) when set, else the
@@ -879,9 +824,9 @@ void DesignCanvas::set_on_shell_thickness_changed(std::function<void(double)> cb
 }
 
 void DesignCanvas::begin_revolve_gizmo(const SketchPlane& plane, const Vec2d& centroid,
-                                       int axis_sel, double angle, bool flip)
+                                       const Vec3d& axis_origin, const Vec3d& axis_dir, double angle, bool flip)
 {
-    m_sketch_tool.set_revolve_gizmo(plane, centroid, axis_sel, angle, flip);
+    m_sketch_tool.set_revolve_gizmo(plane, centroid, axis_origin, axis_dir, angle, flip);
     request_repaint();
 }
 
@@ -956,19 +901,31 @@ void DesignCanvas::set_on_pattern_changed(std::function<void(double)> cb)
     m_sketch_tool.on_pattern_changed = std::move(cb);
 }
 
-void DesignCanvas::set_on_solid_selection_changed(std::function<void(int, int, int, int)> cb)
+std::vector<int> DesignCanvas::selected_solid_edges() const
 {
-    m_sketch_tool.on_solid_selection_changed = std::move(cb);
+    return m_sketch_tool.selected_edges();
 }
 
-void DesignCanvas::set_on_place_on_face(std::function<bool()> cb)
+void DesignCanvas::set_on_solid_selection_changed(std::function<void(int, int, int, int)> cb)
 {
-    m_sketch_tool.on_place_on_face = std::move(cb);
+    // Wrapped so every pick change in the tool also re-splits the filled faces.
+    m_on_solid_selection_changed = std::move(cb);
+    m_sketch_tool.on_solid_selection_changed = [this](int level, int body, int face, int edge) {
+        sync_selected_faces();
+        if (m_on_solid_selection_changed)
+            m_on_solid_selection_changed(level, body, face, edge);
+    };
+}
+
+void DesignCanvas::set_on_empty_pick(std::function<void()> cb)
+{
+    m_sketch_tool.on_empty_pick = std::move(cb);
 }
 
 void DesignCanvas::select_body(int body)
 {
     m_sketch_tool.select_body(body);
+    sync_selected_faces();
     request_repaint();
 }
 
@@ -1078,9 +1035,9 @@ void DesignCanvas::set_on_sketch_exit_refused(std::function<void()> cb)
     m_sketch_tool.on_exit_refused = std::move(cb);
 }
 
-void DesignCanvas::set_on_move_exit(std::function<void()> cb)
+void DesignCanvas::set_on_sketch_notice(std::function<void(const std::string&, bool)> cb)
 {
-    m_sketch_tool.on_move_exit = std::move(cb);
+    m_sketch_tool.on_notice = std::move(cb);
 }
 
 void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
@@ -1094,25 +1051,26 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
     // through to the polyline-chain end and the move gizmo, which were there first.
     // Right-drag pans. Without remembering where the press landed, every pan ended by popping
     // the offer over wherever the camera stopped — the menu appearing as the reward for moving
-    // the view. The offer is the release of a STATIONARY right-click, at the same 8 px budget
-    // the left-click pick uses.
+    // the view. The offer is the release of a STATIONARY right-click (kCadRightClickDriftPx).
     m_canvas_widget->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
-        m_ctx_press    = e.GetPosition();
-        m_ctx_press_ms = wxGetLocalTimeMillis().GetValue();
+        m_ctx_press     = e.GetPosition();
+        m_ctx_travelled = false;
         e.Skip();     // the canvas still needs the press to seed the orbit
+    });
+    m_canvas_widget->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
+        if (e.RightIsDown()) {
+            const wxPoint d = e.GetPosition() - m_ctx_press;
+            if (std::max(std::abs(d.x), std::abs(d.y)) > kCadRightClickDriftPx) m_ctx_travelled = true;
+        }
+        e.Skip();
     });
     m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
         const wxPoint d  = e.GetPosition() - m_ctx_press;
-        const long long dt = wxGetLocalTimeMillis().GetValue() - m_ctx_press_ms;
         // Always read-and-clear, even when another guard already rules the offer out, or a
         // terminator recorded under one condition would still be pending under the next.
         const bool terminated = m_sketch_tool.take_right_consumed();
-        // Click, or navigation? Both budgets must hold: a press that travelled orbited, and a
-        // press that was HELD was aiming to orbit even if the hand never quite moved. Two
-        // independent budgets because the two failure modes are independent — the drift one
-        // alone still popped a menu at the end of a slow, careful orbit.
-        const bool is_click = std::max(std::abs(d.x), std::abs(d.y)) <= kCadRightClickDriftPx
-                              && dt <= kCadRightClickMs;
+        // Click, or navigation? A press that travelled orbited; one that did not, did not.
+        const bool is_click = !m_ctx_travelled && std::max(std::abs(d.x), std::abs(d.y)) <= kCadRightClickDriftPx;
         if (m_on_context_menu && !terminated && !inline_busy() && is_click) {
             // The menu belongs to what you POINTED AT — and pointing happened at the PRESS, not
             // at the release, so the raycast uses the press position. Within a 3 px budget the
@@ -1128,11 +1086,6 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
         }
         e.Skip();
     });
-}
-
-void DesignCanvas::set_on_undo_redo(std::function<void(bool)> cb)
-{
-    m_sketch_tool.on_undo_redo = std::move(cb);
 }
 
 void DesignCanvas::set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds)
@@ -1209,131 +1162,130 @@ double DesignCanvas::model_mid_z() const
 
 void DesignCanvas::set_readout(const std::string& text)
 {
-    if (!m_hud || !m_hud_label || !m_canvas_widget) return;
-    if (text == m_hud_last) return;                 // only touch the WM on a real change
+    if (text == m_hud_last) return;
     m_hud_last = text;
-    if (text.empty()) { m_hud->Hide(); return; }
-    m_hud_label->SetLabel(wxString::FromUTF8(text));
-    place_readout_hud();
-}
-
-void DesignCanvas::place_readout_hud()
-{
-    if (!m_hud || !m_hud_label || !m_canvas_widget) return;
-    if (m_hud_last.empty() || !m_canvas_widget->IsShownOnScreen()) { m_hud->Hide(); return; }
-    m_hud->Fit();
-    // Anchor to the canvas's bottom-right corner with a small margin (screen coords).
-    const wxSize  cs = m_canvas_widget->GetClientSize();
-    const wxSize  hs = m_hud->GetSize();
-    const wxPoint br = m_canvas_widget->ClientToScreen(
-        wxPoint(cs.GetWidth() - hs.GetWidth() - 12, cs.GetHeight() - hs.GetHeight() - 12));
-    if (!m_hud->IsShown()) m_hud->Show();           // Show before Move (GTK ignores pre-map Move)
-    m_hud->Move(br);
-    m_hud->Raise();
-}
-
-// A popup is override-redirect: the window manager does not own it, so an iconised or
-// deactivated app would leave the chip sitting on the bare desktop. The status chip already
-// had to answer this; now that the readout is a popup too, it answers it the same way.
-void DesignCanvas::show_readout_hud(bool on)
-{
-    if (!m_hud) return;
-    if (on) place_readout_hud();
-    else    m_hud->Hide();
+    if (m_canvas) m_canvas->set_as_dirty();   // drawn by the next frame (the tool feeds this from one)
 }
 
 // Clear of the view cube and the two round view buttons, which own the bottom-left corner.
-// Shared by the placement and by the wrap width, which have to agree or the chip wraps to a
-// width it is then not given.
-static constexpr int kStatusHudLeftInsetDip = 190;
+static constexpr float kStatusHudLeftInset = 190.f;
 
 void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
 {
-    if (!m_status_hud || !m_status_hud_label || !m_canvas_widget) return;
     if (text == m_status_hud_last && colour == m_status_hud_colour) return;
     m_status_hud_last   = text;
     m_status_hud_colour = colour;
-    if (text.IsEmpty()) { m_status_hud->Hide(); return; }
-    m_status_hud_label->SetForegroundColour(colour);
-    apply_status_label();
-    place_status_hud();
+    request_repaint();
 }
 
-// SetLabel + Wrap + Fit, in that order and always together. Moving the status out of the panel
-// removed the clipping of 8cc but not the underlying problem: the chip is a top-level
-// popup that Fit()s to its text, so a long sentence simply grew past the right edge of the canvas
-// and hung over the window. Wrapping to the room actually available is what makes the earlier
-// promise — "a sentence can be a sentence" — true at every window width, including the charter's
-// 1366 reach. Wrap() rewrites the label it is given, so it must follow a fresh SetLabel every
-// time; that is the whole reason this is one function instead of three call sites.
-void DesignCanvas::apply_status_label()
+void DesignCanvas::render_hud()
 {
-    if (!m_status_hud || !m_status_hud_label || !m_canvas_widget) return;
-    m_status_hud_label->SetLabel(m_status_hud_last);
-    const int avail = m_canvas_widget->GetClientSize().GetWidth()
-                      - m_canvas_widget->FromDIP(kStatusHudLeftInsetDip)
-                      - m_canvas_widget->FromDIP(24);
-    if (avail > m_canvas_widget->FromDIP(120))   // a uselessly narrow canvas: leave it unwrapped
-        m_status_hud_label->Wrap(avail);
-    m_status_hud->Fit();
+    if (m_hud_last.empty() && m_status_hud_last.IsEmpty()) return;
+    ImGuiWrapper& imgui  = *wxGetApp().imgui();
+    const ImVec2  ds     = ImGui::GetIO().DisplaySize;
+    const float   em     = imgui.get_style_scaling();   // follows the font, so the DPI
+    const float   margin = 12.f * em;
+    const int     flags  = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                           ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings |
+                           ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+    auto chip = [&](const char* id, const std::string& text, float x, float pivot_x, float wrap,
+                    const ImVec4* colour) {
+        ImGuiWrapper::push_common_window_style(m_canvas->get_scale());
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f * em, 4.f * em));
+        imgui.set_next_window_pos(x, ds.y - margin, ImGuiCond_Always, pivot_x, 1.f);
+        imgui.begin(std::string(id), flags);
+        if (wrap > 0.f) ImGui::PushTextWrapPos(wrap);
+        if (colour) ImGui::PushStyleColor(ImGuiCol_Text, *colour);
+        ImGui::TextUnformatted(text.c_str());
+        if (colour) ImGui::PopStyleColor();
+        if (wrap > 0.f) ImGui::PopTextWrapPos();
+        imgui.end();
+        ImGui::PopStyleVar();
+        ImGuiWrapper::pop_common_window_style();
+    };
+    if (!m_status_hud_last.IsEmpty()) {
+        // A sentence can be a sentence: it wraps to the room left of the readout chip.
+        const float  left = kStatusHudLeftInset * em;
+        const ImVec4 col  = m_status_hud_colour.IsOk()
+            ? ImVec4(m_status_hud_colour.Red() / 255.f, m_status_hud_colour.Green() / 255.f,
+                     m_status_hud_colour.Blue() / 255.f, 1.f)
+            : ImVec4();
+        chip("##design_status", m_status_hud_last.ToUTF8().data(), left, 0.f,
+             std::max(ds.x * 0.6f - left, 120.f * em), m_status_hud_colour.IsOk() ? &col : nullptr);
+    }
+    if (!m_hud_last.empty())
+        chip("##design_readout", m_hud_last, ds.x - margin, 1.f, 0.f, &ImGuiWrapper::COL_ORCA);
 }
 
-void DesignCanvas::place_status_hud()
+void DesignCanvas::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
 {
-    if (!m_status_hud || !m_canvas_widget || m_status_hud_last.IsEmpty()) return;
-    // The canvas has a client size even while its page is hidden, and it is not the size the
-    // page will have when shown — anchoring against it put the chip up on the tab bar, where it
-    // then stayed until the next status change moved it. Nothing to anchor to: stay down.
-    if (!m_canvas_widget->IsShownOnScreen()) { m_status_hud->Hide(); return; }
-    const wxSize cs = m_canvas_widget->GetClientSize();
-    // Re-wrap first: this also runs on resize, and a chip wrapped for the old width either
-    // overhangs a narrowed canvas or wastes a widened one.
-    apply_status_label();
-    const wxSize hs = m_status_hud->GetSize();
-    const int kLeftInset = m_canvas_widget->FromDIP(kStatusHudLeftInsetDip);
-    const wxPoint bl = m_canvas_widget->ClientToScreen(
-        wxPoint(kLeftInset, cs.GetHeight() - hs.GetHeight() - 12));
-    // No Raise() and no focus juggling: a popup neither takes focus nor falls behind. This was
-    // caught with ORCA_CAD_KEYTRACE — shift+S logged a line, the following R logged nothing, and
-    // the only thing between them was the first status update showing this window.
-    if (!m_status_hud->IsShown()) m_status_hud->Show();   // Show before Move (GTK ignores pre-map Move)
-    m_status_hud->Move(bl);
+    m_sketch_tool.set_highlight_faces(faces);
+    sync_selected_faces();
+    request_repaint();
 }
 
-void DesignCanvas::on_frame_iconize(wxIconizeEvent& e)
+void DesignCanvas::sync_selected_faces()
 {
-    show_status_hud(!e.IsIconized());
-    show_readout_hud(!e.IsIconized());
-    e.Skip();
+    // Deferred to the end of the current event, which may change the selection several times:
+    // every re-split reloads all the bodies. A set_bodies in between splits by the current
+    // selection itself and leaves this nothing to do.
+    if (m_split_pending)
+        return;
+    m_split_pending = true;
+    CallAfter([this] {
+        m_split_pending = false;
+        std::vector<std::pair<int, int>> want = m_sketch_tool.selected_faces();
+        if (want == m_lit_faces)
+            return;
+        m_lit_faces = std::move(want);
+        if (m_body_meshes == nullptr || m_model.objects.empty())
+            return;
+        rebuild_bodies();
+        reload(true);
+    });
 }
 
-void DesignCanvas::on_frame_activate(wxActivateEvent& e)
+// Object 0: one volume per body, with its selected faces split off into a volume of their own.
+// The per-triangle face ids (all bodies, in order) match triangles to faces; when their count
+// does not match the meshes, nothing is split.
+void DesignCanvas::rebuild_bodies()
 {
-    show_status_hud(e.GetActive());
-    show_readout_hud(e.GetActive());
-    e.Skip();
-}
-
-// wxEvent& so one handler serves both events that invalidate the anchor: the frame moving out
-// from under the chip, and the canvas resizing under it.
-void DesignCanvas::on_status_hud_reanchor(wxEvent& e)
-{
-    place_status_hud();
-    e.Skip();
-}
-
-void DesignCanvas::show_status_hud(bool on)
-{
-    if (!m_status_hud) return;
-    if (on) place_status_hud();      // re-anchors first: the page may have been resized while away
-    else    m_status_hud->Hide();
-}
-
-void DesignCanvas::set_body_highlight(bool on)
-{
-    if (m_body_selected == on) return;
-    m_body_selected = on;
-    reload(true);   // recolours the body volume (selected = cyan tint)
+    ModelObject* obj = m_model.objects.empty() ? m_model.add_object() : m_model.objects.front();
+    obj->clear_volumes();
+    m_volumes.clear();
+    const std::vector<TriangleMesh>& meshes = *m_body_meshes;
+    size_t ntri = 0;
+    for (const TriangleMesh& m : meshes)
+        ntri += m.its.indices.size();
+    const bool mapped = m_tri_face != nullptr && m_tri_face->size() == ntri;
+    size_t off = 0;
+    for (int b = 0; b < int(meshes.size()); ++b) {
+        const TriangleMesh& mesh = meshes[b];
+        const auto first = std::lower_bound(m_lit_faces.begin(), m_lit_faces.end(), std::make_pair(b, INT_MIN));
+        const auto last  = std::lower_bound(first, m_lit_faces.end(), std::make_pair(b + 1, INT_MIN));
+        if (!mapped || first == last) {
+            obj->add_volume(mesh);
+            m_volumes.push_back({ b, false });
+        } else {
+            indexed_triangle_set parts[2];   // [0] the rest of the body, [1] its selected faces
+            for (size_t i = 0; i < mesh.its.indices.size(); ++i) {
+                const int  f   = (*m_tri_face)[off + i];
+                const bool lit = std::binary_search(first, last, std::make_pair(b, f));
+                parts[lit].indices.push_back(mesh.its.indices[i]);
+            }
+            for (int lit = 0; lit < 2; ++lit) {
+                if (parts[lit].indices.empty())
+                    continue;
+                parts[lit].vertices = mesh.its.vertices;
+                its_compactify_vertices(parts[lit]);
+                obj->add_volume(TriangleMesh(std::move(parts[lit])));
+                m_volumes.push_back({ b, lit == 1 });
+            }
+        }
+        off += mesh.its.indices.size();
+    }
+    if (obj->instances.empty())
+        obj->add_instance();
 }
 
 void DesignCanvas::set_operand_bodies(int target_body, int tool_body)
@@ -1341,7 +1293,7 @@ void DesignCanvas::set_operand_bodies(int target_body, int tool_body)
     if (m_hl_body_target == target_body && m_hl_body_tool == tool_body) return;
     m_hl_body_target = target_body;
     m_hl_body_tool   = tool_body;
-    reload(true);      // recolours the body volumes (same idiom set_body_highlight uses)
+    reload(true);      // recolours the body volumes
 }
 
 void DesignCanvas::set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl)
@@ -1369,13 +1321,16 @@ void DesignCanvas::set_body_hidden(bool on)
 {
     if (m_body_hidden == on) return;
     m_body_hidden = on;
+    m_sketch_tool.set_body_edges_hidden(on);
     reload(true);   // hides/show base bodies + flips the ghost opaque/faint for preview-only mode
 }
 
-void DesignCanvas::delete_selected_sketch_entities()
+bool DesignCanvas::delete_selected_sketch_entities()
 {
+    if (m_sketch_tool.selection().empty()) return false;
     m_sketch_tool.delete_selected();
     request_repaint();
+    return true;
 }
 
 bool DesignCanvas::inline_busy() const
@@ -1414,16 +1369,16 @@ bool DesignCanvas::live_sketch_has_work() const
     return m_sketch_tool.live_sketch_has_work();
 }
 
-bool DesignCanvas::undo_last_sketch_entity()
+bool DesignCanvas::redo_last_sketch_entity()
 {
-    const bool did = m_sketch_tool.undo_last_entity();
+    const bool did = m_sketch_tool.redo_last_entity();
     if (did) request_repaint();
     return did;
 }
 
-bool DesignCanvas::delete_selected_or_last_sketch_entity()
+bool DesignCanvas::undo_last_sketch_entity()
 {
-    const bool did = m_sketch_tool.delete_selected_or_last();
+    const bool did = m_sketch_tool.undo_last_entity();
     if (did) request_repaint();
     return did;
 }
@@ -1470,6 +1425,7 @@ void DesignCanvas::open_inline_value(double current, std::function<void(double)>
         [this, commit](double v) {
             m_sketch_tool.set_inline_busy(false);
             if (commit) commit(v);
+            if (m_inline_editor && m_inline_editor->is_open()) m_sketch_tool.set_inline_busy(true);
             request_repaint();
         },
         [this, cancel]() {
@@ -1580,6 +1536,13 @@ bool DesignCanvas::sketch_abort_gesture()
     return true;
 }
 
+bool DesignCanvas::sketch_confirm_pending()
+{
+    if (!m_sketch_tool.confirm_pending()) return false;
+    request_repaint();
+    return true;
+}
+
 bool DesignCanvas::sketch_disarm_tool()
 {
     if (!m_sketch_tool.disarm_tool()) return false;
@@ -1589,23 +1552,25 @@ bool DesignCanvas::sketch_disarm_tool()
 
 bool DesignCanvas::drawing_in_progress() const
 {
-    return m_sketch_tool.pending_points() > 0;
+    return m_sketch_tool.gesture_pending();
 }
 
 bool DesignCanvas::has_any_selection() const
 {
-    return m_sketch_tool.has_solid_selection() || m_sketch_tool.sketch_has_selection();
+    return m_sketch_tool.has_solid_selection() || m_sketch_tool.sketch_has_selection()
+        || m_sketch_tool.display_pick() >= 0;
 }
 
 bool DesignCanvas::clear_any_selection()
 {
     if (!has_any_selection()) return false;
-    // Both, unconditionally: which of the two is live depends on the mode, and Esc at idle means
-    // "nothing is picked" in either of them. clear_selection() reports through the tool's own
+    // All three, unconditionally: which is live depends on the mode, and Esc at idle means
+    // "nothing is picked" in any of them. clear_selection() reports through the tool's own
     // on_selection_changed; the solid side has no such notification, so the panel refreshes what
     // depends on it (see DesignPanel::escape).
     m_sketch_tool.clear_selection();
     m_sketch_tool.clear_solid_selection();
+    m_sketch_tool.clear_display_pick();
     // clear_solid_selection() is silent by design (recomputes call it while ids are invalid), but
     // the panel mirrors the pick to aim Extrude and the dress-up tools. An Esc that cleared the
     // highlight without telling the panel would leave those aimed at a body nothing points to.

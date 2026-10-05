@@ -1216,7 +1216,7 @@ void PrintingTaskPanel::on_stage_clicked(wxMouseEvent &event)
 
     if (obj && obj->stage_curr == 58) {
             wxWindow *top    = wxGetTopLevelParent(this);
-            ThermalPreconditioningDialog m_thermal_dialog(top ? top : this, obj->get_dev_id() , "Calculating...");
+            ThermalPreconditioningDialog m_thermal_dialog(top ? top : this, obj->get_dev_id() , _L("Calculating..."));
             m_thermal_dialog.ShowModal();
     }
 
@@ -3387,7 +3387,7 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
     if (obj->is_core_xy()) {
         m_staticText_z_tip->SetLabel(_L("Bed"));
     } else {
-        m_staticText_z_tip->SetLabel("Z");
+        m_staticText_z_tip->SetLabel(_L_CONTEXT("Z", "Axis"));
     }
 
     // update extruder icon

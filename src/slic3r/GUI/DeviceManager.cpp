@@ -4313,7 +4313,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                 info = _L("Selected diameter and machine diameter do not match");
                             }
                             else if (reason == "generate auto filament cali gcode failure") {
-                                info = _L("Failed to generate cali G-code");
+                                info = _L("Failed to generate calibration G-code");
                             }
                             else {
                                 info = reason;
