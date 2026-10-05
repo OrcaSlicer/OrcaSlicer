@@ -6,6 +6,8 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 
@@ -269,15 +271,17 @@ static bool has_support_ironing(const Print &print)
     return false;
 }
 
-// print_z of the highest support layer that carries an extrusion of the given role, or -1.
-static double top_support_z(const Print &print, ExtrusionRole role)
+// print_z of every support layer that carries an extrusion of the given role.
+static std::vector<double> support_layers_with_role(const Print &print, ExtrusionRole role)
 {
-    double z = -1.;
+    std::vector<double> zs;
     for (const SupportLayer *layer : print.objects().front()->support_layers())
         for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
-            if (entity->role() == role)
-                z = std::max(z, layer->print_z);
-    return z;
+            if (entity->role() == role) {
+                zs.push_back(layer->print_z);
+                break;
+            }
+    return zs;
 }
 
 TEST_CASE("Support interface ironing irons the top interface layer of normal tree styles", "[SupportMaterial]")
@@ -296,9 +300,47 @@ TEST_CASE("Support interface ironing irons the top interface layer of normal tre
     });
 
     REQUIRE(has_support_ironing(print));
-    // The ironed surface is the one that touches the model, so no interface layer may sit above it.
-    REQUIRE_THAT(top_support_z(print, erIroning),
-                 Catch::Matchers::WithinAbs(top_support_z(print, erSupportMaterialInterface), 1e-6));
+    // The ironed surface is the one that touches the model, so only the topmost interface layer is ironed.
+    const std::vector<double> interface_zs = support_layers_with_role(print, erSupportMaterialInterface);
+    REQUIRE(! interface_zs.empty());
+    const double top_interface_z = *std::max_element(interface_zs.begin(), interface_zs.end());
+    for (const double ironed_z : support_layers_with_role(print, erIroning)) {
+        CAPTURE(ironed_z, top_interface_z);
+        REQUIRE_THAT(ironed_z, Catch::Matchers::WithinAbs(top_interface_z, 1e-6));
+    }
+}
+
+// Total length of the support interface extrusions of the object.
+static double support_interface_length(const Print &print)
+{
+    double length = 0.;
+    for (const SupportLayer *layer : print.objects().front()->support_layers())
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            if (entity->role() == erSupportMaterialInterface)
+                length += entity->length();
+    return length;
+}
+
+TEST_CASE("Support interface ironing fills the roof solid even with a wide interface spacing", "[SupportMaterial]")
+{
+    const std::string style = GENERATE("tree_slim", "tree_strong", "tree_hybrid");
+    CAPTURE(style);
+
+    auto interface_length = [&](int ironing) {
+        Slic3r::Print print;
+        Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+            { "enable_support",               1 },
+            { "support_type",                 "tree(auto)" },
+            { "support_style",                style },
+            { "support_interface_top_layers", 2 },
+            { "support_interface_spacing",    2 },
+            { "support_ironing",              ironing }
+        });
+        return support_interface_length(print);
+    };
+
+    // Ironing turns the spaced out roof into a solid one, which needs far more extrusion.
+    REQUIRE(interface_length(1) > 1.5 * interface_length(0));
 }
 
 TEST_CASE("Support interface ironing off produces no ironing for normal tree styles", "[SupportMaterial]")
