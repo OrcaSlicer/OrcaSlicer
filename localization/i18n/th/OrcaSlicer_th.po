@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -1145,12 +1145,6 @@ msgstr "ใช้ไม่ได้เมื่อประมวลผลกา
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "การดำเนินการยกเลิกแล้ว กรุณารอสักครู่."
 
-msgid "Face recognition"
-msgstr "การจดจำผิวหน้า"
-
-msgid "Perform Recognition"
-msgstr "ดำเนินการรับรู้"
-
 msgid "Enforce seam"
 msgstr "บังคับรอยตะเข็บ"
 
@@ -1171,44 +1165,6 @@ msgstr "ออกจากการวาดภาพรอยตะเข็บ
 
 msgid "Paint-on seam editing"
 msgstr "การแก้ไขรอยตะเข็บด้วยการทาสี"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "แบบอักษร"
-
-msgid "Thickness"
-msgstr "ความหนา"
-
-msgid "Text Gap"
-msgstr "ช่องว่างข้อความ"
-
-msgid "Angle"
-msgstr "มุม"
-
-msgid "Embedded depth"
-msgstr "ความลึกที่ฝัง"
-
-msgid "Input text"
-msgstr "ป้อนข้อความ"
-
-msgid "Surface"
-msgstr "พื้นผิว"
-
-msgid "Horizontal text"
-msgstr "ข้อความแนวนอน"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "เมาส์เลื่อนขึ้นหรือลง"
-
-msgid "Rotate text"
-msgstr "หมุนข้อความ"
-
-msgid "Text shape"
-msgstr "รูปร่างข้อความ"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1559,6 +1515,11 @@ msgstr "กำลังโหลด"
 
 msgid "In queue"
 msgstr "ในคิว"
+
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "แบบอักษร"
 
 #. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
@@ -1923,6 +1884,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "คัดลอกไปยังคลิปบอร์ด"
 
+msgid "Angle"
+msgstr "มุม"
+
 msgid "Perpendicular distance"
 msgstr "ระยะทางตั้งฉาก"
 
@@ -2005,6 +1969,9 @@ msgstr "เข้าสู่กิซโมการประกอบ"
 
 msgid "Leaving Assembly gizmo"
 msgstr "ออกจากกิซโมการประกอบ"
+
+msgid "Shift+"
+msgstr "Shift+"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -4449,7 +4416,6 @@ msgstr "ปรับเทียบเสร็จแล้ว"
 msgid "%s does not support %s"
 msgstr "%s ไม่รองรับ %s"
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "ขั้นตอน"
 
@@ -8774,6 +8740,9 @@ msgstr "เครื่องพิมพ์ที่เชื่อมต่อ
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "คุณต้องการซิงค์ข้อมูลเครื่องพิมพ์และสลับการตั้งค่าล่วงหน้าโดยอัตโนมัติหรือไม่"
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr "ไฟล์นี้ไม่มีข้อมูลเรขาคณิตใดๆ"
 
@@ -8921,13 +8890,6 @@ msgstr "ข้อมูลไม่ถูกต้อง"
 
 msgid "Slicing Canceled"
 msgstr "ยกเลิกการสไลซ์แล้ว"
-
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "กำลังสไลซ์ฐานพิมพ์ %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "โปรดแก้ไขข้อผิดพลาดในการแบ่งส่วนและเผยแพร่อีกครั้ง"
 
 msgid "Network plug-in switched successfully."
 msgstr "สลับปลั๊กอินเครือข่ายสำเร็จแล้ว"
@@ -9727,14 +9689,6 @@ msgstr "ฟังก์ชัน CAD (ทดลอง)"
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
 msgstr "เมื่อเปิดใช้ตัวเลือกนี้ จะแสดงแท็บออกแบบ ซึ่งสามารถสร้างและแก้ไขโมเดลแบบพาราเมตริกได้ ฟังก์ชันนี้อยู่ในขั้นทดลองและยังอยู่ระหว่างการพัฒนา"
 
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "ปิดลูปสเก็ตช์อัตโนมัติ"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr "ถือว่าจุดปลายของสเก็ตช์ที่ห่างกันไม่เกิน 0.001 มม. เป็นจุดต่อเดียวกัน และเชื่อมลูปให้ปิด ปิด: เชื่อมเฉพาะจุดปลายที่ทับกันพอดีเท่านั้น ลูปที่มีช่องว่างเล็กน้อยจึงแสดงเป็นลูปเปิด แทนที่จะถูกปิดให้โดยอัตโนมัติ"
-
 msgid "Pop up to select filament grouping mode"
 msgstr "ปรากฏขึ้นเพื่อเลือกโหมดการจัดกลุ่มเส้นพลาสติก"
 
@@ -9831,6 +9785,13 @@ msgstr "วาดตัวเชื่อมเมทเป็นผิวหน
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr "ในแท็บออกแบบ วาดตัวเชื่อมเมทเป็นผิวหน้าขนาดเล็กแทนแผ่นกลมแบบดั้งเดิมที่มีควอดแรนต์แสดงการหมุน ผิวหน้าแสดงทิศทางได้ในทันทีโดยไม่ต้องเรียนรู้รูปแบบของแผ่นกลม ปิดตัวเลือกนี้เพื่อใช้การแสดงผลแบบ CAD ดั้งเดิม"
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "ปิดลูปสเก็ตช์อัตโนมัติ"
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr ""
 
 msgid "Pan"
 msgstr "แพน"
@@ -10491,36 +10452,6 @@ msgstr "ยอมรับ"
 
 msgid "Log Out"
 msgstr "ออกจากระบบ"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "สไลซ์เพลตทั้งหมดเพื่อประมาณเวลาและปริมาณเส้นพลาสติก"
-
-msgid "Packing project data into 3MF file"
-msgstr "บรรจุข้อมูลโครงการลงในไฟล์ 3MF"
-
-msgid "Uploading 3MF"
-msgstr "กำลังอัพโหลด 3MF"
-
-msgid "Jump to model publish web page"
-msgstr "ข้ามไปที่โมเดลเผยแพร่หน้าเว็บ"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "หมายเหตุ: การเตรียมการอาจใช้เวลาหลายนาที กรุณาอดทน."
-
-msgid "Publish was canceled"
-msgstr "การเผยแพร่ถูกยกเลิก"
-
-msgid "Slicing Plate 1"
-msgstr "แผ่นสไลซ์ 1"
-
-msgid "Packing data to 3MF"
-msgstr "บรรจุข้อมูลไปที่ 3MF"
-
-msgid "Uploading data"
-msgstr "กำลังอัพโหลดข้อมูล"
-
-msgid "Jump to webpage"
-msgstr "ข้ามไปที่หน้าเว็บ"
 
 # AI Translated
 msgid "Material"
@@ -12449,67 +12380,6 @@ msgstr "ไม่มีการอัปเดต"
 
 msgid "The configuration is up to date."
 msgstr "การกำหนดค่าเป็นข้อมูลล่าสุด"
-
-msgid "OBJ file import color"
-msgstr "สีการนำเข้าไฟล์ OBJ"
-
-msgid "Some faces don't have color defined."
-msgstr "ผิวหน้าบางส่วนไม่ได้กำหนดสี"
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "มีข้อผิดพลาดในไฟล์ MTL ไม่พบเนื้อหา:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "โปรดตรวจสอบไฟล์ OBJ หรือ MTL"
-
-msgid "Specify number of colors:"
-msgstr "ระบุจำนวนสี:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "ป้อนหรือคลิกปุ่มปรับเพื่อแก้ไขตัวเลขอีกครั้ง"
-
-msgid "Recommended "
-msgstr "ที่แนะนำ"
-
-msgid "view"
-msgstr "ดู"
-
-msgid "Current filament colors"
-msgstr "สีเส้นพลาสติกในปัจจุบัน"
-
-msgid "Matching"
-msgstr "การจับคู่"
-
-msgid "Quick set"
-msgstr "ตั้งค่าด่วน"
-
-msgid "Color match"
-msgstr "การจับคู่สี"
-
-msgid "Approximate color matching."
-msgstr "การจับคู่สีโดยประมาณ"
-
-msgid "Append"
-msgstr "ผนวก"
-
-msgid "Append to existing filaments"
-msgstr "ผนวกเข้ากับเส้นพลาสติกที่มีอยู่"
-
-msgid "Reset mapped extruders."
-msgstr "รีเซ็ตชุดดันเส้นที่แมป"
-
-msgid "Note"
-msgstr "หมายเหตุ"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"เลือกสีแล้ว คุณสามารถเลือกตกลงได้ \n"
-" เพื่อดำเนินการต่อหรือปรับเปลี่ยนด้วยตนเอง"
-
-msgid "—> "
-msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -21714,162 +21584,6 @@ msgstr ""
 "เนื้อหาข้อความ: \"%1%\"\n"
 "ข้อผิดพลาด: \"%2%\""
 
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "มีความสูงของชั้นเล็ก ๆ ส่งผลให้เส้นชั้นแทบไม่มีความสำคัญและคุณภาพการพิมพ์สูง เหมาะสำหรับกรณีการพิมพ์ส่วนใหญ่"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้คุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่ใหญ่กว่าเล็กน้อย ส่งผลให้เส้นเลเยอร์แทบไม่มีนัยสำคัญและใช้เวลาพิมพ์สั้นลงเล็กน้อย"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ส่งผลให้มองเห็นเส้นเลเยอร์ได้เล็กน้อยแต่ใช้เวลาพิมพ์สั้นลง"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่แทบจะมองไม่เห็นและคุณภาพการพิมพ์ที่สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีเส้นชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้มีเส้นชั้นที่แทบจะมองไม่เห็นและคุณภาพการพิมพ์ที่สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นน้อยที่สุดและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีเส้นชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้มีเส้นชั้นน้อยที่สุดและคุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "มีความสูงของชั้นปกติ ซึ่งส่งผลให้ได้เส้นชั้นเฉลี่ยและคุณภาพการพิมพ์ เหมาะสำหรับกรณีการพิมพ์ส่วนใหญ่"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีห่วงติดผนังมากกว่าและมีความหนาแน่นของช่องไส้ในที่เบากว่า ส่งผลให้มีความแข็งแรงในการพิมพ์สูงขึ้นแต่ใช้เส้นพลาสติกมากขึ้นและใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลง แต่ใช้เวลาพิมพ์สั้นลงเล็กน้อย"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลง แต่ใช้เวลาพิมพ์สั้นลง"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนน้อยลงและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้เส้นเลเยอร์ปรากฏน้อยลงและคุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้เส้นเลเยอร์แทบไม่มีความสำคัญและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้เส้นเลเยอร์แทบไม่มีความสำคัญและคุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้เส้นชั้นแทบไม่มีนัยสำคัญและใช้เวลาพิมพ์นานขึ้น"
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "มีความสูงของชั้นใหญ่ ส่งผลให้ได้เส้นชั้นที่ชัดเจนและคุณภาพการพิมพ์และเวลาในการพิมพ์ตามปกติ"
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีห่วงติดผนังมากกว่าและมีความหนาแน่นของช่องไส้ในที่เบากว่า ส่งผลให้มีความแข็งแรงในการพิมพ์สูงขึ้นแต่ใช้เส้นพลาสติกมากขึ้นและใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลง แต่เวลาในการพิมพ์สั้นลงในบางกรณี"
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลงมาก แต่ในบางกรณีใช้เวลาพิมพ์สั้นลง"
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนน้อยลงและคุณภาพการพิมพ์สูงขึ้นเล็กน้อยแต่ใช้เวลาพิมพ์นานขึ้น"
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนน้อยลงและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "มีความสูงของชั้นที่ใหญ่มาก ส่งผลให้มีเส้นชั้นที่ชัดเจน คุณภาพการพิมพ์ต่ำ และใช้เวลาพิมพ์สั้นลง"
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนและคุณภาพการพิมพ์ลดลงมาก แต่ในบางกรณีใช้เวลาพิมพ์สั้นลง"
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่ใหญ่กว่ามาก ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนมากและคุณภาพการพิมพ์ต่ำลงมาก แต่ในบางกรณีใช้เวลาพิมพ์สั้นลงมาก"
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่เล็กกว่าเล็กน้อย ซึ่งส่งผลให้มีเส้นเลเยอร์น้อยลงเล็กน้อยแต่ยังคงปรากฏชัดเจน และคุณภาพการพิมพ์สูงขึ้นเล็กน้อย แต่ใช้เวลาพิมพ์นานขึ้นในบางกรณี"
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่เล็กกว่า ซึ่งส่งผลให้มีเส้นเลเยอร์น้อยลงแต่ยังคงปรากฏชัดเจน และคุณภาพการพิมพ์สูงขึ้นเล็กน้อย แต่ใช้เวลาพิมพ์นานขึ้นในบางกรณี"
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "นี่ไม่ใช่เส้นพลาสติกที่ใช้กันทั่วไปหรือไม่ใช่เส้นพลาสติก Bambu เส้นใดเส้นหนึ่ง และมีความแตกต่างกันมากในแต่ละยี่ห้อ ดังนั้นจึงขอแนะนำอย่างยิ่งให้สอบถามผู้จำหน่ายเกี่ยวกับโปรไฟล์ที่เหมาะสมก่อนพิมพ์ และปรับพารามิเตอร์บางอย่างตามประสิทธิภาพ"
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "เมื่อพิมพ์ฟิลาเมนต์นี้ มีความเสี่ยงที่จะเกิดการบิดงอและมีการยึดเกาะต่ำ เพื่อให้ได้ผลลัพธ์ที่ดีขึ้น โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับวัสดุอุณหภูมิสูง / วิศวกรรม"
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "เมื่อพิมพ์ฟิลาเมนต์นี้ มีความเสี่ยงที่หัวฉีดจะอุดตัน ไหลซึม บิดเบี้ยว และมีความแข็งแรงในการยึดเกาะต่ำ เพื่อให้ได้ผลลัพธ์ที่ดีขึ้น โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับวัสดุอุณหภูมิสูง / วิศวกรรม"
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "หากต้องการผลลัพธ์ที่โปร่งใสหรือโปร่งแสงดีขึ้นด้วยเส้นพลาสติกที่เกี่ยวข้อง โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับ PETG แบบโปร่งใส"
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "เพื่อให้งานพิมพ์มีความมันวาวมากขึ้น โปรดทำให้เส้นพลาสติกแห้งก่อนใช้งาน และตั้งค่าความเร็วผนังด้านนอกเป็น 40 ถึง 60 มม./วินาที เมื่อสไลซ์"
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "เส้นพลาสติกนี้ใช้สำหรับพิมพ์แบบจำลองที่มีความหนาแน่นต่ำเท่านั้น และจำเป็นต้องมีพารามิเตอร์พิเศษบางอย่าง หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คำแนะนำสำหรับการพิมพ์รุ่น RC ด้วยฟอง PLA (PLA Aero)"
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "เส้นพลาสติกนี้ใช้สำหรับพิมพ์แบบจำลองที่มีความหนาแน่นต่ำเท่านั้น และจำเป็นต้องมีพารามิเตอร์พิเศษบางอย่าง หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: ASA Aero Printing Guide"
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "เส้นพลาสติกนี้อ่อนเกินไปและเข้ากันไม่ได้กับ AMS การพิมพ์นั้นมีข้อกำหนดหลายประการ และเพื่อให้ได้คุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ TPU"
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "เส้นพลาสติกนี้มีความแข็งสูงเพียงพอ (ประมาณ 67D) และเข้ากันได้กับ AMS การพิมพ์นั้นมีข้อกำหนดหลายประการ และเพื่อให้ได้คุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ TPU"
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "หากคุณต้องการพิมพ์ TPU แบบอ่อน โปรดอย่าเฉือนด้วยโปรไฟล์นี้ และสำหรับ TPU เท่านั้นที่มีความแข็งสูงเพียงพอ (ไม่น้อยกว่า 55D) และเข้ากันได้กับ AMS หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ TPU"
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "นี่คือเส้นพลาสติกรองรับที่ละลายน้ำได้ และโดยปกติจะใช้สำหรับโครงสร้างรองรับเท่านั้น ไม่ใช่สำหรับตัวโมเดล การพิมพ์เส้นพลาสติกนี้มีข้อกำหนดหลายประการ และเพื่อให้ได้คุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ PVA"
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "นี่คือเส้นพลาสติกรองรับที่ไม่ละลายน้ำ และโดยปกติจะใช้สำหรับโครงสร้างรองรับเท่านั้น ไม่ใช่สำหรับตัวโมเดล หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับเส้นพลาสติกรองรับและฟังก์ชันรองรับ"
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "ค่าที่ตั้งไว้ล่วงหน้าทั่วไปได้รับการปรับแต่งอย่างระมัดระวังเพื่อให้เข้ากันได้กับเส้นพลาสติกที่หลากหลายมากขึ้น เพื่อคุณภาพการพิมพ์และความเร็วที่สูงขึ้น โปรดใช้เส้นพลาสติก Bambu กับการตั้งค่าล่วงหน้าของ Bambu"
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "โปรไฟล์คุณภาพสูงสำหรับหัวฉีดขนาด 0.2 มม. โดยให้ความสำคัญกับคุณภาพการพิมพ์"
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "โปรไฟล์คุณภาพสูงสำหรับความสูงของชั้น 0.16 มม. ให้ความสำคัญกับคุณภาพและความแข็งแรงในการพิมพ์"
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "โปรไฟล์มาตรฐานสำหรับความสูงของชั้น 0.16 มม. โดยให้ความสำคัญกับความเร็ว"
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "โปรไฟล์คุณภาพสูงสำหรับความสูงของชั้น 0.2 มม. โดยให้ความสำคัญกับความแข็งแกร่งและคุณภาพการพิมพ์"
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "โปรไฟล์มาตรฐานสำหรับหัวฉีดขนาด 0.4 มม. โดยให้ความสำคัญกับความเร็ว"
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "โปรไฟล์คุณภาพสูงสำหรับหัวฉีดขนาด 0.6 มม. ให้ความสำคัญกับคุณภาพและความแข็งแรงในการพิมพ์"
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "โปรไฟล์ความแข็งแกร่งสำหรับหัวฉีดขนาด 0.6 มม. โดยให้ความสำคัญกับความแข็งแรง"
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "โปรไฟล์มาตรฐานสำหรับหัวฉีดขนาด 0.6 มม. โดยให้ความสำคัญกับความเร็ว"
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "โปรไฟล์คุณภาพสูงสำหรับหัวฉีดขนาด 0.8 มม. โดยให้ความสำคัญกับคุณภาพการพิมพ์"
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "โปรไฟล์ความแข็งแกร่งสำหรับหัวฉีด 0.8 มม. โดยจัดลำดับความสำคัญของความแข็งแกร่ง"
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "โปรไฟล์มาตรฐานสำหรับหัวฉีด 0.8 มม. โดยให้ความสำคัญกับความเร็ว"
-
 msgid "No AMS"
 msgstr "ไม่มี AMS"
 
@@ -22782,9 +22496,8 @@ msgstr "วงกลม — คลิกจุดศูนย์กลาง แ
 msgid "Arc — click start, end, then a point"
 msgstr "ส่วนโค้ง — คลิกจุดเริ่มต้น จุดสิ้นสุด แล้วคลิกอีกหนึ่งจุด"
 
-# AI Translated
-msgid "Slot — two centerline ends, then end radius"
-msgstr "ร่อง — ปลายทั้งสองของเส้นกึ่งกลาง แล้วรัศมีปลาย"
+msgid "Slot — two centerline ends, then the width"
+msgstr ""
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -22858,9 +22571,8 @@ msgstr "แสดงแกนโลกแล้ว"
 msgid "World axes hidden"
 msgstr "ซ่อนแกนโลกแล้ว"
 
-# AI Translated
-msgid "Isometric view, fitted"
-msgstr "มุมมองไอโซเมตริก ปรับให้พอดีแล้ว"
+msgid "Axonometric view, fitted"
+msgstr ""
 
 # AI Translated
 msgid "Bed shown"
@@ -23084,9 +22796,8 @@ msgstr "แกน"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "แกนอ้างอิง (สองจุด, เส้นตั้งฉากผิวหน้า, เส้นแกนกลางทรงกระบอก, สองระนาบ, ตามขอบ)"
 
-# AI Translated
-msgid "Coord Sys"
-msgstr "ระบบพิกัด"
+msgid "Coordinate system"
+msgstr ""
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -23112,6 +22823,11 @@ msgstr "ฉายขอบของบอดี้ลงบนระนาบเ
 # AI Translated
 msgid "Project needs a body — add or import one first"
 msgstr "คำสั่งฉายต้องใช้บอดี้ — เพิ่มหรือนำเข้าบอดี้ก่อน"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "ผิวหน้า %d"
 
 # AI Translated
 msgid "(all edges)"
@@ -23145,9 +22861,8 @@ msgstr "คำสั่งกลับด้านต้องใช้บอด
 msgid "Mate"
 msgstr "เมท"
 
-# AI Translated
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "การประกอบ: จัดแนวฟีเจอร์ระบบพิกัดสองรายการ (ยึดแน่น, ระนาบ, หมุน, เลื่อน, ทรงกระบอก)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -23231,6 +22946,10 @@ msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "เจาะรูที่กึ่งกลางผิวหน้าที่เลือก หรือวางบนระนาบ"
 
 # AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "เลือกผิวหน้าหรือระนาบที่จะเจาะ"
+
+# AI Translated
 msgid "Thread"
 msgstr "เกลียว"
 
@@ -23282,9 +23001,8 @@ msgstr "คลิกจุดเริ่มต้น แล้วจุดส�
 msgid "Polyline"
 msgstr "โพลีไลน์"
 
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
-msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาเพื่อจบเส้นต่อเนื่อง"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
+msgstr ""
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23374,9 +23092,8 @@ msgstr "คลิกจุดศูนย์กลาง แล้วจุด�
 msgid "Slot"
 msgstr "ร่อง"
 
-# AI Translated
-msgid "Click two centerline ends, then a point for the end radius"
-msgstr "คลิกปลายทั้งสองของเส้นกึ่งกลาง แล้วคลิกจุดเพื่อกำหนดรัศมีปลาย"
+msgid "Click two centerline ends, then a point for the width"
+msgstr ""
 
 # AI Translated
 msgid "Arc slot"
@@ -23406,9 +23123,8 @@ msgstr "คลิกจุดศูนย์กลาง ปลายแกน�
 msgid "Spline"
 msgstr "สไปลน์"
 
-# AI Translated
-msgid "Click control points; double-click or right-click to finish"
-msgstr "คลิกจุดควบคุม; ดับเบิลคลิกหรือคลิกขวาเพื่อเสร็จสิ้น"
+msgid "Click control points; double-click, right-click or Enter to finish"
+msgstr ""
 
 # AI Translated
 msgid "Click to place a point"
@@ -23462,17 +23178,15 @@ msgstr "เลือกเส้นแกนกลับด้าน แล้�
 msgid "Trim"
 msgstr "ตัดเล็ม"
 
-# AI Translated
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "คลิกช่วงเส้นเพื่อตัดเล็มกลับไปยังจุดตัดที่ใกล้ที่สุด; คลิกขวาเพื่อออก"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Extend"
 msgstr "ต่อขยาย"
 
-# AI Translated
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "คลิกเส้นหรือส่วนโค้งเพื่อต่อขยายไปยังเอนทิตีที่ใกล้ที่สุด; คลิกขวาเพื่อออก"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -23626,22 +23340,6 @@ msgid "Vertical distance"
 msgstr "ระยะแนวตั้ง"
 
 # AI Translated
-msgid "✓ Confirm"
-msgstr "✓ ยืนยัน"
-
-# AI Translated
-msgid "✗ Cancel"
-msgstr "✗ ยกเลิก"
-
-# AI Translated
-msgid "Undo (Ctrl+Z)"
-msgstr "เลิกทำ (Ctrl+Z)"
-
-# AI Translated
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "ทำซ้ำ (Ctrl+Shift+Z)"
-
-# AI Translated
 msgid "New Design — clear the feature tree"
 msgstr "งานออกแบบใหม่ — ล้างแผนผังฟีเจอร์"
 
@@ -23665,9 +23363,20 @@ msgstr "มุมมองภาคตัดขวาง — ซ่อนบา�
 msgid "Flip Section — show the opposite half"
 msgstr "พลิกภาคตัด — แสดงอีกครึ่งหนึ่ง"
 
-# AI Translated
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "ส่งไปยังฐานพิมพ์ — ส่งทรงตันไปยังเตรียมพิมพ์"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
+msgstr ""
 
 # AI Translated
 msgid "Width / X"
@@ -23698,8 +23407,8 @@ msgid "Rotation axis"
 msgstr "แกนการหมุน"
 
 # AI Translated
-msgid "Angle °"
-msgstr "มุม °"
+msgid "Angle (°)"
+msgstr "มุม (°)"
 
 # AI Translated
 msgid "Move / Rotate"
@@ -23741,8 +23450,8 @@ msgid "2nd dist"
 msgstr "ระยะที่ 2"
 
 # AI Translated
-msgid "Taper °"
-msgstr "มุมเรียว °"
+msgid "Taper (°)"
+msgstr "มุมเรียว (°)"
 
 # AI Translated
 msgid "New body"
@@ -23875,21 +23584,16 @@ msgstr "แบบวงกลม"
 msgid "Direction"
 msgstr "ทิศทาง"
 
-# AI Translated
-msgid "Total angle°"
-msgstr "มุมรวม°"
+msgid "Total angle (°)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean"
 msgstr "บูลีน"
 
 # AI Translated
-msgid "Union (join)"
-msgstr "ยูเนี่ยน (รวม)"
-
-# AI Translated
-msgid "Subtract (cut)"
-msgstr "ลบออก (ตัด)"
+msgid "Subtract"
+msgstr "ลบออก"
 
 # AI Translated
 msgid "Target (kept)"
@@ -23936,10 +23640,6 @@ msgstr "ประเภทระนาบ"
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "ระนาบฐาน"
-
-# AI Translated
-msgid "Angle°"
-msgstr "มุม°"
 
 # AI Translated
 msgid "Base X"
@@ -23997,6 +23697,9 @@ msgstr "บอดี้พื้นผิว"
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr "ออฟเซ็ตเปลือกของบอดี้พื้นผิว ค่าบวก = ออกด้านนอก, ค่าลบ = เข้าด้านใน"
 
+msgid "Thickness"
+msgstr "ความหนา"
+
 # AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr "เพิ่มความหนาบอดี้พื้นผิวให้เป็นทรงตัน การพลิกจะกลับทิศทาง"
@@ -24012,10 +23715,6 @@ msgstr "ผิวหน้าที่เปิด"
 # AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
 msgstr "เลือกผิวหน้าของทรงตันเพื่อเปิด แล้วกำหนดความหนาผนัง"
-
-# AI Translated
-msgid "Angle (°)"
-msgstr "มุม (°)"
 
 # AI Translated
 msgid "(pick a side face)"
@@ -24123,11 +23822,6 @@ msgid "Face %d is already in the list"
 msgstr "ผิวหน้า %d อยู่ในรายการแล้ว"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "ผิวหน้า %d"
-
-# AI Translated
 msgid "Faces to delete"
 msgstr "ผิวหน้าที่จะลบ"
 
@@ -24138,10 +23832,6 @@ msgstr "เลือกผิวหน้าของทรงตัน แล�
 # AI Translated
 msgid "Left-handed"
 msgstr "เวียนซ้าย"
-
-# AI Translated
-msgid "Taper (°)"
-msgstr "มุมเรียว (°)"
 
 # AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -24271,13 +23961,15 @@ msgstr "ทรงกระบอก — แกนอยู่ในแนวเ�
 msgid "Kind"
 msgstr "ชนิด"
 
-# AI Translated
-msgid "CS A (fixed)"
-msgstr "CS A (คงที่)"
+msgid "A (fixed)"
+msgstr ""
+
+msgid "B (moves)"
+msgstr ""
 
 # AI Translated
-msgid "CS B (moves)"
-msgstr "CS B (เคลื่อนที่)"
+msgid "Angle °"
+msgstr "มุม °"
 
 # AI Translated
 msgid "Flip (oppose z axes)"
@@ -24358,14 +24050,6 @@ msgid "Bodies"
 msgstr "บอดี้"
 
 # AI Translated
-msgid "Move body"
-msgstr "ย้ายบอดี้"
-
-# AI Translated
-msgid "Select a body row first, then move it"
-msgstr "เลือกแถวบอดี้ก่อน แล้วจึงย้าย"
-
-# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr "บูลีน — รวม ลบออก หรือหาส่วนร่วมกับบอดี้อื่น"
 
@@ -24378,9 +24062,14 @@ msgstr "เลือกบอดี้ %d แล้ว — คลิกขวา
 msgid "Variables"
 msgstr "ตัวแปร"
 
-# AI Translated
-msgid "+"
-msgstr "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24398,6 +24087,10 @@ msgstr "อัปเดตสเก็ตช์แล้ว"
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "สร้างสเก็ตช์แล้ว (มิติขับเคลื่อน %zu รายการ) — เลือกสเก็ตช์ แล้วคลิกขวาเพื่อยืดขึ้นรูป"
+
+#, c-format, boost-format
+msgid "Length %.2f mm, angle %.1f°"
+msgstr ""
 
 # AI Translated
 msgid "(locked)"
@@ -24447,15 +24140,23 @@ msgstr "บอดี้ %d: ผิวหน้า %d ถูกเลือก �
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "ผิวหน้า %d ถูกเลือก — คลิกขวาเพื่อดัน/ดึง หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
 
-# AI Translated
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "บอดี้ %d: ขอบ %d ถูกเลือก — ใช้ลบมุมมน/ลบมุมเอียงเพื่อตกแต่งขอบ หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
+#, c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
 
-# AI Translated
+#, c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+
 #, c-format, boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "ขอบ %d ถูกเลือก — ใช้ลบมุมมน/ลบมุมเอียงเพื่อตกแต่งขอบ หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -24484,6 +24185,9 @@ msgstr "ออกจากเครื่องมือแล้ว"
 # AI Translated
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "เก็บสเก็ตช์ไว้แล้ว — กด ยืนยัน เพื่อบันทึก หรือ ยกเลิก เพื่อทิ้ง"
+
+msgid "Select something to delete"
+msgstr ""
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24514,14 +24218,17 @@ msgstr "กำลังแก้ไข: สเก็ตช์ %d   ·   N = ม�
 msgid "OK — %zu triangles"
 msgstr "สำเร็จ — %zu รูปสามเหลี่ยม"
 
-# AI Translated
-msgid "Text to insert:"
-msgstr "ข้อความที่จะแทรก:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
+msgstr ""
 
-# AI Translated
-msgctxt "Design"
-msgid "Text"
-msgstr "ข้อความ"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
+msgstr ""
 
 # AI Translated
 msgid "Import SVG"
@@ -24547,9 +24254,9 @@ msgstr "กำลังอ่าน STEP…"
 msgid "No solids found in STEP"
 msgstr "ไม่พบทรงตันใน STEP"
 
-# AI Translated
-msgid "STEP import failed: "
-msgstr "นำเข้า STEP ล้มเหลว: "
+#, c-format, boost-format
+msgid "STEP import failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -24573,9 +24280,9 @@ msgstr "ไฟล์เมช (*.stl;*.obj)|*.stl;*.obj|ไฟล์ทั้ง
 msgid "Could not read the STL file"
 msgstr "ไม่สามารถอ่านไฟล์ STL ได้"
 
-# AI Translated
-msgid "Could not read the OBJ file: "
-msgstr "ไม่สามารถอ่านไฟล์ OBJ ได้: "
+#, c-format, boost-format
+msgid "Could not read the OBJ file: %s"
+msgstr ""
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -24600,17 +24307,20 @@ msgstr ""
 msgid "Large mesh"
 msgstr "เมชขนาดใหญ่"
 
-# AI Translated
-msgid "Mesh conversion failed: "
-msgstr "การแปลงเมชล้มเหลว: "
+#, c-format, boost-format
+msgid "Mesh conversion failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "การแปลงเมชไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
 
-# AI Translated
-msgid "Mesh import failed: "
-msgstr "นำเข้าเมชล้มเหลว: "
+msgid "Mesh"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mesh import failed: %s"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -24639,18 +24349,17 @@ msgstr " — ลากเพื่อวาง/ปรับขนาด แล�
 msgid "Insert canceled"
 msgstr "ยกเลิกการแทรกแล้ว"
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move — right-click when done"
-msgstr "ลากมุมเพื่อปรับขนาด ลากจุดกึ่งกลางเพื่อย้าย — คลิกขวาเมื่อเสร็จ"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "เพิ่มสเก็ตช์แล้ว (ระนาบ: %s) — เลือกสเก็ตช์ แล้วคลิกขวาเพื่อยืดขึ้นรูป"
 
-# AI Translated
-msgid "Recompute error: "
-msgstr "ข้อผิดพลาดในการคำนวณใหม่: "
+#, c-format, boost-format
+msgid "The model could not be rebuilt: %s"
+msgstr ""
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -24722,108 +24431,57 @@ msgstr "เลือกสเก็ตช์ที่มีเส้นเปิ
 msgid "Add at least one face to delete first"
 msgstr "เพิ่มผิวหน้าที่จะลบอย่างน้อยหนึ่งผิวหน้าก่อน"
 
-# AI Translated
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "เมทต้องใช้ฟีเจอร์ระบบพิกัดสองรายการ — สร้างฟีเจอร์เหล่านั้นก่อน"
+msgid "Mate needs two coordinate systems — create them first"
+msgstr ""
 
-# AI Translated
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "เมท: CS A และ CS B ต้องเป็นฟีเจอร์ระบบพิกัดที่ต่างกัน"
+msgid "Mate: A and B must be different coordinate systems"
+msgstr ""
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "เมทถูกปฏิเสธ"
 
-# AI Translated
-msgid "No interference — need at least two solid bodies to check"
-msgstr "ไม่มีการทับซ้อน — ต้องมีบอดี้ทรงตันอย่างน้อยสองรายการจึงจะตรวจสอบได้"
+msgid "Interference needs at least two bodies"
+msgstr ""
 
 # AI Translated
 msgid "No interference found"
 msgstr "ไม่พบการทับซ้อน"
 
 # AI Translated
-#, c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] "การทับซ้อน %zu คู่, มากที่สุด %.2f มม.³"
-
-# AI Translated
-msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr ""
-"คู่ที่ทับซ้อนกัน:\n"
-"\n"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
 msgstr "บอดี้ %d"
 
-# AI Translated
-msgid "Interference"
-msgstr "การทับซ้อน"
-
-# AI Translated
-msgid "Select a solid body first — its mass properties are what is reported"
-msgstr "เลือกบอดี้ทรงตันก่อน — ระบบจะรายงานคุณสมบัติมวลของบอดี้นั้น"
-
-# AI Translated
-msgid "Mass properties could not be computed for this body"
-msgstr "ไม่สามารถคำนวณคุณสมบัติมวลของบอดี้นี้ได้"
-
-# AI Translated
 #, c-format, boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr "%s: บอดี้พื้นผิว — พื้นที่ผิว %.2f ซม.², ไม่มีปริมาตร"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
-"%s\n"
-"\n"
-"บอดี้พื้นผิว (เปลือกแบบเปิด)\n"
-"พื้นที่ผิว: %.2f ซม.²\n"
-"\n"
-"แผ่นพื้นผิวไม่ได้ห่อหุ้มเนื้อวัสดุ จึงไม่มีปริมาตร เพิ่มความหนาให้เป็นทรงตันเพื่อให้มีปริมาตร"
 
-# AI Translated
-msgid "Mass properties"
-msgstr "คุณสมบัติมวล"
+#, c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
 
-# AI Translated
-#, c-format, boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr "%s: %.3f ซม.³, %.2f ซม.²"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "Select a body to measure it"
 msgstr ""
-"%s\n"
-"\n"
-"ปริมาตร: %.3f ซม.³\n"
-"พื้นที่ผิว: %.2f ซม.²"
+
+msgid "This body could not be measured"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: volume %.2f mm³, area %.2f mm²"
+msgstr ""
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "คำสั่งแพทเทิร์นต้องใช้บอดี้ทรงตัน — เพิ่มหรือนำเข้าบอดี้ก่อน"
 
-# AI Translated
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "คำสั่งบูลีนต้องใช้บอดี้ทรงตันสองรายการ — เพิ่มหรือนำเข้าบอดี้ที่สอง"
+msgid "Boolean needs two bodies — add or import a second one"
+msgstr ""
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -24837,6 +24495,36 @@ msgstr "ผิวหน้าที่เลือก (บอดี้ %d)"
 # AI Translated
 msgid "Picked face"
 msgstr "ผิวหน้าที่เลือก"
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -24874,17 +24562,15 @@ msgstr "มิติ — คลิกจุดที่สอง"
 msgid "Line — click the start point"
 msgstr "เส้น — คลิกจุดเริ่มต้น"
 
-# AI Translated
-msgid "Line — click the end point, or type the length"
-msgstr "เส้น — คลิกจุดสิ้นสุด หรือพิมพ์ความยาว"
+msgid "Line — click the end point; its length and angle can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "โพลีไลน์ — คลิกจุดแรก"
 
-# AI Translated
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr "โพลีไลน์ — คลิกจุดถัดไป  ·  คลิกจุดเริ่มต้นเพื่อปิด  ·  คลิกขวาเพื่อจบเส้นต่อเนื่อง"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
+msgstr ""
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -24930,9 +24616,8 @@ msgstr "สี่เหลี่ยมผืนผ้ามุมมน — ค�
 msgid "Circle — click the center"
 msgstr "วงกลม — คลิกจุดศูนย์กลาง"
 
-# AI Translated
-msgid "Circle — click to set the radius, or type it"
-msgstr "วงกลม — คลิกเพื่อกำหนดรัศมี หรือพิมพ์ค่า"
+msgid "Circle — click to set the radius; it can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -25058,21 +24743,18 @@ msgstr "ส่วนโค้งวงรี — คลิกตำแหน่�
 msgid "Spline — click the first control point"
 msgstr "สไปลน์ — คลิกจุดควบคุมแรก"
 
-# AI Translated
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr "สไปลน์ — คลิกจุดควบคุมถัดไป  ·  คลิกขวาเพื่อจบเส้นโค้ง"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
+msgstr ""
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "จุด — คลิกเพื่อวางจุด; เครื่องมือยังคงพร้อมสำหรับวางจุดเพิ่ม"
 
-# AI Translated
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr "ตัดเล็ม — คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่น  ·  คลิกขวาเพื่อออก"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
+msgstr ""
 
-# AI Translated
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr "ต่อขยาย — คลิกเส้นหรือส่วนโค้งเพื่อยืดออกไปยังเอนทิตีที่ใกล้ที่สุด  ·  คลิกขวาเพื่อออก"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
+msgstr ""
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -25082,9 +24764,8 @@ msgstr "ลบมุมมน — คลิกเส้นแรกจากส�
 msgid "Fillet — click the second line"
 msgstr "ลบมุมมน — คลิกเส้นที่สอง"
 
-# AI Translated
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr "ลบมุมมน — ลากลูกศร หรือคลิกตัวเลขเพื่อพิมพ์รัศมี  ·  คลิกที่ว่างเพื่อใช้  ·  คลิกขวาเพื่อยกเลิก"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -25094,74 +24775,63 @@ msgstr "ลบมุมเอียง — คลิกเส้นแรกจ�
 msgid "Chamfer — click the second line"
 msgstr "ลบมุมเอียง — คลิกเส้นที่สอง"
 
-# AI Translated
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr "ลบมุมเอียง — ลากลูกศร หรือคลิกตัวเลขเพื่อพิมพ์ระยะร่น  ·  คลิกที่ว่างเพื่อใช้  ·  คลิกขวาเพื่อยกเลิก"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
-msgid "Offset — click the entity to offset"
-msgstr "ออฟเซ็ต — คลิกเอนทิตีที่จะออฟเซ็ต"
+msgid "Offset — click a curve; its whole outline is offset"
+msgstr ""
 
-# AI Translated
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr "ออฟเซ็ต — ลากลูกศรไปด้านใดด้านหนึ่ง หรือคลิกตัวเลขเพื่อพิมพ์ระยะ  ·  คลิกที่ว่างเพื่อใช้  ·  คลิกขวาเพื่อยกเลิก"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "กลับด้าน — คลิก เส้น ที่จะใช้เป็นแกนกลับด้านก่อน (ใช้เส้นช่วยสร้างได้)"
 
-# AI Translated
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr "กลับด้าน — กำหนดแกนแล้ว  ·  ตอนนี้คลิกเอนทิตีที่จะกลับด้าน  ·  คลิกขวาเพื่อยกเลิก"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
 #, c-format, boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr "กลับด้าน — กำหนดแกนแล้ว  ·  จะกลับด้าน %d รายการ  ·  คลิกรายการอื่นเพื่อเพิ่มหรือนำออก  ·  คลิกที่ว่างเพื่อใช้"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "ย้าย — คลิกเอนทิตีที่จะย้าย"
 
-# AI Translated
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr "ย้าย — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์ระยะ  ·  คลิกที่ว่างเพื่อใช้"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "หมุน — คลิกเอนทิตีที่จะหมุน"
 
-# AI Translated
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr "หมุน — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์มุม  ·  คลิกที่ว่างเพื่อใช้"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "ปรับขนาด — คลิกเอนทิตีที่จะปรับขนาด"
 
-# AI Translated
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr "ปรับขนาด — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์ตัวคูณ  ·  คลิกที่ว่างเพื่อใช้"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "อาร์เรย์ — คลิกเอนทิตีที่จะทำซ้ำ"
 
-# AI Translated
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr "อาร์เรย์ — ลากจุดจับเพื่อกำหนดระยะห่าง คลิกจำนวนเพื่อพิมพ์ค่า  ·  คลิกที่ว่างเพื่อใช้"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "อาร์เรย์เชิงขั้ว — คลิกเอนทิตีที่จะทำซ้ำ"
 
-# AI Translated
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr "อาร์เรย์เชิงขั้ว — ลากจุดจับเพื่อกำหนดมุมกวาด คลิกจำนวนเพื่อพิมพ์ค่า  ·  คลิกที่ว่างเพื่อใช้"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
+msgstr ""
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-msgstr "ลากมุมเพื่อปรับขนาด ลากจุดกึ่งกลางเพื่อย้าย  ·  คลิกขวาเมื่อเสร็จ"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -25170,6 +24840,62 @@ msgstr "  ·  Esc เพื่อกลับไปที่เครื่อ�
 # AI Translated
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  คลิกป้ายเงื่อนไขบังคับเพื่อนำออก"
+
+#, c-format, boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+
+#, c-format, boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d sketch entities"
+msgstr ""
 
 # AI Translated
 msgid "select something first"
@@ -25232,9 +24958,8 @@ msgstr "เพิ่มระนาบแล้ว — เลือกระน�
 msgid "Axis added"
 msgstr "เพิ่มแกนแล้ว"
 
-# AI Translated
-msgid "Coord Sys added"
-msgstr "เพิ่มระบบพิกัดแล้ว"
+msgid "Coordinate system added"
+msgstr ""
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -25264,9 +24989,9 @@ msgstr "ยังไม่มีทรงตัน — เลือกสเก�
 msgid "Could not restore the CAD model from this project"
 msgstr "ไม่สามารถกู้คืนโมเดล CAD จากโปรเจกต์นี้ได้"
 
-# AI Translated
-msgid "Could not restore the CAD model: "
-msgstr "ไม่สามารถกู้คืนโมเดล CAD ได้: "
+#, c-format, boost-format
+msgid "Could not restore the CAD model: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -25289,9 +25014,8 @@ msgstr "มุมมองภาคตัดขวาง — แสดงคร�
 msgid "Section view — showing the lower half"
 msgstr "มุมมองภาคตัดขวาง — แสดงครึ่งล่าง"
 
-# AI Translated
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "คำสั่งบูลีนต้องใช้สองบอดี้ — สร้างหรือนำเข้าทรงตันชิ้นที่สอง"
+msgid "Finding the feature's faces…"
+msgstr ""
 
 # AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -25326,9 +25050,12 @@ msgstr "คลิกผิวหน้าบนทรงตัน แล้ว�
 msgid "Placed on face — body laid flat on the bed"
 msgstr "วางบนผิวหน้าแล้ว — บอดี้วางราบบนฐานพิมพ์"
 
-# AI Translated
-msgid "Edit rejected: "
-msgstr "การแก้ไขถูกปฏิเสธ: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edit rejected: %s"
+msgstr ""
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -25347,20 +25074,9 @@ msgstr "บอดี้นี้ไม่มีฟีเจอร์ให้ล
 msgid "feature %d"
 msgstr "ฟีเจอร์ %d"
 
-# AI Translated
 #, c-format, boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
-"ลบ %s หรือไม่\n"
-"\n"
-"นี่คือฟีเจอร์ที่ใช้สร้างบอดี้นี้ ฟีเจอร์ที่สร้างต่อจากฟีเจอร์นี้อาจถูกลบหรือหยุดทำงาน"
-
-# AI Translated
-msgid "Delete body"
-msgstr "ลบบอดี้"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -25751,9 +25467,16 @@ msgstr "ไฟล์ STEP (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "ส่งออก STEP แล้ว"
 
+#, c-format, boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
 # AI Translated
-msgid "STEP export failed: "
-msgstr "ส่งออก STEP ล้มเหลว: "
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr "ส่งไปยังฐานพิมพ์ — ส่งทรงตันไปยังเตรียมพิมพ์"
 
 # AI Translated
 msgid "Nothing to commit — add a feature first"
@@ -25763,6 +25486,19 @@ msgstr "ไม่มีสิ่งที่จะส่งไปยังฐา
 msgid "All bodies hidden — show one before committing"
 msgstr "บอดี้ทั้งหมดถูกซ่อนอยู่ — แสดงอย่างน้อยหนึ่งบอดี้ก่อนส่งไปยังฐานพิมพ์"
 
+#, c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+
+#, c-format, boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Line E%d"
+msgstr ""
+
 # AI Translated
 msgid "Plane ready"
 msgstr "ระนาบพร้อมแล้ว"
@@ -25771,9 +25507,8 @@ msgstr "ระนาบพร้อมแล้ว"
 msgid "Axis ready"
 msgstr "แกนพร้อมแล้ว"
 
-# AI Translated
-msgid "Coord Sys ready"
-msgstr "ระบบพิกัดพร้อมแล้ว"
+msgid "Coordinate system ready"
+msgstr ""
 
 # AI Translated
 msgid "Helix ready"
@@ -25788,20 +25523,12 @@ msgid "Sketch ready"
 msgstr "สเก็ตช์พร้อมแล้ว"
 
 # AI Translated
-msgid "Mate needs at least two CoordSys features"
-msgstr "เมทต้องใช้ฟีเจอร์ระบบพิกัดอย่างน้อยสองรายการ"
-
-# AI Translated
-msgid "Mate: CS A and CS B must be different"
-msgstr "เมท: CS A และ CS B ต้องต่างกัน"
-
-# AI Translated
 msgid "Mate ready"
 msgstr "เมทพร้อมแล้ว"
 
-# AI Translated
-msgid "Invalid: "
-msgstr "ไม่ถูกต้อง: "
+#, c-format, boost-format
+msgid "Invalid: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -25839,16 +25566,16 @@ msgid "Keep drawing"
 msgstr "วาดต่อ"
 
 # AI Translated
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "เสร็จสิ้นหรือยกเลิกเครื่องมือปัจจุบันก่อน (Esc)"
-
-# AI Translated
 msgid "Nothing to redo"
 msgstr "ไม่มีสิ่งที่จะทำซ้ำ"
 
 # AI Translated
 msgid "Nothing to undo"
 msgstr "ไม่มีสิ่งที่จะเลิกทำ"
+
+# AI Translated
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr "เสร็จสิ้นหรือยกเลิกเครื่องมือปัจจุบันก่อน (Esc)"
 
 # AI Translated
 #, c-format
@@ -25863,21 +25590,12 @@ msgid_plural "Undo  (%zu more steps)"
 msgstr[0] "เลิกทำ  (อีก %zu ขั้นตอน)"
 
 # AI Translated
-msgid "Variable name:"
-msgstr "ชื่อตัวแปร:"
-
-# AI Translated
 msgid "Add Variable"
 msgstr "เพิ่มตัวแปร"
 
 # AI Translated
 msgid "Variable name must not contain spaces"
 msgstr "ชื่อตัวแปรต้องไม่มีช่องว่าง"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "นิพจน์สำหรับ '%s':"
 
 # AI Translated
 msgid "Select a variable first"
@@ -25892,9 +25610,110 @@ msgstr "แก้ไขตัวแปร"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "ไม่สามารถลบตัวแปร '%s' ได้ (อาจยังถูกอ้างอิงโดยนิพจน์ของฟีเจอร์): %s"
 
+#, c-format, boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 # AI Translated
 msgid "No binding for that field"
 msgstr "ไม่มีการผูกค่าสำหรับฟิลด์นั้น"
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "ความยาวด้าน"
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "คลิกขวาหรือดับเบิลคลิกเพื่อเสร็จสิ้น คลิกจุดเริ่มต้นเพื่อปิด"
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
+msgstr ""
 
 # AI Translated
 msgid "Enter a number"
@@ -25903,6 +25722,641 @@ msgstr "ป้อนตัวเลข"
 # AI Translated
 msgid "Not a number"
 msgstr "ไม่ใช่ตัวเลข"
+
+# AI Translated
+msgid "Add material"
+msgstr "เพิ่มเนื้อวัสดุ"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "ลบมุมมน / ลบมุมเอียง / มุมถอดแบบ"
+
+# AI Translated
+msgid "Repeat"
+msgstr "ทำซ้ำ"
+
+# AI Translated
+msgid "Reference"
+msgstr "อ้างอิง"
+
+# AI Translated
+msgid "Modify"
+msgstr "ปรับแต่ง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "สเก็ตช์"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "หมุนขึ้นรูป"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "กวาดขึ้นรูป"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "ลอฟต์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "เพิ่มความหนา"
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "หลอมรวมบอดี้เครื่องมือเข้ากับเป้าหมาย — เป็นทรงตันชิ้นเดียว ไม่มีรอยต่อ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "ลบออก"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "ตัดบอดี้เครื่องมือออกจากเป้าหมาย"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "ส่วนร่วม"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "เก็บเฉพาะส่วนที่สองบอดี้ซ้อนทับกัน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "ยืดขึ้นรูปพื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "หมุนขึ้นรูปพื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "ลอฟต์พื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "เติมพื้นผิว"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "สร้างสเก็ตช์แบบปิดก่อน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "เพิ่มความหนาพื้นผิว"
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "รู"
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "เกลียว"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "ตัดแต่งบอดี้ด้วยระนาบ — ลากลูกศรออฟเซ็ต; เก็บไว้ครึ่งหนึ่งหรือทั้งสองส่วน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "แยก"
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "แยกบอดี้ตามผิวหน้าที่เลือกออกเป็นทรงตันสองชิ้น"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "ลบมุมมน"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "เลือกขอบที่จะทำให้มน"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "เลือกขอบ แล้วลากลูกศรรัศมีหรือพิมพ์ค่า"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "ลบมุมเอียง"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "เลือกขอบที่จะลบมุมเอียง"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "เลือกขอบ แล้วลากลูกศรระยะหรือพิมพ์ค่า"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "มุมถอดแบบ"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "เลือกผิวหน้าที่จะทำให้เอียงสอบ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "ออฟเซ็ตพื้นผิว"
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "แพทเทิร์นเชิงเส้น"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "ทำซ้ำบอดี้ตามทิศทาง — ลากกำหนดระยะห่าง แล้วกำหนดจำนวน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "แพทเทิร์นแบบวงกลม"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "ทำซ้ำบอดี้รอบแกน — กำหนดจำนวนและมุมกวาด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "กลับด้าน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "แพทเทิร์นตามเส้นโค้ง"
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "ทำซ้ำบอดี้ไปตามเส้นโค้งที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "ย้าย"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "เมท"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "จัดแนวกับ"
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "จัดแนวบอดี้กับผิวหน้าหรือระนาบที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "ระนาบ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "แกน"
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "เฮลิกซ์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "วัด"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "วัดระหว่างจุด ขอบ หรือผิวหน้าที่เลือก"
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "รายงานปริมาตรและพื้นที่ผิวของบอดี้ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "การทับซ้อน"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "ตรวจสอบว่าสองบอดี้ซ้อนทับกันหรือไม่ — รายงานผลเท่านั้น ไม่เปลี่ยนแปลงสิ่งใด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "แก้ไข"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "เปิดฟีเจอร์ที่เลือกอีกครั้งเพื่อเปลี่ยนสิ่งที่ใช้สร้างฟีเจอร์นั้น"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "เปลี่ยนชื่อ…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "เลือกฟีเจอร์หรือบอดี้เพื่อเปลี่ยนชื่อ"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "ตั้งชื่อฟีเจอร์นี้ให้จำได้ง่ายในแผนผัง (บอดี้จะใช้ชื่อตามฟีเจอร์ที่สร้างบอดี้นั้น)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "ลบผิวหน้า"
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "ลบ"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "ลบรายการที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "ลบบอดี้"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "ลบบอดี้นี้ทั้งหมด — จะนำฟีเจอร์ที่ใช้สร้างบอดี้นี้ออกด้วย"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "เส้น"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "โพลีไลน์"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาเพื่อจบแบบเปิด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "สี่เหลี่ยมผืนผ้าแบบมุม"
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "สี่เหลี่ยมผืนผ้าแบบเอียง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "สี่เหลี่ยมผืนผ้ามุมมน"
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "วงกลมแบบ 2 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "วงกลมแบบ 3 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "ส่วนโค้งแบบ 3 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "ส่วนโค้งสัมผัส"
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "ร่อง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "ร่องโค้ง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "วงรี"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "ส่วนโค้งวงรี"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "สไปลน์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "สามเหลี่ยม"
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "สี่เหลี่ยมจัตุรัส"
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "ห้าเหลี่ยม"
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "หกเหลี่ยม"
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "แปดเหลี่ยม"
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "สิบสองเหลี่ยม"
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "แบบแนบใน"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "วัดขนาดรูปหลายเหลี่ยมถึงมุม (แบบแนบใน)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "แบบแนบนอก"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "วัดขนาดรูปหลายเหลี่ยมถึงด้านแบน (แบบแนบนอก)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "ข้อความ"
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "นำเข้าเส้นขอบ SVG ลงในสเก็ตช์นี้เป็นเส้นที่แก้ไขได้"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "ออฟเซ็ต"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "ตัดเล็ม"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "อาร์เรย์เชิงเส้น"
+
+# AI Translated
+msgid "Array"
+msgstr "อาร์เรย์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "อาร์เรย์เชิงขั้ว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "หมุน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "ปรับขนาด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "มิติ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "กำหนดเงื่อนไขบังคับ"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "กำหนดเงื่อนไขบังคับระหว่างเอนทิตีสเก็ตช์ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "กำหนดเงื่อนไขบังคับสเก็ตช์"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "เลือกสเก็ตช์เพื่อกำหนดเงื่อนไขบังคับ"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "เพิ่มมิติและความสัมพันธ์ (ทับกัน, สัมผัส, ขนาน...) ให้สเก็ตช์ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "ช่วยสร้าง"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "สลับเรขาคณิตช่วยสร้าง: เรขาคณิตที่ใช้นำทางแต่จะไม่ถูกสร้างเป็นชิ้นงาน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "ต่อขยาย"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "ลบเอนทิตีสเก็ตช์ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "ความยาว…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "พิมพ์ความยาวของเส้นนี้"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "รัศมี / เส้นผ่านศูนย์กลาง…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "พิมพ์รัศมีของส่วนโค้งนี้ หรือเส้นผ่านศูนย์กลางของวงกลมนี้"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "มุม / ระยะ…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "พิมพ์มุมระหว่างเส้นสองเส้น หรือระยะระหว่างสองตำแหน่งที่เลือก"
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Size: %.1f × %.1f mm"
+msgstr ""
 
 # AI Translated
 msgid "Primitive"
@@ -26000,10 +26454,8 @@ msgstr "โปรไฟล์"
 msgid "Start new profile (for holes)"
 msgstr "เริ่มโปรไฟล์ใหม่ (สำหรับรู)"
 
-# AI Translated
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
-msgstr "ส่วน"
+msgid "Segments"
+msgstr ""
 
 # AI Translated
 msgid "Sides"
@@ -26017,19 +26469,20 @@ msgstr "คลิกบนพื้นที่วาดเพื่อวาด
 msgid "Snap to grid"
 msgstr "สแน็ปกับกริด"
 
+msgid "Grid step"
+msgstr ""
+
 # AI Translated
 msgid "Outer"
 msgstr "ด้านนอก"
 
-# AI Translated
-msgid "CLOSED"
-msgstr "ปิดแล้ว"
+msgid "closed"
+msgstr ""
 
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
-msgid "%1% %2%: %3% pts %4%"
-msgstr "%1% %2%: %3% จุด %4%"
+msgid "%1% %2%: %3% points %4%"
+msgstr ""
 
 # AI Translated
 msgid "XY (Top)"
@@ -26065,13 +26518,8 @@ msgstr[0] "โปรไฟล์ปิด %zu รายการ"
 msgid "Draw a closed profile to enable"
 msgstr "วาดโปรไฟล์ปิดเพื่อเปิดใช้งาน"
 
-# AI Translated
-msgid "Pocket (Cut)"
-msgstr "หลุม (ตัด)"
-
-# AI Translated
-msgid "Clear All"
-msgstr "ล้างทั้งหมด"
+msgid "Clear all"
+msgstr ""
 
 # AI Translated
 msgid "Empty result"
@@ -27483,168 +27931,6 @@ msgid "Note:"
 msgstr "หมายเหตุ:"
 
 # AI Translated
-msgid "Hollow this object"
-msgstr "ทำวัตถุนี้ให้กลวง"
-
-# AI Translated
-msgid "Preview hollowed and drilled model"
-msgstr "พรีวิวโมเดลที่ทำให้กลวงและเจาะรูแล้ว"
-
-# AI Translated
-msgid "Closing distance"
-msgstr "ระยะปิด"
-
-# AI Translated
-msgid "Hole diameter"
-msgstr "เส้นผ่านศูนย์กลางรู"
-
-# AI Translated
-msgid "Hole depth"
-msgstr "ความลึกรู"
-
-# AI Translated
-msgid "Remove selected holes"
-msgstr "นำรูที่เลือกออก"
-
-# AI Translated
-msgid "Remove all holes"
-msgstr "นำรูทั้งหมดออก"
-
-# AI Translated
-msgid "Clipping of view"
-msgstr "การตัดมุมมอง"
-
-msgid "Reset direction"
-msgstr "รีเซ็ตทิศทาง"
-
-# AI Translated
-msgid "Show supports"
-msgstr "แสดงส่วนรองรับ"
-
-# AI Translated
-msgid "Hollow and drill"
-msgstr "ทำให้กลวงและเจาะรู"
-
-msgid "Head diameter"
-msgstr "เส้นผ่านศูนย์กลางหัว"
-
-# AI Translated
-msgid "Lock supports under new islands"
-msgstr "ล็อกส่วนรองรับใต้เกาะใหม่"
-
-# AI Translated
-msgid "Remove selected points"
-msgstr "ลบจุดที่เลือก"
-
-# AI Translated
-msgid "Remove all points"
-msgstr "ลบจุดทั้งหมด"
-
-# AI Translated
-msgid "Apply changes"
-msgstr "ใช้การเปลี่ยนแปลง"
-
-# AI Translated
-msgid "Discard changes"
-msgstr "ทิ้งการเปลี่ยนแปลง"
-
-# AI Translated
-msgid "Minimal points distance"
-msgstr "ระยะห่างขั้นต่ำระหว่างจุด"
-
-# AI Translated
-msgid "Support points density"
-msgstr "ความหนาแน่นของจุดรองรับ"
-
-# AI Translated
-msgid "Auto-generate points"
-msgstr "สร้างจุดอัตโนมัติ"
-
-# AI Translated
-msgid "Manual editing"
-msgstr "แก้ไขด้วยตนเอง"
-
-# AI Translated
-msgid "SLA Support Points"
-msgstr "จุดรองรับ SLA"
-
-# AI Translated
-msgid "Do you want to save your manually edited support points?"
-msgstr "คุณต้องการบันทึกจุดรองรับที่แก้ไขด้วยตนเองหรือไม่?"
-
-# AI Translated
-msgid "Save support points?"
-msgstr "บันทึกจุดรองรับหรือไม่?"
-
-# AI Translated
-msgid "Autogeneration will erase all manually edited points."
-msgstr "การสร้างอัตโนมัติจะลบจุดทั้งหมดที่แก้ไขด้วยตนเอง"
-
-# AI Translated
-msgid "Are you sure you want to do it?"
-msgstr "คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้"
-
-# AI Translated
-msgid "SLA gizmo keyboard shortcuts"
-msgstr "แป้นพิมพ์ลัดของกิสโม่ SLA"
-
-# AI Translated
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr "หมายเหตุ: แป้นพิมพ์ลัดบางรายการใช้ได้เฉพาะในโหมดแก้ไขหรือโหมดไม่แก้ไขเท่านั้น"
-
-# AI Translated
-msgid "Left click"
-msgstr "คลิกซ้าย"
-
-# AI Translated
-msgid "Add point"
-msgstr "เพิ่มจุด"
-
-# AI Translated
-msgid "Right click"
-msgstr "คลิกขวา"
-
-# AI Translated
-msgid "Remove point"
-msgstr "ลบจุด"
-
-# AI Translated
-msgid "Move point"
-msgstr "ย้ายจุด"
-
-# AI Translated
-msgid "Add point to selection"
-msgstr "เพิ่มจุดในการเลือก"
-
-# AI Translated
-msgid "Remove point from selection"
-msgstr "ลบจุดออกจากการเลือก"
-
-# AI Translated
-msgid "Select by rectangle"
-msgstr "เลือกด้วยสี่เหลี่ยม"
-
-# AI Translated
-msgid "Deselect by rectangle"
-msgstr "ยกเลิกการเลือกด้วยสี่เหลี่ยม"
-
-# AI Translated
-msgid "Select all points"
-msgstr "เลือกจุดทั้งหมด"
-
-# AI Translated
-msgid "Move clipping plane"
-msgstr "ย้ายระนาบตัดมุมมอง"
-
-# AI Translated
-msgid "Reset clipping plane"
-msgstr "รีเซ็ตระนาบตัดมุมมอง"
-
-# AI Translated
-msgid "Switch to editing mode"
-msgstr "สลับไปยังโหมดแก้ไข"
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "อบ"
@@ -28325,10 +28611,6 @@ msgstr "ทำซ้ำพื้นผิวทั่วบริเวณที
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "เปิด ไทล์ เพื่อเลือกวิธีทำซ้ำพื้นผิว"
-
-# AI Translated
-msgid "Repeat"
-msgstr "ทำซ้ำ"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -29905,665 +30187,6 @@ msgid "apply_chamfer: OCCT chamfer failed"
 msgstr "apply_chamfer: OCCT ลบมุมเอียงล้มเหลว"
 
 # AI Translated
-msgid "Add material"
-msgstr "เพิ่มเนื้อวัสดุ"
-
-# AI Translated
-msgid "Fillet / chamfer / draft"
-msgstr "ลบมุมมน / ลบมุมเอียง / มุมถอดแบบ"
-
-# AI Translated
-msgid "Reference"
-msgstr "อ้างอิง"
-
-# AI Translated
-msgid "Modify"
-msgstr "ปรับแต่ง"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sketch"
-msgstr "สเก็ตช์"
-
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Revolve"
-msgstr "หมุนขึ้นรูป"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sweep"
-msgstr "กวาดขึ้นรูป"
-
-# AI Translated
-msgctxt "Design"
-msgid "Loft"
-msgstr "ลอฟต์"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken"
-msgstr "เพิ่มความหนา"
-
-# AI Translated
-msgctxt "Design"
-msgid "Union"
-msgstr "ยูเนี่ยน"
-
-# AI Translated
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr "หลอมรวมบอดี้เครื่องมือเข้ากับเป้าหมาย — เป็นทรงตันชิ้นเดียว ไม่มีรอยต่อ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Subtract"
-msgstr "ลบออก"
-
-# AI Translated
-msgid "Cut the tool body out of the target"
-msgstr "ตัดบอดี้เครื่องมือออกจากเป้าหมาย"
-
-# AI Translated
-msgctxt "Design"
-msgid "Intersect"
-msgstr "ส่วนร่วม"
-
-# AI Translated
-msgid "Keep only where the two bodies overlap"
-msgstr "เก็บเฉพาะส่วนที่สองบอดี้ซ้อนทับกัน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr "ยืดขึ้นรูปพื้นผิว"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr "หมุนขึ้นรูปพื้นผิว"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr "ลอฟต์พื้นผิว"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr "เติมพื้นผิว"
-
-# AI Translated
-msgid "Create a closed sketch first"
-msgstr "สร้างสเก็ตช์แบบปิดก่อน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr "เพิ่มความหนาพื้นผิว"
-
-# AI Translated
-msgid "target is not a sheet body"
-msgstr "เป้าหมายไม่ใช่บอดี้พื้นผิว"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hole"
-msgstr "รู"
-
-# AI Translated
-msgid "Pick a face or a plane to drill into"
-msgstr "เลือกผิวหน้าหรือระนาบที่จะเจาะ"
-
-# AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "เจาะรูที่กึ่งกลางผิวหน้าที่เลือก หรือวางบนระนาบ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thread"
-msgstr "เกลียว"
-
-# AI Translated
-msgid "Shell needs a solid body"
-msgstr "คำสั่งเปลือกต้องใช้บอดี้ทรงตัน"
-
-# AI Translated
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr "ตัดแต่งบอดี้ด้วยระนาบ — ลากลูกศรออฟเซ็ต; เก็บไว้ครึ่งหนึ่งหรือทั้งสองส่วน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Split"
-msgstr "แยก"
-
-# AI Translated
-msgid "Split needs a solid body"
-msgstr "คำสั่งแยกต้องใช้บอดี้ทรงตัน"
-
-# AI Translated
-msgid "Split the body along a picked face into two solids"
-msgstr "แยกบอดี้ตามผิวหน้าที่เลือกออกเป็นทรงตันสองชิ้น"
-
-# AI Translated
-msgctxt "Design"
-msgid "Fillet"
-msgstr "ลบมุมมน"
-
-# AI Translated
-msgid "Pick an edge to round"
-msgstr "เลือกขอบที่จะทำให้มน"
-
-# AI Translated
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr "เลือกขอบ แล้วลากลูกศรรัศมีหรือพิมพ์ค่า"
-
-# AI Translated
-msgctxt "Design"
-msgid "Chamfer"
-msgstr "ลบมุมเอียง"
-
-# AI Translated
-msgid "Pick an edge to bevel"
-msgstr "เลือกขอบที่จะลบมุมเอียง"
-
-# AI Translated
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr "เลือกขอบ แล้วลากลูกศรระยะหรือพิมพ์ค่า"
-
-# AI Translated
-msgctxt "Design"
-msgid "Draft"
-msgstr "มุมถอดแบบ"
-
-# AI Translated
-msgid "Pick a face to taper"
-msgstr "เลือกผิวหน้าที่จะทำให้เอียงสอบ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr "ออฟเซ็ตพื้นผิว"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr "แพทเทิร์นเชิงเส้น"
-
-# AI Translated
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr "ทำซ้ำบอดี้ตามทิศทาง — ลากกำหนดระยะห่าง แล้วกำหนดจำนวน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr "แพทเทิร์นแบบวงกลม"
-
-# AI Translated
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr "ทำซ้ำบอดี้รอบแกน — กำหนดจำนวนและมุมกวาด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mirror"
-msgstr "กลับด้าน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr "แพทเทิร์นตามเส้นโค้ง"
-
-# AI Translated
-msgid "Pattern on curve needs a body and a curve"
-msgstr "แพทเทิร์นตามเส้นโค้งต้องใช้บอดี้และเส้นโค้ง"
-
-# AI Translated
-msgid "Repeat the body along a picked curve"
-msgstr "ทำซ้ำบอดี้ไปตามเส้นโค้งที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Move"
-msgstr "ย้าย"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mate"
-msgstr "เมท"
-
-# AI Translated
-msgid "A mate needs two coordinate systems"
-msgstr "เมทต้องใช้ระบบพิกัดสองระบบ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Align to"
-msgstr "จัดแนวกับ"
-
-# AI Translated
-msgid "Align needs a body"
-msgstr "คำสั่งจัดแนวต้องใช้บอดี้"
-
-# AI Translated
-msgid "Align the body to a picked face or plane"
-msgstr "จัดแนวบอดี้กับผิวหน้าหรือระนาบที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Plane"
-msgstr "ระนาบ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Axis"
-msgstr "แกน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr "ระบบพิกัด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Helix"
-msgstr "เฮลิกซ์"
-
-# AI Translated
-msgctxt "Design"
-msgid "Measure"
-msgstr "วัด"
-
-# AI Translated
-msgid "Measure between the picked points, edges or faces"
-msgstr "วัดระหว่างจุด ขอบ หรือผิวหน้าที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mass"
-msgstr "มวล"
-
-# AI Translated
-msgid "Report the volume and surface area of the selected body"
-msgstr "รายงานปริมาตรและพื้นที่ผิวของบอดี้ที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Interference"
-msgstr "การทับซ้อน"
-
-# AI Translated
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr "ตรวจสอบว่าสองบอดี้ซ้อนทับกันหรือไม่ — รายงานผลเท่านั้น ไม่เปลี่ยนแปลงสิ่งใด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Edit"
-msgstr "แก้ไข"
-
-# AI Translated
-msgid "Reopen the selected feature to change what it was made from"
-msgstr "เปิดฟีเจอร์ที่เลือกอีกครั้งเพื่อเปลี่ยนสิ่งที่ใช้สร้างฟีเจอร์นั้น"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rename…"
-msgstr "เปลี่ยนชื่อ…"
-
-# AI Translated
-msgid "Select a feature, or a body, to rename it"
-msgstr "เลือกฟีเจอร์หรือบอดี้เพื่อเปลี่ยนชื่อ"
-
-# AI Translated
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr "ตั้งชื่อฟีเจอร์นี้ให้จำได้ง่ายในแผนผัง (บอดี้จะใช้ชื่อตามฟีเจอร์ที่สร้างบอดี้นั้น)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Face"
-msgstr "ลบผิวหน้า"
-
-# AI Translated
-msgctxt "Design"
-msgid "Colour"
-msgstr "สี"
-
-# AI Translated
-msgid "Set the selected body's display colour"
-msgstr "ตั้งค่าสีที่แสดงของบอดี้ที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete"
-msgstr "ลบ"
-
-# AI Translated
-msgid "Delete what is selected"
-msgstr "ลบรายการที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Body"
-msgstr "ลบบอดี้"
-
-# AI Translated
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr "ลบบอดี้นี้ทั้งหมด — จะนำฟีเจอร์ที่ใช้สร้างบอดี้นี้ออกด้วย"
-
-# AI Translated
-msgctxt "Design"
-msgid "Line"
-msgstr "เส้น"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polyline"
-msgstr "โพลีไลน์"
-
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาเพื่อจบแบบเปิด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr "สี่เหลี่ยมผืนผ้าแบบมุม"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr "สี่เหลี่ยมผืนผ้าแบบจุดศูนย์กลาง"
-
-# AI Translated
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr "สี่เหลี่ยมผืนผ้าแบบเอียง"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr "สี่เหลี่ยมผืนผ้ามุมมน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre circle"
-msgstr "วงกลมแบบจุดศูนย์กลาง"
-
-# AI Translated
-msgctxt "Design"
-msgid "2-point circle"
-msgstr "วงกลมแบบ 2 จุด"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point circle"
-msgstr "วงกลมแบบ 3 จุด"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point arc"
-msgstr "ส่วนโค้งแบบ 3 จุด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr "ส่วนโค้งสัมผัส"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr "ส่วนโค้งแบบจุดศูนย์กลาง"
-
-# AI Translated
-msgctxt "Design"
-msgid "Slot"
-msgstr "ร่อง"
-
-# AI Translated
-msgctxt "Design"
-msgid "Arc slot"
-msgstr "ร่องโค้ง"
-
-# AI Translated
-msgctxt "Design"
-msgid "Ellipse"
-msgstr "วงรี"
-
-# AI Translated
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr "ส่วนโค้งวงรี"
-
-# AI Translated
-msgctxt "Design"
-msgid "Spline"
-msgstr "สไปลน์"
-
-# AI Translated
-msgctxt "Design"
-msgid "Triangle"
-msgstr "สามเหลี่ยม"
-
-# AI Translated
-msgid "Triangle — click centre, then a vertex"
-msgstr "สามเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Square"
-msgstr "สี่เหลี่ยมจัตุรัส"
-
-# AI Translated
-msgid "Square — click centre, then a vertex"
-msgstr "สี่เหลี่ยมจัตุรัส — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pentagon"
-msgstr "ห้าเหลี่ยม"
-
-# AI Translated
-msgid "Pentagon — click centre, then a vertex"
-msgstr "ห้าเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hexagon"
-msgstr "หกเหลี่ยม"
-
-# AI Translated
-msgid "Hexagon — click centre, then a vertex"
-msgstr "หกเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Octagon"
-msgstr "แปดเหลี่ยม"
-
-# AI Translated
-msgid "Octagon — click centre, then a vertex"
-msgstr "แปดเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr "สิบสองเหลี่ยม"
-
-# AI Translated
-msgid "Dodecagon — click centre, then a vertex"
-msgstr "สิบสองเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Inscribed"
-msgstr "แบบแนบใน"
-
-# AI Translated
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr "วัดขนาดรูปหลายเหลี่ยมถึงมุม (แบบแนบใน)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr "แบบแนบนอก"
-
-# AI Translated
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr "วัดขนาดรูปหลายเหลี่ยมถึงด้านแบน (แบบแนบนอก)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Point"
-msgstr "จุด"
-
-# AI Translated
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr "พิมพ์ข้อความ; เส้นขอบของข้อความจะถูกเพิ่มลงในสเก็ตช์นี้เป็นเส้นที่แก้ไขได้"
-
-# AI Translated
-msgctxt "Design"
-msgid "SVG"
-msgstr "SVG"
-
-# AI Translated
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr "นำเข้าเส้นขอบ SVG ลงในสเก็ตช์นี้เป็นเส้นที่แก้ไขได้"
-
-# AI Translated
-msgctxt "Design"
-msgid "Offset"
-msgstr "ออฟเซ็ต"
-
-# AI Translated
-msgctxt "Design"
-msgid "Trim"
-msgstr "ตัดเล็ม"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear array"
-msgstr "อาร์เรย์เชิงเส้น"
-
-# AI Translated
-msgid "Array"
-msgstr "อาร์เรย์"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polar array"
-msgstr "อาร์เรย์เชิงขั้ว"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rotate"
-msgstr "หมุน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Scale"
-msgstr "ปรับขนาด"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dimension"
-msgstr "มิติ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain"
-msgstr "กำหนดเงื่อนไขบังคับ"
-
-# AI Translated
-msgid "Constrain the selected sketch entities to each other"
-msgstr "กำหนดเงื่อนไขบังคับระหว่างเอนทิตีสเก็ตช์ที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr "กำหนดเงื่อนไขบังคับสเก็ตช์"
-
-# AI Translated
-msgid "Select a sketch to constrain it"
-msgstr "เลือกสเก็ตช์เพื่อกำหนดเงื่อนไขบังคับ"
-
-# AI Translated
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr "เพิ่มมิติและความสัมพันธ์ (ทับกัน, สัมผัส, ขนาน...) ให้สเก็ตช์ที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Construction"
-msgstr "ช่วยสร้าง"
-
-# AI Translated
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr "สลับเรขาคณิตช่วยสร้าง: เรขาคณิตที่ใช้นำทางแต่จะไม่ถูกสร้างเป็นชิ้นงาน"
-
-# AI Translated
-msgctxt "Design"
-msgid "Extend"
-msgstr "ต่อขยาย"
-
-# AI Translated
-msgid "Delete the selected sketch entities"
-msgstr "ลบเอนทิตีสเก็ตช์ที่เลือก"
-
-# AI Translated
-msgctxt "Design"
-msgid "Length…"
-msgstr "ความยาว…"
-
-# AI Translated
-msgid "Type the length of this line"
-msgstr "พิมพ์ความยาวของเส้นนี้"
-
-# AI Translated
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr "รัศมี / เส้นผ่านศูนย์กลาง…"
-
-# AI Translated
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr "พิมพ์รัศมีของส่วนโค้งนี้ หรือเส้นผ่านศูนย์กลางของวงกลมนี้"
-
-# AI Translated
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr "มุม / ระยะ…"
-
-# AI Translated
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr "พิมพ์มุมระหว่างเส้นสองเส้น หรือระยะระหว่างสองตำแหน่งที่เลือก"
-
-# AI Translated
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr "ความยาวด้าน"
-
-# AI Translated
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr "แกนหลัก"
-
-# AI Translated
-msgid "Minor"
-msgstr "แกนรอง"
-
-# AI Translated
-msgid "right-click or double-click to finish, click start to close"
-msgstr "คลิกขวาหรือดับเบิลคลิกเพื่อเสร็จสิ้น คลิกจุดเริ่มต้นเพื่อปิด"
-
-# AI Translated
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr "ต่อขยาย: คลิกเส้น/ส่วนโค้งที่ต่อขยายไปถึงเอนทิตีอื่นในสเก็ตช์ที่กำลังแก้ไขได้"
-
-# AI Translated
-msgid "Trim: click a segment where it crosses another live entity"
-msgstr "ตัดเล็ม: คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่นในสเก็ตช์ที่กำลังแก้ไข"
-
-# AI Translated
 msgid "Authentication complete"
 msgstr "ยืนยันตัวตนเสร็จสมบูรณ์"
 
@@ -31008,16 +30631,943 @@ msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
 
+#~ msgid "Face recognition"
+#~ msgstr "การจดจำผิวหน้า"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "ดำเนินการรับรู้"
+
+#~ msgid "Text Gap"
+#~ msgstr "ช่องว่างข้อความ"
+
+#~ msgid "Embedded depth"
+#~ msgstr "ความลึกที่ฝัง"
+
+#~ msgid "Input text"
+#~ msgstr "ป้อนข้อความ"
+
+#~ msgid "Surface"
+#~ msgstr "พื้นผิว"
+
+#~ msgid "Horizontal text"
+#~ msgstr "ข้อความแนวนอน"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "เมาส์เลื่อนขึ้นหรือลง"
+
+#~ msgid "Rotate text"
+#~ msgstr "หมุนข้อความ"
+
+#~ msgid "Text shape"
+#~ msgstr "รูปร่างข้อความ"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "กำลังสไลซ์ฐานพิมพ์ %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "โปรดแก้ไขข้อผิดพลาดในการแบ่งส่วนและเผยแพร่อีกครั้ง"
+
+# AI Translated
+#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+#~ msgstr "ถือว่าจุดปลายของสเก็ตช์ที่ห่างกันไม่เกิน 0.001 มม. เป็นจุดต่อเดียวกัน และเชื่อมลูปให้ปิด ปิด: เชื่อมเฉพาะจุดปลายที่ทับกันพอดีเท่านั้น ลูปที่มีช่องว่างเล็กน้อยจึงแสดงเป็นลูปเปิด แทนที่จะถูกปิดให้โดยอัตโนมัติ"
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "สไลซ์เพลตทั้งหมดเพื่อประมาณเวลาและปริมาณเส้นพลาสติก"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "บรรจุข้อมูลโครงการลงในไฟล์ 3MF"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "กำลังอัพโหลด 3MF"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "ข้ามไปที่โมเดลเผยแพร่หน้าเว็บ"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "หมายเหตุ: การเตรียมการอาจใช้เวลาหลายนาที กรุณาอดทน."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "การเผยแพร่ถูกยกเลิก"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "แผ่นสไลซ์ 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "บรรจุข้อมูลไปที่ 3MF"
+
+#~ msgid "Uploading data"
+#~ msgstr "กำลังอัพโหลดข้อมูล"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "ข้ามไปที่หน้าเว็บ"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "สีการนำเข้าไฟล์ OBJ"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "ผิวหน้าบางส่วนไม่ได้กำหนดสี"
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "มีข้อผิดพลาดในไฟล์ MTL ไม่พบเนื้อหา:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "โปรดตรวจสอบไฟล์ OBJ หรือ MTL"
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "ระบุจำนวนสี:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "ป้อนหรือคลิกปุ่มปรับเพื่อแก้ไขตัวเลขอีกครั้ง"
+
+#~ msgid "Recommended "
+#~ msgstr "ที่แนะนำ"
+
+#~ msgid "view"
+#~ msgstr "ดู"
+
+#~ msgid "Current filament colors"
+#~ msgstr "สีเส้นพลาสติกในปัจจุบัน"
+
+#~ msgid "Matching"
+#~ msgstr "การจับคู่"
+
+#~ msgid "Quick set"
+#~ msgstr "ตั้งค่าด่วน"
+
+#~ msgid "Color match"
+#~ msgstr "การจับคู่สี"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "การจับคู่สีโดยประมาณ"
+
+#~ msgid "Append"
+#~ msgstr "ผนวก"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "ผนวกเข้ากับเส้นพลาสติกที่มีอยู่"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "รีเซ็ตชุดดันเส้นที่แมป"
+
+#~ msgid "Note"
+#~ msgstr "หมายเหตุ"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "เลือกสีแล้ว คุณสามารถเลือกตกลงได้ \n"
+#~ " เพื่อดำเนินการต่อหรือปรับเปลี่ยนด้วยตนเอง"
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "มีความสูงของชั้นเล็ก ๆ ส่งผลให้เส้นชั้นแทบไม่มีความสำคัญและคุณภาพการพิมพ์สูง เหมาะสำหรับกรณีการพิมพ์ส่วนใหญ่"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้คุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่ใหญ่กว่าเล็กน้อย ส่งผลให้เส้นเลเยอร์แทบไม่มีนัยสำคัญและใช้เวลาพิมพ์สั้นลงเล็กน้อย"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ส่งผลให้มองเห็นเส้นเลเยอร์ได้เล็กน้อยแต่ใช้เวลาพิมพ์สั้นลง"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่แทบจะมองไม่เห็นและคุณภาพการพิมพ์ที่สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีเส้นชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้มีเส้นชั้นที่แทบจะมองไม่เห็นและคุณภาพการพิมพ์ที่สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นน้อยที่สุดและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.2 มม. จะมีเส้นชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้มีเส้นชั้นน้อยที่สุดและคุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "มีความสูงของชั้นปกติ ซึ่งส่งผลให้ได้เส้นชั้นเฉลี่ยและคุณภาพการพิมพ์ เหมาะสำหรับกรณีการพิมพ์ส่วนใหญ่"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีห่วงติดผนังมากกว่าและมีความหนาแน่นของช่องไส้ในที่เบากว่า ส่งผลให้มีความแข็งแรงในการพิมพ์สูงขึ้นแต่ใช้เส้นพลาสติกมากขึ้นและใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลง แต่ใช้เวลาพิมพ์สั้นลงเล็กน้อย"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลง แต่ใช้เวลาพิมพ์สั้นลง"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนน้อยลงและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้เส้นเลเยอร์ปรากฏน้อยลงและคุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้เส้นเลเยอร์แทบไม่มีความสำคัญและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ความเร็วและความเร่งที่ต่ำกว่า และรูปแบบไส้ในแบบโปร่งคือ Gyroid ส่งผลให้เส้นเลเยอร์แทบไม่มีความสำคัญและคุณภาพการพิมพ์สูงขึ้นมาก แต่ใช้เวลาพิมพ์นานกว่ามาก"
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.4 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้เส้นชั้นแทบไม่มีนัยสำคัญและใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "มีความสูงของชั้นใหญ่ ส่งผลให้ได้เส้นชั้นที่ชัดเจนและคุณภาพการพิมพ์และเวลาในการพิมพ์ตามปกติ"
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีห่วงติดผนังมากกว่าและมีความหนาแน่นของช่องไส้ในที่เบากว่า ส่งผลให้มีความแข็งแรงในการพิมพ์สูงขึ้นแต่ใช้เส้นพลาสติกมากขึ้นและใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลง แต่เวลาในการพิมพ์สั้นลงในบางกรณี"
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนมากขึ้นและคุณภาพการพิมพ์ลดลงมาก แต่ในบางกรณีใช้เวลาพิมพ์สั้นลง"
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนน้อยลงและคุณภาพการพิมพ์สูงขึ้นเล็กน้อยแต่ใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.6 มม. จะมีความสูงของชั้นที่เล็กกว่า ส่งผลให้มีเส้นชั้นที่ชัดเจนน้อยลงและคุณภาพการพิมพ์สูงขึ้นแต่ใช้เวลาพิมพ์นานขึ้น"
+
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "มีความสูงของชั้นที่ใหญ่มาก ส่งผลให้มีเส้นชั้นที่ชัดเจน คุณภาพการพิมพ์ต่ำ และใช้เวลาพิมพ์สั้นลง"
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่ใหญ่กว่า ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนและคุณภาพการพิมพ์ลดลงมาก แต่ในบางกรณีใช้เวลาพิมพ์สั้นลง"
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่ใหญ่กว่ามาก ซึ่งส่งผลให้มีเส้นชั้นที่ชัดเจนมากและคุณภาพการพิมพ์ต่ำลงมาก แต่ในบางกรณีใช้เวลาพิมพ์สั้นลงมาก"
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่เล็กกว่าเล็กน้อย ซึ่งส่งผลให้มีเส้นเลเยอร์น้อยลงเล็กน้อยแต่ยังคงปรากฏชัดเจน และคุณภาพการพิมพ์สูงขึ้นเล็กน้อย แต่ใช้เวลาพิมพ์นานขึ้นในบางกรณี"
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "เมื่อเปรียบเทียบกับโปรไฟล์เริ่มต้นของหัวฉีดขนาด 0.8 มม. จะมีความสูงของชั้นที่เล็กกว่า ซึ่งส่งผลให้มีเส้นเลเยอร์น้อยลงแต่ยังคงปรากฏชัดเจน และคุณภาพการพิมพ์สูงขึ้นเล็กน้อย แต่ใช้เวลาพิมพ์นานขึ้นในบางกรณี"
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "นี่ไม่ใช่เส้นพลาสติกที่ใช้กันทั่วไปหรือไม่ใช่เส้นพลาสติก Bambu เส้นใดเส้นหนึ่ง และมีความแตกต่างกันมากในแต่ละยี่ห้อ ดังนั้นจึงขอแนะนำอย่างยิ่งให้สอบถามผู้จำหน่ายเกี่ยวกับโปรไฟล์ที่เหมาะสมก่อนพิมพ์ และปรับพารามิเตอร์บางอย่างตามประสิทธิภาพ"
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "เมื่อพิมพ์ฟิลาเมนต์นี้ มีความเสี่ยงที่จะเกิดการบิดงอและมีการยึดเกาะต่ำ เพื่อให้ได้ผลลัพธ์ที่ดีขึ้น โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับวัสดุอุณหภูมิสูง / วิศวกรรม"
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "เมื่อพิมพ์ฟิลาเมนต์นี้ มีความเสี่ยงที่หัวฉีดจะอุดตัน ไหลซึม บิดเบี้ยว และมีความแข็งแรงในการยึดเกาะต่ำ เพื่อให้ได้ผลลัพธ์ที่ดีขึ้น โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับวัสดุอุณหภูมิสูง / วิศวกรรม"
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "หากต้องการผลลัพธ์ที่โปร่งใสหรือโปร่งแสงดีขึ้นด้วยเส้นพลาสติกที่เกี่ยวข้อง โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับ PETG แบบโปร่งใส"
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "เพื่อให้งานพิมพ์มีความมันวาวมากขึ้น โปรดทำให้เส้นพลาสติกแห้งก่อนใช้งาน และตั้งค่าความเร็วผนังด้านนอกเป็น 40 ถึง 60 มม./วินาที เมื่อสไลซ์"
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "เส้นพลาสติกนี้ใช้สำหรับพิมพ์แบบจำลองที่มีความหนาแน่นต่ำเท่านั้น และจำเป็นต้องมีพารามิเตอร์พิเศษบางอย่าง หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คำแนะนำสำหรับการพิมพ์รุ่น RC ด้วยฟอง PLA (PLA Aero)"
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "เส้นพลาสติกนี้ใช้สำหรับพิมพ์แบบจำลองที่มีความหนาแน่นต่ำเท่านั้น และจำเป็นต้องมีพารามิเตอร์พิเศษบางอย่าง หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: ASA Aero Printing Guide"
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "เส้นพลาสติกนี้อ่อนเกินไปและเข้ากันไม่ได้กับ AMS การพิมพ์นั้นมีข้อกำหนดหลายประการ และเพื่อให้ได้คุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ TPU"
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "เส้นพลาสติกนี้มีความแข็งสูงเพียงพอ (ประมาณ 67D) และเข้ากันได้กับ AMS การพิมพ์นั้นมีข้อกำหนดหลายประการ และเพื่อให้ได้คุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ TPU"
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "หากคุณต้องการพิมพ์ TPU แบบอ่อน โปรดอย่าเฉือนด้วยโปรไฟล์นี้ และสำหรับ TPU เท่านั้นที่มีความแข็งสูงเพียงพอ (ไม่น้อยกว่า 55D) และเข้ากันได้กับ AMS หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ TPU"
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "นี่คือเส้นพลาสติกรองรับที่ละลายน้ำได้ และโดยปกติจะใช้สำหรับโครงสร้างรองรับเท่านั้น ไม่ใช่สำหรับตัวโมเดล การพิมพ์เส้นพลาสติกนี้มีข้อกำหนดหลายประการ และเพื่อให้ได้คุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: คู่มือการพิมพ์ PVA"
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "นี่คือเส้นพลาสติกรองรับที่ไม่ละลายน้ำ และโดยปกติจะใช้สำหรับโครงสร้างรองรับเท่านั้น ไม่ใช่สำหรับตัวโมเดล หากต้องการคุณภาพการพิมพ์ที่ดีขึ้น โปรดดูที่วิกินี้: เคล็ดลับการพิมพ์สำหรับเส้นพลาสติกรองรับและฟังก์ชันรองรับ"
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "ค่าที่ตั้งไว้ล่วงหน้าทั่วไปได้รับการปรับแต่งอย่างระมัดระวังเพื่อให้เข้ากันได้กับเส้นพลาสติกที่หลากหลายมากขึ้น เพื่อคุณภาพการพิมพ์และความเร็วที่สูงขึ้น โปรดใช้เส้นพลาสติก Bambu กับการตั้งค่าล่วงหน้าของ Bambu"
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "โปรไฟล์คุณภาพสูงสำหรับหัวฉีดขนาด 0.2 มม. โดยให้ความสำคัญกับคุณภาพการพิมพ์"
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "โปรไฟล์คุณภาพสูงสำหรับความสูงของชั้น 0.16 มม. ให้ความสำคัญกับคุณภาพและความแข็งแรงในการพิมพ์"
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "โปรไฟล์มาตรฐานสำหรับความสูงของชั้น 0.16 มม. โดยให้ความสำคัญกับความเร็ว"
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "โปรไฟล์คุณภาพสูงสำหรับความสูงของชั้น 0.2 มม. โดยให้ความสำคัญกับความแข็งแกร่งและคุณภาพการพิมพ์"
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "โปรไฟล์มาตรฐานสำหรับหัวฉีดขนาด 0.4 มม. โดยให้ความสำคัญกับความเร็ว"
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "โปรไฟล์คุณภาพสูงสำหรับหัวฉีดขนาด 0.6 มม. ให้ความสำคัญกับคุณภาพและความแข็งแรงในการพิมพ์"
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "โปรไฟล์ความแข็งแกร่งสำหรับหัวฉีดขนาด 0.6 มม. โดยให้ความสำคัญกับความแข็งแรง"
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "โปรไฟล์มาตรฐานสำหรับหัวฉีดขนาด 0.6 มม. โดยให้ความสำคัญกับความเร็ว"
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "โปรไฟล์คุณภาพสูงสำหรับหัวฉีดขนาด 0.8 มม. โดยให้ความสำคัญกับคุณภาพการพิมพ์"
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "โปรไฟล์ความแข็งแกร่งสำหรับหัวฉีด 0.8 มม. โดยจัดลำดับความสำคัญของความแข็งแกร่ง"
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "โปรไฟล์มาตรฐานสำหรับหัวฉีด 0.8 มม. โดยให้ความสำคัญกับความเร็ว"
+
+# AI Translated
+#~ msgid "Slot — two centerline ends, then end radius"
+#~ msgstr "ร่อง — ปลายทั้งสองของเส้นกึ่งกลาง แล้วรัศมีปลาย"
+
+# AI Translated
+#~ msgid "Isometric view, fitted"
+#~ msgstr "มุมมองไอโซเมตริก ปรับให้พอดีแล้ว"
+
+# AI Translated
+#~ msgid "Coord Sys"
+#~ msgstr "ระบบพิกัด"
+
+# AI Translated
+#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+#~ msgstr "การประกอบ: จัดแนวฟีเจอร์ระบบพิกัดสองรายการ (ยึดแน่น, ระนาบ, หมุน, เลื่อน, ทรงกระบอก)"
+
+# AI Translated
+#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
+#~ msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาเพื่อจบเส้นต่อเนื่อง"
+
+# AI Translated
+#~ msgid "Click two centerline ends, then a point for the end radius"
+#~ msgstr "คลิกปลายทั้งสองของเส้นกึ่งกลาง แล้วคลิกจุดเพื่อกำหนดรัศมีปลาย"
+
+# AI Translated
+#~ msgid "Click control points; double-click or right-click to finish"
+#~ msgstr "คลิกจุดควบคุม; ดับเบิลคลิกหรือคลิกขวาเพื่อเสร็จสิ้น"
+
+# AI Translated
+#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+#~ msgstr "คลิกช่วงเส้นเพื่อตัดเล็มกลับไปยังจุดตัดที่ใกล้ที่สุด; คลิกขวาเพื่อออก"
+
+# AI Translated
+#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+#~ msgstr "คลิกเส้นหรือส่วนโค้งเพื่อต่อขยายไปยังเอนทิตีที่ใกล้ที่สุด; คลิกขวาเพื่อออก"
+
+# AI Translated
+#~ msgid "✓ Confirm"
+#~ msgstr "✓ ยืนยัน"
+
+# AI Translated
+#~ msgid "✗ Cancel"
+#~ msgstr "✗ ยกเลิก"
+
+# AI Translated
+#~ msgid "Undo (Ctrl+Z)"
+#~ msgstr "เลิกทำ (Ctrl+Z)"
+
+# AI Translated
+#~ msgid "Redo (Ctrl+Shift+Z)"
+#~ msgstr "ทำซ้ำ (Ctrl+Shift+Z)"
+
+# AI Translated
+#~ msgid "Taper °"
+#~ msgstr "มุมเรียว °"
+
+# AI Translated
+#~ msgid "Total angle°"
+#~ msgstr "มุมรวม°"
+
+# AI Translated
+#~ msgid "Union (join)"
+#~ msgstr "ยูเนี่ยน (รวม)"
+
+# AI Translated
+#~ msgid "Subtract (cut)"
+#~ msgstr "ลบออก (ตัด)"
+
+# AI Translated
+#~ msgid "Angle°"
+#~ msgstr "มุม°"
+
+# AI Translated
+#~ msgid "CS A (fixed)"
+#~ msgstr "CS A (คงที่)"
+
+# AI Translated
+#~ msgid "CS B (moves)"
+#~ msgstr "CS B (เคลื่อนที่)"
+
+# AI Translated
+#~ msgid "Move body"
+#~ msgstr "ย้ายบอดี้"
+
+# AI Translated
+#~ msgid "Select a body row first, then move it"
+#~ msgstr "เลือกแถวบอดี้ก่อน แล้วจึงย้าย"
+
+# AI Translated
+#~ msgid "+"
+#~ msgstr "+"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "บอดี้ %d: ขอบ %d ถูกเลือก — ใช้ลบมุมมน/ลบมุมเอียงเพื่อตกแต่งขอบ หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "ขอบ %d ถูกเลือก — ใช้ลบมุมมน/ลบมุมเอียงเพื่อตกแต่งขอบ หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
+
+# AI Translated
+#~ msgid "Text to insert:"
+#~ msgstr "ข้อความที่จะแทรก:"
+
+# AI Translated
+#~ msgid "STEP import failed: "
+#~ msgstr "นำเข้า STEP ล้มเหลว: "
+
+# AI Translated
+#~ msgid "Could not read the OBJ file: "
+#~ msgstr "ไม่สามารถอ่านไฟล์ OBJ ได้: "
+
+# AI Translated
+#~ msgid "Mesh conversion failed: "
+#~ msgstr "การแปลงเมชล้มเหลว: "
+
+# AI Translated
+#~ msgid "Mesh import failed: "
+#~ msgstr "นำเข้าเมชล้มเหลว: "
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move — right-click when done"
+#~ msgstr "ลากมุมเพื่อปรับขนาด ลากจุดกึ่งกลางเพื่อย้าย — คลิกขวาเมื่อเสร็จ"
+
+# AI Translated
+#~ msgid "Recompute error: "
+#~ msgstr "ข้อผิดพลาดในการคำนวณใหม่: "
+
+# AI Translated
+#~ msgid "Mate needs two CoordSys features — create them first"
+#~ msgstr "เมทต้องใช้ฟีเจอร์ระบบพิกัดสองรายการ — สร้างฟีเจอร์เหล่านั้นก่อน"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different CoordSys features"
+#~ msgstr "เมท: CS A และ CS B ต้องเป็นฟีเจอร์ระบบพิกัดที่ต่างกัน"
+
+# AI Translated
+#~ msgid "No interference — need at least two solid bodies to check"
+#~ msgstr "ไม่มีการทับซ้อน — ต้องมีบอดี้ทรงตันอย่างน้อยสองรายการจึงจะตรวจสอบได้"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pair, worst %.2f mm³"
+#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
+#~ msgstr[0] "การทับซ้อน %zu คู่, มากที่สุด %.2f มม.³"
+
+# AI Translated
+#~ msgid ""
+#~ "Interference pairs:\n"
+#~ "\n"
+#~ msgstr ""
+#~ "คู่ที่ทับซ้อนกัน:\n"
+#~ "\n"
+
+# AI Translated
+#~ msgid "Interference"
+#~ msgstr "การทับซ้อน"
+
+# AI Translated
+#~ msgid "Select a solid body first — its mass properties are what is reported"
+#~ msgstr "เลือกบอดี้ทรงตันก่อน — ระบบจะรายงานคุณสมบัติมวลของบอดี้นั้น"
+
+# AI Translated
+#~ msgid "Mass properties could not be computed for this body"
+#~ msgstr "ไม่สามารถคำนวณคุณสมบัติมวลของบอดี้นี้ได้"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
+#~ msgstr "%s: บอดี้พื้นผิว — พื้นที่ผิว %.2f ซม.², ไม่มีปริมาตร"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Sheet body (open shell)\n"
+#~ "Surface area: %.2f cm²\n"
+#~ "\n"
+#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "บอดี้พื้นผิว (เปลือกแบบเปิด)\n"
+#~ "พื้นที่ผิว: %.2f ซม.²\n"
+#~ "\n"
+#~ "แผ่นพื้นผิวไม่ได้ห่อหุ้มเนื้อวัสดุ จึงไม่มีปริมาตร เพิ่มความหนาให้เป็นทรงตันเพื่อให้มีปริมาตร"
+
+# AI Translated
+#~ msgid "Mass properties"
+#~ msgstr "คุณสมบัติมวล"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: %.3f cm³, %.2f cm²"
+#~ msgstr "%s: %.3f ซม.³, %.2f ซม.²"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Surface area: %.2f cm²"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "ปริมาตร: %.3f ซม.³\n"
+#~ "พื้นที่ผิว: %.2f ซม.²"
+
+# AI Translated
+#~ msgid "Boolean needs two solid bodies — add or import a second one"
+#~ msgstr "คำสั่งบูลีนต้องใช้บอดี้ทรงตันสองรายการ — เพิ่มหรือนำเข้าบอดี้ที่สอง"
+
+# AI Translated
+#~ msgid "Line — click the end point, or type the length"
+#~ msgstr "เส้น — คลิกจุดสิ้นสุด หรือพิมพ์ความยาว"
+
+# AI Translated
+#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+#~ msgstr "โพลีไลน์ — คลิกจุดถัดไป  ·  คลิกจุดเริ่มต้นเพื่อปิด  ·  คลิกขวาเพื่อจบเส้นต่อเนื่อง"
+
+# AI Translated
+#~ msgid "Circle — click to set the radius, or type it"
+#~ msgstr "วงกลม — คลิกเพื่อกำหนดรัศมี หรือพิมพ์ค่า"
+
+# AI Translated
+#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
+#~ msgstr "สไปลน์ — คลิกจุดควบคุมถัดไป  ·  คลิกขวาเพื่อจบเส้นโค้ง"
+
+# AI Translated
+#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+#~ msgstr "ตัดเล็ม — คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่น  ·  คลิกขวาเพื่อออก"
+
+# AI Translated
+#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+#~ msgstr "ต่อขยาย — คลิกเส้นหรือส่วนโค้งเพื่อยืดออกไปยังเอนทิตีที่ใกล้ที่สุด  ·  คลิกขวาเพื่อออก"
+
+# AI Translated
+#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "ลบมุมมน — ลากลูกศร หรือคลิกตัวเลขเพื่อพิมพ์รัศมี  ·  คลิกที่ว่างเพื่อใช้  ·  คลิกขวาเพื่อยกเลิก"
+
+# AI Translated
+#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "ลบมุมเอียง — ลากลูกศร หรือคลิกตัวเลขเพื่อพิมพ์ระยะร่น  ·  คลิกที่ว่างเพื่อใช้  ·  คลิกขวาเพื่อยกเลิก"
+
+# AI Translated
+#~ msgid "Offset — click the entity to offset"
+#~ msgstr "ออฟเซ็ต — คลิกเอนทิตีที่จะออฟเซ็ต"
+
+# AI Translated
+#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "ออฟเซ็ต — ลากลูกศรไปด้านใดด้านหนึ่ง หรือคลิกตัวเลขเพื่อพิมพ์ระยะ  ·  คลิกที่ว่างเพื่อใช้  ·  คลิกขวาเพื่อยกเลิก"
+
+# AI Translated
+#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+#~ msgstr "กลับด้าน — กำหนดแกนแล้ว  ·  ตอนนี้คลิกเอนทิตีที่จะกลับด้าน  ·  คลิกขวาเพื่อยกเลิก"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+#~ msgstr "กลับด้าน — กำหนดแกนแล้ว  ·  จะกลับด้าน %d รายการ  ·  คลิกรายการอื่นเพื่อเพิ่มหรือนำออก  ·  คลิกที่ว่างเพื่อใช้"
+
+# AI Translated
+#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+#~ msgstr "ย้าย — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์ระยะ  ·  คลิกที่ว่างเพื่อใช้"
+
+# AI Translated
+#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+#~ msgstr "หมุน — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์มุม  ·  คลิกที่ว่างเพื่อใช้"
+
+# AI Translated
+#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+#~ msgstr "ปรับขนาด — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์ตัวคูณ  ·  คลิกที่ว่างเพื่อใช้"
+
+# AI Translated
+#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+#~ msgstr "อาร์เรย์ — ลากจุดจับเพื่อกำหนดระยะห่าง คลิกจำนวนเพื่อพิมพ์ค่า  ·  คลิกที่ว่างเพื่อใช้"
+
+# AI Translated
+#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+#~ msgstr "อาร์เรย์เชิงขั้ว — ลากจุดจับเพื่อกำหนดมุมกวาด คลิกจำนวนเพื่อพิมพ์ค่า  ·  คลิกที่ว่างเพื่อใช้"
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+#~ msgstr "ลากมุมเพื่อปรับขนาด ลากจุดกึ่งกลางเพื่อย้าย  ·  คลิกขวาเมื่อเสร็จ"
+
+# AI Translated
+#~ msgid "Coord Sys added"
+#~ msgstr "เพิ่มระบบพิกัดแล้ว"
+
+# AI Translated
+#~ msgid "Could not restore the CAD model: "
+#~ msgstr "ไม่สามารถกู้คืนโมเดล CAD ได้: "
+
+# AI Translated
+#~ msgid "Boolean needs two bodies — create or import a second solid"
+#~ msgstr "คำสั่งบูลีนต้องใช้สองบอดี้ — สร้างหรือนำเข้าทรงตันชิ้นที่สอง"
+
+# AI Translated
+#~ msgid "Edit rejected: "
+#~ msgstr "การแก้ไขถูกปฏิเสธ: "
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Delete %s?\n"
+#~ "\n"
+#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
+#~ msgstr ""
+#~ "ลบ %s หรือไม่\n"
+#~ "\n"
+#~ "นี่คือฟีเจอร์ที่ใช้สร้างบอดี้นี้ ฟีเจอร์ที่สร้างต่อจากฟีเจอร์นี้อาจถูกลบหรือหยุดทำงาน"
+
+# AI Translated
+#~ msgid "Delete body"
+#~ msgstr "ลบบอดี้"
+
+# AI Translated
+#~ msgid "STEP export failed: "
+#~ msgstr "ส่งออก STEP ล้มเหลว: "
+
+# AI Translated
+#~ msgid "Coord Sys ready"
+#~ msgstr "ระบบพิกัดพร้อมแล้ว"
+
+# AI Translated
+#~ msgid "Mate needs at least two CoordSys features"
+#~ msgstr "เมทต้องใช้ฟีเจอร์ระบบพิกัดอย่างน้อยสองรายการ"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different"
+#~ msgstr "เมท: CS A และ CS B ต้องต่างกัน"
+
+# AI Translated
+#~ msgid "Invalid: "
+#~ msgstr "ไม่ถูกต้อง: "
+
+# AI Translated
+#~ msgid "Variable name:"
+#~ msgstr "ชื่อตัวแปร:"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Expression for '%s':"
+#~ msgstr "นิพจน์สำหรับ '%s':"
+
+# AI Translated
+#~ msgid "Seg"
+#~ msgstr "ส่วน"
+
+# AI Translated
+#~ msgid "CLOSED"
+#~ msgstr "ปิดแล้ว"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% pts %4%"
+#~ msgstr "%1% %2%: %3% จุด %4%"
+
+# AI Translated
+#~ msgid "Pocket (Cut)"
+#~ msgstr "หลุม (ตัด)"
+
+# AI Translated
+#~ msgid "Clear All"
+#~ msgstr "ล้างทั้งหมด"
+
+# AI Translated
+#~ msgid "Hollow this object"
+#~ msgstr "ทำวัตถุนี้ให้กลวง"
+
+# AI Translated
+#~ msgid "Preview hollowed and drilled model"
+#~ msgstr "พรีวิวโมเดลที่ทำให้กลวงและเจาะรูแล้ว"
+
+# AI Translated
+#~ msgid "Closing distance"
+#~ msgstr "ระยะปิด"
+
+# AI Translated
+#~ msgid "Hole diameter"
+#~ msgstr "เส้นผ่านศูนย์กลางรู"
+
+# AI Translated
+#~ msgid "Hole depth"
+#~ msgstr "ความลึกรู"
+
+# AI Translated
+#~ msgid "Remove selected holes"
+#~ msgstr "นำรูที่เลือกออก"
+
+# AI Translated
+#~ msgid "Remove all holes"
+#~ msgstr "นำรูทั้งหมดออก"
+
+# AI Translated
+#~ msgid "Clipping of view"
+#~ msgstr "การตัดมุมมอง"
+
+#~ msgid "Reset direction"
+#~ msgstr "รีเซ็ตทิศทาง"
+
+# AI Translated
+#~ msgid "Show supports"
+#~ msgstr "แสดงส่วนรองรับ"
+
+# AI Translated
+#~ msgid "Hollow and drill"
+#~ msgstr "ทำให้กลวงและเจาะรู"
+
+#~ msgid "Head diameter"
+#~ msgstr "เส้นผ่านศูนย์กลางหัว"
+
+# AI Translated
+#~ msgid "Lock supports under new islands"
+#~ msgstr "ล็อกส่วนรองรับใต้เกาะใหม่"
+
+# AI Translated
+#~ msgid "Remove selected points"
+#~ msgstr "ลบจุดที่เลือก"
+
+# AI Translated
+#~ msgid "Remove all points"
+#~ msgstr "ลบจุดทั้งหมด"
+
+# AI Translated
+#~ msgid "Apply changes"
+#~ msgstr "ใช้การเปลี่ยนแปลง"
+
+# AI Translated
+#~ msgid "Discard changes"
+#~ msgstr "ทิ้งการเปลี่ยนแปลง"
+
+# AI Translated
+#~ msgid "Minimal points distance"
+#~ msgstr "ระยะห่างขั้นต่ำระหว่างจุด"
+
+# AI Translated
+#~ msgid "Support points density"
+#~ msgstr "ความหนาแน่นของจุดรองรับ"
+
+# AI Translated
+#~ msgid "Auto-generate points"
+#~ msgstr "สร้างจุดอัตโนมัติ"
+
+# AI Translated
+#~ msgid "Manual editing"
+#~ msgstr "แก้ไขด้วยตนเอง"
+
+# AI Translated
+#~ msgid "SLA Support Points"
+#~ msgstr "จุดรองรับ SLA"
+
+# AI Translated
+#~ msgid "Do you want to save your manually edited support points?"
+#~ msgstr "คุณต้องการบันทึกจุดรองรับที่แก้ไขด้วยตนเองหรือไม่?"
+
+# AI Translated
+#~ msgid "Save support points?"
+#~ msgstr "บันทึกจุดรองรับหรือไม่?"
+
+# AI Translated
+#~ msgid "Autogeneration will erase all manually edited points."
+#~ msgstr "การสร้างอัตโนมัติจะลบจุดทั้งหมดที่แก้ไขด้วยตนเอง"
+
+# AI Translated
+#~ msgid "Are you sure you want to do it?"
+#~ msgstr "คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้"
+
+# AI Translated
+#~ msgid "SLA gizmo keyboard shortcuts"
+#~ msgstr "แป้นพิมพ์ลัดของกิสโม่ SLA"
+
+# AI Translated
+#~ msgid "Note: some shortcuts work in (non)editing mode only."
+#~ msgstr "หมายเหตุ: แป้นพิมพ์ลัดบางรายการใช้ได้เฉพาะในโหมดแก้ไขหรือโหมดไม่แก้ไขเท่านั้น"
+
+# AI Translated
+#~ msgid "Left click"
+#~ msgstr "คลิกซ้าย"
+
+# AI Translated
+#~ msgid "Add point"
+#~ msgstr "เพิ่มจุด"
+
+# AI Translated
+#~ msgid "Right click"
+#~ msgstr "คลิกขวา"
+
+# AI Translated
+#~ msgid "Remove point"
+#~ msgstr "ลบจุด"
+
+# AI Translated
+#~ msgid "Move point"
+#~ msgstr "ย้ายจุด"
+
+# AI Translated
+#~ msgid "Add point to selection"
+#~ msgstr "เพิ่มจุดในการเลือก"
+
+# AI Translated
+#~ msgid "Remove point from selection"
+#~ msgstr "ลบจุดออกจากการเลือก"
+
+# AI Translated
+#~ msgid "Select by rectangle"
+#~ msgstr "เลือกด้วยสี่เหลี่ยม"
+
+# AI Translated
+#~ msgid "Deselect by rectangle"
+#~ msgstr "ยกเลิกการเลือกด้วยสี่เหลี่ยม"
+
+# AI Translated
+#~ msgid "Select all points"
+#~ msgstr "เลือกจุดทั้งหมด"
+
+# AI Translated
+#~ msgid "Move clipping plane"
+#~ msgstr "ย้ายระนาบตัดมุมมอง"
+
+# AI Translated
+#~ msgid "Reset clipping plane"
+#~ msgstr "รีเซ็ตระนาบตัดมุมมอง"
+
+# AI Translated
+#~ msgid "Switch to editing mode"
+#~ msgstr "สลับไปยังโหมดแก้ไข"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Union"
+#~ msgstr "ยูเนี่ยน"
+
+# AI Translated
+#~ msgid "target is not a sheet body"
+#~ msgstr "เป้าหมายไม่ใช่บอดี้พื้นผิว"
+
+# AI Translated
+#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
+#~ msgstr "เจาะรูที่กึ่งกลางผิวหน้าที่เลือก หรือวางบนระนาบ"
+
+# AI Translated
+#~ msgid "Shell needs a solid body"
+#~ msgstr "คำสั่งเปลือกต้องใช้บอดี้ทรงตัน"
+
+# AI Translated
+#~ msgid "Split needs a solid body"
+#~ msgstr "คำสั่งแยกต้องใช้บอดี้ทรงตัน"
+
+# AI Translated
+#~ msgid "Pattern on curve needs a body and a curve"
+#~ msgstr "แพทเทิร์นตามเส้นโค้งต้องใช้บอดี้และเส้นโค้ง"
+
+# AI Translated
+#~ msgid "A mate needs two coordinate systems"
+#~ msgstr "เมทต้องใช้ระบบพิกัดสองระบบ"
+
+# AI Translated
+#~ msgid "Align needs a body"
+#~ msgstr "คำสั่งจัดแนวต้องใช้บอดี้"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Coord Sys"
+#~ msgstr "ระบบพิกัด"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Mass"
+#~ msgstr "มวล"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Colour"
+#~ msgstr "สี"
+
+# AI Translated
+#~ msgid "Set the selected body's display colour"
+#~ msgstr "ตั้งค่าสีที่แสดงของบอดี้ที่เลือก"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre rectangle"
+#~ msgstr "สี่เหลี่ยมผืนผ้าแบบจุดศูนย์กลาง"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre circle"
+#~ msgstr "วงกลมแบบจุดศูนย์กลาง"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre-point arc"
+#~ msgstr "ส่วนโค้งแบบจุดศูนย์กลาง"
+
+# AI Translated
+#~ msgid "Triangle — click centre, then a vertex"
+#~ msgstr "สามเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+#~ msgid "Square — click centre, then a vertex"
+#~ msgstr "สี่เหลี่ยมจัตุรัส — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+#~ msgid "Pentagon — click centre, then a vertex"
+#~ msgstr "ห้าเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+#~ msgid "Hexagon — click centre, then a vertex"
+#~ msgstr "หกเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+#~ msgid "Octagon — click centre, then a vertex"
+#~ msgstr "แปดเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+#~ msgid "Dodecagon — click centre, then a vertex"
+#~ msgstr "สิบสองเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+#~ msgid "Type text; its outline is added to this sketch as editable lines"
+#~ msgstr "พิมพ์ข้อความ; เส้นขอบของข้อความจะถูกเพิ่มลงในสเก็ตช์นี้เป็นเส้นที่แก้ไขได้"
+
+# AI Translated
+#~ msgid "Major"
+#~ msgstr "แกนหลัก"
+
+# AI Translated
+#~ msgid "Minor"
+#~ msgstr "แกนรอง"
+
+# AI Translated
+#~ msgid "Extend: click a line/arc that can reach another live entity"
+#~ msgstr "ต่อขยาย: คลิกเส้น/ส่วนโค้งที่ต่อขยายไปถึงเอนทิตีอื่นในสเก็ตช์ที่กำลังแก้ไขได้"
+
+# AI Translated
+#~ msgid "Trim: click a segment where it crosses another live entity"
+#~ msgstr "ตัดเล็ม: คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่นในสเก็ตช์ที่กำลังแก้ไข"
+
 # AI Translated
 #~ msgid "closed profile(s)"
 #~ msgstr "โปรไฟล์ปิด"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "ไม่สามารถสร้าง cali G-code"
-
-# AI Translated
-#~ msgid "Subtract"
-#~ msgstr "ลบออก"
 
 # AI Translated
 #~ msgid "Multiply"

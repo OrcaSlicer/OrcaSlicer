@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -1101,13 +1101,6 @@ msgstr "Дождитесь окончания расчёта упрощения 
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "Операция уже отменена. Пожалуйста, подождите несколько секунд."
 
-msgid "Face recognition"
-msgstr "Распознавание граней"
-
-# ??? Выполнить распознавание
-msgid "Perform Recognition"
-msgstr "Выполнение распознавания"
-
 msgid "Enforce seam"
 msgstr "Принудительный шов"
 
@@ -1128,44 +1121,6 @@ msgstr "Выход из режима рисования шва"
 
 msgid "Paint-on seam editing"
 msgstr "Редактирование шва"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Шрифт"
-
-msgid "Thickness"
-msgstr "Толщина"
-
-msgid "Text Gap"
-msgstr "Межбуквенный интервал"
-
-msgid "Angle"
-msgstr "Угол"
-
-msgid "Embedded depth"
-msgstr "Глубина проникновения"
-
-msgid "Input text"
-msgstr "Введите текст"
-
-msgid "Surface"
-msgstr "На поверхности"
-
-msgid "Horizontal text"
-msgstr "Горизонтальный текст"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "Движение мыши вверх или вниз"
-
-msgid "Rotate text"
-msgstr "Поворот текста"
-
-msgid "Text shape"
-msgstr "Форма текста"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1535,6 +1490,11 @@ msgid "In queue"
 msgstr "В очереди"
 
 #. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Шрифт"
+
+#. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
 msgid "Height"
 msgstr "Размер"
@@ -1896,6 +1856,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Копировать в буфер обмена"
 
+msgid "Angle"
+msgstr "Угол"
+
 msgid "Perpendicular distance"
 msgstr "Длина перпендикуляра"
 
@@ -1983,6 +1946,9 @@ msgstr "Запуск режима сборки"
 
 msgid "Leaving Assembly gizmo"
 msgstr "Выход из режима сборки"
+
+msgid "Shift+"
+msgstr "Shift+"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -4440,7 +4406,6 @@ msgstr "Калибровка завершена"
 msgid "%s does not support %s"
 msgstr "%s не поддерживает %s"
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Шаг"
 
@@ -8863,6 +8828,9 @@ msgstr "Подключённый принтер – %s. Для печати он
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Синхронизировать информацию о принтере и переключить профиль?"
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr "Файл не содержит никаких геометрических данных."
 
@@ -9015,13 +8983,6 @@ msgstr "Неверные данные"
 
 msgid "Slicing Canceled"
 msgstr "Нарезка отменена"
-
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Нарезка стола %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Пожалуйста, устраните ошибки нарезки и попробуйте опубликовать снова."
 
 msgid "Network plug-in switched successfully."
 msgstr "Сетевой плагин успешно переключён."
@@ -9815,14 +9776,6 @@ msgstr "CAD-моделирование (экспериментально)"
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
 msgstr "Если включено, отображается вкладка «Моделирование», на которой можно создавать и редактировать модели параметрически. Функция экспериментальная и находится в разработке."
 
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Автозамыкание контуров эскиза"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr "Считать конечные точки эскиза, находящиеся в пределах 0,001 мм друг от друга, одной точкой и замыкать контур. Если выключено, соединяются только точно совпадающие конечные точки, поэтому контур с крошечным зазором отображается незамкнутым, а не замыкается автоматически."
-
 # Запрашивать выбор режима группировки?
 msgid "Pop up to select filament grouping mode"
 msgstr "Всплывающее окно для выбора режима группировки материалов"
@@ -9922,6 +9875,13 @@ msgstr "Отображать соединители сопряжений гра�
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr "На вкладке «Моделирование» отображать соединитель сопряжения в виде небольшой грани вместо традиционного диска с сектором поворота. Ориентация грани понятна с первого взгляда, без изучения условных обозначений диска. Выключите для традиционного отображения, принятого в CAD."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Автозамыкание контуров эскиза"
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr ""
 
 msgid "Pan"
 msgstr "Смещение"
@@ -10589,36 +10549,6 @@ msgstr "Принять"
 
 msgid "Log Out"
 msgstr "Выход"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Нарезка всех столов для расчёта примерного времени печати и расхода материала"
-
-msgid "Packing project data into 3MF file"
-msgstr "Упаковка данных проекта в файл формата 3mf"
-
-msgid "Uploading 3MF"
-msgstr "Отправка 3MF"
-
-msgid "Jump to model publish web page"
-msgstr "Перейти на веб-страницу публикации модели"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Примечание: подготовка может занять несколько минут. Пожалуйста, наберитесь терпения."
-
-msgid "Publish was canceled"
-msgstr "Публикация была отменена"
-
-msgid "Slicing Plate 1"
-msgstr "Нарезка стола 1"
-
-msgid "Packing data to 3MF"
-msgstr "Упаковка данных в 3MF"
-
-msgid "Uploading data"
-msgstr "Отправка данных"
-
-msgid "Jump to webpage"
-msgstr "Перейти на страницу"
 
 # AI Translated
 msgid "Material"
@@ -12553,76 +12483,6 @@ msgstr "Обновления отсутствуют."
 
 msgid "The configuration is up to date."
 msgstr "Обновление профилей отсутствует."
-
-# "Импорт цветного obj-файла" вводит в заблуждение, это именно импорт цветов
-# из файла. При нажатии "отмены" импорт не прерывается, просто цвета не
-# подхватываются.
-msgid "OBJ file import color"
-msgstr "Импорт цвета из файла OBJ"
-
-msgid "Some faces don't have color defined."
-msgstr "Некоторым граням не назначен цвет."
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "Ошибка файла MTL, не удалось найти материал:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "Проверьте файл OBJ или MTL."
-
-msgid "Specify number of colors:"
-msgstr "Количество цветов:"
-
-# Чрезвычайно техничная подсказка. Очевидно, что там обычное поле ввода со
-# стрелочками.
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Укажите количество цветов"
-
-# Перед этим выводится количество цветов, после пробела круглая скобка (т.е.
-# пробел лишний)
-msgid "Recommended "
-msgstr "рекомендуется"
-
-# Импорт OBJ с цветами
-msgid "view"
-msgstr "Вид"
-
-msgid "Current filament colors"
-msgstr "Текущие цвета прутков:"
-
-msgid "Matching"
-msgstr "Сопоставление"
-
-msgid "Quick set"
-msgstr "Действия"
-
-# ??? Цветовая схема
-msgid "Color match"
-msgstr "Подбор цвета"
-
-msgid "Approximate color matching."
-msgstr "Приблизительный подбор по цвету ваших материалов."
-
-msgid "Append"
-msgstr "Добавить"
-
-msgid "Append to existing filaments"
-msgstr "Добавить цвет к существующим"
-
-# Без понятия, зачем там "экструдеры", настраиваются цвета. И точка
-msgid "Reset mapped extruders."
-msgstr "Сброс сопоставленных цветов"
-
-msgid "Note"
-msgstr "Примечание"
-
-# Тут вторая строка срезается при изменении количества цветов.
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr "выбор цветов можно изменить вручную."
-
-msgid "—> "
-msgstr "→  "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -22334,164 +22194,6 @@ msgstr ""
 "Текст сообщения: \"%1%\"\n"
 "Ошибка: «%2%»"
 
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Стандартная высота слоя для сопла 0.2 мм. Обеспечивает практически незаметные слои и высокое качество печати. Подходит для большинства обычных сценариев печати."
-
-# Не забываем разбивать (упрощать) длинные предложения с множеством однородных
-# членов (например, где есть упоминание гироида).
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает гораздо более высокое качество ценой увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет немного большую высоту слоя, что обеспечивает практически незаметные слои и немного сокращает время печати."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет увеличенную высоту слоя, что обеспечивает малозаметные слои и сокращает время печати."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, что обеспечивает практически незаметные слои и более высокое качество ценой увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает практически невидимые слои и более высокое качество ценой значительного увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и более высокое качество ценой увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает менее заметные слои и более высокое качество ценой значительного увеличения времени печати."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Стандартная высота слоя, которая обеспечивает нормальное качество печати для большинства обычных сценариев."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет больше периметров и увеличенную плотность заполнения, что обеспечивает повышение прочности ценой увеличения расхода материала и времени печати."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и небольшое сокращение времени печати ценой снижения качества."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и сокращение времени печати ценой снижения качества."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и более высокое качество ценой увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет меньшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает менее заметные слои и гораздо более высокое качество ценой значительного увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет меньшую высоту слоя, что обеспечивает пректически незаметные слои и более высокое качество ценой увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет наименьшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает почти незаметные слои и гораздо более высокое качество ценой значительного увеличения времени печати."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет наименьшую высоту слоя. Это обеспечивает почти незаметные слои, но при этом увеличивается время печати."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "Большая высота слоя обеспечивает нормальное качество и время печати ценой появления заметных слоёв."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет больше периметров и более высокую плотность заполнения. Это обеспечивает повышение прочности, но увеличивает расход материала и время печати."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и снижение качества, но при этом в некоторых случаях сокращается время печати."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и значительное снижение качества, но при этом в некоторых случаях сокращается время печати."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и незначительное повышение качества, но при этом увеличивается время печати."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и более высокое качество, но при этом увеличивается время печати."
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Очень большая высота слоя обеспечивает сокращение времени печати ценой снижения качества и появления очень заметных слоёв."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет большую высоту слоя, что обеспечивает заметные слои и более низкое качество, но при этом в некоторых случаях уменьшается время печати."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет сильно большую высоту слоя, что обеспечивает очень заметные слои и более низкое качество, но при этом в некоторых случаях уменьшается время печати."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет немного сниженную высоту слоя, что обеспечивает немного менее заметные слои и немного более высокое качество, но при этом в некоторых случаях увеличивается время печати."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и немного более высокое качество, но при этом в некоторых случаях увеличивается время печати."
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Данный материал не используется часто и не является материалом Bambu, его свойства могут значительно отличаться у разных производителей. Перед печатью настоятельно рекомендуется запросить у производителя совместимый профиль и адаптировать его к свойствам материала."
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "При печати этим материалом существует риск усадочных деформаций и низкой спекаемости слоёв. Для улучшения результата воспользуйтесь советами из руководства на Wiki по печати высокотемпературными/инженерными материалами."
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "При печати этим материалом существует риск усадочных деформаций, низкой спекаемости слоёв, подтёков и засорения сопла. Для улучшения результата воспользуйтесь советами из руководства на Wiki по печати высокотемпературными/инженерными материалами."
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Для улучшения результата при печати прозрачных деталей воспользуйтесь советами из руководства на Wiki по печати прозрачным PETG."
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Для повышения глянцевого эффекта перед печатью необходима сушка, а в процессе – низкая скорость печати внешних периметров (40-60 мм/с)."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Материал предназначен для печати моделей с низкой плотностью. Для настройки необходимых параметров и улучшения качества печати воспользуйтесь советами из руководства на Wiki по печати радиоуправляемых моделей из пенящегося PLA (PLA Aero)."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Материал предназначен для печати моделей с низкой плотностью. Для настройки необходимых параметров и улучшения качества печати воспользуйтесь советами из руководства на Wiki по печати пенящимся ASA (ASA Aero)."
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Очень гибкий материал, несовместимый с AMS. К печати им предъявляется множество требований, и для получения качественного результата рекомендуется воспользоваться советами из руководства на Wiki по печати TPU."
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Материал с низкой эластичностью (твёрдость около 67D), совместимый с AMS. К печати им предъявляется множество требований, и для получения качественного результата рекомендуется воспользоваться советами из руководства на Wiki по печати TPU."
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Если вы собираетесь печатать мягким TPU, не используйте этот профиль – он предназначен только для достаточно твёрдого TPU (не менее 55D), совместимого с AMS. Для улучшения качества печати воспользуйтесь советами из руководства на Wiki по печати TPU."
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Водорастворимый материал, предназначенный для печати поддержек. К печати им предъявляется множество требований, и для получения качественного результата рекомендуется воспользоваться советами из руководства на Wiki по печати PVA."
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Хрупкий нерастворимый материал для печати поддержек. Для улучшения качества печати воспользуйтесь советами из руководства на Wiki по использованию материалов для печати поддержек."
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "Общие профили (Generic) настроены усреднённо для максимальной совместимости с широким спектром материалов. Для наилучшего качества и скорости печати рекомендуется использовать материалы и профили Bambu."
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Профиль для сопла 0.2 мм с упором на качество печати."
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Профиль для печати слоем 0.16 мм с упором на качество и прочность."
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Обычный профиль для печати слоем 0.16 мм с упором на скорость."
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Профиль для печати слоем 0.2 мм с упором на качество и прочность."
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Обычный профиль для сопла 0.2 мм с упором на скорость."
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Профиль для сопла 0.6 мм с упором на качество и прочность."
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Профиль для сопла 0.6 мм с упором на прочность."
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Обычный профиль для сопла 0.6 мм с упором на скорость."
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Профиль для сопла 0.8 мм с упором на качество."
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Профиль для сопла 0.8 мм с упором на прочность."
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Обычный профиль для сопла 0.6 мм с упором на скорость."
-
 msgid "No AMS"
 msgstr "AMS отсутствует"
 
@@ -23382,9 +23084,8 @@ msgstr "Окружность — щёлкните центр, затем рад�
 msgid "Arc — click start, end, then a point"
 msgstr "Дуга — щёлкните начало, конец, затем точку"
 
-# AI Translated
-msgid "Slot — two centerline ends, then end radius"
-msgstr "Паз — два конца осевой линии, затем радиус концов"
+msgid "Slot — two centerline ends, then the width"
+msgstr ""
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -23458,9 +23159,8 @@ msgstr "Глобальные оси показаны"
 msgid "World axes hidden"
 msgstr "Глобальные оси скрыты"
 
-# AI Translated
-msgid "Isometric view, fitted"
-msgstr "Изометрия, вписано в окно"
+msgid "Axonometric view, fitted"
+msgstr ""
 
 # AI Translated
 msgid "Bed shown"
@@ -23684,9 +23384,8 @@ msgstr "Ось"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Опорная ось (две точки, нормаль грани, ось цилиндра, две плоскости, вдоль ребра)"
 
-# AI Translated
-msgid "Coord Sys"
-msgstr "Система координат"
+msgid "Coordinate system"
+msgstr ""
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -23712,6 +23411,11 @@ msgstr "Спроецировать рёбра тела на плоскость �
 # AI Translated
 msgid "Project needs a body — add or import one first"
 msgstr "Для проецирования нужно тело — сначала добавьте или импортируйте его"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Грань %d"
 
 # AI Translated
 msgid "(all edges)"
@@ -23745,9 +23449,8 @@ msgstr "Для отражения нужно тело — сначала доб�
 msgid "Mate"
 msgstr "Сопряжение"
 
-# AI Translated
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "Сборка: совмещение двух элементов СК (жёсткое, плоское, вращательное, поступательное, цилиндрическое)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -23831,6 +23534,10 @@ msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Создать отверстие по центру выбранной грани или на плоскости"
 
 # AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Выберите грань или плоскость для создания отверстия"
+
+# AI Translated
 msgid "Thread"
 msgstr "Резьба"
 
@@ -23882,9 +23589,8 @@ msgstr "Щёлкните начало, затем конец — затем за
 msgid "Polyline"
 msgstr "Ломаная"
 
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
-msgstr "Щёлкайте точки; щелчок по первой точке замыкает контур, ПКМ завершает цепочку"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
+msgstr ""
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23974,9 +23680,8 @@ msgstr "Щёлкните центр, затем начало, затем точ�
 msgid "Slot"
 msgstr "Паз"
 
-# AI Translated
-msgid "Click two centerline ends, then a point for the end radius"
-msgstr "Щёлкните два конца осевой линии, затем точку для радиуса концов"
+msgid "Click two centerline ends, then a point for the width"
+msgstr ""
 
 # AI Translated
 msgid "Arc slot"
@@ -24006,9 +23711,8 @@ msgstr "Щёлкните центр, конец большой оси, точк�
 msgid "Spline"
 msgstr "Сплайн"
 
-# AI Translated
-msgid "Click control points; double-click or right-click to finish"
-msgstr "Щёлкайте контрольные точки; двойной щелчок или ПКМ — завершить"
+msgid "Click control points; double-click, right-click or Enter to finish"
+msgstr ""
 
 # AI Translated
 msgid "Click to place a point"
@@ -24062,17 +23766,15 @@ msgstr "Выберите линию оси отражения, затем объ
 msgid "Trim"
 msgstr "Обрезка"
 
-# AI Translated
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "Щёлкните сегмент, чтобы обрезать его до ближайшего пересечения; ПКМ — выход"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Extend"
 msgstr "Удлинение"
 
-# AI Translated
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "Щёлкните линию или дугу, чтобы удлинить её до ближайшего объекта; ПКМ — выход"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -24228,22 +23930,6 @@ msgid "Vertical distance"
 msgstr "Расстояние по вертикали"
 
 # AI Translated
-msgid "✓ Confirm"
-msgstr "✓ Подтвердить"
-
-# AI Translated
-msgid "✗ Cancel"
-msgstr "✗ Отмена"
-
-# AI Translated
-msgid "Undo (Ctrl+Z)"
-msgstr "Отменить (Ctrl+Z)"
-
-# AI Translated
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "Повторить (Ctrl+Shift+Z)"
-
-# AI Translated
 msgid "New Design — clear the feature tree"
 msgstr "Новая модель — очистить дерево элементов"
 
@@ -24267,9 +23953,20 @@ msgstr "Сечение — скрыть часть модели, чтобы за
 msgid "Flip Section — show the opposite half"
 msgstr "Перевернуть сечение — показать противоположную половину"
 
-# AI Translated
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "Передать на стол — отправить тело на вкладку «Подготовка»"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
+msgstr ""
 
 # AI Translated
 msgid "Width / X"
@@ -24300,8 +23997,8 @@ msgid "Rotation axis"
 msgstr "Ось вращения"
 
 # AI Translated
-msgid "Angle °"
-msgstr "Угол °"
+msgid "Angle (°)"
+msgstr "Угол (°)"
 
 # AI Translated
 msgid "Move / Rotate"
@@ -24344,8 +24041,8 @@ msgid "2nd dist"
 msgstr "Расст. 2"
 
 # AI Translated
-msgid "Taper °"
-msgstr "Уклон °"
+msgid "Taper (°)"
+msgstr "Конусность (°)"
 
 # AI Translated
 msgid "New body"
@@ -24478,21 +24175,16 @@ msgstr "Круговой"
 msgid "Direction"
 msgstr "Направление"
 
-# AI Translated
-msgid "Total angle°"
-msgstr "Общий угол°"
+msgid "Total angle (°)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean"
 msgstr "Булева операция"
 
 # AI Translated
-msgid "Union (join)"
-msgstr "Объединение (слияние)"
-
-# AI Translated
-msgid "Subtract (cut)"
-msgstr "Вычитание (вырез)"
+msgid "Subtract"
+msgstr "Вычесть"
 
 # AI Translated
 msgid "Target (kept)"
@@ -24539,10 +24231,6 @@ msgstr "Тип плоскости"
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "База"
-
-# AI Translated
-msgid "Angle°"
-msgstr "Угол°"
 
 # AI Translated
 msgid "Base X"
@@ -24600,6 +24288,9 @@ msgstr "Поверхностное тело"
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr "Смещает оболочку поверхностного тела. Положительное значение — наружу, отрицательное — внутрь."
 
+msgid "Thickness"
+msgstr "Толщина"
+
 # AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr "Утолщает поверхностное тело до твёрдого тела. «Обратное направление» разворачивает утолщение."
@@ -24615,10 +24306,6 @@ msgstr "Открытая грань"
 # AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
 msgstr "Выберите грань твёрдого тела, чтобы открыть её, затем задайте толщину стенки."
-
-# AI Translated
-msgid "Angle (°)"
-msgstr "Угол (°)"
 
 # AI Translated
 msgid "(pick a side face)"
@@ -24726,11 +24413,6 @@ msgid "Face %d is already in the list"
 msgstr "Грань %d уже в списке"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Грань %d"
-
-# AI Translated
 msgid "Faces to delete"
 msgstr "Грани для удаления"
 
@@ -24741,10 +24423,6 @@ msgstr "Выберите грань твёрдого тела, затем наж
 # AI Translated
 msgid "Left-handed"
 msgstr "Левая"
-
-# AI Translated
-msgid "Taper (°)"
-msgstr "Конусность (°)"
 
 # AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -24874,13 +24552,15 @@ msgstr "Цилиндрическое — оси коллинеарны; своб
 msgid "Kind"
 msgstr "Тип"
 
-# AI Translated
-msgid "CS A (fixed)"
-msgstr "СК A (неподвижная)"
+msgid "A (fixed)"
+msgstr ""
+
+msgid "B (moves)"
+msgstr ""
 
 # AI Translated
-msgid "CS B (moves)"
-msgstr "СК B (подвижная)"
+msgid "Angle °"
+msgstr "Угол °"
 
 # AI Translated
 msgid "Flip (oppose z axes)"
@@ -24961,14 +24641,6 @@ msgid "Bodies"
 msgstr "Тела"
 
 # AI Translated
-msgid "Move body"
-msgstr "Переместить тело"
-
-# AI Translated
-msgid "Select a body row first, then move it"
-msgstr "Сначала выберите строку тела, затем переместите его"
-
-# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Булева операция — объединение, вычитание или пересечение с другим телом"
 
@@ -24981,9 +24653,14 @@ msgstr "Выбрано тело %d — ПКМ для доступных дейс
 msgid "Variables"
 msgstr "Переменные"
 
-# AI Translated
-msgid "+"
-msgstr "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -25001,6 +24678,10 @@ msgstr "Эскиз обновлён"
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Эскиз создан (управляющих размеров: %zu) — выберите его, затем ПКМ для выдавливания"
+
+#, c-format, boost-format
+msgid "Length %.2f mm, angle %.1f°"
+msgstr ""
 
 # AI Translated
 msgid "(locked)"
@@ -25050,15 +24731,27 @@ msgstr "Тело %d: выбрана грань %d — ПКМ, чтобы выт�
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Выбрана грань %d — ПКМ, чтобы вытянуть/вдавить её, или щёлкните ещё раз, чтобы выбрать всё тело"
 
-# AI Translated
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Тело %d: выбрано ребро %d — примените скругление/фаску или щёлкните ещё раз, чтобы выбрать всё тело"
+#, c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
-# AI Translated
+#, c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 #, c-format, boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Выбрано ребро %d — примените скругление/фаску или щёлкните ещё раз, чтобы выбрать всё тело"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25087,6 +24780,9 @@ msgstr "Инструмент закрыт"
 # AI Translated
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Эскиз сохранён — подтвердите, чтобы зафиксировать его, или отмените, чтобы удалить"
+
+msgid "Select something to delete"
+msgstr ""
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -25119,14 +24815,17 @@ msgstr "Изменение: эскиз %d   ·   N — вид по нормал�
 msgid "OK — %zu triangles"
 msgstr "Ок — треугольников: %zu"
 
-# AI Translated
-msgid "Text to insert:"
-msgstr "Вставляемый текст:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
+msgstr ""
 
-# AI Translated
-msgctxt "Design"
-msgid "Text"
-msgstr "Текст"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
+msgstr ""
 
 # AI Translated
 msgid "Import SVG"
@@ -25152,9 +24851,9 @@ msgstr "Чтение STEP…"
 msgid "No solids found in STEP"
 msgstr "В STEP не найдено твёрдых тел"
 
-# AI Translated
-msgid "STEP import failed: "
-msgstr "Ошибка импорта STEP: "
+#, c-format, boost-format
+msgid "STEP import failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -25180,9 +24879,9 @@ msgstr "Файлы сеток (*.stl;*.obj)|*.stl;*.obj|Все файлы|*.*"
 msgid "Could not read the STL file"
 msgstr "Не удалось прочитать файл STL"
 
-# AI Translated
-msgid "Could not read the OBJ file: "
-msgstr "Не удалось прочитать файл OBJ: "
+#, c-format, boost-format
+msgid "Could not read the OBJ file: %s"
+msgstr ""
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -25207,17 +24906,20 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Большая сетка"
 
-# AI Translated
-msgid "Mesh conversion failed: "
-msgstr "Ошибка преобразования сетки: "
+#, c-format, boost-format
+msgid "Mesh conversion failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "Преобразование сетки не дало геометрии"
 
-# AI Translated
-msgid "Mesh import failed: "
-msgstr "Ошибка импорта сетки: "
+msgid "Mesh"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mesh import failed: %s"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25246,18 +24948,17 @@ msgstr " — перетащите для размещения/изменения
 msgid "Insert canceled"
 msgstr "Вставка отменена"
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move — right-click when done"
-msgstr "Перетащите угол для масштабирования, центр для перемещения — ПКМ по завершении"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Эскиз добавлен (плоскость: %s) — выберите его, затем ПКМ для выдавливания"
 
-# AI Translated
-msgid "Recompute error: "
-msgstr "Ошибка перестроения: "
+#, c-format, boost-format
+msgid "The model could not be rebuilt: %s"
+msgstr ""
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -25329,110 +25030,59 @@ msgstr "Сначала выберите эскиз с незамкнутой л�
 msgid "Add at least one face to delete first"
 msgstr "Сначала добавьте хотя бы одну грань для удаления"
 
-# AI Translated
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "Для сопряжения нужны два элемента СК — сначала создайте их"
+msgid "Mate needs two coordinate systems — create them first"
+msgstr ""
 
-# AI Translated
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "Сопряжение: СК A и СК B должны быть разными элементами СК"
+msgid "Mate: A and B must be different coordinate systems"
+msgstr ""
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Сопряжение отклонено"
 
-# AI Translated
-msgid "No interference — need at least two solid bodies to check"
-msgstr "Нет интерференции — для проверки нужны как минимум два твёрдых тела"
+msgid "Interference needs at least two bodies"
+msgstr ""
 
 # AI Translated
 msgid "No interference found"
 msgstr "Интерференция не обнаружена"
 
 # AI Translated
-#, c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] "%zu пара с интерференцией, максимум %.2f мм³"
-msgstr[1] "%zu пары с интерференцией, максимум %.2f мм³"
-msgstr[2] "%zu пар с интерференцией, максимум %.2f мм³"
-
-# AI Translated
-msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr ""
-"Пары с интерференцией:\n"
-"\n"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
 msgstr "Тело %d"
 
-# AI Translated
-msgid "Interference"
-msgstr "Интерференция"
-
-# AI Translated
-msgid "Select a solid body first — its mass properties are what is reported"
-msgstr "Сначала выберите твёрдое тело — будут показаны его массовые характеристики"
-
-# AI Translated
-msgid "Mass properties could not be computed for this body"
-msgstr "Не удалось вычислить массовые характеристики этого тела"
-
-# AI Translated
 #, c-format, boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr "%s: поверхностное тело — площадь поверхности %.2f см², объёма нет"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
-"%s\n"
-"\n"
-"Поверхностное тело (открытая оболочка)\n"
-"Площадь поверхности: %.2f см²\n"
-"\n"
-"Поверхность не заключает в себе материал, поэтому у неё нет объёма. Утолщите её до твёрдого тела, чтобы получить объём."
 
-# AI Translated
-msgid "Mass properties"
-msgstr "Массовые характеристики"
+#, c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
-# AI Translated
-#, c-format, boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr "%s: %.3f см³, %.2f см²"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "Select a body to measure it"
 msgstr ""
-"%s\n"
-"\n"
-"Объём: %.3f см³\n"
-"Площадь поверхности: %.2f см²"
+
+msgid "This body could not be measured"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: volume %.2f mm³, area %.2f mm²"
+msgstr ""
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Для массива нужно твёрдое тело — сначала добавьте или импортируйте его"
 
-# AI Translated
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "Для булевой операции нужны два твёрдых тела — добавьте или импортируйте второе"
+msgid "Boolean needs two bodies — add or import a second one"
+msgstr ""
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -25446,6 +25096,36 @@ msgstr "Выбранная грань (тело %d)"
 # AI Translated
 msgid "Picked face"
 msgstr "Выбранная грань"
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25485,17 +25165,15 @@ msgstr "Размер — щёлкните вторую точку"
 msgid "Line — click the start point"
 msgstr "Линия — щёлкните начальную точку"
 
-# AI Translated
-msgid "Line — click the end point, or type the length"
-msgstr "Линия — щёлкните конечную точку или введите длину"
+msgid "Line — click the end point; its length and angle can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Ломаная — щёлкните первую точку"
 
-# AI Translated
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr "Ломаная — щёлкните следующую точку  ·  щёлкните начальную точку, чтобы замкнуть её  ·  ПКМ — завершить цепочку"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
+msgstr ""
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -25541,9 +25219,8 @@ msgstr "Скруглённый прямоугольник — щёлкните, 
 msgid "Circle — click the center"
 msgstr "Окружность — щёлкните центр"
 
-# AI Translated
-msgid "Circle — click to set the radius, or type it"
-msgstr "Окружность — щёлкните, чтобы задать радиус, или введите его"
+msgid "Circle — click to set the radius; it can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -25669,21 +25346,18 @@ msgstr "Эллиптическая дуга — щёлкните конец ду
 msgid "Spline — click the first control point"
 msgstr "Сплайн — щёлкните первую контрольную точку"
 
-# AI Translated
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr "Сплайн — щёлкните следующую контрольную точку  ·  ПКМ — завершить кривую"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
+msgstr ""
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Точка — щёлкните, чтобы разместить; инструмент остаётся активным для следующих точек"
 
-# AI Translated
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr "Обрезка — щёлкните сегмент в месте пересечения с другим объектом  ·  ПКМ — выход"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
+msgstr ""
 
-# AI Translated
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr "Удлинение — щёлкните линию или дугу, чтобы продлить её до ближайшего объекта  ·  ПКМ — выход"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
+msgstr ""
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -25693,9 +25367,8 @@ msgstr "Скругление — щёлкните первую из двух с�
 msgid "Fillet — click the second line"
 msgstr "Скругление — щёлкните вторую линию"
 
-# AI Translated
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Скругление — перетащите стрелку или щёлкните число, чтобы ввести радиус  ·  щелчок по пустому месту — применить  ·  ПКМ — отмена"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -25705,74 +25378,63 @@ msgstr "Фаска — щёлкните первую из двух сходящ�
 msgid "Chamfer — click the second line"
 msgstr "Фаска — щёлкните вторую линию"
 
-# AI Translated
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Фаска — перетащите стрелку или щёлкните число, чтобы ввести отступ  ·  щелчок по пустому месту — применить  ·  ПКМ — отмена"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
-msgid "Offset — click the entity to offset"
-msgstr "Смещение — щёлкните объект для смещения"
+msgid "Offset — click a curve; its whole outline is offset"
+msgstr ""
 
-# AI Translated
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Смещение — перетащите стрелку в любую сторону или щёлкните число, чтобы ввести расстояние  ·  щелчок по пустому месту — применить  ·  ПКМ — отмена"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Отражение — сначала щёлкните ЛИНИЮ, относительно которой отражать (подойдёт вспомогательная линия)"
 
-# AI Translated
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr "Отражение — ось задана  ·  теперь щёлкните объекты для отражения  ·  ПКМ — отмена"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
 #, c-format, boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr "Отражение — ось задана  ·  для отражения: %d  ·  щёлкните другой объект, чтобы добавить или убрать его  ·  щелчок по пустому месту — применить"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Перемещение — щёлкните объекты для перемещения"
 
-# AI Translated
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr "Перемещение — перетащите маркер или щёлкните число, чтобы ввести расстояние  ·  щелчок по пустому месту — применить"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Поворот — щёлкните объекты для поворота"
 
-# AI Translated
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr "Поворот — перетащите маркер или щёлкните число, чтобы ввести угол  ·  щелчок по пустому месту — применить"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Масштаб — щёлкните объекты для масштабирования"
 
-# AI Translated
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr "Масштаб — перетащите маркер или щёлкните число, чтобы ввести коэффициент  ·  щелчок по пустому месту — применить"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Массив — щёлкните объекты для повторения"
 
-# AI Translated
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr "Массив — перетащите маркер, чтобы задать шаг, щёлкните количество, чтобы ввести его  ·  щелчок по пустому месту — применить"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Круговой массив — щёлкните объекты для повторения"
 
-# AI Translated
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr "Круговой массив — перетащите маркер, чтобы задать угол охвата, щёлкните количество, чтобы ввести его  ·  щелчок по пустому месту — применить"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
+msgstr ""
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-msgstr "Перетащите угол для масштабирования, центр для перемещения  ·  ПКМ по завершении"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -25781,6 +25443,64 @@ msgstr "  ·  Esc — вернуться к выбору"
 # AI Translated
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  щёлкните значок ограничения, чтобы удалить его"
+
+#, c-format, boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, c-format, boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d sketch entities"
+msgstr ""
 
 # AI Translated
 msgid "select something first"
@@ -25843,9 +25563,8 @@ msgstr "Плоскость добавлена — выберите её как �
 msgid "Axis added"
 msgstr "Ось добавлена"
 
-# AI Translated
-msgid "Coord Sys added"
-msgstr "Система координат добавлена"
+msgid "Coordinate system added"
+msgstr ""
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -25875,9 +25594,9 @@ msgstr "Твёрдых тел пока нет — выберите эскиз и
 msgid "Could not restore the CAD model from this project"
 msgstr "Не удалось восстановить CAD-модель из этого проекта"
 
-# AI Translated
-msgid "Could not restore the CAD model: "
-msgstr "Не удалось восстановить CAD-модель: "
+#, c-format, boost-format
+msgid "Could not restore the CAD model: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -25900,9 +25619,8 @@ msgstr "Сечение — показана верхняя половина"
 msgid "Section view — showing the lower half"
 msgstr "Сечение — показана нижняя половина"
 
-# AI Translated
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "Для булевой операции нужны два тела — создайте или импортируйте второе твёрдое тело"
+msgid "Finding the feature's faces…"
+msgstr ""
 
 # AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -25937,9 +25655,12 @@ msgstr "Щёлкните грань твёрдого тела, затем наж
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Размещено гранью — тело положено на стол"
 
-# AI Translated
-msgid "Edit rejected: "
-msgstr "Изменение отклонено: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edit rejected: %s"
+msgstr ""
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -25958,20 +25679,9 @@ msgstr "У этого тела нет элемента для удаления �
 msgid "feature %d"
 msgstr "элемент %d"
 
-# AI Translated
 #, c-format, boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
-"Удалить «%s»?\n"
-"\n"
-"Это элемент, из которого создано это тело. Элементы, построенные на его основе, могут быть удалены или перестать работать."
-
-# AI Translated
-msgid "Delete body"
-msgstr "Удалить тело"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -26364,9 +26074,16 @@ msgstr "Файлы STEP (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP экспортирован"
 
+#, c-format, boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
 # AI Translated
-msgid "STEP export failed: "
-msgstr "Ошибка экспорта STEP: "
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr "Передать на стол — отправить тело на вкладку «Подготовка»"
 
 # AI Translated
 msgid "Nothing to commit — add a feature first"
@@ -26376,6 +26093,21 @@ msgstr "Нечего передавать — сначала добавьте э
 msgid "All bodies hidden — show one before committing"
 msgstr "Все тела скрыты — покажите хотя бы одно перед передачей"
 
+#, c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, c-format, boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Line E%d"
+msgstr ""
+
 # AI Translated
 msgid "Plane ready"
 msgstr "Плоскость готова"
@@ -26384,9 +26116,8 @@ msgstr "Плоскость готова"
 msgid "Axis ready"
 msgstr "Ось готова"
 
-# AI Translated
-msgid "Coord Sys ready"
-msgstr "Система координат готова"
+msgid "Coordinate system ready"
+msgstr ""
 
 # AI Translated
 msgid "Helix ready"
@@ -26401,20 +26132,12 @@ msgid "Sketch ready"
 msgstr "Эскиз готов"
 
 # AI Translated
-msgid "Mate needs at least two CoordSys features"
-msgstr "Для сопряжения нужны как минимум два элемента СК"
-
-# AI Translated
-msgid "Mate: CS A and CS B must be different"
-msgstr "Сопряжение: СК A и СК B должны различаться"
-
-# AI Translated
 msgid "Mate ready"
 msgstr "Сопряжение готово"
 
-# AI Translated
-msgid "Invalid: "
-msgstr "Недопустимо: "
+#, c-format, boost-format
+msgid "Invalid: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -26452,16 +26175,16 @@ msgid "Keep drawing"
 msgstr "Продолжить рисование"
 
 # AI Translated
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "Сначала завершите или отмените текущий инструмент (Esc)"
-
-# AI Translated
 msgid "Nothing to redo"
 msgstr "Нечего повторять"
 
 # AI Translated
 msgid "Nothing to undo"
 msgstr "Нечего отменять"
+
+# AI Translated
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr "Сначала завершите или отмените текущий инструмент (Esc)"
 
 # AI Translated
 #, c-format
@@ -26480,21 +26203,12 @@ msgstr[1] "Отменить  (ещё %zu шага)"
 msgstr[2] "Отменить  (ещё %zu шагов)"
 
 # AI Translated
-msgid "Variable name:"
-msgstr "Имя переменной:"
-
-# AI Translated
 msgid "Add Variable"
 msgstr "Добавить переменную"
 
 # AI Translated
 msgid "Variable name must not contain spaces"
 msgstr "Имя переменной не должно содержать пробелов"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "Выражение для «%s»:"
 
 # AI Translated
 msgid "Select a variable first"
@@ -26509,9 +26223,110 @@ msgstr "Изменить переменную"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Не удалось удалить переменную «%s» (вероятно, на неё ещё ссылается выражение элемента): %s"
 
+#, c-format, boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 # AI Translated
 msgid "No binding for that field"
 msgstr "Для этого поля нет привязки"
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Сторона"
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "ПКМ или двойной щелчок — завершить, щелчок по началу — замкнуть"
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
+msgstr ""
 
 # AI Translated
 msgid "Enter a number"
@@ -26520,6 +26335,642 @@ msgstr "Введите число"
 # AI Translated
 msgid "Not a number"
 msgstr "Это не число"
+
+# AI Translated
+msgid "Add material"
+msgstr "Добавить материал"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Скругление / фаска / уклон"
+
+# AI Translated
+msgid "Repeat"
+msgstr "Повтор"
+
+# AI Translated
+# Needs human review: Row name in the Design tab tool-offer menu; besides plane/axis/coord sys/helix it also holds Measure, Mass and Interference. Check that «Опорные элементы» reads right for the whole row.
+msgid "Reference"
+msgstr "Опорные элементы"
+
+# AI Translated
+msgid "Modify"
+msgstr "Правка"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Эскиз"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Щёлкните грань или опорную плоскость, затем выберите инструмент рисования"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Вращение"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Протягивание"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "По сечениям"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Утолщение"
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Объединить тело-инструмент с целевым телом — одно твёрдое тело без шва"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Вычитание"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Вырезать тело-инструмент из целевого тела"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Пересечение"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Оставить только область пересечения двух тел"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Поверхность выдавливания"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Поверхность вращения"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Поверхность по сечениям"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Заливка поверхности"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Сначала создайте замкнутый эскиз"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Утолщение поверхности"
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Отверстие"
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Резьба"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Разрезать тело плоскостью — перетащите стрелку смещения; оставьте одну половину или обе"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Разделение"
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Разделить тело по выбранной грани на два твёрдых тела"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Скругление"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Выберите ребро для скругления"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Выберите ребро, затем перетащите стрелку радиуса или введите его"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Фаска"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Выберите ребро для фаски"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Выберите ребро, затем перетащите стрелку расстояния или введите его"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Уклон"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Выберите грань для уклона"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Смещение поверхности"
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Линейный массив"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Повторить тело вдоль направления — перетащите шаг, задайте количество"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Круговой массив"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Повторить тело вокруг оси — задайте количество и угол охвата"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Отражение"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Массив по кривой"
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Повторить тело вдоль выбранной кривой"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Перемещение"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Сопряжение"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Выровнять по"
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Выровнять тело по выбранной грани или плоскости"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Плоскость"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Ось"
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Спираль"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Измерение"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Измерить расстояние между выбранными точками, рёбрами или гранями"
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Показать объём и площадь поверхности выбранного тела"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Интерференция"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Проверить, пересекаются ли два тела — только отчёт, без изменений"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Изменить"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "Снова открыть выбранный элемент, чтобы изменить исходные данные"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Переименовать…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Выберите элемент или тело, чтобы переименовать его"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Дать элементу имя, по которому его легко узнать в дереве (тело получает имя от создавшего его элемента)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Удаление грани"
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Удалить"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Удалить выбранное"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Удалить тело"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Удалить всё тело — удаляет элемент, из которого оно создано"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Линия"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Ломаная"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Щёлкайте точки; щелчок по первой точке замыкает контур, ПКМ завершает его незамкнутым"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Прямоугольник по углам"
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Наклонный прямоугольник"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Скруглённый прямоугольник"
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Окружность по 2 точкам"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Окружность по 3 точкам"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Дуга по 3 точкам"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Касательная дуга"
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Паз"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Дуговой паз"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Эллипс"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Эллиптическая дуга"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Сплайн"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Треугольник"
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Квадрат"
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Пятиугольник"
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Шестиугольник"
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Восьмиугольник"
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Двенадцатиугольник"
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Вписанный"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "Размер многоугольника по вершинам (вписанный)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Описанный"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "Размер многоугольника по сторонам (описанный)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Точка"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Текст"
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Импортировать контур SVG в эскиз как редактируемые линии"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Смещение"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Обрезка"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Линейный массив"
+
+# AI Translated
+msgid "Array"
+msgstr "Массив"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Круговой массив"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Поворот"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Масштаб"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Размер"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Ограничения"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "Наложить ограничения между выбранными объектами эскиза"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Ограничения эскиза"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Выберите эскиз, чтобы наложить на него ограничения"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Добавить размеры и связи (совпадение, касание, параллельность...) в выбранный эскиз"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Вспомогательная геометрия"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Переключить вспомогательную геометрию: она направляет построение, но не входит в модель"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Удлинение"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "Удалить выбранные объекты эскиза"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Длина…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Ввести длину этой линии"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Радиус / диаметр…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Ввести радиус этой дуги или диаметр этой окружности"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Угол / расстояние…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Ввести угол между двумя линиями или расстояние между двумя выбранными объектами"
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Size: %.1f × %.1f mm"
+msgstr ""
 
 # AI Translated
 msgid "Primitive"
@@ -26617,10 +27068,8 @@ msgstr "Профиль"
 msgid "Start new profile (for holes)"
 msgstr "Начать новый профиль (для отверстий)"
 
-# AI Translated
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
-msgstr "Сегм."
+msgid "Segments"
+msgstr ""
 
 # AI Translated
 msgid "Sides"
@@ -26634,19 +27083,20 @@ msgstr "Щёлкайте в рабочем пространстве, чтобы 
 msgid "Snap to grid"
 msgstr "Привязка к сетке"
 
+msgid "Grid step"
+msgstr ""
+
 # AI Translated
 msgid "Outer"
 msgstr "Внешний"
 
-# AI Translated
-msgid "CLOSED"
-msgstr "ЗАМКНУТ"
+msgid "closed"
+msgstr ""
 
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
-msgid "%1% %2%: %3% pts %4%"
-msgstr "%1% %2%: %3% т. %4%"
+msgid "%1% %2%: %3% points %4%"
+msgstr ""
 
 # AI Translated
 msgid "XY (Top)"
@@ -26684,13 +27134,8 @@ msgstr[2] "%zu замкнутых профилей"
 msgid "Draw a closed profile to enable"
 msgstr "Нарисуйте замкнутый профиль, чтобы включить"
 
-# AI Translated
-msgid "Pocket (Cut)"
-msgstr "Карман (вырез)"
-
-# AI Translated
-msgid "Clear All"
-msgstr "Очистить всё"
+msgid "Clear all"
+msgstr ""
 
 # AI Translated
 msgid "Empty result"
@@ -28097,164 +28542,6 @@ msgid "Note:"
 msgstr "Примечание:"
 
 # AI Translated
-msgid "Hollow this object"
-msgstr "Сделать модель полой"
-
-# AI Translated
-msgid "Preview hollowed and drilled model"
-msgstr "Предпросмотр полой модели с отверстиями"
-
-# AI Translated
-msgid "Closing distance"
-msgstr "Расстояние закрытия"
-
-# AI Translated
-msgid "Hole diameter"
-msgstr "Диаметр отверстия"
-
-# AI Translated
-msgid "Hole depth"
-msgstr "Глубина отверстия"
-
-# AI Translated
-msgid "Remove selected holes"
-msgstr "Удалить выбранные отверстия"
-
-# AI Translated
-msgid "Remove all holes"
-msgstr "Удалить все отверстия"
-
-# AI Translated
-msgid "Clipping of view"
-msgstr "Отсечение вида"
-
-msgid "Reset direction"
-msgstr "Сброс направления"
-
-# AI Translated
-msgid "Show supports"
-msgstr "Показать поддержки"
-
-# AI Translated
-msgid "Hollow and drill"
-msgstr "Полость и отверстия"
-
-msgid "Head diameter"
-msgstr "Диаметр уха"
-
-# AI Translated
-msgid "Lock supports under new islands"
-msgstr "Закрепить поддержки под новыми островами"
-
-msgid "Remove selected points"
-msgstr "Удалить выбранные"
-
-# AI Translated
-msgid "Remove all points"
-msgstr "Удалить все точки"
-
-# AI Translated
-msgid "Apply changes"
-msgstr "Применить изменения"
-
-# AI Translated
-msgid "Discard changes"
-msgstr "Отменить изменения"
-
-# AI Translated
-msgid "Minimal points distance"
-msgstr "Мин. расстояние между точками"
-
-# AI Translated
-msgid "Support points density"
-msgstr "Плотность точек поддержки"
-
-msgid "Auto-generate points"
-msgstr "Сгенерировать автоматически"
-
-# AI Translated
-msgid "Manual editing"
-msgstr "Ручное редактирование"
-
-# AI Translated
-msgid "SLA Support Points"
-msgstr "Точки поддержки SLA"
-
-# AI Translated
-msgid "Do you want to save your manually edited support points?"
-msgstr "Сохранить вручную изменённые точки поддержки?"
-
-# AI Translated
-msgid "Save support points?"
-msgstr "Сохранить точки поддержки?"
-
-# AI Translated
-msgid "Autogeneration will erase all manually edited points."
-msgstr "Автоматическая генерация удалит все вручную изменённые точки."
-
-# AI Translated
-msgid "Are you sure you want to do it?"
-msgstr "Вы действительно хотите это сделать?"
-
-# AI Translated
-msgid "SLA gizmo keyboard shortcuts"
-msgstr "Горячие клавиши инструмента SLA"
-
-# AI Translated
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr "Примечание: некоторые сочетания клавиш работают только в режиме редактирования или только вне его."
-
-msgid "Left click"
-msgstr "Левая кнопка мыши"
-
-# AI Translated
-msgid "Add point"
-msgstr "Добавить точку"
-
-msgid "Right click"
-msgstr "Правая кнопка мыши"
-
-# AI Translated
-msgid "Remove point"
-msgstr "Удалить точку"
-
-# AI Translated
-msgid "Move point"
-msgstr "Переместить точку"
-
-# AI Translated
-msgid "Add point to selection"
-msgstr "Добавить точку к выделению"
-
-# AI Translated
-msgid "Remove point from selection"
-msgstr "Исключить точку из выделения"
-
-# AI Translated
-msgid "Select by rectangle"
-msgstr "Выделить рамкой"
-
-# AI Translated
-msgid "Deselect by rectangle"
-msgstr "Снять выделение рамкой"
-
-# AI Translated
-msgid "Select all points"
-msgstr "Выделить все точки"
-
-# AI Translated
-msgid "Move clipping plane"
-msgstr "Переместить плоскость отсечения"
-
-# AI Translated
-msgid "Reset clipping plane"
-msgstr "Сбросить плоскость отсечения"
-
-# AI Translated
-msgid "Switch to editing mode"
-msgstr "Перейти в режим редактирования"
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Запечь"
@@ -28935,10 +29222,6 @@ msgstr "Повторяет текстуру по всей нарисованно
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Включите «Плитку», чтобы выбрать способ повтора текстуры."
-
-# AI Translated
-msgid "Repeat"
-msgstr "Повтор"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -30515,666 +30798,6 @@ msgid "apply_chamfer: OCCT chamfer failed"
 msgstr "apply_chamfer: ошибка построения фаски OCCT"
 
 # AI Translated
-msgid "Add material"
-msgstr "Добавить материал"
-
-# AI Translated
-msgid "Fillet / chamfer / draft"
-msgstr "Скругление / фаска / уклон"
-
-# AI Translated
-# Needs human review: Row name in the Design tab tool-offer menu; besides plane/axis/coord sys/helix it also holds Measure, Mass and Interference. Check that «Опорные элементы» reads right for the whole row.
-msgid "Reference"
-msgstr "Опорные элементы"
-
-# AI Translated
-msgid "Modify"
-msgstr "Правка"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sketch"
-msgstr "Эскиз"
-
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Щёлкните грань или опорную плоскость, затем выберите инструмент рисования"
-
-# AI Translated
-msgctxt "Design"
-msgid "Revolve"
-msgstr "Вращение"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sweep"
-msgstr "Протягивание"
-
-# AI Translated
-msgctxt "Design"
-msgid "Loft"
-msgstr "По сечениям"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken"
-msgstr "Утолщение"
-
-# AI Translated
-msgctxt "Design"
-msgid "Union"
-msgstr "Объединение"
-
-# AI Translated
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr "Объединить тело-инструмент с целевым телом — одно твёрдое тело без шва"
-
-# AI Translated
-msgctxt "Design"
-msgid "Subtract"
-msgstr "Вычитание"
-
-# AI Translated
-msgid "Cut the tool body out of the target"
-msgstr "Вырезать тело-инструмент из целевого тела"
-
-# AI Translated
-msgctxt "Design"
-msgid "Intersect"
-msgstr "Пересечение"
-
-# AI Translated
-msgid "Keep only where the two bodies overlap"
-msgstr "Оставить только область пересечения двух тел"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr "Поверхность выдавливания"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr "Поверхность вращения"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr "Поверхность по сечениям"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr "Заливка поверхности"
-
-# AI Translated
-msgid "Create a closed sketch first"
-msgstr "Сначала создайте замкнутый эскиз"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr "Утолщение поверхности"
-
-# AI Translated
-msgid "target is not a sheet body"
-msgstr "целевое тело не является поверхностным"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hole"
-msgstr "Отверстие"
-
-# AI Translated
-msgid "Pick a face or a plane to drill into"
-msgstr "Выберите грань или плоскость для создания отверстия"
-
-# AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "Создать отверстие по центру выбранной грани или на плоскости"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thread"
-msgstr "Резьба"
-
-# AI Translated
-msgid "Shell needs a solid body"
-msgstr "Для оболочки нужно твёрдое тело"
-
-# AI Translated
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr "Разрезать тело плоскостью — перетащите стрелку смещения; оставьте одну половину или обе"
-
-# AI Translated
-msgctxt "Design"
-msgid "Split"
-msgstr "Разделение"
-
-# AI Translated
-msgid "Split needs a solid body"
-msgstr "Для разделения нужно твёрдое тело"
-
-# AI Translated
-msgid "Split the body along a picked face into two solids"
-msgstr "Разделить тело по выбранной грани на два твёрдых тела"
-
-# AI Translated
-msgctxt "Design"
-msgid "Fillet"
-msgstr "Скругление"
-
-# AI Translated
-msgid "Pick an edge to round"
-msgstr "Выберите ребро для скругления"
-
-# AI Translated
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr "Выберите ребро, затем перетащите стрелку радиуса или введите его"
-
-# AI Translated
-msgctxt "Design"
-msgid "Chamfer"
-msgstr "Фаска"
-
-# AI Translated
-msgid "Pick an edge to bevel"
-msgstr "Выберите ребро для фаски"
-
-# AI Translated
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr "Выберите ребро, затем перетащите стрелку расстояния или введите его"
-
-# AI Translated
-msgctxt "Design"
-msgid "Draft"
-msgstr "Уклон"
-
-# AI Translated
-msgid "Pick a face to taper"
-msgstr "Выберите грань для уклона"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr "Смещение поверхности"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr "Линейный массив"
-
-# AI Translated
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr "Повторить тело вдоль направления — перетащите шаг, задайте количество"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr "Круговой массив"
-
-# AI Translated
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr "Повторить тело вокруг оси — задайте количество и угол охвата"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mirror"
-msgstr "Отражение"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr "Массив по кривой"
-
-# AI Translated
-msgid "Pattern on curve needs a body and a curve"
-msgstr "Для массива по кривой нужны тело и кривая"
-
-# AI Translated
-msgid "Repeat the body along a picked curve"
-msgstr "Повторить тело вдоль выбранной кривой"
-
-# AI Translated
-msgctxt "Design"
-msgid "Move"
-msgstr "Перемещение"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mate"
-msgstr "Сопряжение"
-
-# AI Translated
-msgid "A mate needs two coordinate systems"
-msgstr "Для сопряжения нужны две системы координат"
-
-# AI Translated
-msgctxt "Design"
-msgid "Align to"
-msgstr "Выровнять по"
-
-# AI Translated
-msgid "Align needs a body"
-msgstr "Для выравнивания нужно тело"
-
-# AI Translated
-msgid "Align the body to a picked face or plane"
-msgstr "Выровнять тело по выбранной грани или плоскости"
-
-# AI Translated
-msgctxt "Design"
-msgid "Plane"
-msgstr "Плоскость"
-
-# AI Translated
-msgctxt "Design"
-msgid "Axis"
-msgstr "Ось"
-
-# AI Translated
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr "Система координат"
-
-# AI Translated
-msgctxt "Design"
-msgid "Helix"
-msgstr "Спираль"
-
-# AI Translated
-msgctxt "Design"
-msgid "Measure"
-msgstr "Измерение"
-
-# AI Translated
-msgid "Measure between the picked points, edges or faces"
-msgstr "Измерить расстояние между выбранными точками, рёбрами или гранями"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mass"
-msgstr "Массовые характеристики"
-
-# AI Translated
-msgid "Report the volume and surface area of the selected body"
-msgstr "Показать объём и площадь поверхности выбранного тела"
-
-# AI Translated
-msgctxt "Design"
-msgid "Interference"
-msgstr "Интерференция"
-
-# AI Translated
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr "Проверить, пересекаются ли два тела — только отчёт, без изменений"
-
-# AI Translated
-msgctxt "Design"
-msgid "Edit"
-msgstr "Изменить"
-
-# AI Translated
-msgid "Reopen the selected feature to change what it was made from"
-msgstr "Снова открыть выбранный элемент, чтобы изменить исходные данные"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rename…"
-msgstr "Переименовать…"
-
-# AI Translated
-msgid "Select a feature, or a body, to rename it"
-msgstr "Выберите элемент или тело, чтобы переименовать его"
-
-# AI Translated
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr "Дать элементу имя, по которому его легко узнать в дереве (тело получает имя от создавшего его элемента)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Face"
-msgstr "Удаление грани"
-
-# AI Translated
-msgctxt "Design"
-msgid "Colour"
-msgstr "Цвет"
-
-# AI Translated
-msgid "Set the selected body's display colour"
-msgstr "Задать цвет отображения выбранного тела"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete"
-msgstr "Удалить"
-
-# AI Translated
-msgid "Delete what is selected"
-msgstr "Удалить выбранное"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Body"
-msgstr "Удалить тело"
-
-# AI Translated
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr "Удалить всё тело — удаляет элемент, из которого оно создано"
-
-# AI Translated
-msgctxt "Design"
-msgid "Line"
-msgstr "Линия"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polyline"
-msgstr "Ломаная"
-
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr "Щёлкайте точки; щелчок по первой точке замыкает контур, ПКМ завершает его незамкнутым"
-
-# AI Translated
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr "Прямоугольник по углам"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr "Прямоугольник от центра"
-
-# AI Translated
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr "Наклонный прямоугольник"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr "Скруглённый прямоугольник"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre circle"
-msgstr "Окружность по центру"
-
-# AI Translated
-msgctxt "Design"
-msgid "2-point circle"
-msgstr "Окружность по 2 точкам"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point circle"
-msgstr "Окружность по 3 точкам"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point arc"
-msgstr "Дуга по 3 точкам"
-
-# AI Translated
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr "Касательная дуга"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr "Дуга по центру"
-
-# AI Translated
-msgctxt "Design"
-msgid "Slot"
-msgstr "Паз"
-
-# AI Translated
-msgctxt "Design"
-msgid "Arc slot"
-msgstr "Дуговой паз"
-
-# AI Translated
-msgctxt "Design"
-msgid "Ellipse"
-msgstr "Эллипс"
-
-# AI Translated
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr "Эллиптическая дуга"
-
-# AI Translated
-msgctxt "Design"
-msgid "Spline"
-msgstr "Сплайн"
-
-# AI Translated
-msgctxt "Design"
-msgid "Triangle"
-msgstr "Треугольник"
-
-# AI Translated
-msgid "Triangle — click centre, then a vertex"
-msgstr "Треугольник — щёлкните центр, затем вершину"
-
-# AI Translated
-msgctxt "Design"
-msgid "Square"
-msgstr "Квадрат"
-
-# AI Translated
-msgid "Square — click centre, then a vertex"
-msgstr "Квадрат — щёлкните центр, затем вершину"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pentagon"
-msgstr "Пятиугольник"
-
-# AI Translated
-msgid "Pentagon — click centre, then a vertex"
-msgstr "Пятиугольник — щёлкните центр, затем вершину"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hexagon"
-msgstr "Шестиугольник"
-
-# AI Translated
-msgid "Hexagon — click centre, then a vertex"
-msgstr "Шестиугольник — щёлкните центр, затем вершину"
-
-# AI Translated
-msgctxt "Design"
-msgid "Octagon"
-msgstr "Восьмиугольник"
-
-# AI Translated
-msgid "Octagon — click centre, then a vertex"
-msgstr "Восьмиугольник — щёлкните центр, затем вершину"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr "Двенадцатиугольник"
-
-# AI Translated
-msgid "Dodecagon — click centre, then a vertex"
-msgstr "Двенадцатиугольник — щёлкните центр, затем вершину"
-
-# AI Translated
-msgctxt "Design"
-msgid "Inscribed"
-msgstr "Вписанный"
-
-# AI Translated
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr "Размер многоугольника по вершинам (вписанный)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr "Описанный"
-
-# AI Translated
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr "Размер многоугольника по сторонам (описанный)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Point"
-msgstr "Точка"
-
-# AI Translated
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr "Введите текст; его контур добавляется в эскиз как редактируемые линии"
-
-# AI Translated
-msgctxt "Design"
-msgid "SVG"
-msgstr "SVG"
-
-# AI Translated
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr "Импортировать контур SVG в эскиз как редактируемые линии"
-
-# AI Translated
-msgctxt "Design"
-msgid "Offset"
-msgstr "Смещение"
-
-# AI Translated
-msgctxt "Design"
-msgid "Trim"
-msgstr "Обрезка"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear array"
-msgstr "Линейный массив"
-
-# AI Translated
-msgid "Array"
-msgstr "Массив"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polar array"
-msgstr "Круговой массив"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rotate"
-msgstr "Поворот"
-
-# AI Translated
-msgctxt "Design"
-msgid "Scale"
-msgstr "Масштаб"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dimension"
-msgstr "Размер"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain"
-msgstr "Ограничения"
-
-# AI Translated
-msgid "Constrain the selected sketch entities to each other"
-msgstr "Наложить ограничения между выбранными объектами эскиза"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr "Ограничения эскиза"
-
-# AI Translated
-msgid "Select a sketch to constrain it"
-msgstr "Выберите эскиз, чтобы наложить на него ограничения"
-
-# AI Translated
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr "Добавить размеры и связи (совпадение, касание, параллельность...) в выбранный эскиз"
-
-# AI Translated
-msgctxt "Design"
-msgid "Construction"
-msgstr "Вспомогательная геометрия"
-
-# AI Translated
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr "Переключить вспомогательную геометрию: она направляет построение, но не входит в модель"
-
-# AI Translated
-msgctxt "Design"
-msgid "Extend"
-msgstr "Удлинение"
-
-# AI Translated
-msgid "Delete the selected sketch entities"
-msgstr "Удалить выбранные объекты эскиза"
-
-# AI Translated
-msgctxt "Design"
-msgid "Length…"
-msgstr "Длина…"
-
-# AI Translated
-msgid "Type the length of this line"
-msgstr "Ввести длину этой линии"
-
-# AI Translated
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr "Радиус / диаметр…"
-
-# AI Translated
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr "Ввести радиус этой дуги или диаметр этой окружности"
-
-# AI Translated
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr "Угол / расстояние…"
-
-# AI Translated
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr "Ввести угол между двумя линиями или расстояние между двумя выбранными объектами"
-
-# AI Translated
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr "Сторона"
-
-# AI Translated
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr "Большая ось"
-
-# AI Translated
-msgid "Minor"
-msgstr "Малая ось"
-
-# AI Translated
-msgid "right-click or double-click to finish, click start to close"
-msgstr "ПКМ или двойной щелчок — завершить, щелчок по началу — замкнуть"
-
-# AI Translated
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr "Удлинение: щёлкните линию/дугу, которую можно продлить до другого объекта текущего эскиза"
-
-# AI Translated
-msgid "Trim: click a segment where it crosses another live entity"
-msgstr "Обрезка: щёлкните сегмент в месте пересечения с другим объектом текущего эскиза"
-
-# AI Translated
 msgid "Authentication complete"
 msgstr "Аутентификация завершена"
 
@@ -31617,16 +31240,953 @@ msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
 
+#~ msgid "Face recognition"
+#~ msgstr "Распознавание граней"
+
+# ??? Выполнить распознавание
+#~ msgid "Perform Recognition"
+#~ msgstr "Выполнение распознавания"
+
+#~ msgid "Text Gap"
+#~ msgstr "Межбуквенный интервал"
+
+#~ msgid "Embedded depth"
+#~ msgstr "Глубина проникновения"
+
+#~ msgid "Input text"
+#~ msgstr "Введите текст"
+
+#~ msgid "Surface"
+#~ msgstr "На поверхности"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Горизонтальный текст"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "Движение мыши вверх или вниз"
+
+#~ msgid "Rotate text"
+#~ msgstr "Поворот текста"
+
+#~ msgid "Text shape"
+#~ msgstr "Форма текста"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Нарезка стола %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Пожалуйста, устраните ошибки нарезки и попробуйте опубликовать снова."
+
+# AI Translated
+#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+#~ msgstr "Считать конечные точки эскиза, находящиеся в пределах 0,001 мм друг от друга, одной точкой и замыкать контур. Если выключено, соединяются только точно совпадающие конечные точки, поэтому контур с крошечным зазором отображается незамкнутым, а не замыкается автоматически."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Нарезка всех столов для расчёта примерного времени печати и расхода материала"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "Упаковка данных проекта в файл формата 3mf"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "Отправка 3MF"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Перейти на веб-страницу публикации модели"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Примечание: подготовка может занять несколько минут. Пожалуйста, наберитесь терпения."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "Публикация была отменена"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Нарезка стола 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Упаковка данных в 3MF"
+
+#~ msgid "Uploading data"
+#~ msgstr "Отправка данных"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Перейти на страницу"
+
+# "Импорт цветного obj-файла" вводит в заблуждение, это именно импорт цветов
+# из файла. При нажатии "отмены" импорт не прерывается, просто цвета не
+# подхватываются.
+#~ msgid "OBJ file import color"
+#~ msgstr "Импорт цвета из файла OBJ"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Некоторым граням не назначен цвет."
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "Ошибка файла MTL, не удалось найти материал:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Проверьте файл OBJ или MTL."
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "Количество цветов:"
+
+# Чрезвычайно техничная подсказка. Очевидно, что там обычное поле ввода со
+# стрелочками.
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Укажите количество цветов"
+
+# Перед этим выводится количество цветов, после пробела круглая скобка (т.е.
+# пробел лишний)
+#~ msgid "Recommended "
+#~ msgstr "рекомендуется"
+
+# Импорт OBJ с цветами
+#~ msgid "view"
+#~ msgstr "Вид"
+
+#~ msgid "Current filament colors"
+#~ msgstr "Текущие цвета прутков:"
+
+#~ msgid "Matching"
+#~ msgstr "Сопоставление"
+
+#~ msgid "Quick set"
+#~ msgstr "Действия"
+
+# ??? Цветовая схема
+#~ msgid "Color match"
+#~ msgstr "Подбор цвета"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "Приблизительный подбор по цвету ваших материалов."
+
+#~ msgid "Append"
+#~ msgstr "Добавить"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "Добавить цвет к существующим"
+
+# Без понятия, зачем там "экструдеры", настраиваются цвета. И точка
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Сброс сопоставленных цветов"
+
+#~ msgid "Note"
+#~ msgstr "Примечание"
+
+# Тут вторая строка срезается при изменении количества цветов.
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr "выбор цветов можно изменить вручную."
+
+#~ msgid "—> "
+#~ msgstr "→  "
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Стандартная высота слоя для сопла 0.2 мм. Обеспечивает практически незаметные слои и высокое качество печати. Подходит для большинства обычных сценариев печати."
+
+# Не забываем разбивать (упрощать) длинные предложения с множеством однородных
+# членов (например, где есть упоминание гироида).
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает гораздо более высокое качество ценой увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет немного большую высоту слоя, что обеспечивает практически незаметные слои и немного сокращает время печати."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет увеличенную высоту слоя, что обеспечивает малозаметные слои и сокращает время печати."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, что обеспечивает практически незаметные слои и более высокое качество ценой увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает практически невидимые слои и более высокое качество ценой значительного увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и более высокое качество ценой увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.2 мм имеет меньшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает менее заметные слои и более высокое качество ценой значительного увеличения времени печати."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Стандартная высота слоя, которая обеспечивает нормальное качество печати для большинства обычных сценариев."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет больше периметров и увеличенную плотность заполнения, что обеспечивает повышение прочности ценой увеличения расхода материала и времени печати."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и небольшое сокращение времени печати ценой снижения качества."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и сокращение времени печати ценой снижения качества."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и более высокое качество ценой увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет меньшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает менее заметные слои и гораздо более высокое качество ценой значительного увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет меньшую высоту слоя, что обеспечивает пректически незаметные слои и более высокое качество ценой увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет наименьшую высоту слоя, более низкие скорости и ускорения, а также гироидный шаблон заполнения. Это обеспечивает почти незаметные слои и гораздо более высокое качество ценой значительного увеличения времени печати."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.4 мм имеет наименьшую высоту слоя. Это обеспечивает почти незаметные слои, но при этом увеличивается время печати."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "Большая высота слоя обеспечивает нормальное качество и время печати ценой появления заметных слоёв."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет больше периметров и более высокую плотность заполнения. Это обеспечивает повышение прочности, но увеличивает расход материала и время печати."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и снижение качества, но при этом в некоторых случаях сокращается время печати."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет увеличенную высоту слоя, что обеспечивает более заметные слои и значительное снижение качества, но при этом в некоторых случаях сокращается время печати."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и незначительное повышение качества, но при этом увеличивается время печати."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.6 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и более высокое качество, но при этом увеличивается время печати."
+
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Очень большая высота слоя обеспечивает сокращение времени печати ценой снижения качества и появления очень заметных слоёв."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет большую высоту слоя, что обеспечивает заметные слои и более низкое качество, но при этом в некоторых случаях уменьшается время печати."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет сильно большую высоту слоя, что обеспечивает очень заметные слои и более низкое качество, но при этом в некоторых случаях уменьшается время печати."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет немного сниженную высоту слоя, что обеспечивает немного менее заметные слои и немного более высокое качество, но при этом в некоторых случаях увеличивается время печати."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "В отличие от стандартного профиля для сопла 0.8 мм имеет меньшую высоту слоя, что обеспечивает менее заметные слои и немного более высокое качество, но при этом в некоторых случаях увеличивается время печати."
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Данный материал не используется часто и не является материалом Bambu, его свойства могут значительно отличаться у разных производителей. Перед печатью настоятельно рекомендуется запросить у производителя совместимый профиль и адаптировать его к свойствам материала."
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "При печати этим материалом существует риск усадочных деформаций и низкой спекаемости слоёв. Для улучшения результата воспользуйтесь советами из руководства на Wiki по печати высокотемпературными/инженерными материалами."
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "При печати этим материалом существует риск усадочных деформаций, низкой спекаемости слоёв, подтёков и засорения сопла. Для улучшения результата воспользуйтесь советами из руководства на Wiki по печати высокотемпературными/инженерными материалами."
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Для улучшения результата при печати прозрачных деталей воспользуйтесь советами из руководства на Wiki по печати прозрачным PETG."
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Для повышения глянцевого эффекта перед печатью необходима сушка, а в процессе – низкая скорость печати внешних периметров (40-60 мм/с)."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Материал предназначен для печати моделей с низкой плотностью. Для настройки необходимых параметров и улучшения качества печати воспользуйтесь советами из руководства на Wiki по печати радиоуправляемых моделей из пенящегося PLA (PLA Aero)."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Материал предназначен для печати моделей с низкой плотностью. Для настройки необходимых параметров и улучшения качества печати воспользуйтесь советами из руководства на Wiki по печати пенящимся ASA (ASA Aero)."
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Очень гибкий материал, несовместимый с AMS. К печати им предъявляется множество требований, и для получения качественного результата рекомендуется воспользоваться советами из руководства на Wiki по печати TPU."
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Материал с низкой эластичностью (твёрдость около 67D), совместимый с AMS. К печати им предъявляется множество требований, и для получения качественного результата рекомендуется воспользоваться советами из руководства на Wiki по печати TPU."
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Если вы собираетесь печатать мягким TPU, не используйте этот профиль – он предназначен только для достаточно твёрдого TPU (не менее 55D), совместимого с AMS. Для улучшения качества печати воспользуйтесь советами из руководства на Wiki по печати TPU."
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Водорастворимый материал, предназначенный для печати поддержек. К печати им предъявляется множество требований, и для получения качественного результата рекомендуется воспользоваться советами из руководства на Wiki по печати PVA."
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Хрупкий нерастворимый материал для печати поддержек. Для улучшения качества печати воспользуйтесь советами из руководства на Wiki по использованию материалов для печати поддержек."
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "Общие профили (Generic) настроены усреднённо для максимальной совместимости с широким спектром материалов. Для наилучшего качества и скорости печати рекомендуется использовать материалы и профили Bambu."
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Профиль для сопла 0.2 мм с упором на качество печати."
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Профиль для печати слоем 0.16 мм с упором на качество и прочность."
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Обычный профиль для печати слоем 0.16 мм с упором на скорость."
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Профиль для печати слоем 0.2 мм с упором на качество и прочность."
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Обычный профиль для сопла 0.2 мм с упором на скорость."
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Профиль для сопла 0.6 мм с упором на качество и прочность."
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Профиль для сопла 0.6 мм с упором на прочность."
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Обычный профиль для сопла 0.6 мм с упором на скорость."
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Профиль для сопла 0.8 мм с упором на качество."
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Профиль для сопла 0.8 мм с упором на прочность."
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Обычный профиль для сопла 0.6 мм с упором на скорость."
+
+# AI Translated
+#~ msgid "Slot — two centerline ends, then end radius"
+#~ msgstr "Паз — два конца осевой линии, затем радиус концов"
+
+# AI Translated
+#~ msgid "Isometric view, fitted"
+#~ msgstr "Изометрия, вписано в окно"
+
+# AI Translated
+#~ msgid "Coord Sys"
+#~ msgstr "Система координат"
+
+# AI Translated
+#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+#~ msgstr "Сборка: совмещение двух элементов СК (жёсткое, плоское, вращательное, поступательное, цилиндрическое)"
+
+# AI Translated
+#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
+#~ msgstr "Щёлкайте точки; щелчок по первой точке замыкает контур, ПКМ завершает цепочку"
+
+# AI Translated
+#~ msgid "Click two centerline ends, then a point for the end radius"
+#~ msgstr "Щёлкните два конца осевой линии, затем точку для радиуса концов"
+
+# AI Translated
+#~ msgid "Click control points; double-click or right-click to finish"
+#~ msgstr "Щёлкайте контрольные точки; двойной щелчок или ПКМ — завершить"
+
+# AI Translated
+#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+#~ msgstr "Щёлкните сегмент, чтобы обрезать его до ближайшего пересечения; ПКМ — выход"
+
+# AI Translated
+#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+#~ msgstr "Щёлкните линию или дугу, чтобы удлинить её до ближайшего объекта; ПКМ — выход"
+
+# AI Translated
+#~ msgid "✓ Confirm"
+#~ msgstr "✓ Подтвердить"
+
+# AI Translated
+#~ msgid "✗ Cancel"
+#~ msgstr "✗ Отмена"
+
+# AI Translated
+#~ msgid "Undo (Ctrl+Z)"
+#~ msgstr "Отменить (Ctrl+Z)"
+
+# AI Translated
+#~ msgid "Redo (Ctrl+Shift+Z)"
+#~ msgstr "Повторить (Ctrl+Shift+Z)"
+
+# AI Translated
+#~ msgid "Taper °"
+#~ msgstr "Уклон °"
+
+# AI Translated
+#~ msgid "Total angle°"
+#~ msgstr "Общий угол°"
+
+# AI Translated
+#~ msgid "Union (join)"
+#~ msgstr "Объединение (слияние)"
+
+# AI Translated
+#~ msgid "Subtract (cut)"
+#~ msgstr "Вычитание (вырез)"
+
+# AI Translated
+#~ msgid "Angle°"
+#~ msgstr "Угол°"
+
+# AI Translated
+#~ msgid "CS A (fixed)"
+#~ msgstr "СК A (неподвижная)"
+
+# AI Translated
+#~ msgid "CS B (moves)"
+#~ msgstr "СК B (подвижная)"
+
+# AI Translated
+#~ msgid "Move body"
+#~ msgstr "Переместить тело"
+
+# AI Translated
+#~ msgid "Select a body row first, then move it"
+#~ msgstr "Сначала выберите строку тела, затем переместите его"
+
+# AI Translated
+#~ msgid "+"
+#~ msgstr "+"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Тело %d: выбрано ребро %d — примените скругление/фаску или щёлкните ещё раз, чтобы выбрать всё тело"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Выбрано ребро %d — примените скругление/фаску или щёлкните ещё раз, чтобы выбрать всё тело"
+
+# AI Translated
+#~ msgid "Text to insert:"
+#~ msgstr "Вставляемый текст:"
+
+# AI Translated
+#~ msgid "STEP import failed: "
+#~ msgstr "Ошибка импорта STEP: "
+
+# AI Translated
+#~ msgid "Could not read the OBJ file: "
+#~ msgstr "Не удалось прочитать файл OBJ: "
+
+# AI Translated
+#~ msgid "Mesh conversion failed: "
+#~ msgstr "Ошибка преобразования сетки: "
+
+# AI Translated
+#~ msgid "Mesh import failed: "
+#~ msgstr "Ошибка импорта сетки: "
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move — right-click when done"
+#~ msgstr "Перетащите угол для масштабирования, центр для перемещения — ПКМ по завершении"
+
+# AI Translated
+#~ msgid "Recompute error: "
+#~ msgstr "Ошибка перестроения: "
+
+# AI Translated
+#~ msgid "Mate needs two CoordSys features — create them first"
+#~ msgstr "Для сопряжения нужны два элемента СК — сначала создайте их"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different CoordSys features"
+#~ msgstr "Сопряжение: СК A и СК B должны быть разными элементами СК"
+
+# AI Translated
+#~ msgid "No interference — need at least two solid bodies to check"
+#~ msgstr "Нет интерференции — для проверки нужны как минимум два твёрдых тела"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pair, worst %.2f mm³"
+#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
+#~ msgstr[0] "%zu пара с интерференцией, максимум %.2f мм³"
+#~ msgstr[1] "%zu пары с интерференцией, максимум %.2f мм³"
+#~ msgstr[2] "%zu пар с интерференцией, максимум %.2f мм³"
+
+# AI Translated
+#~ msgid ""
+#~ "Interference pairs:\n"
+#~ "\n"
+#~ msgstr ""
+#~ "Пары с интерференцией:\n"
+#~ "\n"
+
+# AI Translated
+#~ msgid "Interference"
+#~ msgstr "Интерференция"
+
+# AI Translated
+#~ msgid "Select a solid body first — its mass properties are what is reported"
+#~ msgstr "Сначала выберите твёрдое тело — будут показаны его массовые характеристики"
+
+# AI Translated
+#~ msgid "Mass properties could not be computed for this body"
+#~ msgstr "Не удалось вычислить массовые характеристики этого тела"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
+#~ msgstr "%s: поверхностное тело — площадь поверхности %.2f см², объёма нет"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Sheet body (open shell)\n"
+#~ "Surface area: %.2f cm²\n"
+#~ "\n"
+#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Поверхностное тело (открытая оболочка)\n"
+#~ "Площадь поверхности: %.2f см²\n"
+#~ "\n"
+#~ "Поверхность не заключает в себе материал, поэтому у неё нет объёма. Утолщите её до твёрдого тела, чтобы получить объём."
+
+# AI Translated
+#~ msgid "Mass properties"
+#~ msgstr "Массовые характеристики"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: %.3f cm³, %.2f cm²"
+#~ msgstr "%s: %.3f см³, %.2f см²"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Surface area: %.2f cm²"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Объём: %.3f см³\n"
+#~ "Площадь поверхности: %.2f см²"
+
+# AI Translated
+#~ msgid "Boolean needs two solid bodies — add or import a second one"
+#~ msgstr "Для булевой операции нужны два твёрдых тела — добавьте или импортируйте второе"
+
+# AI Translated
+#~ msgid "Line — click the end point, or type the length"
+#~ msgstr "Линия — щёлкните конечную точку или введите длину"
+
+# AI Translated
+#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+#~ msgstr "Ломаная — щёлкните следующую точку  ·  щёлкните начальную точку, чтобы замкнуть её  ·  ПКМ — завершить цепочку"
+
+# AI Translated
+#~ msgid "Circle — click to set the radius, or type it"
+#~ msgstr "Окружность — щёлкните, чтобы задать радиус, или введите его"
+
+# AI Translated
+#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
+#~ msgstr "Сплайн — щёлкните следующую контрольную точку  ·  ПКМ — завершить кривую"
+
+# AI Translated
+#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+#~ msgstr "Обрезка — щёлкните сегмент в месте пересечения с другим объектом  ·  ПКМ — выход"
+
+# AI Translated
+#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+#~ msgstr "Удлинение — щёлкните линию или дугу, чтобы продлить её до ближайшего объекта  ·  ПКМ — выход"
+
+# AI Translated
+#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Скругление — перетащите стрелку или щёлкните число, чтобы ввести радиус  ·  щелчок по пустому месту — применить  ·  ПКМ — отмена"
+
+# AI Translated
+#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Фаска — перетащите стрелку или щёлкните число, чтобы ввести отступ  ·  щелчок по пустому месту — применить  ·  ПКМ — отмена"
+
+# AI Translated
+#~ msgid "Offset — click the entity to offset"
+#~ msgstr "Смещение — щёлкните объект для смещения"
+
+# AI Translated
+#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Смещение — перетащите стрелку в любую сторону или щёлкните число, чтобы ввести расстояние  ·  щелчок по пустому месту — применить  ·  ПКМ — отмена"
+
+# AI Translated
+#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+#~ msgstr "Отражение — ось задана  ·  теперь щёлкните объекты для отражения  ·  ПКМ — отмена"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+#~ msgstr "Отражение — ось задана  ·  для отражения: %d  ·  щёлкните другой объект, чтобы добавить или убрать его  ·  щелчок по пустому месту — применить"
+
+# AI Translated
+#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+#~ msgstr "Перемещение — перетащите маркер или щёлкните число, чтобы ввести расстояние  ·  щелчок по пустому месту — применить"
+
+# AI Translated
+#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+#~ msgstr "Поворот — перетащите маркер или щёлкните число, чтобы ввести угол  ·  щелчок по пустому месту — применить"
+
+# AI Translated
+#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+#~ msgstr "Масштаб — перетащите маркер или щёлкните число, чтобы ввести коэффициент  ·  щелчок по пустому месту — применить"
+
+# AI Translated
+#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Массив — перетащите маркер, чтобы задать шаг, щёлкните количество, чтобы ввести его  ·  щелчок по пустому месту — применить"
+
+# AI Translated
+#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Круговой массив — перетащите маркер, чтобы задать угол охвата, щёлкните количество, чтобы ввести его  ·  щелчок по пустому месту — применить"
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+#~ msgstr "Перетащите угол для масштабирования, центр для перемещения  ·  ПКМ по завершении"
+
+# AI Translated
+#~ msgid "Coord Sys added"
+#~ msgstr "Система координат добавлена"
+
+# AI Translated
+#~ msgid "Could not restore the CAD model: "
+#~ msgstr "Не удалось восстановить CAD-модель: "
+
+# AI Translated
+#~ msgid "Boolean needs two bodies — create or import a second solid"
+#~ msgstr "Для булевой операции нужны два тела — создайте или импортируйте второе твёрдое тело"
+
+# AI Translated
+#~ msgid "Edit rejected: "
+#~ msgstr "Изменение отклонено: "
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Delete %s?\n"
+#~ "\n"
+#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
+#~ msgstr ""
+#~ "Удалить «%s»?\n"
+#~ "\n"
+#~ "Это элемент, из которого создано это тело. Элементы, построенные на его основе, могут быть удалены или перестать работать."
+
+# AI Translated
+#~ msgid "Delete body"
+#~ msgstr "Удалить тело"
+
+# AI Translated
+#~ msgid "STEP export failed: "
+#~ msgstr "Ошибка экспорта STEP: "
+
+# AI Translated
+#~ msgid "Coord Sys ready"
+#~ msgstr "Система координат готова"
+
+# AI Translated
+#~ msgid "Mate needs at least two CoordSys features"
+#~ msgstr "Для сопряжения нужны как минимум два элемента СК"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different"
+#~ msgstr "Сопряжение: СК A и СК B должны различаться"
+
+# AI Translated
+#~ msgid "Invalid: "
+#~ msgstr "Недопустимо: "
+
+# AI Translated
+#~ msgid "Variable name:"
+#~ msgstr "Имя переменной:"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Expression for '%s':"
+#~ msgstr "Выражение для «%s»:"
+
+# AI Translated
+#~ msgid "Seg"
+#~ msgstr "Сегм."
+
+# AI Translated
+#~ msgid "CLOSED"
+#~ msgstr "ЗАМКНУТ"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% pts %4%"
+#~ msgstr "%1% %2%: %3% т. %4%"
+
+# AI Translated
+#~ msgid "Pocket (Cut)"
+#~ msgstr "Карман (вырез)"
+
+# AI Translated
+#~ msgid "Clear All"
+#~ msgstr "Очистить всё"
+
+# AI Translated
+#~ msgid "Hollow this object"
+#~ msgstr "Сделать модель полой"
+
+# AI Translated
+#~ msgid "Preview hollowed and drilled model"
+#~ msgstr "Предпросмотр полой модели с отверстиями"
+
+# AI Translated
+#~ msgid "Closing distance"
+#~ msgstr "Расстояние закрытия"
+
+# AI Translated
+#~ msgid "Hole diameter"
+#~ msgstr "Диаметр отверстия"
+
+# AI Translated
+#~ msgid "Hole depth"
+#~ msgstr "Глубина отверстия"
+
+# AI Translated
+#~ msgid "Remove selected holes"
+#~ msgstr "Удалить выбранные отверстия"
+
+# AI Translated
+#~ msgid "Remove all holes"
+#~ msgstr "Удалить все отверстия"
+
+# AI Translated
+#~ msgid "Clipping of view"
+#~ msgstr "Отсечение вида"
+
+#~ msgid "Reset direction"
+#~ msgstr "Сброс направления"
+
+# AI Translated
+#~ msgid "Show supports"
+#~ msgstr "Показать поддержки"
+
+# AI Translated
+#~ msgid "Hollow and drill"
+#~ msgstr "Полость и отверстия"
+
+#~ msgid "Head diameter"
+#~ msgstr "Диаметр уха"
+
+# AI Translated
+#~ msgid "Lock supports under new islands"
+#~ msgstr "Закрепить поддержки под новыми островами"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Удалить выбранные"
+
+# AI Translated
+#~ msgid "Remove all points"
+#~ msgstr "Удалить все точки"
+
+# AI Translated
+#~ msgid "Apply changes"
+#~ msgstr "Применить изменения"
+
+# AI Translated
+#~ msgid "Discard changes"
+#~ msgstr "Отменить изменения"
+
+# AI Translated
+#~ msgid "Minimal points distance"
+#~ msgstr "Мин. расстояние между точками"
+
+# AI Translated
+#~ msgid "Support points density"
+#~ msgstr "Плотность точек поддержки"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Сгенерировать автоматически"
+
+# AI Translated
+#~ msgid "Manual editing"
+#~ msgstr "Ручное редактирование"
+
+# AI Translated
+#~ msgid "SLA Support Points"
+#~ msgstr "Точки поддержки SLA"
+
+# AI Translated
+#~ msgid "Do you want to save your manually edited support points?"
+#~ msgstr "Сохранить вручную изменённые точки поддержки?"
+
+# AI Translated
+#~ msgid "Save support points?"
+#~ msgstr "Сохранить точки поддержки?"
+
+# AI Translated
+#~ msgid "Autogeneration will erase all manually edited points."
+#~ msgstr "Автоматическая генерация удалит все вручную изменённые точки."
+
+# AI Translated
+#~ msgid "Are you sure you want to do it?"
+#~ msgstr "Вы действительно хотите это сделать?"
+
+# AI Translated
+#~ msgid "SLA gizmo keyboard shortcuts"
+#~ msgstr "Горячие клавиши инструмента SLA"
+
+# AI Translated
+#~ msgid "Note: some shortcuts work in (non)editing mode only."
+#~ msgstr "Примечание: некоторые сочетания клавиш работают только в режиме редактирования или только вне его."
+
+#~ msgid "Left click"
+#~ msgstr "Левая кнопка мыши"
+
+# AI Translated
+#~ msgid "Add point"
+#~ msgstr "Добавить точку"
+
+#~ msgid "Right click"
+#~ msgstr "Правая кнопка мыши"
+
+# AI Translated
+#~ msgid "Remove point"
+#~ msgstr "Удалить точку"
+
+# AI Translated
+#~ msgid "Move point"
+#~ msgstr "Переместить точку"
+
+# AI Translated
+#~ msgid "Add point to selection"
+#~ msgstr "Добавить точку к выделению"
+
+# AI Translated
+#~ msgid "Remove point from selection"
+#~ msgstr "Исключить точку из выделения"
+
+# AI Translated
+#~ msgid "Select by rectangle"
+#~ msgstr "Выделить рамкой"
+
+# AI Translated
+#~ msgid "Deselect by rectangle"
+#~ msgstr "Снять выделение рамкой"
+
+# AI Translated
+#~ msgid "Select all points"
+#~ msgstr "Выделить все точки"
+
+# AI Translated
+#~ msgid "Move clipping plane"
+#~ msgstr "Переместить плоскость отсечения"
+
+# AI Translated
+#~ msgid "Reset clipping plane"
+#~ msgstr "Сбросить плоскость отсечения"
+
+# AI Translated
+#~ msgid "Switch to editing mode"
+#~ msgstr "Перейти в режим редактирования"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Union"
+#~ msgstr "Объединение"
+
+# AI Translated
+#~ msgid "target is not a sheet body"
+#~ msgstr "целевое тело не является поверхностным"
+
+# AI Translated
+#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
+#~ msgstr "Создать отверстие по центру выбранной грани или на плоскости"
+
+# AI Translated
+#~ msgid "Shell needs a solid body"
+#~ msgstr "Для оболочки нужно твёрдое тело"
+
+# AI Translated
+#~ msgid "Split needs a solid body"
+#~ msgstr "Для разделения нужно твёрдое тело"
+
+# AI Translated
+#~ msgid "Pattern on curve needs a body and a curve"
+#~ msgstr "Для массива по кривой нужны тело и кривая"
+
+# AI Translated
+#~ msgid "A mate needs two coordinate systems"
+#~ msgstr "Для сопряжения нужны две системы координат"
+
+# AI Translated
+#~ msgid "Align needs a body"
+#~ msgstr "Для выравнивания нужно тело"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Coord Sys"
+#~ msgstr "Система координат"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Mass"
+#~ msgstr "Массовые характеристики"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Colour"
+#~ msgstr "Цвет"
+
+# AI Translated
+#~ msgid "Set the selected body's display colour"
+#~ msgstr "Задать цвет отображения выбранного тела"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre rectangle"
+#~ msgstr "Прямоугольник от центра"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre circle"
+#~ msgstr "Окружность по центру"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre-point arc"
+#~ msgstr "Дуга по центру"
+
+# AI Translated
+#~ msgid "Triangle — click centre, then a vertex"
+#~ msgstr "Треугольник — щёлкните центр, затем вершину"
+
+# AI Translated
+#~ msgid "Square — click centre, then a vertex"
+#~ msgstr "Квадрат — щёлкните центр, затем вершину"
+
+# AI Translated
+#~ msgid "Pentagon — click centre, then a vertex"
+#~ msgstr "Пятиугольник — щёлкните центр, затем вершину"
+
+# AI Translated
+#~ msgid "Hexagon — click centre, then a vertex"
+#~ msgstr "Шестиугольник — щёлкните центр, затем вершину"
+
+# AI Translated
+#~ msgid "Octagon — click centre, then a vertex"
+#~ msgstr "Восьмиугольник — щёлкните центр, затем вершину"
+
+# AI Translated
+#~ msgid "Dodecagon — click centre, then a vertex"
+#~ msgstr "Двенадцатиугольник — щёлкните центр, затем вершину"
+
+# AI Translated
+#~ msgid "Type text; its outline is added to this sketch as editable lines"
+#~ msgstr "Введите текст; его контур добавляется в эскиз как редактируемые линии"
+
+# AI Translated
+#~ msgid "Major"
+#~ msgstr "Большая ось"
+
+# AI Translated
+#~ msgid "Minor"
+#~ msgstr "Малая ось"
+
+# AI Translated
+#~ msgid "Extend: click a line/arc that can reach another live entity"
+#~ msgstr "Удлинение: щёлкните линию/дугу, которую можно продлить до другого объекта текущего эскиза"
+
+# AI Translated
+#~ msgid "Trim: click a segment where it crosses another live entity"
+#~ msgstr "Обрезка: щёлкните сегмент в месте пересечения с другим объектом текущего эскиза"
+
 # AI Translated
 #~ msgid "closed profile(s)"
 #~ msgstr "замкн. проф."
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Не удалось сгенерировать калибровочный G-code"
-
-# AI Translated
-#~ msgid "Subtract"
-#~ msgstr "Вычесть"
 
 # AI Translated
 #~ msgid "Multiply"

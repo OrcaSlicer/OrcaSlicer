@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1058,12 +1058,6 @@ msgstr ""
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr ""
 
-msgid "Face recognition"
-msgstr ""
-
-msgid "Perform Recognition"
-msgstr ""
-
 msgid "Enforce seam"
 msgstr ""
 
@@ -1083,44 +1077,6 @@ msgid "Leaving Seam painting"
 msgstr ""
 
 msgid "Paint-on seam editing"
-msgstr ""
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr ""
-
-msgid "Thickness"
-msgstr ""
-
-msgid "Text Gap"
-msgstr ""
-
-msgid "Angle"
-msgstr ""
-
-msgid "Embedded depth"
-msgstr ""
-
-msgid "Input text"
-msgstr ""
-
-msgid "Surface"
-msgstr ""
-
-msgid "Horizontal text"
-msgstr ""
-
-msgid "Shift+"
-msgstr ""
-
-msgid "Mouse move up or down"
-msgstr ""
-
-msgid "Rotate text"
-msgstr ""
-
-msgid "Text shape"
 msgstr ""
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
@@ -1466,6 +1422,11 @@ msgid "Loading"
 msgstr ""
 
 msgid "In queue"
+msgstr ""
+
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
 msgstr ""
 
 #. TRN - Input label. Be short as possible
@@ -1816,6 +1777,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr ""
 
+msgid "Angle"
+msgstr ""
+
 msgid "Perpendicular distance"
 msgstr ""
 
@@ -1893,6 +1857,9 @@ msgid "Entering Assembly gizmo"
 msgstr ""
 
 msgid "Leaving Assembly gizmo"
+msgstr ""
+
+msgid "Shift+"
 msgstr ""
 
 msgid "Ctrl+"
@@ -4161,7 +4128,6 @@ msgstr ""
 msgid "%s does not support %s"
 msgstr ""
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr ""
 
@@ -8184,6 +8150,9 @@ msgstr ""
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr ""
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr ""
 
@@ -8321,13 +8290,6 @@ msgid "Invalid data"
 msgstr ""
 
 msgid "Slicing Canceled"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Slicing Plate %d"
-msgstr ""
-
-msgid "Please resolve the slicing errors and publish again."
 msgstr ""
 
 msgid "Network plug-in switched successfully."
@@ -9047,12 +9009,6 @@ msgstr ""
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
 msgstr ""
 
-msgid "Auto-close sketch loops"
-msgstr ""
-
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr ""
-
 msgid "Pop up to select filament grouping mode"
 msgstr ""
 
@@ -9138,6 +9094,12 @@ msgid "Draw mate connectors as a face"
 msgstr ""
 
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr ""
+
+msgid "Auto-close sketch loops"
+msgstr ""
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
 msgstr ""
 
 msgid "Pan"
@@ -9714,36 +9676,6 @@ msgid "Accept"
 msgstr ""
 
 msgid "Log Out"
-msgstr ""
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr ""
-
-msgid "Packing project data into 3MF file"
-msgstr ""
-
-msgid "Uploading 3MF"
-msgstr ""
-
-msgid "Jump to model publish web page"
-msgstr ""
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr ""
-
-msgid "Publish was canceled"
-msgstr ""
-
-msgid "Slicing Plate 1"
-msgstr ""
-
-msgid "Packing data to 3MF"
-msgstr ""
-
-msgid "Uploading data"
-msgstr ""
-
-msgid "Jump to webpage"
 msgstr ""
 
 msgid "Material"
@@ -11471,65 +11403,6 @@ msgid "No updates available."
 msgstr ""
 
 msgid "The configuration is up to date."
-msgstr ""
-
-msgid "OBJ file import color"
-msgstr ""
-
-msgid "Some faces don't have color defined."
-msgstr ""
-
-msgid "MTL file exist error, could not find the material:"
-msgstr ""
-
-msgid "Please check OBJ or MTL file."
-msgstr ""
-
-msgid "Specify number of colors:"
-msgstr ""
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr ""
-
-msgid "Recommended "
-msgstr ""
-
-msgid "view"
-msgstr ""
-
-msgid "Current filament colors"
-msgstr ""
-
-msgid "Matching"
-msgstr ""
-
-msgid "Quick set"
-msgstr ""
-
-msgid "Color match"
-msgstr ""
-
-msgid "Approximate color matching."
-msgstr ""
-
-msgid "Append"
-msgstr ""
-
-msgid "Append to existing filaments"
-msgstr ""
-
-msgid "Reset mapped extruders."
-msgstr ""
-
-msgid "Note"
-msgstr ""
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -19725,162 +19598,6 @@ msgid ""
 "Error: \"%2%\""
 msgstr ""
 
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr ""
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr ""
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr ""
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr ""
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr ""
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr ""
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr ""
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr ""
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr ""
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr ""
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr ""
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr ""
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr ""
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr ""
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr ""
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr ""
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr ""
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr ""
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr ""
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr ""
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr ""
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr ""
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr ""
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr ""
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr ""
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr ""
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr ""
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr ""
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr ""
-
 msgid "No AMS"
 msgstr ""
 
@@ -20717,7 +20434,7 @@ msgstr ""
 msgid "Arc — click start, end, then a point"
 msgstr ""
 
-msgid "Slot — two centerline ends, then end radius"
+msgid "Slot — two centerline ends, then the width"
 msgstr ""
 
 msgid "Ellipse — center, major end, minor point"
@@ -20774,7 +20491,7 @@ msgstr ""
 msgid "World axes hidden"
 msgstr ""
 
-msgid "Isometric view, fitted"
+msgid "Axonometric view, fitted"
 msgstr ""
 
 msgid "Bed shown"
@@ -20944,7 +20661,7 @@ msgstr ""
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr ""
 
-msgid "Coord Sys"
+msgid "Coordinate system"
 msgstr ""
 
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -20964,6 +20681,10 @@ msgid "Project body edges onto a plane as sketch entities"
 msgstr ""
 
 msgid "Project needs a body — add or import one first"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Face %d"
 msgstr ""
 
 msgid "(all edges)"
@@ -20990,7 +20711,7 @@ msgstr ""
 msgid "Mate"
 msgstr ""
 
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
 msgstr ""
 
 msgid "Boolean (combine bodies)"
@@ -21054,6 +20775,9 @@ msgstr ""
 msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr ""
 
+msgid "Pick a face or a plane to drill into"
+msgstr ""
+
 msgid "Thread"
 msgstr ""
 
@@ -21093,7 +20817,7 @@ msgstr ""
 msgid "Polyline"
 msgstr ""
 
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
 msgstr ""
 
 msgid "Corner rectangle"
@@ -21162,7 +20886,7 @@ msgstr ""
 msgid "Slot"
 msgstr ""
 
-msgid "Click two centerline ends, then a point for the end radius"
+msgid "Click two centerline ends, then a point for the width"
 msgstr ""
 
 msgid "Arc slot"
@@ -21186,7 +20910,7 @@ msgstr ""
 msgid "Spline"
 msgstr ""
 
-msgid "Click control points; double-click or right-click to finish"
+msgid "Click control points; double-click, right-click or Enter to finish"
 msgstr ""
 
 msgid "Click to place a point"
@@ -21228,13 +20952,13 @@ msgstr ""
 msgid "Trim"
 msgstr ""
 
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
 msgstr ""
 
 msgid "Extend"
 msgstr ""
 
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
 msgstr ""
 
 msgid "Constrain — add geometric/dimensional relations"
@@ -21353,18 +21077,6 @@ msgstr ""
 msgid "Vertical distance"
 msgstr ""
 
-msgid "✓ Confirm"
-msgstr ""
-
-msgid "✗ Cancel"
-msgstr ""
-
-msgid "Undo (Ctrl+Z)"
-msgstr ""
-
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr ""
-
 msgid "New Design — clear the feature tree"
 msgstr ""
 
@@ -21383,7 +21095,19 @@ msgstr ""
 msgid "Flip Section — show the opposite half"
 msgstr ""
 
-msgid "Commit to Plate — send the solid to Prepare"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
 msgstr ""
 
 msgid "Width / X"
@@ -21407,7 +21131,7 @@ msgstr ""
 msgid "Rotation axis"
 msgstr ""
 
-msgid "Angle °"
+msgid "Angle (°)"
 msgstr ""
 
 msgid "Move / Rotate"
@@ -21440,7 +21164,7 @@ msgstr ""
 msgid "2nd dist"
 msgstr ""
 
-msgid "Taper °"
+msgid "Taper (°)"
 msgstr ""
 
 msgid "New body"
@@ -21543,16 +21267,13 @@ msgstr ""
 msgid "Direction"
 msgstr ""
 
-msgid "Total angle°"
+msgid "Total angle (°)"
 msgstr ""
 
 msgid "Boolean"
 msgstr ""
 
-msgid "Union (join)"
-msgstr ""
-
-msgid "Subtract (cut)"
+msgid "Subtract"
 msgstr ""
 
 msgid "Target (kept)"
@@ -21587,9 +21308,6 @@ msgstr ""
 
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
-msgstr ""
-
-msgid "Angle°"
 msgstr ""
 
 msgid "Base X"
@@ -21634,6 +21352,9 @@ msgstr ""
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr ""
 
+msgid "Thickness"
+msgstr ""
+
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr ""
 
@@ -21644,9 +21365,6 @@ msgid "Open face"
 msgstr ""
 
 msgid "Pick a solid face to open it, then set the wall thickness."
-msgstr ""
-
-msgid "Angle (°)"
 msgstr ""
 
 msgid "(pick a side face)"
@@ -21728,10 +21446,6 @@ msgstr ""
 msgid "Face %d is already in the list"
 msgstr ""
 
-#, possible-c-format, possible-boost-format
-msgid "Face %d"
-msgstr ""
-
 msgid "Faces to delete"
 msgstr ""
 
@@ -21739,9 +21453,6 @@ msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Conf
 msgstr ""
 
 msgid "Left-handed"
-msgstr ""
-
-msgid "Taper (°)"
 msgstr ""
 
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -21840,10 +21551,13 @@ msgstr ""
 msgid "Kind"
 msgstr ""
 
-msgid "CS A (fixed)"
+msgid "A (fixed)"
 msgstr ""
 
-msgid "CS B (moves)"
+msgid "B (moves)"
+msgstr ""
+
+msgid "Angle °"
 msgstr ""
 
 msgid "Flip (oppose z axes)"
@@ -21905,12 +21619,6 @@ msgstr ""
 msgid "Bodies"
 msgstr ""
 
-msgid "Move body"
-msgstr ""
-
-msgid "Select a body row first, then move it"
-msgstr ""
-
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr ""
 
@@ -21921,7 +21629,13 @@ msgstr ""
 msgid "Variables"
 msgstr ""
 
-msgid "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
 msgstr ""
 
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -21935,6 +21649,10 @@ msgstr ""
 
 #, possible-c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Length %.2f mm, angle %.1f°"
 msgstr ""
 
 msgid "(locked)"
@@ -21974,12 +21692,24 @@ msgstr ""
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr ""
 
+#, possible-c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+
+#, possible-c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+
 #, possible-c-format, possible-boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -22002,6 +21732,9 @@ msgid "Tool exited"
 msgstr ""
 
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr ""
+
+msgid "Select something to delete"
 msgstr ""
 
 msgid "✗ Conflicting constraints"
@@ -22028,11 +21761,16 @@ msgstr ""
 msgid "OK — %zu triangles"
 msgstr ""
 
-msgid "Text to insert:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
 msgstr ""
 
-msgctxt "Design"
-msgid "Text"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
 msgstr ""
 
 msgid "Import SVG"
@@ -22053,7 +21791,8 @@ msgstr ""
 msgid "No solids found in STEP"
 msgstr ""
 
-msgid "STEP import failed: "
+#, possible-c-format, possible-boost-format
+msgid "STEP import failed: %s"
 msgstr ""
 
 msgid "Rebuilding model…"
@@ -22074,7 +21813,8 @@ msgstr ""
 msgid "Could not read the STL file"
 msgstr ""
 
-msgid "Could not read the OBJ file: "
+#, possible-c-format, possible-boost-format
+msgid "Could not read the OBJ file: %s"
 msgstr ""
 
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -22093,13 +21833,18 @@ msgstr ""
 msgid "Large mesh"
 msgstr ""
 
-msgid "Mesh conversion failed: "
+#, possible-c-format, possible-boost-format
+msgid "Mesh conversion failed: %s"
 msgstr ""
 
 msgid "Mesh conversion produced no geometry"
 msgstr ""
 
-msgid "Mesh import failed: "
+msgid "Mesh"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Mesh import failed: %s"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -22123,14 +21868,15 @@ msgstr ""
 msgid "Insert canceled"
 msgstr ""
 
-msgid "Drag a corner to scale, the center to move — right-click when done"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr ""
 
-msgid "Recompute error: "
+#, possible-c-format, possible-boost-format
+msgid "The model could not be rebuilt: %s"
 msgstr ""
 
 msgid "Add a solid (sketch + extrude) first"
@@ -22186,78 +21932,53 @@ msgstr ""
 msgid "Add at least one face to delete first"
 msgstr ""
 
-msgid "Mate needs two CoordSys features — create them first"
+msgid "Mate needs two coordinate systems — create them first"
 msgstr ""
 
-msgid "Mate: CS A and CS B must be different CoordSys features"
+msgid "Mate: A and B must be different coordinate systems"
 msgstr ""
 
 msgid "Mate rejected"
 msgstr ""
 
-msgid "No interference — need at least two solid bodies to check"
+msgid "Interference needs at least two bodies"
 msgstr ""
 
 msgid "No interference found"
-msgstr ""
-
-#, possible-c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid ""
-"Interference pairs:\n"
-"\n"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Body %d"
 msgstr ""
 
-msgid "Interference"
+#, possible-c-format, possible-boost-format
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
 
-msgid "Select a solid body first — its mass properties are what is reported"
+#, possible-c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Select a body to measure it"
 msgstr ""
 
-msgid "Mass properties could not be computed for this body"
+msgid "This body could not be measured"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
-msgstr ""
-
-msgid "Mass properties"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "%s: volume %.2f mm³, area %.2f mm²"
 msgstr ""
 
 msgid "Pattern needs a solid body — add or import one first"
 msgstr ""
 
-msgid "Boolean needs two solid bodies — add or import a second one"
+msgid "Boolean needs two bodies — add or import a second one"
 msgstr ""
 
 msgid "Cut needs a solid body — add or import one first"
@@ -22268,6 +21989,36 @@ msgid "Picked face (Body %d)"
 msgstr ""
 
 msgid "Picked face"
+msgstr ""
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -22299,13 +22050,13 @@ msgstr ""
 msgid "Line — click the start point"
 msgstr ""
 
-msgid "Line — click the end point, or type the length"
+msgid "Line — click the end point; its length and angle can then be typed"
 msgstr ""
 
 msgid "Polyline — click the first point"
 msgstr ""
 
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
 msgstr ""
 
 msgid "Rectangle — click one corner"
@@ -22341,7 +22092,7 @@ msgstr ""
 msgid "Circle — click the center"
 msgstr ""
 
-msgid "Circle — click to set the radius, or type it"
+msgid "Circle — click to set the radius; it can then be typed"
 msgstr ""
 
 msgid "Circle (2 points) — click one end of the diameter"
@@ -22437,16 +22188,16 @@ msgstr ""
 msgid "Spline — click the first control point"
 msgstr ""
 
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
 msgstr ""
 
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr ""
 
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
 msgstr ""
 
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
 msgstr ""
 
 msgid "Fillet — click the first of two lines that meet"
@@ -22455,7 +22206,7 @@ msgstr ""
 msgid "Fillet — click the second line"
 msgstr ""
 
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
 msgstr ""
 
 msgid "Chamfer — click the first of two lines that meet"
@@ -22464,62 +22215,119 @@ msgstr ""
 msgid "Chamfer — click the second line"
 msgstr ""
 
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
 msgstr ""
 
-msgid "Offset — click the entity to offset"
+msgid "Offset — click a curve; its whole outline is offset"
 msgstr ""
 
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
 msgstr ""
 
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr ""
 
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
 msgstr ""
 
 msgid "Move — click the entities to move"
 msgstr ""
 
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
 msgstr ""
 
 msgid "Rotate — click the entities to rotate"
 msgstr ""
 
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
 msgstr ""
 
 msgid "Scale — click the entities to scale"
 msgstr ""
 
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
 msgstr ""
 
 msgid "Array — click the entities to repeat"
 msgstr ""
 
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
 msgstr ""
 
 msgid "Polar array — click the entities to repeat"
 msgstr ""
 
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
 msgstr ""
 
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
 msgstr ""
 
 msgid "  ·  Esc goes back to Select"
 msgstr ""
 
 msgid "  ·  click a constraint badge to remove it"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, possible-c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+msgstr[1] ""
+
+#, possible-c-format, possible-boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%d sketch entities"
 msgstr ""
 
 msgid "select something first"
@@ -22568,7 +22376,7 @@ msgstr ""
 msgid "Axis added"
 msgstr ""
 
-msgid "Coord Sys added"
+msgid "Coordinate system added"
 msgstr ""
 
 msgid "Shell needs a solid body — add or import one first"
@@ -22591,7 +22399,8 @@ msgstr ""
 msgid "Could not restore the CAD model from this project"
 msgstr ""
 
-msgid "Could not restore the CAD model: "
+#, possible-c-format, possible-boost-format
+msgid "Could not restore the CAD model: %s"
 msgstr ""
 
 #, possible-c-format
@@ -22610,7 +22419,7 @@ msgstr ""
 msgid "Section view — showing the lower half"
 msgstr ""
 
-msgid "Boolean needs two bodies — create or import a second solid"
+msgid "Finding the feature's faces…"
 msgstr ""
 
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -22638,7 +22447,11 @@ msgstr ""
 msgid "Placed on face — body laid flat on the bed"
 msgstr ""
 
-msgid "Edit rejected: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Edit rejected: %s"
 msgstr ""
 
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -22655,13 +22468,7 @@ msgid "feature %d"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
-msgstr ""
-
-msgid "Delete body"
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
 
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -22960,7 +22767,14 @@ msgstr ""
 msgid "Exported STEP"
 msgstr ""
 
-msgid "STEP export failed: "
+#, possible-c-format, possible-boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
+msgid "Commit to Plate — send the solid to Prepare"
 msgstr ""
 
 msgid "Nothing to commit — add a feature first"
@@ -22969,13 +22783,27 @@ msgstr ""
 msgid "All bodies hidden — show one before committing"
 msgstr ""
 
+#, possible-c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+msgstr[1] ""
+
+#, possible-c-format, possible-boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Line E%d"
+msgstr ""
+
 msgid "Plane ready"
 msgstr ""
 
 msgid "Axis ready"
 msgstr ""
 
-msgid "Coord Sys ready"
+msgid "Coordinate system ready"
 msgstr ""
 
 msgid "Helix ready"
@@ -22987,16 +22815,11 @@ msgstr ""
 msgid "Sketch ready"
 msgstr ""
 
-msgid "Mate needs at least two CoordSys features"
-msgstr ""
-
-msgid "Mate: CS A and CS B must be different"
-msgstr ""
-
 msgid "Mate ready"
 msgstr ""
 
-msgid "Invalid: "
+#, possible-c-format, possible-boost-format
+msgid "Invalid: %s"
 msgstr ""
 
 #, possible-c-format
@@ -23026,13 +22849,13 @@ msgstr ""
 msgid "Keep drawing"
 msgstr ""
 
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr ""
-
 msgid "Nothing to redo"
 msgstr ""
 
 msgid "Nothing to undo"
+msgstr ""
+
+msgid "Finish or cancel the current tool first (Esc)"
 msgstr ""
 
 #, possible-c-format
@@ -23047,17 +22870,10 @@ msgid_plural "Undo  (%zu more steps)"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Variable name:"
-msgstr ""
-
 msgid "Add Variable"
 msgstr ""
 
 msgid "Variable name must not contain spaces"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Expression for '%s':"
 msgstr ""
 
 msgid "Select a variable first"
@@ -23070,13 +22886,630 @@ msgstr ""
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr ""
 
+#, possible-c-format, possible-boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 msgid "No binding for that field"
+msgstr ""
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr ""
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+msgid "right-click or double-click to finish, click start to close"
+msgstr ""
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
 msgstr ""
 
 msgid "Enter a number"
 msgstr ""
 
 msgid "Not a number"
+msgstr ""
+
+msgid "Add material"
+msgstr ""
+
+msgid "Fillet / chamfer / draft"
+msgstr ""
+
+msgid "Repeat"
+msgstr ""
+
+msgid "Reference"
+msgstr ""
+
+msgid "Modify"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch"
+msgstr ""
+
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr ""
+
+msgctxt "Design"
+msgid "Revolve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sweep"
+msgstr ""
+
+msgctxt "Design"
+msgid "Loft"
+msgstr ""
+
+msgctxt "Design"
+msgid "Thicken"
+msgstr ""
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr ""
+
+msgctxt "Design"
+msgid "Subtract"
+msgstr ""
+
+msgid "Cut the tool body out of the target"
+msgstr ""
+
+msgctxt "Design"
+msgid "Intersect"
+msgstr ""
+
+msgid "Keep only where the two bodies overlap"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Create a closed sketch first"
+msgstr ""
+
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hole"
+msgstr ""
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+msgctxt "Design"
+msgid "Thread"
+msgstr ""
+
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr ""
+
+msgctxt "Design"
+msgid "Split"
+msgstr ""
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Split the body along a picked face into two solids"
+msgstr ""
+
+msgctxt "Design"
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick an edge to round"
+msgstr ""
+
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr ""
+
+msgctxt "Design"
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick an edge to bevel"
+msgstr ""
+
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr ""
+
+msgctxt "Design"
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a face to taper"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr ""
+
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr ""
+
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr ""
+
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr ""
+
+msgctxt "Design"
+msgid "Mirror"
+msgstr ""
+
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr ""
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+msgid "Repeat the body along a picked curve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Move"
+msgstr ""
+
+msgctxt "Design"
+msgid "Mate"
+msgstr ""
+
+msgctxt "Design"
+msgid "Align to"
+msgstr ""
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+msgid "Align the body to a picked face or plane"
+msgstr ""
+
+msgctxt "Design"
+msgid "Plane"
+msgstr ""
+
+msgctxt "Design"
+msgid "Axis"
+msgstr ""
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+msgctxt "Design"
+msgid "Helix"
+msgstr ""
+
+msgctxt "Design"
+msgid "Measure"
+msgstr ""
+
+msgid "Measure between the picked points, edges or faces"
+msgstr ""
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+msgid "Report the volume and surface area of the selected body"
+msgstr ""
+
+msgctxt "Design"
+msgid "Interference"
+msgstr ""
+
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr ""
+
+msgctxt "Design"
+msgid "Edit"
+msgstr ""
+
+msgid "Reopen the selected feature to change what it was made from"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rename…"
+msgstr ""
+
+msgid "Select a feature, or a body, to rename it"
+msgstr ""
+
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Delete Face"
+msgstr ""
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Delete"
+msgstr ""
+
+msgid "Delete what is selected"
+msgstr ""
+
+msgctxt "Design"
+msgid "Delete Body"
+msgstr ""
+
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr ""
+
+msgctxt "Design"
+msgid "Line"
+msgstr ""
+
+msgctxt "Design"
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr ""
+
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "2-point circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "3-point circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "3-point arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Slot"
+msgstr ""
+
+msgctxt "Design"
+msgid "Arc slot"
+msgstr ""
+
+msgctxt "Design"
+msgid "Ellipse"
+msgstr ""
+
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Spline"
+msgstr ""
+
+msgctxt "Design"
+msgid "Triangle"
+msgstr ""
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Square"
+msgstr ""
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Pentagon"
+msgstr ""
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hexagon"
+msgstr ""
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Octagon"
+msgstr ""
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr ""
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Inscribed"
+msgstr ""
+
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr ""
+
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Point"
+msgstr ""
+
+msgctxt "Design"
+msgid "Text"
+msgstr ""
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+msgctxt "Design"
+msgid "SVG"
+msgstr ""
+
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr ""
+
+msgctxt "Design"
+msgid "Offset"
+msgstr ""
+
+msgctxt "Design"
+msgid "Trim"
+msgstr ""
+
+msgctxt "Design"
+msgid "Linear array"
+msgstr ""
+
+msgid "Array"
+msgstr ""
+
+msgctxt "Design"
+msgid "Polar array"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rotate"
+msgstr ""
+
+msgctxt "Design"
+msgid "Scale"
+msgstr ""
+
+msgctxt "Design"
+msgid "Dimension"
+msgstr ""
+
+msgctxt "Design"
+msgid "Constrain"
+msgstr ""
+
+msgid "Constrain the selected sketch entities to each other"
+msgstr ""
+
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr ""
+
+msgid "Select a sketch to constrain it"
+msgstr ""
+
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr ""
+
+msgctxt "Design"
+msgid "Construction"
+msgstr ""
+
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr ""
+
+msgctxt "Design"
+msgid "Extend"
+msgstr ""
+
+msgid "Delete the selected sketch entities"
+msgstr ""
+
+msgctxt "Design"
+msgid "Length…"
+msgstr ""
+
+msgid "Type the length of this line"
+msgstr ""
+
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr ""
+
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr ""
+
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr ""
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Size: %.1f × %.1f mm"
 msgstr ""
 
 msgid "Primitive"
@@ -23152,8 +23585,7 @@ msgstr ""
 msgid "Start new profile (for holes)"
 msgstr ""
 
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
+msgid "Segments"
 msgstr ""
 
 msgid "Sides"
@@ -23165,15 +23597,18 @@ msgstr ""
 msgid "Snap to grid"
 msgstr ""
 
+msgid "Grid step"
+msgstr ""
+
 msgid "Outer"
 msgstr ""
 
-msgid "CLOSED"
+msgid "closed"
 msgstr ""
 
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, possible-boost-format
-msgid "%1% %2%: %3% pts %4%"
+msgid "%1% %2%: %3% points %4%"
 msgstr ""
 
 msgid "XY (Top)"
@@ -23203,10 +23638,7 @@ msgstr[1] ""
 msgid "Draw a closed profile to enable"
 msgstr ""
 
-msgid "Pocket (Cut)"
-msgstr ""
-
-msgid "Clear All"
+msgid "Clear all"
 msgstr ""
 
 msgid "Empty result"
@@ -24310,129 +24742,6 @@ msgstr ""
 msgid "Note:"
 msgstr ""
 
-msgid "Hollow this object"
-msgstr ""
-
-msgid "Preview hollowed and drilled model"
-msgstr ""
-
-msgid "Closing distance"
-msgstr ""
-
-msgid "Hole diameter"
-msgstr ""
-
-msgid "Hole depth"
-msgstr ""
-
-msgid "Remove selected holes"
-msgstr ""
-
-msgid "Remove all holes"
-msgstr ""
-
-msgid "Clipping of view"
-msgstr ""
-
-msgid "Reset direction"
-msgstr ""
-
-msgid "Show supports"
-msgstr ""
-
-msgid "Hollow and drill"
-msgstr ""
-
-msgid "Head diameter"
-msgstr ""
-
-msgid "Lock supports under new islands"
-msgstr ""
-
-msgid "Remove selected points"
-msgstr ""
-
-msgid "Remove all points"
-msgstr ""
-
-msgid "Apply changes"
-msgstr ""
-
-msgid "Discard changes"
-msgstr ""
-
-msgid "Minimal points distance"
-msgstr ""
-
-msgid "Support points density"
-msgstr ""
-
-msgid "Auto-generate points"
-msgstr ""
-
-msgid "Manual editing"
-msgstr ""
-
-msgid "SLA Support Points"
-msgstr ""
-
-msgid "Do you want to save your manually edited support points?"
-msgstr ""
-
-msgid "Save support points?"
-msgstr ""
-
-msgid "Autogeneration will erase all manually edited points."
-msgstr ""
-
-msgid "Are you sure you want to do it?"
-msgstr ""
-
-msgid "SLA gizmo keyboard shortcuts"
-msgstr ""
-
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr ""
-
-msgid "Left click"
-msgstr ""
-
-msgid "Add point"
-msgstr ""
-
-msgid "Right click"
-msgstr ""
-
-msgid "Remove point"
-msgstr ""
-
-msgid "Move point"
-msgstr ""
-
-msgid "Add point to selection"
-msgstr ""
-
-msgid "Remove point from selection"
-msgstr ""
-
-msgid "Select by rectangle"
-msgstr ""
-
-msgid "Deselect by rectangle"
-msgstr ""
-
-msgid "Select all points"
-msgstr ""
-
-msgid "Move clipping plane"
-msgstr ""
-
-msgid "Reset clipping plane"
-msgstr ""
-
-msgid "Switch to editing mode"
-msgstr ""
-
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr ""
@@ -24940,9 +25249,6 @@ msgid "Repeats the texture across the painted area. Off places one copy, like a 
 msgstr ""
 
 msgid "Turn Tile on to choose how the texture repeats."
-msgstr ""
-
-msgid "Repeat"
 msgstr ""
 
 msgid "Mirrored repeat"
@@ -26120,521 +26426,6 @@ msgid "apply_fillet: OCCT fillet failed"
 msgstr ""
 
 msgid "apply_chamfer: OCCT chamfer failed"
-msgstr ""
-
-msgid "Add material"
-msgstr ""
-
-msgid "Fillet / chamfer / draft"
-msgstr ""
-
-msgid "Reference"
-msgstr ""
-
-msgid "Modify"
-msgstr ""
-
-msgctxt "Design"
-msgid "Sketch"
-msgstr ""
-
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr ""
-
-msgctxt "Design"
-msgid "Revolve"
-msgstr ""
-
-msgctxt "Design"
-msgid "Sweep"
-msgstr ""
-
-msgctxt "Design"
-msgid "Loft"
-msgstr ""
-
-msgctxt "Design"
-msgid "Thicken"
-msgstr ""
-
-msgctxt "Design"
-msgid "Union"
-msgstr ""
-
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr ""
-
-msgctxt "Design"
-msgid "Subtract"
-msgstr ""
-
-msgid "Cut the tool body out of the target"
-msgstr ""
-
-msgctxt "Design"
-msgid "Intersect"
-msgstr ""
-
-msgid "Keep only where the two bodies overlap"
-msgstr ""
-
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr ""
-
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr ""
-
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr ""
-
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr ""
-
-msgid "Create a closed sketch first"
-msgstr ""
-
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr ""
-
-msgid "target is not a sheet body"
-msgstr ""
-
-msgctxt "Design"
-msgid "Hole"
-msgstr ""
-
-msgid "Pick a face or a plane to drill into"
-msgstr ""
-
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr ""
-
-msgctxt "Design"
-msgid "Thread"
-msgstr ""
-
-msgid "Shell needs a solid body"
-msgstr ""
-
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr ""
-
-msgctxt "Design"
-msgid "Split"
-msgstr ""
-
-msgid "Split needs a solid body"
-msgstr ""
-
-msgid "Split the body along a picked face into two solids"
-msgstr ""
-
-msgctxt "Design"
-msgid "Fillet"
-msgstr ""
-
-msgid "Pick an edge to round"
-msgstr ""
-
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr ""
-
-msgctxt "Design"
-msgid "Chamfer"
-msgstr ""
-
-msgid "Pick an edge to bevel"
-msgstr ""
-
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr ""
-
-msgctxt "Design"
-msgid "Draft"
-msgstr ""
-
-msgid "Pick a face to taper"
-msgstr ""
-
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr ""
-
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr ""
-
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr ""
-
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr ""
-
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr ""
-
-msgctxt "Design"
-msgid "Mirror"
-msgstr ""
-
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr ""
-
-msgid "Pattern on curve needs a body and a curve"
-msgstr ""
-
-msgid "Repeat the body along a picked curve"
-msgstr ""
-
-msgctxt "Design"
-msgid "Move"
-msgstr ""
-
-msgctxt "Design"
-msgid "Mate"
-msgstr ""
-
-msgid "A mate needs two coordinate systems"
-msgstr ""
-
-msgctxt "Design"
-msgid "Align to"
-msgstr ""
-
-msgid "Align needs a body"
-msgstr ""
-
-msgid "Align the body to a picked face or plane"
-msgstr ""
-
-msgctxt "Design"
-msgid "Plane"
-msgstr ""
-
-msgctxt "Design"
-msgid "Axis"
-msgstr ""
-
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr ""
-
-msgctxt "Design"
-msgid "Helix"
-msgstr ""
-
-msgctxt "Design"
-msgid "Measure"
-msgstr ""
-
-msgid "Measure between the picked points, edges or faces"
-msgstr ""
-
-msgctxt "Design"
-msgid "Mass"
-msgstr ""
-
-msgid "Report the volume and surface area of the selected body"
-msgstr ""
-
-msgctxt "Design"
-msgid "Interference"
-msgstr ""
-
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr ""
-
-msgctxt "Design"
-msgid "Edit"
-msgstr ""
-
-msgid "Reopen the selected feature to change what it was made from"
-msgstr ""
-
-msgctxt "Design"
-msgid "Rename…"
-msgstr ""
-
-msgid "Select a feature, or a body, to rename it"
-msgstr ""
-
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr ""
-
-msgctxt "Design"
-msgid "Delete Face"
-msgstr ""
-
-msgctxt "Design"
-msgid "Colour"
-msgstr ""
-
-msgid "Set the selected body's display colour"
-msgstr ""
-
-msgctxt "Design"
-msgid "Delete"
-msgstr ""
-
-msgid "Delete what is selected"
-msgstr ""
-
-msgctxt "Design"
-msgid "Delete Body"
-msgstr ""
-
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr ""
-
-msgctxt "Design"
-msgid "Line"
-msgstr ""
-
-msgctxt "Design"
-msgid "Polyline"
-msgstr ""
-
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr ""
-
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr ""
-
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr ""
-
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr ""
-
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr ""
-
-msgctxt "Design"
-msgid "Centre circle"
-msgstr ""
-
-msgctxt "Design"
-msgid "2-point circle"
-msgstr ""
-
-msgctxt "Design"
-msgid "3-point circle"
-msgstr ""
-
-msgctxt "Design"
-msgid "3-point arc"
-msgstr ""
-
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr ""
-
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr ""
-
-msgctxt "Design"
-msgid "Slot"
-msgstr ""
-
-msgctxt "Design"
-msgid "Arc slot"
-msgstr ""
-
-msgctxt "Design"
-msgid "Ellipse"
-msgstr ""
-
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr ""
-
-msgctxt "Design"
-msgid "Spline"
-msgstr ""
-
-msgctxt "Design"
-msgid "Triangle"
-msgstr ""
-
-msgid "Triangle — click centre, then a vertex"
-msgstr ""
-
-msgctxt "Design"
-msgid "Square"
-msgstr ""
-
-msgid "Square — click centre, then a vertex"
-msgstr ""
-
-msgctxt "Design"
-msgid "Pentagon"
-msgstr ""
-
-msgid "Pentagon — click centre, then a vertex"
-msgstr ""
-
-msgctxt "Design"
-msgid "Hexagon"
-msgstr ""
-
-msgid "Hexagon — click centre, then a vertex"
-msgstr ""
-
-msgctxt "Design"
-msgid "Octagon"
-msgstr ""
-
-msgid "Octagon — click centre, then a vertex"
-msgstr ""
-
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr ""
-
-msgid "Dodecagon — click centre, then a vertex"
-msgstr ""
-
-msgctxt "Design"
-msgid "Inscribed"
-msgstr ""
-
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr ""
-
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr ""
-
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr ""
-
-msgctxt "Design"
-msgid "Point"
-msgstr ""
-
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr ""
-
-msgctxt "Design"
-msgid "SVG"
-msgstr ""
-
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr ""
-
-msgctxt "Design"
-msgid "Offset"
-msgstr ""
-
-msgctxt "Design"
-msgid "Trim"
-msgstr ""
-
-msgctxt "Design"
-msgid "Linear array"
-msgstr ""
-
-msgid "Array"
-msgstr ""
-
-msgctxt "Design"
-msgid "Polar array"
-msgstr ""
-
-msgctxt "Design"
-msgid "Rotate"
-msgstr ""
-
-msgctxt "Design"
-msgid "Scale"
-msgstr ""
-
-msgctxt "Design"
-msgid "Dimension"
-msgstr ""
-
-msgctxt "Design"
-msgid "Constrain"
-msgstr ""
-
-msgid "Constrain the selected sketch entities to each other"
-msgstr ""
-
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr ""
-
-msgid "Select a sketch to constrain it"
-msgstr ""
-
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr ""
-
-msgctxt "Design"
-msgid "Construction"
-msgstr ""
-
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr ""
-
-msgctxt "Design"
-msgid "Extend"
-msgstr ""
-
-msgid "Delete the selected sketch entities"
-msgstr ""
-
-msgctxt "Design"
-msgid "Length…"
-msgstr ""
-
-msgid "Type the length of this line"
-msgstr ""
-
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr ""
-
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr ""
-
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr ""
-
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr ""
-
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr ""
-
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr ""
-
-msgid "Minor"
-msgstr ""
-
-msgid "right-click or double-click to finish, click start to close"
-msgstr ""
-
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr ""
-
-msgid "Trim: click a segment where it crosses another live entity"
 msgstr ""
 
 msgid "Authentication complete"

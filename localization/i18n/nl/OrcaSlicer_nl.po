@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1188,12 +1188,6 @@ msgstr "Kan niet toepassen bij een voorvertoning."
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "De toepassing wordt al geannuleerd. Wacht even alstublieft."
 
-msgid "Face recognition"
-msgstr "Gezichtsherkenning"
-
-msgid "Perform Recognition"
-msgstr "Herkenning uitvoeren"
-
 msgid "Enforce seam"
 msgstr "Naad versterken"
 
@@ -1215,46 +1209,6 @@ msgstr "Naad schilderen verlaten"
 
 msgid "Paint-on seam editing"
 msgstr "Paint-on naadbewerking"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Lettertype"
-
-msgid "Thickness"
-msgstr "Dikte"
-
-msgid "Text Gap"
-msgstr "Tekstruimte"
-
-msgid "Angle"
-msgstr "Hoek"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "Ingebedde diepte"
-
-msgid "Input text"
-msgstr "Tekst invoeren"
-
-msgid "Surface"
-msgstr "Oppervlak"
-
-msgid "Horizontal text"
-msgstr "Horizontale tekst"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-# AI Translated
-msgid "Mouse move up or down"
-msgstr "Muis omhoog of omlaag bewegen"
-
-msgid "Rotate text"
-msgstr "Draai tekst"
-
-msgid "Text shape"
-msgstr "Tekstvorm"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1657,6 +1611,11 @@ msgstr "Laden"
 
 msgid "In queue"
 msgstr "In wachtrij"
+
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Lettertype"
 
 #. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
@@ -2077,6 +2036,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Kopieer naar klembord"
 
+msgid "Angle"
+msgstr "Hoek"
+
 # AI Translated
 msgid "Perpendicular distance"
 msgstr "Loodrechte afstand"
@@ -2182,6 +2144,9 @@ msgstr "Samenstelgizmo starten"
 # AI Translated
 msgid "Leaving Assembly gizmo"
 msgstr "Samenstelgizmo verlaten"
+
+msgid "Shift+"
+msgstr "Shift+"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -4843,7 +4808,6 @@ msgstr "Kalibratie voltooid"
 msgid "%s does not support %s"
 msgstr "%s ondersteunt %s niet"
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Stap"
 
@@ -9551,6 +9515,9 @@ msgstr "De aangesloten printer is %s. Deze moet overeenkomen met de projectvoori
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Wilt u de printerinformatie synchroniseren en automatisch van voorinstelling wisselen?"
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr "Het bestand bevat geen geometriegegevens."
 
@@ -9712,13 +9679,6 @@ msgstr "Interne solide vulling (infill)"
 
 msgid "Slicing Canceled"
 msgstr "Slicing Geannuleerd"
-
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Slicing printbed %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Los aub de slicing fouten op en publiceer opnieuw."
 
 # AI Translated
 msgid "Network plug-in switched successfully."
@@ -10596,14 +10556,6 @@ msgid "With this option enabled, the Design tab is shown, where models can be bu
 msgstr "Als deze optie is ingeschakeld, wordt het tabblad Ontwerp getoond, waar modellen parametrisch kunnen worden opgebouwd en bewerkt. Deze functie is experimenteel en nog in ontwikkeling."
 
 # AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Schetslussen automatisch sluiten"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr "Schetseindpunten binnen 0,001 mm als één verbinding behandelen en de lus dichtlassen. Uit: alleen exact samenvallende eindpunten worden verbonden, zodat een lus met een minieme opening als open wordt getoond in plaats van voor u te worden gesloten."
-
-# AI Translated
 msgid "Pop up to select filament grouping mode"
 msgstr "Pop-up om de filamentgroeperingsmodus te kiezen"
 
@@ -10710,6 +10662,13 @@ msgstr "Koppelingsconnectoren als vlak tekenen"
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr "Teken in het tabblad Ontwerp een koppelingsconnector als een klein vlak in plaats van de gebruikelijke schijf met een rolkwadrant. Een vlak toont zijn oriëntatie in één oogopslag, zonder dat u de schijfconventie hoeft te leren. Schakel dit uit voor de gebruikelijke CAD-weergave."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Schetslussen automatisch sluiten"
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr ""
 
 # AI Translated
 msgid "Pan"
@@ -11436,37 +11395,6 @@ msgstr "Accepteer"
 
 msgid "Log Out"
 msgstr "Uitloggen"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Slice alle printbedden om een inschatting te krijgen van de printtijd en het filamentverbruik"
-
-msgid "Packing project data into 3MF file"
-msgstr "De projectdata wordt opgelslagen in een 3MF bestand"
-
-msgid "Uploading 3MF"
-msgstr "3mf bestand uploaden"
-
-msgid "Jump to model publish web page"
-msgstr "Ga naar de website om het model te publiceren"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Notitie: het voorbereiden kan enkele minuten duren. Even geduld alstublieft."
-
-msgid "Publish was canceled"
-msgstr "Het publiceren is geannuleerd"
-
-msgid "Slicing Plate 1"
-msgstr "Slicing printbed 1"
-
-msgid "Packing data to 3MF"
-msgstr "De data wordt opgeslagen in een 3mf"
-
-# AI Translated
-msgid "Uploading data"
-msgstr "Gegevens uploaden"
-
-msgid "Jump to webpage"
-msgstr "Ga naar de website"
 
 # AI Translated
 msgid "Material"
@@ -13529,81 +13457,6 @@ msgstr "Geen updates beschikbaar."
 # AI Translated
 msgid "The configuration is up to date."
 msgstr "De configuratie is up-to-date."
-
-# AI Translated
-msgid "OBJ file import color"
-msgstr "Kleur importeren uit OBJ-bestand"
-
-# AI Translated
-msgid "Some faces don't have color defined."
-msgstr "Voor sommige vlakken is geen kleur gedefinieerd."
-
-# AI Translated
-msgid "MTL file exist error, could not find the material:"
-msgstr "Fout in het MTL-bestand; het materiaal kon niet worden gevonden:"
-
-# AI Translated
-msgid "Please check OBJ or MTL file."
-msgstr "Controleer het OBJ- of MTL-bestand."
-
-# AI Translated
-msgid "Specify number of colors:"
-msgstr "Geef het aantal kleuren op:"
-
-# AI Translated
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Voer een waarde in of klik op de aanpassingsknop om het aantal opnieuw te wijzigen"
-
-# AI Translated
-msgid "Recommended "
-msgstr "Aanbevolen "
-
-msgid "view"
-msgstr "weergave"
-
-# AI Translated
-msgid "Current filament colors"
-msgstr "Huidige filamentkleuren"
-
-msgid "Matching"
-msgstr "Overeenkomsten"
-
-# AI Translated
-msgid "Quick set"
-msgstr "Snel instellen"
-
-# AI Translated
-msgid "Color match"
-msgstr "Kleurovereenkomst"
-
-# AI Translated
-msgid "Approximate color matching."
-msgstr "Benaderende kleurovereenkomst."
-
-msgid "Append"
-msgstr "Toevoegen"
-
-# AI Translated
-msgid "Append to existing filaments"
-msgstr "Toevoegen aan bestaande filamenten"
-
-# AI Translated
-msgid "Reset mapped extruders."
-msgstr "Toegewezen extruders terugzetten."
-
-msgid "Note"
-msgstr "Opmerking"
-
-# AI Translated
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"De kleur is geselecteerd; u kunt op OK klikken \n"
-" om door te gaan of deze handmatig aanpassen."
-
-msgid "—> "
-msgstr "—> "
 
 # AI Translated
 msgid ""
@@ -23860,210 +23713,6 @@ msgstr ""
 "Inhoud bericht: \"%1%\"\n"
 "Fout: \"%2%\""
 
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Het heeft een kleine laaghoogte en resulteert in bijna verwaarloosbare laaglijnen en een hoge afdrukkwaliteit. Het is geschikt voor de meeste algemene afdrukgevallen."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm mondstuk, heeft het lagere snelheden en acceleratie, en het spaarzame infill patroon is Gyroid. Dit resulteert in een veel hogere printkwaliteit maar ook een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een iets grotere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een iets kortere printtijd op."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert licht zichtbare laaglijnen maar een kortere printtijd op."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel onzichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel onzichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minimale laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minimale laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Het heeft een normale laaghoogte en resulteert in gemiddelde laaglijnen en afdrukkwaliteit. Het is geschikt voor de meeste afdrukgevallen."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een iets kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minder zichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel verwaarloosbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een langere printtijd op."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "De laagdikte is groot, wat resulteert in zichtbare laaglijnen en een normale afdrukkwaliteit en afdruktijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert veel duidelijker zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een iets hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Dit heeft een zeer grote laaghoogte. Dat levert zeer duidelijk zichtbare laaglijnen, een lage printkwaliteit en een kortere printtijd op."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert zeer duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een veel grotere laaghoogte. Dit levert extreem duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een veel kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een iets kleinere laaghoogte. Dit levert iets minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
-
-# AI Translated
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Dit is geen veelgebruikt filament en ook geen Bambu-filament; het verschilt sterk per merk. Het wordt daarom sterk aangeraden om vóór het printen bij de leverancier een geschikt profiel op te vragen en enkele parameters aan te passen op basis van de eigenschappen."
-
-# AI Translated
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Bij het printen van dit filament bestaat er risico op kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
-
-# AI Translated
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Bij het printen van dit filament bestaat er risico op verstopping van het mondstuk, druipen, kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
-
-# AI Translated
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Raadpleeg voor betere transparante of doorschijnende resultaten met het betreffende filament deze wiki: Printing tips for transparent PETG."
-
-# AI Translated
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Droog het filament vóór gebruik en stel de snelheid van de buitenwand bij het slicen in op 40 tot 60 mm/s om prints met meer glans te krijgen."
-
-# AI Translated
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-
-# AI Translated
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: ASA Aero Printing Guide."
-
-# AI Translated
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Dit filament is te zacht en niet compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
-
-# AI Translated
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Dit filament is hard genoeg (ongeveer 67D)  en is compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
-
-# AI Translated
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Als u een zachte soort TPU gaat printen, slice dan niet met dit profiel; het is alleen bedoeld voor TPU dat hard genoeg is (niet minder dan 55D) en compatibel is met de AMS. Raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
-
-# AI Translated
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Dit is een in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Het printen van dit filament stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: PVA Printing Guide."
-
-# AI Translated
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Dit is een niet in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Raadpleeg voor een betere printkwaliteit deze wiki: Printing Tips for Support Filament and Support Function."
-
-# AI Translated
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "De generieke voorinstellingen zijn behoudend afgestemd voor compatibiliteit met een breder scala aan filamenten. Gebruik voor een hogere printkwaliteit en hogere snelheden Bambu-filamenten met Bambu-voorinstellingen."
-
-# AI Translated
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Hogekwaliteitsprofiel voor een 0,2 mm-mondstuk, met prioriteit voor printkwaliteit."
-
-# AI Translated
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Hogekwaliteitsprofiel voor 0,16 mm laaghoogte, met prioriteit voor printkwaliteit en sterkte."
-
-# AI Translated
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Standaardprofiel voor 0,16 mm laaghoogte, met prioriteit voor snelheid."
-
-# AI Translated
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Hogekwaliteitsprofiel voor 0,2 mm laaghoogte, met prioriteit voor sterkte en printkwaliteit."
-
-# AI Translated
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Standaardprofiel voor een 0,4 mm-mondstuk, met prioriteit voor snelheid."
-
-# AI Translated
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Hogekwaliteitsprofiel voor een 0,6 mm-mondstuk, met prioriteit voor printkwaliteit en sterkte."
-
-# AI Translated
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Sterkteprofiel voor een 0,6 mm-mondstuk, met prioriteit voor sterkte."
-
-# AI Translated
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Standaardprofiel voor een 0,6 mm-mondstuk, met prioriteit voor snelheid."
-
-# AI Translated
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Hogekwaliteitsprofiel voor een 0,8 mm-mondstuk, met prioriteit voor printkwaliteit."
-
-# AI Translated
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Sterkteprofiel voor een 0,8 mm-mondstuk, met prioriteit voor sterkte."
-
-# AI Translated
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Standaardprofiel voor een 0,8 mm-mondstuk, met prioriteit voor snelheid."
-
 msgid "No AMS"
 msgstr "Geen AMS"
 
@@ -25145,9 +24794,8 @@ msgstr "Cirkel — klik op het middelpunt, daarna op de straal"
 msgid "Arc — click start, end, then a point"
 msgstr "Boog — klik op het begin, het eind en daarna een punt"
 
-# AI Translated
-msgid "Slot — two centerline ends, then end radius"
-msgstr "Sleuf — twee uiteinden van de middellijn, daarna de eindstraal"
+msgid "Slot — two centerline ends, then the width"
+msgstr ""
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -25221,9 +24869,8 @@ msgstr "Wereldassen getoond"
 msgid "World axes hidden"
 msgstr "Wereldassen verborgen"
 
-# AI Translated
-msgid "Isometric view, fitted"
-msgstr "Isometrische weergave, passend gemaakt"
+msgid "Axonometric view, fitted"
+msgstr ""
 
 # AI Translated
 msgid "Bed shown"
@@ -25447,9 +25094,8 @@ msgstr "As"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Referentieas (twee punten, vlaknormaal, middellijn van cilinder, twee vlakken, langs rand)"
 
-# AI Translated
-msgid "Coord Sys"
-msgstr "Coörd.-systeem"
+msgid "Coordinate system"
+msgstr ""
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -25475,6 +25121,11 @@ msgstr "Randen van een lichaam als schetsentiteiten op een vlak projecteren"
 # AI Translated
 msgid "Project needs a body — add or import one first"
 msgstr "Projecteren vereist een lichaam — voeg er eerst een toe of importeer er een"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Vlak %d"
 
 # AI Translated
 msgid "(all edges)"
@@ -25508,9 +25159,8 @@ msgstr "Spiegelen vereist een lichaam — voeg er eerst een toe of importeer er 
 msgid "Mate"
 msgstr "Koppeling"
 
-# AI Translated
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "Samenstelling: twee coördinatensysteemfeatures uitlijnen (vast, planair, roterend, schuivend, cilindrisch)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -25594,6 +25244,10 @@ msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Een gat boren, gecentreerd op een gekozen vlak of geplaatst op een vlak"
 
 # AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Kies een vlak of een referentievlak om in te boren"
+
+# AI Translated
 msgid "Thread"
 msgstr "Schroefdraad"
 
@@ -25645,9 +25299,8 @@ msgstr "Klik op het begin, daarna op het eind — stel daarna de exacte lengte i
 msgid "Polyline"
 msgstr "Polylijn"
 
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
-msgstr "Klik op punten; klik op het eerste punt om de lus te sluiten, rechtsklik om de keten te beëindigen"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
+msgstr ""
 
 # AI Translated
 msgid "Corner rectangle"
@@ -25737,9 +25390,8 @@ msgstr "Klik op het middelpunt, daarna op het begin en vervolgens op een punt vo
 msgid "Slot"
 msgstr "Sleuf"
 
-# AI Translated
-msgid "Click two centerline ends, then a point for the end radius"
-msgstr "Klik op de twee uiteinden van de middellijn, daarna op een punt voor de eindstraal"
+msgid "Click two centerline ends, then a point for the width"
+msgstr ""
 
 # AI Translated
 msgid "Arc slot"
@@ -25769,9 +25421,8 @@ msgstr "Klik op het middelpunt, het eind van de hoofdas, een punt op de nevenas 
 msgid "Spline"
 msgstr "Spline"
 
-# AI Translated
-msgid "Click control points; double-click or right-click to finish"
-msgstr "Klik op controlepunten; dubbelklik of rechtsklik om te voltooien"
+msgid "Click control points; double-click, right-click or Enter to finish"
+msgstr ""
 
 # AI Translated
 msgid "Click to place a point"
@@ -25825,17 +25476,15 @@ msgstr "Kies een lijn als spiegelas, daarna de te spiegelen entiteiten; klik op 
 msgid "Trim"
 msgstr "Inkorten"
 
-# AI Translated
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "Klik op een segment om het in te korten tot het dichtstbijzijnde snijpunt; rechtsklik sluit af"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Extend"
 msgstr "Verlengen"
 
-# AI Translated
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "Klik op een lijn of boog om deze te verlengen tot de dichtstbijzijnde entiteit; rechtsklik sluit af"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -25990,22 +25639,6 @@ msgid "Vertical distance"
 msgstr "Verticale afstand"
 
 # AI Translated
-msgid "✓ Confirm"
-msgstr "✓ Bevestigen"
-
-# AI Translated
-msgid "✗ Cancel"
-msgstr "✗ Annuleren"
-
-# AI Translated
-msgid "Undo (Ctrl+Z)"
-msgstr "Ongedaan maken (Ctrl+Z)"
-
-# AI Translated
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "Opnieuw doen (Ctrl+Shift+Z)"
-
-# AI Translated
 msgid "New Design — clear the feature tree"
 msgstr "Nieuw ontwerp — de featureboom wissen"
 
@@ -26029,9 +25662,20 @@ msgstr "Doorsnede — een deel van het model verbergen om naar binnen te kijken.
 msgid "Flip Section — show the opposite half"
 msgstr "Doorsnede omkeren — de andere helft tonen"
 
-# AI Translated
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "Naar printbed — het volumelichaam naar Voorbereiden sturen"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
+msgstr ""
 
 # AI Translated
 msgid "Width / X"
@@ -26062,8 +25706,8 @@ msgid "Rotation axis"
 msgstr "Rotatieas"
 
 # AI Translated
-msgid "Angle °"
-msgstr "Hoek °"
+msgid "Angle (°)"
+msgstr "Hoek (°)"
 
 # AI Translated
 msgid "Move / Rotate"
@@ -26105,8 +25749,8 @@ msgid "2nd dist"
 msgstr "2e afstand"
 
 # AI Translated
-msgid "Taper °"
-msgstr "Tapsheid °"
+msgid "Taper (°)"
+msgstr "Tapsheid (°)"
 
 # AI Translated
 msgid "New body"
@@ -26239,21 +25883,16 @@ msgstr "Circulair"
 msgid "Direction"
 msgstr "Richting"
 
-# AI Translated
-msgid "Total angle°"
-msgstr "Totale hoek°"
+msgid "Total angle (°)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean"
 msgstr "Booleaans"
 
 # AI Translated
-msgid "Union (join)"
-msgstr "Vereniging (samenvoegen)"
-
-# AI Translated
-msgid "Subtract (cut)"
-msgstr "Aftrekken (wegsnijden)"
+msgid "Subtract"
+msgstr "Aftrekken"
 
 # AI Translated
 msgid "Target (kept)"
@@ -26300,10 +25939,6 @@ msgstr "Vlaktype"
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Basis"
-
-# AI Translated
-msgid "Angle°"
-msgstr "Hoek°"
 
 # AI Translated
 msgid "Base X"
@@ -26361,6 +25996,9 @@ msgstr "Oppervlaklichaam"
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr "Verschuift de schil van een oppervlaklichaam. Positief = naar buiten, negatief = naar binnen."
 
+msgid "Thickness"
+msgstr "Dikte"
+
 # AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr "Verdikt een oppervlaklichaam tot een volumelichaam. Omkeren keert de richting om."
@@ -26376,10 +26014,6 @@ msgstr "Open vlak"
 # AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
 msgstr "Kies een vlak van het volumelichaam om het te openen en stel daarna de wanddikte in."
-
-# AI Translated
-msgid "Angle (°)"
-msgstr "Hoek (°)"
 
 # AI Translated
 msgid "(pick a side face)"
@@ -26487,11 +26121,6 @@ msgid "Face %d is already in the list"
 msgstr "Vlak %d staat al in de lijst"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Vlak %d"
-
-# AI Translated
 msgid "Faces to delete"
 msgstr "Te verwijderen vlakken"
 
@@ -26502,10 +26131,6 @@ msgstr "Kies een vlak van het volumelichaam en klik daarna op 'Gekozen vlak toev
 # AI Translated
 msgid "Left-handed"
 msgstr "Linksdraaiend"
-
-# AI Translated
-msgid "Taper (°)"
-msgstr "Tapsheid (°)"
 
 # AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -26635,13 +26260,15 @@ msgstr "Cilindrisch — assen collineair; vrij draaien + axiaal schuiven"
 msgid "Kind"
 msgstr "Soort"
 
-# AI Translated
-msgid "CS A (fixed)"
-msgstr "CS A (vast)"
+msgid "A (fixed)"
+msgstr ""
+
+msgid "B (moves)"
+msgstr ""
 
 # AI Translated
-msgid "CS B (moves)"
-msgstr "CS B (beweegt)"
+msgid "Angle °"
+msgstr "Hoek °"
 
 # AI Translated
 msgid "Flip (oppose z axes)"
@@ -26722,14 +26349,6 @@ msgid "Bodies"
 msgstr "Lichamen"
 
 # AI Translated
-msgid "Move body"
-msgstr "Lichaam verplaatsen"
-
-# AI Translated
-msgid "Select a body row first, then move it"
-msgstr "Selecteer eerst een rij met een lichaam en verplaats het daarna"
-
-# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Booleaans — samenvoegen, aftrekken of doorsnijden met een ander lichaam"
 
@@ -26742,9 +26361,14 @@ msgstr "Lichaam %d geselecteerd — rechtsklik voor de beschikbare acties"
 msgid "Variables"
 msgstr "Variabelen"
 
-# AI Translated
-msgid "+"
-msgstr "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -26762,6 +26386,10 @@ msgstr "Schets bijgewerkt"
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Schets gemaakt (%zu sturende maten) — selecteer deze en klik met de rechtermuisknop om te extruderen"
+
+#, c-format, boost-format
+msgid "Length %.2f mm, angle %.1f°"
+msgstr ""
 
 # AI Translated
 msgid "(locked)"
@@ -26811,15 +26439,25 @@ msgstr "Lichaam %d: vlak %d geselecteerd — rechtsklik om het te duwen/trekken,
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Vlak %d geselecteerd — rechtsklik om het te duwen/trekken, of klik nogmaals voor het hele lichaam"
 
-# AI Translated
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Lichaam %d: rand %d geselecteerd — Afronding/Afschuining om deze af te werken, of klik nogmaals voor het hele lichaam"
+#, c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
 
-# AI Translated
+#, c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+
 #, c-format, boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Rand %d geselecteerd — Afronding/Afschuining om deze af te werken, of klik nogmaals voor het hele lichaam"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -26848,6 +26486,9 @@ msgstr "Gereedschap afgesloten"
 # AI Translated
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Schets behouden — Bevestigen om vast te leggen, Annuleren om te verwerpen"
+
+msgid "Select something to delete"
+msgstr ""
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -26879,14 +26520,17 @@ msgstr "Bewerken: Schets %d   ·   N = loodrecht op het vlak kijken   ·   Beves
 msgid "OK — %zu triangles"
 msgstr "OK — %zu driehoeken"
 
-# AI Translated
-msgid "Text to insert:"
-msgstr "In te voegen tekst:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
+msgstr ""
 
-# AI Translated
-msgctxt "Design"
-msgid "Text"
-msgstr "Tekst"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
+msgstr ""
 
 # AI Translated
 msgid "Import SVG"
@@ -26912,9 +26556,9 @@ msgstr "STEP lezen…"
 msgid "No solids found in STEP"
 msgstr "Geen volumelichamen gevonden in STEP"
 
-# AI Translated
-msgid "STEP import failed: "
-msgstr "STEP-import mislukt: "
+#, c-format, boost-format
+msgid "STEP import failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -26939,9 +26583,9 @@ msgstr "Meshbestanden (*.stl;*.obj)|*.stl;*.obj|Alle bestanden|*.*"
 msgid "Could not read the STL file"
 msgstr "Het STL-bestand kon niet worden gelezen"
 
-# AI Translated
-msgid "Could not read the OBJ file: "
-msgstr "Het OBJ-bestand kon niet worden gelezen: "
+#, c-format, boost-format
+msgid "Could not read the OBJ file: %s"
+msgstr ""
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -26966,17 +26610,20 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Grote mesh"
 
-# AI Translated
-msgid "Mesh conversion failed: "
-msgstr "Meshconversie mislukt: "
+#, c-format, boost-format
+msgid "Mesh conversion failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "Meshconversie heeft geen geometrie opgeleverd"
 
-# AI Translated
-msgid "Mesh import failed: "
-msgstr "Meshimport mislukt: "
+msgid "Mesh"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mesh import failed: %s"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -27005,18 +26652,17 @@ msgstr " — sleep om te plaatsen/schalen en bevestig daarna"
 msgid "Insert canceled"
 msgstr "Invoegen geannuleerd"
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move — right-click when done"
-msgstr "Sleep een hoek om te schalen, het midden om te verplaatsen — rechtsklik als u klaar bent"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Schets toegevoegd (vlak: %s) — selecteer deze en klik met de rechtermuisknop om te extruderen"
 
-# AI Translated
-msgid "Recompute error: "
-msgstr "Fout bij herberekenen: "
+#, c-format, boost-format
+msgid "The model could not be rebuilt: %s"
+msgstr ""
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -27088,109 +26734,58 @@ msgstr "Kies eerst een schets met een open lijn"
 msgid "Add at least one face to delete first"
 msgstr "Voeg eerst minstens één te verwijderen vlak toe"
 
-# AI Translated
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "Koppeling vereist twee coördinatensysteemfeatures — maak deze eerst"
+msgid "Mate needs two coordinate systems — create them first"
+msgstr ""
 
-# AI Translated
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "Koppeling: CS A en CS B moeten verschillende coördinatensysteemfeatures zijn"
+msgid "Mate: A and B must be different coordinate systems"
+msgstr ""
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Koppeling geweigerd"
 
-# AI Translated
-msgid "No interference — need at least two solid bodies to check"
-msgstr "Geen interferentie — er zijn minstens twee volumelichamen nodig om te controleren"
+msgid "Interference needs at least two bodies"
+msgstr ""
 
 # AI Translated
 msgid "No interference found"
 msgstr "Geen interferentie gevonden"
 
 # AI Translated
-#, c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] "%zu interferentiepaar, ergste %.2f mm³"
-msgstr[1] "%zu interferentieparen, ergste %.2f mm³"
-
-# AI Translated
-msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr ""
-"Interferentieparen:\n"
-"\n"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
 msgstr "Lichaam %d"
 
-# AI Translated
-msgid "Interference"
-msgstr "Interferentie"
-
-# AI Translated
-msgid "Select a solid body first — its mass properties are what is reported"
-msgstr "Selecteer eerst een volumelichaam — de massa-eigenschappen daarvan worden gerapporteerd"
-
-# AI Translated
-msgid "Mass properties could not be computed for this body"
-msgstr "De massa-eigenschappen van dit lichaam konden niet worden berekend"
-
-# AI Translated
 #, c-format, boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr "%s: oppervlaklichaam — %.2f cm² oppervlak, geen volume"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
-"%s\n"
-"\n"
-"Oppervlaklichaam (open schil)\n"
-"Oppervlakte: %.2f cm²\n"
-"\n"
-"Een oppervlak omsluit geen materiaal en heeft dus geen volume. Verdik het tot een volumelichaam om er een te krijgen."
 
-# AI Translated
-msgid "Mass properties"
-msgstr "Massa-eigenschappen"
+#, c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
+msgstr[1] ""
 
-# AI Translated
-#, c-format, boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr "%s: %.3f cm³, %.2f cm²"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "Select a body to measure it"
 msgstr ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Oppervlakte: %.2f cm²"
+
+msgid "This body could not be measured"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: volume %.2f mm³, area %.2f mm²"
+msgstr ""
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Patroon vereist een volumelichaam — voeg er eerst een toe of importeer er een"
 
-# AI Translated
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "Booleaans vereist twee volumelichamen — voeg een tweede toe of importeer er een"
+msgid "Boolean needs two bodies — add or import a second one"
+msgstr ""
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -27204,6 +26799,36 @@ msgstr "Gekozen vlak (Lichaam %d)"
 # AI Translated
 msgid "Picked face"
 msgstr "Gekozen vlak"
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -27242,17 +26867,15 @@ msgstr "Maat — klik op het tweede punt"
 msgid "Line — click the start point"
 msgstr "Lijn — klik op het beginpunt"
 
-# AI Translated
-msgid "Line — click the end point, or type the length"
-msgstr "Lijn — klik op het eindpunt of typ de lengte"
+msgid "Line — click the end point; its length and angle can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Polylijn — klik op het eerste punt"
 
-# AI Translated
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr "Polylijn — klik op het volgende punt  ·  klik op het beginpunt om deze te sluiten  ·  rechtsklik om de keten te beëindigen"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
+msgstr ""
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -27298,9 +26921,8 @@ msgstr "Afgeronde rechthoek — klik om de hoekstraal in te stellen"
 msgid "Circle — click the center"
 msgstr "Cirkel — klik op het middelpunt"
 
-# AI Translated
-msgid "Circle — click to set the radius, or type it"
-msgstr "Cirkel — klik om de straal in te stellen, of typ deze"
+msgid "Circle — click to set the radius; it can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -27426,21 +27048,18 @@ msgstr "Elliptische boog — klik waar de boog eindigt"
 msgid "Spline — click the first control point"
 msgstr "Spline — klik op het eerste controlepunt"
 
-# AI Translated
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr "Spline — klik op het volgende controlepunt  ·  rechtsklik om de curve te voltooien"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
+msgstr ""
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Punt — klik om er een te plaatsen; het gereedschap blijft actief voor meer"
 
-# AI Translated
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr "Inkorten — klik op een segment waar het een andere entiteit kruist  ·  rechtsklik om af te sluiten"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
+msgstr ""
 
-# AI Translated
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr "Verlengen — klik op een lijn of boog om deze te verlengen tot de dichtstbijzijnde entiteit  ·  rechtsklik om af te sluiten"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
+msgstr ""
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -27450,9 +27069,8 @@ msgstr "Afronding — klik op de eerste van twee lijnen die samenkomen"
 msgid "Fillet — click the second line"
 msgstr "Afronding — klik op de tweede lijn"
 
-# AI Translated
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Afronding — sleep de pijl of klik op het getal om de straal te typen  ·  klik op een lege plek om toe te passen  ·  rechtsklik annuleert"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -27462,74 +27080,63 @@ msgstr "Afschuining — klik op de eerste van twee lijnen die samenkomen"
 msgid "Chamfer — click the second line"
 msgstr "Afschuining — klik op de tweede lijn"
 
-# AI Translated
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Afschuining — sleep de pijl of klik op het getal om de afstand te typen  ·  klik op een lege plek om toe te passen  ·  rechtsklik annuleert"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
-msgid "Offset — click the entity to offset"
-msgstr "Offset — klik op de entiteit voor de offset"
+msgid "Offset — click a curve; its whole outline is offset"
+msgstr ""
 
-# AI Translated
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Offset — sleep de pijl naar een van beide kanten of klik op het getal om de afstand te typen  ·  klik op een lege plek om toe te passen  ·  rechtsklik annuleert"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Spiegelen — klik eerst op de LIJN waarin gespiegeld wordt (een constructielijn werkt ook)"
 
-# AI Translated
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr "Spiegelen — as ingesteld  ·  klik nu op de te spiegelen entiteiten  ·  rechtsklik annuleert"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
 #, c-format, boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr "Spiegelen — as ingesteld  ·  %d te spiegelen  ·  klik op een andere om deze toe te voegen of te verwijderen  ·  klik op een lege plek om toe te passen"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Verplaatsen — klik op de te verplaatsen entiteiten"
 
-# AI Translated
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr "Verplaatsen — sleep de greep of klik op het getal om de afstand te typen  ·  klik op een lege plek om toe te passen"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Roteren — klik op de te roteren entiteiten"
 
-# AI Translated
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr "Roteren — sleep de greep of klik op het getal om de hoek te typen  ·  klik op een lege plek om toe te passen"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Schalen — klik op de te schalen entiteiten"
 
-# AI Translated
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr "Schalen — sleep de greep of klik op het getal om de factor te typen  ·  klik op een lege plek om toe te passen"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Patroon — klik op de te herhalen entiteiten"
 
-# AI Translated
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr "Patroon — sleep de greep om de stap in te stellen, klik op het aantal om het te typen  ·  klik op een lege plek om toe te passen"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Polair patroon — klik op de te herhalen entiteiten"
 
-# AI Translated
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr "Polair patroon — sleep de greep om de hoekomvang in te stellen, klik op het aantal om het te typen  ·  klik op een lege plek om toe te passen"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
+msgstr ""
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-msgstr "Sleep een hoek om te schalen, het midden om te verplaatsen  ·  rechtsklik als u klaar bent"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -27538,6 +27145,63 @@ msgstr "  ·  Esc gaat terug naar Selecteren"
 # AI Translated
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  klik op een beperkingslabel om het te verwijderen"
+
+#, c-format, boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format, boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d sketch entities"
+msgstr ""
 
 # AI Translated
 msgid "select something first"
@@ -27600,9 +27264,8 @@ msgstr "Vlak toegevoegd — kies het als schetsvlak"
 msgid "Axis added"
 msgstr "As toegevoegd"
 
-# AI Translated
-msgid "Coord Sys added"
-msgstr "Coörd.-systeem toegevoegd"
+msgid "Coordinate system added"
+msgstr ""
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -27632,9 +27295,9 @@ msgstr "Nog geen volumelichaam — selecteer een schets en klik er met de rechte
 msgid "Could not restore the CAD model from this project"
 msgstr "Het CAD-model kon niet uit dit project worden hersteld"
 
-# AI Translated
-msgid "Could not restore the CAD model: "
-msgstr "Het CAD-model kon niet worden hersteld: "
+#, c-format, boost-format
+msgid "Could not restore the CAD model: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -27657,9 +27320,8 @@ msgstr "Doorsnede — de bovenste helft wordt getoond"
 msgid "Section view — showing the lower half"
 msgstr "Doorsnede — de onderste helft wordt getoond"
 
-# AI Translated
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "Booleaans vereist twee lichamen — maak of importeer een tweede volumelichaam"
+msgid "Finding the feature's faces…"
+msgstr ""
 
 # AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -27694,9 +27356,12 @@ msgstr "Klik op een vlak van het volumelichaam en druk daarna op F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Op vlak geplaatst — lichaam plat op het printbed gelegd"
 
-# AI Translated
-msgid "Edit rejected: "
-msgstr "Bewerking geweigerd: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edit rejected: %s"
+msgstr ""
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -27715,20 +27380,9 @@ msgstr "Dit lichaam heeft geen feature om te verwijderen — gebruik Nieuw ontwe
 msgid "feature %d"
 msgstr "feature %d"
 
-# AI Translated
 #, c-format, boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
-"%s verwijderen?\n"
-"\n"
-"Dat is de feature waaruit dit lichaam is gemaakt. Features die erop voortbouwen, kunnen worden verwijderd of niet meer werken."
-
-# AI Translated
-msgid "Delete body"
-msgstr "Lichaam verwijderen"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -28120,9 +27774,16 @@ msgstr "STEP-bestanden (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP geëxporteerd"
 
+#, c-format, boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
 # AI Translated
-msgid "STEP export failed: "
-msgstr "STEP-export mislukt: "
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr "Naar printbed — het volumelichaam naar Voorbereiden sturen"
 
 # AI Translated
 msgid "Nothing to commit — add a feature first"
@@ -28132,6 +27793,20 @@ msgstr "Niets om vast te leggen — voeg eerst een feature toe"
 msgid "All bodies hidden — show one before committing"
 msgstr "Alle lichamen zijn verborgen — toon er een voordat u vastlegt"
 
+#, c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format, boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Line E%d"
+msgstr ""
+
 # AI Translated
 msgid "Plane ready"
 msgstr "Vlak gereed"
@@ -28140,9 +27815,8 @@ msgstr "Vlak gereed"
 msgid "Axis ready"
 msgstr "As gereed"
 
-# AI Translated
-msgid "Coord Sys ready"
-msgstr "Coörd.-systeem gereed"
+msgid "Coordinate system ready"
+msgstr ""
 
 # AI Translated
 msgid "Helix ready"
@@ -28157,20 +27831,12 @@ msgid "Sketch ready"
 msgstr "Schets gereed"
 
 # AI Translated
-msgid "Mate needs at least two CoordSys features"
-msgstr "Koppeling vereist minstens twee coördinatensysteemfeatures"
-
-# AI Translated
-msgid "Mate: CS A and CS B must be different"
-msgstr "Koppeling: CS A en CS B moeten verschillend zijn"
-
-# AI Translated
 msgid "Mate ready"
 msgstr "Koppeling gereed"
 
-# AI Translated
-msgid "Invalid: "
-msgstr "Ongeldig: "
+#, c-format, boost-format
+msgid "Invalid: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -28208,16 +27874,16 @@ msgid "Keep drawing"
 msgstr "Doorgaan met tekenen"
 
 # AI Translated
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "Voltooi of annuleer eerst het huidige gereedschap (Esc)"
-
-# AI Translated
 msgid "Nothing to redo"
 msgstr "Niets om opnieuw te doen"
 
 # AI Translated
 msgid "Nothing to undo"
 msgstr "Niets om ongedaan te maken"
+
+# AI Translated
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr "Voltooi of annuleer eerst het huidige gereedschap (Esc)"
 
 # AI Translated
 #, c-format
@@ -28234,21 +27900,12 @@ msgstr[0] "Ongedaan maken  (nog %zu stap)"
 msgstr[1] "Ongedaan maken  (nog %zu stappen)"
 
 # AI Translated
-msgid "Variable name:"
-msgstr "Naam van variabele:"
-
-# AI Translated
 msgid "Add Variable"
 msgstr "Variabele toevoegen"
 
 # AI Translated
 msgid "Variable name must not contain spaces"
 msgstr "De naam van een variabele mag geen spaties bevatten"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "Expressie voor '%s':"
 
 # AI Translated
 msgid "Select a variable first"
@@ -28263,9 +27920,110 @@ msgstr "Variabele bewerken"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Variabele '%s' kon niet worden verwijderd (waarschijnlijk nog gebruikt in een feature-expressie): %s"
 
+#, c-format, boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 # AI Translated
 msgid "No binding for that field"
 msgstr "Geen binding voor dat veld"
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Zijde"
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "rechtsklik of dubbelklik om te voltooien, klik op het begin om te sluiten"
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
+msgstr ""
 
 # AI Translated
 msgid "Enter a number"
@@ -28274,6 +28032,641 @@ msgstr "Voer een getal in"
 # AI Translated
 msgid "Not a number"
 msgstr "Geen getal"
+
+# AI Translated
+msgid "Add material"
+msgstr "Materiaal toevoegen"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Afronding / afschuining / lossing"
+
+# AI Translated
+msgid "Repeat"
+msgstr "Herhalen"
+
+# AI Translated
+msgid "Reference"
+msgstr "Referentie"
+
+# AI Translated
+msgid "Modify"
+msgstr "Wijzigen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Schets"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Klik op een vlak of een referentievlak en kies daarna een tekengereedschap"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Wentelen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Sweep"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Loft"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Verdikken"
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Het gereedschapslichaam versmelten met het doel — één volumelichaam, zonder naad"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Aftrekken"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Het gereedschapslichaam uit het doel snijden"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Doorsnijden"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Alleen behouden waar de twee lichamen overlappen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Oppervlak extruderen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Oppervlak wentelen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Oppervlakloft"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Oppervlak vullen"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Maak eerst een gesloten schets"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Oppervlak verdikken"
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Gat"
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Schroefdraad"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Het lichaam met een vlak bijsnijden — sleep de offsetpijl; behoud één helft of beide"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Splitsen"
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Het lichaam langs een gekozen vlak splitsen in twee volumelichamen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Afronding"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Kies een rand om af te ronden"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Kies een rand en sleep daarna de straalpijl of typ de straal"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Afschuining"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Kies een rand om af te schuinen"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Kies een rand en sleep daarna de afstandspijl of typ de afstand"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Lossing"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Kies een vlak om taps te laten toelopen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Oppervlakoffset"
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Lineair patroon"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Het lichaam herhalen langs een richting — sleep de tussenafstand, stel het aantal in"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Cirkelvormig patroon"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Het lichaam herhalen rond een as — stel het aantal en de hoekomvang in"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Spiegelen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Patroon langs curve"
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Het lichaam herhalen langs een gekozen curve"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Verplaatsen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Koppeling"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Uitlijnen op"
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Het lichaam uitlijnen op een gekozen vlak of referentievlak"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Vlak"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "As"
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Helix"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Meten"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Meten tussen de gekozen punten, randen of vlakken"
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Het volume en de oppervlakte van het geselecteerde lichaam weergeven"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Interferentie"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Controleren of twee lichamen overlappen — alleen een rapport, er wordt niets gewijzigd"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Bewerken"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "De geselecteerde feature opnieuw openen om te wijzigen waaruit deze is gemaakt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Naam wijzigen…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Selecteer een feature of een lichaam om de naam te wijzigen"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Geef deze feature een naam die u in de boom herkent (een lichaam krijgt zijn naam van de feature die het maakt)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Vlak verwijderen"
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Verwijderen"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Verwijderen wat geselecteerd is"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Lichaam verwijderen"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Dit hele lichaam verwijderen — verwijdert de feature waaruit het is gemaakt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Lijn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Polylijn"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Klik op punten; klik op het eerste punt om de lus te sluiten, rechtsklik om deze open te beëindigen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Rechthoek vanuit hoek"
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Schuine rechthoek"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Afgeronde rechthoek"
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Cirkel door 2 punten"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Cirkel door 3 punten"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Boog door 3 punten"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Raakboog"
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Sleuf"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Gebogen sleuf"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Ellips"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Elliptische boog"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Driehoek"
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Vierkant"
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Vijfhoek"
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Zeshoek"
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Achthoek"
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Twaalfhoek"
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Ingeschreven"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "De veelhoek tot de hoeken meten (ingeschreven)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Omgeschreven"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "De veelhoek tot de zijden meten (omgeschreven)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Punt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Tekst"
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Een SVG-omtrek als bewerkbare lijnen in deze schets importeren"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Offset"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Inkorten"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Lineair patroon"
+
+# AI Translated
+msgid "Array"
+msgstr "Patroon"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Polair patroon"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Roteren"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Schalen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Maat"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Beperken"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "De geselecteerde schetsentiteiten onderling beperken"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Schets beperken"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Selecteer een schets om deze te beperken"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Maten en relaties (samenvallend, rakend, parallel...) toevoegen aan de geselecteerde schets"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Constructie"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Constructie in-/uitschakelen: geometrie die als hulp dient maar nooit wordt gebouwd"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Verlengen"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "De geselecteerde schetsentiteiten verwijderen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Lengte…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Typ de lengte van deze lijn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Straal / diameter…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Typ de straal van deze boog of de diameter van deze cirkel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Hoek / afstand…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Typ de hoek tussen twee lijnen of de afstand tussen de twee gekozen elementen"
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Size: %.1f × %.1f mm"
+msgstr ""
 
 # AI Translated
 msgid "Primitive"
@@ -28371,10 +28764,8 @@ msgstr "Profiel"
 msgid "Start new profile (for holes)"
 msgstr "Nieuw profiel beginnen (voor gaten)"
 
-# AI Translated
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
-msgstr "Segm."
+msgid "Segments"
+msgstr ""
 
 # AI Translated
 msgid "Sides"
@@ -28388,19 +28779,20 @@ msgstr "Klik op het canvas om te tekenen"
 msgid "Snap to grid"
 msgstr "Uitlijnen op raster"
 
+msgid "Grid step"
+msgstr ""
+
 # AI Translated
 msgid "Outer"
 msgstr "Buiten"
 
-# AI Translated
-msgid "CLOSED"
-msgstr "GESLOTEN"
+msgid "closed"
+msgstr ""
 
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
-msgid "%1% %2%: %3% pts %4%"
-msgstr "%1% %2%: %3% ptn %4%"
+msgid "%1% %2%: %3% points %4%"
+msgstr ""
 
 # AI Translated
 msgid "XY (Top)"
@@ -28437,13 +28829,8 @@ msgstr[1] "%zu gesloten profielen"
 msgid "Draw a closed profile to enable"
 msgstr "Teken een gesloten profiel om dit in te schakelen"
 
-# AI Translated
-msgid "Pocket (Cut)"
-msgstr "Uitsparing (snijden)"
-
-# AI Translated
-msgid "Clear All"
-msgstr "Alles wissen"
+msgid "Clear all"
+msgstr ""
 
 # AI Translated
 msgid "Empty result"
@@ -29861,164 +30248,6 @@ msgid "Note:"
 msgstr "Opmerking:"
 
 # AI Translated
-msgid "Hollow this object"
-msgstr "Dit object uithollen"
-
-# AI Translated
-msgid "Preview hollowed and drilled model"
-msgstr "Voorvertoning van uitgehold en geboord model"
-
-# AI Translated
-msgid "Closing distance"
-msgstr "Sluitafstand"
-
-# AI Translated
-msgid "Hole diameter"
-msgstr "Gatdiameter"
-
-# AI Translated
-msgid "Hole depth"
-msgstr "Gatdiepte"
-
-# AI Translated
-msgid "Remove selected holes"
-msgstr "Geselecteerde gaten verwijderen"
-
-# AI Translated
-msgid "Remove all holes"
-msgstr "Alle gaten verwijderen"
-
-# AI Translated
-msgid "Clipping of view"
-msgstr "Doorsnede van de weergave"
-
-msgid "Reset direction"
-msgstr "Richting terugzetten"
-
-# AI Translated
-msgid "Show supports"
-msgstr "Ondersteuning tonen"
-
-# AI Translated
-msgid "Hollow and drill"
-msgstr "Uithollen en boren"
-
-msgid "Head diameter"
-msgstr "Kopdiameter"
-
-# AI Translated
-msgid "Lock supports under new islands"
-msgstr "Ondersteuning onder nieuwe eilanden vergrendelen"
-
-msgid "Remove selected points"
-msgstr "Verwijder geselecteerde punten"
-
-# AI Translated
-msgid "Remove all points"
-msgstr "Alle punten verwijderen"
-
-# AI Translated
-msgid "Apply changes"
-msgstr "Wijzigingen toepassen"
-
-# AI Translated
-msgid "Discard changes"
-msgstr "Wijzigingen verwerpen"
-
-# AI Translated
-msgid "Minimal points distance"
-msgstr "Minimale puntafstand"
-
-# AI Translated
-msgid "Support points density"
-msgstr "Dichtheid van ondersteuningspunten"
-
-msgid "Auto-generate points"
-msgstr "Genereer automatisch punten"
-
-# AI Translated
-msgid "Manual editing"
-msgstr "Handmatig bewerken"
-
-# AI Translated
-msgid "SLA Support Points"
-msgstr "SLA-ondersteuningspunten"
-
-# AI Translated
-msgid "Do you want to save your manually edited support points?"
-msgstr "Wilt u uw handmatig bewerkte ondersteuningspunten opslaan?"
-
-# AI Translated
-msgid "Save support points?"
-msgstr "Ondersteuningspunten opslaan?"
-
-# AI Translated
-msgid "Autogeneration will erase all manually edited points."
-msgstr "Automatisch genereren wist alle handmatig bewerkte punten."
-
-# AI Translated
-msgid "Are you sure you want to do it?"
-msgstr "Weet u zeker dat u dit wilt doen?"
-
-# AI Translated
-msgid "SLA gizmo keyboard shortcuts"
-msgstr "Sneltoetsen voor de SLA-gizmo"
-
-# AI Translated
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr "Opmerking: sommige sneltoetsen werken alleen in de (niet-)bewerkingsmodus."
-
-msgid "Left click"
-msgstr "Linker muisklik"
-
-# AI Translated
-msgid "Add point"
-msgstr "Punt toevoegen"
-
-msgid "Right click"
-msgstr "Rechter muisklik"
-
-# AI Translated
-msgid "Remove point"
-msgstr "Punt verwijderen"
-
-# AI Translated
-msgid "Move point"
-msgstr "Punt verplaatsen"
-
-# AI Translated
-msgid "Add point to selection"
-msgstr "Punt aan selectie toevoegen"
-
-# AI Translated
-msgid "Remove point from selection"
-msgstr "Punt uit selectie verwijderen"
-
-# AI Translated
-msgid "Select by rectangle"
-msgstr "Selecteren met rechthoek"
-
-# AI Translated
-msgid "Deselect by rectangle"
-msgstr "Deselecteren met rechthoek"
-
-# AI Translated
-msgid "Select all points"
-msgstr "Alle punten selecteren"
-
-# AI Translated
-msgid "Move clipping plane"
-msgstr "Doorsnedevlak verplaatsen"
-
-# AI Translated
-msgid "Reset clipping plane"
-msgstr "Doorsnedevlak terugzetten"
-
-# AI Translated
-msgid "Switch to editing mode"
-msgstr "Naar bewerkingsmodus schakelen"
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Bakken"
@@ -30699,10 +30928,6 @@ msgstr "Herhaalt de textuur over het geschilderde gebied. Uit plaatst één kopi
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Zet Tegelen aan om te kiezen hoe de textuur wordt herhaald."
-
-# AI Translated
-msgid "Repeat"
-msgstr "Herhalen"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -32279,665 +32504,6 @@ msgid "apply_chamfer: OCCT chamfer failed"
 msgstr "apply_chamfer: OCCT-afschuining mislukt"
 
 # AI Translated
-msgid "Add material"
-msgstr "Materiaal toevoegen"
-
-# AI Translated
-msgid "Fillet / chamfer / draft"
-msgstr "Afronding / afschuining / lossing"
-
-# AI Translated
-msgid "Reference"
-msgstr "Referentie"
-
-# AI Translated
-msgid "Modify"
-msgstr "Wijzigen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sketch"
-msgstr "Schets"
-
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Klik op een vlak of een referentievlak en kies daarna een tekengereedschap"
-
-# AI Translated
-msgctxt "Design"
-msgid "Revolve"
-msgstr "Wentelen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sweep"
-msgstr "Sweep"
-
-# AI Translated
-msgctxt "Design"
-msgid "Loft"
-msgstr "Loft"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken"
-msgstr "Verdikken"
-
-# AI Translated
-msgctxt "Design"
-msgid "Union"
-msgstr "Samenvoegen"
-
-# AI Translated
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr "Het gereedschapslichaam versmelten met het doel — één volumelichaam, zonder naad"
-
-# AI Translated
-msgctxt "Design"
-msgid "Subtract"
-msgstr "Aftrekken"
-
-# AI Translated
-msgid "Cut the tool body out of the target"
-msgstr "Het gereedschapslichaam uit het doel snijden"
-
-# AI Translated
-msgctxt "Design"
-msgid "Intersect"
-msgstr "Doorsnijden"
-
-# AI Translated
-msgid "Keep only where the two bodies overlap"
-msgstr "Alleen behouden waar de twee lichamen overlappen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr "Oppervlak extruderen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr "Oppervlak wentelen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr "Oppervlakloft"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr "Oppervlak vullen"
-
-# AI Translated
-msgid "Create a closed sketch first"
-msgstr "Maak eerst een gesloten schets"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr "Oppervlak verdikken"
-
-# AI Translated
-msgid "target is not a sheet body"
-msgstr "doel is geen oppervlaklichaam"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hole"
-msgstr "Gat"
-
-# AI Translated
-msgid "Pick a face or a plane to drill into"
-msgstr "Kies een vlak of een referentievlak om in te boren"
-
-# AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "Een gat boren, gecentreerd op een gekozen vlak of geplaatst op een referentievlak"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thread"
-msgstr "Schroefdraad"
-
-# AI Translated
-msgid "Shell needs a solid body"
-msgstr "Uithollen vereist een volumelichaam"
-
-# AI Translated
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr "Het lichaam met een vlak bijsnijden — sleep de offsetpijl; behoud één helft of beide"
-
-# AI Translated
-msgctxt "Design"
-msgid "Split"
-msgstr "Splitsen"
-
-# AI Translated
-msgid "Split needs a solid body"
-msgstr "Splitsen vereist een volumelichaam"
-
-# AI Translated
-msgid "Split the body along a picked face into two solids"
-msgstr "Het lichaam langs een gekozen vlak splitsen in twee volumelichamen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Fillet"
-msgstr "Afronding"
-
-# AI Translated
-msgid "Pick an edge to round"
-msgstr "Kies een rand om af te ronden"
-
-# AI Translated
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr "Kies een rand en sleep daarna de straalpijl of typ de straal"
-
-# AI Translated
-msgctxt "Design"
-msgid "Chamfer"
-msgstr "Afschuining"
-
-# AI Translated
-msgid "Pick an edge to bevel"
-msgstr "Kies een rand om af te schuinen"
-
-# AI Translated
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr "Kies een rand en sleep daarna de afstandspijl of typ de afstand"
-
-# AI Translated
-msgctxt "Design"
-msgid "Draft"
-msgstr "Lossing"
-
-# AI Translated
-msgid "Pick a face to taper"
-msgstr "Kies een vlak om taps te laten toelopen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr "Oppervlakoffset"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr "Lineair patroon"
-
-# AI Translated
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr "Het lichaam herhalen langs een richting — sleep de tussenafstand, stel het aantal in"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr "Cirkelvormig patroon"
-
-# AI Translated
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr "Het lichaam herhalen rond een as — stel het aantal en de hoekomvang in"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mirror"
-msgstr "Spiegelen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr "Patroon langs curve"
-
-# AI Translated
-msgid "Pattern on curve needs a body and a curve"
-msgstr "Patroon langs curve vereist een lichaam en een curve"
-
-# AI Translated
-msgid "Repeat the body along a picked curve"
-msgstr "Het lichaam herhalen langs een gekozen curve"
-
-# AI Translated
-msgctxt "Design"
-msgid "Move"
-msgstr "Verplaatsen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mate"
-msgstr "Koppeling"
-
-# AI Translated
-msgid "A mate needs two coordinate systems"
-msgstr "Een koppeling vereist twee coördinatensystemen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Align to"
-msgstr "Uitlijnen op"
-
-# AI Translated
-msgid "Align needs a body"
-msgstr "Uitlijnen vereist een lichaam"
-
-# AI Translated
-msgid "Align the body to a picked face or plane"
-msgstr "Het lichaam uitlijnen op een gekozen vlak of referentievlak"
-
-# AI Translated
-msgctxt "Design"
-msgid "Plane"
-msgstr "Vlak"
-
-# AI Translated
-msgctxt "Design"
-msgid "Axis"
-msgstr "As"
-
-# AI Translated
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr "Coörd.-systeem"
-
-# AI Translated
-msgctxt "Design"
-msgid "Helix"
-msgstr "Helix"
-
-# AI Translated
-msgctxt "Design"
-msgid "Measure"
-msgstr "Meten"
-
-# AI Translated
-msgid "Measure between the picked points, edges or faces"
-msgstr "Meten tussen de gekozen punten, randen of vlakken"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mass"
-msgstr "Massa"
-
-# AI Translated
-msgid "Report the volume and surface area of the selected body"
-msgstr "Het volume en de oppervlakte van het geselecteerde lichaam weergeven"
-
-# AI Translated
-msgctxt "Design"
-msgid "Interference"
-msgstr "Interferentie"
-
-# AI Translated
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr "Controleren of twee lichamen overlappen — alleen een rapport, er wordt niets gewijzigd"
-
-# AI Translated
-msgctxt "Design"
-msgid "Edit"
-msgstr "Bewerken"
-
-# AI Translated
-msgid "Reopen the selected feature to change what it was made from"
-msgstr "De geselecteerde feature opnieuw openen om te wijzigen waaruit deze is gemaakt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rename…"
-msgstr "Naam wijzigen…"
-
-# AI Translated
-msgid "Select a feature, or a body, to rename it"
-msgstr "Selecteer een feature of een lichaam om de naam te wijzigen"
-
-# AI Translated
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr "Geef deze feature een naam die u in de boom herkent (een lichaam krijgt zijn naam van de feature die het maakt)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Face"
-msgstr "Vlak verwijderen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Colour"
-msgstr "Kleur"
-
-# AI Translated
-msgid "Set the selected body's display colour"
-msgstr "De weergavekleur van het geselecteerde lichaam instellen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete"
-msgstr "Verwijderen"
-
-# AI Translated
-msgid "Delete what is selected"
-msgstr "Verwijderen wat geselecteerd is"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Body"
-msgstr "Lichaam verwijderen"
-
-# AI Translated
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr "Dit hele lichaam verwijderen — verwijdert de feature waaruit het is gemaakt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Line"
-msgstr "Lijn"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polyline"
-msgstr "Polylijn"
-
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr "Klik op punten; klik op het eerste punt om de lus te sluiten, rechtsklik om deze open te beëindigen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr "Rechthoek vanuit hoek"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr "Rechthoek vanuit middelpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr "Schuine rechthoek"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr "Afgeronde rechthoek"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre circle"
-msgstr "Cirkel vanuit middelpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "2-point circle"
-msgstr "Cirkel door 2 punten"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point circle"
-msgstr "Cirkel door 3 punten"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point arc"
-msgstr "Boog door 3 punten"
-
-# AI Translated
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr "Raakboog"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr "Boog vanuit middelpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Slot"
-msgstr "Sleuf"
-
-# AI Translated
-msgctxt "Design"
-msgid "Arc slot"
-msgstr "Gebogen sleuf"
-
-# AI Translated
-msgctxt "Design"
-msgid "Ellipse"
-msgstr "Ellips"
-
-# AI Translated
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr "Elliptische boog"
-
-# AI Translated
-msgctxt "Design"
-msgid "Spline"
-msgstr "Spline"
-
-# AI Translated
-msgctxt "Design"
-msgid "Triangle"
-msgstr "Driehoek"
-
-# AI Translated
-msgid "Triangle — click centre, then a vertex"
-msgstr "Driehoek — klik op het middelpunt, daarna op een hoekpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Square"
-msgstr "Vierkant"
-
-# AI Translated
-msgid "Square — click centre, then a vertex"
-msgstr "Vierkant — klik op het middelpunt, daarna op een hoekpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pentagon"
-msgstr "Vijfhoek"
-
-# AI Translated
-msgid "Pentagon — click centre, then a vertex"
-msgstr "Vijfhoek — klik op het middelpunt, daarna op een hoekpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hexagon"
-msgstr "Zeshoek"
-
-# AI Translated
-msgid "Hexagon — click centre, then a vertex"
-msgstr "Zeshoek — klik op het middelpunt, daarna op een hoekpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Octagon"
-msgstr "Achthoek"
-
-# AI Translated
-msgid "Octagon — click centre, then a vertex"
-msgstr "Achthoek — klik op het middelpunt, daarna op een hoekpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr "Twaalfhoek"
-
-# AI Translated
-msgid "Dodecagon — click centre, then a vertex"
-msgstr "Twaalfhoek — klik op het middelpunt, daarna op een hoekpunt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Inscribed"
-msgstr "Ingeschreven"
-
-# AI Translated
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr "De veelhoek tot de hoeken meten (ingeschreven)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr "Omgeschreven"
-
-# AI Translated
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr "De veelhoek tot de zijden meten (omgeschreven)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Point"
-msgstr "Punt"
-
-# AI Translated
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr "Typ tekst; de omtrek ervan wordt als bewerkbare lijnen aan deze schets toegevoegd"
-
-# AI Translated
-msgctxt "Design"
-msgid "SVG"
-msgstr "SVG"
-
-# AI Translated
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr "Een SVG-omtrek als bewerkbare lijnen in deze schets importeren"
-
-# AI Translated
-msgctxt "Design"
-msgid "Offset"
-msgstr "Offset"
-
-# AI Translated
-msgctxt "Design"
-msgid "Trim"
-msgstr "Inkorten"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear array"
-msgstr "Lineair patroon"
-
-# AI Translated
-msgid "Array"
-msgstr "Patroon"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polar array"
-msgstr "Polair patroon"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rotate"
-msgstr "Roteren"
-
-# AI Translated
-msgctxt "Design"
-msgid "Scale"
-msgstr "Schalen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dimension"
-msgstr "Maat"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain"
-msgstr "Beperken"
-
-# AI Translated
-msgid "Constrain the selected sketch entities to each other"
-msgstr "De geselecteerde schetsentiteiten onderling beperken"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr "Schets beperken"
-
-# AI Translated
-msgid "Select a sketch to constrain it"
-msgstr "Selecteer een schets om deze te beperken"
-
-# AI Translated
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr "Maten en relaties (samenvallend, rakend, parallel...) toevoegen aan de geselecteerde schets"
-
-# AI Translated
-msgctxt "Design"
-msgid "Construction"
-msgstr "Constructie"
-
-# AI Translated
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr "Constructie in-/uitschakelen: geometrie die als hulp dient maar nooit wordt gebouwd"
-
-# AI Translated
-msgctxt "Design"
-msgid "Extend"
-msgstr "Verlengen"
-
-# AI Translated
-msgid "Delete the selected sketch entities"
-msgstr "De geselecteerde schetsentiteiten verwijderen"
-
-# AI Translated
-msgctxt "Design"
-msgid "Length…"
-msgstr "Lengte…"
-
-# AI Translated
-msgid "Type the length of this line"
-msgstr "Typ de lengte van deze lijn"
-
-# AI Translated
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr "Straal / diameter…"
-
-# AI Translated
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr "Typ de straal van deze boog of de diameter van deze cirkel"
-
-# AI Translated
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr "Hoek / afstand…"
-
-# AI Translated
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr "Typ de hoek tussen twee lijnen of de afstand tussen de twee gekozen elementen"
-
-# AI Translated
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr "Zijde"
-
-# AI Translated
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr "Hoofdas"
-
-# AI Translated
-msgid "Minor"
-msgstr "Nevenas"
-
-# AI Translated
-msgid "right-click or double-click to finish, click start to close"
-msgstr "rechtsklik of dubbelklik om te voltooien, klik op het begin om te sluiten"
-
-# AI Translated
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr "Verlengen: klik op een lijn/boog die een andere bestaande entiteit kan bereiken"
-
-# AI Translated
-msgid "Trim: click a segment where it crosses another live entity"
-msgstr "Inkorten: klik op een segment waar het een andere bestaande entiteit kruist"
-
-# AI Translated
 msgid "Authentication complete"
 msgstr "Authenticatie voltooid"
 
@@ -33383,16 +32949,1005 @@ msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
 
+#~ msgid "Face recognition"
+#~ msgstr "Gezichtsherkenning"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Herkenning uitvoeren"
+
+#~ msgid "Text Gap"
+#~ msgstr "Tekstruimte"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "Ingebedde diepte"
+
+#~ msgid "Input text"
+#~ msgstr "Tekst invoeren"
+
+#~ msgid "Surface"
+#~ msgstr "Oppervlak"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Horizontale tekst"
+
+# AI Translated
+#~ msgid "Mouse move up or down"
+#~ msgstr "Muis omhoog of omlaag bewegen"
+
+#~ msgid "Rotate text"
+#~ msgstr "Draai tekst"
+
+#~ msgid "Text shape"
+#~ msgstr "Tekstvorm"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Slicing printbed %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Los aub de slicing fouten op en publiceer opnieuw."
+
+# AI Translated
+#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+#~ msgstr "Schetseindpunten binnen 0,001 mm als één verbinding behandelen en de lus dichtlassen. Uit: alleen exact samenvallende eindpunten worden verbonden, zodat een lus met een minieme opening als open wordt getoond in plaats van voor u te worden gesloten."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Slice alle printbedden om een inschatting te krijgen van de printtijd en het filamentverbruik"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "De projectdata wordt opgelslagen in een 3MF bestand"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "3mf bestand uploaden"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Ga naar de website om het model te publiceren"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Notitie: het voorbereiden kan enkele minuten duren. Even geduld alstublieft."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "Het publiceren is geannuleerd"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Slicing printbed 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "De data wordt opgeslagen in een 3mf"
+
+# AI Translated
+#~ msgid "Uploading data"
+#~ msgstr "Gegevens uploaden"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Ga naar de website"
+
+# AI Translated
+#~ msgid "OBJ file import color"
+#~ msgstr "Kleur importeren uit OBJ-bestand"
+
+# AI Translated
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Voor sommige vlakken is geen kleur gedefinieerd."
+
+# AI Translated
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "Fout in het MTL-bestand; het materiaal kon niet worden gevonden:"
+
+# AI Translated
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Controleer het OBJ- of MTL-bestand."
+
+# AI Translated
+#~ msgid "Specify number of colors:"
+#~ msgstr "Geef het aantal kleuren op:"
+
+# AI Translated
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Voer een waarde in of klik op de aanpassingsknop om het aantal opnieuw te wijzigen"
+
+# AI Translated
+#~ msgid "Recommended "
+#~ msgstr "Aanbevolen "
+
+#~ msgid "view"
+#~ msgstr "weergave"
+
+# AI Translated
+#~ msgid "Current filament colors"
+#~ msgstr "Huidige filamentkleuren"
+
+#~ msgid "Matching"
+#~ msgstr "Overeenkomsten"
+
+# AI Translated
+#~ msgid "Quick set"
+#~ msgstr "Snel instellen"
+
+# AI Translated
+#~ msgid "Color match"
+#~ msgstr "Kleurovereenkomst"
+
+# AI Translated
+#~ msgid "Approximate color matching."
+#~ msgstr "Benaderende kleurovereenkomst."
+
+#~ msgid "Append"
+#~ msgstr "Toevoegen"
+
+# AI Translated
+#~ msgid "Append to existing filaments"
+#~ msgstr "Toevoegen aan bestaande filamenten"
+
+# AI Translated
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Toegewezen extruders terugzetten."
+
+#~ msgid "Note"
+#~ msgstr "Opmerking"
+
+# AI Translated
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "De kleur is geselecteerd; u kunt op OK klikken \n"
+#~ " om door te gaan of deze handmatig aanpassen."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Het heeft een kleine laaghoogte en resulteert in bijna verwaarloosbare laaglijnen en een hoge afdrukkwaliteit. Het is geschikt voor de meeste algemene afdrukgevallen."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm mondstuk, heeft het lagere snelheden en acceleratie, en het spaarzame infill patroon is Gyroid. Dit resulteert in een veel hogere printkwaliteit maar ook een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een iets grotere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een iets kortere printtijd op."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert licht zichtbare laaglijnen maar een kortere printtijd op."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel onzichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel onzichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minimale laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minimale laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Het heeft een normale laaghoogte en resulteert in gemiddelde laaglijnen en afdrukkwaliteit. Het is geschikt voor de meeste afdrukgevallen."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een iets kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minder zichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel verwaarloosbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een langere printtijd op."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "De laagdikte is groot, wat resulteert in zichtbare laaglijnen en een normale afdrukkwaliteit en afdruktijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert veel duidelijker zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een iets hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Dit heeft een zeer grote laaghoogte. Dat levert zeer duidelijk zichtbare laaglijnen, een lage printkwaliteit en een kortere printtijd op."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert zeer duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een veel grotere laaghoogte. Dit levert extreem duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een veel kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een iets kleinere laaghoogte. Dit levert iets minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
+
+# AI Translated
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Dit is geen veelgebruikt filament en ook geen Bambu-filament; het verschilt sterk per merk. Het wordt daarom sterk aangeraden om vóór het printen bij de leverancier een geschikt profiel op te vragen en enkele parameters aan te passen op basis van de eigenschappen."
+
+# AI Translated
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Bij het printen van dit filament bestaat er risico op kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
+
+# AI Translated
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Bij het printen van dit filament bestaat er risico op verstopping van het mondstuk, druipen, kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
+
+# AI Translated
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Raadpleeg voor betere transparante of doorschijnende resultaten met het betreffende filament deze wiki: Printing tips for transparent PETG."
+
+# AI Translated
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Droog het filament vóór gebruik en stel de snelheid van de buitenwand bij het slicen in op 40 tot 60 mm/s om prints met meer glans te krijgen."
+
+# AI Translated
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+
+# AI Translated
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: ASA Aero Printing Guide."
+
+# AI Translated
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Dit filament is te zacht en niet compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
+
+# AI Translated
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Dit filament is hard genoeg (ongeveer 67D)  en is compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
+
+# AI Translated
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Als u een zachte soort TPU gaat printen, slice dan niet met dit profiel; het is alleen bedoeld voor TPU dat hard genoeg is (niet minder dan 55D) en compatibel is met de AMS. Raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
+
+# AI Translated
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Dit is een in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Het printen van dit filament stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: PVA Printing Guide."
+
+# AI Translated
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Dit is een niet in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Raadpleeg voor een betere printkwaliteit deze wiki: Printing Tips for Support Filament and Support Function."
+
+# AI Translated
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "De generieke voorinstellingen zijn behoudend afgestemd voor compatibiliteit met een breder scala aan filamenten. Gebruik voor een hogere printkwaliteit en hogere snelheden Bambu-filamenten met Bambu-voorinstellingen."
+
+# AI Translated
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Hogekwaliteitsprofiel voor een 0,2 mm-mondstuk, met prioriteit voor printkwaliteit."
+
+# AI Translated
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Hogekwaliteitsprofiel voor 0,16 mm laaghoogte, met prioriteit voor printkwaliteit en sterkte."
+
+# AI Translated
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Standaardprofiel voor 0,16 mm laaghoogte, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Hogekwaliteitsprofiel voor 0,2 mm laaghoogte, met prioriteit voor sterkte en printkwaliteit."
+
+# AI Translated
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Standaardprofiel voor een 0,4 mm-mondstuk, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Hogekwaliteitsprofiel voor een 0,6 mm-mondstuk, met prioriteit voor printkwaliteit en sterkte."
+
+# AI Translated
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Sterkteprofiel voor een 0,6 mm-mondstuk, met prioriteit voor sterkte."
+
+# AI Translated
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Standaardprofiel voor een 0,6 mm-mondstuk, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Hogekwaliteitsprofiel voor een 0,8 mm-mondstuk, met prioriteit voor printkwaliteit."
+
+# AI Translated
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Sterkteprofiel voor een 0,8 mm-mondstuk, met prioriteit voor sterkte."
+
+# AI Translated
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Standaardprofiel voor een 0,8 mm-mondstuk, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "Slot — two centerline ends, then end radius"
+#~ msgstr "Sleuf — twee uiteinden van de middellijn, daarna de eindstraal"
+
+# AI Translated
+#~ msgid "Isometric view, fitted"
+#~ msgstr "Isometrische weergave, passend gemaakt"
+
+# AI Translated
+#~ msgid "Coord Sys"
+#~ msgstr "Coörd.-systeem"
+
+# AI Translated
+#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+#~ msgstr "Samenstelling: twee coördinatensysteemfeatures uitlijnen (vast, planair, roterend, schuivend, cilindrisch)"
+
+# AI Translated
+#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
+#~ msgstr "Klik op punten; klik op het eerste punt om de lus te sluiten, rechtsklik om de keten te beëindigen"
+
+# AI Translated
+#~ msgid "Click two centerline ends, then a point for the end radius"
+#~ msgstr "Klik op de twee uiteinden van de middellijn, daarna op een punt voor de eindstraal"
+
+# AI Translated
+#~ msgid "Click control points; double-click or right-click to finish"
+#~ msgstr "Klik op controlepunten; dubbelklik of rechtsklik om te voltooien"
+
+# AI Translated
+#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+#~ msgstr "Klik op een segment om het in te korten tot het dichtstbijzijnde snijpunt; rechtsklik sluit af"
+
+# AI Translated
+#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+#~ msgstr "Klik op een lijn of boog om deze te verlengen tot de dichtstbijzijnde entiteit; rechtsklik sluit af"
+
+# AI Translated
+#~ msgid "✓ Confirm"
+#~ msgstr "✓ Bevestigen"
+
+# AI Translated
+#~ msgid "✗ Cancel"
+#~ msgstr "✗ Annuleren"
+
+# AI Translated
+#~ msgid "Undo (Ctrl+Z)"
+#~ msgstr "Ongedaan maken (Ctrl+Z)"
+
+# AI Translated
+#~ msgid "Redo (Ctrl+Shift+Z)"
+#~ msgstr "Opnieuw doen (Ctrl+Shift+Z)"
+
+# AI Translated
+#~ msgid "Taper °"
+#~ msgstr "Tapsheid °"
+
+# AI Translated
+#~ msgid "Total angle°"
+#~ msgstr "Totale hoek°"
+
+# AI Translated
+#~ msgid "Union (join)"
+#~ msgstr "Vereniging (samenvoegen)"
+
+# AI Translated
+#~ msgid "Subtract (cut)"
+#~ msgstr "Aftrekken (wegsnijden)"
+
+# AI Translated
+#~ msgid "Angle°"
+#~ msgstr "Hoek°"
+
+# AI Translated
+#~ msgid "CS A (fixed)"
+#~ msgstr "CS A (vast)"
+
+# AI Translated
+#~ msgid "CS B (moves)"
+#~ msgstr "CS B (beweegt)"
+
+# AI Translated
+#~ msgid "Move body"
+#~ msgstr "Lichaam verplaatsen"
+
+# AI Translated
+#~ msgid "Select a body row first, then move it"
+#~ msgstr "Selecteer eerst een rij met een lichaam en verplaats het daarna"
+
+# AI Translated
+#~ msgid "+"
+#~ msgstr "+"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Lichaam %d: rand %d geselecteerd — Afronding/Afschuining om deze af te werken, of klik nogmaals voor het hele lichaam"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Rand %d geselecteerd — Afronding/Afschuining om deze af te werken, of klik nogmaals voor het hele lichaam"
+
+# AI Translated
+#~ msgid "Text to insert:"
+#~ msgstr "In te voegen tekst:"
+
+# AI Translated
+#~ msgid "STEP import failed: "
+#~ msgstr "STEP-import mislukt: "
+
+# AI Translated
+#~ msgid "Could not read the OBJ file: "
+#~ msgstr "Het OBJ-bestand kon niet worden gelezen: "
+
+# AI Translated
+#~ msgid "Mesh conversion failed: "
+#~ msgstr "Meshconversie mislukt: "
+
+# AI Translated
+#~ msgid "Mesh import failed: "
+#~ msgstr "Meshimport mislukt: "
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move — right-click when done"
+#~ msgstr "Sleep een hoek om te schalen, het midden om te verplaatsen — rechtsklik als u klaar bent"
+
+# AI Translated
+#~ msgid "Recompute error: "
+#~ msgstr "Fout bij herberekenen: "
+
+# AI Translated
+#~ msgid "Mate needs two CoordSys features — create them first"
+#~ msgstr "Koppeling vereist twee coördinatensysteemfeatures — maak deze eerst"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different CoordSys features"
+#~ msgstr "Koppeling: CS A en CS B moeten verschillende coördinatensysteemfeatures zijn"
+
+# AI Translated
+#~ msgid "No interference — need at least two solid bodies to check"
+#~ msgstr "Geen interferentie — er zijn minstens twee volumelichamen nodig om te controleren"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pair, worst %.2f mm³"
+#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
+#~ msgstr[0] "%zu interferentiepaar, ergste %.2f mm³"
+#~ msgstr[1] "%zu interferentieparen, ergste %.2f mm³"
+
+# AI Translated
+#~ msgid ""
+#~ "Interference pairs:\n"
+#~ "\n"
+#~ msgstr ""
+#~ "Interferentieparen:\n"
+#~ "\n"
+
+# AI Translated
+#~ msgid "Interference"
+#~ msgstr "Interferentie"
+
+# AI Translated
+#~ msgid "Select a solid body first — its mass properties are what is reported"
+#~ msgstr "Selecteer eerst een volumelichaam — de massa-eigenschappen daarvan worden gerapporteerd"
+
+# AI Translated
+#~ msgid "Mass properties could not be computed for this body"
+#~ msgstr "De massa-eigenschappen van dit lichaam konden niet worden berekend"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
+#~ msgstr "%s: oppervlaklichaam — %.2f cm² oppervlak, geen volume"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Sheet body (open shell)\n"
+#~ "Surface area: %.2f cm²\n"
+#~ "\n"
+#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Oppervlaklichaam (open schil)\n"
+#~ "Oppervlakte: %.2f cm²\n"
+#~ "\n"
+#~ "Een oppervlak omsluit geen materiaal en heeft dus geen volume. Verdik het tot een volumelichaam om er een te krijgen."
+
+# AI Translated
+#~ msgid "Mass properties"
+#~ msgstr "Massa-eigenschappen"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: %.3f cm³, %.2f cm²"
+#~ msgstr "%s: %.3f cm³, %.2f cm²"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Surface area: %.2f cm²"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Oppervlakte: %.2f cm²"
+
+# AI Translated
+#~ msgid "Boolean needs two solid bodies — add or import a second one"
+#~ msgstr "Booleaans vereist twee volumelichamen — voeg een tweede toe of importeer er een"
+
+# AI Translated
+#~ msgid "Line — click the end point, or type the length"
+#~ msgstr "Lijn — klik op het eindpunt of typ de lengte"
+
+# AI Translated
+#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+#~ msgstr "Polylijn — klik op het volgende punt  ·  klik op het beginpunt om deze te sluiten  ·  rechtsklik om de keten te beëindigen"
+
+# AI Translated
+#~ msgid "Circle — click to set the radius, or type it"
+#~ msgstr "Cirkel — klik om de straal in te stellen, of typ deze"
+
+# AI Translated
+#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
+#~ msgstr "Spline — klik op het volgende controlepunt  ·  rechtsklik om de curve te voltooien"
+
+# AI Translated
+#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+#~ msgstr "Inkorten — klik op een segment waar het een andere entiteit kruist  ·  rechtsklik om af te sluiten"
+
+# AI Translated
+#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+#~ msgstr "Verlengen — klik op een lijn of boog om deze te verlengen tot de dichtstbijzijnde entiteit  ·  rechtsklik om af te sluiten"
+
+# AI Translated
+#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Afronding — sleep de pijl of klik op het getal om de straal te typen  ·  klik op een lege plek om toe te passen  ·  rechtsklik annuleert"
+
+# AI Translated
+#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Afschuining — sleep de pijl of klik op het getal om de afstand te typen  ·  klik op een lege plek om toe te passen  ·  rechtsklik annuleert"
+
+# AI Translated
+#~ msgid "Offset — click the entity to offset"
+#~ msgstr "Offset — klik op de entiteit voor de offset"
+
+# AI Translated
+#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Offset — sleep de pijl naar een van beide kanten of klik op het getal om de afstand te typen  ·  klik op een lege plek om toe te passen  ·  rechtsklik annuleert"
+
+# AI Translated
+#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+#~ msgstr "Spiegelen — as ingesteld  ·  klik nu op de te spiegelen entiteiten  ·  rechtsklik annuleert"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+#~ msgstr "Spiegelen — as ingesteld  ·  %d te spiegelen  ·  klik op een andere om deze toe te voegen of te verwijderen  ·  klik op een lege plek om toe te passen"
+
+# AI Translated
+#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+#~ msgstr "Verplaatsen — sleep de greep of klik op het getal om de afstand te typen  ·  klik op een lege plek om toe te passen"
+
+# AI Translated
+#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+#~ msgstr "Roteren — sleep de greep of klik op het getal om de hoek te typen  ·  klik op een lege plek om toe te passen"
+
+# AI Translated
+#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+#~ msgstr "Schalen — sleep de greep of klik op het getal om de factor te typen  ·  klik op een lege plek om toe te passen"
+
+# AI Translated
+#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Patroon — sleep de greep om de stap in te stellen, klik op het aantal om het te typen  ·  klik op een lege plek om toe te passen"
+
+# AI Translated
+#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Polair patroon — sleep de greep om de hoekomvang in te stellen, klik op het aantal om het te typen  ·  klik op een lege plek om toe te passen"
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+#~ msgstr "Sleep een hoek om te schalen, het midden om te verplaatsen  ·  rechtsklik als u klaar bent"
+
+# AI Translated
+#~ msgid "Coord Sys added"
+#~ msgstr "Coörd.-systeem toegevoegd"
+
+# AI Translated
+#~ msgid "Could not restore the CAD model: "
+#~ msgstr "Het CAD-model kon niet worden hersteld: "
+
+# AI Translated
+#~ msgid "Boolean needs two bodies — create or import a second solid"
+#~ msgstr "Booleaans vereist twee lichamen — maak of importeer een tweede volumelichaam"
+
+# AI Translated
+#~ msgid "Edit rejected: "
+#~ msgstr "Bewerking geweigerd: "
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Delete %s?\n"
+#~ "\n"
+#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
+#~ msgstr ""
+#~ "%s verwijderen?\n"
+#~ "\n"
+#~ "Dat is de feature waaruit dit lichaam is gemaakt. Features die erop voortbouwen, kunnen worden verwijderd of niet meer werken."
+
+# AI Translated
+#~ msgid "Delete body"
+#~ msgstr "Lichaam verwijderen"
+
+# AI Translated
+#~ msgid "STEP export failed: "
+#~ msgstr "STEP-export mislukt: "
+
+# AI Translated
+#~ msgid "Coord Sys ready"
+#~ msgstr "Coörd.-systeem gereed"
+
+# AI Translated
+#~ msgid "Mate needs at least two CoordSys features"
+#~ msgstr "Koppeling vereist minstens twee coördinatensysteemfeatures"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different"
+#~ msgstr "Koppeling: CS A en CS B moeten verschillend zijn"
+
+# AI Translated
+#~ msgid "Invalid: "
+#~ msgstr "Ongeldig: "
+
+# AI Translated
+#~ msgid "Variable name:"
+#~ msgstr "Naam van variabele:"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Expression for '%s':"
+#~ msgstr "Expressie voor '%s':"
+
+# AI Translated
+#~ msgid "Seg"
+#~ msgstr "Segm."
+
+# AI Translated
+#~ msgid "CLOSED"
+#~ msgstr "GESLOTEN"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% pts %4%"
+#~ msgstr "%1% %2%: %3% ptn %4%"
+
+# AI Translated
+#~ msgid "Pocket (Cut)"
+#~ msgstr "Uitsparing (snijden)"
+
+# AI Translated
+#~ msgid "Clear All"
+#~ msgstr "Alles wissen"
+
+# AI Translated
+#~ msgid "Hollow this object"
+#~ msgstr "Dit object uithollen"
+
+# AI Translated
+#~ msgid "Preview hollowed and drilled model"
+#~ msgstr "Voorvertoning van uitgehold en geboord model"
+
+# AI Translated
+#~ msgid "Closing distance"
+#~ msgstr "Sluitafstand"
+
+# AI Translated
+#~ msgid "Hole diameter"
+#~ msgstr "Gatdiameter"
+
+# AI Translated
+#~ msgid "Hole depth"
+#~ msgstr "Gatdiepte"
+
+# AI Translated
+#~ msgid "Remove selected holes"
+#~ msgstr "Geselecteerde gaten verwijderen"
+
+# AI Translated
+#~ msgid "Remove all holes"
+#~ msgstr "Alle gaten verwijderen"
+
+# AI Translated
+#~ msgid "Clipping of view"
+#~ msgstr "Doorsnede van de weergave"
+
+#~ msgid "Reset direction"
+#~ msgstr "Richting terugzetten"
+
+# AI Translated
+#~ msgid "Show supports"
+#~ msgstr "Ondersteuning tonen"
+
+# AI Translated
+#~ msgid "Hollow and drill"
+#~ msgstr "Uithollen en boren"
+
+#~ msgid "Head diameter"
+#~ msgstr "Kopdiameter"
+
+# AI Translated
+#~ msgid "Lock supports under new islands"
+#~ msgstr "Ondersteuning onder nieuwe eilanden vergrendelen"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Verwijder geselecteerde punten"
+
+# AI Translated
+#~ msgid "Remove all points"
+#~ msgstr "Alle punten verwijderen"
+
+# AI Translated
+#~ msgid "Apply changes"
+#~ msgstr "Wijzigingen toepassen"
+
+# AI Translated
+#~ msgid "Discard changes"
+#~ msgstr "Wijzigingen verwerpen"
+
+# AI Translated
+#~ msgid "Minimal points distance"
+#~ msgstr "Minimale puntafstand"
+
+# AI Translated
+#~ msgid "Support points density"
+#~ msgstr "Dichtheid van ondersteuningspunten"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Genereer automatisch punten"
+
+# AI Translated
+#~ msgid "Manual editing"
+#~ msgstr "Handmatig bewerken"
+
+# AI Translated
+#~ msgid "SLA Support Points"
+#~ msgstr "SLA-ondersteuningspunten"
+
+# AI Translated
+#~ msgid "Do you want to save your manually edited support points?"
+#~ msgstr "Wilt u uw handmatig bewerkte ondersteuningspunten opslaan?"
+
+# AI Translated
+#~ msgid "Save support points?"
+#~ msgstr "Ondersteuningspunten opslaan?"
+
+# AI Translated
+#~ msgid "Autogeneration will erase all manually edited points."
+#~ msgstr "Automatisch genereren wist alle handmatig bewerkte punten."
+
+# AI Translated
+#~ msgid "Are you sure you want to do it?"
+#~ msgstr "Weet u zeker dat u dit wilt doen?"
+
+# AI Translated
+#~ msgid "SLA gizmo keyboard shortcuts"
+#~ msgstr "Sneltoetsen voor de SLA-gizmo"
+
+# AI Translated
+#~ msgid "Note: some shortcuts work in (non)editing mode only."
+#~ msgstr "Opmerking: sommige sneltoetsen werken alleen in de (niet-)bewerkingsmodus."
+
+#~ msgid "Left click"
+#~ msgstr "Linker muisklik"
+
+# AI Translated
+#~ msgid "Add point"
+#~ msgstr "Punt toevoegen"
+
+#~ msgid "Right click"
+#~ msgstr "Rechter muisklik"
+
+# AI Translated
+#~ msgid "Remove point"
+#~ msgstr "Punt verwijderen"
+
+# AI Translated
+#~ msgid "Move point"
+#~ msgstr "Punt verplaatsen"
+
+# AI Translated
+#~ msgid "Add point to selection"
+#~ msgstr "Punt aan selectie toevoegen"
+
+# AI Translated
+#~ msgid "Remove point from selection"
+#~ msgstr "Punt uit selectie verwijderen"
+
+# AI Translated
+#~ msgid "Select by rectangle"
+#~ msgstr "Selecteren met rechthoek"
+
+# AI Translated
+#~ msgid "Deselect by rectangle"
+#~ msgstr "Deselecteren met rechthoek"
+
+# AI Translated
+#~ msgid "Select all points"
+#~ msgstr "Alle punten selecteren"
+
+# AI Translated
+#~ msgid "Move clipping plane"
+#~ msgstr "Doorsnedevlak verplaatsen"
+
+# AI Translated
+#~ msgid "Reset clipping plane"
+#~ msgstr "Doorsnedevlak terugzetten"
+
+# AI Translated
+#~ msgid "Switch to editing mode"
+#~ msgstr "Naar bewerkingsmodus schakelen"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Union"
+#~ msgstr "Samenvoegen"
+
+# AI Translated
+#~ msgid "target is not a sheet body"
+#~ msgstr "doel is geen oppervlaklichaam"
+
+# AI Translated
+#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
+#~ msgstr "Een gat boren, gecentreerd op een gekozen vlak of geplaatst op een referentievlak"
+
+# AI Translated
+#~ msgid "Shell needs a solid body"
+#~ msgstr "Uithollen vereist een volumelichaam"
+
+# AI Translated
+#~ msgid "Split needs a solid body"
+#~ msgstr "Splitsen vereist een volumelichaam"
+
+# AI Translated
+#~ msgid "Pattern on curve needs a body and a curve"
+#~ msgstr "Patroon langs curve vereist een lichaam en een curve"
+
+# AI Translated
+#~ msgid "A mate needs two coordinate systems"
+#~ msgstr "Een koppeling vereist twee coördinatensystemen"
+
+# AI Translated
+#~ msgid "Align needs a body"
+#~ msgstr "Uitlijnen vereist een lichaam"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Coord Sys"
+#~ msgstr "Coörd.-systeem"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Mass"
+#~ msgstr "Massa"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Colour"
+#~ msgstr "Kleur"
+
+# AI Translated
+#~ msgid "Set the selected body's display colour"
+#~ msgstr "De weergavekleur van het geselecteerde lichaam instellen"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre rectangle"
+#~ msgstr "Rechthoek vanuit middelpunt"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre circle"
+#~ msgstr "Cirkel vanuit middelpunt"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre-point arc"
+#~ msgstr "Boog vanuit middelpunt"
+
+# AI Translated
+#~ msgid "Triangle — click centre, then a vertex"
+#~ msgstr "Driehoek — klik op het middelpunt, daarna op een hoekpunt"
+
+# AI Translated
+#~ msgid "Square — click centre, then a vertex"
+#~ msgstr "Vierkant — klik op het middelpunt, daarna op een hoekpunt"
+
+# AI Translated
+#~ msgid "Pentagon — click centre, then a vertex"
+#~ msgstr "Vijfhoek — klik op het middelpunt, daarna op een hoekpunt"
+
+# AI Translated
+#~ msgid "Hexagon — click centre, then a vertex"
+#~ msgstr "Zeshoek — klik op het middelpunt, daarna op een hoekpunt"
+
+# AI Translated
+#~ msgid "Octagon — click centre, then a vertex"
+#~ msgstr "Achthoek — klik op het middelpunt, daarna op een hoekpunt"
+
+# AI Translated
+#~ msgid "Dodecagon — click centre, then a vertex"
+#~ msgstr "Twaalfhoek — klik op het middelpunt, daarna op een hoekpunt"
+
+# AI Translated
+#~ msgid "Type text; its outline is added to this sketch as editable lines"
+#~ msgstr "Typ tekst; de omtrek ervan wordt als bewerkbare lijnen aan deze schets toegevoegd"
+
+# AI Translated
+#~ msgid "Major"
+#~ msgstr "Hoofdas"
+
+# AI Translated
+#~ msgid "Minor"
+#~ msgstr "Nevenas"
+
+# AI Translated
+#~ msgid "Extend: click a line/arc that can reach another live entity"
+#~ msgstr "Verlengen: klik op een lijn/boog die een andere bestaande entiteit kan bereiken"
+
+# AI Translated
+#~ msgid "Trim: click a segment where it crosses another live entity"
+#~ msgstr "Inkorten: klik op een segment waar het een andere bestaande entiteit kruist"
+
 # AI Translated
 #~ msgid "closed profile(s)"
 #~ msgstr "gesloten profiel(en)"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Cali G-code niet gegenereerd"
-
-# AI Translated
-#~ msgid "Subtract"
-#~ msgstr "Aftrekken"
 
 # AI Translated
 #~ msgid "Multiply"

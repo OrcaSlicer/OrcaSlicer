@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1132,12 +1132,6 @@ msgstr "Nem használható folyamat előnézetben."
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "A művelet törlése már folyamatban van. Kérlek, várj néhány másodpercet."
 
-msgid "Face recognition"
-msgstr "Arcfelismerés"
-
-msgid "Perform Recognition"
-msgstr "Felismerés"
-
 msgid "Enforce seam"
 msgstr "Varrat kényszerítése"
 
@@ -1158,45 +1152,6 @@ msgstr "Kilépés varratfestő módból"
 
 msgid "Paint-on seam editing"
 msgstr "Festett varrat szerkesztése"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Betűtípus"
-
-msgid "Thickness"
-msgstr "Vastagság"
-
-msgid "Text Gap"
-msgstr "Szövegköz"
-
-msgid "Angle"
-msgstr "Szög"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "Beágyazási mélység"
-
-msgid "Input text"
-msgstr "Szöveg"
-
-msgid "Surface"
-msgstr "Felület"
-
-msgid "Horizontal text"
-msgstr "Vízszintes szöveg"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "Egér mozgatása fel vagy le"
-
-msgid "Rotate text"
-msgstr "Szöveg forgatása"
-
-msgid "Text shape"
-msgstr "Szöveg alakja"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1549,6 +1504,11 @@ msgstr "Betöltés"
 
 msgid "In queue"
 msgstr "Sorban"
+
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Betűtípus"
 
 #. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
@@ -1916,6 +1876,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Másolás a vágólapra"
 
+msgid "Angle"
+msgstr "Szög"
+
 msgid "Perpendicular distance"
 msgstr "Merőleges távolság"
 
@@ -2003,6 +1966,9 @@ msgstr "Belépés az összeállítás gizmóba"
 # AI Translated
 msgid "Leaving Assembly gizmo"
 msgstr "Kilépés az összeállítás gizmóból"
+
+msgid "Shift+"
+msgstr "Shift+"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -4476,7 +4442,6 @@ msgstr "A kalibrálás befejeződött"
 msgid "%s does not support %s"
 msgstr "%s nem támogatja %s"
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Lépés"
 
@@ -8857,6 +8822,9 @@ msgstr "A csatlakoztatott nyomtató: %s. Ennek egyeznie kell a projekt nyomtatá
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Szeretnéd szinkronizálni a nyomtató adatait és automatikusan átváltani a beállítást?"
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr "A fájl nem tartalmaz geometriai adatokat."
 
@@ -9005,13 +8973,6 @@ msgstr "Érvénytelen adat"
 
 msgid "Slicing Canceled"
 msgstr "Szeletelés megszakítva"
-
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "%d tálca szeletelése"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Kérlek, javítsd ki a szeletelési hibákat, majd tedd közzé újra."
 
 msgid "Network plug-in switched successfully."
 msgstr "A hálózati bővítmény sikeresen átváltva."
@@ -9819,14 +9780,6 @@ msgstr "CAD funkció (kísérleti)"
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
 msgstr "Ha ez az opció be van kapcsolva, megjelenik a Tervezés fül, ahol a modellek parametrikusan építhetők és szerkeszthetők. Ez a funkció kísérleti, és még fejlesztés alatt áll."
 
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Vázlathurkok automatikus zárása"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr "A 0,001 mm-en belüli vázlatvégpontokat egyetlen csatlakozásként kezeli, és összeforrasztja a hurkot. Kikapcsolva: csak a pontosan egybeeső végpontok kapcsolódnak, így az apró réssel rendelkező hurok nyitottként jelenik meg, ahelyett hogy automatikusan bezárulna."
-
 msgid "Pop up to select filament grouping mode"
 msgstr "Felugró ablak a filamentcsoportosítási mód kiválasztásához"
 
@@ -9923,6 +9876,13 @@ msgstr "Illesztési csatlakozók megjelenítése lapként"
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr "A Tervezés fülön az illesztési csatlakozót kis lapként rajzolja meg a hagyományos, elfordulási negyedkörrel ellátott korong helyett. Egy lap első pillantásra mutatja a tájolását, a korongos jelölés megtanulása nélkül. Kapcsold ki a hagyományos CAD-ábrázoláshoz."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Vázlathurkok automatikus zárása"
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr ""
 
 msgid "Pan"
 msgstr "Pásztázás"
@@ -10604,36 +10564,6 @@ msgstr "Elfogadás"
 # AI Translated
 msgid "Log Out"
 msgstr "Kijelentkezés"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Szeleteld fel az összes tálcát az idő és a filament becsléséhez"
-
-msgid "Packing project data into 3MF file"
-msgstr "Projektadatok csomagolása 3MF fájlba"
-
-msgid "Uploading 3MF"
-msgstr "3mf feltöltése"
-
-msgid "Jump to model publish web page"
-msgstr "Ugrás a modell közzététele weboldalra"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Megjegyzés: Az előkészítés több percig is eltarthat. Kérlek, várj."
-
-msgid "Publish was canceled"
-msgstr "A közzététel törlésre került"
-
-msgid "Slicing Plate 1"
-msgstr "1. tálca szeletelése"
-
-msgid "Packing data to 3MF"
-msgstr "Adatok csomagolása 3mf-be"
-
-msgid "Uploading data"
-msgstr "Adatok feltöltése"
-
-msgid "Jump to webpage"
-msgstr "Ugrás a weboldalra"
 
 # AI Translated
 msgid "Material"
@@ -12590,67 +12520,6 @@ msgstr "Nincs elérhető frissítés."
 
 msgid "The configuration is up to date."
 msgstr "A konfiguráció naprakész."
-
-msgid "OBJ file import color"
-msgstr "OBJ fájl importálási színe"
-
-msgid "Some faces don't have color defined."
-msgstr "Néhány felülethez nincs szín megadva."
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "MTL fájlhiba, az anyag nem található:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "Kérlek, ellenőrizd az OBJ vagy MTL fájlt."
-
-msgid "Specify number of colors:"
-msgstr "Add meg a színek számát:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Írd be vagy kattints a beállítógombra a szám újbóli módosításához"
-
-msgid "Recommended "
-msgstr "Ajánlott "
-
-msgid "view"
-msgstr "nézet"
-
-msgid "Current filament colors"
-msgstr "Jelenlegi filament színek"
-
-msgid "Matching"
-msgstr "Egyezés"
-
-msgid "Quick set"
-msgstr "Gyorsbeállítás"
-
-msgid "Color match"
-msgstr "Színegyezés"
-
-msgid "Approximate color matching."
-msgstr "Közelítő színegyezés."
-
-msgid "Append"
-msgstr "Hozzáfűzés"
-
-msgid "Append to existing filaments"
-msgstr "Hozzáfűzés a meglévő filamentekhez"
-
-msgid "Reset mapped extruders."
-msgstr "A hozzárendelt extruderek visszaállítása."
-
-msgid "Note"
-msgstr "Megjegyzés"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"A szín ki van választva. Az OK gombbal folytathatod, \n"
-" vagy kézzel is módosíthatod."
-
-msgid "—> "
-msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -22022,162 +21891,6 @@ msgstr ""
 "Üzenet törzse: \"%1%\"\n"
 "Hiba: \"%2%\""
 
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Kis rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, a nyomtatási minőség pedig magas. A legtöbb nyomtatási esethez megfelelő."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "A 0,2 mm-es fúvóka alapértelmezett profiljához képest alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez jóval jobb nyomtatási minőséget, de sokkal hosszabb nyomtatási időt eredményez."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest kissé nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, a nyomtatási idő pedig kissé rövidebb."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kissé láthatók, de a nyomtatási idő rövidebb."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte láthatatlanok, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "A 0,2 mm-es fúvóka alapértelmezett profiljához képest vékonyabb rétegvonalakat, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez szinte láthatatlan rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként minimálisak a rétegvonalak, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "A 0,2 mm-es fúvóka alapértelmezett profiljához képest vékonyabb rétegvonalakat, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez alig látható rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Normál rétegmagassággal rendelkezik. Ennek eredményeként átlagos rétegvonalak és nyomtatási minőség érhető el. A legtöbb nyomtatási esethez megfelelő."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "A 0,4 mm-es fúvóka alapértelmezett profiljához képest több falhurkot és nagyobb kitöltési sűrűséget használ. Ez nagyobb nyomatszilárdságot, de több filamentfelhasználást és hosszabb nyomtatási időt eredményez."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak jobban láthatók, a nyomtatási minőség alacsonyabb, de a nyomtatási idő kissé rövidebb."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak jobban láthatók, a nyomtatási minőség alacsonyabb, de a nyomtatási idő rövidebb."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé láthatók, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "A 0,4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagasságot, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez kevésbé látható rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "A 0,4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagasságot, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez alig látható rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, de a nyomtatási idő hosszabb."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "Nagy rétegmagassággal rendelkezik. Ennek eredményeként jól látható rétegvonalak, átlagos nyomtatási minőség és átlagos nyomtatási idő várható."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "A 0,6 mm-es fúvóka alapértelmezett profiljához képest több falhurkot és nagyobb kitöltési sűrűséget használ. Ez nagyobb nyomatszilárdságot, de több filamentfelhasználást és hosszabb nyomtatási időt eredményez."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak jobban láthatók, a nyomtatási minőség alacsonyabb, de bizonyos esetekben a nyomtatási idő rövidebb."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak sokkal jobban láthatók, a nyomtatási minőség jóval alacsonyabb, de bizonyos esetekben a nyomtatási idő rövidebb."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé láthatók, a nyomtatási minőség kissé magasabb, de a nyomtatási idő hosszabb."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé láthatók, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Nagyon nagy rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak nagyon jól láthatók, a nyomtatási minőség alacsony, a nyomtatási idő pedig rövidebb."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak nagyon jól láthatók, a nyomtatási minőség jóval alacsonyabb, de bizonyos esetekben a nyomtatási idő rövidebb."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest jóval nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak rendkívül jól láthatók, a nyomtatási minőség sokkal alacsonyabb, de bizonyos esetekben a nyomtatási idő jóval rövidebb."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest kissé kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kissé kevésbé, de továbbra is jól láthatók, a nyomtatási minőség kissé magasabb, de bizonyos esetekben a nyomtatási idő hosszabb."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé, de továbbra is jól láthatók, a nyomtatási minőség kissé magasabb, de bizonyos esetekben a nyomtatási idő hosszabb."
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Ez a filament nem gyakran használt, és nem is Bambu-filament, ráadásul márkánként jelentősen eltérhet. Ezért nyomtatás előtt erősen ajánlott a gyártótól megfelelő profilt kérni, majd a paramétereket a filament viselkedése alapján finomhangolni."
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Ennek a filamentnek a nyomtatásakor fennáll a kunkorodás és az alacsony rétegtapadási szilárdság kockázata. A jobb eredmény érdekében nézd meg ezt a wikit: Nyomtatási tippek magas hőmérsékletű / műszaki anyagokhoz."
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Ennek a filamentnek a nyomtatásakor fennáll a fúvóka eltömődésének, a szivárgásnak, a kunkorodásának és az alacsony rétegtapadási szilárdságnak a kockázata. A jobb eredmény érdekében nézd meg ezt a wikit: Nyomtatási tippek magas hőmérsékletű / műszaki anyagokhoz."
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "A megfelelő filamenttel jobb átlátszó vagy áttetsző eredmények eléréséhez nézd meg ezt a wikit: Nyomtatási tippek átlátszó PETG-hez."
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "A fényesebb nyomatok eléréséhez használat előtt szárítsd meg a filamentet, és szeleteléskor állítsd a külső fal sebességét 40-60 mm/s közé."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Ezt a filamentet általában csak alacsony sűrűségű modellek nyomtatására használják és néhány speciális paramétert igényel. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: Utasítások RC modell nyomtatásához habzó PLA-val (PLA Aero)."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Ezt a filamentet általában csak alacsony sűrűségű modellek nyomtatására használják, és néhány speciális paramétert igényel. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: ASA Aero nyomtatási útmutató."
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Ez a filament túl puha, és nem kompatibilis az AMS-sel. A nyomtatása számos feltételhez kötött, ezért a jobb nyomtatási minőség érdekében nézd meg ezt a wikit: TPU nyomtatási útmutató."
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Ennek a filamentnek kellően nagy a keménysége (kb. 67D), ezért kompatibilis az AMS-sel. A nyomtatása számos feltételhez kötött, ezért a jobb nyomtatási minőség érdekében nézd meg ezt a wikit: TPU nyomtatási útmutató."
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Ha puha TPU-t szeretnél nyomtatni, ne ezzel a profillal szeletelj, mert ez csak olyan TPU-hoz való, amely kellően kemény (legalább 55D), és kompatibilis az AMS-sel. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: TPU nyomtatási útmutató."
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Ez egy vízben oldódó támaszfilament, és általában csak a támaszszerkezethez használható, nem a modell testéhez. Ennek a filamentnek a nyomtatása számos feltételhez kötött, ezért a jobb nyomtatási minőség érdekében nézd meg ezt a wikit: PVA nyomtatási útmutató."
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Ez egy nem vízben oldódó támaszfilament, és általában csak a támaszszerkezethez használható, nem a modell testéhez. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: Nyomtatási tippek támaszfilamenthez és támaszfunkcióhoz."
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "Az általános beállítások konzervatívan vannak hangolva, hogy szélesebb körű filamentkompatibilitást biztosítsanak. A jobb nyomtatási minőség és sebesség érdekében használj Bambu filamenteket Bambu beállításokkal."
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Magas minőségű profil 0.2 mm-es fúvókához, amely a nyomtatási minőséget előnyíti."
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Magas minőségű profil 0.16 mm-es rétegmagassághoz, amely a nyomtatási minőséget és a szilárdságot előnyíti."
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Szabványos profil 0.16 mm-es rétegmagassághoz, amely a sebességet előnyíti."
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Magas minőségű profil 0.2 mm-es rétegmagassághoz, amely a szilárdságot és a nyomtatási minőséget előnyíti."
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Szabványos profil 0.4 mm-es fúvókához, amely a sebességet előnyíti."
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Magas minőségű profil 0.6 mm-es fúvókához, amely a nyomtatási minőséget és a szilárdságot előnyíti."
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Szilárdsági profil 0.6 mm-es fúvókához, amely a szilárdságot előnyíti."
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Szabványos profil 0.6 mm-es fúvókához, amely a sebességet előnyíti."
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Magas minőségű profil 0.8 mm-es fúvókához, amely a nyomtatási minőséget előnyíti."
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Szilárdsági profil 0.8 mm-es fúvókához, amely a szilárdságot előnyíti."
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Szabványos profil 0.8 mm-es fúvókához, amely a sebességet előnyíti."
-
 msgid "No AMS"
 msgstr "Nincs AMS"
 
@@ -23154,9 +22867,8 @@ msgstr "Kör — kattints a középpontra, majd a sugárra"
 msgid "Arc — click start, end, then a point"
 msgstr "Ív — kattints a kezdőpontra, a végpontra, majd egy pontra"
 
-# AI Translated
-msgid "Slot — two centerline ends, then end radius"
-msgstr "Hosszlyuk — a középvonal két vége, majd a végsugár"
+msgid "Slot — two centerline ends, then the width"
+msgstr ""
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -23230,9 +22942,8 @@ msgstr "Globális tengelyek megjelenítve"
 msgid "World axes hidden"
 msgstr "Globális tengelyek elrejtve"
 
-# AI Translated
-msgid "Isometric view, fitted"
-msgstr "Izometrikus nézet, illesztve"
+msgid "Axonometric view, fitted"
+msgstr ""
 
 # AI Translated
 msgid "Bed shown"
@@ -23456,9 +23167,8 @@ msgstr "Tengely"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Referenciatengely (két pont, lapnormális, hengertengely, két sík, él mentén)"
 
-# AI Translated
-msgid "Coord Sys"
-msgstr "Koord. rendszer"
+msgid "Coordinate system"
+msgstr ""
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -23484,6 +23194,11 @@ msgstr "Test éleinek vetítése egy síkra vázlatelemekként"
 # AI Translated
 msgid "Project needs a body — add or import one first"
 msgstr "A vetítéshez test szükséges — előbb adj hozzá vagy importálj egyet"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Lap %d"
 
 # AI Translated
 msgid "(all edges)"
@@ -23517,9 +23232,8 @@ msgstr "A tükrözéshez test szükséges — előbb adj hozzá vagy importálj 
 msgid "Mate"
 msgstr "Illesztés"
 
-# AI Translated
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "Összeállítás: két koordináta-rendszer jellemző igazítása (rögzített, síkbeli, forgó, csúszó, hengeres)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -23603,6 +23317,10 @@ msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Furat készítése egy kijelölt lap közepén vagy egy síkon elhelyezve"
 
 # AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Válassz egy lapot vagy síkot a furathoz"
+
+# AI Translated
 msgid "Thread"
 msgstr "Menet"
 
@@ -23654,9 +23372,8 @@ msgstr "Kattints a kezdőpontra, majd a végpontra — utána állítsd be a pon
 msgid "Polyline"
 msgstr "Vonallánc"
 
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
-msgstr "Kattints a pontokra; a hurok bezárásához kattints az első pontra, a lánc befejezéséhez kattints jobb gombbal"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
+msgstr ""
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23746,9 +23463,8 @@ msgstr "Kattints a középpontra, majd a kezdőpontra, végül egy pontra a vég
 msgid "Slot"
 msgstr "Hosszlyuk"
 
-# AI Translated
-msgid "Click two centerline ends, then a point for the end radius"
-msgstr "Kattints a középvonal két végpontjára, majd egy pontra a végsugárhoz"
+msgid "Click two centerline ends, then a point for the width"
+msgstr ""
 
 # AI Translated
 msgid "Arc slot"
@@ -23778,9 +23494,8 @@ msgstr "Kattints a középpontra, a nagytengely végére, a kistengely pontjára
 msgid "Spline"
 msgstr "Spline"
 
-# AI Translated
-msgid "Click control points; double-click or right-click to finish"
-msgstr "Kattints a vezérlőpontokra; befejezés dupla kattintással vagy jobb kattintással"
+msgid "Click control points; double-click, right-click or Enter to finish"
+msgstr ""
 
 # AI Translated
 msgid "Click to place a point"
@@ -23834,17 +23549,15 @@ msgstr "Válaszd ki a tükörtengely vonalát, majd a tükrözendő elemeket; az
 msgid "Trim"
 msgstr "Levágás"
 
-# AI Translated
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "Kattints egy szakaszra a legközelebbi metszéspontig történő levágáshoz; jobb kattintás: kilépés"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Extend"
 msgstr "Meghosszabbítás"
 
-# AI Translated
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "Kattints egy vonalra vagy ívre a legközelebbi elemig történő meghosszabbításhoz; jobb kattintás: kilépés"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -23999,22 +23712,6 @@ msgid "Vertical distance"
 msgstr "Függőleges távolság"
 
 # AI Translated
-msgid "✓ Confirm"
-msgstr "✓ Megerősítés"
-
-# AI Translated
-msgid "✗ Cancel"
-msgstr "✗ Mégse"
-
-# AI Translated
-msgid "Undo (Ctrl+Z)"
-msgstr "Visszavonás (Ctrl+Z)"
-
-# AI Translated
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "Mégis (Ctrl+Shift+Z)"
-
-# AI Translated
 msgid "New Design — clear the feature tree"
 msgstr "Új terv — a jellemzőfa törlése"
 
@@ -24038,9 +23735,20 @@ msgstr "Keresztmetszet nézet — a modell egy részének elrejtése, hogy belel
 msgid "Flip Section — show the opposite half"
 msgstr "Metszet megfordítása — a másik fél megjelenítése"
 
-# AI Translated
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "Tálcára küldés — a szilárd test átküldése az Előkészítésbe"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
+msgstr ""
 
 # AI Translated
 msgid "Width / X"
@@ -24071,8 +23779,8 @@ msgid "Rotation axis"
 msgstr "Forgástengely"
 
 # AI Translated
-msgid "Angle °"
-msgstr "Szög °"
+msgid "Angle (°)"
+msgstr "Szög (°)"
 
 # AI Translated
 msgid "Move / Rotate"
@@ -24114,8 +23822,8 @@ msgid "2nd dist"
 msgstr "2. távolság"
 
 # AI Translated
-msgid "Taper °"
-msgstr "Kúposság °"
+msgid "Taper (°)"
+msgstr "Kúposság (°)"
 
 # AI Translated
 msgid "New body"
@@ -24248,21 +23956,16 @@ msgstr "Körkörös"
 msgid "Direction"
 msgstr "Irány"
 
-# AI Translated
-msgid "Total angle°"
-msgstr "Teljes szög°"
+msgid "Total angle (°)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean"
 msgstr "Logikai művelet"
 
 # AI Translated
-msgid "Union (join)"
-msgstr "Egyesítés (összeolvasztás)"
-
-# AI Translated
-msgid "Subtract (cut)"
-msgstr "Kivonás (vágás)"
+msgid "Subtract"
+msgstr "Kivonás"
 
 # AI Translated
 msgid "Target (kept)"
@@ -24309,10 +24012,6 @@ msgstr "Síktípus"
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Alapsík"
-
-# AI Translated
-msgid "Angle°"
-msgstr "Szög°"
 
 # AI Translated
 msgid "Base X"
@@ -24370,6 +24069,9 @@ msgstr "Felülettest"
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr "Eltolja a felülettest héját. Pozitív = kifelé, negatív = befelé."
 
+msgid "Thickness"
+msgstr "Vastagság"
+
 # AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr "A felülettestet szilárd testté vastagítja. A Megfordítás megfordítja az irányt."
@@ -24385,10 +24087,6 @@ msgstr "Nyitott lap"
 # AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
 msgstr "Válassz ki egy testlapot a megnyitásához, majd állítsd be a falvastagságot."
-
-# AI Translated
-msgid "Angle (°)"
-msgstr "Szög (°)"
 
 # AI Translated
 msgid "(pick a side face)"
@@ -24496,11 +24194,6 @@ msgid "Face %d is already in the list"
 msgstr "A Lap %d már szerepel a listában"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Lap %d"
-
-# AI Translated
 msgid "Faces to delete"
 msgstr "Törlendő lapok"
 
@@ -24511,10 +24204,6 @@ msgstr "Válassz ki egy testlapot, majd kattints a 'Kijelölt lap hozzáadása' 
 # AI Translated
 msgid "Left-handed"
 msgstr "Balmenetes"
-
-# AI Translated
-msgid "Taper (°)"
-msgstr "Kúposság (°)"
 
 # AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -24644,13 +24333,15 @@ msgstr "Hengeres — tengelyek egy egyenesbe esnek; szabad forgás + tengelyirá
 msgid "Kind"
 msgstr "Fajta"
 
-# AI Translated
-msgid "CS A (fixed)"
-msgstr "Koord. A (rögzített)"
+msgid "A (fixed)"
+msgstr ""
+
+msgid "B (moves)"
+msgstr ""
 
 # AI Translated
-msgid "CS B (moves)"
-msgstr "Koord. B (mozog)"
+msgid "Angle °"
+msgstr "Szög °"
 
 # AI Translated
 msgid "Flip (oppose z axes)"
@@ -24731,14 +24422,6 @@ msgid "Bodies"
 msgstr "Testek"
 
 # AI Translated
-msgid "Move body"
-msgstr "Test mozgatása"
-
-# AI Translated
-msgid "Select a body row first, then move it"
-msgstr "Előbb jelölj ki egy testsort, majd mozgasd"
-
-# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Logikai művelet — egyesítés, kivonás vagy metszet egy másik testtel"
 
@@ -24751,9 +24434,14 @@ msgstr "Test %d kijelölve — jobb kattintással láthatod, mi alkalmazható r�
 msgid "Variables"
 msgstr "Változók"
 
-# AI Translated
-msgid "+"
-msgstr "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24771,6 +24459,10 @@ msgstr "Vázlat frissítve"
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Vázlat létrehozva (%zu vezérlő méret) — jelöld ki, majd jobb kattintással extrudáld"
+
+#, c-format, boost-format
+msgid "Length %.2f mm, angle %.1f°"
+msgstr ""
 
 # AI Translated
 msgid "(locked)"
@@ -24820,15 +24512,25 @@ msgstr "Test %d: lap %d kijelölve — jobb kattintás: tolás/húzás, vagy kat
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Lap %d kijelölve — jobb kattintás: tolás/húzás, vagy kattints újra a teljes testhez"
 
-# AI Translated
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Test %d: él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+#, c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
 
-# AI Translated
+#, c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+
 #, c-format, boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -24857,6 +24559,9 @@ msgstr "Kilépve az eszközből"
 # AI Translated
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Vázlat megtartva — Megerősítés: véglegesítés, Mégse: elvetés"
+
+msgid "Select something to delete"
+msgstr ""
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24888,14 +24593,17 @@ msgstr "Szerkesztés: Vázlat %d   ·   N = merőleges nézet a síkra   ·   Me
 msgid "OK — %zu triangles"
 msgstr "OK — %zu háromszög"
 
-# AI Translated
-msgid "Text to insert:"
-msgstr "Beszúrandó szöveg:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
+msgstr ""
 
-# AI Translated
-msgctxt "Design"
-msgid "Text"
-msgstr "Szöveg"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
+msgstr ""
 
 # AI Translated
 msgid "Import SVG"
@@ -24921,9 +24629,9 @@ msgstr "STEP beolvasása…"
 msgid "No solids found in STEP"
 msgstr "A STEP fájlban nem található szilárd test"
 
-# AI Translated
-msgid "STEP import failed: "
-msgstr "A STEP importálása sikertelen: "
+#, c-format, boost-format
+msgid "STEP import failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -24948,9 +24656,9 @@ msgstr "Hálófájlok (*.stl;*.obj)|*.stl;*.obj|Minden fájl|*.*"
 msgid "Could not read the STL file"
 msgstr "Nem sikerült beolvasni az STL fájlt"
 
-# AI Translated
-msgid "Could not read the OBJ file: "
-msgstr "Nem sikerült beolvasni az OBJ fájlt: "
+#, c-format, boost-format
+msgid "Could not read the OBJ file: %s"
+msgstr ""
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -24975,17 +24683,20 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Nagy háló"
 
-# AI Translated
-msgid "Mesh conversion failed: "
-msgstr "A háló átalakítása sikertelen: "
+#, c-format, boost-format
+msgid "Mesh conversion failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "A háló átalakítása nem hozott létre geometriát"
 
-# AI Translated
-msgid "Mesh import failed: "
-msgstr "A háló importálása sikertelen: "
+msgid "Mesh"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mesh import failed: %s"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25014,18 +24725,17 @@ msgstr " — húzással helyezd el/méretezd, majd Megerősítés"
 msgid "Insert canceled"
 msgstr "Beszúrás megszakítva"
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move — right-click when done"
-msgstr "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz — ha kész, kattints jobb gombbal"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Vázlat hozzáadva (sík: %s) — jelöld ki, majd jobb kattintással extrudáld"
 
-# AI Translated
-msgid "Recompute error: "
-msgstr "Újraszámítási hiba: "
+#, c-format, boost-format
+msgid "The model could not be rebuilt: %s"
+msgstr ""
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -25097,109 +24807,58 @@ msgstr "Előbb válassz ki egy nyitott vonalat tartalmazó vázlatot"
 msgid "Add at least one face to delete first"
 msgstr "Előbb adj hozzá legalább egy törlendő lapot"
 
-# AI Translated
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "Az illesztéshez két koordináta-rendszer jellemző szükséges — előbb hozd létre őket"
+msgid "Mate needs two coordinate systems — create them first"
+msgstr ""
 
-# AI Translated
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "Illesztés: a Koord. A és a Koord. B nem lehet ugyanaz a koordináta-rendszer jellemző"
+msgid "Mate: A and B must be different coordinate systems"
+msgstr ""
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Illesztés elutasítva"
 
-# AI Translated
-msgid "No interference — need at least two solid bodies to check"
-msgstr "Nincs ütközés — a vizsgálathoz legalább két szilárd test szükséges"
+msgid "Interference needs at least two bodies"
+msgstr ""
 
 # AI Translated
 msgid "No interference found"
 msgstr "Nem található ütközés"
 
 # AI Translated
-#, c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] "%zu ütköző pár, a legnagyobb %.2f mm³"
-msgstr[1] "%zu ütköző pár, a legnagyobb %.2f mm³"
-
-# AI Translated
-msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr ""
-"Ütköző párok:\n"
-"\n"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
 msgstr "Test %d"
 
-# AI Translated
-msgid "Interference"
-msgstr "Ütközés"
-
-# AI Translated
-msgid "Select a solid body first — its mass properties are what is reported"
-msgstr "Előbb jelölj ki egy szilárd testet — annak tömegjellemzőit jeleníti meg"
-
-# AI Translated
-msgid "Mass properties could not be computed for this body"
-msgstr "Ennek a testnek a tömegjellemzőit nem sikerült kiszámítani"
-
-# AI Translated
 #, c-format, boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr "%s: felülettest — %.2f cm² felület, térfogat nélkül"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
-"%s\n"
-"\n"
-"Felülettest (nyitott héj)\n"
-"Felület: %.2f cm²\n"
-"\n"
-"A felülettest nem zár közre anyagot, így nincs térfogata. Vastagítsd szilárd testté, hogy legyen."
 
-# AI Translated
-msgid "Mass properties"
-msgstr "Tömegjellemzők"
+#, c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
+msgstr[1] ""
 
-# AI Translated
-#, c-format, boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr "%s: %.3f cm³, %.2f cm²"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "Select a body to measure it"
 msgstr ""
-"%s\n"
-"\n"
-"Térfogat: %.3f cm³\n"
-"Felület: %.2f cm²"
+
+msgid "This body could not be measured"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: volume %.2f mm³, area %.2f mm²"
+msgstr ""
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "A sokszorozáshoz szilárd test szükséges — előbb adj hozzá vagy importálj egyet"
 
-# AI Translated
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "A logikai művelethez két szilárd test szükséges — adj hozzá vagy importálj egy másodikat"
+msgid "Boolean needs two bodies — add or import a second one"
+msgstr ""
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -25213,6 +24872,36 @@ msgstr "Kijelölt lap (Test %d)"
 # AI Translated
 msgid "Picked face"
 msgstr "Kijelölt lap"
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25251,17 +24940,15 @@ msgstr "Méretezés — kattints a második pontra"
 msgid "Line — click the start point"
 msgstr "Vonal — kattints a kezdőpontra"
 
-# AI Translated
-msgid "Line — click the end point, or type the length"
-msgstr "Vonal — kattints a végpontra, vagy írd be a hosszt"
+msgid "Line — click the end point; its length and angle can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Vonallánc — kattints az első pontra"
 
-# AI Translated
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr "Vonallánc — kattints a következő pontra  ·  a bezáráshoz kattints a kezdőpontra  ·  a lánc befejezéséhez kattints jobb gombbal"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
+msgstr ""
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -25307,9 +24994,8 @@ msgstr "Lekerekített téglalap — kattints a saroksugár megadásához"
 msgid "Circle — click the center"
 msgstr "Kör — kattints a középpontra"
 
-# AI Translated
-msgid "Circle — click to set the radius, or type it"
-msgstr "Kör — kattints a sugár megadásához, vagy írd be"
+msgid "Circle — click to set the radius; it can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -25435,21 +25121,18 @@ msgstr "Ellipszisív — kattints oda, ahol az ív végződik"
 msgid "Spline — click the first control point"
 msgstr "Spline — kattints az első vezérlőpontra"
 
-# AI Translated
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr "Spline — kattints a következő vezérlőpontra  ·  a görbe befejezéséhez kattints jobb gombbal"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
+msgstr ""
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Pont — kattints egy pont elhelyezéséhez; az eszköz aktív marad a továbbiakhoz"
 
-# AI Translated
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr "Levágás — kattints egy szakaszra ott, ahol egy másik elemet keresztez  ·  kilépés jobb kattintással"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
+msgstr ""
 
-# AI Translated
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr "Meghosszabbítás — kattints egy vonalra vagy ívre, hogy a legközelebbi elemig meghosszabbítsd  ·  kilépés jobb kattintással"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
+msgstr ""
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -25459,9 +25142,8 @@ msgstr "Lekerekítés — kattints két találkozó vonal közül az elsőre"
 msgid "Fillet — click the second line"
 msgstr "Lekerekítés — kattints a második vonalra"
 
-# AI Translated
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Lekerekítés — húzd a nyilat, vagy kattints a számra a sugár beírásához  ·  az alkalmazáshoz kattints üres területre  ·  jobb kattintás: mégse"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -25471,74 +25153,63 @@ msgstr "Letörés — kattints két találkozó vonal közül az elsőre"
 msgid "Chamfer — click the second line"
 msgstr "Letörés — kattints a második vonalra"
 
-# AI Translated
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Letörés — húzd a nyilat, vagy kattints a számra a letörési távolság beírásához  ·  az alkalmazáshoz kattints üres területre  ·  jobb kattintás: mégse"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
-msgid "Offset — click the entity to offset"
-msgstr "Eltolás — kattints az eltolandó elemre"
+msgid "Offset — click a curve; its whole outline is offset"
+msgstr ""
 
-# AI Translated
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Eltolás — húzd a nyilat bármelyik oldalra, vagy kattints a számra a távolság beírásához  ·  az alkalmazáshoz kattints üres területre  ·  jobb kattintás: mégse"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Tükrözés — először kattints a tükörtengelyként szolgáló VONALRA (segédvonal is lehet)"
 
-# AI Translated
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr "Tükrözés — tengely beállítva  ·  most kattints a tükrözendő elemekre  ·  jobb kattintás: mégse"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
 #, c-format, boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr "Tükrözés — tengely beállítva  ·  %d tükrözendő elem  ·  kattints egy másikra a hozzáadásához vagy eltávolításához  ·  az alkalmazáshoz kattints üres területre"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Mozgatás — kattints a mozgatandó elemekre"
 
-# AI Translated
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr "Mozgatás — húzd a fogantyút, vagy kattints a számra a távolság beírásához  ·  az alkalmazáshoz kattints üres területre"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Forgatás — kattints a forgatandó elemekre"
 
-# AI Translated
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr "Forgatás — húzd a fogantyút, vagy kattints a számra a szög beírásához  ·  az alkalmazáshoz kattints üres területre"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Átméretezés — kattints az átméretezendő elemekre"
 
-# AI Translated
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr "Átméretezés — húzd a fogantyút, vagy kattints a számra a tényező beírásához  ·  az alkalmazáshoz kattints üres területre"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Sokszorozás — kattints az ismétlendő elemekre"
 
-# AI Translated
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr "Sokszorozás — húzd a fogantyút a lépésköz beállításához, kattints a darabszámra a beírásához  ·  az alkalmazáshoz kattints üres területre"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Poláris sokszorozás — kattints az ismétlendő elemekre"
 
-# AI Translated
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr "Poláris sokszorozás — húzd a fogantyút a szögtartomány beállításához, kattints a darabszámra a beírásához  ·  az alkalmazáshoz kattints üres területre"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
+msgstr ""
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-msgstr "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz  ·  ha kész, kattints jobb gombbal"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -25547,6 +25218,63 @@ msgstr "  ·  Esc: vissza a Kijelöléshez"
 # AI Translated
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  kattints egy kényszerjelvényre az eltávolításához"
+
+#, c-format, boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format, boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d sketch entities"
+msgstr ""
 
 # AI Translated
 msgid "select something first"
@@ -25609,9 +25337,8 @@ msgstr "Sík hozzáadva — válaszd ki vázlatsíkként"
 msgid "Axis added"
 msgstr "Tengely hozzáadva"
 
-# AI Translated
-msgid "Coord Sys added"
-msgstr "Koord. rendszer hozzáadva"
+msgid "Coordinate system added"
+msgstr ""
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -25641,9 +25368,9 @@ msgstr "Még nincs szilárd test — jelölj ki egy vázlatot, és jobb kattint�
 msgid "Could not restore the CAD model from this project"
 msgstr "Nem sikerült visszaállítani a CAD-modellt ebből a projektből"
 
-# AI Translated
-msgid "Could not restore the CAD model: "
-msgstr "Nem sikerült visszaállítani a CAD-modellt: "
+#, c-format, boost-format
+msgid "Could not restore the CAD model: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -25666,9 +25393,8 @@ msgstr "Keresztmetszet nézet — a felső fél látható"
 msgid "Section view — showing the lower half"
 msgstr "Keresztmetszet nézet — az alsó fél látható"
 
-# AI Translated
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "A logikai művelethez két test szükséges — hozz létre vagy importálj egy második szilárd testet"
+msgid "Finding the feature's faces…"
+msgstr ""
 
 # AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -25703,9 +25429,12 @@ msgstr "Kattints a test egyik lapjára, majd nyomd meg az F billentyűt"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Lapra fektetve — a test simán fekszik az asztalon"
 
-# AI Translated
-msgid "Edit rejected: "
-msgstr "Szerkesztés elutasítva: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edit rejected: %s"
+msgstr ""
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -25724,20 +25453,9 @@ msgstr "Ennek a testnek nincs törölhető jellemzője — az újrakezdéshez ha
 msgid "feature %d"
 msgstr "jellemző %d"
 
-# AI Translated
 #, c-format, boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
-"Törlöd ezt: %s?\n"
-"\n"
-"Ebből a jellemzőből készült ez a test. Az erre épülő jellemzők eltávolításra kerülhetnek, vagy leállhat a működésük."
-
-# AI Translated
-msgid "Delete body"
-msgstr "Test törlése"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -26129,9 +25847,16 @@ msgstr "STEP fájlok (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP exportálva"
 
+#, c-format, boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
 # AI Translated
-msgid "STEP export failed: "
-msgstr "A STEP exportálása sikertelen: "
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr "Tálcára küldés — a szilárd test átküldése az Előkészítésbe"
 
 # AI Translated
 msgid "Nothing to commit — add a feature first"
@@ -26141,6 +25866,20 @@ msgstr "Nincs mit a tálcára küldeni — előbb adj hozzá egy jellemzőt"
 msgid "All bodies hidden — show one before committing"
 msgstr "Minden test rejtett — a tálcára küldés előtt jeleníts meg legalább egyet"
 
+#, c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format, boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Line E%d"
+msgstr ""
+
 # AI Translated
 msgid "Plane ready"
 msgstr "Sík kész"
@@ -26149,9 +25888,8 @@ msgstr "Sík kész"
 msgid "Axis ready"
 msgstr "Tengely kész"
 
-# AI Translated
-msgid "Coord Sys ready"
-msgstr "Koord. rendszer kész"
+msgid "Coordinate system ready"
+msgstr ""
 
 # AI Translated
 msgid "Helix ready"
@@ -26166,20 +25904,12 @@ msgid "Sketch ready"
 msgstr "Vázlat kész"
 
 # AI Translated
-msgid "Mate needs at least two CoordSys features"
-msgstr "Az illesztéshez legalább két koordináta-rendszer jellemző szükséges"
-
-# AI Translated
-msgid "Mate: CS A and CS B must be different"
-msgstr "Illesztés: a Koord. A és a Koord. B nem lehet azonos"
-
-# AI Translated
 msgid "Mate ready"
 msgstr "Illesztés kész"
 
-# AI Translated
-msgid "Invalid: "
-msgstr "Érvénytelen: "
+#, c-format, boost-format
+msgid "Invalid: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -26217,16 +25947,16 @@ msgid "Keep drawing"
 msgstr "Rajzolás folytatása"
 
 # AI Translated
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "Előbb fejezd be vagy szakítsd meg az aktuális eszközt (Esc)"
-
-# AI Translated
 msgid "Nothing to redo"
 msgstr "Nincs mit újra végrehajtani"
 
 # AI Translated
 msgid "Nothing to undo"
 msgstr "Nincs mit visszavonni"
+
+# AI Translated
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr "Előbb fejezd be vagy szakítsd meg az aktuális eszközt (Esc)"
 
 # AI Translated
 #, c-format
@@ -26243,21 +25973,12 @@ msgstr[0] "Visszavonás  (még %zu lépés)"
 msgstr[1] "Visszavonás  (még %zu lépés)"
 
 # AI Translated
-msgid "Variable name:"
-msgstr "Változó neve:"
-
-# AI Translated
 msgid "Add Variable"
 msgstr "Változó hozzáadása"
 
 # AI Translated
 msgid "Variable name must not contain spaces"
 msgstr "A változó neve nem tartalmazhat szóközt"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "Kifejezés ehhez: '%s':"
 
 # AI Translated
 msgid "Select a variable first"
@@ -26272,9 +25993,110 @@ msgstr "Változó szerkesztése"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "A(z) '%s' változót nem sikerült eltávolítani (valószínűleg még hivatkozik rá egy jellemzőkifejezés): %s"
 
+#, c-format, boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 # AI Translated
 msgid "No binding for that field"
 msgstr "Ehhez a mezőhöz nincs kötés"
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Oldal"
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "befejezés: jobb kattintás vagy dupla kattintás; bezárás: kattintás a kezdőpontra"
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
+msgstr ""
 
 # AI Translated
 msgid "Enter a number"
@@ -26283,6 +26105,641 @@ msgstr "Adj meg egy számot"
 # AI Translated
 msgid "Not a number"
 msgstr "Nem szám"
+
+# AI Translated
+msgid "Add material"
+msgstr "Anyag hozzáadása"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Lekerekítés / letörés / ferdeség"
+
+# AI Translated
+msgid "Repeat"
+msgstr "Ismétlés"
+
+# AI Translated
+msgid "Reference"
+msgstr "Referencia"
+
+# AI Translated
+msgid "Modify"
+msgstr "Módosítás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Vázlat"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Kattints egy lapra vagy egy referenciasíkra, majd válassz egy rajzeszközt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Körbeforgatás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Söprés"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Átmenet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Vastagítás"
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "A szerszámtest egyesítése a céltesttel — egyetlen szilárd test, illesztési vonal nélkül"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Kivonás"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "A szerszámtest kivágása a céltestből"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Metszet"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Csak a két test átfedő része marad meg"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Felületextrudálás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Felület-körbeforgatás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Felületátmenet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Felületkitöltés"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Előbb hozz létre egy zárt vázlatot"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Felület vastagítása"
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Furat"
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Menet"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "A test elvágása egy síkkal — húzd az eltolási nyilat; az egyik fél vagy mindkettő megtartható"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Szétválasztás"
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "A test szétválasztása egy kijelölt lap mentén két szilárd testté"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Lekerekítés"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Válassz egy élt a lekerekítéshez"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Válassz egy élt, majd húzd a sugár nyilát, vagy írd be az értéket"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Letörés"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Válassz egy élt a letöréshez"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Válassz egy élt, majd húzd a távolság nyilát, vagy írd be az értéket"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Ferdeség"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Válassz egy lapot a döntéshez"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Felületeltolás"
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Lineáris sokszorozás"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "A test ismétlése egy irány mentén — húzással add meg a térközt, és állítsd be a darabszámot"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Körkörös sokszorozás"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "A test ismétlése egy tengely körül — állítsd be a darabszámot és a szögtartományt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Tükrözés"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Sokszorozás görbe mentén"
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "A test ismétlése egy kijelölt görbe mentén"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Mozgatás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Illesztés"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Igazítás ehhez"
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "A test igazítása egy kijelölt laphoz vagy síkhoz"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Sík"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Tengely"
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Csavarvonal"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Mérés"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Mérés a kijelölt pontok, élek vagy lapok között"
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "A kijelölt test térfogatának és felületének kiírása"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Ütközés"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Ellenőrzi, hogy két test átfedi-e egymást — csak jelez, semmit sem módosít"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Szerkesztés"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "A kijelölt jellemző újbóli megnyitása a kiindulási elemeinek módosításához"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Átnevezés…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Az átnevezéshez jelölj ki egy jellemzőt vagy egy testet"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Adj ennek a jellemzőnek egy nevet, amelyről felismered a fában (a test a létrehozó jellemzőjétől kapja a nevét)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Lap törlése"
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Törlés"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "A kijelölés törlése"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Test törlése"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Az egész test törlése — a létrehozó jellemzőt is eltávolítja"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Vonal"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Vonallánc"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Kattints a pontokra; a hurok bezárásához kattints az első pontra, nyitott befejezéshez kattints jobb gombbal"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Sarokpontos téglalap"
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Ferde téglalap"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Lekerekített téglalap"
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Kétpontos kör"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Hárompontos kör"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Hárompontos ív"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Érintőív"
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Hosszlyuk"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Íves hosszlyuk"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Ellipszis"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Ellipszisív"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Háromszög"
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Négyzet"
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Ötszög"
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Hatszög"
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Nyolcszög"
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Tizenkétszög"
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Beírt"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "A sokszög méretezése a csúcsaihoz (beírt)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Köré írt"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "A sokszög méretezése az oldalaihoz (köré írt)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Pont"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Szöveg"
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "SVG körvonal importálása ebbe a vázlatba szerkeszthető vonalakként"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Eltolás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Levágás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Lineáris sokszorozás"
+
+# AI Translated
+msgid "Array"
+msgstr "Sokszorozás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Poláris sokszorozás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Forgatás"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Átméretezés"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Méretezés"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Kényszerezés"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "A kijelölt vázlatelemek egymáshoz kényszerezése"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Vázlat kényszerezése"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "A kényszerezéshez jelölj ki egy vázlatot"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Méretek és kapcsolatok (egybeeső, érintő, párhuzamos...) hozzáadása a kijelölt vázlathoz"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Segédgeometria"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Segédgeometria be/ki: irányító geometria, amely sosem épül be a modellbe"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Meghosszabbítás"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "A kijelölt vázlatelemek törlése"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Hossz…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Írd be ennek a vonalnak a hosszát"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Sugár / átmérő…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Írd be ennek az ívnek a sugarát vagy ennek a körnek az átmérőjét"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Szög / távolság…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Írd be a két vonal közötti szöget vagy a két kijelölés közötti távolságot"
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Size: %.1f × %.1f mm"
+msgstr ""
 
 # AI Translated
 msgid "Primitive"
@@ -26380,10 +26837,8 @@ msgstr "Profil"
 msgid "Start new profile (for holes)"
 msgstr "Új profil kezdése (lyukakhoz)"
 
-# AI Translated
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
-msgstr "Szegm."
+msgid "Segments"
+msgstr ""
 
 # AI Translated
 msgid "Sides"
@@ -26397,19 +26852,20 @@ msgstr "Kattints a vászonra a rajzoláshoz"
 msgid "Snap to grid"
 msgstr "Rácshoz illesztés"
 
+msgid "Grid step"
+msgstr ""
+
 # AI Translated
 msgid "Outer"
 msgstr "Külső"
 
-# AI Translated
-msgid "CLOSED"
-msgstr "ZÁRT"
+msgid "closed"
+msgstr ""
 
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
-msgid "%1% %2%: %3% pts %4%"
-msgstr "%1% %2%: %3% pont %4%"
+msgid "%1% %2%: %3% points %4%"
+msgstr ""
 
 # AI Translated
 msgid "XY (Top)"
@@ -26446,13 +26902,8 @@ msgstr[1] "%zu zárt profil"
 msgid "Draw a closed profile to enable"
 msgstr "Az engedélyezéshez rajzolj egy zárt profilt"
 
-# AI Translated
-msgid "Pocket (Cut)"
-msgstr "Zseb (vágás)"
-
-# AI Translated
-msgid "Clear All"
-msgstr "Összes törlése"
+msgid "Clear all"
+msgstr ""
 
 # AI Translated
 msgid "Empty result"
@@ -27864,164 +28315,6 @@ msgid "Note:"
 msgstr "Megjegyzés:"
 
 # AI Translated
-msgid "Hollow this object"
-msgstr "Objektum kiüregelése"
-
-# AI Translated
-msgid "Preview hollowed and drilled model"
-msgstr "Kiüregelt és fúrt modell előnézete"
-
-# AI Translated
-msgid "Closing distance"
-msgstr "Zárási távolság"
-
-# AI Translated
-msgid "Hole diameter"
-msgstr "Furatátmérő"
-
-# AI Translated
-msgid "Hole depth"
-msgstr "Furatmélység"
-
-# AI Translated
-msgid "Remove selected holes"
-msgstr "Kijelölt furatok eltávolítása"
-
-# AI Translated
-msgid "Remove all holes"
-msgstr "Összes furat eltávolítása"
-
-# AI Translated
-msgid "Clipping of view"
-msgstr "Nézet vágása"
-
-msgid "Reset direction"
-msgstr "Irány visszaállítása"
-
-# AI Translated
-msgid "Show supports"
-msgstr "Támaszok megjelenítése"
-
-# AI Translated
-msgid "Hollow and drill"
-msgstr "Kiüregelés és fúrás"
-
-msgid "Head diameter"
-msgstr "Fej átmérő"
-
-# AI Translated
-msgid "Lock supports under new islands"
-msgstr "Támaszok rögzítése az új szigetek alatt"
-
-msgid "Remove selected points"
-msgstr "Kijelölt pontok eltávolítása"
-
-# AI Translated
-msgid "Remove all points"
-msgstr "Összes pont eltávolítása"
-
-# AI Translated
-msgid "Apply changes"
-msgstr "Változtatások alkalmazása"
-
-# AI Translated
-msgid "Discard changes"
-msgstr "Változtatások elvetése"
-
-# AI Translated
-msgid "Minimal points distance"
-msgstr "Pontok minimális távolsága"
-
-# AI Translated
-msgid "Support points density"
-msgstr "Támaszpontok sűrűsége"
-
-msgid "Auto-generate points"
-msgstr "Pontok automatikus generálása"
-
-# AI Translated
-msgid "Manual editing"
-msgstr "Kézi szerkesztés"
-
-# AI Translated
-msgid "SLA Support Points"
-msgstr "SLA támaszpontok"
-
-# AI Translated
-msgid "Do you want to save your manually edited support points?"
-msgstr "Szeretnéd menteni a kézzel szerkesztett támaszpontokat?"
-
-# AI Translated
-msgid "Save support points?"
-msgstr "Mented a támaszpontokat?"
-
-# AI Translated
-msgid "Autogeneration will erase all manually edited points."
-msgstr "Az automatikus generálás törli az összes kézzel szerkesztett pontot."
-
-# AI Translated
-msgid "Are you sure you want to do it?"
-msgstr "Biztosan ezt szeretnéd tenni?"
-
-# AI Translated
-msgid "SLA gizmo keyboard shortcuts"
-msgstr "SLA gizmo gyorsbillentyűi"
-
-# AI Translated
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr "Megjegyzés: egyes gyorsbillentyűk csak szerkesztő vagy csak nem szerkesztő módban működnek."
-
-msgid "Left click"
-msgstr "Bal kattintás"
-
-# AI Translated
-msgid "Add point"
-msgstr "Pont hozzáadása"
-
-msgid "Right click"
-msgstr "Jobb kattintás"
-
-# AI Translated
-msgid "Remove point"
-msgstr "Pont eltávolítása"
-
-# AI Translated
-msgid "Move point"
-msgstr "Pont mozgatása"
-
-# AI Translated
-msgid "Add point to selection"
-msgstr "Pont hozzáadása a kijelöléshez"
-
-# AI Translated
-msgid "Remove point from selection"
-msgstr "Pont eltávolítása a kijelölésből"
-
-# AI Translated
-msgid "Select by rectangle"
-msgstr "Kijelölés téglalappal"
-
-# AI Translated
-msgid "Deselect by rectangle"
-msgstr "Kijelölés megszüntetése téglalappal"
-
-# AI Translated
-msgid "Select all points"
-msgstr "Összes pont kijelölése"
-
-# AI Translated
-msgid "Move clipping plane"
-msgstr "Vágósík mozgatása"
-
-# AI Translated
-msgid "Reset clipping plane"
-msgstr "Vágósík visszaállítása"
-
-# AI Translated
-msgid "Switch to editing mode"
-msgstr "Váltás szerkesztő módra"
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Beégetés"
@@ -28702,10 +28995,6 @@ msgstr "Ismétli a textúrát a befestett területen. Kikapcsolva egyetlen péld
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Kapcsold be a Csempézést, hogy megadhasd, hogyan ismétlődjön a textúra."
-
-# AI Translated
-msgid "Repeat"
-msgstr "Ismétlés"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -30282,665 +30571,6 @@ msgid "apply_chamfer: OCCT chamfer failed"
 msgstr "apply_chamfer: az OCCT letörés sikertelen"
 
 # AI Translated
-msgid "Add material"
-msgstr "Anyag hozzáadása"
-
-# AI Translated
-msgid "Fillet / chamfer / draft"
-msgstr "Lekerekítés / letörés / ferdeség"
-
-# AI Translated
-msgid "Reference"
-msgstr "Referencia"
-
-# AI Translated
-msgid "Modify"
-msgstr "Módosítás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sketch"
-msgstr "Vázlat"
-
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Kattints egy lapra vagy egy referenciasíkra, majd válassz egy rajzeszközt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Revolve"
-msgstr "Körbeforgatás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sweep"
-msgstr "Söprés"
-
-# AI Translated
-msgctxt "Design"
-msgid "Loft"
-msgstr "Átmenet"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken"
-msgstr "Vastagítás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Union"
-msgstr "Egyesítés"
-
-# AI Translated
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr "A szerszámtest egyesítése a céltesttel — egyetlen szilárd test, illesztési vonal nélkül"
-
-# AI Translated
-msgctxt "Design"
-msgid "Subtract"
-msgstr "Kivonás"
-
-# AI Translated
-msgid "Cut the tool body out of the target"
-msgstr "A szerszámtest kivágása a céltestből"
-
-# AI Translated
-msgctxt "Design"
-msgid "Intersect"
-msgstr "Metszet"
-
-# AI Translated
-msgid "Keep only where the two bodies overlap"
-msgstr "Csak a két test átfedő része marad meg"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr "Felületextrudálás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr "Felület-körbeforgatás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr "Felületátmenet"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr "Felületkitöltés"
-
-# AI Translated
-msgid "Create a closed sketch first"
-msgstr "Előbb hozz létre egy zárt vázlatot"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr "Felület vastagítása"
-
-# AI Translated
-msgid "target is not a sheet body"
-msgstr "a cél nem felülettest"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hole"
-msgstr "Furat"
-
-# AI Translated
-msgid "Pick a face or a plane to drill into"
-msgstr "Válassz egy lapot vagy síkot a furathoz"
-
-# AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "Furat készítése egy kijelölt lap közepén vagy egy síkon elhelyezve"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thread"
-msgstr "Menet"
-
-# AI Translated
-msgid "Shell needs a solid body"
-msgstr "A héjazáshoz szilárd test szükséges"
-
-# AI Translated
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr "A test elvágása egy síkkal — húzd az eltolási nyilat; az egyik fél vagy mindkettő megtartható"
-
-# AI Translated
-msgctxt "Design"
-msgid "Split"
-msgstr "Szétválasztás"
-
-# AI Translated
-msgid "Split needs a solid body"
-msgstr "A szétválasztáshoz szilárd test szükséges"
-
-# AI Translated
-msgid "Split the body along a picked face into two solids"
-msgstr "A test szétválasztása egy kijelölt lap mentén két szilárd testté"
-
-# AI Translated
-msgctxt "Design"
-msgid "Fillet"
-msgstr "Lekerekítés"
-
-# AI Translated
-msgid "Pick an edge to round"
-msgstr "Válassz egy élt a lekerekítéshez"
-
-# AI Translated
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr "Válassz egy élt, majd húzd a sugár nyilát, vagy írd be az értéket"
-
-# AI Translated
-msgctxt "Design"
-msgid "Chamfer"
-msgstr "Letörés"
-
-# AI Translated
-msgid "Pick an edge to bevel"
-msgstr "Válassz egy élt a letöréshez"
-
-# AI Translated
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr "Válassz egy élt, majd húzd a távolság nyilát, vagy írd be az értéket"
-
-# AI Translated
-msgctxt "Design"
-msgid "Draft"
-msgstr "Ferdeség"
-
-# AI Translated
-msgid "Pick a face to taper"
-msgstr "Válassz egy lapot a döntéshez"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr "Felületeltolás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr "Lineáris sokszorozás"
-
-# AI Translated
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr "A test ismétlése egy irány mentén — húzással add meg a térközt, és állítsd be a darabszámot"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr "Körkörös sokszorozás"
-
-# AI Translated
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr "A test ismétlése egy tengely körül — állítsd be a darabszámot és a szögtartományt"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mirror"
-msgstr "Tükrözés"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr "Sokszorozás görbe mentén"
-
-# AI Translated
-msgid "Pattern on curve needs a body and a curve"
-msgstr "A görbe menti sokszorozáshoz egy test és egy görbe szükséges"
-
-# AI Translated
-msgid "Repeat the body along a picked curve"
-msgstr "A test ismétlése egy kijelölt görbe mentén"
-
-# AI Translated
-msgctxt "Design"
-msgid "Move"
-msgstr "Mozgatás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mate"
-msgstr "Illesztés"
-
-# AI Translated
-msgid "A mate needs two coordinate systems"
-msgstr "Az illesztéshez két koordináta-rendszer szükséges"
-
-# AI Translated
-msgctxt "Design"
-msgid "Align to"
-msgstr "Igazítás ehhez"
-
-# AI Translated
-msgid "Align needs a body"
-msgstr "Az igazításhoz test szükséges"
-
-# AI Translated
-msgid "Align the body to a picked face or plane"
-msgstr "A test igazítása egy kijelölt laphoz vagy síkhoz"
-
-# AI Translated
-msgctxt "Design"
-msgid "Plane"
-msgstr "Sík"
-
-# AI Translated
-msgctxt "Design"
-msgid "Axis"
-msgstr "Tengely"
-
-# AI Translated
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr "Koord. rendszer"
-
-# AI Translated
-msgctxt "Design"
-msgid "Helix"
-msgstr "Csavarvonal"
-
-# AI Translated
-msgctxt "Design"
-msgid "Measure"
-msgstr "Mérés"
-
-# AI Translated
-msgid "Measure between the picked points, edges or faces"
-msgstr "Mérés a kijelölt pontok, élek vagy lapok között"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mass"
-msgstr "Tömeg"
-
-# AI Translated
-msgid "Report the volume and surface area of the selected body"
-msgstr "A kijelölt test térfogatának és felületének kiírása"
-
-# AI Translated
-msgctxt "Design"
-msgid "Interference"
-msgstr "Ütközés"
-
-# AI Translated
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr "Ellenőrzi, hogy két test átfedi-e egymást — csak jelez, semmit sem módosít"
-
-# AI Translated
-msgctxt "Design"
-msgid "Edit"
-msgstr "Szerkesztés"
-
-# AI Translated
-msgid "Reopen the selected feature to change what it was made from"
-msgstr "A kijelölt jellemző újbóli megnyitása a kiindulási elemeinek módosításához"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rename…"
-msgstr "Átnevezés…"
-
-# AI Translated
-msgid "Select a feature, or a body, to rename it"
-msgstr "Az átnevezéshez jelölj ki egy jellemzőt vagy egy testet"
-
-# AI Translated
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr "Adj ennek a jellemzőnek egy nevet, amelyről felismered a fában (a test a létrehozó jellemzőjétől kapja a nevét)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Face"
-msgstr "Lap törlése"
-
-# AI Translated
-msgctxt "Design"
-msgid "Colour"
-msgstr "Szín"
-
-# AI Translated
-msgid "Set the selected body's display colour"
-msgstr "A kijelölt test megjelenítési színének beállítása"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete"
-msgstr "Törlés"
-
-# AI Translated
-msgid "Delete what is selected"
-msgstr "A kijelölés törlése"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Body"
-msgstr "Test törlése"
-
-# AI Translated
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr "Az egész test törlése — a létrehozó jellemzőt is eltávolítja"
-
-# AI Translated
-msgctxt "Design"
-msgid "Line"
-msgstr "Vonal"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polyline"
-msgstr "Vonallánc"
-
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr "Kattints a pontokra; a hurok bezárásához kattints az első pontra, nyitott befejezéshez kattints jobb gombbal"
-
-# AI Translated
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr "Sarokpontos téglalap"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr "Középpontos téglalap"
-
-# AI Translated
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr "Ferde téglalap"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr "Lekerekített téglalap"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre circle"
-msgstr "Középpontos kör"
-
-# AI Translated
-msgctxt "Design"
-msgid "2-point circle"
-msgstr "Kétpontos kör"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point circle"
-msgstr "Hárompontos kör"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point arc"
-msgstr "Hárompontos ív"
-
-# AI Translated
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr "Érintőív"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr "Középpontos ív"
-
-# AI Translated
-msgctxt "Design"
-msgid "Slot"
-msgstr "Hosszlyuk"
-
-# AI Translated
-msgctxt "Design"
-msgid "Arc slot"
-msgstr "Íves hosszlyuk"
-
-# AI Translated
-msgctxt "Design"
-msgid "Ellipse"
-msgstr "Ellipszis"
-
-# AI Translated
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr "Ellipszisív"
-
-# AI Translated
-msgctxt "Design"
-msgid "Spline"
-msgstr "Spline"
-
-# AI Translated
-msgctxt "Design"
-msgid "Triangle"
-msgstr "Háromszög"
-
-# AI Translated
-msgid "Triangle — click centre, then a vertex"
-msgstr "Háromszög — kattints a középpontra, majd egy csúcsra"
-
-# AI Translated
-msgctxt "Design"
-msgid "Square"
-msgstr "Négyzet"
-
-# AI Translated
-msgid "Square — click centre, then a vertex"
-msgstr "Négyzet — kattints a középpontra, majd egy csúcsra"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pentagon"
-msgstr "Ötszög"
-
-# AI Translated
-msgid "Pentagon — click centre, then a vertex"
-msgstr "Ötszög — kattints a középpontra, majd egy csúcsra"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hexagon"
-msgstr "Hatszög"
-
-# AI Translated
-msgid "Hexagon — click centre, then a vertex"
-msgstr "Hatszög — kattints a középpontra, majd egy csúcsra"
-
-# AI Translated
-msgctxt "Design"
-msgid "Octagon"
-msgstr "Nyolcszög"
-
-# AI Translated
-msgid "Octagon — click centre, then a vertex"
-msgstr "Nyolcszög — kattints a középpontra, majd egy csúcsra"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr "Tizenkétszög"
-
-# AI Translated
-msgid "Dodecagon — click centre, then a vertex"
-msgstr "Tizenkétszög — kattints a középpontra, majd egy csúcsra"
-
-# AI Translated
-msgctxt "Design"
-msgid "Inscribed"
-msgstr "Beírt"
-
-# AI Translated
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr "A sokszög méretezése a csúcsaihoz (beírt)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr "Köré írt"
-
-# AI Translated
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr "A sokszög méretezése az oldalaihoz (köré írt)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Point"
-msgstr "Pont"
-
-# AI Translated
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr "Írj be szöveget; a körvonala szerkeszthető vonalakként kerül a vázlatba"
-
-# AI Translated
-msgctxt "Design"
-msgid "SVG"
-msgstr "SVG"
-
-# AI Translated
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr "SVG körvonal importálása ebbe a vázlatba szerkeszthető vonalakként"
-
-# AI Translated
-msgctxt "Design"
-msgid "Offset"
-msgstr "Eltolás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Trim"
-msgstr "Levágás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear array"
-msgstr "Lineáris sokszorozás"
-
-# AI Translated
-msgid "Array"
-msgstr "Sokszorozás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polar array"
-msgstr "Poláris sokszorozás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rotate"
-msgstr "Forgatás"
-
-# AI Translated
-msgctxt "Design"
-msgid "Scale"
-msgstr "Átméretezés"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dimension"
-msgstr "Méretezés"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain"
-msgstr "Kényszerezés"
-
-# AI Translated
-msgid "Constrain the selected sketch entities to each other"
-msgstr "A kijelölt vázlatelemek egymáshoz kényszerezése"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr "Vázlat kényszerezése"
-
-# AI Translated
-msgid "Select a sketch to constrain it"
-msgstr "A kényszerezéshez jelölj ki egy vázlatot"
-
-# AI Translated
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr "Méretek és kapcsolatok (egybeeső, érintő, párhuzamos...) hozzáadása a kijelölt vázlathoz"
-
-# AI Translated
-msgctxt "Design"
-msgid "Construction"
-msgstr "Segédgeometria"
-
-# AI Translated
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr "Segédgeometria be/ki: irányító geometria, amely sosem épül be a modellbe"
-
-# AI Translated
-msgctxt "Design"
-msgid "Extend"
-msgstr "Meghosszabbítás"
-
-# AI Translated
-msgid "Delete the selected sketch entities"
-msgstr "A kijelölt vázlatelemek törlése"
-
-# AI Translated
-msgctxt "Design"
-msgid "Length…"
-msgstr "Hossz…"
-
-# AI Translated
-msgid "Type the length of this line"
-msgstr "Írd be ennek a vonalnak a hosszát"
-
-# AI Translated
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr "Sugár / átmérő…"
-
-# AI Translated
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr "Írd be ennek az ívnek a sugarát vagy ennek a körnek az átmérőjét"
-
-# AI Translated
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr "Szög / távolság…"
-
-# AI Translated
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr "Írd be a két vonal közötti szöget vagy a két kijelölés közötti távolságot"
-
-# AI Translated
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr "Oldal"
-
-# AI Translated
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr "Nagytengely"
-
-# AI Translated
-msgid "Minor"
-msgstr "Kistengely"
-
-# AI Translated
-msgid "right-click or double-click to finish, click start to close"
-msgstr "befejezés: jobb kattintás vagy dupla kattintás; bezárás: kattintás a kezdőpontra"
-
-# AI Translated
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr "Meghosszabbítás: kattints egy olyan vonalra/ívre, amely elérhet egy másik aktív elemet"
-
-# AI Translated
-msgid "Trim: click a segment where it crosses another live entity"
-msgstr "Levágás: kattints egy szakaszra ott, ahol egy másik aktív elemet keresztez"
-
-# AI Translated
 msgid "Authentication complete"
 msgstr "Hitelesítés kész"
 
@@ -31387,16 +31017,941 @@ msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
 
+#~ msgid "Face recognition"
+#~ msgstr "Arcfelismerés"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Felismerés"
+
+#~ msgid "Text Gap"
+#~ msgstr "Szövegköz"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "Beágyazási mélység"
+
+#~ msgid "Input text"
+#~ msgstr "Szöveg"
+
+#~ msgid "Surface"
+#~ msgstr "Felület"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Vízszintes szöveg"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "Egér mozgatása fel vagy le"
+
+#~ msgid "Rotate text"
+#~ msgstr "Szöveg forgatása"
+
+#~ msgid "Text shape"
+#~ msgstr "Szöveg alakja"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "%d tálca szeletelése"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Kérlek, javítsd ki a szeletelési hibákat, majd tedd közzé újra."
+
+# AI Translated
+#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+#~ msgstr "A 0,001 mm-en belüli vázlatvégpontokat egyetlen csatlakozásként kezeli, és összeforrasztja a hurkot. Kikapcsolva: csak a pontosan egybeeső végpontok kapcsolódnak, így az apró réssel rendelkező hurok nyitottként jelenik meg, ahelyett hogy automatikusan bezárulna."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Szeleteld fel az összes tálcát az idő és a filament becsléséhez"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "Projektadatok csomagolása 3MF fájlba"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "3mf feltöltése"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Ugrás a modell közzététele weboldalra"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Megjegyzés: Az előkészítés több percig is eltarthat. Kérlek, várj."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "A közzététel törlésre került"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "1. tálca szeletelése"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Adatok csomagolása 3mf-be"
+
+#~ msgid "Uploading data"
+#~ msgstr "Adatok feltöltése"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Ugrás a weboldalra"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "OBJ fájl importálási színe"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Néhány felülethez nincs szín megadva."
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "MTL fájlhiba, az anyag nem található:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Kérlek, ellenőrizd az OBJ vagy MTL fájlt."
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "Add meg a színek számát:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Írd be vagy kattints a beállítógombra a szám újbóli módosításához"
+
+#~ msgid "Recommended "
+#~ msgstr "Ajánlott "
+
+#~ msgid "view"
+#~ msgstr "nézet"
+
+#~ msgid "Current filament colors"
+#~ msgstr "Jelenlegi filament színek"
+
+#~ msgid "Matching"
+#~ msgstr "Egyezés"
+
+#~ msgid "Quick set"
+#~ msgstr "Gyorsbeállítás"
+
+#~ msgid "Color match"
+#~ msgstr "Színegyezés"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "Közelítő színegyezés."
+
+#~ msgid "Append"
+#~ msgstr "Hozzáfűzés"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "Hozzáfűzés a meglévő filamentekhez"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "A hozzárendelt extruderek visszaállítása."
+
+#~ msgid "Note"
+#~ msgstr "Megjegyzés"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "A szín ki van választva. Az OK gombbal folytathatod, \n"
+#~ " vagy kézzel is módosíthatod."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Kis rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, a nyomtatási minőség pedig magas. A legtöbb nyomtatási esethez megfelelő."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "A 0,2 mm-es fúvóka alapértelmezett profiljához képest alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez jóval jobb nyomtatási minőséget, de sokkal hosszabb nyomtatási időt eredményez."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest kissé nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, a nyomtatási idő pedig kissé rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kissé láthatók, de a nyomtatási idő rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte láthatatlanok, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "A 0,2 mm-es fúvóka alapértelmezett profiljához képest vékonyabb rétegvonalakat, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez szinte láthatatlan rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "A 0.2 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként minimálisak a rétegvonalak, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "A 0,2 mm-es fúvóka alapértelmezett profiljához képest vékonyabb rétegvonalakat, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez alig látható rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Normál rétegmagassággal rendelkezik. Ennek eredményeként átlagos rétegvonalak és nyomtatási minőség érhető el. A legtöbb nyomtatási esethez megfelelő."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "A 0,4 mm-es fúvóka alapértelmezett profiljához képest több falhurkot és nagyobb kitöltési sűrűséget használ. Ez nagyobb nyomatszilárdságot, de több filamentfelhasználást és hosszabb nyomtatási időt eredményez."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak jobban láthatók, a nyomtatási minőség alacsonyabb, de a nyomtatási idő kissé rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak jobban láthatók, a nyomtatási minőség alacsonyabb, de a nyomtatási idő rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé láthatók, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "A 0,4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagasságot, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez kevésbé látható rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "A 0,4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagasságot, alacsonyabb sebességeket és gyorsulást használ, a kitöltési mintázat pedig Gyroid. Ez alig látható rétegvonalakat és sokkal jobb nyomtatási minőséget, de jóval hosszabb nyomtatási időt eredményez."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "A 0.4 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak szinte elhanyagolhatók, de a nyomtatási idő hosszabb."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "Nagy rétegmagassággal rendelkezik. Ennek eredményeként jól látható rétegvonalak, átlagos nyomtatási minőség és átlagos nyomtatási idő várható."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "A 0,6 mm-es fúvóka alapértelmezett profiljához képest több falhurkot és nagyobb kitöltési sűrűséget használ. Ez nagyobb nyomatszilárdságot, de több filamentfelhasználást és hosszabb nyomtatási időt eredményez."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak jobban láthatók, a nyomtatási minőség alacsonyabb, de bizonyos esetekben a nyomtatási idő rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak sokkal jobban láthatók, a nyomtatási minőség jóval alacsonyabb, de bizonyos esetekben a nyomtatási idő rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé láthatók, a nyomtatási minőség kissé magasabb, de a nyomtatási idő hosszabb."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "A 0.6 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé láthatók, a nyomtatási minőség magasabb, de a nyomtatási idő hosszabb."
+
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Nagyon nagy rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak nagyon jól láthatók, a nyomtatási minőség alacsony, a nyomtatási idő pedig rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak nagyon jól láthatók, a nyomtatási minőség jóval alacsonyabb, de bizonyos esetekben a nyomtatási idő rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest jóval nagyobb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak rendkívül jól láthatók, a nyomtatási minőség sokkal alacsonyabb, de bizonyos esetekben a nyomtatási idő jóval rövidebb."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest kissé kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kissé kevésbé, de továbbra is jól láthatók, a nyomtatási minőség kissé magasabb, de bizonyos esetekben a nyomtatási idő hosszabb."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "A 0.8 mm-es fúvóka alapértelmezett profiljához képest kisebb rétegmagassággal rendelkezik. Ennek eredményeként a rétegvonalak kevésbé, de továbbra is jól láthatók, a nyomtatási minőség kissé magasabb, de bizonyos esetekben a nyomtatási idő hosszabb."
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Ez a filament nem gyakran használt, és nem is Bambu-filament, ráadásul márkánként jelentősen eltérhet. Ezért nyomtatás előtt erősen ajánlott a gyártótól megfelelő profilt kérni, majd a paramétereket a filament viselkedése alapján finomhangolni."
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Ennek a filamentnek a nyomtatásakor fennáll a kunkorodás és az alacsony rétegtapadási szilárdság kockázata. A jobb eredmény érdekében nézd meg ezt a wikit: Nyomtatási tippek magas hőmérsékletű / műszaki anyagokhoz."
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Ennek a filamentnek a nyomtatásakor fennáll a fúvóka eltömődésének, a szivárgásnak, a kunkorodásának és az alacsony rétegtapadási szilárdságnak a kockázata. A jobb eredmény érdekében nézd meg ezt a wikit: Nyomtatási tippek magas hőmérsékletű / műszaki anyagokhoz."
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "A megfelelő filamenttel jobb átlátszó vagy áttetsző eredmények eléréséhez nézd meg ezt a wikit: Nyomtatási tippek átlátszó PETG-hez."
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "A fényesebb nyomatok eléréséhez használat előtt szárítsd meg a filamentet, és szeleteléskor állítsd a külső fal sebességét 40-60 mm/s közé."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Ezt a filamentet általában csak alacsony sűrűségű modellek nyomtatására használják és néhány speciális paramétert igényel. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: Utasítások RC modell nyomtatásához habzó PLA-val (PLA Aero)."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Ezt a filamentet általában csak alacsony sűrűségű modellek nyomtatására használják, és néhány speciális paramétert igényel. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: ASA Aero nyomtatási útmutató."
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Ez a filament túl puha, és nem kompatibilis az AMS-sel. A nyomtatása számos feltételhez kötött, ezért a jobb nyomtatási minőség érdekében nézd meg ezt a wikit: TPU nyomtatási útmutató."
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Ennek a filamentnek kellően nagy a keménysége (kb. 67D), ezért kompatibilis az AMS-sel. A nyomtatása számos feltételhez kötött, ezért a jobb nyomtatási minőség érdekében nézd meg ezt a wikit: TPU nyomtatási útmutató."
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Ha puha TPU-t szeretnél nyomtatni, ne ezzel a profillal szeletelj, mert ez csak olyan TPU-hoz való, amely kellően kemény (legalább 55D), és kompatibilis az AMS-sel. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: TPU nyomtatási útmutató."
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Ez egy vízben oldódó támaszfilament, és általában csak a támaszszerkezethez használható, nem a modell testéhez. Ennek a filamentnek a nyomtatása számos feltételhez kötött, ezért a jobb nyomtatási minőség érdekében nézd meg ezt a wikit: PVA nyomtatási útmutató."
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Ez egy nem vízben oldódó támaszfilament, és általában csak a támaszszerkezethez használható, nem a modell testéhez. A jobb nyomtatási minőség érdekében nézd meg ezt a wikit: Nyomtatási tippek támaszfilamenthez és támaszfunkcióhoz."
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "Az általános beállítások konzervatívan vannak hangolva, hogy szélesebb körű filamentkompatibilitást biztosítsanak. A jobb nyomtatási minőség és sebesség érdekében használj Bambu filamenteket Bambu beállításokkal."
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Magas minőségű profil 0.2 mm-es fúvókához, amely a nyomtatási minőséget előnyíti."
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Magas minőségű profil 0.16 mm-es rétegmagassághoz, amely a nyomtatási minőséget és a szilárdságot előnyíti."
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Szabványos profil 0.16 mm-es rétegmagassághoz, amely a sebességet előnyíti."
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Magas minőségű profil 0.2 mm-es rétegmagassághoz, amely a szilárdságot és a nyomtatási minőséget előnyíti."
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Szabványos profil 0.4 mm-es fúvókához, amely a sebességet előnyíti."
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Magas minőségű profil 0.6 mm-es fúvókához, amely a nyomtatási minőséget és a szilárdságot előnyíti."
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Szilárdsági profil 0.6 mm-es fúvókához, amely a szilárdságot előnyíti."
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Szabványos profil 0.6 mm-es fúvókához, amely a sebességet előnyíti."
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Magas minőségű profil 0.8 mm-es fúvókához, amely a nyomtatási minőséget előnyíti."
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Szilárdsági profil 0.8 mm-es fúvókához, amely a szilárdságot előnyíti."
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Szabványos profil 0.8 mm-es fúvókához, amely a sebességet előnyíti."
+
+# AI Translated
+#~ msgid "Slot — two centerline ends, then end radius"
+#~ msgstr "Hosszlyuk — a középvonal két vége, majd a végsugár"
+
+# AI Translated
+#~ msgid "Isometric view, fitted"
+#~ msgstr "Izometrikus nézet, illesztve"
+
+# AI Translated
+#~ msgid "Coord Sys"
+#~ msgstr "Koord. rendszer"
+
+# AI Translated
+#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+#~ msgstr "Összeállítás: két koordináta-rendszer jellemző igazítása (rögzített, síkbeli, forgó, csúszó, hengeres)"
+
+# AI Translated
+#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
+#~ msgstr "Kattints a pontokra; a hurok bezárásához kattints az első pontra, a lánc befejezéséhez kattints jobb gombbal"
+
+# AI Translated
+#~ msgid "Click two centerline ends, then a point for the end radius"
+#~ msgstr "Kattints a középvonal két végpontjára, majd egy pontra a végsugárhoz"
+
+# AI Translated
+#~ msgid "Click control points; double-click or right-click to finish"
+#~ msgstr "Kattints a vezérlőpontokra; befejezés dupla kattintással vagy jobb kattintással"
+
+# AI Translated
+#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+#~ msgstr "Kattints egy szakaszra a legközelebbi metszéspontig történő levágáshoz; jobb kattintás: kilépés"
+
+# AI Translated
+#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+#~ msgstr "Kattints egy vonalra vagy ívre a legközelebbi elemig történő meghosszabbításhoz; jobb kattintás: kilépés"
+
+# AI Translated
+#~ msgid "✓ Confirm"
+#~ msgstr "✓ Megerősítés"
+
+# AI Translated
+#~ msgid "✗ Cancel"
+#~ msgstr "✗ Mégse"
+
+# AI Translated
+#~ msgid "Undo (Ctrl+Z)"
+#~ msgstr "Visszavonás (Ctrl+Z)"
+
+# AI Translated
+#~ msgid "Redo (Ctrl+Shift+Z)"
+#~ msgstr "Mégis (Ctrl+Shift+Z)"
+
+# AI Translated
+#~ msgid "Taper °"
+#~ msgstr "Kúposság °"
+
+# AI Translated
+#~ msgid "Total angle°"
+#~ msgstr "Teljes szög°"
+
+# AI Translated
+#~ msgid "Union (join)"
+#~ msgstr "Egyesítés (összeolvasztás)"
+
+# AI Translated
+#~ msgid "Subtract (cut)"
+#~ msgstr "Kivonás (vágás)"
+
+# AI Translated
+#~ msgid "Angle°"
+#~ msgstr "Szög°"
+
+# AI Translated
+#~ msgid "CS A (fixed)"
+#~ msgstr "Koord. A (rögzített)"
+
+# AI Translated
+#~ msgid "CS B (moves)"
+#~ msgstr "Koord. B (mozog)"
+
+# AI Translated
+#~ msgid "Move body"
+#~ msgstr "Test mozgatása"
+
+# AI Translated
+#~ msgid "Select a body row first, then move it"
+#~ msgstr "Előbb jelölj ki egy testsort, majd mozgasd"
+
+# AI Translated
+#~ msgid "+"
+#~ msgstr "+"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Test %d: él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Él %d kijelölve — Lekerekítés/Letörés a megmunkálásához, vagy kattints újra a teljes testhez"
+
+# AI Translated
+#~ msgid "Text to insert:"
+#~ msgstr "Beszúrandó szöveg:"
+
+# AI Translated
+#~ msgid "STEP import failed: "
+#~ msgstr "A STEP importálása sikertelen: "
+
+# AI Translated
+#~ msgid "Could not read the OBJ file: "
+#~ msgstr "Nem sikerült beolvasni az OBJ fájlt: "
+
+# AI Translated
+#~ msgid "Mesh conversion failed: "
+#~ msgstr "A háló átalakítása sikertelen: "
+
+# AI Translated
+#~ msgid "Mesh import failed: "
+#~ msgstr "A háló importálása sikertelen: "
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move — right-click when done"
+#~ msgstr "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz — ha kész, kattints jobb gombbal"
+
+# AI Translated
+#~ msgid "Recompute error: "
+#~ msgstr "Újraszámítási hiba: "
+
+# AI Translated
+#~ msgid "Mate needs two CoordSys features — create them first"
+#~ msgstr "Az illesztéshez két koordináta-rendszer jellemző szükséges — előbb hozd létre őket"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different CoordSys features"
+#~ msgstr "Illesztés: a Koord. A és a Koord. B nem lehet ugyanaz a koordináta-rendszer jellemző"
+
+# AI Translated
+#~ msgid "No interference — need at least two solid bodies to check"
+#~ msgstr "Nincs ütközés — a vizsgálathoz legalább két szilárd test szükséges"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pair, worst %.2f mm³"
+#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
+#~ msgstr[0] "%zu ütköző pár, a legnagyobb %.2f mm³"
+#~ msgstr[1] "%zu ütköző pár, a legnagyobb %.2f mm³"
+
+# AI Translated
+#~ msgid ""
+#~ "Interference pairs:\n"
+#~ "\n"
+#~ msgstr ""
+#~ "Ütköző párok:\n"
+#~ "\n"
+
+# AI Translated
+#~ msgid "Interference"
+#~ msgstr "Ütközés"
+
+# AI Translated
+#~ msgid "Select a solid body first — its mass properties are what is reported"
+#~ msgstr "Előbb jelölj ki egy szilárd testet — annak tömegjellemzőit jeleníti meg"
+
+# AI Translated
+#~ msgid "Mass properties could not be computed for this body"
+#~ msgstr "Ennek a testnek a tömegjellemzőit nem sikerült kiszámítani"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
+#~ msgstr "%s: felülettest — %.2f cm² felület, térfogat nélkül"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Sheet body (open shell)\n"
+#~ "Surface area: %.2f cm²\n"
+#~ "\n"
+#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Felülettest (nyitott héj)\n"
+#~ "Felület: %.2f cm²\n"
+#~ "\n"
+#~ "A felülettest nem zár közre anyagot, így nincs térfogata. Vastagítsd szilárd testté, hogy legyen."
+
+# AI Translated
+#~ msgid "Mass properties"
+#~ msgstr "Tömegjellemzők"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: %.3f cm³, %.2f cm²"
+#~ msgstr "%s: %.3f cm³, %.2f cm²"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Surface area: %.2f cm²"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Térfogat: %.3f cm³\n"
+#~ "Felület: %.2f cm²"
+
+# AI Translated
+#~ msgid "Boolean needs two solid bodies — add or import a second one"
+#~ msgstr "A logikai művelethez két szilárd test szükséges — adj hozzá vagy importálj egy másodikat"
+
+# AI Translated
+#~ msgid "Line — click the end point, or type the length"
+#~ msgstr "Vonal — kattints a végpontra, vagy írd be a hosszt"
+
+# AI Translated
+#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+#~ msgstr "Vonallánc — kattints a következő pontra  ·  a bezáráshoz kattints a kezdőpontra  ·  a lánc befejezéséhez kattints jobb gombbal"
+
+# AI Translated
+#~ msgid "Circle — click to set the radius, or type it"
+#~ msgstr "Kör — kattints a sugár megadásához, vagy írd be"
+
+# AI Translated
+#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
+#~ msgstr "Spline — kattints a következő vezérlőpontra  ·  a görbe befejezéséhez kattints jobb gombbal"
+
+# AI Translated
+#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+#~ msgstr "Levágás — kattints egy szakaszra ott, ahol egy másik elemet keresztez  ·  kilépés jobb kattintással"
+
+# AI Translated
+#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+#~ msgstr "Meghosszabbítás — kattints egy vonalra vagy ívre, hogy a legközelebbi elemig meghosszabbítsd  ·  kilépés jobb kattintással"
+
+# AI Translated
+#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Lekerekítés — húzd a nyilat, vagy kattints a számra a sugár beírásához  ·  az alkalmazáshoz kattints üres területre  ·  jobb kattintás: mégse"
+
+# AI Translated
+#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Letörés — húzd a nyilat, vagy kattints a számra a letörési távolság beírásához  ·  az alkalmazáshoz kattints üres területre  ·  jobb kattintás: mégse"
+
+# AI Translated
+#~ msgid "Offset — click the entity to offset"
+#~ msgstr "Eltolás — kattints az eltolandó elemre"
+
+# AI Translated
+#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Eltolás — húzd a nyilat bármelyik oldalra, vagy kattints a számra a távolság beírásához  ·  az alkalmazáshoz kattints üres területre  ·  jobb kattintás: mégse"
+
+# AI Translated
+#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+#~ msgstr "Tükrözés — tengely beállítva  ·  most kattints a tükrözendő elemekre  ·  jobb kattintás: mégse"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+#~ msgstr "Tükrözés — tengely beállítva  ·  %d tükrözendő elem  ·  kattints egy másikra a hozzáadásához vagy eltávolításához  ·  az alkalmazáshoz kattints üres területre"
+
+# AI Translated
+#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+#~ msgstr "Mozgatás — húzd a fogantyút, vagy kattints a számra a távolság beírásához  ·  az alkalmazáshoz kattints üres területre"
+
+# AI Translated
+#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+#~ msgstr "Forgatás — húzd a fogantyút, vagy kattints a számra a szög beírásához  ·  az alkalmazáshoz kattints üres területre"
+
+# AI Translated
+#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+#~ msgstr "Átméretezés — húzd a fogantyút, vagy kattints a számra a tényező beírásához  ·  az alkalmazáshoz kattints üres területre"
+
+# AI Translated
+#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Sokszorozás — húzd a fogantyút a lépésköz beállításához, kattints a darabszámra a beírásához  ·  az alkalmazáshoz kattints üres területre"
+
+# AI Translated
+#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Poláris sokszorozás — húzd a fogantyút a szögtartomány beállításához, kattints a darabszámra a beírásához  ·  az alkalmazáshoz kattints üres területre"
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+#~ msgstr "Húzz egy sarkot az átméretezéshez, a közepét a mozgatáshoz  ·  ha kész, kattints jobb gombbal"
+
+# AI Translated
+#~ msgid "Coord Sys added"
+#~ msgstr "Koord. rendszer hozzáadva"
+
+# AI Translated
+#~ msgid "Could not restore the CAD model: "
+#~ msgstr "Nem sikerült visszaállítani a CAD-modellt: "
+
+# AI Translated
+#~ msgid "Boolean needs two bodies — create or import a second solid"
+#~ msgstr "A logikai művelethez két test szükséges — hozz létre vagy importálj egy második szilárd testet"
+
+# AI Translated
+#~ msgid "Edit rejected: "
+#~ msgstr "Szerkesztés elutasítva: "
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Delete %s?\n"
+#~ "\n"
+#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
+#~ msgstr ""
+#~ "Törlöd ezt: %s?\n"
+#~ "\n"
+#~ "Ebből a jellemzőből készült ez a test. Az erre épülő jellemzők eltávolításra kerülhetnek, vagy leállhat a működésük."
+
+# AI Translated
+#~ msgid "Delete body"
+#~ msgstr "Test törlése"
+
+# AI Translated
+#~ msgid "STEP export failed: "
+#~ msgstr "A STEP exportálása sikertelen: "
+
+# AI Translated
+#~ msgid "Coord Sys ready"
+#~ msgstr "Koord. rendszer kész"
+
+# AI Translated
+#~ msgid "Mate needs at least two CoordSys features"
+#~ msgstr "Az illesztéshez legalább két koordináta-rendszer jellemző szükséges"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different"
+#~ msgstr "Illesztés: a Koord. A és a Koord. B nem lehet azonos"
+
+# AI Translated
+#~ msgid "Invalid: "
+#~ msgstr "Érvénytelen: "
+
+# AI Translated
+#~ msgid "Variable name:"
+#~ msgstr "Változó neve:"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Expression for '%s':"
+#~ msgstr "Kifejezés ehhez: '%s':"
+
+# AI Translated
+#~ msgid "Seg"
+#~ msgstr "Szegm."
+
+# AI Translated
+#~ msgid "CLOSED"
+#~ msgstr "ZÁRT"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% pts %4%"
+#~ msgstr "%1% %2%: %3% pont %4%"
+
+# AI Translated
+#~ msgid "Pocket (Cut)"
+#~ msgstr "Zseb (vágás)"
+
+# AI Translated
+#~ msgid "Clear All"
+#~ msgstr "Összes törlése"
+
+# AI Translated
+#~ msgid "Hollow this object"
+#~ msgstr "Objektum kiüregelése"
+
+# AI Translated
+#~ msgid "Preview hollowed and drilled model"
+#~ msgstr "Kiüregelt és fúrt modell előnézete"
+
+# AI Translated
+#~ msgid "Closing distance"
+#~ msgstr "Zárási távolság"
+
+# AI Translated
+#~ msgid "Hole diameter"
+#~ msgstr "Furatátmérő"
+
+# AI Translated
+#~ msgid "Hole depth"
+#~ msgstr "Furatmélység"
+
+# AI Translated
+#~ msgid "Remove selected holes"
+#~ msgstr "Kijelölt furatok eltávolítása"
+
+# AI Translated
+#~ msgid "Remove all holes"
+#~ msgstr "Összes furat eltávolítása"
+
+# AI Translated
+#~ msgid "Clipping of view"
+#~ msgstr "Nézet vágása"
+
+#~ msgid "Reset direction"
+#~ msgstr "Irány visszaállítása"
+
+# AI Translated
+#~ msgid "Show supports"
+#~ msgstr "Támaszok megjelenítése"
+
+# AI Translated
+#~ msgid "Hollow and drill"
+#~ msgstr "Kiüregelés és fúrás"
+
+#~ msgid "Head diameter"
+#~ msgstr "Fej átmérő"
+
+# AI Translated
+#~ msgid "Lock supports under new islands"
+#~ msgstr "Támaszok rögzítése az új szigetek alatt"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Kijelölt pontok eltávolítása"
+
+# AI Translated
+#~ msgid "Remove all points"
+#~ msgstr "Összes pont eltávolítása"
+
+# AI Translated
+#~ msgid "Apply changes"
+#~ msgstr "Változtatások alkalmazása"
+
+# AI Translated
+#~ msgid "Discard changes"
+#~ msgstr "Változtatások elvetése"
+
+# AI Translated
+#~ msgid "Minimal points distance"
+#~ msgstr "Pontok minimális távolsága"
+
+# AI Translated
+#~ msgid "Support points density"
+#~ msgstr "Támaszpontok sűrűsége"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Pontok automatikus generálása"
+
+# AI Translated
+#~ msgid "Manual editing"
+#~ msgstr "Kézi szerkesztés"
+
+# AI Translated
+#~ msgid "SLA Support Points"
+#~ msgstr "SLA támaszpontok"
+
+# AI Translated
+#~ msgid "Do you want to save your manually edited support points?"
+#~ msgstr "Szeretnéd menteni a kézzel szerkesztett támaszpontokat?"
+
+# AI Translated
+#~ msgid "Save support points?"
+#~ msgstr "Mented a támaszpontokat?"
+
+# AI Translated
+#~ msgid "Autogeneration will erase all manually edited points."
+#~ msgstr "Az automatikus generálás törli az összes kézzel szerkesztett pontot."
+
+# AI Translated
+#~ msgid "Are you sure you want to do it?"
+#~ msgstr "Biztosan ezt szeretnéd tenni?"
+
+# AI Translated
+#~ msgid "SLA gizmo keyboard shortcuts"
+#~ msgstr "SLA gizmo gyorsbillentyűi"
+
+# AI Translated
+#~ msgid "Note: some shortcuts work in (non)editing mode only."
+#~ msgstr "Megjegyzés: egyes gyorsbillentyűk csak szerkesztő vagy csak nem szerkesztő módban működnek."
+
+#~ msgid "Left click"
+#~ msgstr "Bal kattintás"
+
+# AI Translated
+#~ msgid "Add point"
+#~ msgstr "Pont hozzáadása"
+
+#~ msgid "Right click"
+#~ msgstr "Jobb kattintás"
+
+# AI Translated
+#~ msgid "Remove point"
+#~ msgstr "Pont eltávolítása"
+
+# AI Translated
+#~ msgid "Move point"
+#~ msgstr "Pont mozgatása"
+
+# AI Translated
+#~ msgid "Add point to selection"
+#~ msgstr "Pont hozzáadása a kijelöléshez"
+
+# AI Translated
+#~ msgid "Remove point from selection"
+#~ msgstr "Pont eltávolítása a kijelölésből"
+
+# AI Translated
+#~ msgid "Select by rectangle"
+#~ msgstr "Kijelölés téglalappal"
+
+# AI Translated
+#~ msgid "Deselect by rectangle"
+#~ msgstr "Kijelölés megszüntetése téglalappal"
+
+# AI Translated
+#~ msgid "Select all points"
+#~ msgstr "Összes pont kijelölése"
+
+# AI Translated
+#~ msgid "Move clipping plane"
+#~ msgstr "Vágósík mozgatása"
+
+# AI Translated
+#~ msgid "Reset clipping plane"
+#~ msgstr "Vágósík visszaállítása"
+
+# AI Translated
+#~ msgid "Switch to editing mode"
+#~ msgstr "Váltás szerkesztő módra"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Union"
+#~ msgstr "Egyesítés"
+
+# AI Translated
+#~ msgid "target is not a sheet body"
+#~ msgstr "a cél nem felülettest"
+
+# AI Translated
+#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
+#~ msgstr "Furat készítése egy kijelölt lap közepén vagy egy síkon elhelyezve"
+
+# AI Translated
+#~ msgid "Shell needs a solid body"
+#~ msgstr "A héjazáshoz szilárd test szükséges"
+
+# AI Translated
+#~ msgid "Split needs a solid body"
+#~ msgstr "A szétválasztáshoz szilárd test szükséges"
+
+# AI Translated
+#~ msgid "Pattern on curve needs a body and a curve"
+#~ msgstr "A görbe menti sokszorozáshoz egy test és egy görbe szükséges"
+
+# AI Translated
+#~ msgid "A mate needs two coordinate systems"
+#~ msgstr "Az illesztéshez két koordináta-rendszer szükséges"
+
+# AI Translated
+#~ msgid "Align needs a body"
+#~ msgstr "Az igazításhoz test szükséges"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Coord Sys"
+#~ msgstr "Koord. rendszer"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Mass"
+#~ msgstr "Tömeg"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Colour"
+#~ msgstr "Szín"
+
+# AI Translated
+#~ msgid "Set the selected body's display colour"
+#~ msgstr "A kijelölt test megjelenítési színének beállítása"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre rectangle"
+#~ msgstr "Középpontos téglalap"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre circle"
+#~ msgstr "Középpontos kör"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre-point arc"
+#~ msgstr "Középpontos ív"
+
+# AI Translated
+#~ msgid "Triangle — click centre, then a vertex"
+#~ msgstr "Háromszög — kattints a középpontra, majd egy csúcsra"
+
+# AI Translated
+#~ msgid "Square — click centre, then a vertex"
+#~ msgstr "Négyzet — kattints a középpontra, majd egy csúcsra"
+
+# AI Translated
+#~ msgid "Pentagon — click centre, then a vertex"
+#~ msgstr "Ötszög — kattints a középpontra, majd egy csúcsra"
+
+# AI Translated
+#~ msgid "Hexagon — click centre, then a vertex"
+#~ msgstr "Hatszög — kattints a középpontra, majd egy csúcsra"
+
+# AI Translated
+#~ msgid "Octagon — click centre, then a vertex"
+#~ msgstr "Nyolcszög — kattints a középpontra, majd egy csúcsra"
+
+# AI Translated
+#~ msgid "Dodecagon — click centre, then a vertex"
+#~ msgstr "Tizenkétszög — kattints a középpontra, majd egy csúcsra"
+
+# AI Translated
+#~ msgid "Type text; its outline is added to this sketch as editable lines"
+#~ msgstr "Írj be szöveget; a körvonala szerkeszthető vonalakként kerül a vázlatba"
+
+# AI Translated
+#~ msgid "Major"
+#~ msgstr "Nagytengely"
+
+# AI Translated
+#~ msgid "Minor"
+#~ msgstr "Kistengely"
+
+# AI Translated
+#~ msgid "Extend: click a line/arc that can reach another live entity"
+#~ msgstr "Meghosszabbítás: kattints egy olyan vonalra/ívre, amely elérhet egy másik aktív elemet"
+
+# AI Translated
+#~ msgid "Trim: click a segment where it crosses another live entity"
+#~ msgstr "Levágás: kattints egy szakaszra ott, ahol egy másik aktív elemet keresztez"
+
 # AI Translated
 #~ msgid "closed profile(s)"
 #~ msgstr "zárt profil"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Nem sikerült létrehozni a kalibrációs G-kódot"
-
-# AI Translated
-#~ msgid "Subtract"
-#~ msgstr "Kivonás"
 
 # AI Translated
 #~ msgid "Multiply"

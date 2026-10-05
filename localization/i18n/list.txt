@@ -320,8 +320,6 @@ src/slic3r/GUI/DragDropPanel.cpp
 src/slic3r/GUI/GLCanvas3D.hpp
 src/slic3r/GUI/GUI_Utils.cpp
 src/slic3r/GUI/Gizmos/GLGizmoEmboss.hpp
-src/slic3r/GUI/Gizmos/GLGizmoHollow.cpp
-src/slic3r/GUI/Gizmos/GLGizmoSlaSupports.cpp
 src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.cpp
 src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp
 src/slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp

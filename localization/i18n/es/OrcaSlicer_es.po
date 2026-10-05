@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -1064,12 +1064,6 @@ msgstr "No se pudo aplicar durante el procesamiento de la vista previa"
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "Operación ya cancelada. Por favor, espere unos segundos."
 
-msgid "Face recognition"
-msgstr "Reconocimiento de caras"
-
-msgid "Perform Recognition"
-msgstr "Realizar el reconocimiento"
-
 msgid "Enforce seam"
 msgstr "Reforzar costura"
 
@@ -1090,46 +1084,6 @@ msgstr "Saliendo de la sección de pintado de la costura"
 
 msgid "Paint-on seam editing"
 msgstr "Edición de costuras pintadas"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Fuente"
-
-msgid "Thickness"
-msgstr "Grosor"
-
-msgid "Text Gap"
-msgstr "Espacio de texto"
-
-msgid "Angle"
-msgstr "Ángulo"
-
-msgid "Embedded depth"
-msgstr ""
-"Profundidad\n"
-"Integrada"
-
-msgid "Input text"
-msgstr "Insertar texto"
-
-msgid "Surface"
-msgstr "Superficie"
-
-msgid "Horizontal text"
-msgstr "Texto horizontal"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "Mover el ratón hacia arriba o abajo"
-
-msgid "Rotate text"
-msgstr "Rotar texto"
-
-msgid "Text shape"
-msgstr "Forma de texto"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1480,6 +1434,11 @@ msgstr "Cargando"
 
 msgid "In queue"
 msgstr "En cola"
+
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Fuente"
 
 #. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
@@ -1842,6 +1801,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Copiar al portapapeles"
 
+msgid "Angle"
+msgstr "Ángulo"
+
 msgid "Perpendicular distance"
 msgstr "Distancia perpendicular"
 
@@ -1923,6 +1885,9 @@ msgstr "Entrando al mecanismo de ensamblaje"
 
 msgid "Leaving Assembly gizmo"
 msgstr "Saliendo del mecanismo de ensamblaje"
+
+msgid "Shift+"
+msgstr "Shift+"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -4294,7 +4259,6 @@ msgstr "Calibración completada"
 msgid "%s does not support %s"
 msgstr "%s no soporta %s"
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Paso"
 
@@ -8553,6 +8517,9 @@ msgstr "La impresora conectada es %s. Debe coincidir con el preajuste del proyec
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "¿Desea sincronizar la información de la impresora y cambiar automáticamente el preajuste?"
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr "El archivo no contiene ninguna información geométrica."
 
@@ -8696,13 +8663,6 @@ msgstr "Datos inválidos"
 
 msgid "Slicing Canceled"
 msgstr "Laminado Cancelado"
-
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Laminando cama %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Por favor, resuelva los errores de laminado y publique de nuevo."
 
 msgid "Network plug-in switched successfully."
 msgstr "Plugin de red cambiado con éxito."
@@ -9479,14 +9439,6 @@ msgstr "Función CAD (experimental)"
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
 msgstr "Con esta opción activada se muestra la pestaña Diseño, donde se pueden crear y editar modelos de forma paramétrica. Esta función es experimental y aún está en desarrollo."
 
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Cerrar automáticamente los contornos del croquis"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr "Trata los extremos del croquis separados menos de 0,001 mm como una sola unión y suelda el contorno para cerrarlo. Desactivado: solo se unen los extremos exactamente coincidentes, por lo que un contorno con un pequeño hueco se muestra abierto en lugar de cerrarse automáticamente."
-
 msgid "Pop up to select filament grouping mode"
 msgstr "Ventana emergente para seleccionar el modo de agrupación de filamentos"
 
@@ -9583,6 +9535,13 @@ msgstr "Dibujar los conectores de relación de posición como una cara"
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr "En la pestaña Diseño, dibuja un conector de relación de posición como una pequeña cara en lugar del disco convencional con un cuadrante de giro. Una cara muestra su orientación de un vistazo, sin tener que aprender la convención del disco. Desactívelo para usar la representación CAD convencional."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Cerrar automáticamente los contornos del croquis"
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr ""
 
 msgid "Pan"
 msgstr "Desplazamiento"
@@ -10233,36 +10192,6 @@ msgstr "Aceptar"
 
 msgid "Log Out"
 msgstr "Desconectarse"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Laminar todas las piezas para obtener una estimación del tiempo y del filamento"
-
-msgid "Packing project data into 3MF file"
-msgstr "Empaquetar los datos del proyecto en un archivo 3mf"
-
-msgid "Uploading 3MF"
-msgstr "Cargando 3mf"
-
-msgid "Jump to model publish web page"
-msgstr "Ir a la página web de publicación de modelos"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Nota: La preparación puede llevar varios minutos. Por favor, sea paciente."
-
-msgid "Publish was canceled"
-msgstr "La publicación fue cancelada"
-
-msgid "Slicing Plate 1"
-msgstr "Cama de Laminado 1"
-
-msgid "Packing data to 3MF"
-msgstr "Empaquetando datos a 3mf"
-
-msgid "Uploading data"
-msgstr "Cargando datos"
-
-msgid "Jump to webpage"
-msgstr "Ir a la página web"
 
 # AI Translated
 msgid "Material"
@@ -12135,67 +12064,6 @@ msgstr "No hay actualizaciones disponibles."
 
 msgid "The configuration is up to date."
 msgstr "La configuración está actualizada."
-
-msgid "OBJ file import color"
-msgstr "Importar color de archivo OBJ"
-
-msgid "Some faces don't have color defined."
-msgstr "Algunas caras no tienen color definido."
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "Error: el archivo MTL existe pero no se pudo encontrar el material:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "Por favor, compruebe el archivo OBJ o MTL."
-
-msgid "Specify number of colors:"
-msgstr "Especifique el número de colores:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Presione Enter o haga clic en el botón de ajuste para modificar el número nuevamente"
-
-msgid "Recommended "
-msgstr "Recomendado "
-
-msgid "view"
-msgstr "vista"
-
-msgid "Current filament colors"
-msgstr "Colores de filamento actuales"
-
-msgid "Matching"
-msgstr "Emparejamiento"
-
-msgid "Quick set"
-msgstr "Ajuste rápido"
-
-msgid "Color match"
-msgstr "Coincidencia de colores"
-
-msgid "Approximate color matching."
-msgstr "Coincidencia aproximada de colores."
-
-msgid "Append"
-msgstr "Añadir"
-
-msgid "Append to existing filaments"
-msgstr "Añadir a los filamentos existentes"
-
-msgid "Reset mapped extruders."
-msgstr "Restablecer extrusoras mapeadas."
-
-msgid "Note"
-msgstr "Nota"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"Se ha seleccionado el color, puede elegir Aceptar \n"
-"para continuar o ajustarlo manualmente."
-
-msgid "—> "
-msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -21235,162 +21103,6 @@ msgstr ""
 "Cuerpo del mensaje: \"%1%\" \n"
 "Error: \"%2%\""
 
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Tiene una altura de capa pequeña, y da como resultado unas líneas de capa casi inapreciables y una alta calidad de impresión. Es adecuado para la mayoría de los casos generales de impresión."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Esto da como resultado una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "Comparado con el perfil por defecto de una boquilla de 0,2 mm, tiene una altura de capa ligeramente mayor, y da como resultado líneas de capa casi inapreciables, y un tiempo de impresión ligeramente menor."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene una mayor altura de capa. Esto se traduce en líneas de capa ligeramente visibles, pero en un tiempo de impresión más corto."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene una altura de capa menor. Esto se traduce en líneas de capa casi invisibles y una mayor calidad de impresión, pero un tiempo de impresión más largo."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene unas líneas de capa más pequeñas, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Esto da como resultado líneas de capa casi invisibles y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene una altura de capa menor. Esto da como resultado líneas de capa mínimas y una mayor calidad de impresión, pero un tiempo de impresión más largo."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene unas líneas de capa más pequeñas, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Por lo tanto, da como resultado líneas de capa mínimas y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Tiene una altura de capa normal, y da como resultado unas líneas de capa y una calidad de impresión medias. Es adecuado para la mayoría de los casos de impresión."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene más perímetros y un mayor relleno de baja densidad. Esto se traduce en una mayor resistencia de impresión, pero un mayor consumo de filamento y un tiempo de impresión más largo."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una mayor altura de capa. Esto da lugar a líneas de capa más visibles y a una menor calidad de impresión, pero un tiempo de impresión ligeramente inferior."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una mayor altura de capa, y da como resultado líneas de capa más visibles y una menor calidad de impresión, pero un tiempo de impresión más corto."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor. Esto se traduce en menos líneas de capa visibles y mayor calidad de impresión, pero mayor tiempo de impresión."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Por lo tanto, da como resultado menos líneas de capa visibles y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor. Esto se traduce en unas líneas de capa casi inapreciables y una mayor calidad de impresión, pero un tiempo de impresión más largo."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Por lo tanto, resulta en líneas de capa casi insignificantes y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor. Esto se traduce en unas líneas de capa casi inapreciables y un mayor tiempo de impresión."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "Tiene una gran altura de capa, y da lugar a líneas de capa visibles y a una calidad y tiempo de impresión ordinarios."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene más bucles de perímetro y una mayor relleno de baja densidad. Esto se traduce en una mayor resistencia de impresión, pero un mayor consumo de filamento y un tiempo de impresión más largo."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una mayor altura de capa. Esto da lugar a líneas de capa más visibles y a una menor calidad de impresión, pero a un menor tiempo de impresión en algunos casos."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una mayor altura de capa. Esto da lugar a líneas de capa mucho más visibles y a una calidad de impresión mucho menor, pero un tiempo de impresión más corto en algunos casos."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una altura de capa menor. Esto se traduce en menos líneas de capa visibles y una calidad de impresión ligeramente superior, pero un tiempo de impresión más largo."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una altura de capa menor, y da como resultado líneas de capa menos visibles y una mayor calidad de impresión, pero un tiempo de impresión más largo."
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Tiene una altura de capa muy grande. Esto se traduce en líneas de capa muy visibles, baja calidad de impresión y tiempo de impresión más corto."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una mayor altura de capa. Esto se traduce en líneas de capa muy visibles y una calidad de impresión mucho menor, pero un tiempo de impresión más corto en algunos casos."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una altura de capa mucho mayor. Esto se traduce en líneas de capa extremadamente visibles y una calidad de impresión mucho menor, pero un tiempo de impresión mucho más corto en algunos casos."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una altura de capa ligeramente menor. Esto se traduce en líneas de capa ligeramente menores pero aún visibles y en una calidad de impresión ligeramente superior, pero mayor tiempo de impresión en algunos casos."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una altura de capa menor. Esto se traduce en menos líneas de capa pero aún visibles y una calidad de impresión ligeramente superior, pero un tiempo de impresión más largo en algunos casos."
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Este no es un filamento de uso común, ni uno de los filamentos Bambu, y varía mucho de marca en marca. Por lo tanto, se recomienda encarecidamente consultar al fabricante para obtener un perfil adecuado antes de imprimir y ajustar algunos parámetros según sus prestaciones."
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Al imprimir este filamento, existe un riesgo de deformación y baja resistencia de adherencia de capas. Para obtener mejores resultados, consulte esta wiki: Consejos de impresión para materiales de alta temperatura/ingeniería."
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Al imprimir este filamento, existe un riesgo de obstrucción de la boquilla, goteo, deformación y baja resistencia de adherencia de capas. Para obtener mejores resultados, consulte esta wiki: Consejos de impresión para materiales de alta temperatura/ingeniería."
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Para obtener mejores resultados transparentes o translúcidos con el filamento correspondiente, consulte esta wiki: Consejos de impresión para PETG transparente."
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Para que las impresiones tengan un mayor brillo, seque el filamento antes de usarlo, y ajuste la velocidad del perímetro exterior a 40-60 mm/s al laminar."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Este filamento se utiliza normalmente para imprimir modelos de baja densidad, y requiere algunos parámetros especiales. Para obtener una mejor calidad de impresión, consulte esta wiki: Instrucciones para imprimir modelos RC con PLA espumoso (PLA Aero)."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Este filamento se utiliza normalmente para imprimir modelos de baja densidad, y requiere algunos parámetros especiales. Para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión ASA Aero."
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Este filamento es demasiado blando y no es compatible con el AMS. Su impresión requiere muchos ajustes, y para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión TPU."
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Este filamento tiene suficiente dureza (aproximadamente 67D) y es compatible con el AMS. Su impresión requiere muchos ajustes, y para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión TPU."
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Si va a imprimir un tipo de TPU blando, no lamine con este perfil, y es solo para TPU que tiene suficiente dureza (no menos de 55D) y es compatible con el AMS. Para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión TPU."
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Este es un filamento de soporte soluble en agua, y normalmente se utiliza solo para la estructura de soporte y no para el cuerpo del modelo. La impresión de este filamento requiere muchos ajustes, y para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión PVA."
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Este es un filamento de soporte no soluble en agua, y normalmente se utiliza solo para la estructura de soporte y no para el cuerpo del modelo. Para obtener una mejor calidad de impresión, consulte esta wiki: Consejos de impresión para filamento de soporte y función de soporte."
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "Los perfiles genéricos están ajustados de forma conservadora para la compatibilidad con una gama más amplia de filamentos. Para una mayor calidad y velocidad de impresión, utilice filamentos Bambu con perfiles Bambu."
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Perfil de alta calidad para boquilla de 0,2 mm, priorizando la calidad de impresión."
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Perfil de alta calidad para altura de capa de 0,16 mm, priorizando calidad de impresión y resistencia."
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Perfil estándar para altura de capa de 0,16 mm, priorizando velocidad."
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Perfil de alta calidad para altura de capa de 0,2 mm, priorizando resistencia y calidad de impresión."
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Perfil estándar para boquilla de 0,4 mm, priorizando velocidad."
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Perfil de alta calidad para boquilla de 0,6 mm, priorizando calidad de impresión y resistencia."
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Perfil de resistencia para boquilla de 0,6 mm, priorizando resistencia."
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Perfil estándar para boquilla de 0,6 mm, priorizando velocidad."
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Perfil de alta calidad para boquilla de 0,8 mm, priorizando calidad de impresión."
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Perfil de resistencia para boquilla de 0,8 mm, priorizando resistencia."
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Perfil estándar para boquilla de 0,8 mm, priorizando velocidad."
-
 msgid "No AMS"
 msgstr "Sin AMS"
 
@@ -22251,9 +21963,8 @@ msgstr "Círculo — haga clic en el centro y luego en el radio"
 msgid "Arc — click start, end, then a point"
 msgstr "Arco — haga clic en el inicio, en el final y luego en un punto"
 
-# AI Translated
-msgid "Slot — two centerline ends, then end radius"
-msgstr "Ranura — dos extremos de la línea central y luego el radio del extremo"
+msgid "Slot — two centerline ends, then the width"
+msgstr ""
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -22327,9 +22038,8 @@ msgstr "Ejes globales visibles"
 msgid "World axes hidden"
 msgstr "Ejes globales ocultos"
 
-# AI Translated
-msgid "Isometric view, fitted"
-msgstr "Vista isométrica, ajustada"
+msgid "Axonometric view, fitted"
+msgstr ""
 
 # AI Translated
 msgid "Bed shown"
@@ -22553,9 +22263,8 @@ msgstr "Eje"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Eje de referencia (dos puntos, normal de cara, eje de cilindro, dos planos, a lo largo de arista)"
 
-# AI Translated
-msgid "Coord Sys"
-msgstr "Sist. coord."
+msgid "Coordinate system"
+msgstr ""
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -22581,6 +22290,11 @@ msgstr "Proyectar las aristas de un cuerpo sobre un plano como entidades de croq
 # AI Translated
 msgid "Project needs a body — add or import one first"
 msgstr "Proyectar requiere un cuerpo — añada o importe uno primero"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Cara %d"
 
 # AI Translated
 msgid "(all edges)"
@@ -22614,9 +22328,8 @@ msgstr "Reflejar requiere un cuerpo — añada o importe uno primero"
 msgid "Mate"
 msgstr "Relación de posición"
 
-# AI Translated
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "Ensamblaje: alinear dos operaciones de sistema de coordenadas (fija, plana, de revolución, deslizante, cilíndrica)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -22700,6 +22413,10 @@ msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "Taladrar un agujero, centrado en una cara elegida o colocado en un plano"
 
 # AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Elija una cara o un plano en el que taladrar"
+
+# AI Translated
 msgid "Thread"
 msgstr "Rosca"
 
@@ -22751,9 +22468,8 @@ msgstr "Haga clic en el inicio y luego en el final — después establezca la lo
 msgid "Polyline"
 msgstr "Polilínea"
 
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
-msgstr "Haga clic en los puntos; haga clic en el primer punto para cerrar el contorno, clic derecho para terminar la cadena"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
+msgstr ""
 
 # AI Translated
 msgid "Corner rectangle"
@@ -22843,9 +22559,8 @@ msgstr "Haga clic en el centro, luego en el inicio y después en un punto para e
 msgid "Slot"
 msgstr "Ranura"
 
-# AI Translated
-msgid "Click two centerline ends, then a point for the end radius"
-msgstr "Haga clic en los dos extremos de la línea central y luego en un punto para el radio del extremo"
+msgid "Click two centerline ends, then a point for the width"
+msgstr ""
 
 # AI Translated
 msgid "Arc slot"
@@ -22875,9 +22590,8 @@ msgstr "Haga clic en el centro, el extremo del eje mayor, el punto del eje menor
 msgid "Spline"
 msgstr "Spline"
 
-# AI Translated
-msgid "Click control points; double-click or right-click to finish"
-msgstr "Haga clic en los puntos de control; doble clic o clic derecho para terminar"
+msgid "Click control points; double-click, right-click or Enter to finish"
+msgstr ""
 
 # AI Translated
 msgid "Click to place a point"
@@ -22931,17 +22645,15 @@ msgstr "Elija una línea como eje de reflexión y luego las entidades que reflej
 msgid "Trim"
 msgstr "Recortar"
 
-# AI Translated
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "Haga clic en un segmento para recortarlo hasta su intersección más cercana; clic derecho para salir"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Extend"
 msgstr "Extender"
 
-# AI Translated
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "Haga clic en una línea o un arco para extenderlo hasta la entidad más cercana; clic derecho para salir"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -23096,22 +22808,6 @@ msgid "Vertical distance"
 msgstr "Distancia vertical"
 
 # AI Translated
-msgid "✓ Confirm"
-msgstr "✓ Confirmar"
-
-# AI Translated
-msgid "✗ Cancel"
-msgstr "✗ Cancelar"
-
-# AI Translated
-msgid "Undo (Ctrl+Z)"
-msgstr "Deshacer (Ctrl+Z)"
-
-# AI Translated
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "Rehacer (Ctrl+Shift+Z)"
-
-# AI Translated
 msgid "New Design — clear the feature tree"
 msgstr "Nuevo diseño — vaciar el árbol de operaciones"
 
@@ -23135,9 +22831,20 @@ msgstr "Vista de sección — oculta parte del modelo para ver su interior. ReP�
 msgid "Flip Section — show the opposite half"
 msgstr "Invertir sección — mostrar la mitad opuesta"
 
-# AI Translated
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "Enviar a la cama — enviar el sólido a Preparar"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
+msgstr ""
 
 # AI Translated
 msgid "Width / X"
@@ -23168,8 +22875,8 @@ msgid "Rotation axis"
 msgstr "Eje de rotación"
 
 # AI Translated
-msgid "Angle °"
-msgstr "Ángulo °"
+msgid "Angle (°)"
+msgstr "Ángulo (°)"
 
 # AI Translated
 msgid "Move / Rotate"
@@ -23211,8 +22918,8 @@ msgid "2nd dist"
 msgstr "2.ª dist."
 
 # AI Translated
-msgid "Taper °"
-msgstr "Conicidad °"
+msgid "Taper (°)"
+msgstr "Conicidad (°)"
 
 # AI Translated
 msgid "New body"
@@ -23345,21 +23052,16 @@ msgstr "Circular"
 msgid "Direction"
 msgstr "Dirección"
 
-# AI Translated
-msgid "Total angle°"
-msgstr "Ángulo total°"
+msgid "Total angle (°)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean"
 msgstr "Booleana"
 
 # AI Translated
-msgid "Union (join)"
-msgstr "Unión (unir)"
-
-# AI Translated
-msgid "Subtract (cut)"
-msgstr "Restar (cortar)"
+msgid "Subtract"
+msgstr "Restar"
 
 # AI Translated
 msgid "Target (kept)"
@@ -23406,10 +23108,6 @@ msgstr "Tipo de plano"
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Base"
-
-# AI Translated
-msgid "Angle°"
-msgstr "Ángulo°"
 
 # AI Translated
 msgid "Base X"
@@ -23467,6 +23165,9 @@ msgstr "Cuerpo de superficie"
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr "Desfasa la envolvente de un cuerpo de superficie. Positivo = hacia fuera, negativo = hacia dentro."
 
+msgid "Thickness"
+msgstr "Grosor"
+
 # AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr "Engrosa un cuerpo de superficie para convertirlo en un sólido. Invertir cambia el sentido."
@@ -23482,10 +23183,6 @@ msgstr "Cara abierta"
 # AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
 msgstr "Elija una cara sólida para abrirla y luego establezca el grosor de pared."
-
-# AI Translated
-msgid "Angle (°)"
-msgstr "Ángulo (°)"
 
 # AI Translated
 msgid "(pick a side face)"
@@ -23593,11 +23290,6 @@ msgid "Face %d is already in the list"
 msgstr "La cara %d ya está en la lista"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Cara %d"
-
-# AI Translated
 msgid "Faces to delete"
 msgstr "Caras que eliminar"
 
@@ -23608,10 +23300,6 @@ msgstr "Elija una cara sólida y luego haga clic en 'Añadir cara elegida' para 
 # AI Translated
 msgid "Left-handed"
 msgstr "A izquierdas"
-
-# AI Translated
-msgid "Taper (°)"
-msgstr "Conicidad (°)"
 
 # AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -23741,13 +23429,15 @@ msgstr "Cilíndrica — ejes colineales; giro libre + deslizamiento axial"
 msgid "Kind"
 msgstr "Tipo"
 
-# AI Translated
-msgid "CS A (fixed)"
-msgstr "SC A (fijo)"
+msgid "A (fixed)"
+msgstr ""
+
+msgid "B (moves)"
+msgstr ""
 
 # AI Translated
-msgid "CS B (moves)"
-msgstr "SC B (se mueve)"
+msgid "Angle °"
+msgstr "Ángulo °"
 
 # AI Translated
 msgid "Flip (oppose z axes)"
@@ -23828,14 +23518,6 @@ msgid "Bodies"
 msgstr "Cuerpos"
 
 # AI Translated
-msgid "Move body"
-msgstr "Mover cuerpo"
-
-# AI Translated
-msgid "Select a body row first, then move it"
-msgstr "Seleccione primero la fila de un cuerpo y luego muévalo"
-
-# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr "Booleana — unir, restar o intersecar con otro cuerpo"
 
@@ -23848,9 +23530,14 @@ msgstr "Cuerpo %d seleccionado — clic derecho para ver lo que se le puede apli
 msgid "Variables"
 msgstr "Variables"
 
-# AI Translated
-msgid "+"
-msgstr "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -23868,6 +23555,10 @@ msgstr "Croquis actualizado"
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Croquis creado (%zu cotas conductoras) — selecciónelo y luego haga clic derecho para extruir"
+
+#, c-format, boost-format
+msgid "Length %.2f mm, angle %.1f°"
+msgstr ""
 
 # AI Translated
 msgid "(locked)"
@@ -23917,15 +23608,25 @@ msgstr "Cuerpo %d: cara %d seleccionada — clic derecho para empujarla/tirar de
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Cara %d seleccionada — clic derecho para empujarla/tirar de ella, o haga clic de nuevo para todo el cuerpo"
 
-# AI Translated
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Cuerpo %d: arista %d seleccionada — Redondeo/Chaflán para acabarla, o haga clic de nuevo para todo el cuerpo"
+#, c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
 
-# AI Translated
+#, c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+msgstr[1] ""
+
 #, c-format, boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "Arista %d seleccionada — Redondeo/Chaflán para acabarla, o haga clic de nuevo para todo el cuerpo"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -23954,6 +23655,9 @@ msgstr "Herramienta cerrada"
 # AI Translated
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Croquis conservado — Confirmar para aplicarlo, Cancelar para descartarlo"
+
+msgid "Select something to delete"
+msgstr ""
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -23985,14 +23689,17 @@ msgstr "Editando: Croquis %d   ·   N = vista normal al plano   ·   Confirmar o
 msgid "OK — %zu triangles"
 msgstr "OK — %zu triángulos"
 
-# AI Translated
-msgid "Text to insert:"
-msgstr "Texto que insertar:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
+msgstr ""
 
-# AI Translated
-msgctxt "Design"
-msgid "Text"
-msgstr "Texto"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
+msgstr ""
 
 # AI Translated
 msgid "Import SVG"
@@ -24018,9 +23725,9 @@ msgstr "Leyendo STEP…"
 msgid "No solids found in STEP"
 msgstr "No se encontraron sólidos en el STEP"
 
-# AI Translated
-msgid "STEP import failed: "
-msgstr "Error al importar el STEP: "
+#, c-format, boost-format
+msgid "STEP import failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -24045,9 +23752,9 @@ msgstr "Archivos de malla (*.stl;*.obj)|*.stl;*.obj|Todos los archivos|*.*"
 msgid "Could not read the STL file"
 msgstr "No se pudo leer el archivo STL"
 
-# AI Translated
-msgid "Could not read the OBJ file: "
-msgstr "No se pudo leer el archivo OBJ: "
+#, c-format, boost-format
+msgid "Could not read the OBJ file: %s"
+msgstr ""
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -24072,17 +23779,20 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Malla grande"
 
-# AI Translated
-msgid "Mesh conversion failed: "
-msgstr "Error en la conversión de la malla: "
+#, c-format, boost-format
+msgid "Mesh conversion failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "La conversión de la malla no produjo geometría"
 
-# AI Translated
-msgid "Mesh import failed: "
-msgstr "Error al importar la malla: "
+msgid "Mesh"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mesh import failed: %s"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -24111,18 +23821,17 @@ msgstr " — arrastre para colocar/dimensionar y luego confirme"
 msgid "Insert canceled"
 msgstr "Inserción cancelada"
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move — right-click when done"
-msgstr "Arrastre una esquina para escalar y el centro para mover — clic derecho al terminar"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Croquis añadido (plano: %s) — selecciónelo y luego haga clic derecho para extruir"
 
-# AI Translated
-msgid "Recompute error: "
-msgstr "Error de recálculo: "
+#, c-format, boost-format
+msgid "The model could not be rebuilt: %s"
+msgstr ""
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -24194,109 +23903,58 @@ msgstr "Elija primero un croquis con una línea abierta"
 msgid "Add at least one face to delete first"
 msgstr "Añada primero al menos una cara que eliminar"
 
-# AI Translated
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "Relación de posición requiere dos operaciones de sistema de coordenadas — créelas primero"
+msgid "Mate needs two coordinate systems — create them first"
+msgstr ""
 
-# AI Translated
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "Relación de posición: SC A y SC B deben ser operaciones de sistema de coordenadas distintas"
+msgid "Mate: A and B must be different coordinate systems"
+msgstr ""
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Relación de posición rechazada"
 
-# AI Translated
-msgid "No interference — need at least two solid bodies to check"
-msgstr "Sin interferencias — se necesitan al menos dos cuerpos sólidos para comprobarlas"
+msgid "Interference needs at least two bodies"
+msgstr ""
 
 # AI Translated
 msgid "No interference found"
 msgstr "No se encontraron interferencias"
 
 # AI Translated
-#, c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] "%zu par con interferencia, el peor %.2f mm³"
-msgstr[1] "%zu pares con interferencia, el peor %.2f mm³"
-
-# AI Translated
-msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr ""
-"Pares con interferencia:\n"
-"\n"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
 msgstr "Cuerpo %d"
 
-# AI Translated
-msgid "Interference"
-msgstr "Interferencia"
-
-# AI Translated
-msgid "Select a solid body first — its mass properties are what is reported"
-msgstr "Seleccione primero un cuerpo sólido — se informará de sus propiedades físicas"
-
-# AI Translated
-msgid "Mass properties could not be computed for this body"
-msgstr "No se pudieron calcular las propiedades físicas de este cuerpo"
-
-# AI Translated
 #, c-format, boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr "%s: cuerpo de superficie — %.2f cm² de superficie, sin volumen"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
-"%s\n"
-"\n"
-"Cuerpo de superficie (envolvente abierta)\n"
-"Área de superficie: %.2f cm²\n"
-"\n"
-"Una superficie no encierra material, por lo que no tiene volumen. Engrósela para convertirla en un sólido y obtenerlo."
 
-# AI Translated
-msgid "Mass properties"
-msgstr "Propiedades físicas"
+#, c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
+msgstr[1] ""
 
-# AI Translated
-#, c-format, boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr "%s: %.3f cm³, %.2f cm²"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "Select a body to measure it"
 msgstr ""
-"%s\n"
-"\n"
-"Volumen: %.3f cm³\n"
-"Área de superficie: %.2f cm²"
+
+msgid "This body could not be measured"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: volume %.2f mm³, area %.2f mm²"
+msgstr ""
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Matriz requiere un cuerpo sólido — añada o importe uno primero"
 
-# AI Translated
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "Booleana requiere dos cuerpos sólidos — añada o importe un segundo"
+msgid "Boolean needs two bodies — add or import a second one"
+msgstr ""
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -24310,6 +23968,36 @@ msgstr "Cara elegida (Cuerpo %d)"
 # AI Translated
 msgid "Picked face"
 msgstr "Cara elegida"
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -24348,17 +24036,15 @@ msgstr "Cota — haga clic en el segundo punto"
 msgid "Line — click the start point"
 msgstr "Línea — haga clic en el punto inicial"
 
-# AI Translated
-msgid "Line — click the end point, or type the length"
-msgstr "Línea — haga clic en el punto final o escriba la longitud"
+msgid "Line — click the end point; its length and angle can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Polilínea — haga clic en el primer punto"
 
-# AI Translated
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr "Polilínea — haga clic en el siguiente punto  ·  haga clic en el punto inicial para cerrarla  ·  clic derecho para terminar la cadena"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
+msgstr ""
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -24404,9 +24090,8 @@ msgstr "Rectángulo redondeado — haga clic para definir el radio de esquina"
 msgid "Circle — click the center"
 msgstr "Círculo — haga clic en el centro"
 
-# AI Translated
-msgid "Circle — click to set the radius, or type it"
-msgstr "Círculo — haga clic para definir el radio o escríbalo"
+msgid "Circle — click to set the radius; it can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -24532,21 +24217,18 @@ msgstr "Arco elíptico — haga clic donde termina el arco"
 msgid "Spline — click the first control point"
 msgstr "Spline — haga clic en el primer punto de control"
 
-# AI Translated
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr "Spline — haga clic en el siguiente punto de control  ·  clic derecho para terminar la curva"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
+msgstr ""
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Punto — haga clic para colocar uno; la herramienta sigue activa para colocar más"
 
-# AI Translated
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr "Recortar — haga clic en un segmento donde cruza otra entidad  ·  clic derecho para salir"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
+msgstr ""
 
-# AI Translated
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr "Extender — haga clic en una línea o un arco para prolongarlo hasta la entidad más cercana  ·  clic derecho para salir"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
+msgstr ""
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -24556,9 +24238,8 @@ msgstr "Redondeo — haga clic en la primera de dos líneas que se unen"
 msgid "Fillet — click the second line"
 msgstr "Redondeo — haga clic en la segunda línea"
 
-# AI Translated
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Redondeo — arrastre la flecha o haga clic en el número para escribir el radio  ·  haga clic en un espacio vacío para aplicar  ·  clic derecho cancela"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -24568,74 +24249,63 @@ msgstr "Chaflán — haga clic en la primera de dos líneas que se unen"
 msgid "Chamfer — click the second line"
 msgstr "Chaflán — haga clic en la segunda línea"
 
-# AI Translated
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Chaflán — arrastre la flecha o haga clic en el número para escribir la distancia  ·  haga clic en un espacio vacío para aplicar  ·  clic derecho cancela"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
-msgid "Offset — click the entity to offset"
-msgstr "Desfase — haga clic en la entidad que desfasar"
+msgid "Offset — click a curve; its whole outline is offset"
+msgstr ""
 
-# AI Translated
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr "Desfase — arrastre la flecha a cualquier lado o haga clic en el número para escribir la distancia  ·  haga clic en un espacio vacío para aplicar  ·  clic derecho cancela"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Reflejar — haga clic primero en la LÍNEA respecto a la que reflejar (sirve una línea de construcción)"
 
-# AI Translated
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr "Reflejar — eje definido  ·  ahora haga clic en las entidades que reflejar  ·  clic derecho cancela"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
 #, c-format, boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr "Reflejar — eje definido  ·  %d para reflejar  ·  haga clic en otra para añadirla o quitarla  ·  haga clic en un espacio vacío para aplicar"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Mover — haga clic en las entidades que mover"
 
-# AI Translated
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr "Mover — arrastre el tirador o haga clic en el número para escribir la distancia  ·  haga clic en un espacio vacío para aplicar"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Rotar — haga clic en las entidades que rotar"
 
-# AI Translated
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr "Rotar — arrastre el tirador o haga clic en el número para escribir el ángulo  ·  haga clic en un espacio vacío para aplicar"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Escalar — haga clic en las entidades que escalar"
 
-# AI Translated
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr "Escalar — arrastre el tirador o haga clic en el número para escribir el factor  ·  haga clic en un espacio vacío para aplicar"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Matriz — haga clic en las entidades que repetir"
 
-# AI Translated
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr "Matriz — arrastre el tirador para definir el paso, haga clic en el número para escribirlo  ·  haga clic en un espacio vacío para aplicar"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Matriz polar — haga clic en las entidades que repetir"
 
-# AI Translated
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr "Matriz polar — arrastre el tirador para definir el ángulo, haga clic en el número para escribirlo  ·  haga clic en un espacio vacío para aplicar"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
+msgstr ""
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-msgstr "Arrastre una esquina para escalar y el centro para mover  ·  clic derecho al terminar"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -24644,6 +24314,63 @@ msgstr "  ·  Esc vuelve a Seleccionar"
 # AI Translated
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  haga clic en el distintivo de una restricción para eliminarla"
+
+#, c-format, boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format, boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d sketch entities"
+msgstr ""
 
 # AI Translated
 msgid "select something first"
@@ -24706,9 +24433,8 @@ msgstr "Plano añadido — elíjalo como plano de croquis"
 msgid "Axis added"
 msgstr "Eje añadido"
 
-# AI Translated
-msgid "Coord Sys added"
-msgstr "Sist. coord. añadido"
+msgid "Coordinate system added"
+msgstr ""
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -24738,9 +24464,9 @@ msgstr "Aún no hay ningún sólido — seleccione un croquis y haga clic derech
 msgid "Could not restore the CAD model from this project"
 msgstr "No se pudo restaurar el modelo CAD de este proyecto"
 
-# AI Translated
-msgid "Could not restore the CAD model: "
-msgstr "No se pudo restaurar el modelo CAD: "
+#, c-format, boost-format
+msgid "Could not restore the CAD model: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -24763,9 +24489,8 @@ msgstr "Vista de sección — mostrando la mitad superior"
 msgid "Section view — showing the lower half"
 msgstr "Vista de sección — mostrando la mitad inferior"
 
-# AI Translated
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "Booleana requiere dos cuerpos — cree o importe un segundo sólido"
+msgid "Finding the feature's faces…"
+msgstr ""
 
 # AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -24800,9 +24525,12 @@ msgstr "Haga clic en una cara del sólido y luego pulse F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Colocado sobre cara — cuerpo apoyado sobre la cama"
 
-# AI Translated
-msgid "Edit rejected: "
-msgstr "Edición rechazada: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edit rejected: %s"
+msgstr ""
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -24821,20 +24549,9 @@ msgstr "Este cuerpo no tiene ninguna operación que eliminar — use Nuevo dise�
 msgid "feature %d"
 msgstr "operación %d"
 
-# AI Translated
 #, c-format, boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
-"¿Eliminar %s?\n"
-"\n"
-"Es la operación a partir de la cual se creó este cuerpo. Las operaciones basadas en ella pueden eliminarse o dejar de funcionar."
-
-# AI Translated
-msgid "Delete body"
-msgstr "Eliminar cuerpo"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -25226,9 +24943,16 @@ msgstr "Archivos STEP (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP exportado"
 
+#, c-format, boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
 # AI Translated
-msgid "STEP export failed: "
-msgstr "Error al exportar el STEP: "
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr "Enviar a la cama — enviar el sólido a Preparar"
 
 # AI Translated
 msgid "Nothing to commit — add a feature first"
@@ -25238,6 +24962,20 @@ msgstr "Nada que enviar — añada primero una operación"
 msgid "All bodies hidden — show one before committing"
 msgstr "Todos los cuerpos están ocultos — muestre uno antes de enviar"
 
+#, c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format, boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Line E%d"
+msgstr ""
+
 # AI Translated
 msgid "Plane ready"
 msgstr "Plano listo"
@@ -25246,9 +24984,8 @@ msgstr "Plano listo"
 msgid "Axis ready"
 msgstr "Eje listo"
 
-# AI Translated
-msgid "Coord Sys ready"
-msgstr "Sist. coord. listo"
+msgid "Coordinate system ready"
+msgstr ""
 
 # AI Translated
 msgid "Helix ready"
@@ -25263,20 +25000,12 @@ msgid "Sketch ready"
 msgstr "Croquis listo"
 
 # AI Translated
-msgid "Mate needs at least two CoordSys features"
-msgstr "Relación de posición requiere al menos dos operaciones de sistema de coordenadas"
-
-# AI Translated
-msgid "Mate: CS A and CS B must be different"
-msgstr "Relación de posición: SC A y SC B deben ser distintos"
-
-# AI Translated
 msgid "Mate ready"
 msgstr "Relación de posición lista"
 
-# AI Translated
-msgid "Invalid: "
-msgstr "No válido: "
+#, c-format, boost-format
+msgid "Invalid: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -25314,16 +25043,16 @@ msgid "Keep drawing"
 msgstr "Seguir dibujando"
 
 # AI Translated
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "Finalice o cancele primero la herramienta actual (Esc)"
-
-# AI Translated
 msgid "Nothing to redo"
 msgstr "Nada que rehacer"
 
 # AI Translated
 msgid "Nothing to undo"
 msgstr "Nada que deshacer"
+
+# AI Translated
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr "Finalice o cancele primero la herramienta actual (Esc)"
 
 # AI Translated
 #, c-format
@@ -25340,21 +25069,12 @@ msgstr[0] "Deshacer  (%zu paso más)"
 msgstr[1] "Deshacer  (%zu pasos más)"
 
 # AI Translated
-msgid "Variable name:"
-msgstr "Nombre de la variable:"
-
-# AI Translated
 msgid "Add Variable"
 msgstr "Añadir variable"
 
 # AI Translated
 msgid "Variable name must not contain spaces"
 msgstr "El nombre de la variable no debe contener espacios"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "Expresión para '%s':"
 
 # AI Translated
 msgid "Select a variable first"
@@ -25369,9 +25089,110 @@ msgstr "Editar variable"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "No se pudo eliminar la variable '%s' (probablemente aún la usa la expresión de una operación): %s"
 
+#, c-format, boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 # AI Translated
 msgid "No binding for that field"
 msgstr "No hay vínculo para ese campo"
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Lado"
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "clic derecho o doble clic para terminar; clic en el inicio para cerrar"
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
+msgstr ""
 
 # AI Translated
 msgid "Enter a number"
@@ -25380,6 +25201,640 @@ msgstr "Introduzca un número"
 # AI Translated
 msgid "Not a number"
 msgstr "No es un número"
+
+# AI Translated
+msgid "Add material"
+msgstr "Añadir material"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Redondeo / chaflán / desmoldeo"
+
+# AI Translated
+msgid "Repeat"
+msgstr "Repetir"
+
+# AI Translated
+msgid "Reference"
+msgstr "Referencia"
+
+msgid "Modify"
+msgstr "Modificar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Croquis"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Haga clic en una cara o en un plano de referencia y luego elija una herramienta de dibujo"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Revolución"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Barrido"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Recubrimiento"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Engrosar"
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Fusionar el cuerpo herramienta con el objetivo — un solo sólido, sin juntas"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Restar"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Restar el cuerpo herramienta del objetivo"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Intersecar"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Conservar solo la zona donde se superponen los dos cuerpos"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Extrusión de superficie"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Revolución de superficie"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Recubrimiento de superficie"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Relleno de superficie"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Cree primero un croquis cerrado"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Engrosar superficie"
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Agujero"
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Rosca"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Recortar el cuerpo con un plano — arrastre la flecha de desfase; conserve una mitad o ambas"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Dividir"
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Dividir el cuerpo en dos sólidos por una cara elegida"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Redondeo"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Elija una arista que redondear"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Elija una arista y luego arrastre la flecha del radio o escriba el valor"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Chaflán"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Elija una arista que biselar"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Elija una arista y luego arrastre la flecha de distancia o escriba el valor"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Desmoldeo"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Elija una cara que inclinar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Desfase de superficie"
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Matriz lineal"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Repetir el cuerpo a lo largo de una dirección — arrastre el espaciado y establezca el número"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Matriz circular"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Repetir el cuerpo alrededor de un eje — establezca el número y el ángulo"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Reflejar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Matriz sobre curva"
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Repetir el cuerpo a lo largo de una curva elegida"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Mover"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Relación de posición"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Alinear con"
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Alinear el cuerpo con una cara o un plano elegidos"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Plano"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Eje"
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Hélice"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Medir"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Medir entre los puntos, aristas o caras elegidos"
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Mostrar el volumen y el área de superficie del cuerpo seleccionado"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Interferencia"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Comprobar si dos cuerpos se superponen — solo informa, no cambia nada"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Editar"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "Reabrir la operación seleccionada para cambiar aquello a partir de lo que se creó"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Renombrar…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Seleccione una operación o un cuerpo para cambiarle el nombre"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Dé a esta operación un nombre que reconozca en el árbol (un cuerpo toma el nombre de la operación que lo crea)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Eliminar cara"
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Eliminar"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Eliminar lo seleccionado"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Eliminar cuerpo"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Eliminar todo este cuerpo — elimina la operación a partir de la cual se creó"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Línea"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Polilínea"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Haga clic en los puntos; haga clic en el primer punto para cerrar el contorno o clic derecho para dejarlo abierto"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Rectángulo por esquinas"
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Rectángulo oblicuo"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Rectángulo redondeado"
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Círculo por 2 puntos"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Círculo por 3 puntos"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Arco por 3 puntos"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Arco tangente"
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Ranura"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Ranura en arco"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Elipse"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Arco elíptico"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Triángulo"
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Cuadrado"
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Pentágono"
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Hexágono"
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Octógono"
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Dodecágono"
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Inscrito"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "Medir el polígono hasta sus vértices (inscrito)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Circunscrito"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "Medir el polígono hasta sus lados (circunscrito)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Punto"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "Texto"
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Importar un contorno SVG a este croquis como líneas editables"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Desfase"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Recortar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Matriz lineal"
+
+# AI Translated
+msgid "Array"
+msgstr "Matriz"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Matriz polar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Rotar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Escalar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Cota"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Restringir"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "Restringir entre sí las entidades del croquis seleccionadas"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Restringir croquis"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Seleccione un croquis para restringirlo"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Añadir cotas y relaciones (coincidente, tangente, paralela...) al croquis seleccionado"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Construcción"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Alternar construcción: geometría que sirve de guía pero nunca se construye"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Extender"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "Eliminar las entidades del croquis seleccionadas"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Longitud…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Escriba la longitud de esta línea"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Radio / diámetro…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Escriba el radio de este arco o el diámetro de este círculo"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Ángulo / distancia…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Escriba el ángulo entre dos líneas o la distancia entre los dos elementos elegidos"
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Size: %.1f × %.1f mm"
+msgstr ""
 
 # AI Translated
 msgid "Primitive"
@@ -25477,10 +25932,8 @@ msgstr "Perfil"
 msgid "Start new profile (for holes)"
 msgstr "Iniciar un nuevo perfil (para agujeros)"
 
-# AI Translated
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
-msgstr "Seg."
+msgid "Segments"
+msgstr ""
 
 # AI Translated
 msgid "Sides"
@@ -25494,19 +25947,20 @@ msgstr "Haga clic en el lienzo para dibujar"
 msgid "Snap to grid"
 msgstr "Ajustar a la cuadrícula"
 
+msgid "Grid step"
+msgstr ""
+
 # AI Translated
 msgid "Outer"
 msgstr "Exterior"
 
-# AI Translated
-msgid "CLOSED"
-msgstr "CERRADO"
+msgid "closed"
+msgstr ""
 
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
-msgid "%1% %2%: %3% pts %4%"
-msgstr "%1% %2%: %3% ptos %4%"
+msgid "%1% %2%: %3% points %4%"
+msgstr ""
 
 # AI Translated
 msgid "XY (Top)"
@@ -25543,12 +25997,7 @@ msgstr[1] "%zu perfiles cerrados"
 msgid "Draw a closed profile to enable"
 msgstr "Dibuje un perfil cerrado para activarlo"
 
-# AI Translated
-msgid "Pocket (Cut)"
-msgstr "Cajera (corte)"
-
-# AI Translated
-msgid "Clear All"
+msgid "Clear all"
 msgstr "Borrar todo"
 
 # AI Translated
@@ -26953,163 +27402,6 @@ msgid "Note:"
 msgstr "Nota:"
 
 # AI Translated
-msgid "Hollow this object"
-msgstr "Vaciar este objeto"
-
-# AI Translated
-msgid "Preview hollowed and drilled model"
-msgstr "Vista previa del modelo vaciado y taladrado"
-
-# AI Translated
-msgid "Closing distance"
-msgstr "Distancia de cierre"
-
-# AI Translated
-msgid "Hole diameter"
-msgstr "Diámetro del agujero"
-
-# AI Translated
-msgid "Hole depth"
-msgstr "Profundidad del agujero"
-
-# AI Translated
-msgid "Remove selected holes"
-msgstr "Eliminar los agujeros seleccionados"
-
-# AI Translated
-msgid "Remove all holes"
-msgstr "Eliminar todos los agujeros"
-
-msgid "Clipping of view"
-msgstr "Recorte de vista"
-
-msgid "Reset direction"
-msgstr "Reiniciar dirección"
-
-# AI Translated
-msgid "Show supports"
-msgstr "Mostrar soportes"
-
-# AI Translated
-msgid "Hollow and drill"
-msgstr "Vaciar y taladrar"
-
-msgid "Head diameter"
-msgstr "Diámetro de la cabeza"
-
-# AI Translated
-msgid "Lock supports under new islands"
-msgstr "Bloquear los soportes bajo las islas nuevas"
-
-msgid "Remove selected points"
-msgstr "Eliminar puntos seleccionados"
-
-# AI Translated
-msgid "Remove all points"
-msgstr "Eliminar todos los puntos"
-
-# AI Translated
-msgid "Apply changes"
-msgstr "Aplicar cambios"
-
-# AI Translated
-msgid "Discard changes"
-msgstr "Descartar cambios"
-
-# AI Translated
-msgid "Minimal points distance"
-msgstr "Distancia mínima entre puntos"
-
-# AI Translated
-msgid "Support points density"
-msgstr "Densidad de puntos de soporte"
-
-msgid "Auto-generate points"
-msgstr "Auto-generar puntos"
-
-# AI Translated
-msgid "Manual editing"
-msgstr "Edición manual"
-
-# AI Translated
-msgid "SLA Support Points"
-msgstr "Puntos de soporte SLA"
-
-# AI Translated
-msgid "Do you want to save your manually edited support points?"
-msgstr "¿Desea guardar los puntos de soporte editados manualmente?"
-
-# AI Translated
-msgid "Save support points?"
-msgstr "¿Guardar los puntos de soporte?"
-
-# AI Translated
-msgid "Autogeneration will erase all manually edited points."
-msgstr "La generación automática borrará todos los puntos editados manualmente."
-
-# AI Translated
-msgid "Are you sure you want to do it?"
-msgstr "¿Está seguro de que desea hacerlo?"
-
-# AI Translated
-msgid "SLA gizmo keyboard shortcuts"
-msgstr "Atajos de teclado de la herramienta SLA"
-
-# AI Translated
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr "Nota: algunos atajos solo funcionan dentro o fuera del modo de edición."
-
-msgid "Left click"
-msgstr "Click izquierdo"
-
-# AI Translated
-msgid "Add point"
-msgstr "Añadir punto"
-
-msgid "Right click"
-msgstr "Click derecho"
-
-# AI Translated
-msgid "Remove point"
-msgstr "Eliminar punto"
-
-# AI Translated
-msgid "Move point"
-msgstr "Mover punto"
-
-# AI Translated
-msgid "Add point to selection"
-msgstr "Añadir punto a la selección"
-
-# AI Translated
-msgid "Remove point from selection"
-msgstr "Quitar punto de la selección"
-
-# AI Translated
-msgid "Select by rectangle"
-msgstr "Seleccionar por rectángulo"
-
-# AI Translated
-msgid "Deselect by rectangle"
-msgstr "Deseleccionar por rectángulo"
-
-# AI Translated
-msgid "Select all points"
-msgstr "Seleccionar todos los puntos"
-
-# AI Translated
-msgid "Move clipping plane"
-msgstr "Mover el plano de recorte"
-
-# AI Translated
-msgid "Reset clipping plane"
-msgstr "Reiniciar el plano de recorte"
-
-# AI Translated
-msgid "Switch to editing mode"
-msgstr "Cambiar al modo de edición"
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Empotrar"
@@ -27790,10 +28082,6 @@ msgstr "Repite la textura por el área pintada. Desactivado coloca una sola copi
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Active Mosaico para elegir cómo se repite la textura."
-
-# AI Translated
-msgid "Repeat"
-msgstr "Repetir"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -29362,664 +29650,6 @@ msgid "apply_chamfer: OCCT chamfer failed"
 msgstr "apply_chamfer: falló el chaflán de OCCT"
 
 # AI Translated
-msgid "Add material"
-msgstr "Añadir material"
-
-# AI Translated
-msgid "Fillet / chamfer / draft"
-msgstr "Redondeo / chaflán / desmoldeo"
-
-# AI Translated
-msgid "Reference"
-msgstr "Referencia"
-
-msgid "Modify"
-msgstr "Modificar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sketch"
-msgstr "Croquis"
-
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Haga clic en una cara o en un plano de referencia y luego elija una herramienta de dibujo"
-
-# AI Translated
-msgctxt "Design"
-msgid "Revolve"
-msgstr "Revolución"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sweep"
-msgstr "Barrido"
-
-# AI Translated
-msgctxt "Design"
-msgid "Loft"
-msgstr "Recubrimiento"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken"
-msgstr "Engrosar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Union"
-msgstr "Unión"
-
-# AI Translated
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr "Fusionar el cuerpo herramienta con el objetivo — un solo sólido, sin juntas"
-
-# AI Translated
-msgctxt "Design"
-msgid "Subtract"
-msgstr "Restar"
-
-# AI Translated
-msgid "Cut the tool body out of the target"
-msgstr "Restar el cuerpo herramienta del objetivo"
-
-# AI Translated
-msgctxt "Design"
-msgid "Intersect"
-msgstr "Intersecar"
-
-# AI Translated
-msgid "Keep only where the two bodies overlap"
-msgstr "Conservar solo la zona donde se superponen los dos cuerpos"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr "Extrusión de superficie"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr "Revolución de superficie"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr "Recubrimiento de superficie"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr "Relleno de superficie"
-
-# AI Translated
-msgid "Create a closed sketch first"
-msgstr "Cree primero un croquis cerrado"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr "Engrosar superficie"
-
-# AI Translated
-msgid "target is not a sheet body"
-msgstr "el objetivo no es un cuerpo de superficie"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hole"
-msgstr "Agujero"
-
-# AI Translated
-msgid "Pick a face or a plane to drill into"
-msgstr "Elija una cara o un plano en el que taladrar"
-
-# AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "Taladrar un agujero, centrado en una cara elegida o colocado en un plano"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thread"
-msgstr "Rosca"
-
-# AI Translated
-msgid "Shell needs a solid body"
-msgstr "Vaciado requiere un cuerpo sólido"
-
-# AI Translated
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr "Recortar el cuerpo con un plano — arrastre la flecha de desfase; conserve una mitad o ambas"
-
-# AI Translated
-msgctxt "Design"
-msgid "Split"
-msgstr "Dividir"
-
-# AI Translated
-msgid "Split needs a solid body"
-msgstr "Dividir requiere un cuerpo sólido"
-
-# AI Translated
-msgid "Split the body along a picked face into two solids"
-msgstr "Dividir el cuerpo en dos sólidos por una cara elegida"
-
-# AI Translated
-msgctxt "Design"
-msgid "Fillet"
-msgstr "Redondeo"
-
-# AI Translated
-msgid "Pick an edge to round"
-msgstr "Elija una arista que redondear"
-
-# AI Translated
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr "Elija una arista y luego arrastre la flecha del radio o escriba el valor"
-
-# AI Translated
-msgctxt "Design"
-msgid "Chamfer"
-msgstr "Chaflán"
-
-# AI Translated
-msgid "Pick an edge to bevel"
-msgstr "Elija una arista que biselar"
-
-# AI Translated
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr "Elija una arista y luego arrastre la flecha de distancia o escriba el valor"
-
-# AI Translated
-msgctxt "Design"
-msgid "Draft"
-msgstr "Desmoldeo"
-
-# AI Translated
-msgid "Pick a face to taper"
-msgstr "Elija una cara que inclinar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr "Desfase de superficie"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr "Matriz lineal"
-
-# AI Translated
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr "Repetir el cuerpo a lo largo de una dirección — arrastre el espaciado y establezca el número"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr "Matriz circular"
-
-# AI Translated
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr "Repetir el cuerpo alrededor de un eje — establezca el número y el ángulo"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mirror"
-msgstr "Reflejar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr "Matriz sobre curva"
-
-# AI Translated
-msgid "Pattern on curve needs a body and a curve"
-msgstr "Matriz sobre curva requiere un cuerpo y una curva"
-
-# AI Translated
-msgid "Repeat the body along a picked curve"
-msgstr "Repetir el cuerpo a lo largo de una curva elegida"
-
-# AI Translated
-msgctxt "Design"
-msgid "Move"
-msgstr "Mover"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mate"
-msgstr "Relación de posición"
-
-# AI Translated
-msgid "A mate needs two coordinate systems"
-msgstr "Una relación de posición requiere dos sistemas de coordenadas"
-
-# AI Translated
-msgctxt "Design"
-msgid "Align to"
-msgstr "Alinear con"
-
-# AI Translated
-msgid "Align needs a body"
-msgstr "Alinear requiere un cuerpo"
-
-# AI Translated
-msgid "Align the body to a picked face or plane"
-msgstr "Alinear el cuerpo con una cara o un plano elegidos"
-
-# AI Translated
-msgctxt "Design"
-msgid "Plane"
-msgstr "Plano"
-
-# AI Translated
-msgctxt "Design"
-msgid "Axis"
-msgstr "Eje"
-
-# AI Translated
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr "Sist. coord."
-
-# AI Translated
-msgctxt "Design"
-msgid "Helix"
-msgstr "Hélice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Measure"
-msgstr "Medir"
-
-# AI Translated
-msgid "Measure between the picked points, edges or faces"
-msgstr "Medir entre los puntos, aristas o caras elegidos"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mass"
-msgstr "Propiedades físicas"
-
-# AI Translated
-msgid "Report the volume and surface area of the selected body"
-msgstr "Mostrar el volumen y el área de superficie del cuerpo seleccionado"
-
-# AI Translated
-msgctxt "Design"
-msgid "Interference"
-msgstr "Interferencia"
-
-# AI Translated
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr "Comprobar si dos cuerpos se superponen — solo informa, no cambia nada"
-
-# AI Translated
-msgctxt "Design"
-msgid "Edit"
-msgstr "Editar"
-
-# AI Translated
-msgid "Reopen the selected feature to change what it was made from"
-msgstr "Reabrir la operación seleccionada para cambiar aquello a partir de lo que se creó"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rename…"
-msgstr "Renombrar…"
-
-# AI Translated
-msgid "Select a feature, or a body, to rename it"
-msgstr "Seleccione una operación o un cuerpo para cambiarle el nombre"
-
-# AI Translated
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr "Dé a esta operación un nombre que reconozca en el árbol (un cuerpo toma el nombre de la operación que lo crea)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Face"
-msgstr "Eliminar cara"
-
-# AI Translated
-msgctxt "Design"
-msgid "Colour"
-msgstr "Color"
-
-# AI Translated
-msgid "Set the selected body's display colour"
-msgstr "Establecer el color de visualización del cuerpo seleccionado"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete"
-msgstr "Eliminar"
-
-# AI Translated
-msgid "Delete what is selected"
-msgstr "Eliminar lo seleccionado"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Body"
-msgstr "Eliminar cuerpo"
-
-# AI Translated
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr "Eliminar todo este cuerpo — elimina la operación a partir de la cual se creó"
-
-# AI Translated
-msgctxt "Design"
-msgid "Line"
-msgstr "Línea"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polyline"
-msgstr "Polilínea"
-
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr "Haga clic en los puntos; haga clic en el primer punto para cerrar el contorno o clic derecho para dejarlo abierto"
-
-# AI Translated
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr "Rectángulo por esquinas"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr "Rectángulo desde el centro"
-
-# AI Translated
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr "Rectángulo oblicuo"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr "Rectángulo redondeado"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre circle"
-msgstr "Círculo desde el centro"
-
-# AI Translated
-msgctxt "Design"
-msgid "2-point circle"
-msgstr "Círculo por 2 puntos"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point circle"
-msgstr "Círculo por 3 puntos"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point arc"
-msgstr "Arco por 3 puntos"
-
-# AI Translated
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr "Arco tangente"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr "Arco desde el centro"
-
-# AI Translated
-msgctxt "Design"
-msgid "Slot"
-msgstr "Ranura"
-
-# AI Translated
-msgctxt "Design"
-msgid "Arc slot"
-msgstr "Ranura en arco"
-
-# AI Translated
-msgctxt "Design"
-msgid "Ellipse"
-msgstr "Elipse"
-
-# AI Translated
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr "Arco elíptico"
-
-# AI Translated
-msgctxt "Design"
-msgid "Spline"
-msgstr "Spline"
-
-# AI Translated
-msgctxt "Design"
-msgid "Triangle"
-msgstr "Triángulo"
-
-# AI Translated
-msgid "Triangle — click centre, then a vertex"
-msgstr "Triángulo — haga clic en el centro y luego en un vértice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Square"
-msgstr "Cuadrado"
-
-# AI Translated
-msgid "Square — click centre, then a vertex"
-msgstr "Cuadrado — haga clic en el centro y luego en un vértice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pentagon"
-msgstr "Pentágono"
-
-# AI Translated
-msgid "Pentagon — click centre, then a vertex"
-msgstr "Pentágono — haga clic en el centro y luego en un vértice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hexagon"
-msgstr "Hexágono"
-
-# AI Translated
-msgid "Hexagon — click centre, then a vertex"
-msgstr "Hexágono — haga clic en el centro y luego en un vértice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Octagon"
-msgstr "Octógono"
-
-# AI Translated
-msgid "Octagon — click centre, then a vertex"
-msgstr "Octógono — haga clic en el centro y luego en un vértice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr "Dodecágono"
-
-# AI Translated
-msgid "Dodecagon — click centre, then a vertex"
-msgstr "Dodecágono — haga clic en el centro y luego en un vértice"
-
-# AI Translated
-msgctxt "Design"
-msgid "Inscribed"
-msgstr "Inscrito"
-
-# AI Translated
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr "Medir el polígono hasta sus vértices (inscrito)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr "Circunscrito"
-
-# AI Translated
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr "Medir el polígono hasta sus lados (circunscrito)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Point"
-msgstr "Punto"
-
-# AI Translated
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr "Escriba un texto; su contorno se añade a este croquis como líneas editables"
-
-# AI Translated
-msgctxt "Design"
-msgid "SVG"
-msgstr "SVG"
-
-# AI Translated
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr "Importar un contorno SVG a este croquis como líneas editables"
-
-# AI Translated
-msgctxt "Design"
-msgid "Offset"
-msgstr "Desfase"
-
-# AI Translated
-msgctxt "Design"
-msgid "Trim"
-msgstr "Recortar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear array"
-msgstr "Matriz lineal"
-
-# AI Translated
-msgid "Array"
-msgstr "Matriz"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polar array"
-msgstr "Matriz polar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rotate"
-msgstr "Rotar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Scale"
-msgstr "Escalar"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dimension"
-msgstr "Cota"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain"
-msgstr "Restringir"
-
-# AI Translated
-msgid "Constrain the selected sketch entities to each other"
-msgstr "Restringir entre sí las entidades del croquis seleccionadas"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr "Restringir croquis"
-
-# AI Translated
-msgid "Select a sketch to constrain it"
-msgstr "Seleccione un croquis para restringirlo"
-
-# AI Translated
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr "Añadir cotas y relaciones (coincidente, tangente, paralela...) al croquis seleccionado"
-
-# AI Translated
-msgctxt "Design"
-msgid "Construction"
-msgstr "Construcción"
-
-# AI Translated
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr "Alternar construcción: geometría que sirve de guía pero nunca se construye"
-
-# AI Translated
-msgctxt "Design"
-msgid "Extend"
-msgstr "Extender"
-
-# AI Translated
-msgid "Delete the selected sketch entities"
-msgstr "Eliminar las entidades del croquis seleccionadas"
-
-# AI Translated
-msgctxt "Design"
-msgid "Length…"
-msgstr "Longitud…"
-
-# AI Translated
-msgid "Type the length of this line"
-msgstr "Escriba la longitud de esta línea"
-
-# AI Translated
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr "Radio / diámetro…"
-
-# AI Translated
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr "Escriba el radio de este arco o el diámetro de este círculo"
-
-# AI Translated
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr "Ángulo / distancia…"
-
-# AI Translated
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr "Escriba el ángulo entre dos líneas o la distancia entre los dos elementos elegidos"
-
-# AI Translated
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr "Lado"
-
-# AI Translated
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr "Mayor"
-
-# AI Translated
-msgid "Minor"
-msgstr "Menor"
-
-# AI Translated
-msgid "right-click or double-click to finish, click start to close"
-msgstr "clic derecho o doble clic para terminar; clic en el inicio para cerrar"
-
-# AI Translated
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr "Extender: haga clic en una línea/arco que pueda alcanzar otra entidad activa"
-
-# AI Translated
-msgid "Trim: click a segment where it crosses another live entity"
-msgstr "Recortar: haga clic en un segmento donde cruce otra entidad activa"
-
-# AI Translated
 msgid "Authentication complete"
 msgstr "Autenticación completada"
 
@@ -30464,16 +30094,941 @@ msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
 
+#~ msgid "Face recognition"
+#~ msgstr "Reconocimiento de caras"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Realizar el reconocimiento"
+
+#~ msgid "Text Gap"
+#~ msgstr "Espacio de texto"
+
+#~ msgid "Embedded depth"
+#~ msgstr ""
+#~ "Profundidad\n"
+#~ "Integrada"
+
+#~ msgid "Input text"
+#~ msgstr "Insertar texto"
+
+#~ msgid "Surface"
+#~ msgstr "Superficie"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Texto horizontal"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "Mover el ratón hacia arriba o abajo"
+
+#~ msgid "Rotate text"
+#~ msgstr "Rotar texto"
+
+#~ msgid "Text shape"
+#~ msgstr "Forma de texto"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Laminando cama %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Por favor, resuelva los errores de laminado y publique de nuevo."
+
+# AI Translated
+#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+#~ msgstr "Trata los extremos del croquis separados menos de 0,001 mm como una sola unión y suelda el contorno para cerrarlo. Desactivado: solo se unen los extremos exactamente coincidentes, por lo que un contorno con un pequeño hueco se muestra abierto en lugar de cerrarse automáticamente."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Laminar todas las piezas para obtener una estimación del tiempo y del filamento"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "Empaquetar los datos del proyecto en un archivo 3mf"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "Cargando 3mf"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Ir a la página web de publicación de modelos"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Nota: La preparación puede llevar varios minutos. Por favor, sea paciente."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "La publicación fue cancelada"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Cama de Laminado 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Empaquetando datos a 3mf"
+
+#~ msgid "Uploading data"
+#~ msgstr "Cargando datos"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Ir a la página web"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "Importar color de archivo OBJ"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Algunas caras no tienen color definido."
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "Error: el archivo MTL existe pero no se pudo encontrar el material:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Por favor, compruebe el archivo OBJ o MTL."
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "Especifique el número de colores:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Presione Enter o haga clic en el botón de ajuste para modificar el número nuevamente"
+
+#~ msgid "Recommended "
+#~ msgstr "Recomendado "
+
+#~ msgid "view"
+#~ msgstr "vista"
+
+#~ msgid "Current filament colors"
+#~ msgstr "Colores de filamento actuales"
+
+#~ msgid "Matching"
+#~ msgstr "Emparejamiento"
+
+#~ msgid "Quick set"
+#~ msgstr "Ajuste rápido"
+
+#~ msgid "Color match"
+#~ msgstr "Coincidencia de colores"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "Coincidencia aproximada de colores."
+
+#~ msgid "Append"
+#~ msgstr "Añadir"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "Añadir a los filamentos existentes"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Restablecer extrusoras mapeadas."
+
+#~ msgid "Note"
+#~ msgstr "Nota"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "Se ha seleccionado el color, puede elegir Aceptar \n"
+#~ "para continuar o ajustarlo manualmente."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Tiene una altura de capa pequeña, y da como resultado unas líneas de capa casi inapreciables y una alta calidad de impresión. Es adecuado para la mayoría de los casos generales de impresión."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Esto da como resultado una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "Comparado con el perfil por defecto de una boquilla de 0,2 mm, tiene una altura de capa ligeramente mayor, y da como resultado líneas de capa casi inapreciables, y un tiempo de impresión ligeramente menor."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene una mayor altura de capa. Esto se traduce en líneas de capa ligeramente visibles, pero en un tiempo de impresión más corto."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene una altura de capa menor. Esto se traduce en líneas de capa casi invisibles y una mayor calidad de impresión, pero un tiempo de impresión más largo."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene unas líneas de capa más pequeñas, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Esto da como resultado líneas de capa casi invisibles y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene una altura de capa menor. Esto da como resultado líneas de capa mínimas y una mayor calidad de impresión, pero un tiempo de impresión más largo."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,2 mm, tiene unas líneas de capa más pequeñas, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Por lo tanto, da como resultado líneas de capa mínimas y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Tiene una altura de capa normal, y da como resultado unas líneas de capa y una calidad de impresión medias. Es adecuado para la mayoría de los casos de impresión."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene más perímetros y un mayor relleno de baja densidad. Esto se traduce en una mayor resistencia de impresión, pero un mayor consumo de filamento y un tiempo de impresión más largo."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una mayor altura de capa. Esto da lugar a líneas de capa más visibles y a una menor calidad de impresión, pero un tiempo de impresión ligeramente inferior."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una mayor altura de capa, y da como resultado líneas de capa más visibles y una menor calidad de impresión, pero un tiempo de impresión más corto."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor. Esto se traduce en menos líneas de capa visibles y mayor calidad de impresión, pero mayor tiempo de impresión."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Por lo tanto, da como resultado menos líneas de capa visibles y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor. Esto se traduce en unas líneas de capa casi inapreciables y una mayor calidad de impresión, pero un tiempo de impresión más largo."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor, velocidades y aceleraciones más bajas, y el patrón de relleno de baja densidad es Giroide. Por lo tanto, resulta en líneas de capa casi insignificantes y una calidad de impresión mucho mayor, pero un tiempo de impresión mucho más largo."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,4 mm, tiene una altura de capa menor. Esto se traduce en unas líneas de capa casi inapreciables y un mayor tiempo de impresión."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "Tiene una gran altura de capa, y da lugar a líneas de capa visibles y a una calidad y tiempo de impresión ordinarios."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene más bucles de perímetro y una mayor relleno de baja densidad. Esto se traduce en una mayor resistencia de impresión, pero un mayor consumo de filamento y un tiempo de impresión más largo."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una mayor altura de capa. Esto da lugar a líneas de capa más visibles y a una menor calidad de impresión, pero a un menor tiempo de impresión en algunos casos."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una mayor altura de capa. Esto da lugar a líneas de capa mucho más visibles y a una calidad de impresión mucho menor, pero un tiempo de impresión más corto en algunos casos."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una altura de capa menor. Esto se traduce en menos líneas de capa visibles y una calidad de impresión ligeramente superior, pero un tiempo de impresión más largo."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,6 mm, tiene una altura de capa menor, y da como resultado líneas de capa menos visibles y una mayor calidad de impresión, pero un tiempo de impresión más largo."
+
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Tiene una altura de capa muy grande. Esto se traduce en líneas de capa muy visibles, baja calidad de impresión y tiempo de impresión más corto."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una mayor altura de capa. Esto se traduce en líneas de capa muy visibles y una calidad de impresión mucho menor, pero un tiempo de impresión más corto en algunos casos."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una altura de capa mucho mayor. Esto se traduce en líneas de capa extremadamente visibles y una calidad de impresión mucho menor, pero un tiempo de impresión mucho más corto en algunos casos."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una altura de capa ligeramente menor. Esto se traduce en líneas de capa ligeramente menores pero aún visibles y en una calidad de impresión ligeramente superior, pero mayor tiempo de impresión en algunos casos."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "En comparación con el perfil predeterminado de una boquilla de 0,8 mm, tiene una altura de capa menor. Esto se traduce en menos líneas de capa pero aún visibles y una calidad de impresión ligeramente superior, pero un tiempo de impresión más largo en algunos casos."
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Este no es un filamento de uso común, ni uno de los filamentos Bambu, y varía mucho de marca en marca. Por lo tanto, se recomienda encarecidamente consultar al fabricante para obtener un perfil adecuado antes de imprimir y ajustar algunos parámetros según sus prestaciones."
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Al imprimir este filamento, existe un riesgo de deformación y baja resistencia de adherencia de capas. Para obtener mejores resultados, consulte esta wiki: Consejos de impresión para materiales de alta temperatura/ingeniería."
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Al imprimir este filamento, existe un riesgo de obstrucción de la boquilla, goteo, deformación y baja resistencia de adherencia de capas. Para obtener mejores resultados, consulte esta wiki: Consejos de impresión para materiales de alta temperatura/ingeniería."
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Para obtener mejores resultados transparentes o translúcidos con el filamento correspondiente, consulte esta wiki: Consejos de impresión para PETG transparente."
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Para que las impresiones tengan un mayor brillo, seque el filamento antes de usarlo, y ajuste la velocidad del perímetro exterior a 40-60 mm/s al laminar."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Este filamento se utiliza normalmente para imprimir modelos de baja densidad, y requiere algunos parámetros especiales. Para obtener una mejor calidad de impresión, consulte esta wiki: Instrucciones para imprimir modelos RC con PLA espumoso (PLA Aero)."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Este filamento se utiliza normalmente para imprimir modelos de baja densidad, y requiere algunos parámetros especiales. Para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión ASA Aero."
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Este filamento es demasiado blando y no es compatible con el AMS. Su impresión requiere muchos ajustes, y para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión TPU."
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Este filamento tiene suficiente dureza (aproximadamente 67D) y es compatible con el AMS. Su impresión requiere muchos ajustes, y para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión TPU."
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Si va a imprimir un tipo de TPU blando, no lamine con este perfil, y es solo para TPU que tiene suficiente dureza (no menos de 55D) y es compatible con el AMS. Para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión TPU."
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Este es un filamento de soporte soluble en agua, y normalmente se utiliza solo para la estructura de soporte y no para el cuerpo del modelo. La impresión de este filamento requiere muchos ajustes, y para obtener una mejor calidad de impresión, consulte esta wiki: Guía de impresión PVA."
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Este es un filamento de soporte no soluble en agua, y normalmente se utiliza solo para la estructura de soporte y no para el cuerpo del modelo. Para obtener una mejor calidad de impresión, consulte esta wiki: Consejos de impresión para filamento de soporte y función de soporte."
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "Los perfiles genéricos están ajustados de forma conservadora para la compatibilidad con una gama más amplia de filamentos. Para una mayor calidad y velocidad de impresión, utilice filamentos Bambu con perfiles Bambu."
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Perfil de alta calidad para boquilla de 0,2 mm, priorizando la calidad de impresión."
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Perfil de alta calidad para altura de capa de 0,16 mm, priorizando calidad de impresión y resistencia."
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Perfil estándar para altura de capa de 0,16 mm, priorizando velocidad."
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Perfil de alta calidad para altura de capa de 0,2 mm, priorizando resistencia y calidad de impresión."
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Perfil estándar para boquilla de 0,4 mm, priorizando velocidad."
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Perfil de alta calidad para boquilla de 0,6 mm, priorizando calidad de impresión y resistencia."
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Perfil de resistencia para boquilla de 0,6 mm, priorizando resistencia."
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Perfil estándar para boquilla de 0,6 mm, priorizando velocidad."
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Perfil de alta calidad para boquilla de 0,8 mm, priorizando calidad de impresión."
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Perfil de resistencia para boquilla de 0,8 mm, priorizando resistencia."
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Perfil estándar para boquilla de 0,8 mm, priorizando velocidad."
+
+# AI Translated
+#~ msgid "Slot — two centerline ends, then end radius"
+#~ msgstr "Ranura — dos extremos de la línea central y luego el radio del extremo"
+
+# AI Translated
+#~ msgid "Isometric view, fitted"
+#~ msgstr "Vista isométrica, ajustada"
+
+# AI Translated
+#~ msgid "Coord Sys"
+#~ msgstr "Sist. coord."
+
+# AI Translated
+#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+#~ msgstr "Ensamblaje: alinear dos operaciones de sistema de coordenadas (fija, plana, de revolución, deslizante, cilíndrica)"
+
+# AI Translated
+#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
+#~ msgstr "Haga clic en los puntos; haga clic en el primer punto para cerrar el contorno, clic derecho para terminar la cadena"
+
+# AI Translated
+#~ msgid "Click two centerline ends, then a point for the end radius"
+#~ msgstr "Haga clic en los dos extremos de la línea central y luego en un punto para el radio del extremo"
+
+# AI Translated
+#~ msgid "Click control points; double-click or right-click to finish"
+#~ msgstr "Haga clic en los puntos de control; doble clic o clic derecho para terminar"
+
+# AI Translated
+#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+#~ msgstr "Haga clic en un segmento para recortarlo hasta su intersección más cercana; clic derecho para salir"
+
+# AI Translated
+#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+#~ msgstr "Haga clic en una línea o un arco para extenderlo hasta la entidad más cercana; clic derecho para salir"
+
+# AI Translated
+#~ msgid "✓ Confirm"
+#~ msgstr "✓ Confirmar"
+
+# AI Translated
+#~ msgid "✗ Cancel"
+#~ msgstr "✗ Cancelar"
+
+# AI Translated
+#~ msgid "Undo (Ctrl+Z)"
+#~ msgstr "Deshacer (Ctrl+Z)"
+
+# AI Translated
+#~ msgid "Redo (Ctrl+Shift+Z)"
+#~ msgstr "Rehacer (Ctrl+Shift+Z)"
+
+# AI Translated
+#~ msgid "Taper °"
+#~ msgstr "Conicidad °"
+
+# AI Translated
+#~ msgid "Total angle°"
+#~ msgstr "Ángulo total°"
+
+# AI Translated
+#~ msgid "Union (join)"
+#~ msgstr "Unión (unir)"
+
+# AI Translated
+#~ msgid "Subtract (cut)"
+#~ msgstr "Restar (cortar)"
+
+# AI Translated
+#~ msgid "Angle°"
+#~ msgstr "Ángulo°"
+
+# AI Translated
+#~ msgid "CS A (fixed)"
+#~ msgstr "SC A (fijo)"
+
+# AI Translated
+#~ msgid "CS B (moves)"
+#~ msgstr "SC B (se mueve)"
+
+# AI Translated
+#~ msgid "Move body"
+#~ msgstr "Mover cuerpo"
+
+# AI Translated
+#~ msgid "Select a body row first, then move it"
+#~ msgstr "Seleccione primero la fila de un cuerpo y luego muévalo"
+
+# AI Translated
+#~ msgid "+"
+#~ msgstr "+"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Cuerpo %d: arista %d seleccionada — Redondeo/Chaflán para acabarla, o haga clic de nuevo para todo el cuerpo"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "Arista %d seleccionada — Redondeo/Chaflán para acabarla, o haga clic de nuevo para todo el cuerpo"
+
+# AI Translated
+#~ msgid "Text to insert:"
+#~ msgstr "Texto que insertar:"
+
+# AI Translated
+#~ msgid "STEP import failed: "
+#~ msgstr "Error al importar el STEP: "
+
+# AI Translated
+#~ msgid "Could not read the OBJ file: "
+#~ msgstr "No se pudo leer el archivo OBJ: "
+
+# AI Translated
+#~ msgid "Mesh conversion failed: "
+#~ msgstr "Error en la conversión de la malla: "
+
+# AI Translated
+#~ msgid "Mesh import failed: "
+#~ msgstr "Error al importar la malla: "
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move — right-click when done"
+#~ msgstr "Arrastre una esquina para escalar y el centro para mover — clic derecho al terminar"
+
+# AI Translated
+#~ msgid "Recompute error: "
+#~ msgstr "Error de recálculo: "
+
+# AI Translated
+#~ msgid "Mate needs two CoordSys features — create them first"
+#~ msgstr "Relación de posición requiere dos operaciones de sistema de coordenadas — créelas primero"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different CoordSys features"
+#~ msgstr "Relación de posición: SC A y SC B deben ser operaciones de sistema de coordenadas distintas"
+
+# AI Translated
+#~ msgid "No interference — need at least two solid bodies to check"
+#~ msgstr "Sin interferencias — se necesitan al menos dos cuerpos sólidos para comprobarlas"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pair, worst %.2f mm³"
+#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
+#~ msgstr[0] "%zu par con interferencia, el peor %.2f mm³"
+#~ msgstr[1] "%zu pares con interferencia, el peor %.2f mm³"
+
+# AI Translated
+#~ msgid ""
+#~ "Interference pairs:\n"
+#~ "\n"
+#~ msgstr ""
+#~ "Pares con interferencia:\n"
+#~ "\n"
+
+# AI Translated
+#~ msgid "Interference"
+#~ msgstr "Interferencia"
+
+# AI Translated
+#~ msgid "Select a solid body first — its mass properties are what is reported"
+#~ msgstr "Seleccione primero un cuerpo sólido — se informará de sus propiedades físicas"
+
+# AI Translated
+#~ msgid "Mass properties could not be computed for this body"
+#~ msgstr "No se pudieron calcular las propiedades físicas de este cuerpo"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
+#~ msgstr "%s: cuerpo de superficie — %.2f cm² de superficie, sin volumen"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Sheet body (open shell)\n"
+#~ "Surface area: %.2f cm²\n"
+#~ "\n"
+#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Cuerpo de superficie (envolvente abierta)\n"
+#~ "Área de superficie: %.2f cm²\n"
+#~ "\n"
+#~ "Una superficie no encierra material, por lo que no tiene volumen. Engrósela para convertirla en un sólido y obtenerlo."
+
+# AI Translated
+#~ msgid "Mass properties"
+#~ msgstr "Propiedades físicas"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: %.3f cm³, %.2f cm²"
+#~ msgstr "%s: %.3f cm³, %.2f cm²"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Surface area: %.2f cm²"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volumen: %.3f cm³\n"
+#~ "Área de superficie: %.2f cm²"
+
+# AI Translated
+#~ msgid "Boolean needs two solid bodies — add or import a second one"
+#~ msgstr "Booleana requiere dos cuerpos sólidos — añada o importe un segundo"
+
+# AI Translated
+#~ msgid "Line — click the end point, or type the length"
+#~ msgstr "Línea — haga clic en el punto final o escriba la longitud"
+
+# AI Translated
+#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+#~ msgstr "Polilínea — haga clic en el siguiente punto  ·  haga clic en el punto inicial para cerrarla  ·  clic derecho para terminar la cadena"
+
+# AI Translated
+#~ msgid "Circle — click to set the radius, or type it"
+#~ msgstr "Círculo — haga clic para definir el radio o escríbalo"
+
+# AI Translated
+#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
+#~ msgstr "Spline — haga clic en el siguiente punto de control  ·  clic derecho para terminar la curva"
+
+# AI Translated
+#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+#~ msgstr "Recortar — haga clic en un segmento donde cruza otra entidad  ·  clic derecho para salir"
+
+# AI Translated
+#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+#~ msgstr "Extender — haga clic en una línea o un arco para prolongarlo hasta la entidad más cercana  ·  clic derecho para salir"
+
+# AI Translated
+#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Redondeo — arrastre la flecha o haga clic en el número para escribir el radio  ·  haga clic en un espacio vacío para aplicar  ·  clic derecho cancela"
+
+# AI Translated
+#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Chaflán — arrastre la flecha o haga clic en el número para escribir la distancia  ·  haga clic en un espacio vacío para aplicar  ·  clic derecho cancela"
+
+# AI Translated
+#~ msgid "Offset — click the entity to offset"
+#~ msgstr "Desfase — haga clic en la entidad que desfasar"
+
+# AI Translated
+#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "Desfase — arrastre la flecha a cualquier lado o haga clic en el número para escribir la distancia  ·  haga clic en un espacio vacío para aplicar  ·  clic derecho cancela"
+
+# AI Translated
+#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+#~ msgstr "Reflejar — eje definido  ·  ahora haga clic en las entidades que reflejar  ·  clic derecho cancela"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+#~ msgstr "Reflejar — eje definido  ·  %d para reflejar  ·  haga clic en otra para añadirla o quitarla  ·  haga clic en un espacio vacío para aplicar"
+
+# AI Translated
+#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+#~ msgstr "Mover — arrastre el tirador o haga clic en el número para escribir la distancia  ·  haga clic en un espacio vacío para aplicar"
+
+# AI Translated
+#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+#~ msgstr "Rotar — arrastre el tirador o haga clic en el número para escribir el ángulo  ·  haga clic en un espacio vacío para aplicar"
+
+# AI Translated
+#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+#~ msgstr "Escalar — arrastre el tirador o haga clic en el número para escribir el factor  ·  haga clic en un espacio vacío para aplicar"
+
+# AI Translated
+#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Matriz — arrastre el tirador para definir el paso, haga clic en el número para escribirlo  ·  haga clic en un espacio vacío para aplicar"
+
+# AI Translated
+#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+#~ msgstr "Matriz polar — arrastre el tirador para definir el ángulo, haga clic en el número para escribirlo  ·  haga clic en un espacio vacío para aplicar"
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+#~ msgstr "Arrastre una esquina para escalar y el centro para mover  ·  clic derecho al terminar"
+
+# AI Translated
+#~ msgid "Coord Sys added"
+#~ msgstr "Sist. coord. añadido"
+
+# AI Translated
+#~ msgid "Could not restore the CAD model: "
+#~ msgstr "No se pudo restaurar el modelo CAD: "
+
+# AI Translated
+#~ msgid "Boolean needs two bodies — create or import a second solid"
+#~ msgstr "Booleana requiere dos cuerpos — cree o importe un segundo sólido"
+
+# AI Translated
+#~ msgid "Edit rejected: "
+#~ msgstr "Edición rechazada: "
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Delete %s?\n"
+#~ "\n"
+#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
+#~ msgstr ""
+#~ "¿Eliminar %s?\n"
+#~ "\n"
+#~ "Es la operación a partir de la cual se creó este cuerpo. Las operaciones basadas en ella pueden eliminarse o dejar de funcionar."
+
+# AI Translated
+#~ msgid "Delete body"
+#~ msgstr "Eliminar cuerpo"
+
+# AI Translated
+#~ msgid "STEP export failed: "
+#~ msgstr "Error al exportar el STEP: "
+
+# AI Translated
+#~ msgid "Coord Sys ready"
+#~ msgstr "Sist. coord. listo"
+
+# AI Translated
+#~ msgid "Mate needs at least two CoordSys features"
+#~ msgstr "Relación de posición requiere al menos dos operaciones de sistema de coordenadas"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different"
+#~ msgstr "Relación de posición: SC A y SC B deben ser distintos"
+
+# AI Translated
+#~ msgid "Invalid: "
+#~ msgstr "No válido: "
+
+# AI Translated
+#~ msgid "Variable name:"
+#~ msgstr "Nombre de la variable:"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Expression for '%s':"
+#~ msgstr "Expresión para '%s':"
+
+# AI Translated
+#~ msgid "Seg"
+#~ msgstr "Seg."
+
+# AI Translated
+#~ msgid "CLOSED"
+#~ msgstr "CERRADO"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% pts %4%"
+#~ msgstr "%1% %2%: %3% ptos %4%"
+
+# AI Translated
+#~ msgid "Pocket (Cut)"
+#~ msgstr "Cajera (corte)"
+
+# AI Translated
+#~ msgid "Clear All"
+#~ msgstr "Borrar todo"
+
+# AI Translated
+#~ msgid "Hollow this object"
+#~ msgstr "Vaciar este objeto"
+
+# AI Translated
+#~ msgid "Preview hollowed and drilled model"
+#~ msgstr "Vista previa del modelo vaciado y taladrado"
+
+# AI Translated
+#~ msgid "Closing distance"
+#~ msgstr "Distancia de cierre"
+
+# AI Translated
+#~ msgid "Hole diameter"
+#~ msgstr "Diámetro del agujero"
+
+# AI Translated
+#~ msgid "Hole depth"
+#~ msgstr "Profundidad del agujero"
+
+# AI Translated
+#~ msgid "Remove selected holes"
+#~ msgstr "Eliminar los agujeros seleccionados"
+
+# AI Translated
+#~ msgid "Remove all holes"
+#~ msgstr "Eliminar todos los agujeros"
+
+#~ msgid "Clipping of view"
+#~ msgstr "Recorte de vista"
+
+#~ msgid "Reset direction"
+#~ msgstr "Reiniciar dirección"
+
+# AI Translated
+#~ msgid "Show supports"
+#~ msgstr "Mostrar soportes"
+
+# AI Translated
+#~ msgid "Hollow and drill"
+#~ msgstr "Vaciar y taladrar"
+
+#~ msgid "Head diameter"
+#~ msgstr "Diámetro de la cabeza"
+
+# AI Translated
+#~ msgid "Lock supports under new islands"
+#~ msgstr "Bloquear los soportes bajo las islas nuevas"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Eliminar puntos seleccionados"
+
+# AI Translated
+#~ msgid "Remove all points"
+#~ msgstr "Eliminar todos los puntos"
+
+# AI Translated
+#~ msgid "Apply changes"
+#~ msgstr "Aplicar cambios"
+
+# AI Translated
+#~ msgid "Discard changes"
+#~ msgstr "Descartar cambios"
+
+# AI Translated
+#~ msgid "Minimal points distance"
+#~ msgstr "Distancia mínima entre puntos"
+
+# AI Translated
+#~ msgid "Support points density"
+#~ msgstr "Densidad de puntos de soporte"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Auto-generar puntos"
+
+# AI Translated
+#~ msgid "Manual editing"
+#~ msgstr "Edición manual"
+
+# AI Translated
+#~ msgid "SLA Support Points"
+#~ msgstr "Puntos de soporte SLA"
+
+# AI Translated
+#~ msgid "Do you want to save your manually edited support points?"
+#~ msgstr "¿Desea guardar los puntos de soporte editados manualmente?"
+
+# AI Translated
+#~ msgid "Save support points?"
+#~ msgstr "¿Guardar los puntos de soporte?"
+
+# AI Translated
+#~ msgid "Autogeneration will erase all manually edited points."
+#~ msgstr "La generación automática borrará todos los puntos editados manualmente."
+
+# AI Translated
+#~ msgid "Are you sure you want to do it?"
+#~ msgstr "¿Está seguro de que desea hacerlo?"
+
+# AI Translated
+#~ msgid "SLA gizmo keyboard shortcuts"
+#~ msgstr "Atajos de teclado de la herramienta SLA"
+
+# AI Translated
+#~ msgid "Note: some shortcuts work in (non)editing mode only."
+#~ msgstr "Nota: algunos atajos solo funcionan dentro o fuera del modo de edición."
+
+#~ msgid "Left click"
+#~ msgstr "Click izquierdo"
+
+# AI Translated
+#~ msgid "Add point"
+#~ msgstr "Añadir punto"
+
+#~ msgid "Right click"
+#~ msgstr "Click derecho"
+
+# AI Translated
+#~ msgid "Remove point"
+#~ msgstr "Eliminar punto"
+
+# AI Translated
+#~ msgid "Move point"
+#~ msgstr "Mover punto"
+
+# AI Translated
+#~ msgid "Add point to selection"
+#~ msgstr "Añadir punto a la selección"
+
+# AI Translated
+#~ msgid "Remove point from selection"
+#~ msgstr "Quitar punto de la selección"
+
+# AI Translated
+#~ msgid "Select by rectangle"
+#~ msgstr "Seleccionar por rectángulo"
+
+# AI Translated
+#~ msgid "Deselect by rectangle"
+#~ msgstr "Deseleccionar por rectángulo"
+
+# AI Translated
+#~ msgid "Select all points"
+#~ msgstr "Seleccionar todos los puntos"
+
+# AI Translated
+#~ msgid "Move clipping plane"
+#~ msgstr "Mover el plano de recorte"
+
+# AI Translated
+#~ msgid "Reset clipping plane"
+#~ msgstr "Reiniciar el plano de recorte"
+
+# AI Translated
+#~ msgid "Switch to editing mode"
+#~ msgstr "Cambiar al modo de edición"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Union"
+#~ msgstr "Unión"
+
+# AI Translated
+#~ msgid "target is not a sheet body"
+#~ msgstr "el objetivo no es un cuerpo de superficie"
+
+# AI Translated
+#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
+#~ msgstr "Taladrar un agujero, centrado en una cara elegida o colocado en un plano"
+
+# AI Translated
+#~ msgid "Shell needs a solid body"
+#~ msgstr "Vaciado requiere un cuerpo sólido"
+
+# AI Translated
+#~ msgid "Split needs a solid body"
+#~ msgstr "Dividir requiere un cuerpo sólido"
+
+# AI Translated
+#~ msgid "Pattern on curve needs a body and a curve"
+#~ msgstr "Matriz sobre curva requiere un cuerpo y una curva"
+
+# AI Translated
+#~ msgid "A mate needs two coordinate systems"
+#~ msgstr "Una relación de posición requiere dos sistemas de coordenadas"
+
+# AI Translated
+#~ msgid "Align needs a body"
+#~ msgstr "Alinear requiere un cuerpo"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Coord Sys"
+#~ msgstr "Sist. coord."
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Mass"
+#~ msgstr "Propiedades físicas"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Colour"
+#~ msgstr "Color"
+
+# AI Translated
+#~ msgid "Set the selected body's display colour"
+#~ msgstr "Establecer el color de visualización del cuerpo seleccionado"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre rectangle"
+#~ msgstr "Rectángulo desde el centro"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre circle"
+#~ msgstr "Círculo desde el centro"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre-point arc"
+#~ msgstr "Arco desde el centro"
+
+# AI Translated
+#~ msgid "Triangle — click centre, then a vertex"
+#~ msgstr "Triángulo — haga clic en el centro y luego en un vértice"
+
+# AI Translated
+#~ msgid "Square — click centre, then a vertex"
+#~ msgstr "Cuadrado — haga clic en el centro y luego en un vértice"
+
+# AI Translated
+#~ msgid "Pentagon — click centre, then a vertex"
+#~ msgstr "Pentágono — haga clic en el centro y luego en un vértice"
+
+# AI Translated
+#~ msgid "Hexagon — click centre, then a vertex"
+#~ msgstr "Hexágono — haga clic en el centro y luego en un vértice"
+
+# AI Translated
+#~ msgid "Octagon — click centre, then a vertex"
+#~ msgstr "Octógono — haga clic en el centro y luego en un vértice"
+
+# AI Translated
+#~ msgid "Dodecagon — click centre, then a vertex"
+#~ msgstr "Dodecágono — haga clic en el centro y luego en un vértice"
+
+# AI Translated
+#~ msgid "Type text; its outline is added to this sketch as editable lines"
+#~ msgstr "Escriba un texto; su contorno se añade a este croquis como líneas editables"
+
+# AI Translated
+#~ msgid "Major"
+#~ msgstr "Mayor"
+
+# AI Translated
+#~ msgid "Minor"
+#~ msgstr "Menor"
+
+# AI Translated
+#~ msgid "Extend: click a line/arc that can reach another live entity"
+#~ msgstr "Extender: haga clic en una línea/arco que pueda alcanzar otra entidad activa"
+
+# AI Translated
+#~ msgid "Trim: click a segment where it crosses another live entity"
+#~ msgstr "Recortar: haga clic en un segmento donde cruce otra entidad activa"
+
 # AI Translated
 #~ msgid "closed profile(s)"
 #~ msgstr "perfil(es) cerrado(s)"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Fallo al generar el G-Code de calibración"
-
-# AI Translated
-#~ msgid "Subtract"
-#~ msgstr "Restar"
 
 # AI Translated
 #~ msgid "Multiply"
@@ -33711,9 +34266,6 @@ msgstr ""
 #~ msgstr ""
 #~ "La temperatura del lecho es superior a la temperatura de vitrificación de este filamento.\n"
 #~ "Esto puede causar el bloqueo de la boquilla y el fracaso de la impresión"
-
-#~ msgid "Clear all"
-#~ msgstr "Borrar todo"
 
 #~ msgid "Clearance radius around extruder. Used as input of auto-arrange to avoid collision when print object by object"
 #~ msgstr "Radio de separación alrededor del extrusor. Se utiliza como entrada de auto-organización para evitar la colisión cuando se imprime objeto por objeto"

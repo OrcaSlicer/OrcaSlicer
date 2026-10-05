@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 06:46-0300\n"
+"POT-Creation-Date: 2026-10-05 09:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1134,12 +1134,6 @@ msgstr "プレビュー処理中は適用できません"
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "操作を取り消し中、少々お待ちください。"
 
-msgid "Face recognition"
-msgstr "外観認識"
-
-msgid "Perform Recognition"
-msgstr "認識を実行"
-
 msgid "Enforce seam"
 msgstr "強制継ぎ目"
 
@@ -1160,45 +1154,6 @@ msgstr "継ぎ目ペイントを退出"
 
 msgid "Paint-on seam editing"
 msgstr "継ぎ目編集"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "フォント"
-
-msgid "Thickness"
-msgstr "太さ"
-
-msgid "Text Gap"
-msgstr "テキスト間隔"
-
-msgid "Angle"
-msgstr "角度"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "埋め込み深さ"
-
-msgid "Input text"
-msgstr "テキスト"
-
-msgid "Surface"
-msgstr "表面"
-
-msgid "Horizontal text"
-msgstr "水平テキスト"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "マウスを上下に動かす"
-
-msgid "Rotate text"
-msgstr "テキストを回転"
-
-msgid "Text shape"
-msgstr "文字形状"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1552,6 +1507,11 @@ msgstr "ロード中"
 
 msgid "In queue"
 msgstr "キュー内"
+
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "フォント"
 
 #. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
@@ -1914,6 +1874,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "コピー"
 
+msgid "Angle"
+msgstr "角度"
+
 msgid "Perpendicular distance"
 msgstr "垂直距離"
 
@@ -2001,6 +1964,9 @@ msgstr "組み立てギズモを開始"
 # AI Translated
 msgid "Leaving Assembly gizmo"
 msgstr "組み立てギズモを終了"
+
+msgid "Shift+"
+msgstr "Shift+"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -4470,7 +4436,6 @@ msgstr "キャリブレーション完了"
 msgid "%s does not support %s"
 msgstr "%s は %s をサポートしていません"
 
-#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "手順"
 
@@ -8836,6 +8801,9 @@ msgstr "接続されたプリンターは%sです。印刷にはプロジェク�
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "プリンター情報を同期してプリセットを自動的に切り替えますか？"
 
+msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
+msgstr ""
+
 msgid "The file does not contain any geometry data."
 msgstr "このファイルにはジオメトリデータが含まれていません。"
 
@@ -8985,13 +8953,6 @@ msgstr "無効なデータ"
 
 msgid "Slicing Canceled"
 msgstr "スライスを取消しました"
-
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "プレート%dをスライス"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "スライシングエラーを解決して、もう一度公開していください"
 
 msgid "Network plug-in switched successfully."
 msgstr "ネットワークプラグインの切り替えに成功しました。"
@@ -9797,14 +9758,6 @@ msgstr "CAD機能 (実験的)"
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
 msgstr "このオプションを有効にすると、デザインタブが表示され、モデルをパラメトリックに作成・編集できます。この機能は実験的なもので、現在も開発中です。"
 
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "スケッチのループを自動で閉じる"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr "0.001 mm以内にあるスケッチの端点を1つの接続点として扱い、ループを結合して閉じます。オフ: 完全に一致する端点のみが接続されるため、わずかな隙間のあるループは自動で閉じられず、開いたまま表示されます。"
-
 msgid "Pop up to select filament grouping mode"
 msgstr "フィラメントグルーピングモード選択のポップアップ"
 
@@ -9901,6 +9854,13 @@ msgstr "合致コネクターを面として描画"
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr "デザインタブで、合致コネクターを従来のロール象限付きの円盤ではなく、小さな面として描画します。面なら、円盤の表記ルールを覚えなくても向きがひと目でわかります。従来のCADの表現にするにはオフにしてください。"
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "スケッチのループを自動で閉じる"
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr ""
 
 # AI Translated
 msgid "Pan"
@@ -10598,37 +10558,6 @@ msgstr "承諾"
 
 msgid "Log Out"
 msgstr "ログアウト"
-
-# AI Translated
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "全プレートをスライスし、造形時間とフィラメント使用量を予測します"
-
-msgid "Packing project data into 3MF file"
-msgstr "プロジェクトデータを3MFファイルに書き込む"
-
-msgid "Uploading 3MF"
-msgstr "3mfをアップロード中"
-
-msgid "Jump to model publish web page"
-msgstr "モデル公開ページに移動"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "注意: 準備するには数分かかる場合があります、暫くお待ち下さい。"
-
-msgid "Publish was canceled"
-msgstr "公開は取り消しました"
-
-msgid "Slicing Plate 1"
-msgstr "プレート1をスライス"
-
-msgid "Packing data to 3MF"
-msgstr "データを構成中"
-
-msgid "Uploading data"
-msgstr "データをアップロード中"
-
-msgid "Jump to webpage"
-msgstr "ウェブページに移動"
 
 # AI Translated
 msgid "Material"
@@ -12566,67 +12495,6 @@ msgstr "利用可能なアップデートはありません"
 
 msgid "The configuration is up to date."
 msgstr "構成データが最新です"
-
-msgid "OBJ file import color"
-msgstr "OBJファイルインポートの色"
-
-msgid "Some faces don't have color defined."
-msgstr "一部の面に色が定義されていません。"
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "MTLファイルエラー、材料が見つかりません:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "OBJまたはMTLファイルを確認してください。"
-
-msgid "Specify number of colors:"
-msgstr "色の数を指定:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "数値を再変更するには、入力するか調整ボタンをクリックしてください"
-
-msgid "Recommended "
-msgstr "推奨 "
-
-msgid "view"
-msgstr "表示"
-
-msgid "Current filament colors"
-msgstr "現在のフィラメントの色"
-
-msgid "Matching"
-msgstr "マッチング"
-
-msgid "Quick set"
-msgstr "クイック設定"
-
-msgid "Color match"
-msgstr "色のマッチング"
-
-msgid "Approximate color matching."
-msgstr "近似色のマッチング。"
-
-msgid "Append"
-msgstr "追加"
-
-msgid "Append to existing filaments"
-msgstr "既存のフィラメントに追加"
-
-msgid "Reset mapped extruders."
-msgstr "マッピングされたエクストルーダーをリセット。"
-
-msgid "Note"
-msgstr "注意"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"色が選択されました。OKを選択して続行するか、\n"
-"手動で調整してください。"
-
-msgid "—> "
-msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -22426,189 +22294,6 @@ msgstr ""
 "メッセージ本文:「%1%」\n"
 "エラー: 「%2%」"
 
-# AI Translated
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "積層ピッチが小さいプロファイルです。積層跡がほとんど目立たず、高い印刷品質が得られます。ほとんどの印刷用途に適しています。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチがやや大きくなっています。積層跡はほとんど目立たず、印刷時間もわずかに短くなります。"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比較すると、レイヤー高さが大きくなっています。そのため、レイヤーラインがわずかに見えますが、印刷時間は短縮されます。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど見えず印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど見えず印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は最小限になり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡は最小限になり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "標準的な積層ピッチのプロファイルです。積層跡と印刷品質は平均的です。ほとんどの印刷用途に適しています。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間はわずかに短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間は短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡が目立ちにくくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど目立たなくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなりますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "積層ピッチが大きいプロファイルです。積層跡が目立ち、印刷品質と印刷時間は標準的です。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、場合によっては印刷時間が短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡がかなり目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質はわずかに向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "積層ピッチが非常に大きいプロファイルです。積層跡が非常に目立ち、印刷品質は低くなりますが、印刷時間は短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が非常に目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがかなり大きくなっています。積層跡が極めて目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が大幅に短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがわずかに小さくなっています。積層跡はやや少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "これは一般的なフィラメントでもなく、Bambuフィラメントでもありません。さらに、ブランドによって性能が大きく異なるため、印刷前に販売元へ適切なプロファイルを確認し、その性能に応じてパラメーターを調整することを強くお勧めします。"
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "このフィラメントを印刷する際、ワーピングや層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "このフィラメントを印刷する際、ノズルの詰まり、オーズ、ワーピング、層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "対応するフィラメントでより良い透明または半透明の仕上がりを得るには、、このウィキページ「透明PETGのための印刷のヒント」を参照してください。"
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "プリントをより光沢のあるものにするには、使用前にフィラメントを乾燥させ、スライス時の外壁速度を40～60mm/sに設定してください。"
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「発泡PLA（PLA Aero）を使用したRCモデルの印刷手順」を参照してください。"
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「ASA Aero印刷ガイド」を参照してください。"
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "このフィラメントは柔らかすぎるため、AMSと互換性がありません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "このフィラメントは十分な硬度（約67D）を持ち、AMSと互換性があります。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "柔らかいTPUを印刷する場合、このプロファイルでスライスしないでください。このプロファイルは、硬度が十分に高いTPU（55D以上）で、AMSに対応しているものにのみ適しています。より良い印刷品質を得るために、こちらのWiki：TPU印刷ガイドをご参照ください。"
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "これは水溶性のサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「PVA印刷ガイド」を参照してください。"
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "これは水溶性ではないサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。より良い印刷品質を得るために、こちらのWiki「サポートフィラメントとサポート機能の印刷ヒント」を参照してください。"
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "ジェネリックプリセットは、幅広いフィラメントとの互換性を考慮し、控えめに調整されています。より高い印刷品質と速度を求める場合は、BambuフィラメントとBambuプリセットを使用してください。"
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "造形品質を重視した、0.2mmノズル用の高品質プロファイルです。"
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "高品質・高強度を重視した、0.16mmレイヤー高用の高品質プロファイルです。"
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "造形速度を重視した、0.16mmレイヤー高用の標準プロファイルです。"
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "造形品質と強度を重視した、0.2mmノズル用の高品質プロファイルです。"
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "造形速度を重視した、0.4mmノズル用の標準プロファイルです。"
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "造形品質を重視した、0.6mmノズル用の高品質プロファイルです。"
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "強度を重視した、0.6mmノズル用の強化プロファイルです。"
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "造形速度を重視した、0.6mmノズル用の標準プロファイルです。"
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "造形品質を重視した、0.8mmノズル用の高品質プロファイルです。"
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "強度を重視した、0.8mmノズル用の強化プロファイルです。"
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "造形速度を重視した、0.8mmノズル用の標準プロファイルです。"
-
 msgid "No AMS"
 msgstr "AMSなし"
 
@@ -23589,9 +23274,8 @@ msgstr "円 — 中心、半径の順にクリック"
 msgid "Arc — click start, end, then a point"
 msgstr "円弧 — 始点、終点、通過点の順にクリック"
 
-# AI Translated
-msgid "Slot — two centerline ends, then end radius"
-msgstr "スロット — 中心線の両端、次に端部の半径"
+msgid "Slot — two centerline ends, then the width"
+msgstr ""
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -23665,9 +23349,8 @@ msgstr "ワールド座標軸を表示"
 msgid "World axes hidden"
 msgstr "ワールド座標軸を非表示"
 
-# AI Translated
-msgid "Isometric view, fitted"
-msgstr "アイソメトリックビュー (全体表示)"
+msgid "Axonometric view, fitted"
+msgstr ""
 
 # AI Translated
 msgid "Bed shown"
@@ -23891,9 +23574,8 @@ msgstr "軸"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "データム軸 (2点、面の法線、円柱の中心線、2平面、エッジに沿う)"
 
-# AI Translated
-msgid "Coord Sys"
-msgstr "座標系"
+msgid "Coordinate system"
+msgstr ""
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -23919,6 +23601,11 @@ msgstr "ボディのエッジを平面に投影してスケッチエンティテ
 # AI Translated
 msgid "Project needs a body — add or import one first"
 msgstr "投影にはボディが必要です — 先に追加またはインポートしてください"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "面%d"
 
 # AI Translated
 msgid "(all edges)"
@@ -23952,9 +23639,8 @@ msgstr "反転にはボディが必要です — 先に追加またはインポ�
 msgid "Mate"
 msgstr "合致"
 
-# AI Translated
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "アセンブリ: 2つの座標系フィーチャーを揃えます (締結、平面、回転、スライダー、円筒)"
+msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -24038,6 +23724,10 @@ msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr "選択した面の中心、または平面上に穴を開けます"
 
 # AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "穴を開ける面または平面を選択してください"
+
+# AI Translated
 msgid "Thread"
 msgstr "ねじ"
 
@@ -24089,9 +23779,8 @@ msgstr "始点、終点の順にクリック — その後、正確な長さを�
 msgid "Polyline"
 msgstr "ポリライン"
 
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end the chain"
-msgstr "点を順にクリック。最初の点をクリックするとループを閉じ、右クリックでチェーンを終了します"
+msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
+msgstr ""
 
 # AI Translated
 msgid "Corner rectangle"
@@ -24181,9 +23870,8 @@ msgstr "中心、始点、次に終了角度を決める点をクリック"
 msgid "Slot"
 msgstr "スロット"
 
-# AI Translated
-msgid "Click two centerline ends, then a point for the end radius"
-msgstr "中心線の両端をクリックし、次に端部の半径を決める点をクリック"
+msgid "Click two centerline ends, then a point for the width"
+msgstr ""
 
 # AI Translated
 msgid "Arc slot"
@@ -24213,9 +23901,8 @@ msgstr "中心、長軸の端、短軸上の点、次に円弧の始点と終点
 msgid "Spline"
 msgstr "スプライン"
 
-# AI Translated
-msgid "Click control points; double-click or right-click to finish"
-msgstr "制御点をクリック。ダブルクリックまたは右クリックで終了"
+msgid "Click control points; double-click, right-click or Enter to finish"
+msgstr ""
 
 # AI Translated
 msgid "Click to place a point"
@@ -24269,17 +23956,15 @@ msgstr "反転軸となる線分を選択し、次に反転するエンティテ
 msgid "Trim"
 msgstr "トリム"
 
-# AI Translated
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "セグメントをクリックすると最も近い交点までトリムします。右クリックで終了"
+msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Extend"
 msgstr "延長"
 
-# AI Translated
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "線分または円弧をクリックすると最も近いエンティティまで延長します。右クリックで終了"
+msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
+msgstr ""
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -24433,22 +24118,6 @@ msgid "Vertical distance"
 msgstr "垂直距離"
 
 # AI Translated
-msgid "✓ Confirm"
-msgstr "✓ 確定"
-
-# AI Translated
-msgid "✗ Cancel"
-msgstr "✗ 取消し"
-
-# AI Translated
-msgid "Undo (Ctrl+Z)"
-msgstr "元に戻す (Ctrl+Z)"
-
-# AI Translated
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "やり直す (Ctrl+Shift+Z)"
-
-# AI Translated
 msgid "New Design — clear the feature tree"
 msgstr "新規デザイン — フィーチャーツリーをクリア"
 
@@ -24472,9 +24141,20 @@ msgstr "断面ビュー — モデルの一部を非表示にして内部を表�
 msgid "Flip Section — show the opposite half"
 msgstr "断面を反転 — 反対側の半分を表示"
 
-# AI Translated
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "プレートに確定 — ソリッドを準備タブに送る"
+msgid "Choose how Commit to Plate sends the bodies"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+msgid "All bodies become one object with a part per body, keeping their relative positions"
+msgstr ""
+
+msgid "Commit to Plate (as bodies)"
+msgstr ""
+
+msgid "Each body becomes its own object, placed on its own"
+msgstr ""
 
 # AI Translated
 msgid "Width / X"
@@ -24505,8 +24185,8 @@ msgid "Rotation axis"
 msgstr "回転軸"
 
 # AI Translated
-msgid "Angle °"
-msgstr "角度 °"
+msgid "Angle (°)"
+msgstr "角度 (°)"
 
 # AI Translated
 msgid "Move / Rotate"
@@ -24548,8 +24228,8 @@ msgid "2nd dist"
 msgstr "第2距離"
 
 # AI Translated
-msgid "Taper °"
-msgstr "テーパー °"
+msgid "Taper (°)"
+msgstr "テーパー (°)"
 
 # AI Translated
 msgid "New body"
@@ -24682,21 +24362,16 @@ msgstr "円形状"
 msgid "Direction"
 msgstr "方向"
 
-# AI Translated
-msgid "Total angle°"
-msgstr "合計角度°"
+msgid "Total angle (°)"
+msgstr ""
 
 # AI Translated
 msgid "Boolean"
 msgstr "ブーリアン"
 
 # AI Translated
-msgid "Union (join)"
-msgstr "結合 (和)"
-
-# AI Translated
-msgid "Subtract (cut)"
-msgstr "減算 (差)"
+msgid "Subtract"
+msgstr "減算"
 
 # AI Translated
 msgid "Target (kept)"
@@ -24743,10 +24418,6 @@ msgstr "平面タイプ"
 #. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "基準"
-
-# AI Translated
-msgid "Angle°"
-msgstr "角度°"
 
 # AI Translated
 msgid "Base X"
@@ -24804,6 +24475,9 @@ msgstr "シートボディ"
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr "シートボディのシェルをオフセットします。正 = 外側、負 = 内側。"
 
+msgid "Thickness"
+msgstr "太さ"
+
 # AI Translated
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr "シートボディに厚みを付けてソリッドにします。反転で方向を逆にします。"
@@ -24819,10 +24493,6 @@ msgstr "開口面"
 # AI Translated
 msgid "Pick a solid face to open it, then set the wall thickness."
 msgstr "開口するソリッドの面を選択し、壁厚を設定してください。"
-
-# AI Translated
-msgid "Angle (°)"
-msgstr "角度 (°)"
 
 # AI Translated
 msgid "(pick a side face)"
@@ -24930,11 +24600,6 @@ msgid "Face %d is already in the list"
 msgstr "面%dはすでにリストにあります"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "面%d"
-
-# AI Translated
 msgid "Faces to delete"
 msgstr "削除する面"
 
@@ -24945,10 +24610,6 @@ msgstr "ソリッドの面を選択し、「選択した面を追加」をクリ
 # AI Translated
 msgid "Left-handed"
 msgstr "左巻き"
-
-# AI Translated
-msgid "Taper (°)"
-msgstr "テーパー (°)"
 
 # AI Translated
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
@@ -25078,13 +24739,15 @@ msgstr "円筒 — 軸が同一直線上。自由な回転 + 軸方向のスラ�
 msgid "Kind"
 msgstr "種類"
 
-# AI Translated
-msgid "CS A (fixed)"
-msgstr "CS A (固定)"
+msgid "A (fixed)"
+msgstr ""
+
+msgid "B (moves)"
+msgstr ""
 
 # AI Translated
-msgid "CS B (moves)"
-msgstr "CS B (移動)"
+msgid "Angle °"
+msgstr "角度 °"
 
 # AI Translated
 msgid "Flip (oppose z axes)"
@@ -25165,14 +24828,6 @@ msgid "Bodies"
 msgstr "ボディ"
 
 # AI Translated
-msgid "Move body"
-msgstr "ボディを移動"
-
-# AI Translated
-msgid "Select a body row first, then move it"
-msgstr "先にボディの行を選択してから移動してください"
-
-# AI Translated
 msgid "Boolean — join, subtract or intersect with another body"
 msgstr "ブーリアン — 別のボディと結合、減算、交差"
 
@@ -25185,9 +24840,14 @@ msgstr "ボディ%dを選択中 — 右クリックで適用可能な操作を�
 msgid "Variables"
 msgstr "変数"
 
-# AI Translated
-msgid "+"
-msgstr "+"
+msgid "Add variable"
+msgstr ""
+
+msgid "Edit variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -25205,6 +24865,10 @@ msgstr "スケッチを更新しました"
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "スケッチを作成しました (駆動寸法 %zu 個) — 選択して右クリックで押し出し"
+
+#, c-format, boost-format
+msgid "Length %.2f mm, angle %.1f°"
+msgstr ""
 
 # AI Translated
 msgid "(locked)"
@@ -25254,15 +24918,23 @@ msgstr "ボディ%d: 面%dを選択しました — 右クリックでプッシ�
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "面%dを選択しました — 右クリックでプッシュ/プル、もう一度クリックでボディ全体を選択"
 
-# AI Translated
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "ボディ%d: エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
+#, c-format
+msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
 
-# AI Translated
+#, c-format
+msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
+msgstr[0] ""
+
 #, c-format, boost-format
-msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr "エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25291,6 +24963,9 @@ msgstr "ツールを終了しました"
 # AI Translated
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "スケッチを保持しました — 「確定」で確定、「取消し」で破棄"
+
+msgid "Select something to delete"
+msgstr ""
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -25321,14 +24996,17 @@ msgstr "編集中: スケッチ%d   ·   N = 平面に垂直に表示   ·   ツ
 msgid "OK — %zu triangles"
 msgstr "OK — 三角形 %zu 個"
 
-# AI Translated
-msgid "Text to insert:"
-msgstr "挿入するテキスト:"
+msgid "Edit the text — Enter applies, Esc keeps it as it was"
+msgstr ""
 
-# AI Translated
-msgctxt "Design"
-msgid "Text"
-msgstr "テキスト"
+msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
+msgstr ""
+
+msgid "Text unchanged"
+msgstr ""
+
+msgid "Text cancelled"
+msgstr ""
 
 # AI Translated
 msgid "Import SVG"
@@ -25354,9 +25032,9 @@ msgstr "STEPを読み込み中…"
 msgid "No solids found in STEP"
 msgstr "STEPにソリッドが見つかりません"
 
-# AI Translated
-msgid "STEP import failed: "
-msgstr "STEPのインポートに失敗しました: "
+#, c-format, boost-format
+msgid "STEP import failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -25380,9 +25058,9 @@ msgstr "メッシュファイル (*.stl;*.obj)|*.stl;*.obj|すべてのファイ
 msgid "Could not read the STL file"
 msgstr "STLファイルを読み込めませんでした"
 
-# AI Translated
-msgid "Could not read the OBJ file: "
-msgstr "OBJファイルを読み込めませんでした: "
+#, c-format, boost-format
+msgid "Could not read the OBJ file: %s"
+msgstr ""
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -25407,17 +25085,20 @@ msgstr ""
 msgid "Large mesh"
 msgstr "大きなメッシュ"
 
-# AI Translated
-msgid "Mesh conversion failed: "
-msgstr "メッシュの変換に失敗しました: "
+#, c-format, boost-format
+msgid "Mesh conversion failed: %s"
+msgstr ""
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "メッシュの変換でジオメトリが生成されませんでした"
 
-# AI Translated
-msgid "Mesh import failed: "
-msgstr "メッシュのインポートに失敗しました: "
+msgid "Mesh"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mesh import failed: %s"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25446,18 +25127,17 @@ msgstr " — ドラッグで配置/サイズ調整し、確定してください
 msgid "Insert canceled"
 msgstr "挿入を取り消しました"
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move — right-click when done"
-msgstr "角をドラッグしてスケール、中心をドラッグして移動 — 完了したら右クリック"
+msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "スケッチを追加しました (平面: %s) — 選択して右クリックで押し出し"
 
-# AI Translated
-msgid "Recompute error: "
-msgstr "再計算エラー: "
+#, c-format, boost-format
+msgid "The model could not be rebuilt: %s"
+msgstr ""
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -25529,108 +25209,57 @@ msgstr "先に開いた線を含むスケッチを選択してください"
 msgid "Add at least one face to delete first"
 msgstr "先に削除する面を少なくとも1つ追加してください"
 
-# AI Translated
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "合致には2つの座標系フィーチャーが必要です — 先に作成してください"
+msgid "Mate needs two coordinate systems — create them first"
+msgstr ""
 
-# AI Translated
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "合致: CS AとCS Bは異なる座標系フィーチャーである必要があります"
+msgid "Mate: A and B must be different coordinate systems"
+msgstr ""
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "合致が拒否されました"
 
-# AI Translated
-msgid "No interference — need at least two solid bodies to check"
-msgstr "干渉なし — チェックには少なくとも2つのソリッドボディが必要です"
+msgid "Interference needs at least two bodies"
+msgstr ""
 
 # AI Translated
 msgid "No interference found"
 msgstr "干渉は見つかりませんでした"
 
 # AI Translated
-#, c-format
-msgid "%zu interference pair, worst %.2f mm³"
-msgid_plural "%zu interference pairs, worst %.2f mm³"
-msgstr[0] "干渉ペア %zu 組、最大 %.2f mm³"
-
-# AI Translated
-msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr ""
-"干渉ペア:\n"
-"\n"
-
-# AI Translated
 #, c-format, boost-format
 msgid "Body %d"
 msgstr "ボディ%d"
 
-# AI Translated
-msgid "Interference"
-msgstr "干渉"
-
-# AI Translated
-msgid "Select a solid body first — its mass properties are what is reported"
-msgstr "先にソリッドボディを選択してください — そのボディの質量特性が表示されます"
-
-# AI Translated
-msgid "Mass properties could not be computed for this body"
-msgstr "このボディの質量特性を計算できませんでした"
-
-# AI Translated
 #, c-format, boost-format
-msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr "%s: シートボディ — 表面積 %.2f cm²、体積なし"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Sheet body (open shell)\n"
-"Surface area: %.2f cm²\n"
-"\n"
-"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgid "%s ↔ %s %.2f mm³"
 msgstr ""
-"%s\n"
-"\n"
-"シートボディ (開いたシェル)\n"
-"表面積: %.2f cm²\n"
-"\n"
-"シートは材料を囲んでいないため、体積を持ちません。体積を得るには厚み付けしてソリッドにしてください。"
 
-# AI Translated
-msgid "Mass properties"
-msgstr "質量特性"
+#, c-format
+msgid "%zu overlapping pair: %s"
+msgid_plural "%zu overlapping pairs: %s"
+msgstr[0] ""
 
-# AI Translated
-#, c-format, boost-format
-msgid "%s: %.3f cm³, %.2f cm²"
-msgstr "%s: %.3f cm³、%.2f cm²"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"%s\n"
-"\n"
-"Volume: %.3f cm³\n"
-"Surface area: %.2f cm²"
+msgid "Select a body to measure it"
 msgstr ""
-"%s\n"
-"\n"
-"体積: %.3f cm³\n"
-"表面積: %.2f cm²"
+
+msgid "This body could not be measured"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: volume %.2f mm³, area %.2f mm²"
+msgstr ""
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "パターンにはソリッドボディが必要です — 先に追加またはインポートしてください"
 
-# AI Translated
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "ブーリアンには2つのソリッドボディが必要です — 2つ目を追加またはインポートしてください"
+msgid "Boolean needs two bodies — add or import a second one"
+msgstr ""
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -25644,6 +25273,36 @@ msgstr "選択した面 (ボディ%d)"
 # AI Translated
 msgid "Picked face"
 msgstr "選択した面"
+
+msgid "the new shape could not be joined to the body"
+msgstr ""
+
+msgid "the new shape could not be cut from the body"
+msgstr ""
+
+msgid "the shapes could not be intersected"
+msgstr ""
+
+msgid "nothing in the history makes a solid yet"
+msgstr ""
+
+msgid "the sketch profile is not a clean closed loop"
+msgstr ""
+
+msgid "the tool does not touch the body"
+msgstr ""
+
+msgid "an expression uses a variable that does not exist"
+msgstr ""
+
+msgid "an expression divides by zero"
+msgstr ""
+
+msgid "two variables are defined in terms of each other"
+msgstr ""
+
+msgid "a geometry operation failed"
+msgstr ""
 
 # AI Translated
 #, c-format, boost-format
@@ -25681,17 +25340,15 @@ msgstr "寸法 — 2点目をクリック"
 msgid "Line — click the start point"
 msgstr "線分 — 始点をクリック"
 
-# AI Translated
-msgid "Line — click the end point, or type the length"
-msgstr "線分 — 終点をクリック、または長さを入力"
+msgid "Line — click the end point; its length and angle can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "ポリライン — 最初の点をクリック"
 
-# AI Translated
-msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr "ポリライン — 次の点をクリック  ·  始点をクリックで閉じる  ·  右クリックでチェーンを終了"
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
+msgstr ""
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -25737,9 +25394,8 @@ msgstr "角丸長方形 — クリックして角の半径を設定"
 msgid "Circle — click the center"
 msgstr "円 — 中心をクリック"
 
-# AI Translated
-msgid "Circle — click to set the radius, or type it"
-msgstr "円 — クリックして半径を設定、または入力"
+msgid "Circle — click to set the radius; it can then be typed"
+msgstr ""
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -25865,21 +25521,18 @@ msgstr "楕円弧 — 円弧の終了位置をクリック"
 msgid "Spline — click the first control point"
 msgstr "スプライン — 最初の制御点をクリック"
 
-# AI Translated
-msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr "スプライン — 次の制御点をクリック  ·  右クリックで曲線を終了"
+msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
+msgstr ""
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "点 — クリックして配置。ツールは続けて使用できます"
 
-# AI Translated
-msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr "トリム — 他のエンティティと交差するセグメントをクリック  ·  右クリックで終了"
+msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
+msgstr ""
 
-# AI Translated
-msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr "延長 — 線分または円弧をクリックして最も近いエンティティまで延長  ·  右クリックで終了"
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
+msgstr ""
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -25889,9 +25542,8 @@ msgstr "フィレット — 交わる2本の線分のうち1本目をクリッ�
 msgid "Fillet — click the second line"
 msgstr "フィレット — 2本目の線分をクリック"
 
-# AI Translated
-msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr "フィレット — 矢印をドラッグ、または数値をクリックして半径を入力  ·  空白部分をクリックで適用  ·  右クリックで取消し"
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -25901,74 +25553,63 @@ msgstr "面取り — 交わる2本の線分のうち1本目をクリック"
 msgid "Chamfer — click the second line"
 msgstr "面取り — 2本目の線分をクリック"
 
-# AI Translated
-msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr "面取り — 矢印をドラッグ、または数値をクリックして面取り距離を入力  ·  空白部分をクリックで適用  ·  右クリックで取消し"
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
-msgid "Offset — click the entity to offset"
-msgstr "オフセット — オフセットするエンティティをクリック"
+msgid "Offset — click a curve; its whole outline is offset"
+msgstr ""
 
-# AI Translated
-msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr "オフセット — 矢印をどちらかの側にドラッグ、または数値をクリックして距離を入力  ·  空白部分をクリックで適用  ·  右クリックで取消し"
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
+msgstr ""
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "反転 — 最初に反転の基準となる線分をクリック (補助線も使用可)"
 
-# AI Translated
-msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr "反転 — 軸を設定済み  ·  反転するエンティティをクリック  ·  右クリックで取消し"
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
+msgstr ""
 
-# AI Translated
 #, c-format, boost-format
-msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr "反転 — 軸を設定済み  ·  反転対象 %d 個  ·  別のエンティティをクリックして追加/削除  ·  空白部分をクリックで適用"
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "移動 — 移動するエンティティをクリック"
 
-# AI Translated
-msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr "移動 — ハンドルをドラッグ、または数値をクリックして距離を入力  ·  空白部分をクリックで適用"
+msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "回転 — 回転するエンティティをクリック"
 
-# AI Translated
-msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr "回転 — ハンドルをドラッグ、または数値をクリックして角度を入力  ·  空白部分をクリックで適用"
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "スケール — スケールするエンティティをクリック"
 
-# AI Translated
-msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr "スケール — ハンドルをドラッグ、または数値をクリックして倍率を入力  ·  空白部分をクリックで適用"
+msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "配列 — 繰り返すエンティティをクリック"
 
-# AI Translated
-msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr "配列 — ハンドルをドラッグして間隔を設定、個数をクリックして入力  ·  空白部分をクリックで適用"
+msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
+msgstr ""
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "円形配列 — 繰り返すエンティティをクリック"
 
-# AI Translated
-msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr "円形配列 — ハンドルをドラッグして角度範囲を設定、個数をクリックして入力  ·  空白部分をクリックで適用"
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
+msgstr ""
 
-# AI Translated
-msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-msgstr "角をドラッグしてスケール、中心をドラッグして移動  ·  完了したら右クリック"
+msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
+msgstr ""
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -25977,6 +25618,62 @@ msgstr "  ·  Escで選択ツールに戻る"
 # AI Translated
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  拘束バッジをクリックして削除"
+
+#, c-format, boost-format
+msgid "%s — solid body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s — surface body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Flat face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cylindrical face %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d of %s"
+msgstr ""
+
+#, c-format
+msgid "%zu edge of %s"
+msgid_plural "%zu edges of %s"
+msgstr[0] ""
+
+#, c-format, boost-format
+msgid "Straight edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Circular edge %d of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Vertex of %s"
+msgstr ""
+
+msgid "Sketch profile"
+msgstr ""
+
+msgid "Sketch — nothing selected"
+msgstr ""
+
+msgid "Sketch line"
+msgstr ""
+
+msgid "Sketch curve"
+msgstr ""
+
+msgid "Sketch point"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d sketch entities"
+msgstr ""
 
 # AI Translated
 msgid "select something first"
@@ -26039,9 +25736,8 @@ msgstr "平面を追加しました — スケッチ平面として選択でき�
 msgid "Axis added"
 msgstr "軸を追加しました"
 
-# AI Translated
-msgid "Coord Sys added"
-msgstr "座標系を追加しました"
+msgid "Coordinate system added"
+msgstr ""
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -26071,9 +25767,9 @@ msgstr "まだソリッドがありません — スケッチを選択して右�
 msgid "Could not restore the CAD model from this project"
 msgstr "このプロジェクトからCADモデルを復元できませんでした"
 
-# AI Translated
-msgid "Could not restore the CAD model: "
-msgstr "CADモデルを復元できませんでした: "
+#, c-format, boost-format
+msgid "Could not restore the CAD model: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -26096,9 +25792,8 @@ msgstr "断面ビュー — 上半分を表示中"
 msgid "Section view — showing the lower half"
 msgstr "断面ビュー — 下半分を表示中"
 
-# AI Translated
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "ブーリアンには2つのボディが必要です — 2つ目のソリッドを作成またはインポートしてください"
+msgid "Finding the feature's faces…"
+msgstr ""
 
 # AI Translated
 msgid "Select a body first — click it in the viewport or the Bodies list"
@@ -26133,9 +25828,12 @@ msgstr "ソリッドの面をクリックしてから、Fを押してくださ�
 msgid "Placed on face — body laid flat on the bed"
 msgstr "面に配置しました — ボディをベッドに平らに置きました"
 
-# AI Translated
-msgid "Edit rejected: "
-msgstr "編集が拒否されました: "
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edit rejected: %s"
+msgstr ""
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -26154,20 +25852,9 @@ msgstr "このボディには削除できるフィーチャーがありません
 msgid "feature %d"
 msgstr "フィーチャー%d"
 
-# AI Translated
 #, c-format, boost-format
-msgid ""
-"Delete %s?\n"
-"\n"
-"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
 msgstr ""
-"%sを削除しますか？\n"
-"\n"
-"これはこのボディの作成元のフィーチャーです。これを基に作成されたフィーチャーは削除されるか、機能しなくなる可能性があります。"
-
-# AI Translated
-msgid "Delete body"
-msgstr "ボディを削除"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -26558,9 +26245,16 @@ msgstr "STEPファイル (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEPをエクスポートしました"
 
+#, c-format, boost-format
+msgid "STEP export failed: %s"
+msgstr ""
+
+msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
+msgstr ""
+
 # AI Translated
-msgid "STEP export failed: "
-msgstr "STEPのエクスポートに失敗しました: "
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr "プレートに確定 — ソリッドを準備タブに送る"
 
 # AI Translated
 msgid "Nothing to commit — add a feature first"
@@ -26570,6 +26264,19 @@ msgstr "確定するものがありません — 先にフィーチャーを追�
 msgid "All bodies hidden — show one before committing"
 msgstr "すべてのボディが非表示です — 確定する前にいずれかを表示してください"
 
+#, c-format
+msgid "%zu edge"
+msgid_plural "%zu edges"
+msgstr[0] ""
+
+#, c-format, boost-format
+msgid "Centerline E%d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Line E%d"
+msgstr ""
+
 # AI Translated
 msgid "Plane ready"
 msgstr "平面の準備完了"
@@ -26578,9 +26285,8 @@ msgstr "平面の準備完了"
 msgid "Axis ready"
 msgstr "軸の準備完了"
 
-# AI Translated
-msgid "Coord Sys ready"
-msgstr "座標系の準備完了"
+msgid "Coordinate system ready"
+msgstr ""
 
 # AI Translated
 msgid "Helix ready"
@@ -26595,20 +26301,12 @@ msgid "Sketch ready"
 msgstr "スケッチの準備完了"
 
 # AI Translated
-msgid "Mate needs at least two CoordSys features"
-msgstr "合致には少なくとも2つの座標系フィーチャーが必要です"
-
-# AI Translated
-msgid "Mate: CS A and CS B must be different"
-msgstr "合致: CS AとCS Bは異なる必要があります"
-
-# AI Translated
 msgid "Mate ready"
 msgstr "合致の準備完了"
 
-# AI Translated
-msgid "Invalid: "
-msgstr "無効: "
+#, c-format, boost-format
+msgid "Invalid: %s"
+msgstr ""
 
 # AI Translated
 #, c-format
@@ -26646,16 +26344,16 @@ msgid "Keep drawing"
 msgstr "描画を続ける"
 
 # AI Translated
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "先に現在のツールを完了または取り消してください (Esc)"
-
-# AI Translated
 msgid "Nothing to redo"
 msgstr "やり直す操作がありません"
 
 # AI Translated
 msgid "Nothing to undo"
 msgstr "元に戻す操作がありません"
+
+# AI Translated
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr "先に現在のツールを完了または取り消してください (Esc)"
 
 # AI Translated
 #, c-format
@@ -26670,21 +26368,12 @@ msgid_plural "Undo  (%zu more steps)"
 msgstr[0] "元に戻す  (残り %zu ステップ)"
 
 # AI Translated
-msgid "Variable name:"
-msgstr "変数名:"
-
-# AI Translated
 msgid "Add Variable"
 msgstr "変数を追加"
 
 # AI Translated
 msgid "Variable name must not contain spaces"
 msgstr "変数名にスペースを含めることはできません"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "「%s」の式:"
 
 # AI Translated
 msgid "Select a variable first"
@@ -26699,9 +26388,110 @@ msgstr "変数を編集"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "変数「%s」を削除できませんでした (フィーチャーの式からまだ参照されている可能性があります): %s"
 
+#, c-format, boost-format
+msgid "\"%s\" is not a value an expression can drive"
+msgstr ""
+
 # AI Translated
 msgid "No binding for that field"
 msgstr "そのフィールドにはバインドがありません"
+
+msgid "The value must be greater than zero"
+msgstr ""
+
+msgid "The value must not be negative (zero means coincident)"
+msgstr ""
+
+msgid "That dimension cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
+msgstr ""
+
+msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
+msgstr ""
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "辺"
+
+msgid "Semi-major axis"
+msgstr ""
+
+msgid "Semi-minor axis"
+msgstr ""
+
+msgid "The angle must be between 0° and 360°"
+msgstr ""
+
+msgid "The semi-major axis cannot be shorter than the semi-minor axis"
+msgstr ""
+
+msgid "The corner radius must be less than half the shorter side"
+msgstr ""
+
+msgid "The slot is too wide for its radius — the width must be less than twice the radius"
+msgstr ""
+
+#, boost-format
+msgid "%1% cannot be satisfied — the sketch is over-constrained"
+msgstr ""
+
+msgid "Those two lines do not meet at a corner — pick two lines that do"
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
+msgstr ""
+
+msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
+msgstr ""
+
+msgid "The scale factor must be greater than zero"
+msgstr ""
+
+msgid "Copies"
+msgstr ""
+
+msgid "The number of copies must be a whole number, 2 or more"
+msgstr ""
+
+#, boost-format
+msgid "%1% constraint(s) released by the transform"
+msgstr ""
+
+msgid "The array copies are unconstrained — the solver refused every binding"
+msgstr ""
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "右クリックまたはダブルクリックで終了、始点をクリックで閉じる"
+
+msgid "Extend: click a line or an arc that can reach another entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another entity"
+msgstr ""
+
+msgid "Press Enter or ✓ to apply, Esc to discard"
+msgstr ""
+
+msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
+msgstr ""
+
+msgid "Click a second point, or a line to measure the distance to"
+msgstr ""
 
 # AI Translated
 msgid "Enter a number"
@@ -26710,6 +26500,641 @@ msgstr "数値を入力してください"
 # AI Translated
 msgid "Not a number"
 msgstr "数値ではありません"
+
+# AI Translated
+msgid "Add material"
+msgstr "材料を追加"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "フィレット / 面取り / 抜き勾配"
+
+# AI Translated
+msgid "Repeat"
+msgstr "繰り返し"
+
+# AI Translated
+msgid "Reference"
+msgstr "参照"
+
+# AI Translated
+msgid "Modify"
+msgstr "変更"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "スケッチ"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "面または参照平面をクリックしてから、描画ツールを選択"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "回転押し出し"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "スイープ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "ロフト"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "厚み付け"
+
+msgctxt "Design"
+msgid "Join"
+msgstr ""
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "ツールボディを対象に結合 — 継ぎ目のない1つのソリッドにします"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "減算"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "対象からツールボディを切り取り"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "交差"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "2つのボディが重なる部分のみを残す"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "サーフェス押し出し"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "サーフェス回転押し出し"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "サーフェスロフト"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "サーフェス充填"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "先に閉じたスケッチを作成してください"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "サーフェスの厚み付け"
+
+msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "穴"
+
+msgid "Drill a hole, centerd on a picked face or placed on a plane"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "ねじ"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "平面でボディを切断 — オフセット矢印をドラッグ。片側または両側を残せます"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "分割"
+
+msgid "Split needs a solid body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "選択した面に沿ってボディを2つのソリッドに分割"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "フィレット"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "丸めるエッジを選択してください"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "エッジを選択し、半径の矢印をドラッグするか値を入力"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "面取り"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "面取りするエッジを選択してください"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "エッジを選択し、距離の矢印をドラッグするか値を入力"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "抜き勾配"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "テーパーを付ける面を選択してください"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "サーフェスオフセット"
+
+msgid "Surface Offset needs a surface body — make one with a Surface tool first"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "直線パターン"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "方向に沿ってボディを繰り返す — 間隔をドラッグし、個数を設定"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "円形パターン"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "軸の周りにボディを繰り返す — 個数と角度範囲を設定"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "反転"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "曲線に沿ったパターン"
+
+msgid "Pattern on Curve needs a body and a curve"
+msgstr ""
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "選択した曲線に沿ってボディを繰り返す"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "移動"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "合致"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "位置合わせ"
+
+msgid "Align needs a body — add or import one first"
+msgstr ""
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "選択した面または平面にボディを位置合わせ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "平面"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "軸"
+
+msgctxt "Design"
+msgid "Coordinate system"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "ヘリックス"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "計測"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "選択した点、エッジ、または面の間を計測"
+
+msgctxt "Design"
+msgid "Volume and area"
+msgstr ""
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "選択したボディの体積と表面積を表示"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "干渉"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "2つのボディが重なっているかをチェック — 結果を表示するだけで、何も変更しません"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "編集"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "選択したフィーチャーを再度開いて、作成元の設定を変更"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "名前を変更…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "名前を変更するフィーチャーまたはボディを選択してください"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "ツリーで見分けやすい名前をこのフィーチャーに付けます (ボディの名前は、それを作成したフィーチャーから付けられます)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "面を削除"
+
+msgctxt "Design"
+msgid "Color"
+msgstr ""
+
+msgid "Set the selected body's display color"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "削除"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "選択したものを削除"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "ボディを削除"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "このボディ全体を削除 — 作成元のフィーチャーも削除されます"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "線分"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "ポリライン"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "点をクリック。最初の点をクリックでループを閉じ、右クリックで開いたまま終了"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "コーナー指定の長方形"
+
+msgctxt "Design"
+msgid "Center rectangle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "傾斜長方形"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "角丸長方形"
+
+msgctxt "Design"
+msgid "Center circle"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "2点指定の円"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "3点指定の円"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "3点円弧"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "接線円弧"
+
+msgctxt "Design"
+msgid "Center-point arc"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "スロット"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "円弧スロット"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "楕円"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "楕円弧"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "スプライン"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "三角形"
+
+msgid "Triangle — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "正方形"
+
+msgid "Square — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "五角形"
+
+msgid "Pentagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "六角形"
+
+msgid "Hexagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "八角形"
+
+msgid "Octagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "十二角形"
+
+msgid "Dodecagon — click center, then a vertex"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "内接"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "ポリゴンを頂点までの寸法で指定 (内接)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "外接"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "ポリゴンを辺までの寸法で指定 (外接)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "点"
+
+# AI Translated
+msgctxt "Design"
+msgid "Text"
+msgstr "テキスト"
+
+msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
+msgstr ""
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "SVGの輪郭を編集可能な線としてこのスケッチにインポート"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "オフセット"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "トリム"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "直線配列"
+
+# AI Translated
+msgid "Array"
+msgstr "配列"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "円形配列"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "回転"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "スケール"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "寸法"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "拘束"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "選択したスケッチエンティティを相互に拘束"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "スケッチを拘束"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "拘束するスケッチを選択してください"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "選択したスケッチに寸法と幾何拘束 (一致、正接、平行...) を追加"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "補助ジオメトリ"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "補助ジオメトリの切り替え: ガイドとして使い、形状としては作成されないジオメトリ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "延長"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "選択したスケッチエンティティを削除"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "長さ…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "この線分の長さを入力"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "半径 / 直径…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "この円弧の半径、またはこの円の直径を入力"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "角度 / 距離…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "2本の線分間の角度、または選択した2つの間の距離を入力"
+
+msgid "Type the text to insert"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "This font cannot be used for text — pick another one"
+msgstr ""
+
+msgid "Type the text to see its size"
+msgstr ""
+
+msgid "This font has no outline for this text"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Size: %.1f × %.1f mm"
+msgstr ""
 
 # AI Translated
 msgid "Primitive"
@@ -26807,10 +27232,8 @@ msgstr "プロファイル"
 msgid "Start new profile (for holes)"
 msgstr "新しいプロファイルを開始 (穴用)"
 
-# AI Translated
-#. TRN Sketch gizmo: number of segments a circle is built from
-msgid "Seg"
-msgstr "分割数"
+msgid "Segments"
+msgstr ""
 
 # AI Translated
 msgid "Sides"
@@ -26824,19 +27247,20 @@ msgstr "キャンバスをクリックして描画"
 msgid "Snap to grid"
 msgstr "グリッドにスナップ"
 
+msgid "Grid step"
+msgstr ""
+
 # AI Translated
 msgid "Outer"
 msgstr "外側"
 
-# AI Translated
-msgid "CLOSED"
-msgstr "閉ループ"
+msgid "closed"
+msgstr ""
 
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
-msgid "%1% %2%: %3% pts %4%"
-msgstr "%1% %2%: %3% 点 %4%"
+msgid "%1% %2%: %3% points %4%"
+msgstr ""
 
 # AI Translated
 msgid "XY (Top)"
@@ -26872,13 +27296,8 @@ msgstr[0] "%zu個の閉じたプロファイル"
 msgid "Draw a closed profile to enable"
 msgstr "有効にするには閉じたプロファイルを描画してください"
 
-# AI Translated
-msgid "Pocket (Cut)"
-msgstr "ポケット (カット)"
-
-# AI Translated
-msgid "Clear All"
-msgstr "すべてクリア"
+msgid "Clear all"
+msgstr ""
 
 # AI Translated
 msgid "Empty result"
@@ -28288,164 +28707,6 @@ msgid "Note:"
 msgstr "注:"
 
 # AI Translated
-msgid "Hollow this object"
-msgstr "このオブジェクトを中空化"
-
-# AI Translated
-msgid "Preview hollowed and drilled model"
-msgstr "中空化・穴あけしたモデルをプレビュー"
-
-# AI Translated
-msgid "Closing distance"
-msgstr "クロージング距離"
-
-# AI Translated
-msgid "Hole diameter"
-msgstr "穴の直径"
-
-# AI Translated
-msgid "Hole depth"
-msgstr "穴の深さ"
-
-# AI Translated
-msgid "Remove selected holes"
-msgstr "選択した穴を削除"
-
-# AI Translated
-msgid "Remove all holes"
-msgstr "すべての穴を削除"
-
-# AI Translated
-msgid "Clipping of view"
-msgstr "ビューのクリッピング"
-
-msgid "Reset direction"
-msgstr "方向をリセット"
-
-# AI Translated
-msgid "Show supports"
-msgstr "サポートを表示"
-
-# AI Translated
-msgid "Hollow and drill"
-msgstr "中空化と穴あけ"
-
-msgid "Head diameter"
-msgstr "直径"
-
-# AI Translated
-msgid "Lock supports under new islands"
-msgstr "新しいアイランドの下のサポートをロック"
-
-msgid "Remove selected points"
-msgstr "選択したポイントを削除"
-
-# AI Translated
-msgid "Remove all points"
-msgstr "すべての点を削除"
-
-# AI Translated
-msgid "Apply changes"
-msgstr "変更を適用"
-
-# AI Translated
-msgid "Discard changes"
-msgstr "変更を破棄"
-
-# AI Translated
-msgid "Minimal points distance"
-msgstr "最小点間距離"
-
-# AI Translated
-msgid "Support points density"
-msgstr "サポートポイント密度"
-
-msgid "Auto-generate points"
-msgstr "自動ポイント生成"
-
-# AI Translated
-msgid "Manual editing"
-msgstr "手動編集"
-
-# AI Translated
-msgid "SLA Support Points"
-msgstr "SLAサポートポイント"
-
-# AI Translated
-msgid "Do you want to save your manually edited support points?"
-msgstr "手動で編集したサポートポイントを保存しますか？"
-
-# AI Translated
-msgid "Save support points?"
-msgstr "サポートポイントを保存しますか？"
-
-# AI Translated
-msgid "Autogeneration will erase all manually edited points."
-msgstr "自動生成すると、手動で編集したポイントはすべて消去されます。"
-
-# AI Translated
-msgid "Are you sure you want to do it?"
-msgstr "実行してもよろしいですか？"
-
-# AI Translated
-msgid "SLA gizmo keyboard shortcuts"
-msgstr "SLAギズモのキーボードショートカット"
-
-# AI Translated
-msgid "Note: some shortcuts work in (non)editing mode only."
-msgstr "注: 一部のショートカットは、編集モードまたは非編集モードでのみ機能します。"
-
-msgid "Left click"
-msgstr "左クリック"
-
-# AI Translated
-msgid "Add point"
-msgstr "点を追加"
-
-msgid "Right click"
-msgstr "右クリック"
-
-# AI Translated
-msgid "Remove point"
-msgstr "点を削除"
-
-# AI Translated
-msgid "Move point"
-msgstr "点を移動"
-
-# AI Translated
-msgid "Add point to selection"
-msgstr "選択に点を追加"
-
-# AI Translated
-msgid "Remove point from selection"
-msgstr "選択から点を削除"
-
-# AI Translated
-msgid "Select by rectangle"
-msgstr "矩形で選択"
-
-# AI Translated
-msgid "Deselect by rectangle"
-msgstr "矩形で選択解除"
-
-# AI Translated
-msgid "Select all points"
-msgstr "すべての点を選択"
-
-# AI Translated
-msgid "Move clipping plane"
-msgstr "クリッピング面を移動"
-
-# AI Translated
-msgid "Reset clipping plane"
-msgstr "クリッピング面をリセット"
-
-# AI Translated
-msgid "Switch to editing mode"
-msgstr "編集モードに切り替え"
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "焼付け"
@@ -29126,10 +29387,6 @@ msgstr "ペイント領域全体にテクスチャを繰り返します。オフ
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "テクスチャの繰り返し方法を選ぶには「タイル」をオンにしてください。"
-
-# AI Translated
-msgid "Repeat"
-msgstr "繰り返し"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -30700,665 +30957,6 @@ msgid "apply_chamfer: OCCT chamfer failed"
 msgstr "apply_chamfer: OCCTの面取りに失敗しました"
 
 # AI Translated
-msgid "Add material"
-msgstr "材料を追加"
-
-# AI Translated
-msgid "Fillet / chamfer / draft"
-msgstr "フィレット / 面取り / 抜き勾配"
-
-# AI Translated
-msgid "Reference"
-msgstr "参照"
-
-# AI Translated
-msgid "Modify"
-msgstr "変更"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sketch"
-msgstr "スケッチ"
-
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "面または参照平面をクリックしてから、描画ツールを選択"
-
-# AI Translated
-msgctxt "Design"
-msgid "Revolve"
-msgstr "回転押し出し"
-
-# AI Translated
-msgctxt "Design"
-msgid "Sweep"
-msgstr "スイープ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Loft"
-msgstr "ロフト"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken"
-msgstr "厚み付け"
-
-# AI Translated
-msgctxt "Design"
-msgid "Union"
-msgstr "結合"
-
-# AI Translated
-msgid "Fuse the tool body into the target — one solid, no seam"
-msgstr "ツールボディを対象に結合 — 継ぎ目のない1つのソリッドにします"
-
-# AI Translated
-msgctxt "Design"
-msgid "Subtract"
-msgstr "減算"
-
-# AI Translated
-msgid "Cut the tool body out of the target"
-msgstr "対象からツールボディを切り取り"
-
-# AI Translated
-msgctxt "Design"
-msgid "Intersect"
-msgstr "交差"
-
-# AI Translated
-msgid "Keep only where the two bodies overlap"
-msgstr "2つのボディが重なる部分のみを残す"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Extrude"
-msgstr "サーフェス押し出し"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Revolve"
-msgstr "サーフェス回転押し出し"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Loft"
-msgstr "サーフェスロフト"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Fill"
-msgstr "サーフェス充填"
-
-# AI Translated
-msgid "Create a closed sketch first"
-msgstr "先に閉じたスケッチを作成してください"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thicken Surface"
-msgstr "サーフェスの厚み付け"
-
-# AI Translated
-msgid "target is not a sheet body"
-msgstr "対象がシートボディではありません"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hole"
-msgstr "穴"
-
-# AI Translated
-msgid "Pick a face or a plane to drill into"
-msgstr "穴を開ける面または平面を選択してください"
-
-# AI Translated
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "選択した面の中心に、または平面上に配置して穴を開ける"
-
-# AI Translated
-msgctxt "Design"
-msgid "Thread"
-msgstr "ねじ"
-
-# AI Translated
-msgid "Shell needs a solid body"
-msgstr "シェルにはソリッドボディが必要です"
-
-# AI Translated
-msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr "平面でボディを切断 — オフセット矢印をドラッグ。片側または両側を残せます"
-
-# AI Translated
-msgctxt "Design"
-msgid "Split"
-msgstr "分割"
-
-# AI Translated
-msgid "Split needs a solid body"
-msgstr "分割にはソリッドボディが必要です"
-
-# AI Translated
-msgid "Split the body along a picked face into two solids"
-msgstr "選択した面に沿ってボディを2つのソリッドに分割"
-
-# AI Translated
-msgctxt "Design"
-msgid "Fillet"
-msgstr "フィレット"
-
-# AI Translated
-msgid "Pick an edge to round"
-msgstr "丸めるエッジを選択してください"
-
-# AI Translated
-msgid "Pick an edge, then drag the radius arrow or type it"
-msgstr "エッジを選択し、半径の矢印をドラッグするか値を入力"
-
-# AI Translated
-msgctxt "Design"
-msgid "Chamfer"
-msgstr "面取り"
-
-# AI Translated
-msgid "Pick an edge to bevel"
-msgstr "面取りするエッジを選択してください"
-
-# AI Translated
-msgid "Pick an edge, then drag the distance arrow or type it"
-msgstr "エッジを選択し、距離の矢印をドラッグするか値を入力"
-
-# AI Translated
-msgctxt "Design"
-msgid "Draft"
-msgstr "抜き勾配"
-
-# AI Translated
-msgid "Pick a face to taper"
-msgstr "テーパーを付ける面を選択してください"
-
-# AI Translated
-msgctxt "Design"
-msgid "Surface Offset"
-msgstr "サーフェスオフセット"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear pattern"
-msgstr "直線パターン"
-
-# AI Translated
-msgid "Repeat the body along a direction — drag the spacing, set the count"
-msgstr "方向に沿ってボディを繰り返す — 間隔をドラッグし、個数を設定"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circular pattern"
-msgstr "円形パターン"
-
-# AI Translated
-msgid "Repeat the body around an axis — set the count and sweep"
-msgstr "軸の周りにボディを繰り返す — 個数と角度範囲を設定"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mirror"
-msgstr "反転"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pattern on Curve"
-msgstr "曲線に沿ったパターン"
-
-# AI Translated
-msgid "Pattern on curve needs a body and a curve"
-msgstr "曲線に沿ったパターンにはボディと曲線が必要です"
-
-# AI Translated
-msgid "Repeat the body along a picked curve"
-msgstr "選択した曲線に沿ってボディを繰り返す"
-
-# AI Translated
-msgctxt "Design"
-msgid "Move"
-msgstr "移動"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mate"
-msgstr "合致"
-
-# AI Translated
-msgid "A mate needs two coordinate systems"
-msgstr "合致には2つの座標系が必要です"
-
-# AI Translated
-msgctxt "Design"
-msgid "Align to"
-msgstr "位置合わせ"
-
-# AI Translated
-msgid "Align needs a body"
-msgstr "位置合わせにはボディが必要です"
-
-# AI Translated
-msgid "Align the body to a picked face or plane"
-msgstr "選択した面または平面にボディを位置合わせ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Plane"
-msgstr "平面"
-
-# AI Translated
-msgctxt "Design"
-msgid "Axis"
-msgstr "軸"
-
-# AI Translated
-msgctxt "Design"
-msgid "Coord Sys"
-msgstr "座標系"
-
-# AI Translated
-msgctxt "Design"
-msgid "Helix"
-msgstr "ヘリックス"
-
-# AI Translated
-msgctxt "Design"
-msgid "Measure"
-msgstr "計測"
-
-# AI Translated
-msgid "Measure between the picked points, edges or faces"
-msgstr "選択した点、エッジ、または面の間を計測"
-
-# AI Translated
-msgctxt "Design"
-msgid "Mass"
-msgstr "質量"
-
-# AI Translated
-msgid "Report the volume and surface area of the selected body"
-msgstr "選択したボディの体積と表面積を表示"
-
-# AI Translated
-msgctxt "Design"
-msgid "Interference"
-msgstr "干渉"
-
-# AI Translated
-msgid "Check whether two bodies overlap — reports, changes nothing"
-msgstr "2つのボディが重なっているかをチェック — 結果を表示するだけで、何も変更しません"
-
-# AI Translated
-msgctxt "Design"
-msgid "Edit"
-msgstr "編集"
-
-# AI Translated
-msgid "Reopen the selected feature to change what it was made from"
-msgstr "選択したフィーチャーを再度開いて、作成元の設定を変更"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rename…"
-msgstr "名前を変更…"
-
-# AI Translated
-msgid "Select a feature, or a body, to rename it"
-msgstr "名前を変更するフィーチャーまたはボディを選択してください"
-
-# AI Translated
-msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
-msgstr "ツリーで見分けやすい名前をこのフィーチャーに付けます (ボディの名前は、それを作成したフィーチャーから付けられます)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Face"
-msgstr "面を削除"
-
-# AI Translated
-msgctxt "Design"
-msgid "Colour"
-msgstr "色"
-
-# AI Translated
-msgid "Set the selected body's display colour"
-msgstr "選択したボディの表示色を設定"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete"
-msgstr "削除"
-
-# AI Translated
-msgid "Delete what is selected"
-msgstr "選択したものを削除"
-
-# AI Translated
-msgctxt "Design"
-msgid "Delete Body"
-msgstr "ボディを削除"
-
-# AI Translated
-msgid "Delete this whole body — removes the feature it was made from"
-msgstr "このボディ全体を削除 — 作成元のフィーチャーも削除されます"
-
-# AI Translated
-msgctxt "Design"
-msgid "Line"
-msgstr "線分"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polyline"
-msgstr "ポリライン"
-
-# AI Translated
-msgid "Click points; click the first point to close the loop, right-click to end it open"
-msgstr "点をクリック。最初の点をクリックでループを閉じ、右クリックで開いたまま終了"
-
-# AI Translated
-msgctxt "Design"
-msgid "Corner rectangle"
-msgstr "コーナー指定の長方形"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre rectangle"
-msgstr "中心指定の長方形"
-
-# AI Translated
-msgctxt "Design"
-msgid "Oblique rectangle"
-msgstr "傾斜長方形"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rounded rectangle"
-msgstr "角丸長方形"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre circle"
-msgstr "中心指定の円"
-
-# AI Translated
-msgctxt "Design"
-msgid "2-point circle"
-msgstr "2点指定の円"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point circle"
-msgstr "3点指定の円"
-
-# AI Translated
-msgctxt "Design"
-msgid "3-point arc"
-msgstr "3点円弧"
-
-# AI Translated
-msgctxt "Design"
-msgid "Tangent arc"
-msgstr "接線円弧"
-
-# AI Translated
-msgctxt "Design"
-msgid "Centre-point arc"
-msgstr "中心点円弧"
-
-# AI Translated
-msgctxt "Design"
-msgid "Slot"
-msgstr "スロット"
-
-# AI Translated
-msgctxt "Design"
-msgid "Arc slot"
-msgstr "円弧スロット"
-
-# AI Translated
-msgctxt "Design"
-msgid "Ellipse"
-msgstr "楕円"
-
-# AI Translated
-msgctxt "Design"
-msgid "Elliptical arc"
-msgstr "楕円弧"
-
-# AI Translated
-msgctxt "Design"
-msgid "Spline"
-msgstr "スプライン"
-
-# AI Translated
-msgctxt "Design"
-msgid "Triangle"
-msgstr "三角形"
-
-# AI Translated
-msgid "Triangle — click centre, then a vertex"
-msgstr "三角形 — 中心、次に頂点をクリック"
-
-# AI Translated
-msgctxt "Design"
-msgid "Square"
-msgstr "正方形"
-
-# AI Translated
-msgid "Square — click centre, then a vertex"
-msgstr "正方形 — 中心、次に頂点をクリック"
-
-# AI Translated
-msgctxt "Design"
-msgid "Pentagon"
-msgstr "五角形"
-
-# AI Translated
-msgid "Pentagon — click centre, then a vertex"
-msgstr "五角形 — 中心、次に頂点をクリック"
-
-# AI Translated
-msgctxt "Design"
-msgid "Hexagon"
-msgstr "六角形"
-
-# AI Translated
-msgid "Hexagon — click centre, then a vertex"
-msgstr "六角形 — 中心、次に頂点をクリック"
-
-# AI Translated
-msgctxt "Design"
-msgid "Octagon"
-msgstr "八角形"
-
-# AI Translated
-msgid "Octagon — click centre, then a vertex"
-msgstr "八角形 — 中心、次に頂点をクリック"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dodecagon"
-msgstr "十二角形"
-
-# AI Translated
-msgid "Dodecagon — click centre, then a vertex"
-msgstr "十二角形 — 中心、次に頂点をクリック"
-
-# AI Translated
-msgctxt "Design"
-msgid "Inscribed"
-msgstr "内接"
-
-# AI Translated
-msgid "Measure the polygon to its corners (inscribed)"
-msgstr "ポリゴンを頂点までの寸法で指定 (内接)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Circumscribed"
-msgstr "外接"
-
-# AI Translated
-msgid "Measure the polygon to its flats (circumscribed)"
-msgstr "ポリゴンを辺までの寸法で指定 (外接)"
-
-# AI Translated
-msgctxt "Design"
-msgid "Point"
-msgstr "点"
-
-# AI Translated
-msgid "Type text; its outline is added to this sketch as editable lines"
-msgstr "テキストを入力すると、その輪郭が編集可能な線としてこのスケッチに追加されます"
-
-# AI Translated
-msgctxt "Design"
-msgid "SVG"
-msgstr "SVG"
-
-# AI Translated
-msgid "Import an SVG outline into this sketch as editable lines"
-msgstr "SVGの輪郭を編集可能な線としてこのスケッチにインポート"
-
-# AI Translated
-msgctxt "Design"
-msgid "Offset"
-msgstr "オフセット"
-
-# AI Translated
-msgctxt "Design"
-msgid "Trim"
-msgstr "トリム"
-
-# AI Translated
-msgctxt "Design"
-msgid "Linear array"
-msgstr "直線配列"
-
-# AI Translated
-msgid "Array"
-msgstr "配列"
-
-# AI Translated
-msgctxt "Design"
-msgid "Polar array"
-msgstr "円形配列"
-
-# AI Translated
-msgctxt "Design"
-msgid "Rotate"
-msgstr "回転"
-
-# AI Translated
-msgctxt "Design"
-msgid "Scale"
-msgstr "スケール"
-
-# AI Translated
-msgctxt "Design"
-msgid "Dimension"
-msgstr "寸法"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain"
-msgstr "拘束"
-
-# AI Translated
-msgid "Constrain the selected sketch entities to each other"
-msgstr "選択したスケッチエンティティを相互に拘束"
-
-# AI Translated
-msgctxt "Design"
-msgid "Constrain sketch"
-msgstr "スケッチを拘束"
-
-# AI Translated
-msgid "Select a sketch to constrain it"
-msgstr "拘束するスケッチを選択してください"
-
-# AI Translated
-msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
-msgstr "選択したスケッチに寸法と幾何拘束 (一致、正接、平行...) を追加"
-
-# AI Translated
-msgctxt "Design"
-msgid "Construction"
-msgstr "補助ジオメトリ"
-
-# AI Translated
-msgid "Toggle construction: geometry that guides but is never built"
-msgstr "補助ジオメトリの切り替え: ガイドとして使い、形状としては作成されないジオメトリ"
-
-# AI Translated
-msgctxt "Design"
-msgid "Extend"
-msgstr "延長"
-
-# AI Translated
-msgid "Delete the selected sketch entities"
-msgstr "選択したスケッチエンティティを削除"
-
-# AI Translated
-msgctxt "Design"
-msgid "Length…"
-msgstr "長さ…"
-
-# AI Translated
-msgid "Type the length of this line"
-msgstr "この線分の長さを入力"
-
-# AI Translated
-msgctxt "Design"
-msgid "Radius / diameter…"
-msgstr "半径 / 直径…"
-
-# AI Translated
-msgid "Type the radius of this arc, or the diameter of this circle"
-msgstr "この円弧の半径、またはこの円の直径を入力"
-
-# AI Translated
-msgctxt "Design"
-msgid "Angle / distance…"
-msgstr "角度 / 距離…"
-
-# AI Translated
-msgid "Type the angle between two lines, or the distance between the two picks"
-msgstr "2本の線分間の角度、または選択した2つの間の距離を入力"
-
-# AI Translated
-#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
-msgid "Side"
-msgstr "辺"
-
-# AI Translated
-#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
-msgid "Major"
-msgstr "長軸"
-
-# AI Translated
-msgid "Minor"
-msgstr "短軸"
-
-# AI Translated
-msgid "right-click or double-click to finish, click start to close"
-msgstr "右クリックまたはダブルクリックで終了、始点をクリックで閉じる"
-
-# AI Translated
-msgid "Extend: click a line/arc that can reach another live entity"
-msgstr "延長: 編集中の別のエンティティまで届く線分/円弧をクリック"
-
-# AI Translated
-msgid "Trim: click a segment where it crosses another live entity"
-msgstr "トリム: 編集中の別のエンティティと交差するセグメントをクリック"
-
-# AI Translated
 msgid "Authentication complete"
 msgstr "認証が完了しました"
 
@@ -31815,16 +31413,968 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Face recognition"
+#~ msgstr "外観認識"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "認識を実行"
+
+#~ msgid "Text Gap"
+#~ msgstr "テキスト間隔"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "埋め込み深さ"
+
+#~ msgid "Input text"
+#~ msgstr "テキスト"
+
+#~ msgid "Surface"
+#~ msgstr "表面"
+
+#~ msgid "Horizontal text"
+#~ msgstr "水平テキスト"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "マウスを上下に動かす"
+
+#~ msgid "Rotate text"
+#~ msgstr "テキストを回転"
+
+#~ msgid "Text shape"
+#~ msgstr "文字形状"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "プレート%dをスライス"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "スライシングエラーを解決して、もう一度公開していください"
+
+# AI Translated
+#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+#~ msgstr "0.001 mm以内にあるスケッチの端点を1つの接続点として扱い、ループを結合して閉じます。オフ: 完全に一致する端点のみが接続されるため、わずかな隙間のあるループは自動で閉じられず、開いたまま表示されます。"
+
+# AI Translated
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "全プレートをスライスし、造形時間とフィラメント使用量を予測します"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "プロジェクトデータを3MFファイルに書き込む"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "3mfをアップロード中"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "モデル公開ページに移動"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "注意: 準備するには数分かかる場合があります、暫くお待ち下さい。"
+
+#~ msgid "Publish was canceled"
+#~ msgstr "公開は取り消しました"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "プレート1をスライス"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "データを構成中"
+
+#~ msgid "Uploading data"
+#~ msgstr "データをアップロード中"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "ウェブページに移動"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "OBJファイルインポートの色"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "一部の面に色が定義されていません。"
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "MTLファイルエラー、材料が見つかりません:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "OBJまたはMTLファイルを確認してください。"
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "色の数を指定:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "数値を再変更するには、入力するか調整ボタンをクリックしてください"
+
+#~ msgid "Recommended "
+#~ msgstr "推奨 "
+
+#~ msgid "view"
+#~ msgstr "表示"
+
+#~ msgid "Current filament colors"
+#~ msgstr "現在のフィラメントの色"
+
+#~ msgid "Matching"
+#~ msgstr "マッチング"
+
+#~ msgid "Quick set"
+#~ msgstr "クイック設定"
+
+#~ msgid "Color match"
+#~ msgstr "色のマッチング"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "近似色のマッチング。"
+
+#~ msgid "Append"
+#~ msgstr "追加"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "既存のフィラメントに追加"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "マッピングされたエクストルーダーをリセット。"
+
+#~ msgid "Note"
+#~ msgstr "注意"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "色が選択されました。OKを選択して続行するか、\n"
+#~ "手動で調整してください。"
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+# AI Translated
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "積層ピッチが小さいプロファイルです。積層跡がほとんど目立たず、高い印刷品質が得られます。ほとんどの印刷用途に適しています。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチがやや大きくなっています。積層跡はほとんど目立たず、印刷時間もわずかに短くなります。"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比較すると、レイヤー高さが大きくなっています。そのため、レイヤーラインがわずかに見えますが、印刷時間は短縮されます。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど見えず印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど見えず印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は最小限になり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡は最小限になり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "標準的な積層ピッチのプロファイルです。積層跡と印刷品質は平均的です。ほとんどの印刷用途に適しています。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間はわずかに短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間は短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡が目立ちにくくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど目立たなくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなりますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "積層ピッチが大きいプロファイルです。積層跡が目立ち、印刷品質と印刷時間は標準的です。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、場合によっては印刷時間が短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡がかなり目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質はわずかに向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "積層ピッチが非常に大きいプロファイルです。積層跡が非常に目立ち、印刷品質は低くなりますが、印刷時間は短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が非常に目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがかなり大きくなっています。積層跡が極めて目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が大幅に短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがわずかに小さくなっています。積層跡はやや少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "これは一般的なフィラメントでもなく、Bambuフィラメントでもありません。さらに、ブランドによって性能が大きく異なるため、印刷前に販売元へ適切なプロファイルを確認し、その性能に応じてパラメーターを調整することを強くお勧めします。"
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "このフィラメントを印刷する際、ワーピングや層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "このフィラメントを印刷する際、ノズルの詰まり、オーズ、ワーピング、層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "対応するフィラメントでより良い透明または半透明の仕上がりを得るには、、このウィキページ「透明PETGのための印刷のヒント」を参照してください。"
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "プリントをより光沢のあるものにするには、使用前にフィラメントを乾燥させ、スライス時の外壁速度を40～60mm/sに設定してください。"
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「発泡PLA（PLA Aero）を使用したRCモデルの印刷手順」を参照してください。"
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「ASA Aero印刷ガイド」を参照してください。"
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "このフィラメントは柔らかすぎるため、AMSと互換性がありません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "このフィラメントは十分な硬度（約67D）を持ち、AMSと互換性があります。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "柔らかいTPUを印刷する場合、このプロファイルでスライスしないでください。このプロファイルは、硬度が十分に高いTPU（55D以上）で、AMSに対応しているものにのみ適しています。より良い印刷品質を得るために、こちらのWiki：TPU印刷ガイドをご参照ください。"
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "これは水溶性のサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「PVA印刷ガイド」を参照してください。"
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "これは水溶性ではないサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。より良い印刷品質を得るために、こちらのWiki「サポートフィラメントとサポート機能の印刷ヒント」を参照してください。"
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "ジェネリックプリセットは、幅広いフィラメントとの互換性を考慮し、控えめに調整されています。より高い印刷品質と速度を求める場合は、BambuフィラメントとBambuプリセットを使用してください。"
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "造形品質を重視した、0.2mmノズル用の高品質プロファイルです。"
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "高品質・高強度を重視した、0.16mmレイヤー高用の高品質プロファイルです。"
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.16mmレイヤー高用の標準プロファイルです。"
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "造形品質と強度を重視した、0.2mmノズル用の高品質プロファイルです。"
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.4mmノズル用の標準プロファイルです。"
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "造形品質を重視した、0.6mmノズル用の高品質プロファイルです。"
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "強度を重視した、0.6mmノズル用の強化プロファイルです。"
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.6mmノズル用の標準プロファイルです。"
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "造形品質を重視した、0.8mmノズル用の高品質プロファイルです。"
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "強度を重視した、0.8mmノズル用の強化プロファイルです。"
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.8mmノズル用の標準プロファイルです。"
+
+# AI Translated
+#~ msgid "Slot — two centerline ends, then end radius"
+#~ msgstr "スロット — 中心線の両端、次に端部の半径"
+
+# AI Translated
+#~ msgid "Isometric view, fitted"
+#~ msgstr "アイソメトリックビュー (全体表示)"
+
+# AI Translated
+#~ msgid "Coord Sys"
+#~ msgstr "座標系"
+
+# AI Translated
+#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+#~ msgstr "アセンブリ: 2つの座標系フィーチャーを揃えます (締結、平面、回転、スライダー、円筒)"
+
+# AI Translated
+#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
+#~ msgstr "点を順にクリック。最初の点をクリックするとループを閉じ、右クリックでチェーンを終了します"
+
+# AI Translated
+#~ msgid "Click two centerline ends, then a point for the end radius"
+#~ msgstr "中心線の両端をクリックし、次に端部の半径を決める点をクリック"
+
+# AI Translated
+#~ msgid "Click control points; double-click or right-click to finish"
+#~ msgstr "制御点をクリック。ダブルクリックまたは右クリックで終了"
+
+# AI Translated
+#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+#~ msgstr "セグメントをクリックすると最も近い交点までトリムします。右クリックで終了"
+
+# AI Translated
+#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+#~ msgstr "線分または円弧をクリックすると最も近いエンティティまで延長します。右クリックで終了"
+
+# AI Translated
+#~ msgid "✓ Confirm"
+#~ msgstr "✓ 確定"
+
+# AI Translated
+#~ msgid "✗ Cancel"
+#~ msgstr "✗ 取消し"
+
+# AI Translated
+#~ msgid "Undo (Ctrl+Z)"
+#~ msgstr "元に戻す (Ctrl+Z)"
+
+# AI Translated
+#~ msgid "Redo (Ctrl+Shift+Z)"
+#~ msgstr "やり直す (Ctrl+Shift+Z)"
+
+# AI Translated
+#~ msgid "Taper °"
+#~ msgstr "テーパー °"
+
+# AI Translated
+#~ msgid "Total angle°"
+#~ msgstr "合計角度°"
+
+# AI Translated
+#~ msgid "Union (join)"
+#~ msgstr "結合 (和)"
+
+# AI Translated
+#~ msgid "Subtract (cut)"
+#~ msgstr "減算 (差)"
+
+# AI Translated
+#~ msgid "Angle°"
+#~ msgstr "角度°"
+
+# AI Translated
+#~ msgid "CS A (fixed)"
+#~ msgstr "CS A (固定)"
+
+# AI Translated
+#~ msgid "CS B (moves)"
+#~ msgstr "CS B (移動)"
+
+# AI Translated
+#~ msgid "Move body"
+#~ msgstr "ボディを移動"
+
+# AI Translated
+#~ msgid "Select a body row first, then move it"
+#~ msgstr "先にボディの行を選択してから移動してください"
+
+# AI Translated
+#~ msgid "+"
+#~ msgstr "+"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "ボディ%d: エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+#~ msgstr "エッジ%dを選択しました — フィレット/面取りで加工、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#~ msgid "Text to insert:"
+#~ msgstr "挿入するテキスト:"
+
+# AI Translated
+#~ msgid "STEP import failed: "
+#~ msgstr "STEPのインポートに失敗しました: "
+
+# AI Translated
+#~ msgid "Could not read the OBJ file: "
+#~ msgstr "OBJファイルを読み込めませんでした: "
+
+# AI Translated
+#~ msgid "Mesh conversion failed: "
+#~ msgstr "メッシュの変換に失敗しました: "
+
+# AI Translated
+#~ msgid "Mesh import failed: "
+#~ msgstr "メッシュのインポートに失敗しました: "
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move — right-click when done"
+#~ msgstr "角をドラッグしてスケール、中心をドラッグして移動 — 完了したら右クリック"
+
+# AI Translated
+#~ msgid "Recompute error: "
+#~ msgstr "再計算エラー: "
+
+# AI Translated
+#~ msgid "Mate needs two CoordSys features — create them first"
+#~ msgstr "合致には2つの座標系フィーチャーが必要です — 先に作成してください"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different CoordSys features"
+#~ msgstr "合致: CS AとCS Bは異なる座標系フィーチャーである必要があります"
+
+# AI Translated
+#~ msgid "No interference — need at least two solid bodies to check"
+#~ msgstr "干渉なし — チェックには少なくとも2つのソリッドボディが必要です"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu interference pair, worst %.2f mm³"
+#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
+#~ msgstr[0] "干渉ペア %zu 組、最大 %.2f mm³"
+
+# AI Translated
+#~ msgid ""
+#~ "Interference pairs:\n"
+#~ "\n"
+#~ msgstr ""
+#~ "干渉ペア:\n"
+#~ "\n"
+
+# AI Translated
+#~ msgid "Interference"
+#~ msgstr "干渉"
+
+# AI Translated
+#~ msgid "Select a solid body first — its mass properties are what is reported"
+#~ msgstr "先にソリッドボディを選択してください — そのボディの質量特性が表示されます"
+
+# AI Translated
+#~ msgid "Mass properties could not be computed for this body"
+#~ msgstr "このボディの質量特性を計算できませんでした"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
+#~ msgstr "%s: シートボディ — 表面積 %.2f cm²、体積なし"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Sheet body (open shell)\n"
+#~ "Surface area: %.2f cm²\n"
+#~ "\n"
+#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "シートボディ (開いたシェル)\n"
+#~ "表面積: %.2f cm²\n"
+#~ "\n"
+#~ "シートは材料を囲んでいないため、体積を持ちません。体積を得るには厚み付けしてソリッドにしてください。"
+
+# AI Translated
+#~ msgid "Mass properties"
+#~ msgstr "質量特性"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s: %.3f cm³, %.2f cm²"
+#~ msgstr "%s: %.3f cm³、%.2f cm²"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "Volume: %.3f cm³\n"
+#~ "Surface area: %.2f cm²"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "体積: %.3f cm³\n"
+#~ "表面積: %.2f cm²"
+
+# AI Translated
+#~ msgid "Boolean needs two solid bodies — add or import a second one"
+#~ msgstr "ブーリアンには2つのソリッドボディが必要です — 2つ目を追加またはインポートしてください"
+
+# AI Translated
+#~ msgid "Line — click the end point, or type the length"
+#~ msgstr "線分 — 終点をクリック、または長さを入力"
+
+# AI Translated
+#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+#~ msgstr "ポリライン — 次の点をクリック  ·  始点をクリックで閉じる  ·  右クリックでチェーンを終了"
+
+# AI Translated
+#~ msgid "Circle — click to set the radius, or type it"
+#~ msgstr "円 — クリックして半径を設定、または入力"
+
+# AI Translated
+#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
+#~ msgstr "スプライン — 次の制御点をクリック  ·  右クリックで曲線を終了"
+
+# AI Translated
+#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+#~ msgstr "トリム — 他のエンティティと交差するセグメントをクリック  ·  右クリックで終了"
+
+# AI Translated
+#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+#~ msgstr "延長 — 線分または円弧をクリックして最も近いエンティティまで延長  ·  右クリックで終了"
+
+# AI Translated
+#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "フィレット — 矢印をドラッグ、または数値をクリックして半径を入力  ·  空白部分をクリックで適用  ·  右クリックで取消し"
+
+# AI Translated
+#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "面取り — 矢印をドラッグ、または数値をクリックして面取り距離を入力  ·  空白部分をクリックで適用  ·  右クリックで取消し"
+
+# AI Translated
+#~ msgid "Offset — click the entity to offset"
+#~ msgstr "オフセット — オフセットするエンティティをクリック"
+
+# AI Translated
+#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+#~ msgstr "オフセット — 矢印をどちらかの側にドラッグ、または数値をクリックして距離を入力  ·  空白部分をクリックで適用  ·  右クリックで取消し"
+
+# AI Translated
+#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+#~ msgstr "反転 — 軸を設定済み  ·  反転するエンティティをクリック  ·  右クリックで取消し"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+#~ msgstr "反転 — 軸を設定済み  ·  反転対象 %d 個  ·  別のエンティティをクリックして追加/削除  ·  空白部分をクリックで適用"
+
+# AI Translated
+#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+#~ msgstr "移動 — ハンドルをドラッグ、または数値をクリックして距離を入力  ·  空白部分をクリックで適用"
+
+# AI Translated
+#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+#~ msgstr "回転 — ハンドルをドラッグ、または数値をクリックして角度を入力  ·  空白部分をクリックで適用"
+
+# AI Translated
+#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+#~ msgstr "スケール — ハンドルをドラッグ、または数値をクリックして倍率を入力  ·  空白部分をクリックで適用"
+
+# AI Translated
+#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+#~ msgstr "配列 — ハンドルをドラッグして間隔を設定、個数をクリックして入力  ·  空白部分をクリックで適用"
+
+# AI Translated
+#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+#~ msgstr "円形配列 — ハンドルをドラッグして角度範囲を設定、個数をクリックして入力  ·  空白部分をクリックで適用"
+
+# AI Translated
+#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
+#~ msgstr "角をドラッグしてスケール、中心をドラッグして移動  ·  完了したら右クリック"
+
+# AI Translated
+#~ msgid "Coord Sys added"
+#~ msgstr "座標系を追加しました"
+
+# AI Translated
+#~ msgid "Could not restore the CAD model: "
+#~ msgstr "CADモデルを復元できませんでした: "
+
+# AI Translated
+#~ msgid "Boolean needs two bodies — create or import a second solid"
+#~ msgstr "ブーリアンには2つのボディが必要です — 2つ目のソリッドを作成またはインポートしてください"
+
+# AI Translated
+#~ msgid "Edit rejected: "
+#~ msgstr "編集が拒否されました: "
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Delete %s?\n"
+#~ "\n"
+#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
+#~ msgstr ""
+#~ "%sを削除しますか？\n"
+#~ "\n"
+#~ "これはこのボディの作成元のフィーチャーです。これを基に作成されたフィーチャーは削除されるか、機能しなくなる可能性があります。"
+
+# AI Translated
+#~ msgid "Delete body"
+#~ msgstr "ボディを削除"
+
+# AI Translated
+#~ msgid "STEP export failed: "
+#~ msgstr "STEPのエクスポートに失敗しました: "
+
+# AI Translated
+#~ msgid "Coord Sys ready"
+#~ msgstr "座標系の準備完了"
+
+# AI Translated
+#~ msgid "Mate needs at least two CoordSys features"
+#~ msgstr "合致には少なくとも2つの座標系フィーチャーが必要です"
+
+# AI Translated
+#~ msgid "Mate: CS A and CS B must be different"
+#~ msgstr "合致: CS AとCS Bは異なる必要があります"
+
+# AI Translated
+#~ msgid "Invalid: "
+#~ msgstr "無効: "
+
+# AI Translated
+#~ msgid "Variable name:"
+#~ msgstr "変数名:"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Expression for '%s':"
+#~ msgstr "「%s」の式:"
+
+# AI Translated
+#~ msgid "Seg"
+#~ msgstr "分割数"
+
+# AI Translated
+#~ msgid "CLOSED"
+#~ msgstr "閉ループ"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% pts %4%"
+#~ msgstr "%1% %2%: %3% 点 %4%"
+
+# AI Translated
+#~ msgid "Pocket (Cut)"
+#~ msgstr "ポケット (カット)"
+
+# AI Translated
+#~ msgid "Clear All"
+#~ msgstr "すべてクリア"
+
+# AI Translated
+#~ msgid "Hollow this object"
+#~ msgstr "このオブジェクトを中空化"
+
+# AI Translated
+#~ msgid "Preview hollowed and drilled model"
+#~ msgstr "中空化・穴あけしたモデルをプレビュー"
+
+# AI Translated
+#~ msgid "Closing distance"
+#~ msgstr "クロージング距離"
+
+# AI Translated
+#~ msgid "Hole diameter"
+#~ msgstr "穴の直径"
+
+# AI Translated
+#~ msgid "Hole depth"
+#~ msgstr "穴の深さ"
+
+# AI Translated
+#~ msgid "Remove selected holes"
+#~ msgstr "選択した穴を削除"
+
+# AI Translated
+#~ msgid "Remove all holes"
+#~ msgstr "すべての穴を削除"
+
+# AI Translated
+#~ msgid "Clipping of view"
+#~ msgstr "ビューのクリッピング"
+
+#~ msgid "Reset direction"
+#~ msgstr "方向をリセット"
+
+# AI Translated
+#~ msgid "Show supports"
+#~ msgstr "サポートを表示"
+
+# AI Translated
+#~ msgid "Hollow and drill"
+#~ msgstr "中空化と穴あけ"
+
+#~ msgid "Head diameter"
+#~ msgstr "直径"
+
+# AI Translated
+#~ msgid "Lock supports under new islands"
+#~ msgstr "新しいアイランドの下のサポートをロック"
+
+#~ msgid "Remove selected points"
+#~ msgstr "選択したポイントを削除"
+
+# AI Translated
+#~ msgid "Remove all points"
+#~ msgstr "すべての点を削除"
+
+# AI Translated
+#~ msgid "Apply changes"
+#~ msgstr "変更を適用"
+
+# AI Translated
+#~ msgid "Discard changes"
+#~ msgstr "変更を破棄"
+
+# AI Translated
+#~ msgid "Minimal points distance"
+#~ msgstr "最小点間距離"
+
+# AI Translated
+#~ msgid "Support points density"
+#~ msgstr "サポートポイント密度"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "自動ポイント生成"
+
+# AI Translated
+#~ msgid "Manual editing"
+#~ msgstr "手動編集"
+
+# AI Translated
+#~ msgid "SLA Support Points"
+#~ msgstr "SLAサポートポイント"
+
+# AI Translated
+#~ msgid "Do you want to save your manually edited support points?"
+#~ msgstr "手動で編集したサポートポイントを保存しますか？"
+
+# AI Translated
+#~ msgid "Save support points?"
+#~ msgstr "サポートポイントを保存しますか？"
+
+# AI Translated
+#~ msgid "Autogeneration will erase all manually edited points."
+#~ msgstr "自動生成すると、手動で編集したポイントはすべて消去されます。"
+
+# AI Translated
+#~ msgid "Are you sure you want to do it?"
+#~ msgstr "実行してもよろしいですか？"
+
+# AI Translated
+#~ msgid "SLA gizmo keyboard shortcuts"
+#~ msgstr "SLAギズモのキーボードショートカット"
+
+# AI Translated
+#~ msgid "Note: some shortcuts work in (non)editing mode only."
+#~ msgstr "注: 一部のショートカットは、編集モードまたは非編集モードでのみ機能します。"
+
+#~ msgid "Left click"
+#~ msgstr "左クリック"
+
+# AI Translated
+#~ msgid "Add point"
+#~ msgstr "点を追加"
+
+#~ msgid "Right click"
+#~ msgstr "右クリック"
+
+# AI Translated
+#~ msgid "Remove point"
+#~ msgstr "点を削除"
+
+# AI Translated
+#~ msgid "Move point"
+#~ msgstr "点を移動"
+
+# AI Translated
+#~ msgid "Add point to selection"
+#~ msgstr "選択に点を追加"
+
+# AI Translated
+#~ msgid "Remove point from selection"
+#~ msgstr "選択から点を削除"
+
+# AI Translated
+#~ msgid "Select by rectangle"
+#~ msgstr "矩形で選択"
+
+# AI Translated
+#~ msgid "Deselect by rectangle"
+#~ msgstr "矩形で選択解除"
+
+# AI Translated
+#~ msgid "Select all points"
+#~ msgstr "すべての点を選択"
+
+# AI Translated
+#~ msgid "Move clipping plane"
+#~ msgstr "クリッピング面を移動"
+
+# AI Translated
+#~ msgid "Reset clipping plane"
+#~ msgstr "クリッピング面をリセット"
+
+# AI Translated
+#~ msgid "Switch to editing mode"
+#~ msgstr "編集モードに切り替え"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Union"
+#~ msgstr "結合"
+
+# AI Translated
+#~ msgid "target is not a sheet body"
+#~ msgstr "対象がシートボディではありません"
+
+# AI Translated
+#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
+#~ msgstr "選択した面の中心に、または平面上に配置して穴を開ける"
+
+# AI Translated
+#~ msgid "Shell needs a solid body"
+#~ msgstr "シェルにはソリッドボディが必要です"
+
+# AI Translated
+#~ msgid "Split needs a solid body"
+#~ msgstr "分割にはソリッドボディが必要です"
+
+# AI Translated
+#~ msgid "Pattern on curve needs a body and a curve"
+#~ msgstr "曲線に沿ったパターンにはボディと曲線が必要です"
+
+# AI Translated
+#~ msgid "A mate needs two coordinate systems"
+#~ msgstr "合致には2つの座標系が必要です"
+
+# AI Translated
+#~ msgid "Align needs a body"
+#~ msgstr "位置合わせにはボディが必要です"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Coord Sys"
+#~ msgstr "座標系"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Mass"
+#~ msgstr "質量"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Colour"
+#~ msgstr "色"
+
+# AI Translated
+#~ msgid "Set the selected body's display colour"
+#~ msgstr "選択したボディの表示色を設定"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre rectangle"
+#~ msgstr "中心指定の長方形"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre circle"
+#~ msgstr "中心指定の円"
+
+# AI Translated
+#~ msgctxt "Design"
+#~ msgid "Centre-point arc"
+#~ msgstr "中心点円弧"
+
+# AI Translated
+#~ msgid "Triangle — click centre, then a vertex"
+#~ msgstr "三角形 — 中心、次に頂点をクリック"
+
+# AI Translated
+#~ msgid "Square — click centre, then a vertex"
+#~ msgstr "正方形 — 中心、次に頂点をクリック"
+
+# AI Translated
+#~ msgid "Pentagon — click centre, then a vertex"
+#~ msgstr "五角形 — 中心、次に頂点をクリック"
+
+# AI Translated
+#~ msgid "Hexagon — click centre, then a vertex"
+#~ msgstr "六角形 — 中心、次に頂点をクリック"
+
+# AI Translated
+#~ msgid "Octagon — click centre, then a vertex"
+#~ msgstr "八角形 — 中心、次に頂点をクリック"
+
+# AI Translated
+#~ msgid "Dodecagon — click centre, then a vertex"
+#~ msgstr "十二角形 — 中心、次に頂点をクリック"
+
+# AI Translated
+#~ msgid "Type text; its outline is added to this sketch as editable lines"
+#~ msgstr "テキストを入力すると、その輪郭が編集可能な線としてこのスケッチに追加されます"
+
+# AI Translated
+#~ msgid "Major"
+#~ msgstr "長軸"
+
+# AI Translated
+#~ msgid "Minor"
+#~ msgstr "短軸"
+
+# AI Translated
+#~ msgid "Extend: click a line/arc that can reach another live entity"
+#~ msgstr "延長: 編集中の別のエンティティまで届く線分/円弧をクリック"
+
+# AI Translated
+#~ msgid "Trim: click a segment where it crosses another live entity"
+#~ msgstr "トリム: 編集中の別のエンティティと交差するセグメントをクリック"
+
 # AI Translated
 #~ msgid "closed profile(s)"
 #~ msgstr "個の閉じたプロファイル"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "キャリブレーションG-codeの生成に失敗しました"
-
-# AI Translated
-#~ msgid "Subtract"
-#~ msgstr "減算"
 
 # AI Translated
 #~ msgid "Multiply"
