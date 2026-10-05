@@ -2,6 +2,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
