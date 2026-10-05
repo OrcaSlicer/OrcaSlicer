@@ -411,7 +411,7 @@ bool GLGizmoTextureDisplacement::on_init()
     m_desc["circle"]        = _L("Circle");
     m_desc["sphere"]        = _L("Sphere");
     m_desc["remove_layer"]  = _L("Remove");
-    m_desc["bake"]          = _L("Bake");
+    m_desc["bake"]          = _L_CONTEXT("Bake", "Texture Displacement");
     return true;
 }
 
@@ -6071,7 +6071,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                         if (opts.color_mix_enabled) {
                             slider_label(_L("Mix by"));
                             const std::string mix_z       = _u8L("Layers");
-                            const std::string mix_xy      = _u8L("Surface");
+                            const std::string mix_xy      = _u8L_CONTEXT("Surface", "Texture Displacement");
                             const std::string mix_auto    = _u8L("Automatic");
                             const char       *mix_items[] = { mix_z.c_str(), mix_xy.c_str(), mix_auto.c_str() };
                             int               mix_mode    = int(opts.color_mix_mode);
@@ -6102,7 +6102,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 {
                     const float x0 = ImGui::GetCursorPosX();
                     ImGui::AlignTextToFramePadding();
-                    ImGui::TextDisabled("%s", _u8L("Mapping").c_str());
+                    ImGui::TextDisabled("%s", _u8L_CONTEXT("Mapping", "Texture Displacement").c_str());
                     ImGui::SameLine();
                     ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
                     struct MappingIcon
@@ -6261,9 +6261,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                     ImGui::TextDisabled("%s", _u8L("Blend").c_str());
                     ImGui::SameLine();
                     ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-                    const std::string blend_add      = _u8L("Add");
-                    const std::string blend_subtract = _u8L("Subtract");
-                    const std::string blend_multiply = _u8L("Multiply");
+                    const std::string blend_add      = _u8L_CONTEXT("Add", "Texture Displacement");
+                    const std::string blend_subtract = _u8L_CONTEXT("Subtract", "Texture Displacement");
+                    const std::string blend_multiply = _u8L_CONTEXT("Multiply", "Texture Displacement");
                     const std::string blend_divide   = _u8L("Divide");
                     const char *blend_items[] = { blend_add.c_str(), blend_subtract.c_str(), blend_multiply.c_str(), blend_divide.c_str() };
                     // The first layer has nothing before it to combine with - build_texture_displacement() makes it
@@ -6657,7 +6657,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                             "on a layer is a different thing: it blurs the image before it is used."));
             if (opts.smooth_enabled) {
                 float percent = opts.smooth_strength * 100.f;
-                if (float_row("##dispsmooth", _L("Strength"), &percent, 1.f, 100.f, "%.0f %%", false, 0.f)) {
+                if (float_row("##dispsmooth", _L_CONTEXT("Strength", "Texture Displacement"), &percent, 1.f, 100.f, "%.0f %%", false, 0.f)) {
                     opts.smooth_strength   = std::clamp(percent / 100.f, 0.01f, 1.f);
                     m_preview_params_dirty = true;
                 }

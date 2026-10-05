@@ -1463,7 +1463,7 @@ PageTemperatures::PageTemperatures(ConfigWizard *parent)
     auto *default_bed = def_bed.get_default_value<ConfigOptionInts>();
     spin_bed->SetValue(default_bed != nullptr && default_bed->size() > 0 ? default_bed->get_at(0) : 0);
 
-    append_text(_L("Enter the nozzle_temperature needed for extruding your filament."));
+    append_text(_L("Enter the nozzle temperature needed for extruding your filament."));
     append_text(_L("A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."));
 #endif
 
@@ -2188,8 +2188,8 @@ void ConfigWizard::priv::select_default_materials_for_printer_models(Technology 
         }
         printer_names += "\n\n";
         std::string message = (technology & T_FFF ?
-            GUI::format(_L("Following printer profiles has no default filament: %1%Please select one manually."), printer_names) :
-            GUI::format(_L("Following printer profiles has no default material: %1%Please select one manually."), printer_names));
+            GUI::format(_L("The following printer profiles have no default filament: %1%Please select one manually."), printer_names) :
+            GUI::format(_L("The following printer profiles have no default material: %1%Please select one manually."), printer_names));
         MessageDialog msg(q, message, _L("Notice"), wxOK);
         msg.ShowModal();
     }
@@ -2449,7 +2449,7 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
     }
     if (!check_unsaved_preset_changes)
         if ((check_unsaved_preset_changes = install_bundles.size() > 0))
-            header = _L_PLURAL("A new vendor was installed and one of its printers will be activated", "New vendors were installed and one of theirs printers will be activated", install_bundles.size());
+            header = _L_PLURAL("A new vendor was installed and one of its printers will be activated", "New vendors were installed and one of their printers will be activated", install_bundles.size());
 
     // Decide whether to create snapshot based on run_reason and the reset profile checkbox
     bool snapshot = true;

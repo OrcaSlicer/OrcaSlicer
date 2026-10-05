@@ -1801,6 +1801,7 @@ void PreferencesDialog::create_items()
     auto item_speed_dial_recents = create_item_spinctrl(
         _L("Recent actions"),
         "",
+        // TRN Unit shown after the number of recent actions, as in "5 actions".
         _L("actions"),
         _L("How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."),
         SETTING_SPEED_DIAL_RECENT_COUNT,
@@ -1900,7 +1901,7 @@ void PreferencesDialog::create_items()
     if (wxGetApp().is_enable_cad_feature()) {
         auto item_connector_face_glyph = create_item_checkbox(_L("Draw mate connectors as a face"),
             _L("In the Design tab, draw a mate connector as a small face instead of the conventional "
-               "disc with a roll quadrant. A face's orientation is read without being learned. "
+               "disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. "
                "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
         g_sizer->Add(item_connector_face_glyph);
 
@@ -1999,7 +2000,11 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_ssao);
 
-    std::vector<wxString> ShadowsLabels = { _L("Off"), _L("Static"), _L("Orbit") };
+    std::vector<wxString> ShadowsLabels = { _L("Off"),
+                                            // TRN Realistic-view shadow mode: the light stays fixed in the scene.
+                                            _L("Static"),
+                                            // TRN Realistic-view shadow mode: the light turns with the camera.
+                                            _L("Orbit") };
     std::vector<std::string> ShadowsValues = { "off", "static", "orbit" };
     auto item_realistic_shadows = create_item_combobox(
         _L("Shadows"),

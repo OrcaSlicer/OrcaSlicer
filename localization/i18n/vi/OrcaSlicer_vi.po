@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -5520,7 +5520,8 @@ msgstr "Tham số hiệu chỉnh flowrate hiện tại không hợp lệ"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "Đường kính đã chọn và đường kính máy không khớp"
 
-msgid "Failed to generate cali G-code"
+# AI Translated
+msgid "Failed to generate calibration G-code"
 msgstr "Không thể tạo G-code hiệu chỉnh"
 
 msgid "Calibration error"
@@ -6409,6 +6410,7 @@ msgid "Wireframe"
 msgstr "Khung dây"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "Tia X"
 
@@ -8861,6 +8863,7 @@ msgid "Click to edit preset"
 msgstr "Nhấp để chỉnh sửa preset"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "Biến thể"
 
@@ -10124,6 +10127,7 @@ msgid "Recent actions"
 msgstr "Thao tác gần đây"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "thao tác"
 
@@ -10250,8 +10254,8 @@ msgid "Draw mate connectors as a face"
 msgstr "Vẽ đầu nối lắp ghép dạng mặt"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "Trong tab Thiết kế, vẽ đầu nối lắp ghép dưới dạng một mặt nhỏ thay vì đĩa thông thường có góc phần tư xoay. Hướng của một mặt có thể đọc được ngay mà không cần học. Tắt tùy chọn này để dùng cách biểu diễn CAD thông thường."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Trong tab Thiết kế, vẽ đầu nối lắp ghép dưới dạng một mặt nhỏ thay vì đĩa thông thường có góc phần tư xoay. Một mặt cho thấy ngay hướng của nó mà không cần học quy ước của đĩa. Tắt tùy chọn này để dùng cách biểu diễn CAD thông thường."
 
 # AI Translated
 msgid "Pan"
@@ -10366,10 +10370,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "Áp dụng SSAO trong chế độ xem thực tế."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "Tĩnh"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "Quay quanh"
 
@@ -11198,10 +11204,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "Phép đo dùng cài đặt đồ họa hiện tại và thường mất chưa đến một phút. Cửa sổ chính sẽ bị khóa cho đến khi hoàn tất."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "Nâng cao"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Chuyên gia"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "Nhà phát triển"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Đơn giản"
 
@@ -24264,8 +24282,8 @@ msgid "Polyline"
 msgstr "Đa tuyến"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Nhấn các điểm; nhấn điểm đầu tiên / nhấn chuột phải để khép vòng"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "Nhấn các điểm; nhấn điểm đầu tiên để khép vòng, nhấn chuột phải để kết thúc chuỗi"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -24711,6 +24729,11 @@ msgstr "Khối mới"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "Nối"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "Cắt"
 
@@ -24734,6 +24757,7 @@ msgid "Bottom"
 msgstr "Dưới"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "Bên"
 
@@ -24888,6 +24912,7 @@ msgid "Plane type"
 msgstr "Loại mặt phẳng"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Cơ sở"
 
@@ -25185,16 +25210,16 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "Nếu không có cạnh, hệ trục lấy X từ cạnh đầu tiên của mặt — hãy chọn một cạnh để tự quyết định"
 
 # AI Translated
-msgid "X hint X"
-msgstr "Gợi ý X: X"
+msgid "X direction X"
+msgstr "Hướng X: X"
 
 # AI Translated
-msgid "X hint Y"
-msgstr "Gợi ý X: Y"
+msgid "X direction Y"
+msgstr "Hướng X: Y"
 
 # AI Translated
-msgid "X hint Z"
-msgstr "Gợi ý X: Z"
+msgid "X direction Z"
+msgstr "Hướng X: Z"
 
 # AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
@@ -25269,8 +25294,9 @@ msgid "Feature tree"
 msgstr "Cây đặc trưng"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — biểu tượng con mắt sẽ vô hiệu hóa lắp ghép này"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. Nhấn biểu tượng con mắt để vô hiệu hóa lắp ghép này."
 
 # AI Translated
 #, c-format, boost-format
@@ -25329,10 +25355,6 @@ msgstr "Biến"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-# AI Translated
-msgid "Del"
-msgstr "Xóa"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -25435,8 +25457,8 @@ msgid "Tool exited"
 msgstr "Đã thoát công cụ"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "Đã giữ phác thảo — Hoàn thành để áp dụng, Hủy để loại bỏ"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "Đã giữ phác thảo — Xác nhận để áp dụng, Hủy để loại bỏ"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -25459,8 +25481,8 @@ msgstr "Phác thảo %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "Đang chỉnh sửa: Phác thảo %d   ·   N = nhìn vuông góc với mặt phẳng   ·   Hoàn thành hoặc Hủy trên thanh công cụ"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Đang chỉnh sửa: Phác thảo %d   ·   N = nhìn vuông góc với mặt phẳng   ·   Xác nhận hoặc Hủy trên thanh công cụ"
 
 # AI Translated
 #, c-format
@@ -26660,8 +26682,8 @@ msgid "On a stored face"
 msgstr "Trên một mặt đã lưu"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Đang chỉnh sửa phác thảo — kéo một tay nắm hoặc nhấn vào một giá trị kích thước để chỉnh sửa"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "Đang chỉnh sửa phác thảo — kéo một tay nắm hoặc nhấp đúp vào một kích thước để chỉnh sửa"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -27086,6 +27108,2711 @@ msgstr "Ứng dụng"
 msgid "Speed Dial"
 msgstr "Speed Dial"
 
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "Khối %1% đã được định vị bởi \"%2%\" (đặc trưng %3%), nên \"%4%\" sẽ ghi đè lên"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "Lắp ghép này định vị Khối %1% với chính nó"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "Chuỗi lắp ghép bị vòng lặp: Khối %1% phụ thuộc vào Khối %2%, vốn lại dẫn ngược về Khối %1% — kết quả phụ thuộc vào thứ tự đặc trưng"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "Đầu nối \"%1%\" có thể đã chuyển sang một mặt khác (một chỉnh sửa ở bước trước đã đánh số lại các mặt của khối này)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "Tạo bản chụp nhanh cấu hình thất bại."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer đã gặp lỗi khi tạo bản chụp nhanh cấu hình."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "Lỗi OrcaSlicer"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "Vui lòng chọn filament được lắp trên %s."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "Vui lòng chọn filament."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "Để tìm hiểu về quy tắc khớp filament."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Không hỗ trợ cuộn ngoài vì đã lắp Filament Track Switch. Nếu bạn muốn dùng cuộn ngoài, vui lòng tháo nó ra."
+
+# AI Translated
+msgid "Select Filament && Hotends"
+msgstr "Chọn filament && hotend"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "Ảnh mô hình"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "Phụ trợ"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "Danh sách filament của dự án"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "Đề xuất cho chế độ tiêu chuẩn"
+
+# AI Translated
+msgid "Target Color"
+msgstr "Màu mục tiêu"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "Chọn cách phân tách màu"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "Chế độ tùy ý"
+
+# AI Translated
+msgid "Material List"
+msgstr "Danh sách vật liệu"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "Chế độ tiêu chuẩn"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "Cần ít nhất hai filament cùng loại vật liệu để phân tách"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "Danh sách vật liệu hỗ trợ tối đa %1% màu. Sau khi phân tách %2%, số vật liệu sẽ vượt quá %1%. Vui lòng xóa các filament không dùng trên màn hình chính trước khi phân tách."
+
+# AI Translated
+msgid "Cyan"
+msgstr "Lục lam"
+
+# AI Translated
+msgid "Magenta"
+msgstr "Đỏ tươi"
+
+# AI Translated
+msgid "Yellow"
+msgstr "Vàng"
+
+# AI Translated
+msgid "White"
+msgstr "Trắng"
+
+# AI Translated
+msgid "Red"
+msgstr "Đỏ"
+
+# AI Translated
+msgid "Green"
+msgstr "Xanh lá"
+
+# AI Translated
+msgid "Blue"
+msgstr "Xanh dương"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "Danh sách filament hiện tại không chứa %s. Một filament dự án mà filament pha trộn cần sẽ được tạo tự động sau khi phân tách."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "Đầu phun thay thế:"
+
+# AI Translated
+msgid "All standard"
+msgstr "Tất cả tiêu chuẩn"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "Chào mừng đến với Trợ lý cấu hình %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "Chào mừng đến với Trình hướng dẫn cấu hình %s"
+
+# AI Translated
+msgid "Welcome"
+msgstr "Chào mừng"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "Xin chào, chào mừng đến với %s! %s này giúp bạn thiết lập cấu hình ban đầu; chỉ cần vài cài đặt là bạn đã sẵn sàng để in."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "Xóa hồ sơ người dùng (một bản chụp nhanh sẽ được tạo trước)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "Thực hiện tích hợp desktop (giúp hệ thống có thể tìm thấy tệp thực thi này)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "Dòng %s"
+
+# AI Translated
+msgid "Printer:"
+msgstr "Máy in:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "Nhà cung cấp:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "Hồ sơ:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(Tất cả)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "%1% được đánh dấu <b>*</b> <b>không</b> tương thích với một số máy in đã cài đặt."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "Vật liệu SLA"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "Tất cả máy in đã cài đặt đều tương thích với %1% đã chọn."
+
+# AI Translated
+msgid "filament"
+msgstr "filament"
+
+# AI Translated
+msgid "SLA material"
+msgstr "vật liệu SLA"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "Chỉ những máy in đã cài đặt sau đây tương thích với các filament đã chọn"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "Chỉ những máy in đã cài đặt sau đây tương thích với các vật liệu SLA đã chọn"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "Thiết lập máy in tùy chỉnh"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "Máy in tùy chỉnh"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "Định nghĩa hồ sơ máy in tùy chỉnh"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "Tên hồ sơ tùy chỉnh:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "Loại firmware"
+
+# AI Translated
+msgid "Firmware"
+msgstr "Firmware"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "Chọn loại firmware mà máy in của bạn sử dụng."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "Hình dạng và kích thước bàn in"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "Đặt hình dạng bàn in của máy in."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Giá trị số không hợp lệ."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "Đường kính filament và đầu phun"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "Đường kính in"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "Nhập đường kính đầu phun của hotend trên máy in."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "Đường kính đầu phun:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "Nhập đường kính filament của bạn."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "Cần độ chính xác cao, vì vậy hãy dùng thước cặp đo nhiều lần dọc theo filament, rồi tính giá trị trung bình."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "Đường kính filament:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "Nhiệt độ đầu phun và bàn in"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "Nhập nhiệt độ đầu phun (nozzle_temperature) cần để đùn filament của bạn."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "Theo kinh nghiệm, 160 đến 230℃ cho PLA và 215 đến 250℃ cho ABS."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "Nhiệt độ đùn:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "Nhập nhiệt độ bàn in cần để filament bám dính vào bàn in nóng."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "Theo kinh nghiệm, 60℃ cho PLA và 110℃ cho ABS. Để 0 nếu bạn không có bàn in nóng."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "Nhiệt độ bàn in:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "Vật liệu SLA"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "Máy in công nghệ FFF"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "Máy in công nghệ SLA"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "Các hồ sơ máy in sau không có filament mặc định: %1%Vui lòng chọn thủ công."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "Các hồ sơ máy in sau không có vật liệu mặc định: %1%Vui lòng chọn thủ công."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "Các mẫu máy in FFF sau chưa được chọn filament:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "Bạn có muốn chọn filament mặc định cho các mẫu máy in FFF này không?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "Cấu hình được chỉnh sửa trong Trình hướng dẫn cấu hình"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "Tất cả cài đặt sẵn của người dùng sẽ bị xóa."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "Đã cài đặt nhà cung cấp mới và một máy in của nhà cung cấp đó sẽ được kích hoạt"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "Đã cài đặt một máy in mới và máy in này sẽ được kích hoạt."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "Một số máy in đã được gỡ cài đặt."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "Đã cài đặt một filament mới và filament này sẽ được kích hoạt."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "Đã cài đặt một vật liệu SLA mới và vật liệu này sẽ được kích hoạt."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "Một số filament đã được gỡ cài đặt."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "Đã cài đặt máy in tùy chỉnh và máy in này sẽ được kích hoạt."
+
+# AI Translated
+msgid "<Back"
+msgstr "<Quay lại"
+
+# AI Translated
+msgid "Next>"
+msgstr "Tiếp>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "Chọn hồ sơ filament"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "Trợ lý cấu hình"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "&Trợ lý cấu hình"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "Trình hướng dẫn cấu hình"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "&Trình hướng dẫn cấu hình"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "Cổng vào filament A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "Cổng vào filament B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "Đề xuất sắp xếp lại"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "Làm sao để tiết kiệm thời gian?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "Trạng thái filament:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "Cần điều chỉnh vị trí"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "OK"
+
+# AI Translated
+msgid "Unused"
+msgstr "Không dùng"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "Dựa trên sơ đồ bên dưới, hãy sắp xếp lại filament trên máy in để có kết quả tối ưu, tiết kiệm khoảng %s."
+
+# AI Translated
+msgid "Summary:"
+msgstr "Tóm tắt:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "AMS trên cổng vào filament A"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "AMS trên cổng vào filament B"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "Filament slice số %d được khớp với '%s'. Gán nó cho '%s' có thể tiết kiệm thời gian in."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*Mẹo: Nếu bạn đã thay đổi vị trí cuộn filament trên máy, vui lòng đóng trang này và khớp lại filament."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "Tóm tắt: Đây hiện là vị trí đặt phù hợp nhất."
+
+# AI Translated
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "Lưu ý:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "Làm rỗng đối tượng này"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "Xem trước mô hình đã làm rỗng và khoan lỗ"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "Khoảng cách đóng"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "Đường kính lỗ"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "Độ sâu lỗ"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "Xóa các lỗ đã chọn"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "Xóa tất cả lỗ"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "Mặt cắt khung nhìn"
+
+msgid "Reset direction"
+msgstr "Đặt lại hướng"
+
+# AI Translated
+msgid "Show supports"
+msgstr "Hiển thị support"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "Làm rỗng và khoan lỗ"
+
+msgid "Head diameter"
+msgstr "Đường kính đầu"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "Khóa support dưới các đảo mới"
+
+msgid "Remove selected points"
+msgstr "Xóa điểm đã chọn"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "Xóa tất cả điểm"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "Áp dụng thay đổi"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "Hủy bỏ thay đổi"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "Khoảng cách tối thiểu giữa các điểm"
+
+# AI Translated
+msgid "Support points density"
+msgstr "Mật độ điểm support"
+
+msgid "Auto-generate points"
+msgstr "Tự động tạo điểm"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "Chỉnh sửa thủ công"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "Điểm support SLA"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "Bạn có muốn lưu các điểm support đã chỉnh sửa thủ công không?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "Lưu điểm support?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "Tự động tạo sẽ xóa tất cả các điểm đã chỉnh sửa thủ công."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "Bạn có chắc chắn muốn thực hiện không?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "Phím tắt của gizmo SLA"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "Lưu ý: một số phím tắt chỉ hoạt động ở chế độ (không) chỉnh sửa."
+
+msgid "Left click"
+msgstr "Nhấn trái"
+
+# AI Translated
+msgid "Add point"
+msgstr "Thêm điểm"
+
+msgid "Right click"
+msgstr "Nhấn phải"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Xóa điểm"
+
+# AI Translated
+msgid "Move point"
+msgstr "Di chuyển điểm"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "Thêm điểm vào lựa chọn"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "Xóa điểm khỏi lựa chọn"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "Chọn bằng hình chữ nhật"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "Bỏ chọn bằng hình chữ nhật"
+
+# AI Translated
+msgid "Select all points"
+msgstr "Chọn tất cả điểm"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "Di chuyển mặt phẳng cắt"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "Đặt lại mặt phẳng cắt"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "Chuyển sang chế độ chỉnh sửa"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "Nướng"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "Dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "Xóa phần vẽ dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "Vẽ dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "Đánh dấu đường cắt UV"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "Đánh dấu đường cắt UV theo đường đi"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "Lớp %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "Tỷ lệ mảnh UV trung bình"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "Hãy chọn một mảnh UV trong trình chỉnh sửa UV trước."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "Cắt mảnh UV"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "Mảnh UV này không có mảnh lân cận nào chung cạnh với nó."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "Nối mảnh UV"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "Tách mảnh UV"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "Xóa các đường cắt UV"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "Xóa các chỉnh sửa UV của kết cấu"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "Áp dụng khung chiếu kết cấu"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "Di chuyển mảnh UV"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "Chỉnh sửa UV của kết cấu"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "Đã đạt số lớp dịch chuyển kết cấu tối đa."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "Thêm lớp dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "Không thể tải kết cấu đã chọn."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "Đổi kết cấu của lớp dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "Chọn ảnh kết cấu (bản đồ độ cao)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "Chọn kết cấu"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "Xóa khỏi Kết cấu của tôi"
+
+# AI Translated
+msgid "Built-in"
+msgstr "Tích hợp sẵn"
+
+# AI Translated
+msgid "No textures found."
+msgstr "Không tìm thấy kết cấu nào."
+
+# AI Translated
+msgid "My textures"
+msgstr "Kết cấu của tôi"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "Nhập ảnh của riêng bạn làm bản đồ độ cao. Ảnh được chuyển sang định dạng mà slicer dùng để nướng và được lưu vào thư mục kết cấu cá nhân của bạn, tách biệt với các kết cấu đi kèm OrcaSlicer."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG hoặc BMP - được chuyển thành bản đồ độ cao khi nhập. Di chuột lên một kết cấu của bạn để xóa nó."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"Xóa \"%s\" khỏi Kết cấu của tôi?\n"
+"\n"
+"File ảnh sẽ bị xóa khỏi thư mục kết cấu của bạn. Các lớp kết cấu đang dùng nó vẫn giữ lại."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "Xóa kết cấu"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "Xóa lớp dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "Sắp xếp lại các lớp dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "Chọn các mặt nhìn thấy được cho dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "Chọn toàn bộ mô hình cho dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "Chia nhỏ mô hình cho dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "Hãy vẽ vùng bạn muốn chia nhỏ trước - chia nhỏ thích ứng chỉ tinh chỉnh ở nơi bạn đã vẽ."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "Chia nhỏ thích ứng cho dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "Không có gì để chia nhỏ - vùng đã vẽ đã đạt độ dài cạnh mục tiêu và dung sai chi tiết, hoặc hạn mức tam giác đã dùng hết."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "Hãy vẽ vùng bạn muốn làm mượt trước - làm mượt chỉ tác động đến phần đã vẽ của mô hình."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "Không có gì để làm mượt - vùng đã vẽ chỉ sâu một tam giác, nên khi bật \"Bỏ qua vòng ngoài\" sẽ không có đỉnh bên trong nào để làm mềm."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "Làm mượt dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "Tạo lại lưới mô hình cho dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "Tạo lại lưới không làm thay đổi mô hình. Mô hình có thể là non-manifold (cạnh hở hoặc cạnh dùng chung bởi hơn hai tam giác), hoặc đã đạt độ dài cạnh mục tiêu."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "Chưa vẽ gì, không có gì để nướng."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "Nướng dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "Chưa vẽ gì, nên không có giai đoạn nướng nào để ghi lại."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "Các giai đoạn nướng (gỡ lỗi)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "Đang ghi lại..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "Ghi lại các giai đoạn"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "Chạy đúng quá trình nướng mà nút Nướng thực hiện, giữ lại lưới sau mỗi giai đoạn và duyệt qua từng giai đoạn tại đây. Không có gì được áp dụng vào mô hình - công cụ này dùng để tìm ra giai đoạn gây ra kết quả lỗi."
+
+# AI Translated
+msgid "Check topology"
+msgstr "Kiểm tra cấu trúc liên kết"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "Đếm các cạnh hở và cạnh non-manifold sau mỗi giai đoạn, đây là cách phát hiện giai đoạn đã làm rách lưới. Việc này quét mọi cạnh, nên làm quá trình ghi lại chậm đi đáng kể khi nướng mịn."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< Trước"
+
+# AI Translated
+msgid "Next >"
+msgstr "Tiếp >"
+
+# AI Translated
+msgid "triangles"
+msgstr "tam giác"
+
+# AI Translated
+msgid "vertices"
+msgstr "đỉnh"
+
+# AI Translated
+msgid "Open edges"
+msgstr "Cạnh hở"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "Non-manifold"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "Suy biến"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "Ghi lưới của các giai đoạn"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "Đã ghi lưới của các giai đoạn dưới dạng file OBJ vào:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "Không thể ghi lưới của các giai đoạn."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "Ghi từng giai đoạn đã ghi lại thành một file OBJ để có thể mở cạnh nhau trong trình xem lưới."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "Không thể chuyển vùng đã vẽ sang mô hình đã tạo lại lưới, nên không có gì thay đổi. Hãy chuyển sang chế độ Pro và tạo lại lưới trước khi vẽ."
+
+# AI Translated
+msgid "Pro"
+msgstr "Pro"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "Tiêu chuẩn - chọn một kết cấu, vẽ vào nơi cần đặt, nhấn Nướng. Mọi thứ lưới cần đều được thực hiện cho bạn trong một bước đó."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "Pro - bạn tự chạy các bước chuẩn bị lưới: Tạo lại lưới, Chia nhỏ và Nướng là các bước riêng biệt, với mọi cài đặt đều được hiển thị. Dành cho khi kết quả của chế độ Tiêu chuẩn chưa như ý và bạn biết lý do."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "Gắn bảng"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "Tách bảng"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "Tách bảng này ra để có thể kéo đến bất kỳ đâu trên khung nhìn 3D, hoặc gắn lại bên cạnh thanh công cụ."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "vào %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "thêm một lớp kết cấu để vẽ"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "Vẽ - thêm lớp kết cấu đang hoạt động tại nơi bạn nhấn hoặc kéo. Nút chuột phải sẽ xóa, giữ Shift cũng vậy."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "Xóa - gỡ lớp kết cấu đang hoạt động tại nơi bạn nhấn hoặc kéo. Nút chuột phải sẽ vẽ."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "Bút vẽ - vẽ lên bề mặt bằng cách kéo"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "Mặt - nhấn vào từng tam giác"
+
+# AI Translated
+msgid "Connected area"
+msgstr "Vùng liên thông"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "Vùng liên thông - tô loang vùng có thể đến được mà không vượt qua cạnh nào sắc hơn ngưỡng góc"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "Hãy đợi quá trình nướng hoàn tất."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "Hãy thêm một lớp kết cấu trước."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "Lớp kết cấu đang hoạt động chưa được vẽ."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "Chọn toàn bộ mô hình"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "Chọn toàn bộ mô hình - vẽ mọi mặt của mô hình bằng lớp kết cấu đang hoạt động"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "Xóa vẽ trên toàn bộ mô hình"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "Xóa vẽ trên toàn bộ mô hình - xóa phần vẽ của lớp kết cấu đang hoạt động khỏi mọi mặt"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "Đặt lại vùng chọn dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "Hình tròn - vẽ mọi thứ nằm dưới bút vẽ theo góc nhìn từ camera"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "Hình cầu - chỉ vẽ trong một khối cầu quanh điểm dưới con trỏ"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "Ngưỡng góc - vùng tô dừng lại ở các cạnh sắc hơn góc này"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "Nhấn vào một tam giác để vẽ nó"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "Cần lớp kết cấu đang hoạt động được ánh xạ bằng Trải phẳng (LSCM)."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "Bình thường - hình học thực, chính xác những gì Nướng sẽ tạo ra. Cập nhật chậm hơn"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "Nhanh - phần nổi chỉ được tô bóng, không được dựng thật, và chỉ cho lớp kết cấu bạn đang chỉnh sửa. Cập nhật tức thì khi bạn vẽ"
+
+# AI Translated
+msgid "Checker"
+msgstr "Ô bàn cờ"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "Ô bàn cờ - một lưới kiểm tra thay cho kết cấu. Nơi các ô vẫn vuông thì kết cấu không bị méo; nơi chúng bị kéo giãn thì kết cấu cũng vậy"
+
+# AI Translated
+msgid "Distortion"
+msgstr "Độ méo"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "Độ méo - bản đồ nhiệt độ kéo giãn từ xanh đến đỏ trên phần trải phẳng"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "Khung dây - phủ các cạnh lưới lên trên; độc lập với chế độ xem ở trên"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "Dựng lại bản xem trước ngay khi có bất kỳ thay đổi nào. Tắt tùy chọn này trên mô hình nặng nếu việc vẽ hoặc kéo thanh trượt bắt đầu bị giật - khi đó bản xem trước sẽ đợi đến khi bạn thả ra."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "Các lớp kết cấu"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "Kéo lên một lớp khác để sắp xếp lại. Lớp đầu tiên nằm trên bề mặt trơn; mỗi lớp sau đó thêm phần nổi của nó lên trên các lớp trước."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "Chọn một ảnh khác cho lớp này. Phần vẽ, độ sâu và cách xếp ô vẫn giữ nguyên."
+
+# AI Translated
+msgid "not painted"
+msgstr "chưa vẽ"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "Di chuyển lên - áp dụng sớm hơn"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "Di chuyển xuống - áp dụng muộn hơn"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "Xóa lớp này"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "Chiều cao của phần nổi: màu trắng trong kết cấu nâng bề mặt lên bao xa, tính bằng milimét. Màu đen hoàn toàn không làm dịch chuyển bề mặt, trừ khi Mức giữa quy định khác."
+
+# AI Translated
+msgid "Tile size"
+msgstr "Kích thước ô"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "Chiều rộng của một bản kết cấu trên mô hình. Nhỏ hơn thì mẫu lặp lại nhiều hơn và chi tiết mịn hơn; khi tắt Xếp ô, đây là kích thước của bản duy nhất."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "Xoay kết cấu trên bề mặt, tính bằng độ - để căn mẫu theo một cạnh của mô hình."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "Mức giữa"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"Mức xám nào giữ nguyên ở vị trí bề mặt hiện có. Ở 0, kết cấu chỉ đẩy ra ngoài; ở 0.5, màu xám trung bình giữ nguyên, nên các mức xám tối hơn khắc vào trong còn các mức sáng hơn vẫn đẩy ra - một ảnh vừa chạm nổi vừa khắc chìm.\n"
+"\n"
+"Phần khắc vào phải vừa chỗ: bên trong một góc nhọn hoặc qua một thành mỏng, vết khắc sâu có thể xuyên sang phía bên kia."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "Dịch chuyển sâu vào trong có thể tự giao cắt."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "Làm mờ ảnh trước khi dùng, giúp bo tròn các bậc gắt và loại bỏ đốm nhiễu từ ảnh chụp nhiều nhiễu. Tăng giá trị nếu phần nổi trông thô ráp hoặc lổn nhổn; đổi lại sẽ mất chi tiết nhỏ."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "Mờ dần ở mép"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "Làm phẳng phần nổi khi tiến gần đến mép vùng đã vẽ, để nó hòa vào bề mặt trơn thay vì dừng lại thành một bậc."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "Khoảng mờ dần lan vào trong, tính theo tỷ lệ của vùng đã vẽ. Giá trị nhỏ làm mềm một dải hẹp ở mép; 1 làm phẳng gần như toàn bộ."
+
+# AI Translated
+msgid "Invert"
+msgstr "Đảo ngược"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "Đảo ngược phần nổi: những gì nhô ra sẽ bị khắc vào, và ngược lại. Tương đương với việc dùng ảnh âm bản."
+
+# AI Translated
+msgid "Colours"
+msgstr "Màu sắc"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "In vùng đã vẽ bằng màu của kết cấu cùng với phần nổi của nó. Mỗi màu được khớp với filament gần nhất trong số filament đã nạp; những phần bạn không vẽ giữ màu riêng của đối tượng."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "Kết cấu này là bản đồ độ cao thang độ xám, nên không có màu để áp dụng. Hãy nhập một ảnh màu để dùng tính năng này."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "Trộn filament"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "Đan xen hai filament để mô phỏng các màu trung gian, nhờ đó chỉ vài filament cũng có thể thể hiện một bức ảnh hoặc dải chuyển màu. Ảnh có màu phẳng sẽ in ra giống nhau dù bật hay tắt. Tắt thì mỗi vùng dùng một filament."
+
+# AI Translated
+msgid "Mix by"
+msgstr "Trộn theo"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "Bề mặt"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"Lớp: hai filament luân phiên giữa các lớp in, hòa trộn mượt trên các bề mặt thẳng đứng nhưng biến mất trên các bề mặt nằm ngang, nơi cả một lớp chỉ là một dải màu.\n"
+"Bề mặt: một bàn cờ mịn trên bề mặt, hoạt động ở mọi góc nhưng có thể trông như kết cấu hơn là sự hòa trộn.\n"
+"Tự động: dùng lớp trên các mặt thẳng đứng; các mặt nằm ngang lấy filament đơn gần nhất, vì bàn cờ ở đó sẽ lộ ra thành hoa văn."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% màu có thể in từ %2% filament"
+
+# AI Translated
+msgid "Denoise"
+msgstr "Khử nhiễu"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "Dọn các tam giác lẻ bị sai màu, do chi tiết mịn hơn lưới để lại. Tăng giá trị nếu kết quả trông lốm đốm, giảm nếu các chi tiết nhỏ bị nuốt mất."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "Ánh xạ"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "Chiếu ba mặt (hòa trộn)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "Chiếu ba mặt - chiếu kết cấu từ cả ba trục cùng lúc và hòa trộn giữa chúng, nên một vùng bao quanh cạnh sắc không có vết nối."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "Hình trụ - quấn kết cấu quanh tâm riêng của vùng đã vẽ, dành cho các hình tròn."
+
+# AI Translated
+msgid "Spherical"
+msgstr "Hình cầu"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "Hình cầu - quấn kết cấu quanh tâm riêng của vùng đã vẽ theo cả hai hướng."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "Trải phẳng (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "Trải phẳng - làm phẳng vùng đã vẽ và ánh xạ kết cấu lên đó với độ kéo giãn ít nhất có thể. Trước tiên vùng này được cắt thành các mảnh tại các cạnh sắc (xem Góc đường cắt), để mỗi mảnh có thể tự nằm phẳng."
+
+# AI Translated
+msgid "From view"
+msgstr "Từ góc nhìn"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "Từ góc nhìn - chiếu thẳng lên vùng đã vẽ từ vị trí bạn đang nhìn, như một máy chiếu slide."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "Mở trình chỉnh sửa UV"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "Mở trình chỉnh sửa UV, nơi bạn có thể xem kết cấu được bố trí trên vùng đã vẽ như thế nào, tạo đường cắt và di chuyển các mảnh."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "Chưa trải phẳng"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% mảnh"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "Chụp góc nhìn hiện tại"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "Không thấy gì từ góc này - hãy xoay mô hình để phần bạn muốn chiếu lên hướng về phía bạn."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "Chiếu kết cấu lên vùng đã vẽ từ vị trí bạn đang nhìn, như một máy chiếu slide. Các mặt quay ra xa bạn sẽ bị kéo giãn, vì vậy hãy căn góc nhìn theo bề mặt bạn quan tâm trước."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "Chỉ chiếu lên phần nhìn thấy"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "Chỉ vẽ các mặt bạn đang thực sự nhìn thấy - hướng về phía bạn và không bị vật gì che khuất - rồi chiếu lên các mặt đó. Thay thế những gì lớp kết cấu đã vẽ trước đó."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "Khung chiếu"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "Mở một khung cửa sổ để bạn kéo lên trên mô hình. Những gì bạn nhìn thấy qua khung sẽ nhận kết cấu, và viền khung trở thành mép của vùng chiếu."
+
+# AI Translated
+msgid "Opacity"
+msgstr "Độ đục"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "Mức độ đặc của khung cửa sổ khi bạn đặt nó. Giảm xuống để nhìn thấy mô hình qua khung; không ảnh hưởng đến kết quả."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "Áp dụng khung chiếu"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "Không có phần nào của mô hình nằm trong khung - hãy di chuyển khung lên phần bạn muốn chiếu."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "Không thể áp dụng khung. Hãy đảm bảo khung chồng lên khung nhìn 3D."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "Chiếu kết cấu qua khung từ vị trí bạn đang nhìn và vẽ các mặt bên trong khung. Thay thế những gì lớp kết cấu đã vẽ trước đó; kết quả bám vào mô hình nên sau đó bạn có thể xoay góc nhìn."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "Được đặt bằng khung chiếu."
+
+# AI Translated
+msgid "Tile"
+msgstr "Xếp ô"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "Lặp lại kết cấu trên khắp vùng đã vẽ. Tắt thì đặt một bản duy nhất, như hình dán, với kích thước được đặt bởi Kích thước ô."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "Bật Xếp ô để chọn cách kết cấu lặp lại."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Lặp lại"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "Lặp lại đối xứng"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "Lặp lại đối xứng - các ô xen kẽ được lật, nên các mép khớp liền mạch"
+
+# AI Translated
+msgid "Blend"
+msgstr "Hòa trộn"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "Thêm"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "Trừ"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "Nhân"
+
+# AI Translated
+msgid "Divide"
+msgstr "Chia"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "Lớp nền không có gì bên dưới để kết hợp, nên luôn ở chế độ Thêm."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "Tác động của lớp này tại nơi nó chồng lên các lớp bên dưới. Thêm và Trừ đắp thêm hoặc khoét bớt phần nổi. Nhân và Chia co giãn những gì nằm bên dưới, biến lớp này thành một mặt nạ phủ lên đó - khi ấy Độ sâu đóng vai trò như cường độ, và 1 mm giữ nguyên các vùng trắng."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "Điều chỉnh vị trí"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "Điều chỉnh vị trí - kéo tay nắm trên mô hình để di chuyển kết cấu"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "Hãy vẽ gì đó bằng lớp này trước."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "Ít cài đặt hơn"
+
+# AI Translated
+msgid "More settings"
+msgstr "Nhiều cài đặt hơn"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "Đã dùng hết %1% lớp"
+
+# AI Translated
+msgid "Add layer"
+msgstr "Thêm lớp"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "Chia nhỏ"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "Chỉ vùng đã vẽ (thích ứng)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "Chỉ thêm tam giác ở nơi bạn đã vẽ, thay vì ở khắp nơi. Trên một chi tiết lớn với một hình dán nhỏ, đó là khác biệt giữa hàng nghìn và hàng triệu tam giác, và phần vẽ của bạn vẫn được giữ qua quá trình tinh chỉnh."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "Theo chi tiết kết cấu"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "Dồn tam giác vào nơi kết cấu thực sự uốn cong - dày đặc dọc theo gờ và cạnh, thưa thớt trên vùng phẳng - thay vì rải đều. Cùng mức chi tiết với ít tam giác hơn trên hầu hết các kết cấu."
+
+# AI Translated
+msgid "Max edge"
+msgstr "Cạnh tối đa"
+
+# AI Translated
+msgid "Target edge"
+msgstr "Cạnh mục tiêu"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "Không tam giác nào trong vùng đã vẽ lớn hơn giá trị này, kể cả nơi kết cấu phẳng. Hãy giữ gần với kích thước của chi tiết nhỏ nhất bạn muốn thể hiện."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "Các tam giác trong vùng đã vẽ được chia cho đến khi không tam giác nào lớn hơn giá trị này. Nhỏ hơn nghĩa là chi tiết mịn hơn và số tam giác tăng rất nhanh."
+
+# AI Translated
+msgid "Detail"
+msgstr "Chi tiết"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "Lưới được phép lệch bao xa so với hình dạng mà kết cấu mô tả, tính bằng milimét. Nhỏ hơn thì bám theo chi tiết mịn và tốn tam giác; lớn hơn thì chỉ bám theo các chi tiết lớn."
+
+# AI Translated
+msgid "Min edge"
+msgstr "Cạnh tối thiểu"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "Giới hạn dưới cho kích thước tam giác, để một bậc sắc trong kết cấu không bị bám theo mãi. Giảm để có phần nổi mịn hơn, tăng nếu số tam giác tăng vọt ở các cạnh sắc."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "Chi tiết mép"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "Kích thước tam giác dọc theo đường viền của vùng đã vẽ, nơi phần nổi hạ về bề mặt trơn. Giảm nếu viền đó trông răng cưa; chỉ tốn thêm tam giác dọc theo đường viền. 0 để tắt."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "Chi tiết màu"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "Kích thước tam giác tại nơi hai màu gặp nhau. Mỗi tam giác in bằng một filament, nên ranh giới màu chỉ sắc nét được bằng các tam giác dọc theo nó - và không có gì khác tinh chỉnh ở đó, vì bề mặt phẳng tại chỗ chuyển màu. 0 để tắt."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "Hạn mức tam giác: đặt bằng Tam giác, bên dưới."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "Xem trước: %1% tam giác"
+
+# AI Translated
+msgid "Steps"
+msgstr "Số bước"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "Chia mỗi tam giác của mô hình thành bốn, lặp lại số lần này. Mỗi bước nhân số tam giác lên bốn lần - 3 bước biến 100 k tam giác thành 6.4 M - vì vậy nên chỉ tinh chỉnh vùng đã vẽ, trừ khi bạn cần toàn bộ mô hình mịn hơn."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "Ẩn xem trước"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "Xem trước chia nhỏ"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "Hiển thị kết quả tinh chỉnh dưới dạng khung dây, không động đến mô hình."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "Chia nhỏ"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "Tinh chỉnh vùng đã vẽ đến độ dài cạnh mục tiêu và chuyển phần vẽ của bạn sang lưới mịn hơn. Phần còn lại của mô hình giữ nguyên."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "Thay hình học của mô hình bằng lưới đã chia nhỏ và xóa mọi phần vẽ chưa nướng trên đó (phần nổi đã nướng không bị ảnh hưởng)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "Tạo lại lưới"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "Kích thước tam giác dùng để dựng lại toàn bộ mô hình, tính bằng milimét. Dịch chuyển hoạt động tốt nhất trên lưới đều; đây là cách tạo lưới đều từ một mô hình nhập vào không đều."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "Giữ cạnh sắc"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "Giữ cố định các cạnh sắc và biên hở trong khi phần còn lại được tạo lại lưới. Nếu không có tùy chọn này, trình tạo lại lưới sẽ trượt các đỉnh dọc theo bề mặt và bo tròn mọi cạnh sắc - một khối lập phương sẽ có các cạnh méo mó."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "Nếp gấp phải sắc đến mức nào, tính bằng độ, thì trình tạo lại lưới mới coi nó là cạnh cần giữ. Thấp hơn giữ được nhiều hình dạng của mô hình hơn; cao hơn dựng lại đều nhiều phần hơn."
+
+# AI Translated
+msgid "Remesh"
+msgstr "Tạo lại lưới"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "Dựng lại toàn bộ mô hình với các tam giác có độ dài cạnh gần với giá trị này - chia các tam giác lớn và gộp các tam giác nhỏ - để dịch chuyển có mật độ đều để làm việc. Thay thế hình học; phần vẽ của bạn được chuyển sang các tam giác mới theo vị trí không gian nên vẫn được giữ (phần nổi đã nướng cũng được giữ)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "Dịch chuyển đến tận viền"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "Cho phép phần nổi chạy đến tận mép vùng đã vẽ. Tắt để giữ phẳng vòng ngoài đó, giúp dịch chuyển nằm hẳn bên trong vùng vẽ nhưng làm phẳng mẫu ở viền."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "Làm mượt kết quả"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "Làm mượt hình học sau khi đã áp dụng kết cấu, để loại bỏ các bậc gắt từ ảnh độ phân giải thấp. Chỉ những gì dịch chuyển đã di chuyển mới bị tác động. Thanh trượt Làm mượt trên một lớp là thứ khác: nó làm mờ ảnh trước khi dùng."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "Cường độ"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "Mỗi lượt kéo một đỉnh về phía các đỉnh lân cận bao xa. Giá trị cao bo tròn phần nổi nhanh; giá trị thấp cần nhiều lượt hơn nhưng giữ được nhiều chi tiết hơn."
+
+# AI Translated
+msgid "Passes"
+msgstr "Số lượt"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "Số lượt làm mượt cần chạy. Nhiều lượt hơn làm hiệu ứng làm mượt lan rộng hơn trên bề mặt; Cường độ quyết định mỗi lượt di chuyển bao nhiêu."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "Bỏ qua vòng ngoài"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "Loại vòng ngoài của vùng đã vẽ khỏi việc làm mượt. Các đỉnh lân cận bên ngoài vùng vẽ không bao giờ di chuyển, nên làm mượt vòng này sẽ kéo phần nổi xuống và khiến mẫu ở viền trông như bị chảy một nửa."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "Làm mượt lưới đã nướng ngay"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "Áp dụng việc làm mượt ở trên vào chính mô hình, ngay lập tức, trong vùng đã vẽ. Dành cho phần nổi đã được nướng - những gì chưa nướng sẽ được làm mượt khi Nướng."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "Thử nghiệm: quy trình nướng cổ điển"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "Nướng bằng cách di chuyển các đỉnh sẵn có của lưới, sau khi chuẩn bị lưới (tạo lại lưới, chia nhỏ thích ứng và cắt dọc các bậc sắc trong kết cấu). Giữ nguyên cấu trúc liên kết, điều mà màu sắc cần. Quy trình mặc định thì tinh chỉnh, dọn các tam giác dẹt, dịch chuyển và đơn giản hóa trong một lần chạy; không cần chuẩn bị gì trước, nhưng chưa tạo được màu."
+
+# AI Translated
+msgid "Budget"
+msgstr "Hạn mức"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Số nghìn tam giác mà lần nướng này được phép dùng cho vùng bạn đã vẽ. Phần nổi đã nướng vào phần còn lại của mô hình được giữ thêm ngoài hạn mức này, nên lần nướng thứ hai ở chỗ khác có cùng hạn mức như lần đầu. Tăng nếu cảnh báo bên dưới Độ phân giải cho biết chi tiết sẽ không vừa; 0 giữ mọi tam giác mà quá trình tinh chỉnh tạo ra, dù nhiều đến đâu."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "Căn lưới theo cạnh của kết cấu"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "Trượt các đỉnh sang ngang lên các cạnh trong kết cấu trước khi dịch chuyển chúng. Dịch chuyển chỉ có thể di chuyển đỉnh lên và xuống, nên nếu không có tùy chọn này, một bậc sắc trong ảnh sẽ rơi vào bất cứ đâu các tam giác tình cờ nằm và tạo thành bậc thang. Di chuyển các đỉnh lên bậc trước sẽ cho một thành thẳng với cùng số tam giác."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "Dọn tam giác dẹt"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "Gộp các tam giác mỏng mà quá trình tinh chỉnh thừa hưởng từ cách chia lưới của chính mô hình, trước khi dịch chuyển lấy mẫu chúng. Ba góc của một tam giác dẹt rơi vào ba phần không liên quan của kết cấu, đó là lý do khiến phần nổi trông lởm chởm."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "Bật: độ phân giải theo kích thước của mô hình và hạn mức được để ở mặc định. Bỏ chọn để tự đặt cả hai - nên làm khi kết cấu mịn hơn hoặc thô hơn nhiều so với chi tiết mà nó nằm trên."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "Được chọn theo kích thước của mô hình: tam giác %1$.2f mm, hạn mức %2% k. Bỏ chọn Tự động để tự đặt."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "Độ mịn của lưới bên dưới phần vẽ, tính bằng milimét. Giá trị phải nhỏ hơn chi tiết bạn muốn lấy từ kết cấu - một rãnh 0.5 mm cần tam giác nhỏ hơn hẳn 0.5 mm. Nhỏ hơn thì tốn tam giác rất nhanh: giảm một nửa cần gấp bốn lần số tam giác, và khi không còn vừa hạn mức, quá trình nướng sẽ đơn giản hóa trở lại và chi tiết cũng mất theo."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "Cần khoảng %1% tam giác, hạn mức %2% - quá trình nướng sẽ đơn giản hóa trở lại và mất chi tiết."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "Số nghìn tam giác mà quá trình tinh chỉnh được phép thêm vào mô hình. Tam giác khớp kém nhất luôn được chia trước, nên kể cả khi dùng hết hạn mức thì cũng đã dùng ở nơi dễ thấy nhất. Tăng nếu phần nổi vẫn trông thô."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "Dừng quá trình nướng. Những gì đã hoàn tất vẫn được giữ trên mô hình và có thể hoàn tác."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "Đóng công cụ mà không nướng. Phần vẽ, các lớp kết cấu và cài đặt vẫn được lưu cùng mô hình."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "Đang chuẩn bị..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "Đang nướng..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "Chưa vẽ gì. Công cụ đường cắt của trình chỉnh sửa UV đang bật, nên các nét vẽ trên mô hình sẽ đánh dấu đường cắt thay vì vẽ - hãy tắt nó trong bảng để vẽ."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "Chưa vẽ gì."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "Biến các bản đồ độ cao đã vẽ thành hình học thực bằng cách di chuyển các đỉnh sẵn có. Hãy dùng Chia nhỏ trước nếu lưới quá thô để thể hiện chi tiết."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "Biến các bản đồ độ cao đã vẽ thành hình học thực. Trước tiên lưới được tạo lại với mật độ đều và được tinh chỉnh ở nơi kết cấu uốn cong, để chi tiết có đỉnh mà bám vào - tất cả trong một bước."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "Mô hình: %1% tam giác - quá trình nướng tinh chỉnh đến độ phân giải ở trên, trong giới hạn hạn mức"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "Nướng di chuyển các đỉnh sẵn có - mô hình giữ nguyên %1% tam giác"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "Kết quả nướng tối đa ~%1% k tam giác"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% lớp chưa vẽ, đã bỏ qua"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% chưa vẽ, đã bỏ qua"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "Đang vào vẽ dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "Đang rời vẽ dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "Chỉnh sửa dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "Chọn file lưu trữ SLA:"
+
+# AI Translated
+msgid "Import file"
+msgstr "Nhập file"
+
+# AI Translated
+msgid "Import model and profile"
+msgstr "Nhập mô hình và hồ sơ"
+
+# AI Translated
+msgid "Import profile only"
+msgstr "Chỉ nhập hồ sơ"
+
+# AI Translated
+msgid "Import model only"
+msgstr "Chỉ nhập mô hình"
+
+# AI Translated
+msgid "Accurate"
+msgstr "Chính xác"
+
+# AI Translated
+msgid "Balanced"
+msgstr "Cân bằng"
+
+# AI Translated
+msgid "Quick"
+msgstr "Nhanh"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "Đang nướng dịch chuyển kết cấu"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "Quá trình nướng không tạo ra dịch chuyển nào, nên không có gì thay đổi và phần vẽ vẫn được giữ. Hãy kiểm tra xem lớp đã vẽ có kết cấu và độ sâu khác 0 không."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "Hạn mức tam giác đã giới hạn chi tiết: độ phân giải này cần %1% tam giác, hạn mức chỉ giữ %2%. Hãy tăng Hạn mức hoặc dùng Độ phân giải thô hơn để có đầy đủ chi tiết."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "Đang ghi lại các giai đoạn nướng"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "Đang chuẩn bị lưới cho dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "Nhấn để chỉnh sửa tỷ lệ"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "Chỉnh sửa filament pha trộn"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "Xem trước hiệu ứng"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "Chọn vật liệu pha trộn"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ Thêm vật liệu"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- Xóa vật liệu"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "Hiệu ứng gradient"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "Bật hiệu ứng gradient theo từng phần"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "Đề xuất pha trộn"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- Chọn --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "Khe %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "Không thể pha trộn các loại filament khác nhau: %s. Vui lòng chọn cùng loại filament."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "Vui lòng chọn filament cho tất cả thành phần"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "Không thể pha trộn các loại filament khác nhau"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "Tối đa 3 vật liệu để pha trộn"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "Đã đạt số thành phần tối đa"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "Xóa vật liệu thứ ba"
+
+# AI Translated
+msgid "3D Models"
+msgstr "Mô hình 3D"
+
+# AI Translated
+msgid "Click to return"
+msgstr "Nhấn để quay lại"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "Mũi tên trái"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "Nhấn để tiếp tục"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "Mũi tên phải"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "Chọn plugin %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "Chọn một plugin %s từ danh sách bên dưới."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "Không tìm thấy plugin nào cho loại này."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "File plugin: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "Plugin process"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "Plugin filament"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "Plugin máy in"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "Cấu hình không phải là JSON hợp lệ. Các thay đổi của bạn chưa được lưu."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "Đã cập nhật cấu hình. Hãy lưu cài đặt sẵn để giữ lại thay đổi."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"Khôi phục cấu hình mặc định cho \"%s\"?\n"
+"\n"
+"Thao tác này sẽ hủy phần ghi đè của cài đặt sẵn và dùng cấu hình chung."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "Khôi phục mặc định"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "Đang dùng cấu hình chung. Hãy lưu cài đặt sẵn để giữ lại thay đổi."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "Khả năng này không còn khả dụng."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "Không tải được giao diện cấu hình của plugin (%1%). Đang hiển thị trình chỉnh sửa mặc định."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "Xóa plugin"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "Hủy đăng ký"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "Ghi đè plugin"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "Chọn một gói plugin .py hoặc .whl."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "Cài đặt gói plugin thất bại. Xem nhật ký để biết chi tiết."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"Plugin \"%s\" đã được cài đặt.\n"
+"\n"
+"Cài đặt gói này sẽ ghi đè plugin hiện có."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "Ghi đè"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "Đang cài đặt plugin"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "Đã cài đặt \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "Kích hoạt \"%s\" thất bại."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "Đã kích hoạt \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"Không tìm thấy các plugin đã cài đặt sau trên ổ đĩa:\n"
+"%s\n"
+"\n"
+"Xóa chúng khỏi OrcaSlicer?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "Thiếu plugin"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "Đang làm mới dữ liệu plugin"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "Dỡ tải plugin thất bại."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "Đã hủy kích hoạt \"%s\"."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "Không tìm thấy tệp kê khai (manifest) của plugin."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "Đang kích hoạt \"%s\"..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "Đã bật \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "Đã tắt \"%s\"."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "Đang tải xuống plugin"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "Tải xuống plugin thất bại."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "Đã lưu cấu hình."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"Khôi phục cấu hình mặc định cho \"%s\"?\n"
+"\n"
+"Thao tác này sẽ hủy các cài đặt hiện đang được lưu cho khả năng này."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "Đã khôi phục cấu hình mặc định."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "Đang cập nhật plugin"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "Cập nhật plugin thất bại."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "Đã cập nhật \"%s\"."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "Không xác định được thư mục plugin."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"Xóa plugin \"%s\"?\n"
+"\n"
+"Thao tác này xóa các file plugin cục bộ. Plugin vẫn còn trên đám mây và có thể cài đặt lại."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"Xóa plugin \"%s\"?\n"
+"\n"
+"Thao tác này xóa vĩnh viễn thư mục plugin."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "Xóa plugin thất bại."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "Đã xóa \"%s\"."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "Đang xóa plugin"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "Đang xóa plugin..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"Hủy đăng ký plugin \"%s\"?\n"
+"\n"
+"Thao tác này sẽ ngừng theo dõi plugin và xóa mọi file plugin cục bộ."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "Hủy đăng ký plugin thất bại."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "Đã hủy đăng ký \"%s\"."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "Đang hủy đăng ký plugin"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "Đang xóa file cục bộ và hủy đăng ký plugin..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "Đang tải lại plugin"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "Tải lại plugin thất bại."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "Đã tải lại \"%s\"."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "Cài đặt chế độ xả"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "Xả đầy đủ với chuyển tiếp tốc độ và nhiệt độ để có chất lượng in tốt nhất."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "Dùng nhiệt độ xả, hệ số nhân tối ưu và đùn mạnh hơn để xả nhanh hơn. Có thể gây lẫn màu nhẹ trong một số trường hợp cực đoan."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "Tiết kiệm xả"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "Giảm lượng nhựa xả bỏ và in nhanh hơn. Có thể gây lẫn màu nhẹ hoặc khuyết điểm nhỏ trên bề mặt."
+
+# AI Translated
+msgid "Terminal"
+msgstr "Terminal"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "Tự động pha trộn CMYW bằng một cú nhấp"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "Tự động pha trộn RYBW bằng một cú nhấp"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "Filament vật lý của dự án"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "Filament vật lý mới"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "Filament pha trộn của dự án"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "Filament pha trộn mới"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "Dự án hỗ trợ tối đa %d filament. Các filament thừa sẽ bị loại bỏ."
+
+# AI Translated
+msgid "Import Model"
+msgstr "Nhập mô hình"
+
+# AI Translated
+msgid "Original"
+msgstr "Bản gốc"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "Nhiều màu"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "Mô hình có kết cấu đầu vào của bạn"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "Mô hình nhiều màu đã xử lý"
+
+# AI Translated
+msgid "Color Count"
+msgstr "Số lượng màu"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "Mức làm mượt"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "Chỉ tự động xác định số màu tối ưu và tính lại ánh xạ filament"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "Chuyển kết cấu thành vùng vẽ màu với số màu và mức làm mượt đã chỉ định"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "Lưu ý: tham số đã thay đổi, nhấn Áp dụng để có hiệu lực"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "Ánh xạ filament"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "Đặt lại ánh xạ filament về trạng thái trước khi pha trộn bằng một cú nhấp"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "Chọn chế độ tự động pha trộn bằng một cú nhấp khi nhập màu kết cấu"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "Tự động gộp filament giống nhau"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "Tự động gộp các filament giống hệt vào filament hiện có trong dự án"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "Bỏ qua khớp"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "Bỏ qua ánh xạ filament và nhập dưới dạng mô hình một màu"
+
+# AI Translated
+msgid "Processing"
+msgstr "Đang xử lý"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "Đang tính toán màu kết cấu..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "Đang sửa lưới"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "Tính toán thất bại. Vui lòng điều chỉnh tham số và thử lại."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "Lưới có hình học non-manifold hoặc biên hở. Bạn có thể nhập nguyên trạng hoặc sửa bằng dịch vụ sửa chữa 3D của Windows trước khi nhập."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "Sửa lưới"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "Nhập mà không sửa"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "Sửa và nhập"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "Lưu ý rằng lưới có hình học non-manifold hoặc biên hở."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "Vấn đề về lưới"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "Ảnh đã chọn trống."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "Không thể chuẩn bị kết cấu để sử dụng."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "Chỉ có thể xóa các kết cấu do bạn tự nhập."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "Không thể xóa file kết cấu."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "Không thể tạo thư mục cho các kết cấu đã nhập."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "Không thể tải ảnh đã chọn."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "Lưu kết cấu đã nhập thất bại."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "Không thể đọc file kết cấu."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "Khung chiếu - kéo lên trên mô hình, rồi Áp dụng"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "Đang di chuyển mảnh  |  thả ra để đặt, Esc để hủy"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "Đang xoay mảnh: %d°  |  Shift = bắt theo 15°, nhấn để xác nhận, Esc để hủy"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "Đang co giãn mảnh  |  nhấn để xác nhận, Esc để hủy"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "Đang di chuyển đỉnh  |  thả ra để đặt"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "Đang di chuyển cạnh  |  thả ra để đặt"
+
+# AI Translated
+msgid "Panning"
+msgstr "Đang di chuyển khung nhìn"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "Vẽ vùng trên mô hình, rồi nhấn Trải phẳng"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "Chọn Trải phẳng làm phương pháp ánh xạ của một lớp kết cấu để chỉnh sửa UV của nó tại đây"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "Đã chọn %d đỉnh  |  kéo = di chuyển cùng nhau, Shift/Ctrl + nhấn = thêm/bớt"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Chế độ đỉnh: kéo một đỉnh để định hình lại  |  Shift/Ctrl + nhấn = chọn nhiều, con lăn = thu phóng, Home = vừa khung"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "Đã chọn %d cạnh  |  kéo = di chuyển cùng nhau, Shift/Ctrl + nhấn = thêm/bớt"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Chế độ cạnh: kéo một cạnh của mảnh để định hình lại  |  Shift/Ctrl + nhấn = chọn nhiều, con lăn = thu phóng, Home = vừa khung"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "Đã chọn %d mảnh  |  kéo = di chuyển cùng nhau, Shift/Ctrl + nhấn = thêm/bớt, R/S = xoay/co giãn mảnh chính"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "Đã chọn mảnh %d  |  kéo = di chuyển, R = xoay, S = co giãn, Shift/Ctrl + nhấn = chọn nhiều, Home = vừa khung"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "Nhấn vào một mảnh để chọn  |  Shift/Ctrl + nhấn = chọn nhiều, con lăn = thu phóng, kéo chuột giữa = di chuyển khung nhìn, Home = vừa khung tất cả"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  bắt dính BẬT"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "Đổi kết cấu - chọn kết cấu khác từ thư viện kết cấu"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "Bản đồ độ cao - hiển thị kết cấu của lớp bên dưới các mảnh"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "Ô bàn cờ - một lưới kiểm tra; các ô vẫn vuông ở nơi phần trải phẳng không bị kéo giãn"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "Độ méo - tô màu mỗi mảnh theo mức độ phần trải phẳng kéo giãn nó"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "Trải phẳng"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "Góc đường cắt"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "Các cạnh sắc hơn góc này sẽ bị cắt, và các mảnh ở hai bên được làm phẳng riêng. Giảm để cắt nhiều hơn: mỗi mảnh khi đó nằm phẳng với ít kéo giãn hơn, đổi lại kết cấu không chạy liền mạch qua vết cắt. Có hiệu lực ở lần Trải phẳng tiếp theo."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "Nối các mảnh"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "Bố trí phần trải phẳng thành một hình khai triển liền: các mảnh chung cạnh được trải cạnh nhau (một khối lập phương trở thành một hình khai triển liền thay vì sáu hình vuông rời). Chúng vẫn là các mảnh riêng, nên sau đó bạn vẫn có thể tự di chuyển bất kỳ mảnh nào."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "Mảnh - di chuyển, xoay và co giãn toàn bộ mảnh"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "Đỉnh - kéo đỉnh để định hình lại; Shift/Ctrl để chọn nhiều"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "Cạnh - kéo cạnh để định hình lại; Shift/Ctrl để chọn nhiều"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "Đánh dấu đường cắt - nhấn vào các cạnh trên mô hình để cắt phần trải phẳng dọc theo chúng. Cạnh dưới con trỏ được tô sáng màu vàng; nhấn để đánh dấu màu đỏ, nhấn lại vào cạnh đỏ để bỏ đánh dấu. Việc vẽ tạm dừng khi tùy chọn này bật."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "Đường đi - thay vì nhấn từng cạnh, hãy nhấn một điểm đầu rồi một điểm cuối: toàn bộ đường ngắn nhất giữa chúng được đánh dấu đường cắt cùng lúc. Khả dụng khi đang đánh dấu đường cắt."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "Xóa đường cắt - xóa mọi đường cắt được đánh dấu trên lớp này"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "Tỷ lệ trung bình - cho mọi mảnh cùng mật độ texel"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "Cắt - chia mảnh đã chọn theo trục dài của nó"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "Nối - trải mảnh đã chọn lên mảnh lân cận gần nhất dọc theo cạnh chung"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "Tách - đưa mảnh đã chọn về vị trí sắp xếp riêng của nó"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "Xóa chỉnh sửa UV - hủy mọi thao tác di chuyển đỉnh/cạnh thủ công và đưa phần trải phẳng về hình dạng tự động"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "Bắt dính - gắn các mảnh vào nhau khi kéo một mảnh sát vào mảnh khác"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "Vừa khung tất cả mảnh (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "Không có lớp nào được ánh xạ bằng Trải phẳng"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "ô %.1f mm"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "Đã lỗi thời - phần vẽ, các đường cắt hoặc góc đường cắt đã thay đổi kể từ lần trải phẳng này. Nhấn để trải phẳng lại."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "Làm phẳng vùng đã vẽ thành các mảnh UV. Việc này chỉ được tính khi bạn nhấn nút này, không phải sau mỗi lần chỉnh sửa - vì vậy hãy vẽ, đổi góc đường cắt hoặc đánh dấu đường cắt trước, rồi nhấn Trải phẳng."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d mảnh, %s mặt"
+
+# AI Translated
+msgid "Forward"
+msgstr "Tiến"
+
+# AI Translated
+msgid "Tools"
+msgstr "Công cụ"
+
+# AI Translated
+msgid "View Source"
+msgstr "Xem mã nguồn"
+
+# AI Translated
+msgid "View Text"
+msgstr "Xem văn bản"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "Xử lý điều hướng"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "Xử lý cửa sổ mới"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "Chế độ chỉnh sửa"
+
+# AI Translated
+msgid "Run Script"
+msgstr "Chạy script"
+
+# AI Translated
+msgid "Add user script"
+msgstr "Thêm script người dùng"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "Đặt user agent tùy chỉnh"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "Bỏ chọn"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "Xóa vùng chọn"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "Ví dụ scheme tùy chỉnh"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "Ví dụ hệ thống file trong bộ nhớ"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "Bật menu ngữ cảnh"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "Bật công cụ nhà phát triển"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "Đã xảy ra lỗi khi tải %s"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "Nạp %1% vào %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "Nạp %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"Plugin \"%s\" đang yêu cầu quyền cho sự kiện audit Python \"%s\".\n"
+"\n"
+"Thao tác này không cung cấp đối tượng nào mà audit hook có thể hiển thị."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu đọc (các) file sau:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu đọc/ghi (các) file sau:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu tạo (các) file sau:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu xóa (các) file sau:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu gửi một yêu cầu HTTP đến:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu mở một kết nối mạng đến:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"Plugin \"%s\" đang yêu cầu chạy (các) lệnh sau:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "Plugin \"%s\" đang yêu cầu quyền cho sự kiện audit Python \"%s\"."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "Yêu cầu quyền của plugin"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "Giao diện cấu hình của plugin trống. Đang hiển thị trình chỉnh sửa mặc định."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "Khả năng này không còn khả dụng. Các thay đổi của bạn chưa được lưu."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "Không thể ghi cấu hình vào ổ đĩa. Các thay đổi của bạn chưa được lưu."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "Plugin không thể cung cấp cấu hình mặc định (%1%). Không có gì thay đổi."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "Không thể ghi cấu hình vào ổ đĩa. Không có gì thay đổi."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "Cài đặt plugin thất bại"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -27387,6 +30114,87 @@ msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "Không thể tạo G-code hiệu chỉnh"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "Trừ"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "Nhân"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " và "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "không thể pha trộn. Vui lòng chọn cùng loại filament."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "Đã xảy ra lỗi khi tải "
+
+# AI Translated
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "Nạp %s vào "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "Trong tab Thiết kế, vẽ đầu nối lắp ghép dưới dạng một mặt nhỏ thay vì đĩa thông thường có góc phần tư xoay. Hướng của một mặt có thể đọc được ngay mà không cần học. Tắt tùy chọn này để dùng cách biểu diễn CAD thông thường."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "Chuyên gia"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "Đơn giản"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "Nhấn các điểm; nhấn điểm đầu tiên / nhấn chuột phải để khép vòng"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "Gợi ý X: X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "Gợi ý X: Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "Gợi ý X: Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — biểu tượng con mắt sẽ vô hiệu hóa lắp ghép này"
+
+# AI Translated
+#~ msgid "Del"
+#~ msgstr "Xóa"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "Đã giữ phác thảo — Hoàn thành để áp dụng, Hủy để loại bỏ"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "Đang chỉnh sửa: Phác thảo %d   ·   N = nhìn vuông góc với mặt phẳng   ·   Hoàn thành hoặc Hủy trên thanh công cụ"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "Đang chỉnh sửa phác thảo — kéo một tay nắm hoặc nhấn vào một giá trị kích thước để chỉnh sửa"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -27519,9 +30327,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "Hoàn tác  (còn %zu)"
-
-#~ msgid "Reset direction"
-#~ msgstr "Đặt lại hướng"
 
 #~ msgid "Section View"
 #~ msgstr "Chế độ xem mặt cắt"
@@ -27747,9 +30552,6 @@ msgstr ""
 
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "Điều chỉnh về phạm vi đặt tự động?\n"
-
-#~ msgid "Head diameter"
-#~ msgstr "Đường kính đầu"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Thứ tự in trong một lớp đơn."
@@ -28075,14 +30877,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 
-#~ msgid "Remove selected points"
-#~ msgstr "Xóa điểm đã chọn"
-
 #~ msgid "Remove all"
 #~ msgstr "Xóa tất cả"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Tự động tạo điểm"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "Thêm tai vành"
@@ -28114,12 +30910,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "Phím 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "Nhấn trái"
-
-#~ msgid "Right click"
-#~ msgstr "Nhấn phải"
 
 #~ msgid "Select feature"
 #~ msgstr "Chọn đặc trưng"

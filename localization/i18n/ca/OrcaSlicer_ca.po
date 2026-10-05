@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2606,7 +2606,7 @@ msgid "Ongoing uploads"
 msgstr "Càrregues en curs"
 
 msgid "Select a G-code file:"
-msgstr "Seleccioneu un fitxer de Codi-G:"
+msgstr "Seleccioneu un fitxer de G-code:"
 
 msgid "Could not start URL download. Destination folder is not set. Please choose destination folder in Configuration Wizard."
 msgstr "No s'ha pogut iniciar la descàrrega d'URL. La carpeta de destinació no està definida. Trieu la carpeta de destinació a l'Auxiliar de configuració."
@@ -3591,13 +3591,13 @@ msgid "Custom Template:"
 msgstr "Plantilla personalitzada:"
 
 msgid "Custom G-code:"
-msgstr "Codi-G personalitzat:"
+msgstr "G-code personalitzat:"
 
 msgid "Custom G-code"
-msgstr "Codi-G personalitzat"
+msgstr "G-code personalitzat"
 
 msgid "Enter Custom G-code used on current layer:"
-msgstr "Introdueix el Codi-G personalitzat utilitzat a la capa actual:"
+msgstr "Introdueix el G-code personalitzat utilitzat a la capa actual:"
 
 msgid "Jump to layer"
 msgstr "Saltar a la Capa"
@@ -3612,16 +3612,16 @@ msgid "Insert a pause command at the beginning of this layer."
 msgstr "Inserir una ordre de pausa al començament d'aquesta capa."
 
 msgid "Add Custom G-code"
-msgstr "Afegir Codi-G Personalitzat"
+msgstr "Afegir G-code Personalitzat"
 
 msgid "Insert custom G-code at the beginning of this layer."
-msgstr "Inserir Codi-G personalitzat al començament d'aquesta capa."
+msgstr "Inserir G-code personalitzat al començament d'aquesta capa."
 
 msgid "Add Custom Template"
 msgstr "Afegir Plantilla Personalitzada"
 
 msgid "Insert template custom G-code at the beginning of this layer."
-msgstr "Inserir la plantilla de Codi-G personalitzat al començament d'aquesta capa."
+msgstr "Inserir la plantilla de G-code personalitzat al començament d'aquesta capa."
 
 # AI Translated
 msgid "Filament "
@@ -3637,10 +3637,10 @@ msgid "Delete Custom Template"
 msgstr "Suprimeix la Plantilla Personalitzada"
 
 msgid "Edit Custom G-code"
-msgstr "Editar Codi-G Personalitzat"
+msgstr "Editar G-code Personalitzat"
 
 msgid "Delete Custom G-code"
-msgstr "Eliminar Codi-G Personalitzat"
+msgstr "Eliminar G-code Personalitzat"
 
 msgid "Delete Filament Change"
 msgstr "Suprimir el Canvi de Filament"
@@ -4161,10 +4161,10 @@ msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr "S'ha trobat un error desconegut amb l'estat de l'emmagatzematge. Torneu-ho a provar."
 
 msgid "Sending G-code file over LAN"
-msgstr "Enviant el fitxer Codi-G a través de LAN"
+msgstr "Enviant el fitxer G-code a través de LAN"
 
 msgid "Sending G-code file to SD card"
-msgstr "Enviant el fitxer Codi-G a sdcard"
+msgstr "Enviant el fitxer G-code a sdcard"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -4730,7 +4730,7 @@ msgid "Please save your project and restart the application."
 msgstr "Deseu el projecte i reinicieu el programa."
 
 msgid "Processing G-Code from previous file…"
-msgstr "Processant el Codi-G del fitxer anterior..."
+msgstr "Processant el G-code del fitxer anterior..."
 
 msgid "Slicing complete"
 msgstr "Laminat completat"
@@ -4763,14 +4763,14 @@ msgid "Successfully executed post-processing script"
 msgstr "Executats scripts de post-processament satisfactòriament"
 
 msgid "Unknown error occurred during exporting G-code."
-msgstr "S'ha produït un error desconegut durant l'exportació del codi-G."
+msgstr "S'ha produït un error desconegut durant l'exportació del G-code."
 
 #, boost-format
 msgid ""
 "Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\n"
 "Error message: %1%"
 msgstr ""
-"Error en copiar el codi-G temporal al codi-G de sortida. Potser la targeta SD està bloquejada contra escriptura?\n"
+"Error en copiar el G-code temporal al G-code de sortida. Potser la targeta SD està bloquejada contra escriptura?\n"
 "Missatge d'error: %1%"
 
 # AI Translated
@@ -4779,31 +4779,31 @@ msgid ""
 "Copying of the temporary G-code to the output G-code failed.\n"
 "Error message: %1%"
 msgstr ""
-"Ha fallat la còpia del codi-G temporal al codi-G de sortida.\n"
+"Ha fallat la còpia del G-code temporal al G-code de sortida.\n"
 "Missatge d'error: %1%"
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
-msgstr "Error en copiar el codi-G temporal al codi-G de sortida. Hi pot haver un problema amb el dispositiu de destinació, intenteu exportar novament o utilitzeu un dispositiu diferent. El codi-G de sortida malmès és a %1%.tmp."
+msgstr "Error en copiar el G-code temporal al G-code de sortida. Hi pot haver un problema amb el dispositiu de destinació, intenteu exportar novament o utilitzeu un dispositiu diferent. El G-code de sortida malmès és a %1%.tmp."
 
 #, boost-format
 msgid "Renaming of the G-code after copying to the selected destination folder has failed. Current path is %1%.tmp. Please try exporting again."
-msgstr "El canvi de nom del codi-G després de copiar a la carpeta de destinació seleccionada ha fallat. La ruta actual és %1%.tmp. Intenta exportar de nou."
+msgstr "El canvi de nom del G-code després de copiar a la carpeta de destinació seleccionada ha fallat. La ruta actual és %1%.tmp. Intenta exportar de nou."
 
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the original code at %1% couldn't be opened during copy check. The output G-code is at %2%.tmp."
-msgstr "La còpia del codi-G temporal ha finalitzat, però el codi original en %1% no s'ha pogut obrir durant la verificació de còpia. El codi-G de sortida és a %2%.tmp."
+msgstr "La còpia del G-code temporal ha finalitzat, però el codi original en %1% no s'ha pogut obrir durant la verificació de còpia. El G-code de sortida és a %2%.tmp."
 
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the exported code couldn't be opened during copy check. The output G-code is at %1%.tmp."
-msgstr "La còpia del codi-G temporal ha finalitzat, però el codi exportat no s'ha pogut obrir durant la verificació de la còpia. El codi-G de sortida és a %1%.tmp."
+msgstr "La còpia del G-code temporal ha finalitzat, però el codi exportat no s'ha pogut obrir durant la verificació de la còpia. El G-code de sortida és a %1%.tmp."
 
 #, boost-format
 msgid "G-code file exported to %1%"
-msgstr "Fitxer de codi-G exportat a %1%"
+msgstr "Fitxer de G-code exportat a %1%"
 
 msgid "Unknown error with G-code export"
-msgstr "Error desconegut en exportar el Codi-G."
+msgstr "Error desconegut en exportar el G-code."
 
 #, boost-format
 msgid ""
@@ -4811,12 +4811,12 @@ msgid ""
 "Error message: %1%.\n"
 "Source file %2%."
 msgstr ""
-"No s'ha pogut desar el fitxer Codi-G.\n"
+"No s'ha pogut desar el fitxer G-code.\n"
 "Missatge d'error: %1%.\n"
 "Fitxer origen %2%."
 
 msgid "Copying of the temporary G-code to the output G-code failed."
-msgstr "Error en copiar el Codi-G temporal al Codi-G de sortida"
+msgstr "Error en copiar el G-code temporal al G-code de sortida"
 
 #, boost-format
 msgid "Scheduling upload to `%1%`. See Window -> Print Host Upload Queue"
@@ -4829,7 +4829,7 @@ msgid "Size in X and Y of the rectangular plate."
 msgstr "Grandària en X i Y de la placa rectangular."
 
 msgid "Distance of the 0,0 G-code coordinate from the front left corner of the rectangle."
-msgstr "Distància de la coordenada 0,0 del Codi-G de 0,0 de la cantonada frontal esquerra del rectangle."
+msgstr "Distància de la coordenada 0,0 del G-code de 0,0 de la cantonada frontal esquerra del rectangle."
 
 msgid "Diameter of the print bed. It is assumed that origin (0,0) is located in the center."
 msgstr "Diàmetre del llit d'impressió. Se suposa que l'origen ( 0,0 ) està ubicat al centre."
@@ -5324,8 +5324,9 @@ msgstr "El paràmetre de cabal actual no és vàlid"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "El diàmetre seleccionat i el diàmetre de la màquina no coincideixen"
 
-msgid "Failed to generate cali G-code"
-msgstr "No s'ha pogut generar el gcode cali"
+# AI Translated
+msgid "Failed to generate calibration G-code"
+msgstr "No s'ha pogut generar el G-code de calibratge"
 
 msgid "Calibration error"
 msgstr "Error de calibratge"
@@ -5430,16 +5431,16 @@ msgstr "per defecte"
 
 #, boost-format
 msgid "Edit Custom G-code (%1%)"
-msgstr "Editar el codi-G personalitzat (%1%)"
+msgstr "Editar el G-code personalitzat (%1%)"
 
 msgid "Built-in placeholders (Double click item to add to G-code)"
-msgstr "Placeholders integrats (feu doble clic a l'element per afegir-lo al codi-G)"
+msgstr "Placeholders integrats (feu doble clic a l'element per afegir-lo al G-code)"
 
 msgid "Search G-code placeholders"
-msgstr "Cercar placeholders( Variables ) de codi-G"
+msgstr "Cercar placeholders( Variables ) de G-code"
 
 msgid "Add selected placeholder to G-code"
-msgstr "Afegir el placeholder( Variable ) seleccionat al codi-G"
+msgstr "Afegir el placeholder( Variable ) seleccionat al G-code"
 
 msgid "Select placeholder"
 msgstr "Seleccionar placeholder( Variable )"
@@ -6165,6 +6166,7 @@ msgid "Wireframe"
 msgstr "Malla alàmbrica"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "Raigs X"
 
@@ -6240,10 +6242,10 @@ msgid "An object is laid over the plate boundaries."
 msgstr "Un objecte està col·locat sobre el límit de la placa."
 
 msgid "A G-code path goes beyond the max print height."
-msgstr "Una trajectòria de Codi-G va més enllà de l'alçada màxima d'impressió."
+msgstr "Una trajectòria de G-code va més enllà de l'alçada màxima d'impressió."
 
 msgid "A G-code path goes beyond plate boundaries."
-msgstr "Una trajectòria de Codi-G va més enllà del límit de placa."
+msgstr "Una trajectòria de G-code va més enllà del límit de placa."
 
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "No és compatible la impressió amb 2 o més filaments TPU."
@@ -6435,7 +6437,7 @@ msgid "Export all sliced file"
 msgstr "Exportar el fitxer amb tot laminat"
 
 msgid "Export G-code file"
-msgstr "Exportar el fitxer del Codi-G"
+msgstr "Exportar el fitxer del G-code"
 
 msgctxt "Verb"
 msgid "Print"
@@ -6603,10 +6605,10 @@ msgid "Export all plate sliced file"
 msgstr "Exportar el fitxer laminat actual"
 
 msgid "Export G-code"
-msgstr "Exportar el Codi-G"
+msgstr "Exportar el G-code"
 
 msgid "Export current plate as G-code"
-msgstr "Exportar placa actual com a Codi-G"
+msgstr "Exportar placa actual com a G-code"
 
 msgid "Export toolpaths as OBJ"
 msgstr "Exportar trajectòries d'eines com a OBJ"
@@ -6686,11 +6688,12 @@ msgstr "Perspectiva automàtica"
 msgid "Automatically switch between orthographic and perspective when changing from top/bottom/side views."
 msgstr "Canviar automàticament entre ortogràfic i perspectiva en canviar de vistes superior/inferior/lateral"
 
+# AI Translated
 msgid "Show &G-code Window"
-msgstr "Mostra Finestra %Codi-G"
+msgstr "Mostra la finestra de &G-code"
 
 msgid "Show G-code window in Preview scene."
-msgstr "Mostra la finestra de Codi-G a l'escena prèvia"
+msgstr "Mostra la finestra de G-code a l'escena prèvia"
 
 msgid "Show 3D Navigator"
 msgstr "Mostrar el navegador 3D"
@@ -6807,10 +6810,10 @@ msgid "Calibration Guide"
 msgstr "Guia de calibratge"
 
 msgid "&Open G-code"
-msgstr "&Obrir Codi-G"
+msgstr "&Obrir G-code"
 
 msgid "Open a G-code file"
-msgstr "Obrir un fitxer de Codi-G"
+msgstr "Obrir un fitxer de G-code"
 
 msgid "Re&load from Disk"
 msgstr "Re%carregar des del disc"
@@ -7104,7 +7107,7 @@ msgid "Failed to parse model information."
 msgstr "No s'ha pogut analitzar la informació del model."
 
 msgid "The .gcode.3mf file contains no G-code data. Please slice it with Orca Slicer and export a new .gcode.3mf file."
-msgstr "El fitxer .gcode.3mf no conté dades de Codi-G. Lamineu-lo amb Orca Slicer i exporteu un nou fitxer .gcode.3mf."
+msgstr "El fitxer .gcode.3mf no conté dades de G-code. Lamineu-lo amb Orca Slicer i exporteu un nou fitxer .gcode.3mf."
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -8106,7 +8109,7 @@ msgid "Your model needs support! Please enable support material."
 msgstr "El teu model necessita suports! Si us plau, habiliteu el material de suport."
 
 msgid "G-code path overlap"
-msgstr "Superposició de la trajectòria del Codi-G"
+msgstr "Superposició de la trajectòria del G-code"
 
 msgid "Cut connectors"
 msgstr "Connectors de tall"
@@ -8515,6 +8518,7 @@ msgid "Click to edit preset"
 msgstr "Feu clic per editar el perfil"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "Variant"
 
@@ -8708,19 +8712,19 @@ msgid "Please correct them in the Param tabs"
 msgstr "Corregiu-los a les pestanyes de paràmetres"
 
 msgid "The 3MF has the following modified G-code in filament or printer presets:"
-msgstr "El fitxer 3MF ha realitzat les següents modificacions al Codi-G de filament o impressora:"
+msgstr "El fitxer 3MF ha realitzat les següents modificacions al G-code de filament o impressora:"
 
 msgid "Please confirm that all modified G-code is safe to prevent any damage to the machine!"
-msgstr "Confirmeu que aquests Codis-G modificats són segurs per evitar danys a la màquina!"
+msgstr "Confirmeu que aquests G-code modificats són segurs per evitar danys a la màquina!"
 
 msgid "Modified G-code"
-msgstr "Codis-G modificats"
+msgstr "G-code modificats"
 
 msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "El fitxer 3MF té els perfils personalitzats de filament o impressora següents:"
 
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
-msgstr "Confirmeu que els Codis-G d'aquests perfils són segurs per evitar danys a la màquina!"
+msgstr "Confirmeu que els G-code d'aquests perfils són segurs per evitar danys a la màquina!"
 
 msgid "Customized Preset"
 msgstr "Perfil personalitzat"
@@ -8976,7 +8980,7 @@ msgid ""
 "The loaded file contains G-code only, cannot enter the Prepare page."
 msgstr ""
 "Mode de previsualització\n"
-"El fitxer carregat només conté Codi-G, no pot accedir a la pàgina de Preparació."
+"El fitxer carregat només conté G-code, no pot accedir a la pàgina de Preparació."
 
 msgid ""
 "The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
@@ -9079,10 +9083,10 @@ msgid "The selected file"
 msgstr "El fitxer seleccionat"
 
 msgid "Does not contain valid G-code."
-msgstr "no conté Codi-G vàlid."
+msgstr "no conté G-code vàlid."
 
 msgid "An Error has occurred while loading the G-code file."
-msgstr "Es produeix un error en carregar el fitxer de Codi-G"
+msgstr "Es produeix un error en carregar el fitxer de G-code"
 
 #. TRN %1% is archive path
 #, boost-format
@@ -9111,13 +9115,13 @@ msgid "Import geometry only"
 msgstr "Importar només la geometria"
 
 msgid "Only one G-code file can be opened at a time."
-msgstr "Només es pot obrir un fitxer de Codi-G al mateix temps."
+msgstr "Només es pot obrir un fitxer de G-code al mateix temps."
 
 msgid "G-code loading"
-msgstr "Càrrega del Codi-G"
+msgstr "Càrrega del G-code"
 
 msgid "G-code files and models cannot be loaded together!"
-msgstr "Els fitxers de Codi-G no es poden carregar amb els models junts!"
+msgstr "Els fitxers de G-code no es poden carregar amb els models junts!"
 
 msgid "Unable to add models in preview mode"
 msgstr "No es poden afegir models en mode de previsualització!"
@@ -9135,7 +9139,7 @@ msgid "Copies of the selected object"
 msgstr "Còpies de l'objecte seleccionat"
 
 msgid "Save G-code file as:"
-msgstr "Desa el fitxer de Codi-G com a:"
+msgstr "Desa el fitxer de G-code com a:"
 
 msgid "Save SLA file as:"
 msgstr "Desar el fitxer SLA com a:"
@@ -9221,7 +9225,7 @@ msgstr ""
 "Utilitzeu l'ordenació automàtica per evitar col·lisions en imprimir."
 
 msgid "Send G-code"
-msgstr "Enviar el Codi-G"
+msgstr "Enviar el G-code"
 
 msgid "Send to printer"
 msgstr "Enviar a la impressora"
@@ -9573,7 +9577,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr "Afegeix fitxers STL/STEP a la llista de fitxers recents"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "No hi ha avisos en carregar 3MF amb Codis-G modificats"
+msgstr "No hi ha avisos en carregar 3MF amb G-code modificats"
 
 msgid "Show options when importing STEP file"
 msgstr "Mostra opcions en importar fitxers STEP"
@@ -9711,6 +9715,7 @@ msgid "Recent actions"
 msgstr "Accions recents"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "accions"
 
@@ -9782,7 +9787,7 @@ msgstr "Recordar la darrera acció d'impressió"
 
 # AI Translated
 msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Si s'activa, OrcaSlicer recordarà la darrera opció seleccionada al desplegable del botó d'impressió (p. ex. Imprimir, Exportar fitxer de la placa laminada, Exportar el fitxer del Codi-G) i la farà servir per defecte en el proper inici."
+msgstr "Si s'activa, OrcaSlicer recordarà la darrera opció seleccionada al desplegable del botó d'impressió (p. ex. Imprimir, Exportar fitxer de la placa laminada, Exportar el fitxer del G-code) i la farà servir per defecte en el proper inici."
 
 msgid "Touchpad"
 msgstr "Ratolí tàctil"
@@ -9828,8 +9833,8 @@ msgid "Draw mate connectors as a face"
 msgstr "Dibuixar els connectors de relació de posició com una cara"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "A la pestanya Disseny, dibuixa el connector de relació de posició com una petita cara en lloc del disc convencional amb un quadrant de gir. L'orientació d'una cara s'entén sense haver-la d'aprendre. Desactiveu-ho per obtenir la representació CAD convencional."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "A la pestanya Disseny, dibuixa el connector de relació de posició com una petita cara en lloc del disc convencional amb un quadrant de gir. Una cara mostra la seva orientació d'un cop d'ull, sense haver d'aprendre la convenció del disc. Desactiveu-ho per obtenir la representació CAD convencional."
 
 # AI Translated
 msgid "Pan"
@@ -9939,10 +9944,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "Aplica SSAO a la vista realista."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "Estàtic"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "Òrbita"
 
@@ -10752,10 +10759,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "Utilitza la configuració gràfica actual i normalment triga menys d'un minut. La finestra principal queda bloquejada fins que acaba."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "Avançat"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Expert"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "Desenvolupament"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Simple"
 
@@ -11086,7 +11105,7 @@ msgid "The filament type setting of external spool is different from the filamen
 msgstr "La configuració del tipus de filament de la bobina externa és diferent del filament del fitxer de tall."
 
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
-msgstr "El tipus d'impressora seleccionat en generar el Codi-G no és coherent amb la impressora seleccionada actualment. Es recomana utilitzar el mateix tipus d'impressora per laminar."
+msgstr "El tipus d'impressora seleccionat en generar el G-code no és coherent amb la impressora seleccionada actualment. Es recomana utilitzar el mateix tipus d'impressora per laminar."
 
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Hi ha alguns filaments desconeguts en els mapejats AMS. Comproveu si són els filaments requerits. Si estan bé, premeu \"Confirmar\" per començar a imprimir."
@@ -11786,10 +11805,10 @@ msgid "Special mode"
 msgstr "Ajustos especials"
 
 msgid "G-code output"
-msgstr "Codi-G de Sortida"
+msgstr "G-code de Sortida"
 
 msgid "Change extrusion role G-code"
-msgstr "Codi-G de canvi del rol d'extrusió"
+msgstr "G-code de canvi del rol d'extrusió"
 
 msgid "Post-processing Scripts"
 msgstr "Scripts de postprocessament"
@@ -11818,10 +11837,10 @@ msgid_plural ""
 "Please remove them, or G-code visualization and print time estimation will be broken."
 msgstr[0] ""
 "La següent línia %s conté paraules clau reservades.\n"
-"Si us plau, elimineu-la o no serà possible la visualització del Codi-G i l'estimació del temps d'impressió."
+"Si us plau, elimineu-la o no serà possible la visualització del G-code i l'estimació del temps d'impressió."
 msgstr[1] ""
 "Les següents línies %s contenen paraules clau reservades.\n"
-"Si us plau, elimineu-les o no serà possible la visualització del Codi-G i l'estimació del temps d'impressió."
+"Si us plau, elimineu-les o no serà possible la visualització del G-code i l'estimació del temps d'impressió."
 
 msgid "Reserved keywords found"
 msgstr "Trobades paraules clau reservades"
@@ -11931,10 +11950,10 @@ msgid "Complete print"
 msgstr "Impressió completada"
 
 msgid "Filament start G-code"
-msgstr "Codi-G Inicial del Filament"
+msgstr "G-code Inicial del Filament"
 
 msgid "Filament end G-code"
-msgstr "Codi-G Final del Filament"
+msgstr "G-code Final del Filament"
 
 msgid "Wipe tower parameters"
 msgstr "Paràmetres de la Torre de Purga"
@@ -11973,7 +11992,7 @@ msgid "Invalid value provided for parameter %1%: %2%"
 msgstr "Valor no vàlid proporcionat per al paràmetre %1%: %2%"
 
 msgid "G-code flavor is switched"
-msgstr "El tipus de codi-G s'ha canviat"
+msgstr "El tipus de G-code s'ha canviat"
 
 msgid "Cooling Fan"
 msgstr "Ventilador de refrigeració"
@@ -11991,40 +12010,40 @@ msgid "Accessory"
 msgstr "Accessori"
 
 msgid "Machine G-code"
-msgstr "Codi-G de màquina"
+msgstr "G-code de màquina"
 
 msgid "File header G-code"
 msgstr "G-code de capçalera del fitxer"
 
 msgid "Machine start G-code"
-msgstr "Codi-G d'arrencada de la màquina"
+msgstr "G-code d'arrencada de la màquina"
 
 msgid "Machine end G-code"
-msgstr "Codi-G final de màquina"
+msgstr "G-code final de màquina"
 
 msgid "Printing by object G-code"
-msgstr "Codi-G d'impressió per objecte"
+msgstr "G-code d'impressió per objecte"
 
 msgid "Before layer change G-code"
-msgstr "Codi-G per abans d'un canvi de capa"
+msgstr "G-code per abans d'un canvi de capa"
 
 msgid "Layer change G-code"
-msgstr "Codi-G per després d'un canvi de capa"
+msgstr "G-code per després d'un canvi de capa"
 
 msgid "Timelapse G-code"
-msgstr "Codi-G time lapse"
+msgstr "G-code time lapse"
 
 msgid "Clumping Detection G-code"
 msgstr "G-code de detecció d'acumulació"
 
 msgid "Change filament G-code"
-msgstr "Codi-G de canvi de filament"
+msgstr "G-code de canvi de filament"
 
 msgid "Pause G-code"
-msgstr "Codi-G de pausa"
+msgstr "G-code de pausa"
 
 msgid "Template Custom G-code"
-msgstr "Codi-G de canvi de plantilla"
+msgstr "G-code de canvi de plantilla"
 
 msgid "Motion ability"
 msgstr "Capacitat de moviment"
@@ -13181,7 +13200,7 @@ msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Cal comprovar els canvis no desats abans de les actualitzacions de configuració."
 
 msgid "Open G-code file:"
-msgstr "Obre el fitxer de Codi-G:"
+msgstr "Obre el fitxer de G-code:"
 
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Un objecte té la capa inicial buida i no es pot imprimir. Si us plau, talleu el fons o activeu els suports."
@@ -13215,15 +13234,15 @@ msgid ""
 "Failed to generate G-code for invalid custom G-code.\n"
 "\n"
 msgstr ""
-"No s'ha pogut generar el Codi-G per un Codi-G personalitzat no vàlid.\n"
+"No s'ha pogut generar el G-code per un G-code personalitzat no vàlid.\n"
 "\n"
 
 msgid "Please check the custom G-code or use the default custom G-code."
-msgstr "Comproveu el Codi-G personalitzat o utilitzeu el Codi-G personalitzat predeterminat."
+msgstr "Comproveu el G-code personalitzat o utilitzeu el G-code personalitzat predeterminat."
 
 #, boost-format
 msgid "Generating G-code: layer %1%"
-msgstr "Generant Codi-G: capa %1%"
+msgstr "Generant G-code: capa %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
 msgstr "La matriu de volums de purga no coincideix amb la mida correcta!"
@@ -13491,7 +13510,7 @@ msgid "Ooze prevention is only supported with the wipe tower when 'single_extrud
 msgstr "La prevenció de degoteig només és compatible amb la torre de neteja quan 'single_extruder_multi_material' està deshabilitat."
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "Actualment, la Torre de Purga només és compatible amb els tipus de Codi-G Marlin, RepRap/Sprinter, RepRapFirmware i Repetier."
+msgstr "Actualment, la Torre de Purga només és compatible amb els tipus de G-code Marlin, RepRap/Sprinter, RepRapFirmware i Repetier."
 
 msgid "A prime tower is not supported in “By object” print."
 msgstr "La Torre de Purga no està suportada en la impressió \"Per objecte\"."
@@ -13646,10 +13665,10 @@ msgstr ""
 "Separeu més els objectes, reduïu la mida de la vora d'adherència o de la faldilla, canvieu el tipus de Faldilla a Combinada, o canvieu la Seqüència d'impressió a Per capa."
 
 msgid "Exporting G-code"
-msgstr "Exportant el Codi-G"
+msgstr "Exportant el G-code"
 
 msgid "Generating G-code"
-msgstr "Generant el Codi-G"
+msgstr "Generant el G-code"
 
 msgid "Processing of the filename_format template failed."
 msgstr "Error en el processament de la plantilla filename_format."
@@ -13786,7 +13805,7 @@ msgid "API Key / Password"
 msgstr "Clau API / Contrasenya"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the API Key or the password required for authentication."
-msgstr "Orca Slicer pot pujar fitxers de Codi-G a una impressora. Aquest camp ha de contenir la clau API o la contrasenya necessària per a l'autenticació."
+msgstr "Orca Slicer pot pujar fitxers de G-code a una impressora. Aquest camp ha de contenir la clau API o la contrasenya necessària per a l'autenticació."
 
 # AI Translated
 msgid "Serial Number"
@@ -13912,7 +13931,7 @@ msgid "Other layers filament sequence"
 msgstr "Seqüència de filaments d'altres capes"
 
 msgid "This G-code is inserted at every layer change before the Z lift."
-msgstr "Aquest Codi-G s'insereix en cada canvi de capa abans d'aixecar z"
+msgstr "Aquest G-code s'insereix en cada canvi de capa abans d'aixecar z"
 
 msgid "Bottom shell layers"
 msgstr "Capes de la carcassa inferior"
@@ -14646,7 +14665,7 @@ msgid "Activate air filtration"
 msgstr "Activar la filtració d'aire"
 
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Activar-lo per a una millor filtració de l'aire. Comanda de Codi-G: M106 P3 S( 0-255 )"
+msgstr "Activar-lo per a una millor filtració de l'aire. Comanda de G-code: M106 P3 S( 0-255 )"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -14661,7 +14680,7 @@ msgid "Enable this to override the fan speed set in custom G-code after print co
 msgstr "Activeu-ho per substituir la velocitat del ventilador establerta al G-code personalitzat després de completar la impressió."
 
 msgid "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code."
-msgstr "Velocitat del ventilador d'extracció durant la impressió. Aquesta velocitat sobreescriurà la velocitat del Codi-G personalitzat del filament."
+msgstr "Velocitat del ventilador d'extracció durant la impressió. Aquesta velocitat sobreescriurà la velocitat del G-code personalitzat del filament."
 
 msgid "Speed of exhaust fan after printing completes."
 msgstr "Velocitat del ventilador d'extracció després de completar la impressió"
@@ -14781,19 +14800,19 @@ msgid "This is the maximum length of bridges that don't need support. Set it to 
 msgstr "Longitud màxima del pont que no necessita suport. Establiu-lo a 0 si voleu que tots els ponts tinguin suport i establiu-lo a un valor molt gran si no voleu que cap pont tingui suport."
 
 msgid "End G-code"
-msgstr "Codi-G Final"
+msgstr "G-code Final"
 
 msgid "Add end G-Code when finishing the entire print."
-msgstr "Codi-G Final en acabar tota la impressió"
+msgstr "G-code Final en acabar tota la impressió"
 
 msgid "Between Object G-code"
-msgstr "Codi-G entre Objectes"
+msgstr "G-code entre Objectes"
 
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
-msgstr "Inserir Codi-G entre objectes. Aquest paràmetre només s'aplicarà quan imprimiu els models objecte per objecte."
+msgstr "Inserir G-code entre objectes. Aquest paràmetre només s'aplicarà quan imprimiu els models objecte per objecte."
 
 msgid "Add end G-code when finishing the printing of this filament."
-msgstr "Codi-G Final en acabar la impressió d'aquest filament"
+msgstr "G-code Final en acabar la impressió d'aquest filament"
 
 msgid "Ensure vertical shell thickness"
 msgstr "Assegurar el gruix de la carcassa vertical"
@@ -15126,7 +15145,7 @@ msgid "Extruder offset"
 msgstr "Separació de l'extrusor"
 
 msgid "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
-msgstr "El material pot tenir un canvi volumètric després de canviar entre estat fos i estat cristal·lí. Aquest ajustament canvia proporcionalment tot el flux d'extrusió d'aquest filament en Codi-G. L'interval de valors recomanat està entre 0,95 i 1,05. Potser podeu ajustar aquest valor per obtenir una superfície ben plana quan hi ha un lleuger excés o dèficit de flux."
+msgstr "El material pot tenir un canvi volumètric després de canviar entre estat fos i estat cristal·lí. Aquest ajustament canvia proporcionalment tot el flux d'extrusió d'aquest filament en G-code. L'interval de valors recomanat està entre 0,95 i 1,05. Potser podeu ajustar aquest valor per obtenir una superfície ben plana quan hi ha un lleuger excés o dèficit de flux."
 
 msgid ""
 "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.\n"
@@ -15348,7 +15367,7 @@ msgid "By Highest Temp"
 msgstr "Per temperatura més alta"
 
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
-msgstr "El diàmetre del filament s'utilitza per calcular l'extrusió en Codi-G, per la qual cosa és important i ha de ser precís."
+msgstr "El diàmetre del filament s'utilitza per calcular l'extrusió en G-code, per la qual cosa és important i ha de ser precís."
 
 msgid "Pellet flow coefficient"
 msgstr "Coeficient de flux de pellets"
@@ -16185,7 +16204,7 @@ msgid ""
 "\n"
 "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from arc commands as these are split again into line segments by the firmware. This results in a reduction in surface quality as line segments are converted to arcs by the slicer and then back to line segments by the firmware."
 msgstr ""
-"Activeu-ho per obtenir un fitxer de codi G que tingui moviments G2 i G3. La tolerància d'ajust és la mateixa que la resolució.\n"
+"Activeu-ho per obtenir un fitxer de G-code que tingui moviments G2 i G3. La tolerància d'ajust és la mateixa que la resolució.\n"
 "\n"
 "Nota: per a les màquines Klipper, es recomana desactivar aquesta opció. Klipper no es beneficia de les ordres d'arc, ja que el microprogramari torna a dividir-les en segments de línia. Això es tradueix en una reducció de la qualitat de la superfície a mesura que els segments de línia es converteixen en arcs pel tallador i després el microprogramari torna a segments de línia."
 
@@ -16193,7 +16212,7 @@ msgid "Add line number"
 msgstr "Afegir número de línia"
 
 msgid "Enable this to add line number(Nx) at the beginning of each G-code line."
-msgstr "Habiliteu això per afegir el número de línia ( Nx ) al començament de cada línia de Codi-G."
+msgstr "Habiliteu això per afegir el número de línia ( Nx ) al començament de cada línia de G-code."
 
 msgid "Scan first layer"
 msgstr "Escanejar la primera capa"
@@ -16259,7 +16278,7 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Millor auto posicionament dels objectes a l'interval [0,1] respecte a la forma del llit."
 
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Activeu aquesta opció si la màquina té ventilador auxiliar de refrigeració de peces. Comanda de Codi-G: M106 P2 S ( 0-255 )."
+msgstr "Activeu aquesta opció si la màquina té ventilador auxiliar de refrigeració de peces. Comanda de G-code: M106 P2 S ( 0-255 )."
 
 # AI Translated
 msgid "Fan direction"
@@ -16280,8 +16299,8 @@ msgid ""
 "Use 0 to deactivate."
 msgstr ""
 "Inicieu el ventilador aquest nombre de segons abans de l'hora d'inici objectiu (podeu utilitzar fraccions de segons). Assumeix una acceleració infinita per a aquesta estimació de temps i només tindrà en compte els moviments G1 i G0 (l'ajust d'arc no és compatible).\n"
-"No mourà les ordres dels ventiladors dels Codi-G personalitzats (actuen com una mena de \"barrera\").\n"
-"No mourà les ordres del ventilador al Codi-G d'inici si està activat l'\"únic Codi-G d'inici personalitzat\".\n"
+"No mourà les ordres dels ventiladors dels G-code personalitzats (actuen com una mena de \"barrera\").\n"
+"No mourà les ordres del ventilador al G-code d'inici si està activat l'\"únic G-code d'inici personalitzat\".\n"
 "Utilitzeu 0 per desactivar-lo."
 
 msgid "Only overhangs"
@@ -16333,7 +16352,7 @@ msgid ""
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Aquesta opció està habilitada si la màquina admet el control de la temperatura de la cambra\n"
-"Comanda de Codi-G: M141 S ( 0-255 )"
+"Comanda de G-code: M141 S ( 0-255 )"
 
 msgid "Support air filtration"
 msgstr "Admet filtració d'aire"
@@ -16343,7 +16362,7 @@ msgid ""
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Habiliteu-lo si la impressora admet la filtració d'aire\n"
-"Comanda de Codi-G: M106 P3 S ( 0-255 )"
+"Comanda de G-code: M106 P3 S ( 0-255 )"
 
 # AI Translated
 msgid "Use cooling filter"
@@ -16354,10 +16373,10 @@ msgid "Enable this if printer support cooling filter"
 msgstr "Activeu-ho si la impressora admet el filtre de refrigeració"
 
 msgid "G-code flavor"
-msgstr "Tipus de Codi-G"
+msgstr "Tipus de G-code"
 
 msgid "What kind of G-code the printer is compatible with."
-msgstr "Amb quin tipus de Codi-G és compatible la impressora."
+msgstr "Amb quin tipus de G-code és compatible la impressora."
 
 msgid "Klipper"
 msgstr "Klipper"
@@ -16386,19 +16405,19 @@ msgid "Label objects"
 msgstr "Etiquetar objectes"
 
 msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Habilita això per afegir els comentaris al Codi-G, etiquetant moviments d'impressió amb l'objecte al què pertanyen, cosa que és útil per al plugin Octoprint CancelObject. Aquesta configuració NO és compatible amb la configuració d'Extrusor Únic Multi Material i Netejar en Objecte / Netejar en Farciment."
+msgstr "Habilita això per afegir els comentaris al G-code, etiquetant moviments d'impressió amb l'objecte al què pertanyen, cosa que és útil per al plugin Octoprint CancelObject. Aquesta configuració NO és compatible amb la configuració d'Extrusor Únic Multi Material i Netejar en Objecte / Netejar en Farciment."
 
 msgid "Exclude objects"
 msgstr "Excloure objectes"
 
 msgid "Enable this option to add EXCLUDE OBJECT command in G-code."
-msgstr "Activeu aquesta opció per afegir l'ordre EXCLUDE OBJECT al Codi-G."
+msgstr "Activeu aquesta opció per afegir l'ordre EXCLUDE OBJECT al G-code."
 
 msgid "Verbose G-code"
-msgstr "Codi-G detallat"
+msgstr "G-code detallat"
 
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Habiliteu-lo per obtenir un fitxer de Codi-G comentat, amb cada línia explicada per un text descriptiu. Si imprimiu des d'una targeta SD, el pes addicional del fitxer podria alentir el vostre firmware."
+msgstr "Habiliteu-lo per obtenir un fitxer de G-code comentat, amb cada línia explicada per un text descriptiu. Si imprimiu des d'una targeta SD, el pes addicional del fitxer podria alentir el vostre firmware."
 
 msgid "Infill combination"
 msgstr "Combinació de farciment"
@@ -16763,7 +16782,7 @@ msgstr ""
 "També controla el pla de laminat."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
-msgstr "Aquesta part de Codi-G s'insereix en cada canvi de capa després de l'aixecament Z."
+msgstr "Aquesta part de G-code s'insereix en cada canvi de capa després de l'aixecament Z."
 
 msgid "Clumping detection G-code"
 msgstr "G-code de detecció d'acumulació"
@@ -16777,7 +16796,7 @@ msgid "Whether the machine supports silent mode in which machine uses lower acce
 msgstr "Si la màquina admet el mode silenciós, en què la màquina utilitza una acceleració més baixa per imprimir més silenciosament"
 
 msgid "Emit limits to G-code"
-msgstr "Emissió de límits al Codi-G"
+msgstr "Emissió de límits al G-code"
 
 msgid "Machine limits"
 msgstr "Límits de la màquina"
@@ -16786,14 +16805,14 @@ msgid ""
 "If enabled, the machine limits will be emitted to G-code file.\n"
 "This option will be ignored if the G-code flavor is set to Klipper."
 msgstr ""
-"Si està habilitat, els límits de la màquina s'emetran al fitxer de Codi-G.\n"
-"Aquesta opció s'ignorarà si el tipus de Codi-G està definit com a Klipper."
+"Si està habilitat, els límits de la màquina s'emetran al fitxer de G-code.\n"
+"Aquesta opció s'ignorarà si el tipus de G-code està definit com a Klipper."
 
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
-msgstr "Aquest Codi-G s'utilitzarà com a codi per a la pausa d'impressió. L'usuari pot inserir el Codi-G de pausa al visualitzador de Codi-G."
+msgstr "Aquest G-code s'utilitzarà com a codi per a la pausa d'impressió. L'usuari pot inserir el G-code de pausa al visualitzador de G-code."
 
 msgid "This G-code will be used as a custom code."
-msgstr "Aquest Codi-G s'utilitzarà com a codi personalitzat"
+msgstr "Aquest G-code s'utilitzarà com a codi personalitzat"
 
 msgid "Small area flow compensation (beta)"
 msgstr "Compensació de flux d'àrea petita( beta )"
@@ -17137,7 +17156,7 @@ msgid ""
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
-"Un valor més baix produeix transicions de velocitat d'extrusió més suaus. Tanmateix, això dóna com a resultat un fitxer Codi-G significativament més gran i més instruccions per processar la impressora.\n"
+"Un valor més baix produeix transicions de velocitat d'extrusió més suaus. Tanmateix, això dóna com a resultat un fitxer G-code significativament més gran i més instruccions per processar la impressora.\n"
 "\n"
 "El valor predeterminat de 3 funciona bé en la majoria dels casos. Si la impressora està tartamudeig, augmenta aquest valor per reduir el nombre d'ajustaments fets.\n"
 "\n"
@@ -17157,7 +17176,7 @@ msgid ""
 "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Velocitat del ventilador auxiliar de refrigeració de peces. El ventilador auxiliar funcionarà a aquesta velocitat durant la impressió, excepte les primeres capes que es defineixen sense capes de refrigeració.\n"
-"Activeu auxiliary_fan a la configuració de la impressora per utilitzar aquesta funció. Comanda de Codi-G: M106 P2 S ( 0-255 )"
+"Activeu auxiliary_fan a la configuració de la impressora per utilitzar aquesta funció. Comanda de G-code: M106 P2 S ( 0-255 )"
 
 # AI Translated
 msgid "For the first"
@@ -17195,13 +17214,13 @@ msgid "Configuration notes"
 msgstr "Notes de configuració"
 
 msgid "You can put here your personal notes. This text will be added to the G-code header comments."
-msgstr "Podeu posar les vostres notes personals aquí. Aquest text s'afegirà al Codi-G com a comentaris."
+msgstr "Podeu posar les vostres notes personals aquí. Aquest text s'afegirà al G-code com a comentaris."
 
 msgid "Host Type"
 msgstr "Tipus d'amfitrió( host )"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field must contain the kind of the host."
-msgstr "Orca Slicer pot carregar fitxers de Codi-G a un amfitrió( host ) d'impressora. Aquest camp ha de contenir el tipus d'amfitrió( host )."
+msgstr "Orca Slicer pot carregar fitxers de G-code a un amfitrió( host ) d'impressora. Aquest camp ha de contenir el tipus d'amfitrió( host )."
 
 msgid "Nozzle volume"
 msgstr "Volum del broquet"
@@ -17250,7 +17269,7 @@ msgstr "Reduir la retracció de farciment"
 
 # AI Translated
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "No retrau quan el desplaçament està totalment a la zona de farciment. Això vol dir que l'oozing( goteig ) queda amagat. Això pot reduir els temps de retracció per a models complexos i estalviar temps d'impressió, però fer que el laminat i la generació de Codi-G siguin més lents. Tingueu en compte que el salt en Z tampoc es realitza a les zones on s'omet la retracció."
+msgstr "No retrau quan el desplaçament està totalment a la zona de farciment. Això vol dir que l'oozing( goteig ) queda amagat. Això pot reduir els temps de retracció per a models complexos i estalviar temps d'impressió, però fer que el laminat i la generació de G-code siguin més lents. Tingueu en compte que el salt en Z tampoc es realitza a les zones on s'omet la retracció."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Aquesta opció farà baixar la temperatura de les extrusores inactives per evitar degoteig."
@@ -17350,7 +17369,7 @@ msgstr ""
 "No es recomana l'ús de farciment de Llampec juntament amb aquesta opció, ja que hi ha un farciment limitat per ancorar els perímetres addicionals."
 
 msgid "If you want to process the output G-code through custom scripts, just list their absolute paths here. Separate multiple scripts with a semicolon. Scripts will be passed the absolute path to the G-code file as the first argument, and they can access the Orca Slicer config settings by reading environment variables."
-msgstr "Si voleu processar el Codi-G de sortida a través de scripts personalitzats, simplement enumereu les vostres rutes absolutes aquí. Separeu diversos scripts amb punt i coma. Als scripts se'ls passarà la ruta absoluta al fitxer Codi-G com a primer argument, i poden accedir als paràmetres de configuració d'OrcaSlicer llegint variables d'entorn."
+msgstr "Si voleu processar el G-code de sortida a través de scripts personalitzats, simplement enumereu les vostres rutes absolutes aquí. Separeu diversos scripts amb punt i coma. Als scripts se'ls passarà la ruta absoluta al fitxer G-code com a primer argument, i poden accedir als paràmetres de configuració d'OrcaSlicer llegint variables d'entorn."
 
 # AI Translated
 msgid "Change extrusion role G-code (process)"
@@ -17418,7 +17437,7 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "L'objecte serà elevat per aquest nombre de capes de suport. Utilitzar aquesta funció per evitar deformacions( warping ) quan imprimiu ABS"
 
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "El camí del codi G es genera després de simplificar el contorn del model per evitar massa punts i línies gcode al fitxer Codi-G. Un valor més petit significa una resolució més alta i més temps per tallar."
+msgstr "El camí del G-code es genera després de simplificar el contorn del model per evitar massa punts i línies gcode al fitxer G-code. Un valor més petit significa una resolució més alta i més temps per tallar."
 
 msgid "Travel distance threshold"
 msgstr "Llindar de distància de desplaçament"
@@ -17626,7 +17645,7 @@ msgid "Disable set remaining print time"
 msgstr "Desactivar el temps d'impressió restant"
 
 msgid "Disable generating of the M73: Set remaining print time in the final G-code."
-msgstr "Desactivar la generació del M73: establir el temps d'impressió restant al Codi-G final."
+msgstr "Desactivar la generació del M73: establir el temps d'impressió restant al G-code final."
 
 msgid "Seam position"
 msgstr "Posició de la costura"
@@ -17878,7 +17897,7 @@ msgstr ""
 "El nombre final de bucles no es té en compte en organitzar o validar la distància dels objectes. Augmenteu el nombre de bucle en aquest cas."
 
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
-msgstr "La velocitat d'impressió en el Codi-G exportat s'alentirà, quan el temps estimat de capa sigui més curt que aquest valor, per obtenir un millor refredament d'aquestes capes."
+msgstr "La velocitat d'impressió en el G-code exportat s'alentirà, quan el temps estimat de capa sigui més curt que aquest valor, per obtenir un millor refredament d'aquestes capes."
 
 msgid "Minimum sparse infill threshold"
 msgstr "Llindar mínim de farciment poc dens"
@@ -17990,13 +18009,13 @@ msgid "G-code written at the very top of the output file, before any other conte
 msgstr "G-code escrit a l'inici de tot del fitxer de sortida, abans de qualsevol altre contingut. Útil per afegir metadades que el firmware de la impressora llegeix de les primeres línies del fitxer (p. ex. temps d'impressió estimat, consum de filament). Admet placeholders com {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} i {used_filament_length}."
 
 msgid "Start G-code"
-msgstr "Codi-G inicial"
+msgstr "G-code inicial"
 
 msgid "G-code added when starting a print."
-msgstr "Codi-G inicial quan comença tota la impressió"
+msgstr "G-code inicial quan comença tota la impressió"
 
 msgid "G-code added when the printer starts using this filament"
-msgstr "Codi-G inicial quan comença la impressió d'aquest filament"
+msgstr "G-code inicial quan comença la impressió d'aquest filament"
 
 msgid "Single Extruder Multi Material"
 msgstr "Extrusor únic multimaterial"
@@ -18008,7 +18027,7 @@ msgid "Manual Filament Change"
 msgstr "Canvi manual de filament"
 
 msgid "Enable this option to omit the custom Change filament G-code only at the beginning of the print. The tool change command (e.g., T0) will be skipped throughout the entire print. This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action."
-msgstr "Activeu aquesta opció per ometre el Codi-G Personalitzat de Canvi de Filament només al començament de la impressió. La comanda de canvi d'eina ( per exemple, T0 ) s'ometrà durant tota la impressió. Això és útil per a la impressió manual multimaterial, on utilitzem M600/PAUSE per activar l'acció de canvi manual de filament."
+msgstr "Activeu aquesta opció per ometre el G-code Personalitzat de Canvi de Filament només al començament de la impressió. La comanda de canvi d'eina ( per exemple, T0 ) s'ometrà durant tota la impressió. Això és útil per a la impressió manual multimaterial, on utilitzem M600/PAUSE per activar l'acció de canvi manual de filament."
 
 msgid "Wipe tower type"
 msgstr "Tipus de torre de purga"
@@ -18149,7 +18168,7 @@ msgid "Z offset"
 msgstr "Separació Z"
 
 msgid "This value will be added (or subtracted) from all the Z coordinates in the output G-code. It is used to compensate for bad Z endstop position: for example, if your endstop zero actually leaves the nozzle 0.3mm far from the print bed, set this to -0.3 (or fix your endstop)."
-msgstr "Aquest valor serà sumat ( o restat ) de totes les coordenades Z al Codi-G de sortida. S'usa per compensar una mala posició del final de carrera Z: per exemple, si el teu final de carrera deixa el broquet a 0.3mm de la placa d'impressió, ajusta'l a -0.3 ( o repara el final de carrera )."
+msgstr "Aquest valor serà sumat ( o restat ) de totes les coordenades Z al G-code de sortida. S'usa per compensar una mala posició del final de carrera Z: per exemple, si el teu final de carrera deixa el broquet a 0.3mm de la placa d'impressió, ajusta'l a -0.3 ( o repara el final de carrera )."
 
 msgid "Enable support"
 msgstr "Habilitar suports"
@@ -18500,7 +18519,7 @@ msgstr ""
 "\n"
 "Per a PLA, PETG, TPU, PVA i altres materials de baixa temperatura, aquesta opció s'hauria de desactivar (establir a 0) ja que la temperatura de la cambra hauria de ser baixa per evitar l'obstrucció de l'extrusora causada pel suavització del material durant el trencament de calor.\n"
 "\n"
-"Si està activat, aquest paràmetre també estableix una variable de codi g anomenada chamber_temperature, que es pot utilitzar per passar la temperatura de la cambra desitjada a la macro d'inici d'impressió, o una macro de remull tèrmic com aquesta: PRINT_START (altres variables) CHAMBER_TEMP=[chamber_temperature]. Això pot ser útil si la vostra impressora no admet les ordres M141/M191, o si voleu gestionar el remull de calor a la macro d'inici d'impressió si no hi ha instal·lat un escalfador de cambra actiu."
+"Si està activat, aquest paràmetre també estableix una variable de G-code anomenada chamber_temperature, que es pot utilitzar per passar la temperatura de la cambra desitjada a la macro d'inici d'impressió, o una macro de remull tèrmic com aquesta: PRINT_START (altres variables) CHAMBER_TEMP=[chamber_temperature]. Això pot ser útil si la vostra impressora no admet les ordres M141/M191, o si voleu gestionar el remull de calor a la macro d'inici d'impressió si no hi ha instal·lat un escalfador de cambra actiu."
 
 # AI Translated
 msgid ""
@@ -18530,10 +18549,10 @@ msgid "This detects thin walls which can’t contain two lines and uses a single
 msgstr "Detecta un perímetre prim que no pugui contenir dues línies d'amplada. I utilitzar una sola línia per imprimir. Potser no s'imprimeix gaire bé, perquè no és de bucle tancat"
 
 msgid "This G-code is inserted when filament is changed, including T commands to trigger tool change."
-msgstr "Aquest Codi-G s'insereix quan canvia el filament, inclosa la comanda T per activar el canvi d'eina."
+msgstr "Aquest G-code s'insereix quan canvia el filament, inclosa la comanda T per activar el canvi d'eina."
 
 msgid "This G-code is inserted when the extrusion role is changed."
-msgstr "Aquest Codi-G s'insereix quan es canvia el rol d'extrusió."
+msgstr "Aquest G-code s'insereix quan es canvia el rol d'extrusió."
 
 # AI Translated
 msgid "Change extrusion role G-code (filament)"
@@ -18887,16 +18906,16 @@ msgstr ""
 "Aquest ajustament limita la quantitat d'arestes que pot tenir un poliforat"
 
 msgid "G-code thumbnails"
-msgstr "Mida Miniatures al Codi-G"
+msgstr "Mida Miniatures al G-code"
 
 msgid "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the following format: \"XxY, XxY, ...\""
 msgstr "Mides de la imatge que s'emmagatzemarà en fitxers .gcode i .sl1 / .sl1s, en el format següent: \"XxY, XxY, ...\""
 
 msgid "Format of G-code thumbnails"
-msgstr "Format de les miniatures del Codi-G"
+msgstr "Format de les miniatures del G-code"
 
 msgid "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI for low memory firmware."
-msgstr "Format de les miniatures del Codi-G: PNG per a la millor qualitat, JPG per a un menor tamany( pes ), QOI per a firmware de baixa memòria"
+msgstr "Format de les miniatures del G-code: PNG per a la millor qualitat, JPG per a un menor tamany( pes ), QOI per a firmware de baixa memòria"
 
 msgid "Use relative E distances"
 msgstr "Utilitzar distàncies E relatives"
@@ -19142,7 +19161,7 @@ msgid "No check"
 msgstr "No comprovar"
 
 msgid "Do not run any validity checks, such as G-code path conflicts check."
-msgstr "No executar cap comprovació de validesa, com ara la comprovació de conflictes de trajectòria al Codi-G."
+msgstr "No executar cap comprovació de validesa, com ara la comprovació de conflictes de trajectòria al G-code."
 
 # AI Translated
 msgid "Strict mode"
@@ -19355,10 +19374,10 @@ msgid "If enabled, this slicing will be considered using timelapse."
 msgstr "Si està habilitat, aquest laminat es considerarà mitjançant timelapse"
 
 msgid "Load custom G-code"
-msgstr "Carregar Codi-G personalitzat"
+msgstr "Carregar G-code personalitzat"
 
 msgid "Load custom G-code from json."
-msgstr "Carregar el Codi-G personalitzat des de json."
+msgstr "Carregar el G-code personalitzat des de json."
 
 msgid "Load filament IDs"
 msgstr "Carregar els identificadors del filament"
@@ -19393,10 +19412,10 @@ msgid "If enabled, Arrange will avoid extrusion calibrate region when placing ob
 msgstr "Si està habilitat, l'arranjament evitarà la regió de calibratge d'extrusió quan col·loqueu l'objecte"
 
 msgid "Skip modified G-code in 3MF"
-msgstr "Omet els codis-g modificats en 3mf"
+msgstr "Omet els G-code modificats en 3mf"
 
 msgid "Skip the modified G-code in 3MF from printer or filament presets."
-msgstr "Omet els codis-g modificats en 3MF des de la impressora o els presets de filament."
+msgstr "Omet els G-code modificats en 3MF des de la impressora o els presets de filament."
 
 msgid "MakerLab name"
 msgstr "Nom MakerLab"
@@ -19432,13 +19451,13 @@ msgid "Current Z-hop"
 msgstr "Salt-z actual"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Conté el salt-z present al principi del bloc de codi-G personalitzat."
+msgstr "Conté el salt-z present al principi del bloc de G-code personalitzat."
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
-msgstr "Posició de l'extrusora al principi del bloc de codi G personalitzat. Si el codi G personalitzat viatja a un altre lloc, hauria d'escriure a aquesta variable perquè OrcaSlicer sàpiga des d'on viatja quan recuperi el control."
+msgstr "Posició de l'extrusora al principi del bloc de G-code personalitzat. Si el G-code personalitzat viatja a un altre lloc, hauria d'escriure a aquesta variable perquè OrcaSlicer sàpiga des d'on viatja quan recuperi el control."
 
 msgid "Retraction state at the beginning of the custom G-code block. If the custom G-code moves the extruder axis, it should write to this variable so OrcaSlicer de-retracts correctly when it gets control back."
-msgstr "Estat de retracció al principi del bloc de codi G personalitzat. Si el codi G personalitzat mou l'eix de l'extrusora, hauria d'escriure a aquesta variable perquè OrcaSlicer es retiri correctament quan recuperi el control."
+msgstr "Estat de retracció al principi del bloc de G-code personalitzat. Si el G-code personalitzat mou l'eix de l'extrusora, hauria d'escriure a aquesta variable perquè OrcaSlicer es retiri correctament quan recuperi el control."
 
 msgid "Extra de-retraction"
 msgstr "Deretracció extra"
@@ -20725,7 +20744,7 @@ msgid "Only materials of the same type can be selected."
 msgstr "Només es poden seleccionar materials del mateix tipus."
 
 msgid "Send G-code to printer host"
-msgstr "Enviar el Codi-G al amfitrió( host ) d'impressió"
+msgstr "Enviar el G-code al amfitrió( host ) d'impressió"
 
 msgid "Upload to Printer Host with the following filename:"
 msgstr "Pujar al host amb el següent nom de fitxer:"
@@ -23456,8 +23475,8 @@ msgid "Polyline"
 msgstr "Polilínia"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Feu clic als punts; feu clic al primer / clic dret per tancar el bucle"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "Feu clic als punts; feu clic al primer punt per tancar el bucle, clic dret per acabar la cadena"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23904,6 +23923,11 @@ msgstr "Cos nou"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "Unir"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "Tallar"
 
@@ -23927,6 +23951,7 @@ msgid "Bottom"
 msgstr "Inferior"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "Lateral"
 
@@ -24081,6 +24106,7 @@ msgid "Plane type"
 msgstr "Tipus de pla"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Base"
 
@@ -24378,15 +24404,15 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "Sense aresta, el sistema de referència pren l'X de la primera aresta de la cara — trieu-ne una per escollir-la vosaltres mateixos"
 
 # AI Translated
-msgid "X hint X"
+msgid "X direction X"
 msgstr "Direcció X: X"
 
 # AI Translated
-msgid "X hint Y"
+msgid "X direction Y"
 msgstr "Direcció X: Y"
 
 # AI Translated
-msgid "X hint Z"
+msgid "X direction Z"
 msgstr "Direcció X: Z"
 
 # AI Translated
@@ -24462,8 +24488,9 @@ msgid "Feature tree"
 msgstr "Arbre d'operacions"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — l'ull desactiva aquesta relació de posició"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. Feu clic a la icona de l'ull per desactivar aquesta relació de posició."
 
 # AI Translated
 #, c-format, boost-format
@@ -24522,9 +24549,6 @@ msgstr "Variables"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-msgid "Del"
-msgstr "Esborrar"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24627,8 +24651,8 @@ msgid "Tool exited"
 msgstr "S'ha sortit de l'eina"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "Esbós conservat — Finalitzar per confirmar-lo, Cancel·lar per descartar-lo"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "Esbós conservat — Confirmar per aplicar-lo, Cancel·lar per descartar-lo"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24652,8 +24676,8 @@ msgstr "Esbós %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "Editant: Esbós %d   ·   N = mirar perpendicular al pla   ·   Finalitzar o Cancel·lar a la barra d'eines"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Editant: Esbós %d   ·   N = mirar perpendicular al pla   ·   Confirmar o Cancel·lar a la barra d'eines"
 
 # AI Translated
 #, c-format
@@ -25857,8 +25881,8 @@ msgid "On a stored face"
 msgstr "Sobre una cara desada"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Editant l'esbós — arrossegueu una nansa o feu clic en una cota per editar-la"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "Editant l'esbós — arrossegueu una nansa o feu doble clic en una cota per editar-la"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -26230,7 +26254,7 @@ msgid "Show/Hide wireframe"
 msgstr "Mostrar/amagar la malla alàmbrica"
 
 msgid "On/Off G-code window"
-msgstr "Activar/Desactivar finestra de Codi-G"
+msgstr "Activar/Desactivar finestra de G-code"
 
 msgid "On/Off one layer mode of the vertical slider"
 msgstr "Activar/desactivar el mode de capa única de la barra de desplaçament vertical"
@@ -26283,6 +26307,2711 @@ msgstr "Aplicació"
 # AI Translated
 msgid "Speed Dial"
 msgstr "Accés ràpid"
+
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "El cos %1% ja està posicionat per \"%2%\" (operació %3%), de manera que \"%4%\" el substitueix"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "Aquesta relació de posició situa el cos %1% respecte a si mateix"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "La cadena de relacions de posició és circular: el cos %1% depèn del cos %2%, que torna al cos %1% — el resultat depèn de l'ordre de les operacions"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "És possible que el connector \"%1%\" s'hagi mogut a una altra cara (una edició anterior ha renumerat les cares d'aquest cos)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "No s'ha pogut fer la instantània de la configuració."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer ha trobat un error en fer una instantània de la configuració."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "Error d'OrcaSlicer"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "Seleccioneu el filament instal·lat a %s."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "Seleccioneu el filament."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "Per conèixer les regles d'assignació de filaments."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Les bobines externes no són compatibles perquè s'ha instal·lat el Filament Track Switch. Si voleu utilitzar una bobina externa, desinstal·leu-lo."
+
+# AI Translated
+msgid "Select Filament && Hotends"
+msgstr "Seleccionar filament && hotends"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "Imatges del model"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "Auxiliars"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "Llista de filaments del projecte"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "Recomanacions del mode estàndard"
+
+# AI Translated
+msgid "Target Color"
+msgstr "Color objectiu"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "Seleccionar la descomposició del color"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "Mode arbitrari"
+
+# AI Translated
+msgid "Material List"
+msgstr "Llista de materials"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "Mode estàndard"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "Calen almenys dos filaments del mateix tipus de material per a la descomposició"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "La llista de materials admet com a màxim %1% colors. Després de la descomposició %2%, el nombre de materials superaria %1%. Elimineu els filaments no utilitzats a la pantalla principal abans de descompondre."
+
+# AI Translated
+msgid "Cyan"
+msgstr "Cian"
+
+# AI Translated
+msgid "Magenta"
+msgstr "Magenta"
+
+# AI Translated
+msgid "Yellow"
+msgstr "Groc"
+
+# AI Translated
+msgid "White"
+msgstr "Blanc"
+
+# AI Translated
+msgid "Red"
+msgstr "Vermell"
+
+# AI Translated
+msgid "Green"
+msgstr "Verd"
+
+# AI Translated
+msgid "Blue"
+msgstr "Blau"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "La llista de filaments actual no conté %s. Després de la descomposició es crearà automàticament un filament de projecte que necessita el filament mixt."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "Broquets alternatius:"
+
+# AI Translated
+msgid "All standard"
+msgstr "Tots els estàndard"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "Benvingut a l'Assistent de configuració de %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "Benvingut a l'Assistent de configuració de %s"
+
+# AI Translated
+msgid "Welcome"
+msgstr "Benvinguda"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "Hola, benvingut a %s! Aquest %s us ajuda amb la configuració inicial; només uns quants paràmetres i estareu a punt per imprimir."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "Eliminar els perfils d'usuari (abans es farà una instantània)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "Fer la integració amb l'escriptori (fa que el sistema pugui trobar aquest binari)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "Família %s"
+
+# AI Translated
+msgid "Printer:"
+msgstr "Impressora:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "Fabricant:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "Perfil:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(Tots)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "%1% marcats amb <b>*</b> <b>no</b> són compatibles amb algunes impressores instal·lades."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "Materials SLA"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "Totes les impressores instal·lades són compatibles amb el %1% seleccionat."
+
+# AI Translated
+msgid "filament"
+msgstr "filament"
+
+# AI Translated
+msgid "SLA material"
+msgstr "material SLA"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "Només les impressores instal·lades següents són compatibles amb els filaments seleccionats"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "Només les impressores instal·lades següents són compatibles amb els materials SLA seleccionats"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "Configuració d'impressora personalitzada"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "Impressora personalitzada"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "Definir un perfil d'impressora personalitzat"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "Nom del perfil personalitzat:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "Tipus de firmware"
+
+# AI Translated
+msgid "Firmware"
+msgstr "Firmware"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "Trieu el tipus de firmware que utilitza la vostra impressora."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "Forma i mida del llit"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "Establiu la forma del llit de la vostra impressora."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Entrada numèrica no vàlida."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "Diàmetres del filament i del broquet"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "Diàmetres d'impressió"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "Introduïu el diàmetre del broquet del hotend de la vostra impressora."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "Diàmetre del broquet:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "Introduïu el diàmetre del vostre filament."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "Cal una bona precisió, així que utilitzeu un peu de rei, feu diverses mesures al llarg del filament i després calculeu-ne la mitjana."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "Diàmetre del filament:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "Temperatures del broquet i del llit"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "Introduïu la temperatura del broquet (nozzle_temperature) necessària per extrudir el vostre filament."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "Com a norma general, de 160 a 230℃ per al PLA i de 215 a 250℃ per a l'ABS."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "Temperatura d'extrusió:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "Introduïu la temperatura del llit necessària perquè el filament s'adhereixi al llit calent."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "Com a norma general, 60℃ per al PLA i 110℃ per a l'ABS. Deixeu-ho a zero si no teniu llit calent."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "Temperatura del llit:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "Materials SLA"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "Impressores de tecnologia FFF"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "Impressores de tecnologia SLA"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "Els perfils d'impressora següents no tenen cap filament predeterminat: %1%Seleccioneu-ne un manualment."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "Els perfils d'impressora següents no tenen cap material predeterminat: %1%Seleccioneu-ne un manualment."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "Els models d'impressora FFF següents no tenen cap filament seleccionat:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "Voleu seleccionar els filaments predeterminats per a aquests models d'impressora FFF?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "La configuració s'ha editat a l'Assistent de configuració"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "S'esborraran tots els perfils d'usuari."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "S'ha instal·lat un fabricant nou i s'activarà una de les seves impressores"
+msgstr[1] "S'han instal·lat fabricants nous i s'activarà una de les seves impressores"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "S'ha instal·lat una impressora nova i s'activarà."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "S'han desinstal·lat algunes impressores."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "S'ha instal·lat un filament nou i s'activarà."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "S'ha instal·lat un material SLA nou i s'activarà."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "S'han desinstal·lat alguns filaments."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "S'ha instal·lat la impressora personalitzada i s'activarà."
+
+# AI Translated
+msgid "<Back"
+msgstr "<Enrere"
+
+# AI Translated
+msgid "Next>"
+msgstr "Següent>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "Selecció de perfils de filament"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "Assistent de configuració"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "&Assistent de configuració"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "Assistent de configuració"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "&Assistent de configuració"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "Entrada de filament A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "Entrada de filament B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "Reorganització suggerida"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "Com estalviar temps?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "Estat del filament:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "Cal ajustar la posició"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "D'acord"
+
+# AI Translated
+msgid "Unused"
+msgstr "Sense utilitzar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "Segons el diagrama següent, reorganitzeu els filaments a la impressora per obtenir resultats òptims i estalviar aproximadament %s."
+
+# AI Translated
+msgid "Summary:"
+msgstr "Resum:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "AMS a l'entrada de filament A"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "AMS a l'entrada de filament B"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "El filament de laminat núm. %d està associat a '%s'. Assignar-lo a '%s' pot estalviar temps d'impressió."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*Consells: si heu canviat la posició de la bobina a la màquina, tanqueu aquesta pàgina i torneu a assignar el filament."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "Resum: aquesta és actualment la posició més adequada per a la col·locació."
+
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "Nota:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "Buidar aquest objecte"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "Previsualitzar el model buidat i perforat"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "Distància de tancament"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "Diàmetre del forat"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "Profunditat del forat"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "Eliminar els forats seleccionats"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "Eliminar tots els forats"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "Retall de la vista"
+
+msgid "Reset direction"
+msgstr "Restablir direcció"
+
+# AI Translated
+msgid "Show supports"
+msgstr "Mostrar els suports"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "Buidar i perforar"
+
+msgid "Head diameter"
+msgstr "Diàmetre del cap"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "Bloquejar els suports sota les illes noves"
+
+msgid "Remove selected points"
+msgstr "Elimina els punts seleccionats"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "Eliminar tots els punts"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "Aplicar els canvis"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "Descartar els canvis"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "Distància mínima entre punts"
+
+# AI Translated
+msgid "Support points density"
+msgstr "Densitat dels punts de suport"
+
+msgid "Auto-generate points"
+msgstr "Generar punts automàticament"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "Edició manual"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "Punts de suport SLA"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "Voleu desar els punts de suport editats manualment?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "Voleu desar els punts de suport?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "La generació automàtica esborrarà tots els punts editats manualment."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "Esteu segur que voleu fer-ho?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "Dreceres de teclat del gizmo SLA"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "Nota: algunes dreceres només funcionen dins o fora del mode d'edició."
+
+msgid "Left click"
+msgstr "Clic esquerre"
+
+# AI Translated
+msgid "Add point"
+msgstr "Afegir un punt"
+
+msgid "Right click"
+msgstr "Clic dret"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Eliminar un punt"
+
+# AI Translated
+msgid "Move point"
+msgstr "Moure un punt"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "Afegir un punt a la selecció"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "Treure un punt de la selecció"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "Seleccionar per rectangle"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "Desseleccionar per rectangle"
+
+# AI Translated
+msgid "Select all points"
+msgstr "Seleccionar tots els punts"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "Moure el pla de retall"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "Restablir el pla de retall"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "Canviar al mode d'edició"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "Fixar"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "Desplaçament de textura"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "Esborrar la pintura del desplaçament de textura"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "Pintar el desplaçament de textura"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "Marcar una costura de textura"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "Marcar un camí de costura de textura"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "Capa %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "Escala mitjana de les illes"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "Seleccioneu primer una illa a l'editor UV."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "Tallar una illa de textura"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "Aquesta illa no té cap veïna amb què comparteixi una aresta."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "Unir una illa de textura"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "Separar una illa de textura"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "Esborrar les costures de textura"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "Esborrar les edicions UV de la textura"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "Aplicar el marc de projecció de la textura"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "Moure una illa de textura"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "Editar les UV de la textura"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "S'ha arribat al nombre màxim de capes de desplaçament de textura."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "Afegir una capa de desplaçament de textura"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "No s'ha pogut carregar la textura seleccionada."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "Canviar la textura del desplaçament de textura"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "Trieu una imatge de textura (mapa d'alçades)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "Trieu una textura"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "Treure de Les meves textures"
+
+# AI Translated
+msgid "Built-in"
+msgstr "Integrades"
+
+# AI Translated
+msgid "No textures found."
+msgstr "No s'ha trobat cap textura."
+
+# AI Translated
+msgid "My textures"
+msgstr "Les meves textures"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "Importeu la vostra pròpia imatge com a mapa d'alçades. Es converteix al format a partir del qual el laminador fixa el relleu i es desa a la vostra carpeta personal de textures, separada de les textures que s'inclouen amb OrcaSlicer."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG o BMP - es converteix en un mapa d'alçades en importar-la. Passeu el cursor per sobre d'una de les vostres per eliminar-la."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"Voleu treure \"%s\" de Les meves textures?\n"
+"\n"
+"El fitxer d'imatge s'esborra de la vostra carpeta de textures. Les capes que ja l'utilitzen el conserven."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "Eliminar la textura"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "Eliminar una capa de desplaçament de textura"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "Reordenar les capes de desplaçament de textura"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "Seleccionar les cares visibles per al desplaçament de textura"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "Seleccionar tot el model per al desplaçament de textura"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "Subdividir el model per al desplaçament de textura"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "Pinteu primer l'àrea que voleu subdividir - la subdivisió adaptativa només refina on heu pintat."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "Subdivisió adaptativa per al desplaçament de textura"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "No hi ha res a subdividir - l'àrea pintada ja compleix la longitud d'aresta objectiu i la tolerància de detall, o ja s'ha esgotat el pressupost de triangles."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "Pinteu primer l'àrea que voleu suavitzar - el suavitzat només afecta la part pintada del model."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "No hi ha res a suavitzar - l'àrea pintada només té un triangle de profunditat, de manera que, amb \"Ignorar l'anell exterior\" activat, no hi ha vèrtexs interiors per relaxar."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "Suavitzar el desplaçament de textura"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "Remallar el model per al desplaçament de textura"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "El remallat no ha canviat el model. Pot ser que tingui geometria no moldejada (arestes obertes o arestes compartides per més de dos triangles), o que ja es compleixi la longitud d'aresta objectiu."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "No hi ha res pintat, no hi ha res a fixar."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "Fixar el desplaçament de textura"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "No hi ha res pintat, així que no hi ha etapes de fixació per capturar."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "Etapes de fixació (depuració)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "Capturant..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "Capturar les etapes"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "Executa la mateixa fixació que el botó Fixar, conservant la malla després de cada etapa, i permet recórrer-les aquí. No s'aplica res al model - serveix per trobar de quina etapa prové un mal resultat."
+
+# AI Translated
+msgid "Check topology"
+msgstr "Comprovar la topologia"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "Compta les arestes obertes i no moldejades després de cada etapa, que és com es detecta una etapa que ha esquinçat la malla. Recorre totes les arestes, de manera que alenteix notablement la captura en una fixació fina."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< Anterior"
+
+# AI Translated
+msgid "Next >"
+msgstr "Següent >"
+
+# AI Translated
+msgid "triangles"
+msgstr "triangles"
+
+# AI Translated
+msgid "vertices"
+msgstr "vèrtexs"
+
+# AI Translated
+msgid "Open edges"
+msgstr "Arestes obertes"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "No moldejades"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "Degenerades"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "Escriure les malles de les etapes"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "S'han escrit les malles de les etapes com a fitxers OBJ a:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "No s'han pogut escriure les malles de les etapes."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "Escriu cada etapa capturada com a fitxer OBJ, perquè es puguin obrir una al costat de l'altra en un visualitzador de malles."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "L'àrea pintada no s'ha pogut traslladar al model remallat, de manera que no s'ha canviat res. Canvieu al mode Pro i remalleu abans de pintar."
+
+# AI Translated
+msgid "Pro"
+msgstr "Pro"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "Estàndard - trieu una textura, pinteu on va i premeu Fixar. Tot el que necessita la malla es fa automàticament en aquest únic pas."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "Pro - la preparació de la malla la feu vosaltres: Remallar, Subdividir i Fixar com a passos separats, amb tots els paràmetres visibles. Per quan el resultat d'Estàndard no és el que volíeu i sabeu per què."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "Ancorar el tauler"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "Desancorar el tauler"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "Desancoreu aquest tauler perquè es pugui arrossegar a qualsevol lloc de la vista 3D, o torneu-lo a ancorar al costat de la barra d'eines."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "a %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "afegiu una capa per pintar"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "Pintar - aplica la capa activa on feu clic o arrossegueu. El botó dret esborra, i també mantenir premuda la tecla Màj."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "Esborrar - treu la capa activa on feu clic o arrossegueu. El botó dret pinta."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "Pinzell - pinta sobre la superfície arrossegant"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "Cara - feu clic a triangles individuals"
+
+# AI Translated
+msgid "Connected area"
+msgstr "Àrea connectada"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "Àrea connectada - emplena la regió accessible sense creuar cap aresta més aguda que el llindar d'angle"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "Espereu que acabi la fixació."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "Afegiu primer una capa."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "La capa activa encara no té pintura."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "Seleccionar tot el model"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "Seleccionar tot el model - pinta totes les cares del model amb la capa activa"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "Esborrar tot el model"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "Esborrar tot el model - elimina la pintura de la capa activa de totes les cares"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "Restablir la selecció del desplaçament de textura"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "Cercle - pinta tot el que hi ha sota el pinzell tal com es veu des de la càmera"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "Esfera - pinta només dins d'una bola al voltant del punt sota el cursor"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "Llindar d'angle - l'emplenament s'atura a les arestes més agudes que aquest valor"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "Feu clic a un triangle per pintar-lo"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "Cal que la capa activa estigui mapada amb Desplegar (LSCM)."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "Normal - la geometria real, exactament el que produirà Fixar. S'actualitza més lentament"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "Ràpid - el relleu només s'ombreja, no es construeix, i només per a la capa que esteu editant. S'actualitza a l'instant mentre pinteu"
+
+# AI Translated
+msgid "Checker"
+msgstr "Escaquer"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "Escaquer - una quadrícula de prova en lloc de la textura. On els quadrats es mantenen quadrats, la textura no es distorsiona; on s'estiren, també s'estirarà la textura"
+
+# AI Translated
+msgid "Distortion"
+msgstr "Distorsió"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "Distorsió - mapa de calor de l'estirament, de blau a vermell, sobre el desplegament"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "Malla alàmbrica - superposa les arestes de la malla; independent de la vista anterior"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "Reconstrueix la previsualització tan bon punt canvia qualsevol cosa. Desactiveu-ho en un model pesat si pintar o arrossegar un control lliscant comença a anar a batzegades - aleshores la previsualització espera fins que deixeu anar."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "Capes de textura"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "Arrossegueu sobre una altra capa per reordenar. La primera capa s'aplica sobre la superfície nua; cadascuna de les següents afegeix el seu relleu a sobre de les anteriors."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "Trieu una imatge diferent per a aquesta capa. La pintura, la profunditat i el tessel·lat es mantenen com estan."
+
+# AI Translated
+msgid "not painted"
+msgstr "sense pintar"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "Pujar - s'aplica abans"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "Baixar - s'aplica després"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "Eliminar aquesta capa"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "Alçada del relleu: quant aixeca la superfície el blanc de la textura, en mil·límetres. El negre no la mou gens, tret que Nivell mitjà indiqui el contrari."
+
+# AI Translated
+msgid "Tile size"
+msgstr "Mida de tessel·la"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "Amplada d'una còpia de la textura sobre el model. Un valor més petit repeteix el patró més sovint i en fa el detall més fi; amb Tessel·lat desactivat, és la mida de la còpia única."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "Gira la textura sobre la superfície, en graus - per alinear un patró amb una aresta del model."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "Nivell mitjà"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"Quin gris es manté on ja és la superfície. A 0 la textura només empeny cap a fora; a 0,5 el gris mitjà es queda quiet, de manera que els grisos més foscos s'enfonsen i els més clars continuen empenyent cap a fora - una sola imatge fa alhora relleu i gravat.\n"
+"\n"
+"El que s'enfonsa ha de cabre: dins d'una cantonada aguda o a través d'una paret prima, un tall profund pot sortir per l'altre costat."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "Un desplaçament profund cap a dins pot autointersecar-se."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "Difumina la imatge abans d'utilitzar-la, cosa que arrodoneix els salts bruscos i elimina el gra d'una foto sorollosa. Augmenteu-lo si el relleu es veu aspre o granulós; costa detall fi."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "Esvaïment a la vora"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "Aplana el relleu a mesura que s'acosta a la vora de l'àrea pintada, de manera que es fon amb la superfície nua en lloc d'acabar amb un graó."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "Fins on arriba l'esvaïment cap a dins, com a proporció de l'àrea pintada. Els valors petits suavitzen una franja estreta a la vora; 1 aplana gairebé tota l'àrea."
+
+# AI Translated
+msgid "Invert"
+msgstr "Invertir"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "Inverteix el relleu: el que sobresortia queda enfonsat, i a l'inrevés. És el mateix que utilitzar el negatiu de la imatge."
+
+# AI Translated
+msgid "Colours"
+msgstr "Colors"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "Imprimeix l'àrea pintada amb els colors de la textura, a més del seu relleu. Cada color s'associa al filament carregat més proper; tot el que no hàgiu pintat conserva el color propi de l'objecte."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "Aquesta textura és un mapa d'alçades en escala de grisos, així que no té colors per aplicar. Importeu una imatge en color per utilitzar-ho."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "Barrejar filaments"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "Intercala dos filaments per simular els colors intermedis, de manera que uns quants filaments poden cobrir una foto o un degradat. Una imatge de colors plans s'imprimeix igual en tots dos casos. Desactivat, utilitza un filament per àrea."
+
+# AI Translated
+msgid "Mix by"
+msgstr "Barrejar per"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "Superfície"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"Capes: els dos filaments s'alternen entre capes d'impressió, cosa que es fon suaument a les superfícies verticals però desapareix a les horitzontals, on una capa sencera és una sola franja.\n"
+"Superfície: un escaquer fi a través de la superfície, que funciona amb qualsevol angle però es pot percebre com una textura en lloc d'una barreja.\n"
+"Automàtic: capes a les cares verticals; les cares horitzontals prenen el filament únic més proper, ja que un escaquer s'hi veu com un patró."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% colors imprimibles a partir de %2% filaments"
+
+# AI Translated
+msgid "Denoise"
+msgstr "Reducció de soroll"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "Neteja els triangles solts d'un color equivocat, que deixa el detall més fi que la malla. Augmenteu-ho si el resultat es veu clapejat, reduïu-ho si s'engoleixen detalls petits."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "Mapatge"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "Triplanar (fusionada)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "Triplanar - projecta la textura des dels tres eixos alhora i fusiona les projeccions, de manera que una zona que envolta una aresta viva no té cap costura."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "Cilíndrica - envolta la textura al voltant del centre de l'àrea pintada, per a formes arrodonides."
+
+# AI Translated
+msgid "Spherical"
+msgstr "Esfèrica"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "Esfèrica - envolta la textura al voltant del centre de l'àrea pintada en les dues direccions."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "Desplegar (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "Desplegar - aplana l'àrea pintada i hi mapa la textura amb el mínim estirament possible. Primer l'àrea es talla en peces per les arestes vives (vegeu Angle de costura), perquè cada peça pugui quedar plana per si sola."
+
+# AI Translated
+msgid "From view"
+msgstr "Des de la vista"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "Des de la vista - projecta directament sobre l'àrea pintada des d'on mireu, com un projector de diapositives."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "Obrir l'editor UV"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "Obre l'editor UV, on podeu veure com es distribueix la textura sobre l'àrea pintada, tallar costures i moure les peces."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "Encara no desplegat"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% illes"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "Capturar la vista actual"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "No es veu res des d'aquest angle - gireu el model cap a la part on voleu projectar."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "Projecta la textura sobre l'àrea pintada des d'on mireu ara, com un projector de diapositives. Les cares que no estan orientades cap a vosaltres s'estiren, així que primer alineeu la vista amb la superfície que us interessa."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "Projectar només sobre el visible"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "Pinta només les cares que realment veieu ara mateix - orientades cap a vosaltres i no amagades darrere de res - i hi projecta. Substitueix el que la capa tenia pintat."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "Marc de projecció"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "Obre una finestra que arrossegueu sobre el model. Tot el que es veu a través d'ella rep la textura, i la seva vora es converteix en el límit de la projecció."
+
+# AI Translated
+msgid "Opacity"
+msgstr "Opacitat"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "Com de sòlida es veu la finestra del marc mentre la col·loqueu. Abaixeu-la per veure el model a través seu; no afecta el resultat."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "Aplicar el marc de projecció"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "No hi ha cap part del model dins del marc - moveu-lo sobre la part on voleu projectar."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "No s'ha pogut aplicar el marc. Assegureu-vos que se superposa amb la vista 3D."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "Projecta la textura a través del marc des d'on mireu ara i pinta les cares que hi ha a dins. Substitueix el que la capa tenia pintat; el resultat queda enganxat al model, així que després podeu orbitar."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "Col·locada pel marc de projecció."
+
+# AI Translated
+msgid "Tile"
+msgstr "Tessel·lat"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "Repeteix la textura per tota l'àrea pintada. Desactivat, col·loca una sola còpia, com una calcomania, a la mida definida per Mida de tessel·la."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "Activeu Tessel·lat per triar com es repeteix la textura."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Repetir"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "Repetició en mirall"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "Repetició en mirall - una de cada dues tessel·les s'inverteix, de manera que les vores encaixen sense costures"
+
+# AI Translated
+msgid "Blend"
+msgstr "Fusió"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "Afegir"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "Restar"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "Multiplicar"
+
+# AI Translated
+msgid "Divide"
+msgstr "Dividir"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "La capa base no té res a sota amb què combinar-se, així que sempre s'aplica com a Afegir."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "Què fa aquesta capa on se superposa amb les de sota. Afegir i Restar hi acumulen relleu o el retallen. Multiplicar i Dividir escalen el que hi ha a sota, cosa que converteix aquesta capa en una màscara a sobre seu - aleshores Profunditat actua com a intensitat, i 1 mm deixa intactes les àrees blanques."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "Ajustar la col·locació"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "Ajustar la col·locació - arrossegueu la nansa sobre el model per moure la textura"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "Pinteu primer alguna cosa amb aquesta capa."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "Menys paràmetres"
+
+# AI Translated
+msgid "More settings"
+msgstr "Més paràmetres"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "Les %1% capes estan en ús"
+
+# AI Translated
+msgid "Add layer"
+msgstr "Afegir una capa"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "Subdivisió"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "Només l'àrea pintada (adaptativa)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "Afegeix triangles només on heu pintat, en lloc de pertot. En una peça gran amb una calcomania petita, és la diferència entre milers de triangles i milions, i la pintura sobreviu al refinament."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "Seguir el detall de la textura"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "Concentra els triangles on la textura realment es corba - densos al llarg de crestes i arestes, escassos sobre les zones planes - en lloc de repartir-los uniformement. El mateix detall amb menys triangles en la majoria de textures."
+
+# AI Translated
+msgid "Max edge"
+msgstr "Aresta màxima"
+
+# AI Translated
+msgid "Target edge"
+msgstr "Aresta objectiu"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "Cap triangle de l'àrea pintada queda més gran que això, ni tan sols on la textura és plana. Mantingueu-ho a prop de la mida del detall més petit que vulgueu obtenir."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "Els triangles de l'àrea pintada es divideixen fins que cap no és més gran que això. Més petit vol dir un detall més fi i, ràpidament, molts més triangles."
+
+# AI Translated
+msgid "Detail"
+msgstr "Detall"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "Fins a quina distància pot quedar la malla de la forma que descriu la textura, en mil·límetres. Un valor més petit segueix el detall fi i costa triangles; un de més gran només persegueix els trets grans."
+
+# AI Translated
+msgid "Min edge"
+msgstr "Aresta mínima"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "Un límit inferior per a la mida dels triangles, perquè un salt brusc a la textura no es persegueixi indefinidament. Abaixeu-lo per a un relleu més fi, apugeu-lo si el recompte es dispara a les arestes vives."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "Detall de la vora"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "Mida dels triangles al llarg del contorn de l'àrea pintada, on el relleu torna a la superfície nua. Abaixeu-la si aquesta vora es veu dentada; només costa triangles al llarg del contorn. 0 la desactiva."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "Detall del color"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "Mida dels triangles on es troben dos colors. Cada triangle s'imprimeix amb un sol filament, de manera que una vora de color només pot ser tan nítida com els triangles que la segueixen - i allà no hi refina res més, ja que la superfície és plana a través d'un canvi de color. 0 la desactiva."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "Pressupost de triangles: s'estableix amb Triangles, a sota."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "Previsualització: %1% triangles"
+
+# AI Translated
+msgid "Steps"
+msgstr "Passos"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "Divideix cada triangle del model en quatre, aquest nombre de vegades. Cada pas quadruplica el recompte - 3 converteix 100 k triangles en 6,4 M - així que és preferible refinar només l'àrea pintada tret que necessiteu tot el model més fi."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "Amagar la previsualització"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "Previsualitzar la subdivisió"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "Mostra com a malla alàmbrica el que produiria el refinament, sense tocar el model."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "Subdividir"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "Refina l'àrea pintada fins a la longitud d'aresta objectiu i trasllada la pintura a la malla més fina. La resta del model es queda com està."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "Substitueix la geometria del model per la malla subdividida i esborra la pintura encara no fixada (el relleu ja fixat no es veu afectat)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "Remallat"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "Mida de triangle amb què es reconstrueix tot el model, en mil·límetres. El desplaçament funciona millor sobre una malla uniforme; això és el que en crea una a partir d'una importació irregular."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "Mantenir les arestes vives"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "Manté fixes les arestes vives i les vores obertes mentre es remalla la resta. Sense això, el remallador fa lliscar els vèrtexs sobre la superfície i arrodoneix totes les arestes nítides - un cub torna amb les arestes ondulades."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "Com d'agut ha de ser un plec, en graus, perquè el remallador el tracti com una aresta que cal conservar. Un valor més baix protegeix més la forma del model; un de més alt en reconstrueix més de manera uniforme."
+
+# AI Translated
+msgid "Remesh"
+msgstr "Remallar"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "Reconstrueix tot el model amb triangles propers a aquesta longitud d'aresta - dividint els grans i fusionant els petits - perquè el desplaçament tingui una densitat uniforme amb què treballar. Substitueix la geometria; la pintura es trasllada als triangles nous segons la seva posició, de manera que es conserva (el relleu ja fixat també es manté)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "Desplaçar fins a la vora"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "Deixa que el relleu arribi just fins a la vora de l'àrea pintada. Desactiveu-ho per mantenir pla aquell anell exterior, cosa que manté el desplaçament estrictament dins de la pintura però aplana el patró a la vora."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "Suavitzar el resultat"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "Suavitza la geometria després d'aplicar la textura, per eliminar els salts bruscos d'una imatge de baixa resolució. Només es toca el que ha mogut el desplaçament. El control lliscant Suavitzat d'una capa és una altra cosa: difumina la imatge abans d'utilitzar-la."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "Força"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "Quant estira cada passada un vèrtex cap als seus veïns. Els valors alts arrodoneixen el relleu ràpidament; els baixos necessiten més passades però conserven més detall."
+
+# AI Translated
+msgid "Passes"
+msgstr "Passades"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "Quantes passades de suavitzat s'executen. Més passades estenen el suavitzat més lluny per la superfície; Força decideix quant mou cadascuna."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "Ignorar l'anell exterior"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "Exclou del suavitzat l'anell exterior de l'àrea pintada. Els seus veïns de fora de la pintura no es mouen mai, de manera que suavitzar-lo arrossega el relleu cap avall i deixa el patró mig fos a la vora."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "Suavitzar ara la malla fixada"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "Aplica el suavitzat anterior al mateix model, ara mateix, dins de l'àrea pintada. Per al relleu que ja està fixat - el que encara no s'ha fixat ho suavitza Fixar."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "Experimental: procés de fixació clàssic"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "Fixa movent els vèrtexs que ja té la malla, després de preparar-la (remallat, subdivisió adaptativa i un tall al llarg dels salts bruscos de la textura). Conserva la topologia, que és el que necessiten els colors. El procés predeterminat, en canvi, refina, neteja els triangles estrets, desplaça i simplifica en una sola passada; no cal preparar res abans, però encara no produeix colors."
+
+# AI Translated
+msgid "Budget"
+msgstr "Pressupost"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Quants milers de triangles pot gastar aquesta fixació a l'àrea que heu pintat. El relleu ja fixat a la resta del model es manté a més d'aquests, de manera que una segona fixació en un altre lloc té el mateix pressupost que la primera. Augmenteu-lo si l'avís de sota de Resolució indica que el detall no hi cabrà; 0 conserva tots els triangles que ha produït el refinament, siguin quants siguin."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "Alinear la malla a les vores de la textura"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "Fa lliscar els vèrtexs lateralment sobre les vores de la textura abans de desplaçar-los. El desplaçament només pot moure els vèrtexs amunt i avall, així que sense això un salt brusc de la imatge cau allà on siguin els triangles i surt com una escala. Moure primer els vèrtexs sobre el salt dona una paret recta amb el mateix nombre de triangles."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "Netejar els triangles estrets"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "Col·lapsa els triangles prims que el refinament hereta de la triangulació pròpia del model, abans que el desplaçament els mostregi. Els tres vèrtexs d'un triangle estret cauen en tres parts no relacionades de la textura, cosa que fa que el relleu es vegi dentat."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "Activat: la resolució segueix la mida del model i el pressupost es deixa al valor predeterminat. Desmarqueu-ho per establir tots dos vosaltres mateixos - val la pena per a una textura molt més fina o molt més gruixuda que la peça on és."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "Triat a partir de la mida del model: triangles de %1$.2f mm, pressupost %2% k. Desmarqueu Automàtic per establir-los vosaltres mateixos."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "Com de fina es fa la malla sota la pintura, en mil·límetres. Ha de ser més petita que el detall que voleu obtenir de la textura - una ranura de 0,5 mm necessita triangles ben per sota de 0,5 mm. Fer-la més petita costa triangles ràpidament: reduir-la a la meitat en necessita quatre vegades més, i un cop ja no caben al pressupost, la fixació simplifica la malla i el detall es perd."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "Calen uns %1% triangles, pressupost %2% - la fixació simplificarà la malla i perdrà detall."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "Quants milers de triangles pot afegir el refinament al model. Sempre es divideix primer el triangle que s'ajusta pitjor, de manera que fins i tot una execució que ho gasta tot ho ha gastat on més es nota. Augmenteu-lo si el relleu encara es veu tosc."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "Atura la fixació. El que ja s'hagi completat es queda al model i es pot desfer."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "Tanca l'eina sense fixar. La pintura, les capes i els paràmetres es queden amb el model."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "Preparant..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "Fixant..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "Encara no hi ha res pintat. L'eina de costures de l'editor UV està activada, de manera que els traços sobre el model marquen costures en lloc de pintar - desactiveu-la al tauler per pintar."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "Encara no hi ha res pintat."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "Converteix els mapes d'alçades pintats en geometria real, movent els vèrtexs que ja hi ha. Utilitzeu primer Subdividir si la malla és massa grollera per mostrar el detall."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "Converteix els mapes d'alçades pintats en geometria real. Primer la malla es remalla a una densitat uniforme i es refina on la textura es corba, perquè el detall tingui vèrtexs on caure - tot en un sol pas."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "Model: %1% triangles - la fixació refina fins a la resolució anterior, dins del seu pressupost"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "Fixar mou els vèrtexs existents - el model es queda amb %1% triangles"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "Resultat de la fixació: fins a ~%1% k triangles"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% capes sense pintar, s'ometen"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% sense pintar, s'omet"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "Entrant al pintat de desplaçament de textura"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "Sortint del pintat de desplaçament de textura"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "Edició del desplaçament de textura"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "Trieu l'arxiu SLA:"
+
+# AI Translated
+msgid "Import file"
+msgstr "Importar fitxer"
+
+# AI Translated
+msgid "Import model and profile"
+msgstr "Importar el model i el perfil"
+
+# AI Translated
+msgid "Import profile only"
+msgstr "Importar només el perfil"
+
+# AI Translated
+msgid "Import model only"
+msgstr "Importar només el model"
+
+# AI Translated
+msgid "Accurate"
+msgstr "Precís"
+
+# AI Translated
+msgid "Balanced"
+msgstr "Equilibrat"
+
+# AI Translated
+msgid "Quick"
+msgstr "Ràpid"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "Fixant el desplaçament de textura"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "La fixació no ha produït cap desplaçament, de manera que no s'ha canviat res i s'ha conservat la pintura. Comproveu que la capa pintada tingui una textura i una profunditat diferent de zero."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "El pressupost de triangles ha limitat el detall: aquesta resolució necessita %1% triangles i el pressupost n'ha conservat %2%. Augmenteu Pressupost o utilitzeu una Resolució més grollera per obtenir tot el detall."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "Capturant les etapes de fixació"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "Preparant la malla per al desplaçament de textura"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "Feu clic per editar la proporció"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "Editar el filament mixt"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "Previsualització de l'efecte"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "Seleccionar els materials mixtos"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ Afegir material"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- Eliminar material"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "Efecte de degradat"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "Activar l'efecte de degradat per peça"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "Recomanacions de barreja"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- Seleccionar --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "Ranura %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "No es poden barrejar tipus de filament diferents: %s. Seleccioneu el mateix tipus de filament."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "Seleccioneu un filament per a tots els components"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "No es poden barrejar tipus de filament diferents"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "Màxim 3 materials per barrejar"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "S'ha arribat al nombre màxim de components"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "Eliminar el tercer material"
+
+# AI Translated
+msgid "3D Models"
+msgstr "Models 3D"
+
+# AI Translated
+msgid "Click to return"
+msgstr "Feu clic per tornar"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "Fletxa esquerra"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "Feu clic per continuar"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "Fletxa dreta"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "Seleccionar un connector de %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "Trieu un connector de %s de la llista següent."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "No s'ha trobat cap connector d'aquest tipus."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "Fitxer del connector: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "Connectors de procés"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "Connectors de filament"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "Connectors d'impressora"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "La configuració no és un JSON vàlid. Els canvis no s'han desat."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "S'ha actualitzat la configuració. Deseu el perfil perquè es conservi."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"Voleu restaurar la configuració predeterminada de \"%s\"?\n"
+"\n"
+"Això descarta la substitució del perfil i utilitza la configuració global."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "Restaurar els valors predeterminats"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "S'utilitza la configuració global. Deseu el perfil perquè es conservi."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "Aquesta capacitat ja no està disponible."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "No s'ha pogut carregar la interfície de configuració del connector (%1%). Es mostra l'editor predeterminat."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "Esborrar el connector"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "Cancel·lar la subscripció"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "Sobreescriure el connector"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "Seleccioneu un paquet de connector .py o .whl."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "No s'ha pogut instal·lar el paquet del connector. Consulteu el registre per a més detalls."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"El connector \"%s\" ja està instal·lat.\n"
+"\n"
+"Si instal·leu aquest paquet, se sobreescriurà el connector existent."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "Sobreescriure"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "Instal·lant el connector"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "S'ha instal·lat \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "No s'ha pogut activar \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "S'ha activat \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"Els connectors instal·lats següents no s'han trobat al disc:\n"
+"%s\n"
+"\n"
+"Voleu treure'ls d'OrcaSlicer?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "Connectors que falten"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "Actualitzant les dades dels connectors"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "No s'ha pogut descarregar el connector de la memòria."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "S'ha desactivat \"%s\"."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "No s'ha trobat el manifest del connector."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "Activant \"%s\"..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "S'ha habilitat \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "S'ha deshabilitat \"%s\"."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "Descarregant el connector"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "Ha fallat la descàrrega del connector."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "S'ha desat la configuració."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"Voleu restaurar la configuració predeterminada de \"%s\"?\n"
+"\n"
+"Això descarta els paràmetres desats actualment per a aquesta capacitat."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "S'ha restaurat la configuració predeterminada."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "Actualitzant el connector"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "No s'ha pogut actualitzar el connector."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "S'ha actualitzat \"%s\"."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "No s'ha pogut determinar la carpeta del connector."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"Voleu esborrar el connector \"%s\"?\n"
+"\n"
+"Això elimina els fitxers locals del connector. El connector es manté al núvol i es pot tornar a instal·lar."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"Voleu esborrar el connector \"%s\"?\n"
+"\n"
+"Això elimina permanentment la carpeta del connector."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "No s'ha pogut esborrar el connector."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "S'ha esborrat \"%s\"."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "Esborrant el connector"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "Esborrant el connector..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"Voleu cancel·lar la subscripció al connector \"%s\"?\n"
+"\n"
+"Això deixarà de fer el seguiment del connector i n'esborrarà els fitxers locals."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "No s'ha pogut cancel·lar la subscripció al connector."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "S'ha cancel·lat la subscripció a \"%s\"."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "Cancel·lant la subscripció al connector"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "Esborrant els fitxers locals i cancel·lant la subscripció al connector..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "Tornant a carregar el connector"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "No s'ha pogut tornar a carregar el connector."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "S'ha tornat a carregar \"%s\"."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "Paràmetres del mode de purga"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "Fa una purga completa amb transició de velocitat i temperatura per obtenir la millor qualitat d'impressió."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "Utilitza una temperatura de purga, un multiplicador i una extrusió més forta optimitzats per purgar més ràpid. En alguns casos extrems pot causar una lleugera barreja de colors."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "Estalvi de purga"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "Redueix els residus de purga i imprimeix més ràpid. Pot causar una lleugera barreja de colors o petits defectes a la superfície."
+
+# AI Translated
+msgid "Terminal"
+msgstr "Terminal"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "Barreja automàtica CMYW amb un clic"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "Barreja automàtica RYBW amb un clic"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "Filaments físics del projecte"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "Filaments físics nous"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "Filaments mixtos del projecte"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "Filaments mixtos nous"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "El projecte admet fins a %d filaments. Els filaments addicionals es descartaran."
+
+# AI Translated
+msgid "Import Model"
+msgstr "Importar el model"
+
+# AI Translated
+msgid "Original"
+msgstr "Original"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "Multicolor"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "El vostre model de textura d'entrada"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "Model multicolor processat"
+
+# AI Translated
+msgid "Color Count"
+msgstr "Nombre de colors"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "Nivell de suavitzat"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "Determina automàticament només el nombre òptim de colors i torna a calcular l'assignació de filaments"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "Converteix la textura en pintura amb el nombre de colors i el nivell de suavitzat especificats"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "Recordatori: s'han canviat paràmetres; feu clic a Aplicar perquè tinguin efecte"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "Assignació de filaments"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "Restableix l'assignació de filaments a l'estat anterior a la barreja amb un clic"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "Trieu el mode de barreja automàtica amb un clic per a la importació de colors de textura"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "Fusionar automàticament els filaments iguals"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "Fusiona automàticament els filaments idèntics amb els filaments existents al projecte"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "Ometre l'assignació"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "Omet l'assignació de filaments i importa com a model d'un sol color"
+
+# AI Translated
+msgid "Processing"
+msgstr "Processant"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "Calculant els colors de textura..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "Reparant la malla"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "Ha fallat el càlcul. Ajusteu els paràmetres i torneu-ho a provar."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "La malla té geometria no moldejada o contorns oberts. Podeu importar-la tal com està o reparar-la amb el servei de reparació 3D de Windows abans d'importar-la."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "Reparació de la malla"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "Importar sense reparar"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "Reparar i importar"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "Tingueu en compte que la malla té geometria no moldejada o contorns oberts."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "Problema de la malla"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "La imatge seleccionada és buida."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "No s'ha pogut preparar la textura per utilitzar-la."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "Només es poden eliminar les textures que heu importat vosaltres."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "No s'ha pogut esborrar el fitxer de textura."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "No s'ha pogut crear la carpeta per a les textures importades."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "No s'ha pogut carregar la imatge seleccionada."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "No s'ha pogut desar la textura importada."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "No s'ha pogut llegir el fitxer de textura."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "Marc de projecció - arrossegueu-lo sobre el model i després Aplicar"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "Movent l'illa  |  deixeu anar per col·locar-la, Esc per cancel·lar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "Girant l'illa: %d°  |  Màj = acoblar a 15°, feu clic per confirmar, Esc per cancel·lar"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "Escalant l'illa  |  feu clic per confirmar, Esc per cancel·lar"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "Movent el vèrtex  |  deixeu anar per col·locar-lo"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "Movent l'aresta  |  deixeu anar per col·locar-la"
+
+# AI Translated
+msgid "Panning"
+msgstr "Desplaçant la vista"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "Pinteu l'àrea sobre el model i després premeu Desplegar"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "Trieu Desplegar com a mapatge d'una capa de textura per editar-ne aquí les UV"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d vèrtexs seleccionats  |  arrossegar = moure junts, Màj/Ctrl + clic = afegir/treure"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Mode vèrtex: arrossegueu un vèrtex per canviar la forma  |  Màj/Ctrl + clic = selecció múltiple, roda = zoom, Inici = enquadrar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d arestes seleccionades  |  arrossegar = moure juntes, Màj/Ctrl + clic = afegir/treure"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Mode aresta: arrossegueu una aresta d'illa per canviar la forma  |  Màj/Ctrl + clic = selecció múltiple, roda = zoom, Inici = enquadrar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "%d illes seleccionades  |  arrossegar = moure juntes, Màj/Ctrl + clic = afegir/treure, R/S = girar/escalar la principal"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "Illa %d seleccionada  |  arrossegar = moure, R = girar, S = escalar, Màj/Ctrl + clic = selecció múltiple, Inici = enquadrar"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "Feu clic en una illa per seleccionar-la  |  Màj/Ctrl + clic = selecció múltiple, roda = zoom, arrossegar amb el botó central = desplaçar, Inici = enquadrar-ho tot"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  acoblament ACTIVAT"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "Canviar la textura - trieu-ne una altra de la biblioteca de textures"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "Mapa d'alçades - mostra la textura de la capa sota les illes"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "Escaquer - una quadrícula de prova; els quadrats es mantenen quadrats on el desplegament no estira"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "Distorsió - acoloreix cada illa segons quant l'estira el desplegament"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "Desplegar"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "Angle de costura"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "Les arestes més agudes que aquest valor es tallen, i les peces de cada costat s'aplanen per separat. Abaixeu-lo per tallar més: aleshores cada peça queda plana amb menys estirament, a costa que la textura no continuï de manera contínua a través del tall. S'aplica al següent Desplegar."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "Connectar les illes"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "Distribueix el desplegament com una xarxa connectada: les peces que comparteixen una aresta es despleguen l'una al costat de l'altra (un cub es converteix en una xarxa unida en lloc de sis quadrats solts). Continuen sent illes separades, així que després encara podeu moure qualsevol d'elles a mà."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "Illa - moure, girar i escalar illes senceres"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "Vèrtex - arrossegueu els vèrtexs per canviar la forma; Màj/Ctrl per a la selecció múltiple"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "Aresta - arrossegueu les arestes per canviar la forma; Màj/Ctrl per a la selecció múltiple"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "Marcar costures - feu clic a les arestes del model per tallar-hi el desplegament. L'aresta sota el cursor es ressalta en groc; feu-hi clic per marcar-la en vermell, i torneu a fer clic a una aresta vermella per desmarcar-la. La pintura queda en pausa mentre està activat."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "Camí - en lloc de fer clic a cada aresta, feu clic a un punt inicial i després a un punt final: tot el camí més curt entre tots dos es marca com a costura d'un sol cop. Disponible mentre es marquen costures."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "Esborrar les costures - elimina totes les costures marcades en aquesta capa"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "Escala mitjana - dona a totes les illes la mateixa densitat de texels"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "Tallar - divideix l'illa seleccionada pel seu eix llarg"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "Unir - desplega l'illa seleccionada sobre la veïna més propera al llarg de l'aresta compartida"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "Separar - torna l'illa seleccionada a la seva pròpia posició empaquetada"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "Esborrar les edicions UV - descarta tots els moviments manuals de vèrtexs/arestes i retorna el desplegament a la forma automàtica"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "Acoblar - enganxa les illes entre si en arrossegar-ne una contra una altra"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "Enquadrar totes les illes (Inici)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "Cap capa mapada amb Desplegar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "Tessel·la de %.1f mm"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "Desactualitzat - la pintura, les costures o l'angle de costura han canviat des que es va fer aquest desplegament. Premeu per tornar a desplegar."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "Aplana l'àrea pintada en illes UV. Només es calcula quan premeu aquest botó, no a cada edició - així que primer pinteu, canvieu l'angle de costura o marqueu costures, i després premeu Desplegar."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d illes, %s cares"
+
+# AI Translated
+msgid "Forward"
+msgstr "Endavant"
+
+# AI Translated
+msgid "Tools"
+msgstr "Eines"
+
+# AI Translated
+msgid "View Source"
+msgstr "Veure el codi font"
+
+# AI Translated
+msgid "View Text"
+msgstr "Veure el text"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "Gestionar la navegació"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "Gestionar les finestres noves"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "Mode d'edició"
+
+# AI Translated
+msgid "Run Script"
+msgstr "Executar un script"
+
+# AI Translated
+msgid "Add user script"
+msgstr "Afegir un script d'usuari"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "Establir un agent d'usuari personalitzat"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "Anul·lar la selecció"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "Suprimir la selecció"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "Exemple d'esquema personalitzat"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "Exemple de sistema de fitxers en memòria"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "Activar el menú contextual"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "Activar les eines de desenvolupament"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "S'ha produït un error en carregar %s"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "Carregar %1% a %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "Carregar %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"El connector \"%s\" sol·licita permís per a l'esdeveniment d'auditoria de Python \"%s\".\n"
+"\n"
+"Aquesta operació no exposa cap objectiu que el ganxo d'auditoria pugui mostrar."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita llegir els fitxers següents:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita llegir/escriure els fitxers següents:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita crear els fitxers següents:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita esborrar els fitxers següents:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita fer una petició HTTP a:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita obrir una connexió de xarxa a:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"El connector \"%s\" sol·licita executar les ordres següents:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "El connector \"%s\" sol·licita permís per a l'esdeveniment d'auditoria de Python \"%s\"."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "Sol·licitud de permís del connector"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "La interfície de configuració del connector era buida. Es mostra l'editor predeterminat."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "Aquesta capacitat ja no està disponible. Els canvis no s'han desat."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "No s'ha pogut escriure la configuració al disc. Els canvis no s'han desat."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "El connector no ha pogut proporcionar una configuració predeterminada (%1%). No s'ha canviat res."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "No s'ha pogut escriure la configuració al disc. No s'ha canviat res."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "Ha fallat la instal·lació del connector"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -26337,8 +29066,8 @@ msgid ""
 "G-code window\n"
 "You can turn on/off the G-code window by pressing the <b>C</b> key."
 msgstr ""
-"Finestra del Codi-G\n"
-"Podeu activar/desactivar la finestra del Codi-G prement la tecla <b>C</b> ."
+"Finestra del G-code\n"
+"Podeu activar/desactivar la finestra del G-code prement la tecla <b>C</b> ."
 
 #: resources/data/hints.ini: [hint:Switch workspaces]
 msgid ""
@@ -26585,6 +29314,85 @@ msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "No s'ha pogut generar el gcode cali"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "Restar"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "Multiplicar"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " i "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "no es poden barrejar. Seleccioneu el mateix tipus de filament."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "S'ha produït un error en carregar "
+
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "Carregar %s a "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "A la pestanya Disseny, dibuixa el connector de relació de posició com una petita cara en lloc del disc convencional amb un quadrant de gir. L'orientació d'una cara s'entén sense haver-la d'aprendre. Desactiveu-ho per obtenir la representació CAD convencional."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "Expert"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "Simple"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "Feu clic als punts; feu clic al primer / clic dret per tancar el bucle"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "Direcció X: X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "Direcció X: Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "Direcció X: Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — l'ull desactiva aquesta relació de posició"
+
+#~ msgid "Del"
+#~ msgstr "Esborrar"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "Esbós conservat — Finalitzar per confirmar-lo, Cancel·lar per descartar-lo"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "Editant: Esbós %d   ·   N = mirar perpendicular al pla   ·   Finalitzar o Cancel·lar a la barra d'eines"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "Editant l'esbós — arrossegueu una nansa o feu clic en una cota per editar-la"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -26717,9 +29525,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "Desfer  (%zu més)"
-
-#~ msgid "Reset direction"
-#~ msgstr "Restablir direcció"
 
 #~ msgid "Section View"
 #~ msgstr "Vista de secció"
@@ -26939,9 +29744,6 @@ msgstr ""
 
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "Voleu ajustar el rang automàticament?\n"
-
-#~ msgid "Head diameter"
-#~ msgstr "Diàmetre del cap"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Ordre d'impressió dins d'una sola capa"
@@ -27320,14 +30122,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "El tipus de broquet al perfil no és consistent amb el broquet memoritzat. Heu canviat el broquet recentment?"
 
-#~ msgid "Remove selected points"
-#~ msgstr "Elimina els punts seleccionats"
-
 #~ msgid "Remove all"
 #~ msgstr "Elimina- ho tot"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Generar punts automàticament"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "Afegir una orella de Vora d'Adherència"
@@ -27359,12 +30155,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "Tecla 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "Clic esquerre"
-
-#~ msgid "Right click"
-#~ msgstr "Clic dret"
 
 #~ msgid "Select feature"
 #~ msgstr "Seleccioneu una característica"
@@ -28172,12 +30962,6 @@ msgstr ""
 
 #~ msgid "The target object contains only one part and cannot be split."
 #~ msgstr "L'objecte final conté només una part i no es pot partir."
-
-#~ msgid "?"
-#~ msgstr "?"
-
-#~ msgid "/"
-#~ msgstr "/"
 
 #~ msgid "Color Scheme"
 #~ msgstr "Esquema de color"

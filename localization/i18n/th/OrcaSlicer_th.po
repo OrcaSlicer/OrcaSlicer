@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -5216,7 +5216,8 @@ msgstr "พารามิเตอร์ cali ของอัตราการ
 msgid "Selected diameter and machine diameter do not match"
 msgstr "เส้นผ่านศูนย์กลางที่เลือกและเส้นผ่านศูนย์กลางของเครื่องจักรไม่ตรงกัน"
 
-msgid "Failed to generate cali G-code"
+# AI Translated
+msgid "Failed to generate calibration G-code"
 msgstr "ไม่สามารถสร้าง cali G-code"
 
 msgid "Calibration error"
@@ -5504,7 +5505,7 @@ msgid "Layer Time (log)"
 msgstr "เวลาเลเยอร์ (บันทึก)"
 
 msgid "Pressure Advance"
-msgstr "แรงดันล่วงหน้า (Pressure Advance)"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr "ไม่มีการดำเนินการ"
@@ -6051,6 +6052,7 @@ msgid "Wireframe"
 msgstr "โครงลวด"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "เอกซเรย์"
 
@@ -6230,8 +6232,9 @@ msgstr "ดูสด"
 msgid "Liveview Retry"
 msgstr "ลองดูภาพสดอีกครั้ง"
 
+# AI Translated
 msgid "Resolution"
-msgstr "ปณิธาน"
+msgstr "ความละเอียด"
 
 msgid "Show \"Live Video\" guide page."
 msgstr "แสดงหน้าคำแนะนำ \"วิดีโอสด\""
@@ -6651,7 +6654,7 @@ msgid "Max flowrate"
 msgstr "อัตราการไหลสูงสุด"
 
 msgid "Pressure advance"
-msgstr "แรงดันล่วงหน้า (Pressure Advance)"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "อัตราส่วนการไหล"
@@ -8365,6 +8368,7 @@ msgid "Click to edit preset"
 msgstr "คลิกเพื่อแก้ไขค่าที่ตั้งล่วงหน้า"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "รุ่นย่อย"
 
@@ -9540,6 +9544,7 @@ msgid "Recent actions"
 msgstr "คำสั่งล่าสุด"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "คำสั่ง"
 
@@ -9657,8 +9662,8 @@ msgid "Draw mate connectors as a face"
 msgstr "วาดตัวเชื่อมเมทเป็นผิวหน้า"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "ในแท็บออกแบบ วาดตัวเชื่อมเมทเป็นผิวหน้าขนาดเล็กแทนแผ่นกลมแบบดั้งเดิมที่มีควอดแรนต์แสดงการหมุน ทิศทางของผิวหน้าเข้าใจได้ทันทีโดยไม่ต้องเรียนรู้ ปิดตัวเลือกนี้เพื่อใช้การแสดงผลแบบ CAD ดั้งเดิม"
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "ในแท็บออกแบบ วาดตัวเชื่อมเมทเป็นผิวหน้าขนาดเล็กแทนแผ่นกลมแบบดั้งเดิมที่มีควอดแรนต์แสดงการหมุน ผิวหน้าแสดงทิศทางได้ในทันทีโดยไม่ต้องเรียนรู้รูปแบบของแผ่นกลม ปิดตัวเลือกนี้เพื่อใช้การแสดงผลแบบ CAD ดั้งเดิม"
 
 msgid "Pan"
 msgstr "แพน"
@@ -9755,10 +9760,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "ใช้ SSAO ในมุมมองแบบสมจริง"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "คงที่"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "โคจร"
 
@@ -10540,10 +10547,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "ใช้การตั้งค่ากราฟิกปัจจุบัน และมักใช้เวลาไม่ถึงหนึ่งนาที หน้าต่างหลักจะถูกล็อกไว้จนกว่าจะเสร็จสิ้น"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "ขั้นสูง"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "ผู้เชี่ยวชาญ"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "นักพัฒนา"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "แบบง่าย"
 
@@ -11621,7 +11640,7 @@ msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "ช่วงอุณหภูมิหัวฉีดที่แนะนำของเส้นพลาสติกนี้ 0 หมายถึงไม่มีการตั้งค่า"
 
 msgid "Flow ratio and Pressure Advance"
-msgstr "อัตราการไหลและแรงดันล่วงหน้า (Pressure Advance)"
+msgstr "อัตราการไหลและ Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "อุณหภูมิห้องพิมพ์"
@@ -14826,10 +14845,10 @@ msgid "Enable pressure advance"
 msgstr "เปิดใช้ Pressure Advance"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "เปิดใช้งานการเลื่อนแรงดัน ผลลัพธ์การสอบเทียบอัตโนมัติจะถูกเขียนทับเมื่อเปิดใช้งาน"
+msgstr "เปิดใช้งาน Pressure Advance ผลลัพธ์การสอบเทียบอัตโนมัติจะถูกเขียนทับเมื่อเปิดใช้งาน"
 
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "แรงดันล่วงหน้า (Pressure Advance) (Klipper) AKA Linear Advance Factor (Marlin)"
+msgstr "Pressure Advance (Klipper) AKA Linear Advance Factor (Marlin)"
 
 msgid "Enable adaptive pressure advance (beta)"
 msgstr "เปิดใช้ Adaptive Pressure Advance (เบต้า)"
@@ -14847,7 +14866,7 @@ msgstr ""
 "\n"
 "คุณลักษณะนี้มีจุดมุ่งหมายเพื่อแก้ไขข้อจำกัดนี้โดยการสร้างแบบจำลองการตอบสนองของระบบการอัดขึ้นรูปของเครื่องพิมพ์ของคุณ โดยขึ้นอยู่กับความเร็วการไหลตามปริมาตรและความเร่งที่เครื่องพิมพ์ทำการพิมพ์ ภายใน เครื่องพิมพ์จะสร้างแบบจำลองที่ติดตั้งไว้ซึ่งสามารถคาดเดาPressure Advanceที่จำเป็นสำหรับความเร็วและความเร่งในการไหลตามปริมาตรที่กำหนด ซึ่งจากนั้นจะปล่อยไปยังเครื่องพิมพ์โดยขึ้นอยู่กับสภาพการพิมพ์ในปัจจุบัน\n"
 "\n"
-"เมื่อเปิดใช้งาน ค่าล่วงหน้าของแรงดันด้านบนจะถูกแทนที่ อย่างไรก็ตาม แนะนำให้ใช้ค่าเริ่มต้นที่สมเหตุสมผลด้านบนเพื่อเป็นทางเลือกและเมื่อมีการเปลี่ยนเครื่องมือ\n"
+"เมื่อเปิดใช้งาน ค่า Pressure Advance ด้านบนจะถูกแทนที่ อย่างไรก็ตาม แนะนำให้ใช้ค่าเริ่มต้นที่สมเหตุสมผลด้านบนเพื่อเป็นทางเลือกและเมื่อมีการเปลี่ยนเครื่องมือ\n"
 
 msgid "Adaptive pressure advance measurements (beta)"
 msgstr "ข้อมูลวัด Adaptive Pressure Advance (เบต้า)"
@@ -22941,8 +22960,8 @@ msgid "Polyline"
 msgstr "โพลีไลน์"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรก / คลิกขวาเพื่อปิดลูป"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาเพื่อจบเส้นต่อเนื่อง"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23388,6 +23407,11 @@ msgstr "บอดี้ใหม่"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "รวม"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "ตัดออก"
 
@@ -23411,6 +23435,7 @@ msgid "Bottom"
 msgstr "ล่าง"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "ด้านข้าง"
 
@@ -23565,6 +23590,7 @@ msgid "Plane type"
 msgstr "ประเภทระนาบ"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "ระนาบฐาน"
 
@@ -23862,15 +23888,15 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "หากไม่มีขอบ เฟรมจะใช้แกน X จากขอบแรกของผิวหน้า — เลือกขอบเพื่อกำหนดเอง"
 
 # AI Translated
-msgid "X hint X"
+msgid "X direction X"
 msgstr "ทิศแกน X: X"
 
 # AI Translated
-msgid "X hint Y"
+msgid "X direction Y"
 msgstr "ทิศแกน X: Y"
 
 # AI Translated
-msgid "X hint Z"
+msgid "X direction Z"
 msgstr "ทิศแกน X: Z"
 
 # AI Translated
@@ -23946,8 +23972,9 @@ msgid "Feature tree"
 msgstr "แผนผังฟีเจอร์"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — ไอคอนรูปตาจะระงับเมทนี้"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s คลิกไอคอนรูปตาเพื่อระงับเมทนี้"
 
 # AI Translated
 #, c-format, boost-format
@@ -24006,9 +24033,6 @@ msgstr "ตัวแปร"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-msgid "Del"
-msgstr "เดล"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24111,8 +24135,8 @@ msgid "Tool exited"
 msgstr "ออกจากเครื่องมือแล้ว"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "เก็บสเก็ตช์ไว้แล้ว — กด เสร็จ เพื่อบันทึก หรือ ยกเลิก เพื่อทิ้ง"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "เก็บสเก็ตช์ไว้แล้ว — กด ยืนยัน เพื่อบันทึก หรือ ยกเลิก เพื่อทิ้ง"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24135,8 +24159,8 @@ msgstr "สเก็ตช์ %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "กำลังแก้ไข: สเก็ตช์ %d   ·   N = มองตั้งฉากกับระนาบ   ·   เสร็จหรือยกเลิกในแถบเครื่องมือ"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "กำลังแก้ไข: สเก็ตช์ %d   ·   N = มองตั้งฉากกับระนาบ   ·   ยืนยันหรือยกเลิกในแถบเครื่องมือ"
 
 # AI Translated
 #, c-format
@@ -25336,8 +25360,8 @@ msgid "On a stored face"
 msgstr "บนผิวหน้าที่บันทึกไว้"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "กำลังแก้ไขสเก็ตช์ — ลากจุดจับหรือคลิกค่ามิติเพื่อแก้ไข"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "กำลังแก้ไขสเก็ตช์ — ลากจุดจับหรือดับเบิลคลิกมิติเพื่อแก้ไข"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -25760,6 +25784,2715 @@ msgstr "แอปพลิเคชัน"
 msgid "Speed Dial"
 msgstr "Speed Dial"
 
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "บอดี้ %1% ถูกจัดตำแหน่งโดย \"%2%\" (ฟีเจอร์ %3%) อยู่แล้ว ดังนั้น \"%4%\" จะแทนที่ตำแหน่งนั้น"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "เมทนี้จัดตำแหน่งบอดี้ %1% เทียบกับตัวมันเอง"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "สายโซ่เมทวนเป็นวง: บอดี้ %1% ขึ้นอยู่กับบอดี้ %2% ซึ่งย้อนกลับมาที่บอดี้ %1% — ผลลัพธ์จะขึ้นอยู่กับลำดับของฟีเจอร์"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "ตัวเชื่อม \"%1%\" อาจย้ายไปอยู่บนผิวหน้าอื่น (การแก้ไขก่อนหน้าได้เปลี่ยนหมายเลขผิวหน้าของบอดี้นี้)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "การสร้างสแนปช็อตการกำหนดค่าล้มเหลว"
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer พบข้อผิดพลาดขณะสร้างสแนปช็อตการกำหนดค่า"
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "ข้อผิดพลาด OrcaSlicer"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "โปรดเลือกเส้นพลาสติกที่ติดตั้งอยู่บน %s"
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "โปรดเลือกเส้นพลาสติก"
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "เพื่อเรียนรู้เกี่ยวกับกฎการจับคู่เส้นพลาสติก"
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "ไม่รองรับสปูลภายนอกเนื่องจากได้ติดตั้ง Filament Track Switch แล้ว หากต้องการใช้สปูลภายนอก โปรดถอด Filament Track Switch ออก"
+
+# AI Translated
+msgid "Select Filament && Hotends"
+msgstr "เลือกเส้นพลาสติก && ฮอตเอนด์"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "รูปภาพโมเดล"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "อุปกรณ์เสริม"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "รายการเส้นพลาสติกโครงการ"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "คำแนะนำโหมดมาตรฐาน"
+
+# AI Translated
+msgid "Target Color"
+msgstr "สีเป้าหมาย"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "เลือกการแยกสี"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "โหมดอิสระ"
+
+# AI Translated
+msgid "Material List"
+msgstr "รายการวัสดุ"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "โหมดมาตรฐาน"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "ต้องมีเส้นพลาสติกที่เป็นวัสดุประเภทเดียวกันอย่างน้อยสองเส้นจึงจะแยกสีได้"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "รายการวัสดุรองรับได้สูงสุด %1% สี หลังจากแยกสี %2% จำนวนวัสดุจะเกิน %1% โปรดลบเส้นพลาสติกที่ไม่ได้ใช้ในหน้าจอหลักก่อนแยกสี"
+
+# AI Translated
+msgid "Cyan"
+msgstr "สีฟ้า"
+
+# AI Translated
+msgid "Magenta"
+msgstr "สีม่วงแดง"
+
+# AI Translated
+msgid "Yellow"
+msgstr "สีเหลือง"
+
+# AI Translated
+msgid "White"
+msgstr "สีขาว"
+
+# AI Translated
+msgid "Red"
+msgstr "สีแดง"
+
+# AI Translated
+msgid "Green"
+msgstr "สีเขียว"
+
+# AI Translated
+msgid "Blue"
+msgstr "สีน้ำเงิน"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "รายการเส้นพลาสติกปัจจุบันไม่มี %s เส้นพลาสติกโครงการที่เส้นพลาสติกผสมต้องใช้จะถูกสร้างขึ้นโดยอัตโนมัติหลังจากแยกสี"
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "หัวฉีดทางเลือก:"
+
+# AI Translated
+msgid "All standard"
+msgstr "มาตรฐานทั้งหมด"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "ยินดีต้อนรับสู่ผู้ช่วยการกำหนดค่า %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "ยินดีต้อนรับสู่วิซาร์ดการกำหนดค่า %s"
+
+# AI Translated
+msgid "Welcome"
+msgstr "ยินดีต้อนรับ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "สวัสดี ยินดีต้อนรับสู่ %s! %s นี้จะช่วยคุณกำหนดค่าเริ่มต้น เพียงตั้งค่าไม่กี่อย่างคุณก็พร้อมพิมพ์แล้ว"
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "ลบโปรไฟล์ผู้ใช้ (จะสร้างสแนปช็อตไว้ก่อน)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "ดำเนินการผสานรวมเดสก์ท็อป (ตั้งค่าไบนารีนี้ให้ระบบค้นหาได้)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "ตระกูล %s"
+
+# AI Translated
+msgid "Printer:"
+msgstr "เครื่องพิมพ์:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "ผู้ขาย:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "โปรไฟล์:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(ทั้งหมด)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "%1% ที่มีเครื่องหมาย <b>*</b> <b>ไม่</b>เข้ากันกับเครื่องพิมพ์บางเครื่องที่ติดตั้งไว้"
+
+# AI Translated
+msgid "SLA materials"
+msgstr "วัสดุ SLA"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "เครื่องพิมพ์ที่ติดตั้งไว้ทั้งหมดเข้ากันได้กับ %1% ที่เลือก"
+
+# AI Translated
+msgid "filament"
+msgstr "เส้นพลาสติก"
+
+# AI Translated
+msgid "SLA material"
+msgstr "วัสดุ SLA"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "มีเพียงเครื่องพิมพ์ที่ติดตั้งไว้ต่อไปนี้ที่เข้ากันได้กับเส้นพลาสติกที่เลือก"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "มีเพียงเครื่องพิมพ์ที่ติดตั้งไว้ต่อไปนี้ที่เข้ากันได้กับวัสดุ SLA ที่เลือก"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "ตั้งค่าเครื่องพิมพ์แบบกำหนดเอง"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "เครื่องพิมพ์แบบกำหนดเอง"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "กำหนดโปรไฟล์เครื่องพิมพ์แบบกำหนดเอง"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "ชื่อโปรไฟล์แบบกำหนดเอง:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "ประเภทเฟิร์มแวร์"
+
+# AI Translated
+msgid "Firmware"
+msgstr "เฟิร์มแวร์"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "เลือกประเภทเฟิร์มแวร์ที่เครื่องพิมพ์ของคุณใช้"
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "รูปทรงและขนาดฐานพิมพ์"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "ตั้งค่ารูปทรงฐานพิมพ์ของเครื่องพิมพ์คุณ"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "ป้อนตัวเลขไม่ถูกต้อง"
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "เส้นผ่านศูนย์กลางเส้นพลาสติกและหัวฉีด"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "เส้นผ่านศูนย์กลางการพิมพ์"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "ป้อนเส้นผ่านศูนย์กลางหัวฉีดของฮอตเอนด์เครื่องพิมพ์คุณ"
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "เส้นผ่านศูนย์กลางหัวฉีด:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "ป้อนเส้นผ่านศูนย์กลางเส้นพลาสติกของคุณ"
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "ต้องการความแม่นยำสูง ดังนั้นให้ใช้เวอร์เนียร์คาลิปเปอร์วัดหลาย ๆ จุดตลอดแนวเส้นพลาสติก แล้วคำนวณค่าเฉลี่ย"
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "เส้นผ่านศูนย์กลางเส้นพลาสติก:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "อุณหภูมิหัวฉีดและฐานพิมพ์"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "ป้อน nozzle_temperature ที่จำเป็นสำหรับการอัดเส้นพลาสติกของคุณ"
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "โดยทั่วไปคือ 160 ถึง 230℃ สำหรับ PLA และ 215 ถึง 250℃ สำหรับ ABS"
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "อุณหภูมิการอัดเส้น:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "ป้อนอุณหภูมิฐานพิมพ์ที่จำเป็นเพื่อให้เส้นพลาสติกยึดติดกับฐานพิมพ์ร้อนของคุณ"
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "โดยทั่วไปคือ 60℃ สำหรับ PLA และ 110℃ สำหรับ ABS ปล่อยเป็นศูนย์หากไม่มีฐานพิมพ์ร้อน"
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "อุณหภูมิฐานพิมพ์:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "วัสดุ SLA"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "เครื่องพิมพ์เทคโนโลยี FFF"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "เครื่องพิมพ์เทคโนโลยี SLA"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "โปรไฟล์เครื่องพิมพ์ต่อไปนี้ไม่มีเส้นพลาสติกเริ่มต้น: %1%โปรดเลือกด้วยตนเอง"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "โปรไฟล์เครื่องพิมพ์ต่อไปนี้ไม่มีวัสดุเริ่มต้น: %1%โปรดเลือกด้วยตนเอง"
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "รุ่นเครื่องพิมพ์ FFF ต่อไปนี้ยังไม่ได้เลือกเส้นพลาสติก:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "คุณต้องการเลือกเส้นพลาสติกเริ่มต้นสำหรับรุ่นเครื่องพิมพ์ FFF เหล่านี้หรือไม่?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "การกำหนดค่าถูกแก้ไขใน ConfigWizard"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "พรีเซ็ตผู้ใช้ทั้งหมดจะถูกลบ"
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "มีการติดตั้งผู้ขายใหม่ และจะเปิดใช้งานเครื่องพิมพ์หนึ่งเครื่องจากผู้ขายดังกล่าว"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "ติดตั้งเครื่องพิมพ์ใหม่แล้ว และจะเปิดใช้งานเครื่องพิมพ์นี้"
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "ถอนการติดตั้งเครื่องพิมพ์บางเครื่องแล้ว"
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "ติดตั้งเส้นพลาสติกใหม่แล้ว และจะเปิดใช้งานเส้นพลาสติกนี้"
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "ติดตั้งวัสดุ SLA ใหม่แล้ว และจะเปิดใช้งานวัสดุนี้"
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "ถอนการติดตั้งเส้นพลาสติกบางรายการแล้ว"
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "ติดตั้งเครื่องพิมพ์แบบกำหนดเองแล้ว และจะเปิดใช้งานเครื่องพิมพ์นี้"
+
+# AI Translated
+msgid "<Back"
+msgstr "<ย้อนกลับ"
+
+# AI Translated
+msgid "Next>"
+msgstr "ถัดไป>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "การเลือกโปรไฟล์เส้นพลาสติก"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "ผู้ช่วยการกำหนดค่า"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "&ผู้ช่วยการกำหนดค่า"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "วิซาร์ดการกำหนดค่า"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "&วิซาร์ดการกำหนดค่า"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "ช่องป้อนเส้นพลาสติก A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "ช่องป้อนเส้นพลาสติก B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "การจัดเรียงใหม่ที่แนะนำ"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "ประหยัดเวลาได้อย่างไร?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "สถานะเส้นพลาสติก:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "จำเป็นต้องปรับตำแหน่ง"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "ปกติ"
+
+# AI Translated
+msgid "Unused"
+msgstr "ไม่ได้ใช้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "จากแผนภาพด้านล่าง ให้จัดเรียงเส้นพลาสติกบนเครื่องพิมพ์ใหม่เพื่อผลลัพธ์ที่ดีที่สุด ซึ่งจะประหยัดเวลาได้ประมาณ %s"
+
+# AI Translated
+msgid "Summary:"
+msgstr "สรุป:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "AMS บนช่องป้อนเส้นพลาสติก A"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "AMS บนช่องป้อนเส้นพลาสติก B"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "เส้นพลาสติกสไลซ์หมายเลข %d จับคู่กับ '%s' อยู่ การกำหนดให้กับ '%s' จะช่วยประหยัดเวลาพิมพ์ได้"
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*เคล็ดลับ: หากคุณย้ายตำแหน่งสปูลบนเครื่องแล้ว โปรดปิดหน้านี้และจับคู่เส้นพลาสติกใหม่อีกครั้ง"
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "สรุป: นี่คือตำแหน่งการวางที่เหมาะสมที่สุดในขณะนี้"
+
+# AI Translated
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "หมายเหตุ:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "ทำวัตถุนี้ให้กลวง"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "พรีวิวโมเดลที่ทำให้กลวงและเจาะรูแล้ว"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "ระยะปิด"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "เส้นผ่านศูนย์กลางรู"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "ความลึกรู"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "นำรูที่เลือกออก"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "นำรูทั้งหมดออก"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "การตัดมุมมอง"
+
+msgid "Reset direction"
+msgstr "รีเซ็ตทิศทาง"
+
+# AI Translated
+msgid "Show supports"
+msgstr "แสดงส่วนรองรับ"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "ทำให้กลวงและเจาะรู"
+
+msgid "Head diameter"
+msgstr "เส้นผ่านศูนย์กลางหัว"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "ล็อกส่วนรองรับใต้เกาะใหม่"
+
+# AI Translated
+msgid "Remove selected points"
+msgstr "ลบจุดที่เลือก"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "ลบจุดทั้งหมด"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "ใช้การเปลี่ยนแปลง"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "ทิ้งการเปลี่ยนแปลง"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "ระยะห่างขั้นต่ำระหว่างจุด"
+
+# AI Translated
+msgid "Support points density"
+msgstr "ความหนาแน่นของจุดรองรับ"
+
+# AI Translated
+msgid "Auto-generate points"
+msgstr "สร้างจุดอัตโนมัติ"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "แก้ไขด้วยตนเอง"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "จุดรองรับ SLA"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "คุณต้องการบันทึกจุดรองรับที่แก้ไขด้วยตนเองหรือไม่?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "บันทึกจุดรองรับหรือไม่?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "การสร้างอัตโนมัติจะลบจุดทั้งหมดที่แก้ไขด้วยตนเอง"
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "แป้นพิมพ์ลัดของกิสโม่ SLA"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "หมายเหตุ: แป้นพิมพ์ลัดบางรายการใช้ได้เฉพาะในโหมดแก้ไขหรือโหมดไม่แก้ไขเท่านั้น"
+
+# AI Translated
+msgid "Left click"
+msgstr "คลิกซ้าย"
+
+# AI Translated
+msgid "Add point"
+msgstr "เพิ่มจุด"
+
+# AI Translated
+msgid "Right click"
+msgstr "คลิกขวา"
+
+# AI Translated
+msgid "Remove point"
+msgstr "ลบจุด"
+
+# AI Translated
+msgid "Move point"
+msgstr "ย้ายจุด"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "เพิ่มจุดในการเลือก"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "ลบจุดออกจากการเลือก"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "เลือกด้วยสี่เหลี่ยม"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "ยกเลิกการเลือกด้วยสี่เหลี่ยม"
+
+# AI Translated
+msgid "Select all points"
+msgstr "เลือกจุดทั้งหมด"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "ย้ายระนาบตัดมุมมอง"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "รีเซ็ตระนาบตัดมุมมอง"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "สลับไปยังโหมดแก้ไข"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "อบ"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "การกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "ลบการระบายการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "ระบายการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "ทำเครื่องหมายเส้นตัด UV"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "ทำเครื่องหมายเส้นทางของเส้นตัด UV"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "เลเยอร์ %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "เฉลี่ยสเกลเกาะ UV"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "เลือกเกาะ UV ในตัวแก้ไข UV ก่อน"
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "ตัดเกาะ UV"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "เกาะนี้ไม่มีเกาะข้างเคียงที่ใช้ขอบร่วมกัน"
+
+# AI Translated
+msgid "Join texture island"
+msgstr "เชื่อมเกาะ UV"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "ยกเลิกการเชื่อมเกาะ UV"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "ล้างเส้นตัด UV"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "ล้างการแก้ไข UV ของพื้นผิว"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "ใช้กรอบฉายพื้นผิว"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "ย้ายเกาะ UV"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "แก้ไข UV ของพื้นผิว"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "จำนวนเลเยอร์การกระจัดพื้นผิวถึงขีดจำกัดสูงสุดแล้ว"
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "เพิ่มเลเยอร์การกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "ไม่สามารถโหลดพื้นผิวที่เลือกได้"
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "เปลี่ยนภาพพื้นผิวของการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "เลือกภาพพื้นผิว (แผนที่ความสูง)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "เลือกพื้นผิว"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "นำออกจาก พื้นผิวของฉัน"
+
+# AI Translated
+msgid "Built-in"
+msgstr "ในตัว"
+
+# AI Translated
+msgid "No textures found."
+msgstr "ไม่พบพื้นผิว"
+
+# AI Translated
+msgid "My textures"
+msgstr "พื้นผิวของฉัน"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "นำเข้าภาพของคุณเองเป็นแผนที่ความสูง ภาพจะถูกแปลงเป็นรูปแบบที่สไลเซอร์ใช้ในการอบ และบันทึกไว้ในโฟลเดอร์พื้นผิวส่วนตัวของคุณ แยกจากพื้นผิวที่มาพร้อมกับ OrcaSlicer"
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG หรือ BMP - แปลงเป็นแผนที่ความสูงเมื่อนำเข้า วางเมาส์เหนือพื้นผิวของคุณเพื่อนำออก"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"นำ \"%s\" ออกจาก พื้นผิวของฉัน หรือไม่?\n"
+"\n"
+"ไฟล์ภาพจะถูกลบออกจากโฟลเดอร์พื้นผิวของคุณ เลเยอร์ที่ใช้ภาพนี้อยู่แล้วจะยังคงใช้ต่อได้"
+
+# AI Translated
+msgid "Remove texture"
+msgstr "นำพื้นผิวออก"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "นำเลเยอร์การกระจัดพื้นผิวออก"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "จัดลำดับเลเยอร์การกระจัดพื้นผิวใหม่"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "เลือกผิวหน้าที่มองเห็นสำหรับการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "เลือกทั้งโมเดลสำหรับการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "แบ่งย่อยโมเดลสำหรับการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "ระบายบริเวณที่ต้องการแบ่งย่อยก่อน - การแบ่งย่อยแบบปรับได้จะเพิ่มความละเอียดเฉพาะบริเวณที่คุณระบายไว้เท่านั้น"
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "แบ่งย่อยแบบปรับได้สำหรับการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "ไม่มีอะไรให้แบ่งย่อย - บริเวณที่ระบายมีความยาวขอบและค่าความคลาดเคลื่อนของรายละเอียดตามเป้าหมายแล้ว หรือใช้งบประมาณสามเหลี่ยมหมดแล้ว"
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "ระบายบริเวณที่ต้องการปรับให้เรียบก่อน - การปรับให้เรียบจะมีผลเฉพาะส่วนที่ระบายของโมเดลเท่านั้น"
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "ไม่มีอะไรให้ปรับให้เรียบ - บริเวณที่ระบายลึกเพียงสามเหลี่ยมเดียว เมื่อเปิด \"ละเว้นวงรอบนอก\" จึงไม่มีจุดยอดด้านในให้ปรับ"
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "ปรับการกระจัดพื้นผิวให้เรียบ"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "รีเมชโมเดลสำหรับการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "การรีเมชไม่ได้เปลี่ยนแปลงโมเดล โมเดลอาจเป็น non-manifold (มีขอบเปิดหรือขอบที่สามเหลี่ยมมากกว่าสองรูปใช้ร่วมกัน) หรืออาจมีความยาวขอบตามเป้าหมายอยู่แล้ว"
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "ยังไม่ได้ระบายสิ่งใด จึงไม่มีอะไรให้อบ"
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "อบการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "ยังไม่ได้ระบายสิ่งใด จึงไม่มีขั้นตอนการอบให้บันทึก"
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "ขั้นตอนการอบ (ดีบัก)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "กำลังบันทึก..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "บันทึกขั้นตอน"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "เรียกใช้การอบแบบเดียวกับปุ่ม อบ โดยเก็บเมชไว้หลังทุกขั้นตอน แล้วไล่ดูทีละขั้นที่นี่ จะไม่มีสิ่งใดถูกบันทึกลงในโมเดล - ใช้เพื่อหาว่าผลลัพธ์ที่ผิดพลาดมาจากขั้นตอนใด"
+
+# AI Translated
+msgid "Check topology"
+msgstr "ตรวจสอบโทโพโลยี"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "นับขอบเปิดและขอบ non-manifold หลังแต่ละขั้นตอน ซึ่งเป็นวิธีระบุขั้นตอนที่ทำให้เมชฉีกขาด เนื่องจากต้องสแกนทุกขอบ จึงทำให้การบันทึกใช้เวลานานขึ้นอย่างเห็นได้ชัดเมื่ออบแบบละเอียด"
+
+# AI Translated
+msgid "< Previous"
+msgstr "< ก่อนหน้า"
+
+# AI Translated
+msgid "Next >"
+msgstr "ถัดไป >"
+
+# AI Translated
+msgid "triangles"
+msgstr "สามเหลี่ยม"
+
+# AI Translated
+msgid "vertices"
+msgstr "จุดยอด"
+
+# AI Translated
+msgid "Open edges"
+msgstr "ขอบเปิด"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "ขอบ non-manifold"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "สามเหลี่ยมลดรูป"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "เขียนเมชของแต่ละขั้นตอน"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "เขียนเมชของแต่ละขั้นตอนเป็นไฟล์ OBJ ไปที่:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "ไม่สามารถเขียนเมชของแต่ละขั้นตอนได้"
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "เขียนทุกขั้นตอนที่บันทึกไว้ออกเป็นไฟล์ OBJ เพื่อให้เปิดดูเทียบกันในโปรแกรมดูเมชได้"
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "ไม่สามารถถ่ายโอนบริเวณที่ระบายไปยังโมเดลที่รีเมชแล้วได้ จึงไม่มีการเปลี่ยนแปลงใด ๆ สลับไปที่โหมดโปรแล้วรีเมชก่อนระบาย"
+
+# AI Translated
+msgid "Pro"
+msgstr "โปร"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "มาตรฐาน - เลือกพื้นผิว ระบายบริเวณที่ต้องการ แล้วกด อบ ทุกอย่างที่เมชต้องการจะถูกจัดการให้ในขั้นตอนเดียว"
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "โปร - คุณเตรียมเมชเอง: รีเมช แบ่งย่อย และอบ เป็นขั้นตอนแยกกัน โดยแสดงการตั้งค่าทั้งหมด สำหรับกรณีที่ผลลัพธ์ของโหมดมาตรฐานไม่ตรงตามที่ต้องการและคุณรู้สาเหตุ"
+
+# AI Translated
+msgid "Dock panel"
+msgstr "ยึดแผง"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "ปลดแผง"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "แยกแผงนี้ออกเพื่อลากไปไว้ที่ใดก็ได้เหนือมุมมอง 3 มิติ หรือยึดกลับไว้ข้างแถบเครื่องมือ"
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "ลงใน %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "เพิ่มเลเยอร์เพื่อระบาย"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "ระบาย - เพิ่มเลเยอร์ที่ใช้งานอยู่ตรงที่คุณคลิกหรือลาก ปุ่มขวาใช้ลบ เช่นเดียวกับการกด Shift ค้างไว้"
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "ลบ - นำเลเยอร์ที่ใช้งานอยู่ออกตรงที่คุณคลิกหรือลาก ปุ่มขวาใช้ระบาย"
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "แปรง - ระบายบนผิวด้วยการลาก"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "ผิวหน้า - คลิกสามเหลี่ยมทีละรูป"
+
+# AI Translated
+msgid "Connected area"
+msgstr "บริเวณที่เชื่อมต่อกัน"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "บริเวณที่เชื่อมต่อกัน - เติมเต็มบริเวณที่เข้าถึงได้โดยไม่ข้ามขอบที่คมกว่าเกณฑ์มุม"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "รอให้การอบเสร็จสิ้น"
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "เพิ่มเลเยอร์ก่อน"
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "เลเยอร์ที่ใช้งานอยู่ยังไม่มีการระบาย"
+
+# AI Translated
+msgid "Select whole model"
+msgstr "เลือกทั้งโมเดล"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "เลือกทั้งโมเดล - ระบายทุกผิวหน้าของโมเดลด้วยเลเยอร์ที่ใช้งานอยู่"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "ลบทั้งโมเดล"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "ลบทั้งโมเดล - ล้างการระบายของเลเยอร์ที่ใช้งานอยู่ออกจากทุกผิวหน้า"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "รีเซ็ตการเลือกของการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "วงกลม - ระบายทุกอย่างที่อยู่ใต้แปรงตามที่มองเห็นจากกล้อง"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "ทรงกลม - ระบายเฉพาะภายในลูกบอลรอบจุดที่อยู่ใต้เคอร์เซอร์"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "เกณฑ์มุม - การเติมจะหยุดที่ขอบที่คมกว่าค่านี้"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "คลิกสามเหลี่ยมเพื่อระบาย"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "ต้องให้เลเยอร์ที่ใช้งานอยู่แมปด้วย คลี่ UV (LSCM)"
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "ปกติ - เรขาคณิตจริง ตรงกับที่การอบจะสร้างขึ้นทุกประการ อัปเดตช้ากว่า"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "เร็ว - ลายนูนแสดงด้วยการแรเงาเท่านั้น ไม่ได้สร้างจริง และเฉพาะเลเยอร์ที่กำลังแก้ไข อัปเดตทันทีขณะระบาย"
+
+# AI Translated
+msgid "Checker"
+msgstr "ตาหมากรุก"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "ตาหมากรุก - ตารางทดสอบแทนพื้นผิว บริเวณที่ช่องยังเป็นสี่เหลี่ยมจัตุรัส พื้นผิวจะไม่บิดเบี้ยว บริเวณที่ช่องยืด พื้นผิวก็จะยืดเช่นกัน"
+
+# AI Translated
+msgid "Distortion"
+msgstr "ความบิดเบี้ยว"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "ความบิดเบี้ยว - แผนที่ความร้อนแสดงการยืดจากสีน้ำเงินถึงสีแดงบนผลการคลี่ UV"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "โครงลวด - ซ้อนขอบเมชทับ; แยกอิสระจากมุมมองด้านบน"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "สร้างพรีวิวใหม่ทันทีที่มีการเปลี่ยนแปลง ปิดตัวเลือกนี้กับโมเดลขนาดใหญ่หากการระบายหรือการลากแถบเลื่อนเริ่มกระตุก - พรีวิวจะรอจนกว่าคุณจะปล่อยเมาส์"
+
+# AI Translated
+msgid "Texture layers"
+msgstr "เลเยอร์พื้นผิว"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "ลากไปวางบนเลเยอร์อื่นเพื่อจัดลำดับใหม่ เลเยอร์แรกอยู่บนผิวเปล่า แต่ละเลเยอร์ถัดไปจะเพิ่มลายนูนทับบนเลเยอร์ก่อนหน้า"
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "เลือกภาพอื่นสำหรับเลเยอร์นี้ การระบาย ความลึก และการเรียงไทล์จะยังคงเดิม"
+
+# AI Translated
+msgid "not painted"
+msgstr "ยังไม่ได้ระบาย"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "เลื่อนขึ้น - ใช้ก่อน"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "เลื่อนลง - ใช้ทีหลัง"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "นำเลเยอร์นี้ออก"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "ความสูงของลายนูน: ระยะที่สีขาวในภาพพื้นผิวยกผิวโมเดลขึ้น หน่วยเป็นมม. สีดำจะไม่ยกผิวเลย เว้นแต่ค่า ระดับกลาง จะกำหนดเป็นอย่างอื่น"
+
+# AI Translated
+msgid "Tile size"
+msgstr "ขนาดไทล์"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "ความกว้างของพื้นผิวหนึ่งชุดบนโมเดล ค่าที่เล็กลงจะทำให้ลวดลายซ้ำบ่อยขึ้นและมีรายละเอียดละเอียดขึ้น เมื่อปิด ไทล์ ค่านี้คือขนาดของสำเนาเดียว"
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "หมุนพื้นผิวบนผิวโมเดล หน่วยเป็นองศา - สำหรับจัดแนวลวดลายให้ตรงกับขอบของโมเดล"
+
+# AI Translated
+msgid "Midlevel"
+msgstr "ระดับกลาง"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"ระดับสีเทาที่คงอยู่ที่ระดับผิวเดิม ที่ 0 พื้นผิวจะดันออกด้านนอกเท่านั้น ที่ 0.5 สีเทากลางจะอยู่กับที่ สีเทาที่เข้มกว่าจะกดลึกเข้าไป และสีที่อ่อนกว่ายังคงดันออก - ภาพเดียวทำได้ทั้งลายนูนและลายแกะสลัก\n"
+"\n"
+"ส่วนที่กดลึกเข้าไปต้องมีพื้นที่พอ: ภายในมุมแหลมหรือผ่านผนังบาง รอยกดลึกอาจทะลุไปอีกด้านได้"
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "การกระจัดเข้าด้านในที่ลึกอาจทำให้เกิดการตัดกันเอง"
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "เบลอภาพก่อนนำไปใช้ ซึ่งช่วยลบความคมของขั้นบันไดและกำจัดจุดรบกวนจากภาพถ่ายที่มีสัญญาณรบกวน เพิ่มค่าหากลายนูนดูหยาบหรือเป็นเม็ด แต่จะสูญเสียรายละเอียดเล็ก ๆ"
+
+# AI Translated
+msgid "Edge fade"
+msgstr "จางที่ขอบ"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "ทำให้ลายนูนแบนลงเมื่อเข้าใกล้ขอบของบริเวณที่ระบาย เพื่อให้กลมกลืนกับผิวเปล่าแทนที่จะหยุดเป็นขั้น"
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "ระยะที่การจางเข้าไปถึง เป็นสัดส่วนของบริเวณที่ระบาย ค่าน้อยจะทำให้แถบแคบที่ขอบนุ่มนวลขึ้น ค่า 1 จะทำให้แบนเกือบทั้งหมด"
+
+# AI Translated
+msgid "Invert"
+msgstr "กลับค่า"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "กลับลายนูนจากในออกนอก: ส่วนที่นูนออกจะกลายเป็นกดลึกลง และในทางกลับกัน เหมือนกับการใช้ภาพเนกาทีฟ"
+
+# AI Translated
+msgid "Colours"
+msgstr "สี"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "พิมพ์บริเวณที่ระบายด้วยสีของพื้นผิวพร้อมกับลายนูน แต่ละสีจะจับคู่กับเส้นพลาสติกที่โหลดไว้ซึ่งใกล้เคียงที่สุด ส่วนที่ไม่ได้ระบายจะคงสีเดิมของวัตถุ"
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "พื้นผิวนี้เป็นแผนที่ความสูงแบบโทนสีเทา จึงไม่มีสีให้ใช้ นำเข้าภาพสีเพื่อใช้ตัวเลือกนี้"
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "ผสมเส้นพลาสติก"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "สลับใช้เส้นพลาสติกสองเส้นเพื่อจำลองสีที่อยู่ระหว่างกัน ทำให้เส้นพลาสติกเพียงไม่กี่สีครอบคลุมภาพถ่ายหรือการไล่ระดับสีได้ ภาพที่เป็นสีเรียบจะพิมพ์ออกมาเหมือนกันไม่ว่าแบบใด เมื่อปิดจะใช้เส้นพลาสติกหนึ่งเส้นต่อหนึ่งบริเวณ"
+
+# AI Translated
+msgid "Mix by"
+msgstr "ผสมตาม"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "ผิว"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"เลเยอร์: เส้นพลาสติกทั้งสองสลับกันระหว่างเลเยอร์การพิมพ์ ซึ่งผสมกลมกลืนบนผิวที่ตั้งตรง แต่จะหายไปบนผิวในแนวราบ เพราะทั้งเลเยอร์เป็นแถบสีเดียว\n"
+"ผิว: ลายตาหมากรุกละเอียดทั่วผิว ใช้ได้ทุกมุม แต่อาจดูเป็นลวดลายแทนที่จะเป็นการผสมสี\n"
+"อัตโนมัติ: ใช้เลเยอร์บนผิวที่ตั้งตรง ส่วนผิวในแนวราบจะใช้เส้นพลาสติกเดียวที่ใกล้เคียงกว่า เนื่องจากลายตาหมากรุกบนผิวนั้นจะเห็นเป็นลวดลาย"
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% สีที่พิมพ์ได้จากเส้นพลาสติก %2% เส้น"
+
+# AI Translated
+msgid "Denoise"
+msgstr "ลดสัญญาณรบกวน"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "กำจัดสามเหลี่ยมเดี่ยวที่มีสีผิด ซึ่งเกิดจากรายละเอียดที่ละเอียดกว่าเมช เพิ่มค่าหากผลลัพธ์ดูเป็นจุดประ ลดค่าหากรายละเอียดเล็ก ๆ ถูกกลืนหายไป"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "การแมป"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "สามระนาบ (ผสาน)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "สามระนาบ - ฉายพื้นผิวจากทั้งสามแกนพร้อมกันและผสานระหว่างกัน ทำให้บริเวณที่พันรอบขอบคมไม่มีรอยต่อ"
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "ทรงกระบอก - พันพื้นผิวรอบจุดศูนย์กลางของบริเวณที่ระบาย สำหรับรูปทรงโค้งมน"
+
+# AI Translated
+msgid "Spherical"
+msgstr "ทรงกลม"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "ทรงกลม - พันพื้นผิวรอบจุดศูนย์กลางของบริเวณที่ระบายทั้งสองทิศทาง"
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "คลี่ UV (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "คลี่ UV - แผ่บริเวณที่ระบายให้แบนราบและแมปพื้นผิวลงไปโดยให้ยืดน้อยที่สุด บริเวณนั้นจะถูกตัดเป็นชิ้นที่ขอบคมก่อน (ดู มุมเส้นตัด) เพื่อให้แต่ละชิ้นแบนราบได้ด้วยตัวเอง"
+
+# AI Translated
+msgid "From view"
+msgstr "จากมุมมอง"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "จากมุมมอง - ฉายตรงลงบนบริเวณที่ระบายจากตำแหน่งที่คุณกำลังมอง เหมือนเครื่องฉายสไลด์"
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "เปิดตัวแก้ไข UV"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "เปิดตัวแก้ไข UV ซึ่งคุณสามารถดูว่าพื้นผิววางอยู่บนบริเวณที่ระบายอย่างไร กำหนดเส้นตัด UV และย้ายชิ้นส่วนต่าง ๆ ได้"
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "ยังไม่ได้คลี่ UV"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% เกาะ"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "จับภาพมุมมองปัจจุบัน"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "มองไม่เห็นสิ่งใดจากมุมนี้ - หมุนโมเดลให้ส่วนที่ต้องการฉายหันเข้าหาคุณ"
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "ฉายพื้นผิวลงบนบริเวณที่ระบายจากตำแหน่งที่คุณกำลังมองอยู่ เหมือนเครื่องฉายสไลด์ ผิวหน้าที่หันออกจากคุณจะถูกยืด ดังนั้นจัดมุมมองให้ตรงกับผิวที่ต้องการก่อน"
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "ฉายเฉพาะส่วนที่มองเห็น"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "ระบายเฉพาะผิวหน้าที่คุณมองเห็นจริงในขณะนี้ - หันเข้าหาคุณและไม่ถูกสิ่งใดบัง - แล้วฉายลงบนผิวหน้าเหล่านั้น แทนที่การระบายเดิมของเลเยอร์"
+
+# AI Translated
+msgid "Projection frame"
+msgstr "กรอบฉาย"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "เปิดหน้าต่างที่คุณลากวางเหนือโมเดลได้ สิ่งที่มองเห็นผ่านหน้าต่างนั้นจะได้รับพื้นผิว และขอบของหน้าต่างจะกลายเป็นขอบของการฉาย"
+
+# AI Translated
+msgid "Opacity"
+msgstr "ความทึบแสง"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "ความทึบของหน้าต่างกรอบขณะวาง ลดค่าเพื่อมองเห็นโมเดลผ่านกรอบ โดยไม่มีผลต่อผลลัพธ์"
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "ใช้กรอบฉาย"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "ไม่มีส่วนใดของโมเดลอยู่ภายในกรอบ - ย้ายกรอบไปเหนือส่วนที่ต้องการฉาย"
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "ไม่สามารถใช้กรอบได้ ตรวจสอบให้แน่ใจว่ากรอบซ้อนทับกับมุมมอง 3 มิติ"
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "ฉายพื้นผิวผ่านกรอบจากตำแหน่งที่คุณกำลังมองอยู่ และระบายผิวหน้าที่อยู่ภายในกรอบ แทนที่การระบายเดิมของเลเยอร์ ผลลัพธ์จะติดอยู่กับโมเดล คุณจึงหมุนมุมมองได้ภายหลัง"
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "วางด้วยกรอบฉาย"
+
+# AI Translated
+msgid "Tile"
+msgstr "ไทล์"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "ทำซ้ำพื้นผิวทั่วบริเวณที่ระบาย เมื่อปิดจะวางสำเนาเดียวเหมือนสติกเกอร์ ตามขนาดที่ตั้งใน ขนาดไทล์"
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "เปิด ไทล์ เพื่อเลือกวิธีทำซ้ำพื้นผิว"
+
+# AI Translated
+msgid "Repeat"
+msgstr "ทำซ้ำ"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "ทำซ้ำแบบสะท้อน"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "ทำซ้ำแบบสะท้อน - ไทล์เว้นไทล์จะถูกพลิก ทำให้ขอบต่อกันได้อย่างไร้รอยต่อ"
+
+# AI Translated
+msgid "Blend"
+msgstr "การผสม"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "เพิ่ม"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "ลบออก"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "คูณ"
+
+# AI Translated
+msgid "Divide"
+msgstr "หาร"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "เลเยอร์ฐานไม่มีสิ่งใดอยู่ข้างใต้ให้รวมด้วย จึงใช้แบบเพิ่มเสมอ"
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "สิ่งที่เลเยอร์นี้ทำในบริเวณที่ซ้อนทับกับเลเยอร์ด้านล่าง เพิ่ม และ ลบออก จะเพิ่มลายนูนทับหรือแกะลายนูนออก คูณ และ หาร จะปรับสเกลสิ่งที่อยู่ข้างใต้ ซึ่งทำให้เลเยอร์นี้เป็นมาสก์ทับเลเยอร์ด้านล่าง - ในกรณีนั้น ความลึก จะทำหน้าที่เป็นความแรง และ 1 มม. จะไม่เปลี่ยนแปลงบริเวณสีขาว"
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "ปรับตำแหน่ง"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "ปรับตำแหน่ง - ลากจุดจับบนโมเดลเพื่อย้ายพื้นผิว"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "ระบายบางอย่างด้วยเลเยอร์นี้ก่อน"
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "การตั้งค่าน้อยลง"
+
+# AI Translated
+msgid "More settings"
+msgstr "การตั้งค่าเพิ่มเติม"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "ใช้ครบทั้ง %1% เลเยอร์แล้ว"
+
+# AI Translated
+msgid "Add layer"
+msgstr "เพิ่มเลเยอร์"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "การแบ่งย่อย"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "เฉพาะบริเวณที่ระบาย (ปรับได้)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "เพิ่มสามเหลี่ยมเฉพาะบริเวณที่ระบาย แทนที่จะเพิ่มทุกที่ สำหรับชิ้นส่วนขนาดใหญ่ที่มีลายขนาดเล็ก นี่คือความแตกต่างระหว่างสามเหลี่ยมหลักพันกับหลักล้าน และการระบายของคุณจะยังคงอยู่หลังการเพิ่มความละเอียด"
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "ตามรายละเอียดของพื้นผิว"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "ใช้สามเหลี่ยมในบริเวณที่พื้นผิวมีการเปลี่ยนแปลงจริง - หนาแน่นตามสันและขอบ เบาบางบนพื้นที่ราบ - แทนการกระจายเท่า ๆ กัน ได้รายละเอียดเท่าเดิมด้วยสามเหลี่ยมที่น้อยลงสำหรับพื้นผิวส่วนใหญ่"
+
+# AI Translated
+msgid "Max edge"
+msgstr "ความยาวขอบสูงสุด"
+
+# AI Translated
+msgid "Target edge"
+msgstr "ความยาวขอบเป้าหมาย"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "ไม่มีสามเหลี่ยมใดในบริเวณที่ระบายที่ใหญ่กว่าค่านี้ แม้ในบริเวณที่พื้นผิวแบนราบ ตั้งค่าให้ใกล้เคียงกับขนาดของรายละเอียดที่เล็กที่สุดที่ต้องการให้ปรากฏ"
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "สามเหลี่ยมในบริเวณที่ระบายจะถูกแบ่งจนไม่มีรูปใดใหญ่กว่าค่านี้ ค่าที่เล็กลงหมายถึงรายละเอียดที่ละเอียดขึ้น และจำนวนสามเหลี่ยมที่เพิ่มขึ้นอย่างรวดเร็ว"
+
+# AI Translated
+msgid "Detail"
+msgstr "รายละเอียด"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "ระยะที่เมชอาจคลาดเคลื่อนจากรูปทรงที่พื้นผิวกำหนด หน่วยเป็นมม. ค่าที่เล็กลงจะตามรายละเอียดเล็ก ๆ และใช้สามเหลี่ยมมากขึ้น ค่าที่ใหญ่ขึ้นจะตามเฉพาะรายละเอียดใหญ่"
+
+# AI Translated
+msgid "Min edge"
+msgstr "ความยาวขอบต่ำสุด"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "ขนาดขั้นต่ำของสามเหลี่ยม เพื่อไม่ให้การไล่ตามขั้นที่คมในพื้นผิวดำเนินไปไม่สิ้นสุด ลดค่าเพื่อให้ลายนูนละเอียดขึ้น เพิ่มค่าหากจำนวนสามเหลี่ยมเพิ่มขึ้นมากเกินไปที่ขอบคม"
+
+# AI Translated
+msgid "Edge detail"
+msgstr "รายละเอียดขอบ"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "ขนาดสามเหลี่ยมตามเส้นขอบของบริเวณที่ระบาย ซึ่งเป็นจุดที่ลายนูนลดกลับสู่ผิวเปล่า ลดค่าหากขอบนั้นดูขรุขระ โดยจะใช้สามเหลี่ยมเพิ่มเฉพาะตามเส้นขอบ 0 คือปิด"
+
+# AI Translated
+msgid "Colour detail"
+msgstr "รายละเอียดสี"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "ขนาดสามเหลี่ยมในบริเวณที่สองสีมาบรรจบกัน สามเหลี่ยมแต่ละรูปพิมพ์ด้วยเส้นพลาสติกเดียว ขอบสีจึงคมได้เท่ากับสามเหลี่ยมที่อยู่ตามแนวขอบเท่านั้น - และไม่มีสิ่งอื่นเพิ่มความละเอียดตรงนั้น เนื่องจากผิวแบนราบตลอดแนวที่สีเปลี่ยน 0 คือปิด"
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "งบประมาณสามเหลี่ยม: ตั้งค่าด้วย สามเหลี่ยม ด้านล่าง"
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "พรีวิว: %1% สามเหลี่ยม"
+
+# AI Translated
+msgid "Steps"
+msgstr "จำนวนขั้น"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "แบ่งสามเหลี่ยมทุกรูปของโมเดลออกเป็นสี่ ซ้ำตามจำนวนครั้งนี้ แต่ละขั้นจะเพิ่มจำนวนเป็นสี่เท่า - 3 ขั้นจะเปลี่ยนสามเหลี่ยม 100 k เป็น 6.4 M - จึงควรเพิ่มความละเอียดเฉพาะบริเวณที่ระบาย เว้นแต่ต้องการให้ทั้งโมเดลละเอียดขึ้น"
+
+# AI Translated
+msgid "Hide preview"
+msgstr "ซ่อนพรีวิว"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "พรีวิวการแบ่งย่อย"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "แสดงผลของการเพิ่มความละเอียดเป็นโครงลวด โดยไม่เปลี่ยนแปลงโมเดล"
+
+# AI Translated
+msgid "Subdivide"
+msgstr "แบ่งย่อย"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "เพิ่มความละเอียดบริเวณที่ระบายตามความยาวขอบเป้าหมาย และถ่ายโอนการระบายไปยังเมชที่ละเอียดขึ้น ส่วนที่เหลือของโมเดลจะคงเดิม"
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "แทนที่เรขาคณิตของโมเดลด้วยเมชที่แบ่งย่อยแล้ว และล้างการระบายที่ยังไม่ได้อบ (ลายนูนที่อบแล้วจะไม่ได้รับผลกระทบ)"
+
+# AI Translated
+msgid "Remeshing"
+msgstr "การรีเมช"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "ขนาดสามเหลี่ยมที่ใช้สร้างทั้งโมเดลใหม่ หน่วยเป็นมม. การกระจัดทำงานได้ดีที่สุดบนเมชที่สม่ำเสมอ ซึ่งค่านี้จะช่วยสร้างเมชดังกล่าวจากไฟล์นำเข้าที่ไม่สม่ำเสมอ"
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "คงขอบคม"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "ยึดขอบคมและขอบเปิดไว้กับที่ขณะรีเมชส่วนที่เหลือ หากไม่เปิด ตัวรีเมชจะเลื่อนจุดยอดไปตามผิวและทำให้ขอบคมทุกขอบมนลง - ลูกบาศก์จะกลับมาพร้อมขอบที่บิดเบี้ยว"
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "ความคมของรอยพับเป็นองศา ก่อนที่ตัวรีเมชจะถือว่าเป็นขอบที่ควรคงไว้ ค่าต่ำจะรักษารูปทรงของโมเดลไว้มากขึ้น ค่าสูงจะสร้างใหม่อย่างสม่ำเสมอมากขึ้น"
+
+# AI Translated
+msgid "Remesh"
+msgstr "รีเมช"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "สร้างทั้งโมเดลใหม่ด้วยสามเหลี่ยมที่มีความยาวขอบใกล้เคียงค่านี้ - แบ่งรูปใหญ่และรวมรูปเล็ก - เพื่อให้การกระจัดมีความหนาแน่นสม่ำเสมอ แทนที่เรขาคณิตเดิม การระบายของคุณจะถูกถ่ายโอนไปยังสามเหลี่ยมใหม่ตามตำแหน่ง จึงยังคงอยู่ (ลายนูนที่อบแล้วก็ยังคงอยู่เช่นกัน)"
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "กระจัดจนถึงขอบ"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "ให้ลายนูนไปจนถึงขอบของบริเวณที่ระบาย ปิดเพื่อให้วงรอบนอกแบนราบ ซึ่งทำให้การกระจัดอยู่ภายในบริเวณที่ระบายอย่างเคร่งครัด แต่ลวดลายที่ขอบจะแบนลง"
+
+# AI Translated
+msgid "Smooth result"
+msgstr "ปรับผลลัพธ์ให้เรียบ"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "ปรับเรขาคณิตให้เรียบหลังจากใช้พื้นผิวแล้ว เพื่อลดขั้นบันไดที่คมจากภาพความละเอียดต่ำ จะมีผลเฉพาะส่วนที่การกระจัดเคลื่อนย้ายเท่านั้น แถบเลื่อน ปรับให้เรียบ ของเลเยอร์เป็นคนละอย่างกัน: แถบนั้นจะเบลอภาพก่อนนำไปใช้"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "ความแรง"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "ระยะที่แต่ละรอบดึงจุดยอดเข้าหาจุดข้างเคียง ค่าสูงจะทำให้ลายนูนมนลงอย่างรวดเร็ว ค่าต่ำต้องใช้หลายรอบกว่าแต่คงรายละเอียดไว้ได้มากกว่า"
+
+# AI Translated
+msgid "Passes"
+msgstr "จำนวนรอบ"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "จำนวนรอบของการปรับให้เรียบ รอบที่มากขึ้นจะกระจายการปรับให้เรียบไปทั่วผิวได้ไกลขึ้น ส่วน ความแรง จะกำหนดว่าแต่ละรอบเคลื่อนมากเท่าใด"
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "ละเว้นวงรอบนอก"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "ไม่นำวงรอบนอกของบริเวณที่ระบายมาปรับให้เรียบ จุดข้างเคียงที่อยู่นอกบริเวณที่ระบายจะไม่เคลื่อนที่ การปรับวงนี้ให้เรียบจึงดึงลายนูนลงและทำให้ลวดลายที่ขอบดูเหมือนละลายไปครึ่งหนึ่ง"
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "ปรับเมชที่อบแล้วให้เรียบตอนนี้"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "ใช้การปรับให้เรียบข้างต้นกับตัวโมเดลทันทีภายในบริเวณที่ระบาย สำหรับลายนูนที่อบแล้ว - ส่วนที่ยังไม่ได้อบจะถูกปรับให้เรียบโดยการอบ"
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "ทดลอง: ไปป์ไลน์การอบแบบคลาสสิก"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "อบโดยการเคลื่อนจุดยอดที่เมชมีอยู่แล้ว หลังจากเตรียมเมช (รีเมช แบ่งย่อยแบบปรับได้ และตัดตามขั้นที่คมในพื้นผิว) โทโพโลยีจะคงเดิม ซึ่งเป็นสิ่งที่การใช้สีต้องการ ส่วนไปป์ไลน์เริ่มต้นจะเพิ่มความละเอียด กำจัดสามเหลี่ยมแคบยาว กระจัด และลดรายละเอียดในการทำงานครั้งเดียว ไม่ต้องเตรียมการก่อน แต่ยังไม่รองรับการสร้างสี"
+
+# AI Translated
+msgid "Budget"
+msgstr "งบประมาณ"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "จำนวนสามเหลี่ยม (หน่วยพัน) ที่การอบครั้งนี้ใช้ได้กับบริเวณที่ระบาย ลายนูนที่อบไว้แล้วในส่วนอื่นของโมเดลจะคงอยู่เพิ่มเติมจากนี้ การอบครั้งที่สองในตำแหน่งอื่นจึงได้งบประมาณเท่ากับครั้งแรก เพิ่มค่าหากคำเตือนใต้ ความละเอียด แจ้งว่ารายละเอียดจะไม่พอ ค่า 0 จะเก็บสามเหลี่ยมทั้งหมดที่การเพิ่มความละเอียดสร้างขึ้นไม่ว่าจะมีมากเท่าใด"
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "จัดแนวเมชให้ตรงกับขอบของพื้นผิว"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "เลื่อนจุดยอดไปด้านข้างให้อยู่บนขอบในพื้นผิวก่อนกระจัด การกระจัดเคลื่อนจุดยอดได้เฉพาะขึ้นและลงเท่านั้น หากไม่เปิดตัวเลือกนี้ ขั้นที่คมในภาพจะตกอยู่ตรงตำแหน่งใดก็ตามที่สามเหลี่ยมอยู่และออกมาเป็นขั้นบันได การเลื่อนจุดยอดไปไว้บนขั้นก่อนจะได้ผนังที่ตรงโดยใช้จำนวนสามเหลี่ยมเท่าเดิม"
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "กำจัดสามเหลี่ยมแคบยาว"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "ยุบสามเหลี่ยมบางที่การเพิ่มความละเอียดได้รับมาจากการแบ่งพื้นผิวเดิมของโมเดล ก่อนที่การกระจัดจะสุ่มค่าจากสามเหลี่ยมเหล่านั้น มุมทั้งสามของสามเหลี่ยมแคบยาวจะตกอยู่บนสามส่วนของพื้นผิวที่ไม่เกี่ยวข้องกัน ซึ่งทำให้ลายนูนดูขรุขระ"
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "เปิด: ความละเอียดจะเป็นไปตามขนาดของโมเดล และงบประมาณจะใช้ค่าเริ่มต้น ยกเลิกการเลือกเพื่อตั้งค่าทั้งสองเอง - เหมาะสำหรับพื้นผิวที่ละเอียดหรือหยาบกว่าชิ้นส่วนที่ใช้มาก"
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "เลือกจากขนาดของโมเดล: สามเหลี่ยม %1$.2f มม. งบประมาณ %2% พัน ยกเลิกการเลือก อัตโนมัติ เพื่อตั้งค่าเอง"
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "ความละเอียดของเมชใต้บริเวณที่ระบาย หน่วยเป็นมม. ต้องเล็กกว่ารายละเอียดที่ต้องการจากพื้นผิว - ร่อง 0.5 มม. ต้องใช้สามเหลี่ยมที่เล็กกว่า 0.5 มม. มาก ค่าที่เล็กลงจะใช้สามเหลี่ยมเพิ่มขึ้นอย่างรวดเร็ว: ลดลงครึ่งหนึ่งต้องใช้มากขึ้นสี่เท่า และเมื่อเกินงบประมาณ การอบจะลดรายละเอียดเมชลงและรายละเอียดก็จะหายไปด้วย"
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "ต้องใช้สามเหลี่ยมประมาณ %1% รูป งบประมาณ %2% - การอบจะลดรายละเอียดเมชลงและสูญเสียรายละเอียด"
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "จำนวนสามเหลี่ยม (หน่วยพัน) ที่การเพิ่มความละเอียดเพิ่มให้โมเดลได้ สามเหลี่ยมที่ตรงกับรูปทรงน้อยที่สุดจะถูกแบ่งก่อนเสมอ ดังนั้นแม้จะใช้งบประมาณจนหมด ก็ใช้ไปในจุดที่เห็นผลชัดที่สุด เพิ่มค่าหากลายนูนยังดูหยาบ"
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "หยุดการอบ ส่วนที่เสร็จแล้วจะคงอยู่บนโมเดล และสามารถเลิกทำได้"
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "ปิดเครื่องมือโดยไม่อบ การระบาย เลเยอร์ และการตั้งค่าจะยังคงอยู่กับโมเดล"
+
+# AI Translated
+msgid "Preparing..."
+msgstr "กำลังเตรียม..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "กำลังอบ..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "ยังไม่ได้ระบายสิ่งใด เครื่องมือเส้นตัด UV ของตัวแก้ไข UV เปิดอยู่ การลากบนโมเดลจึงเป็นการทำเครื่องหมายเส้นตัดแทนการระบาย - ปิดเครื่องมือนี้ในแผงเพื่อระบาย"
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "ยังไม่ได้ระบายสิ่งใด"
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "เปลี่ยนแผนที่ความสูงที่ระบายไว้ให้เป็นเรขาคณิตจริง โดยการเคลื่อนจุดยอดที่มีอยู่แล้ว ใช้ แบ่งย่อย ก่อนหากเมชหยาบเกินกว่าจะแสดงรายละเอียดได้"
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "เปลี่ยนแผนที่ความสูงที่ระบายไว้ให้เป็นเรขาคณิตจริง เมชจะถูกรีเมชให้มีความหนาแน่นสม่ำเสมอและเพิ่มความละเอียดในบริเวณที่พื้นผิวมีการเปลี่ยนแปลงก่อน เพื่อให้รายละเอียดมีจุดยอดรองรับ - ทั้งหมดในขั้นตอนเดียว"
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% พัน"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "โมเดล: %1% สามเหลี่ยม - การอบจะเพิ่มความละเอียดตามค่าความละเอียดด้านบน ภายในงบประมาณ"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "การอบเคลื่อนจุดยอดที่มีอยู่ - โมเดลยังคงมี %1% สามเหลี่ยม"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "ผลการอบสูงสุด ~%1% พันสามเหลี่ยม"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% เลเยอร์ยังไม่ได้ระบาย ข้ามไป"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% ยังไม่ได้ระบาย ข้ามไป"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "เข้าสู่โหมดระบายการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "ออกจากโหมดระบายการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "การแก้ไขการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "เลือกไฟล์เก็บถาวร SLA:"
+
+# AI Translated
+msgid "Import file"
+msgstr "นำเข้าไฟล์"
+
+# AI Translated
+msgid "Import model and profile"
+msgstr "นำเข้าโมเดลและโปรไฟล์"
+
+# AI Translated
+msgid "Import profile only"
+msgstr "นำเข้าเฉพาะโปรไฟล์"
+
+# AI Translated
+msgid "Import model only"
+msgstr "นำเข้าเฉพาะโมเดล"
+
+# AI Translated
+msgid "Accurate"
+msgstr "แม่นยำ"
+
+# AI Translated
+msgid "Balanced"
+msgstr "สมดุล"
+
+# AI Translated
+msgid "Quick"
+msgstr "รวดเร็ว"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "กำลังอบการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "การอบไม่ได้สร้างการกระจัด จึงไม่มีการเปลี่ยนแปลงใด ๆ และยังคงการระบายไว้ ตรวจสอบว่าเลเยอร์ที่ระบายมีพื้นผิวและมีความลึกไม่เป็นศูนย์"
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "งบประมาณสามเหลี่ยมจำกัดรายละเอียด: ความละเอียดนี้ต้องใช้สามเหลี่ยม %1% รูป แต่งบประมาณเก็บไว้ %2% รูป เพิ่ม งบประมาณ หรือใช้ ความละเอียด ที่หยาบขึ้นเพื่อให้ได้รายละเอียดครบถ้วน"
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "กำลังบันทึกขั้นตอนการอบ"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "กำลังเตรียมเมชสำหรับการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "คลิกเพื่อแก้ไขอัตราส่วน"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "แก้ไขเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "พรีวิวเอฟเฟกต์"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "เลือกวัสดุที่จะผสม"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ เพิ่มวัสดุ"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- ลบวัสดุ"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "เอฟเฟกต์เกรเดียนต์"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "เปิดใช้งานเอฟเฟกต์เกรเดียนต์แยกตามชิ้นส่วน"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "คำแนะนำการผสม"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- เลือก --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "ช่อง %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "ไม่สามารถผสมเส้นพลาสติกต่างประเภทกันได้: %s โปรดเลือกเส้นพลาสติกประเภทเดียวกัน"
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "โปรดเลือกเส้นพลาสติกสำหรับทุกส่วนประกอบ"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "ไม่สามารถผสมเส้นพลาสติกต่างประเภทกันได้"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "ผสมได้สูงสุด 3 วัสดุ"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "ถึงจำนวนส่วนประกอบสูงสุดแล้ว"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "นำวัสดุที่สามออก"
+
+# AI Translated
+msgid "3D Models"
+msgstr "โมเดล 3 มิติ"
+
+# AI Translated
+msgid "Click to return"
+msgstr "คลิกเพื่อกลับ"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "ลูกศรซ้าย"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "คลิกเพื่อดำเนินการต่อ"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "ลูกศรขวา"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "เลือกปลั๊กอิน %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "เลือกปลั๊กอิน %s จากรายการด้านล่าง"
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "ไม่พบปลั๊กอินสำหรับประเภทนี้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "ไฟล์ปลั๊กอิน: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "ปลั๊กอินกระบวนการ"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "ปลั๊กอินเส้นพลาสติก"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "ปลั๊กอินเครื่องพิมพ์"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "การกำหนดค่าไม่ใช่ JSON ที่ถูกต้อง การเปลี่ยนแปลงของคุณไม่ได้รับการบันทึก"
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "อัปเดตการกำหนดค่าแล้ว บันทึกพรีเซ็ตเพื่อเก็บการเปลี่ยนแปลงไว้"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"คืนค่าการกำหนดค่าเริ่มต้นสำหรับ \"%s\" หรือไม่?\n"
+"\n"
+"การดำเนินการนี้จะทิ้งค่าที่พรีเซ็ตแทนที่ไว้และใช้การกำหนดค่าส่วนกลาง"
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "คืนค่าเริ่มต้น"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "กำลังใช้การกำหนดค่าส่วนกลาง บันทึกพรีเซ็ตเพื่อเก็บการเปลี่ยนแปลงไว้"
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "ความสามารถนี้ไม่พร้อมใช้งานอีกต่อไป"
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "ไม่สามารถโหลด UI การกำหนดค่าของปลั๊กอินได้ (%1%) กำลังแสดงตัวแก้ไขเริ่มต้น"
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "ลบปลั๊กอิน"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "ยกเลิกการติดตาม"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "เขียนทับปลั๊กอิน"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "เลือกแพ็กเกจปลั๊กอิน .py หรือ .whl"
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "ไม่สามารถติดตั้งแพ็กเกจปลั๊กอินได้ ดูรายละเอียดในบันทึก"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"ติดตั้งปลั๊กอิน \"%s\" ไว้แล้ว\n"
+"\n"
+"การติดตั้งแพ็กเกจนี้จะเขียนทับปลั๊กอินที่มีอยู่"
+
+# AI Translated
+msgid "Overwrite"
+msgstr "เขียนทับ"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "กำลังติดตั้งปลั๊กอิน"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "ติดตั้ง \"%s\" แล้ว"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "ไม่สามารถเปิดใช้งาน \"%s\" ได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "เปิดใช้งาน \"%s\" แล้ว"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"ไม่พบปลั๊กอินที่ติดตั้งต่อไปนี้บนดิสก์:\n"
+"%s\n"
+"\n"
+"ต้องการนำออกจาก OrcaSlicer หรือไม่?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "ปลั๊กอินที่หายไป"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "กำลังรีเฟรชข้อมูลปลั๊กอิน"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "ไม่สามารถยกเลิกการโหลดปลั๊กอินได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "หยุดใช้งาน \"%s\" แล้ว"
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "ไม่พบไฟล์ manifest ของปลั๊กอิน"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "กำลังเปิดใช้งาน \"%s\"..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "เปิดใช้ \"%s\" แล้ว"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "ปิดใช้ \"%s\" แล้ว"
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "กำลังดาวน์โหลดปลั๊กอิน"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "ดาวน์โหลดปลั๊กอินล้มเหลว"
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "บันทึกการกำหนดค่าแล้ว"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"คืนค่าการกำหนดค่าเริ่มต้นสำหรับ \"%s\" หรือไม่?\n"
+"\n"
+"การดำเนินการนี้จะทิ้งการตั้งค่าที่บันทึกไว้ในปัจจุบันสำหรับความสามารถนี้"
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "คืนค่าการกำหนดค่าเริ่มต้นแล้ว"
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "กำลังอัปเดตปลั๊กอิน"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "ไม่สามารถอัปเดตปลั๊กอินได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "อัปเดต \"%s\" แล้ว"
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "ไม่สามารถระบุโฟลเดอร์ปลั๊กอินได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"ลบปลั๊กอิน \"%s\" หรือไม่?\n"
+"\n"
+"การดำเนินการนี้จะลบไฟล์ปลั๊กอินในเครื่อง ปลั๊กอินยังคงอยู่บนคลาวด์และสามารถติดตั้งใหม่ได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"ลบปลั๊กอิน \"%s\" หรือไม่?\n"
+"\n"
+"การดำเนินการนี้จะลบโฟลเดอร์ปลั๊กอินอย่างถาวร"
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "ไม่สามารถลบปลั๊กอินได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "ลบ \"%s\" แล้ว"
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "กำลังลบปลั๊กอิน"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "กำลังลบปลั๊กอิน..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"ยกเลิกการติดตามปลั๊กอิน \"%s\" หรือไม่?\n"
+"\n"
+"การดำเนินการนี้จะหยุดติดตามปลั๊กอินและลบไฟล์ปลั๊กอินในเครื่องทั้งหมด"
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "ยกเลิกการติดตามปลั๊กอินไม่สำเร็จ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "ยกเลิกการติดตาม \"%s\" แล้ว"
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "กำลังยกเลิกการติดตามปลั๊กอิน"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "กำลังลบไฟล์ในเครื่องและยกเลิกการติดตามปลั๊กอิน..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "กำลังโหลดปลั๊กอินใหม่"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "ไม่สามารถโหลดปลั๊กอินใหม่ได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "โหลด \"%s\" ใหม่แล้ว"
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "การตั้งค่าโหมดไล่เส้น"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "ไล่เส้นเต็มรูปแบบพร้อมการปรับเปลี่ยนความเร็วและอุณหภูมิเพื่อคุณภาพการพิมพ์ที่ดีที่สุด"
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "ใช้อุณหภูมิไล่เส้นและตัวคูณที่ปรับให้เหมาะสม พร้อมการอัดเส้นที่แรงขึ้นเพื่อไล่เส้นได้เร็วขึ้น อาจทำให้สีผสมกันเล็กน้อยในบางกรณีที่รุนแรง"
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "ประหยัดการไพรม์"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "ลดเส้นพลาสติกที่เสียจากการไพรม์และพิมพ์ได้เร็วขึ้น อาจทำให้สีผสมกันเล็กน้อยหรือเกิดข้อบกพร่องเล็ก ๆ บนผิว"
+
+# AI Translated
+msgid "Terminal"
+msgstr "เทอร์มินัล"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "ผสมอัตโนมัติ CMYW ในคลิกเดียว"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "ผสมอัตโนมัติ RYBW ในคลิกเดียว"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "เส้นพลาสติกจริงของโครงการ"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "เส้นพลาสติกจริงใหม่"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "เส้นพลาสติกผสมของโครงการ"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "เส้นพลาสติกผสมใหม่"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "โครงการรองรับเส้นพลาสติกได้สูงสุด %d เส้น เส้นพลาสติกที่เกินจะถูกทิ้ง"
+
+# AI Translated
+msgid "Import Model"
+msgstr "นำเข้าโมเดล"
+
+# AI Translated
+msgid "Original"
+msgstr "ต้นฉบับ"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "หลายสี"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "โมเดลพื้นผิวที่คุณป้อน"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "โมเดลหลายสีที่ประมวลผลแล้ว"
+
+# AI Translated
+msgid "Color Count"
+msgstr "จำนวนสี"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "ระดับความเรียบ"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "กำหนดเฉพาะจำนวนสีที่เหมาะสมที่สุดโดยอัตโนมัติและคำนวณการแมปเส้นพลาสติกใหม่"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "แปลงพื้นผิวเป็นการระบายสีโดยใช้จำนวนสีและระดับความเรียบที่กำหนด"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "ข้อเตือนใจ: พารามิเตอร์มีการเปลี่ยนแปลง คลิก ใช้ เพื่อให้มีผล"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "การแมปเส้นพลาสติก"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "รีเซ็ตการแมปเส้นพลาสติกเป็นสถานะก่อนการผสมในคลิกเดียว"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "เลือกโหมดผสมอัตโนมัติในคลิกเดียวสำหรับการนำเข้าสีพื้นผิว"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "รวมเส้นพลาสติกเดียวกันอัตโนมัติ"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "รวมเส้นพลาสติกที่เหมือนกันเข้ากับเส้นพลาสติกที่มีอยู่ในโครงการโดยอัตโนมัติ"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "ข้ามการจับคู่"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "ข้ามการแมปเส้นพลาสติกและนำเข้าเป็นโมเดลสีเดียว"
+
+# AI Translated
+msgid "Processing"
+msgstr "กำลังประมวลผล"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "กำลังคำนวณสีพื้นผิว..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "กำลังซ่อมเมช"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "การคำนวณล้มเหลว โปรดปรับพารามิเตอร์แล้วลองอีกครั้ง"
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "เมชมีเรขาคณิตแบบ non-manifold หรือขอบเปิด คุณสามารถนำเข้าตามเดิมหรือซ่อมด้วยบริการซ่อมแซม 3D ของ Windows ก่อนนำเข้า"
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "ซ่อมเมช"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "นำเข้าโดยไม่ซ่อม"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "ซ่อมแล้วนำเข้า"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "โปรดทราบว่าเมชมีเรขาคณิตแบบ non-manifold หรือขอบเปิด"
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "ปัญหาเมช"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "ภาพที่เลือกว่างเปล่า"
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "ไม่สามารถเตรียมพื้นผิวสำหรับใช้งานได้"
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "นำออกได้เฉพาะพื้นผิวที่คุณนำเข้าเองเท่านั้น"
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "ไม่สามารถลบไฟล์พื้นผิวได้"
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "ไม่สามารถสร้างโฟลเดอร์สำหรับพื้นผิวที่นำเข้าได้"
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "ไม่สามารถโหลดภาพที่เลือกได้"
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "ไม่สามารถบันทึกพื้นผิวที่นำเข้าได้"
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "ไม่สามารถอ่านไฟล์พื้นผิวได้"
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "กรอบฉาย - ลากไปเหนือโมเดล แล้วกด ใช้"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "กำลังย้ายเกาะ  |  ปล่อยเพื่อวาง, Esc เพื่อยกเลิก"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "กำลังหมุนเกาะ: %d°  |  Shift = สแนป 15°, คลิกเพื่อยืนยัน, Esc เพื่อยกเลิก"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "กำลังปรับสเกลเกาะ  |  คลิกเพื่อยืนยัน, Esc เพื่อยกเลิก"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "กำลังย้ายจุดยอด  |  ปล่อยเพื่อวาง"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "กำลังย้ายขอบ  |  ปล่อยเพื่อวาง"
+
+# AI Translated
+msgid "Panning"
+msgstr "กำลังแพน"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "ระบายบริเวณบนโมเดล แล้วกด คลี่ UV"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "เลือก คลี่ UV เป็นการแมปของเลเยอร์พื้นผิวเพื่อแก้ไข UV ที่นี่"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "เลือกจุดยอด %d จุด  |  ลาก = ย้ายพร้อมกัน, Shift/Ctrl คลิก = เพิ่ม/ลบ"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "โหมดจุดยอด: ลากจุดยอดเพื่อปรับรูปทรง  |  Shift/Ctrl คลิก = เลือกหลายรายการ, ล้อเมาส์ = ซูม, Home = จัดให้พอดีกรอบ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "เลือกขอบ %d ขอบ  |  ลาก = ย้ายพร้อมกัน, Shift/Ctrl คลิก = เพิ่ม/ลบ"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "โหมดขอบ: ลากขอบเกาะเพื่อปรับรูปทรง  |  Shift/Ctrl คลิก = เลือกหลายรายการ, ล้อเมาส์ = ซูม, Home = จัดให้พอดีกรอบ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "เลือกเกาะ %d เกาะ  |  ลาก = ย้ายพร้อมกัน, Shift/Ctrl คลิก = เพิ่ม/ลบ, R/S = หมุน/ปรับสเกลเกาะหลัก"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "เลือกเกาะ %d แล้ว  |  ลาก = ย้าย, R = หมุน, S = ปรับสเกล, Shift/Ctrl คลิก = เลือกหลายรายการ, Home = จัดให้พอดีกรอบ"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "คลิกเกาะเพื่อเลือก  |  Shift/Ctrl คลิก = เลือกหลายรายการ, ล้อเมาส์ = ซูม, ลากปุ่มกลาง = แพน, Home = จัดทั้งหมดให้พอดีกรอบ"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  สแนป เปิด"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "เปลี่ยนพื้นผิว - เลือกพื้นผิวอื่นจากคลังพื้นผิว"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "แผนที่ความสูง - แสดงพื้นผิวของเลเยอร์ใต้เกาะ"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "ตาหมากรุก - ตารางทดสอบ; ช่องจะยังเป็นสี่เหลี่ยมจัตุรัสในบริเวณที่การคลี่ UV ไม่ยืด"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "ความบิดเบี้ยว - ระบายสีแต่ละเกาะตามระดับที่การคลี่ UV ยืดเกาะนั้น"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "คลี่ UV"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "มุมเส้นตัด"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "ขอบที่คมกว่าค่านี้จะถูกตัด และชิ้นส่วนทั้งสองฝั่งจะถูกแผ่แบนแยกกัน ลดค่าเพื่อตัดมากขึ้น: แต่ละชิ้นจะแบนราบโดยยืดน้อยลง แต่พื้นผิวจะไม่ต่อเนื่องข้ามรอยตัด มีผลเมื่อ คลี่ UV ครั้งถัดไป"
+
+# AI Translated
+msgid "Connect islands"
+msgstr "เชื่อมเกาะ"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "จัดวางผลการคลี่ UV เป็นรูปคลี่ที่เชื่อมต่อกัน: ชิ้นที่ใช้ขอบร่วมกันจะถูกคลี่ออกติดกัน (ลูกบาศก์จะกลายเป็นรูปคลี่ที่ต่อกันแทนที่จะเป็นสี่เหลี่ยมหกชิ้นแยกกัน) ชิ้นเหล่านี้ยังคงเป็นเกาะแยกกัน คุณจึงยังย้ายชิ้นใดก็ได้ด้วยตนเองภายหลัง"
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "เกาะ - ย้าย หมุน และปรับสเกลทั้งเกาะ"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "จุดยอด - ลากจุดยอดเพื่อปรับรูปทรง; Shift/Ctrl เพื่อเลือกหลายรายการ"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "ขอบ - ลากขอบเพื่อปรับรูปทรง; Shift/Ctrl เพื่อเลือกหลายรายการ"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "ทำเครื่องหมายเส้นตัด - คลิกขอบบนโมเดลเพื่อตัดผลการคลี่ UV ตามขอบนั้น ขอบใต้เคอร์เซอร์จะไฮไลต์เป็นสีเหลือง คลิกเพื่อทำเครื่องหมายเป็นสีแดง คลิกขอบสีแดงอีกครั้งเพื่อยกเลิกเครื่องหมาย การระบายจะหยุดชั่วคราวขณะเปิดใช้งาน"
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "เส้นทาง - แทนที่จะคลิกทุกขอบ ให้คลิกจุดเริ่มต้นแล้วคลิกจุดสิ้นสุด: เส้นทางที่สั้นที่สุดทั้งหมดระหว่างสองจุดจะถูกกำหนดเป็นเส้นตัดในครั้งเดียว ใช้ได้ขณะทำเครื่องหมายเส้นตัด"
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "ล้างเส้นตัด - นำเส้นตัดทั้งหมดที่ทำเครื่องหมายไว้บนเลเยอร์นี้ออก"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "เฉลี่ยสเกล - ให้ทุกเกาะมีความหนาแน่นเทกเซลเท่ากัน"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "ตัด - แบ่งเกาะที่เลือกขวางแกนยาวของเกาะ"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "เชื่อม - คลี่เกาะที่เลือกไปติดกับเกาะข้างเคียงที่ใกล้ที่สุดตามขอบที่ใช้ร่วมกัน"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "ยกเลิกการเชื่อม - ส่งเกาะที่เลือกกลับไปยังตำแหน่งที่จัดวางเดิมของตัวเอง"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "ล้างการแก้ไข UV - ทิ้งการย้ายจุดยอด/ขอบด้วยตนเองทั้งหมด และคืนผลการคลี่ UV กลับเป็นรูปทรงอัตโนมัติ"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "สแนป - ให้เกาะติดกันเมื่อลากเกาะหนึ่งชิดอีกเกาะ"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "จัดเกาะทั้งหมดให้พอดีกรอบ (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "ไม่มีเลเยอร์ที่แมปด้วย คลี่ UV"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "ไทล์ %.1f มม."
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "ล้าสมัย - การระบาย เส้นตัด หรือมุมเส้นตัดมีการเปลี่ยนแปลงหลังจากคลี่ UV ครั้งนี้ กดเพื่อคลี่ UV อีกครั้ง"
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "แผ่บริเวณที่ระบายให้แบนเป็นเกาะ UV ระบบจะคำนวณเฉพาะเมื่อคุณกดปุ่มนี้ ไม่ใช่ทุกครั้งที่แก้ไข - ดังนั้นให้ระบาย เปลี่ยนมุมเส้นตัด หรือทำเครื่องหมายเส้นตัดก่อน แล้วจึงกด คลี่ UV"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d เกาะ, %s ผิวหน้า"
+
+# AI Translated
+msgid "Forward"
+msgstr "ไปข้างหน้า"
+
+# AI Translated
+msgid "Tools"
+msgstr "เครื่องมือ"
+
+# AI Translated
+msgid "View Source"
+msgstr "ดูซอร์ส"
+
+# AI Translated
+msgid "View Text"
+msgstr "ดูข้อความ"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "จัดการการนำทาง"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "จัดการหน้าต่างใหม่"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "โหมดแก้ไข"
+
+# AI Translated
+msgid "Run Script"
+msgstr "เรียกใช้สคริปต์"
+
+# AI Translated
+msgid "Add user script"
+msgstr "เพิ่มสคริปต์ผู้ใช้"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "ตั้งค่า user agent แบบกำหนดเอง"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "ล้างการเลือก"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "ลบส่วนที่เลือก"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "ตัวอย่าง Scheme แบบกำหนดเอง"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "ตัวอย่างระบบไฟล์ในหน่วยความจำ"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "เปิดใช้งานเมนูบริบท"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "เปิดใช้งานเครื่องมือนักพัฒนา"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "เกิดข้อผิดพลาดในการโหลด %s"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "โหลด %1% ไปยัง %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "โหลด %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอสิทธิ์สำหรับเหตุการณ์ตรวจสอบ Python \"%s\"\n"
+"\n"
+"การดำเนินการนี้ไม่ได้ระบุเป้าหมายที่ audit hook สามารถแสดงได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขออ่านไฟล์ต่อไปนี้:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขออ่าน/เขียนไฟล์ต่อไปนี้:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอสร้างไฟล์ต่อไปนี้:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอลบไฟล์ต่อไปนี้:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอส่งคำขอ HTTP ไปยัง:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอเปิดการเชื่อมต่อเครือข่ายไปยัง:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอเรียกใช้คำสั่งต่อไปนี้:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "ปลั๊กอิน \"%s\" กำลังขอสิทธิ์สำหรับเหตุการณ์ตรวจสอบ Python \"%s\""
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "คำขอสิทธิ์ของปลั๊กอิน"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "UI การกำหนดค่าของปลั๊กอินว่างเปล่า กำลังแสดงตัวแก้ไขเริ่มต้น"
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "ความสามารถนี้ไม่พร้อมใช้งานอีกต่อไป การเปลี่ยนแปลงของคุณไม่ได้รับการบันทึก"
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "ไม่สามารถเขียนการกำหนดค่าลงดิสก์ได้ การเปลี่ยนแปลงของคุณไม่ได้รับการบันทึก"
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "ปลั๊กอินไม่สามารถให้การกำหนดค่าเริ่มต้นได้ (%1%) ไม่มีการเปลี่ยนแปลงใด ๆ"
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "ไม่สามารถเขียนการกำหนดค่าลงดิสก์ได้ ไม่มีการเปลี่ยนแปลงใด ๆ"
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "การติดตั้งปลั๊กอินล้มเหลว"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -26060,6 +28793,86 @@ msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "ไม่สามารถสร้าง cali G-code"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "ลบออก"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "คูณ"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " และ "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "ไม่สามารถผสมกันได้ โปรดเลือกเส้นพลาสติกประเภทเดียวกัน"
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "เกิดข้อผิดพลาดในการโหลด "
+
+# AI Translated
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "โหลด %s ไปยัง "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "ในแท็บออกแบบ วาดตัวเชื่อมเมทเป็นผิวหน้าขนาดเล็กแทนแผ่นกลมแบบดั้งเดิมที่มีควอดแรนต์แสดงการหมุน ทิศทางของผิวหน้าเข้าใจได้ทันทีโดยไม่ต้องเรียนรู้ ปิดตัวเลือกนี้เพื่อใช้การแสดงผลแบบ CAD ดั้งเดิม"
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "ผู้เชี่ยวชาญ"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "แบบง่าย"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรก / คลิกขวาเพื่อปิดลูป"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "ทิศแกน X: X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "ทิศแกน X: Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "ทิศแกน X: Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — ไอคอนรูปตาจะระงับเมทนี้"
+
+#~ msgid "Del"
+#~ msgstr "เดล"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "เก็บสเก็ตช์ไว้แล้ว — กด เสร็จ เพื่อบันทึก หรือ ยกเลิก เพื่อทิ้ง"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "กำลังแก้ไข: สเก็ตช์ %d   ·   N = มองตั้งฉากกับระนาบ   ·   เสร็จหรือยกเลิกในแถบเครื่องมือ"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "กำลังแก้ไขสเก็ตช์ — ลากจุดจับหรือคลิกค่ามิติเพื่อแก้ไข"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -26192,9 +29005,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "เลิกทำ  (อีก %zu รายการ)"
-
-#~ msgid "Reset direction"
-#~ msgstr "รีเซ็ตทิศทาง"
 
 #~ msgid "Section View"
 #~ msgstr "มุมมองส่วน"
@@ -26408,9 +29218,6 @@ msgstr ""
 
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "ปรับเป็นช่วงที่ตั้งไว้อัตโนมัติ?\n"
-
-#~ msgid "Head diameter"
-#~ msgstr "เส้นผ่านศูนย์กลางหัว"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "สั่งพิมพ์ภายในชั้นเดียว"

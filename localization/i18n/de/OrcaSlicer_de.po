@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -5188,7 +5188,8 @@ msgstr "Aktueller Durchflusskalibrierungsparameter ist ungültig"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "Ausgewählter Durchmesser und Maschinendurchmesser stimmen nicht überein"
 
-msgid "Failed to generate cali G-code"
+# AI Translated
+msgid "Failed to generate calibration G-code"
 msgstr "Fehler beim Generieren des Kalibrierungs-G-Codes"
 
 msgid "Calibration error"
@@ -6023,6 +6024,7 @@ msgid "Wireframe"
 msgstr "Gittermodell"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "Röntgenansicht"
 
@@ -8350,6 +8352,7 @@ msgid "Click to edit preset"
 msgstr "Klicken Sie hier, um das Profil zu bearbeiten"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "Variante"
 
@@ -9536,6 +9539,7 @@ msgid "Recent actions"
 msgstr "Letzte Aktionen"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "Aktionen"
 
@@ -9653,8 +9657,8 @@ msgid "Draw mate connectors as a face"
 msgstr "Verknüpfungskonnektoren als Fläche zeichnen"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "Im Tab Konstruktion einen Verknüpfungskonnektor als kleine Fläche statt als herkömmliche Scheibe mit Rollquadrant zeichnen. Die Ausrichtung einer Fläche ist ohne Einarbeitung ablesbar. Deaktivieren Sie dies für die herkömmliche CAD-Darstellung."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Im Tab Konstruktion einen Verknüpfungskonnektor als kleine Fläche statt als herkömmliche Scheibe mit Rollquadrant zeichnen. Eine Fläche zeigt ihre Ausrichtung auf einen Blick, ohne dass man die Scheiben-Konvention kennen muss. Deaktivieren Sie dies für die herkömmliche CAD-Darstellung."
 
 msgid "Pan"
 msgstr "Schwenken"
@@ -9751,10 +9755,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "Wendet SSAO in der realistischen Ansicht an."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "Statisch"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "Orbit"
 
@@ -10535,10 +10541,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "Er verwendet die aktuellen Grafikeinstellungen und dauert in der Regel weniger als eine Minute. Das Hauptfenster bleibt gesperrt, bis er abgeschlossen ist."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "Erweitert"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Experte"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "Entwickler"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Einfach"
 
@@ -22867,8 +22885,8 @@ msgid "Polyline"
 msgstr "Polylinie"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Punkte klicken; auf den ersten Punkt klicken / Rechtsklick, um die Schleife zu schließen"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "Punkte klicken; auf den ersten Punkt klicken, um die Schleife zu schließen, Rechtsklick beendet die Kette"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23315,6 +23333,11 @@ msgstr "Neuer Körper"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "Verbinden"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "Ausschneiden"
 
@@ -23338,6 +23361,7 @@ msgid "Bottom"
 msgstr "Unten"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "Seitlich"
 
@@ -23492,6 +23516,7 @@ msgid "Plane type"
 msgstr "Ebenentyp"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Basis"
 
@@ -23789,16 +23814,16 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "Ohne Kante übernimmt das Koordinatensystem X von der ersten Kante der Fläche — wählen Sie eine, um es selbst festzulegen"
 
 # AI Translated
-msgid "X hint X"
-msgstr "X-Hinweis X"
+msgid "X direction X"
+msgstr "X-Richtung X"
 
 # AI Translated
-msgid "X hint Y"
-msgstr "X-Hinweis Y"
+msgid "X direction Y"
+msgstr "X-Richtung Y"
 
 # AI Translated
-msgid "X hint Z"
-msgstr "X-Hinweis Z"
+msgid "X direction Z"
+msgstr "X-Richtung Z"
 
 # AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
@@ -23873,8 +23898,9 @@ msgid "Feature tree"
 msgstr "Feature-Baum"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — das Auge unterdrückt diese Verknüpfung"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. Klicken Sie auf das Augensymbol, um diese Verknüpfung zu unterdrücken."
 
 # AI Translated
 #, c-format, boost-format
@@ -23933,9 +23959,6 @@ msgstr "Variablen"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-msgid "Del"
-msgstr "Entf"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24038,8 +24061,8 @@ msgid "Tool exited"
 msgstr "Werkzeug beendet"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "Skizze beibehalten — „Fertig“ zum Übernehmen, „Abbrechen“ zum Verwerfen"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "Skizze beibehalten — „Bestätigen“ zum Übernehmen, „Abbrechen“ zum Verwerfen"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24063,8 +24086,8 @@ msgstr "Skizze %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "Bearbeiten: Skizze %d   ·   N = senkrecht auf die Ebene blicken   ·   Fertig oder Abbrechen in der Werkzeugleiste"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Bearbeiten: Skizze %d   ·   N = senkrecht auf die Ebene blicken   ·   Bestätigen oder Abbrechen in der Werkzeugleiste"
 
 # AI Translated
 #, c-format
@@ -25268,8 +25291,8 @@ msgid "On a stored face"
 msgstr "Auf einer gespeicherten Fläche"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Skizze wird bearbeitet — einen Griff ziehen oder auf ein Maß klicken, um es zu bearbeiten"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "Skizze wird bearbeitet — einen Griff ziehen oder auf ein Maß doppelklicken, um es zu bearbeiten"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -25694,6 +25717,2703 @@ msgstr "Anwendung"
 msgid "Speed Dial"
 msgstr "Schnellwahl"
 
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "Körper %1% ist bereits durch „%2%“ (Feature %3%) positioniert, daher überschreibt „%4%“ diese Positionierung"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "Diese Verknüpfung positioniert Körper %1% gegenüber sich selbst"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "Verknüpfungskette ist zirkulär: Körper %1% hängt von Körper %2% ab, der wieder zu Körper %1% zurückführt — das Ergebnis hängt von der Feature-Reihenfolge ab"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "Konnektor „%1%“ liegt möglicherweise auf einer anderen Fläche (eine vorgelagerte Bearbeitung hat die Flächen dieses Körpers neu nummeriert)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "Das Erstellen eines Konfigurations-Snapshots ist fehlgeschlagen."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer ist beim Erstellen eines Konfigurations-Snapshots auf einen Fehler gestoßen."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicer-Fehler"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "Bitte wählen Sie das Filament aus, das installiert ist auf: %s."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "Bitte wählen Sie das Filament aus."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "Mehr über die Regeln zur Filamentzuordnung erfahren."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Externe Spulen werden nicht unterstützt, da der Filament Track Switch installiert ist. Wenn Sie eine externe Spule verwenden möchten, deinstallieren Sie ihn bitte."
+
+msgid "Select Filament && Hotends"
+msgstr "Filament & Hotends auswählen"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "Modellbilder"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "Zusatzdateien"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "Liste der Projektfilamente"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "Empfehlungen im Standardmodus"
+
+# AI Translated
+msgid "Target Color"
+msgstr "Zielfarbe"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "Farbzerlegung auswählen"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "Freier Modus"
+
+# AI Translated
+msgid "Material List"
+msgstr "Materialliste"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "Standardmodus"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "Für die Zerlegung sind mindestens zwei Filamente desselben Materialtyps erforderlich"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "Die Materialliste unterstützt höchstens %1% Farben. Nach der Zerlegung (%2%) würde die Anzahl der Materialien %1% überschreiten. Bitte löschen Sie vor dem Zerlegen nicht verwendete Filamente im Hauptfenster."
+
+# AI Translated
+msgid "Cyan"
+msgstr "Cyan"
+
+# AI Translated
+msgid "Magenta"
+msgstr "Magenta"
+
+# AI Translated
+msgid "Yellow"
+msgstr "Gelb"
+
+# AI Translated
+msgid "White"
+msgstr "Weiß"
+
+# AI Translated
+msgid "Red"
+msgstr "Rot"
+
+# AI Translated
+msgid "Green"
+msgstr "Grün"
+
+# AI Translated
+msgid "Blue"
+msgstr "Blau"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "Die aktuelle Filamentliste enthält %s nicht. Ein vom Mischfilament benötigtes Projektfilament wird nach der Zerlegung automatisch erstellt."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "Alternative Düsen:"
+
+# AI Translated
+msgid "All standard"
+msgstr "Alle Standard"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "Willkommen beim Konfigurationsassistenten von %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "Willkommen beim Konfigurationsassistenten von %s"
+
+# AI Translated
+msgid "Welcome"
+msgstr "Willkommen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "Hallo, willkommen bei %s! Dieser %s hilft Ihnen bei der Ersteinrichtung; nur ein paar Einstellungen, und Sie sind bereit zum Drucken."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "Benutzerprofile entfernen (vorher wird ein Snapshot erstellt)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "Desktop-Integration durchführen (sorgt dafür, dass dieses Binary vom System gefunden werden kann)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "Familie %s"
+
+# AI Translated
+msgid "Printer:"
+msgstr "Drucker:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "Hersteller:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "Profil:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(Alle)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "Mit <b>*</b> markierte %1% sind mit einigen installierten Druckern <b>nicht</b> kompatibel."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA-Materialien"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "Alle installierten Drucker sind mit dem ausgewählten %1% kompatibel."
+
+# AI Translated
+msgid "filament"
+msgstr "Filament"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA-Material"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "Nur die folgenden installierten Drucker sind mit den ausgewählten Filamenten kompatibel"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "Nur die folgenden installierten Drucker sind mit den ausgewählten SLA-Materialien kompatibel"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "Benutzerdefinierte Druckereinrichtung"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "Benutzerdefinierter Drucker"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "Ein benutzerdefiniertes Druckerprofil festlegen"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "Name des benutzerdefinierten Profils:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "Firmware-Typ"
+
+# AI Translated
+msgid "Firmware"
+msgstr "Firmware"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "Wählen Sie den Typ der Firmware, die Ihr Drucker verwendet."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "Form und Größe des Druckbetts"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "Legen Sie die Form des Druckbetts Ihres Druckers fest."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Ungültige numerische Eingabe."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "Filament- und Düsendurchmesser"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "Druckdurchmesser"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "Geben Sie den Durchmesser der Hotend-Düse Ihres Druckers ein."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "Düsendurchmesser:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "Geben Sie den Durchmesser Ihres Filaments ein."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "Gute Genauigkeit ist erforderlich. Verwenden Sie daher einen Messschieber, messen Sie mehrmals entlang des Filaments und berechnen Sie dann den Mittelwert."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "Filamentdurchmesser:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "Düsen- und Druckbetttemperaturen"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "Geben Sie die nozzle_temperature ein, die zum Extrudieren Ihres Filaments erforderlich ist."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "Als Faustregel gelten 160 bis 230℃ für PLA und 215 bis 250℃ für ABS."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "Extrusionstemperatur:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "Geben Sie die Druckbetttemperatur ein, die erforderlich ist, damit Ihr Filament auf dem beheizten Druckbett haftet."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "Als Faustregel gelten 60℃ für PLA und 110℃ für ABS. Lassen Sie den Wert auf null, wenn Sie kein beheiztes Druckbett haben."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "Druckbetttemperatur:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA-Materialien"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "Drucker mit FFF-Technologie"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "Drucker mit SLA-Technologie"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "Folgende Druckerprofile haben kein Standardfilament: %1%Bitte wählen Sie manuell eines aus."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "Folgende Druckerprofile haben kein Standardmaterial: %1%Bitte wählen Sie manuell eines aus."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "Für die folgenden FFF-Druckermodelle ist kein Filament ausgewählt:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "Möchten Sie Standardfilamente für diese FFF-Druckermodelle auswählen?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "Konfiguration im Konfigurationsassistenten bearbeitet"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "Alle Benutzerprofile werden gelöscht."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "Ein neuer Hersteller wurde installiert und einer seiner Drucker wird aktiviert"
+msgstr[1] "Neue Hersteller wurden installiert und einer ihrer Drucker wird aktiviert"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "Ein neuer Drucker wurde installiert und wird aktiviert."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "Einige Drucker wurden deinstalliert."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "Ein neues Filament wurde installiert und wird aktiviert."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "Ein neues SLA-Material wurde installiert und wird aktiviert."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "Einige Filamente wurden deinstalliert."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "Ein benutzerdefinierter Drucker wurde installiert und wird aktiviert."
+
+# AI Translated
+msgid "<Back"
+msgstr "<Zurück"
+
+# AI Translated
+msgid "Next>"
+msgstr "Weiter>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "Auswahl der Filamentprofile"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "Konfigurationsassistent"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "&Konfigurationsassistent"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "Konfigurationsassistent"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "&Konfigurationsassistent"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "Filamenteinlass A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "Filamenteinlass B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "Empfohlene Neuanordnung"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "Wie lässt sich Zeit sparen?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "Filamentstatus:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "Positionsanpassung erforderlich"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "OK"
+
+# AI Translated
+msgid "Unused"
+msgstr "Nicht verwendet"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "Ordnen Sie die Filamente am Drucker anhand des folgenden Diagramms neu an, um optimale Ergebnisse zu erzielen und etwa %s einzusparen."
+
+# AI Translated
+msgid "Summary:"
+msgstr "Zusammenfassung:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "AMS am Filamenteinlass A"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "AMS am Filamenteinlass B"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "Das Slicing-Filament Nr. %d ist „%s“ zugeordnet. Eine Zuordnung zu „%s“ kann Druckzeit sparen."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*Tipps: Wenn Sie die Position der Spule am Drucker verändert haben, schließen Sie bitte diese Seite und ordnen Sie das Filament erneut zu."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "Zusammenfassung: Dies ist derzeit die am besten geeignete Position für die Platzierung."
+
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "Hinweis:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "Dieses Objekt aushöhlen"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "Ausgehöhltes und gebohrtes Modell in der Vorschau anzeigen"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "Schließabstand"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "Lochdurchmesser"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "Lochtiefe"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "Ausgewählte Löcher entfernen"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "Alle Löcher entfernen"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "Ansicht beschneiden"
+
+msgid "Reset direction"
+msgstr "Ausrichtung zurücksetzen"
+
+# AI Translated
+msgid "Show supports"
+msgstr "Stützen anzeigen"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "Aushöhlen und bohren"
+
+msgid "Head diameter"
+msgstr "Kopfdurchmesser"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "Stützen unter neuen Inseln fixieren"
+
+msgid "Remove selected points"
+msgstr "Ausgewählte Punkte entfernen"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "Alle Punkte entfernen"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "Änderungen übernehmen"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "Änderungen verwerfen"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "Minimaler Punktabstand"
+
+# AI Translated
+msgid "Support points density"
+msgstr "Dichte der Stützpunkte"
+
+msgid "Auto-generate points"
+msgstr "Punkte automatisch generieren"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "Manuelle Bearbeitung"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLA-Stützpunkte"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "Möchten Sie Ihre manuell bearbeiteten Stützpunkte speichern?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "Stützpunkte speichern?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "Die automatische Generierung löscht alle manuell bearbeiteten Punkte."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "Möchten Sie das wirklich tun?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "Tastenkürzel für das SLA-Gizmo"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "Hinweis: Einige Tastenkürzel funktionieren nur im (Nicht-)Bearbeitungsmodus."
+
+msgid "Left click"
+msgstr "Linksklick"
+
+# AI Translated
+msgid "Add point"
+msgstr "Punkt hinzufügen"
+
+msgid "Right click"
+msgstr "Rechtsklick"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Punkt entfernen"
+
+# AI Translated
+msgid "Move point"
+msgstr "Punkt verschieben"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "Punkt zur Auswahl hinzufügen"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "Punkt aus der Auswahl entfernen"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "Per Rechteck auswählen"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "Per Rechteck abwählen"
+
+# AI Translated
+msgid "Select all points"
+msgstr "Alle Punkte auswählen"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "Schnittebene verschieben"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "Schnittebene zurücksetzen"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "In den Bearbeitungsmodus wechseln"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "Einbrennen"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "Texturverschiebung"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "Bemalung der Texturverschiebung löschen"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "Texturverschiebung malen"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "Texturnaht markieren"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "Pfad der Texturnaht markieren"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "Ebene %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "Inselskalierung angleichen"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "Wählen Sie zuerst eine Insel im UV-Editor aus."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "Texturinsel teilen"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "Diese Insel hat keinen Nachbarn, mit dem sie eine Kante teilt."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "Texturinsel verbinden"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "Texturinsel lösen"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "Texturnähte löschen"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "UV-Bearbeitungen der Textur löschen"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "Textur-Projektionsrahmen anwenden"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "Texturinsel verschieben"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "Textur-UV bearbeiten"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "Maximale Anzahl an Ebenen für die Texturverschiebung erreicht."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "Ebene für Texturverschiebung hinzufügen"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "Die ausgewählte Textur konnte nicht geladen werden."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "Textur der Texturverschiebung ändern"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "Texturbild auswählen (Höhenkarte)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "Textur auswählen"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "Aus „Meine Texturen“ entfernen"
+
+# AI Translated
+msgid "Built-in"
+msgstr "Integriert"
+
+# AI Translated
+msgid "No textures found."
+msgstr "Keine Texturen gefunden."
+
+# AI Translated
+msgid "My textures"
+msgstr "Meine Texturen"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "Importieren Sie Ihr eigenes Bild als Höhenkarte. Es wird in das Format umgewandelt, aus dem der Slicer einbrennt, und in Ihrem persönlichen Texturordner gespeichert, getrennt von den mit OrcaSlicer ausgelieferten Texturen."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG oder BMP - wird beim Import in eine Höhenkarte umgewandelt. Bewegen Sie den Mauszeiger über eine eigene Textur, um sie zu entfernen."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"„%s“ aus „Meine Texturen“ entfernen?\n"
+"\n"
+"Die Bilddatei wird aus Ihrem Texturordner gelöscht. Ebenen, die sie bereits verwenden, behalten sie."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "Textur entfernen"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "Ebene der Texturverschiebung entfernen"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "Ebenen der Texturverschiebung neu anordnen"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "Sichtbare Flächen für Texturverschiebung auswählen"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "Ganzes Modell für Texturverschiebung auswählen"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "Modell für Texturverschiebung unterteilen"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "Bemalen Sie zuerst den Bereich, den Sie unterteilen möchten - die adaptive Unterteilung verfeinert nur dort, wo Sie gemalt haben."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "Adaptive Unterteilung für Texturverschiebung"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "Nichts zu unterteilen - der bemalte Bereich erfüllt bereits die Ziel-Kantenlänge und die Detailtoleranz, oder das Dreiecksbudget ist bereits aufgebraucht."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "Bemalen Sie zuerst den Bereich, den Sie glätten möchten - die Glättung betrifft nur den bemalten Teil des Modells."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "Nichts zu glätten - der bemalte Bereich ist nur ein Dreieck tief, daher gibt es bei aktiviertem „Äußeren Ring ignorieren“ keine inneren Eckpunkte zum Entspannen."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "Texturverschiebung glätten"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "Modell für Texturverschiebung neu vernetzen"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "Die Neuvernetzung hat das Modell nicht verändert. Es ist möglicherweise nicht-manifold (offene Kanten oder Kanten, die von mehr als zwei Dreiecken geteilt werden), oder die Ziel-Kantenlänge ist bereits erreicht."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "Es ist nichts bemalt, daher gibt es nichts einzubrennen."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "Texturverschiebung einbrennen"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "Es ist nichts bemalt, daher gibt es keine Einbrennstufen zu erfassen."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "Einbrennstufen (Debug)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "Erfassen..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "Stufen erfassen"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "Führt denselben Einbrennvorgang wie die Schaltfläche „Einbrennen“ aus, behält das Netz nach jeder Stufe und lässt Sie diese hier durchgehen. Nichts wird auf das Modell übertragen - dies dient dazu, herauszufinden, aus welcher Stufe ein schlechtes Ergebnis stammt."
+
+# AI Translated
+msgid "Check topology"
+msgstr "Topologie prüfen"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "Zählt nach jeder Stufe offene und nicht-manifold Kanten - so erkennt man eine Stufe, die das Netz zerrissen hat. Da jede Kante geprüft wird, verlängert dies die Erfassung bei einem feinen Einbrennvorgang merklich."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< Zurück"
+
+# AI Translated
+msgid "Next >"
+msgstr "Weiter >"
+
+# AI Translated
+msgid "triangles"
+msgstr "Dreiecke"
+
+# AI Translated
+msgid "vertices"
+msgstr "Eckpunkte"
+
+# AI Translated
+msgid "Open edges"
+msgstr "Offene Kanten"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "Nicht-manifold"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "Degeneriert"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "Stufennetze schreiben"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "Die Stufennetze wurden als OBJ-Dateien geschrieben nach:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "Die Stufennetze konnten nicht geschrieben werden."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "Schreibt jede erfasste Stufe als OBJ-Datei, sodass sie in einem Netzbetrachter nebeneinander geöffnet werden können."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "Der bemalte Bereich konnte nicht auf das neu vernetzte Modell übertragen werden, daher wurde nichts geändert. Wechseln Sie in den Pro-Modus und vernetzen Sie neu, bevor Sie malen."
+
+# AI Translated
+msgid "Pro"
+msgstr "Pro"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "Standard - Textur auswählen, die gewünschte Stelle bemalen, „Einbrennen“ drücken. Alles, was das Netz benötigt, wird in diesem einen Schritt für Sie erledigt."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "Pro - die Netzvorbereitung führen Sie selbst aus: Neu vernetzen, Unterteilen und Einbrennen als getrennte Schritte, mit allen Einstellungen sichtbar. Für den Fall, dass das Ergebnis von Standard nicht Ihren Wünschen entspricht und Sie wissen, warum."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "Panel andocken"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "Panel abdocken"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "Löst dieses Panel, damit es überall über die 3D-Ansicht gezogen werden kann, oder dockt es wieder neben der Werkzeugleiste an."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "in %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "Ebene zum Malen hinzufügen"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "Malen - fügt die aktive Ebene dort hinzu, wo Sie klicken oder ziehen. Die rechte Maustaste löscht, ebenso das Halten von Umschalt."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "Löschen - entfernt die aktive Ebene dort, wo Sie klicken oder ziehen. Die rechte Maustaste malt."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "Pinsel - durch Ziehen über die Oberfläche malen"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "Fläche - einzelne Dreiecke anklicken"
+
+# AI Translated
+msgid "Connected area"
+msgstr "Verbundener Bereich"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "Verbundener Bereich - füllt die Region, die erreichbar ist, ohne eine Kante zu überqueren, die schärfer als der Winkelschwellenwert ist"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "Warten Sie, bis das Einbrennen abgeschlossen ist."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "Fügen Sie zuerst eine Ebene hinzu."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "Die aktive Ebene ist noch nicht bemalt."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "Ganzes Modell auswählen"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "Ganzes Modell auswählen - jede Fläche des Modells mit der aktiven Ebene bemalen"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "Bemalung am ganzen Modell löschen"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "Bemalung am ganzen Modell löschen - entfernt die Bemalung der aktiven Ebene von jeder Fläche"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "Auswahl der Texturverschiebung zurücksetzen"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "Kreis - malt alles unter dem Pinsel, wie von der Kamera aus gesehen"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "Kugel - malt nur innerhalb einer Kugel um den Punkt unter dem Mauszeiger"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "Winkelschwellenwert - die Füllung stoppt an Kanten, die schärfer als dieser Wert sind"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "Klicken Sie auf ein Dreieck, um es zu bemalen"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "Erfordert, dass die aktive Ebene die Projektion „Abwickeln (LSCM)“ verwendet."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "Normal - die echte Geometrie, genau das, was „Einbrennen“ erzeugt. Langsamere Aktualisierung"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "Schnell - das Relief wird nur schattiert, nicht aufgebaut, und nur für die Ebene, die Sie gerade bearbeiten. Aktualisiert sich sofort beim Malen"
+
+# AI Translated
+msgid "Checker"
+msgstr "Schachbrett"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "Schachbrett - ein Testraster statt der Textur. Wo die Quadrate quadratisch bleiben, ist die Textur unverzerrt; wo sie sich dehnen, wird es auch die Textur"
+
+# AI Translated
+msgid "Distortion"
+msgstr "Verzerrung"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "Verzerrung - Dehnungs-Heatmap von Blau bis Rot über die Abwicklung"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "Gittermodell - blendet die Netzkanten ein; unabhängig von der Ansicht oben"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "Baut die Vorschau neu auf, sobald sich etwas ändert. Schalten Sie dies bei einem aufwendigen Modell aus, wenn das Malen oder Ziehen eines Schiebereglers zu ruckeln beginnt - die Vorschau wartet dann, bis Sie loslassen."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "Texturebenen"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "Auf eine andere Ebene ziehen, um die Reihenfolge zu ändern. Die erste Ebene liegt auf der blanken Oberfläche; jede weitere fügt ihr Relief über den vorherigen hinzu."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "Ein anderes Bild für diese Ebene wählen. Bemalung, Tiefe und Kachelung bleiben unverändert."
+
+# AI Translated
+msgid "not painted"
+msgstr "nicht bemalt"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "Nach oben - früher angewendet"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "Nach unten - später angewendet"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "Diese Ebene entfernen"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "Höhe des Reliefs: wie weit Weiß in der Textur die Oberfläche anhebt, in Millimetern. Schwarz bewegt sie überhaupt nicht, es sei denn, „Mittelniveau“ legt etwas anderes fest."
+
+# AI Translated
+msgid "Tile size"
+msgstr "Kachelgröße"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "Wie breit eine Kopie der Textur auf dem Modell ist. Kleinere Werte wiederholen das Muster häufiger und machen seine Details feiner; bei deaktiviertem „Kacheln“ ist dies die Größe der einzelnen Kopie."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "Dreht die Textur auf der Oberfläche, in Grad - um ein Muster an einer Kante des Modells auszurichten."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "Mittelniveau"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"Welcher Grauwert dort bleibt, wo die Oberfläche bereits ist. Bei 0 drückt die Textur nur nach außen; bei 0,5 bleibt Mittelgrau an Ort und Stelle, sodass dunklere Grautöne einschneiden und hellere weiterhin nach außen drücken - ein Bild prägt und graviert zugleich.\n"
+"\n"
+"Was einschneidet, muss Platz haben: In einer scharfen Ecke oder durch eine dünne Wand kann ein tiefer Schnitt auf der anderen Seite austreten."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "Tiefe Verschiebung nach innen kann zu Selbstüberschneidungen führen."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "Zeichnet das Bild vor der Verwendung weich, wodurch harte Stufen abgerundet und Sprenkel aus einem verrauschten Foto entfernt werden. Erhöhen Sie den Wert, wenn das Relief hart oder körnig aussieht; dies kostet feine Details."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "Randausblendung"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "Flacht das Relief zum Rand des bemalten Bereichs hin ab, sodass es in die blanke Oberfläche übergeht, statt mit einer Stufe zu enden."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "Wie weit die Ausblendung nach innen reicht, als Anteil des bemalten Bereichs. Kleine Werte machen einen schmalen Streifen am Rand weicher; 1 flacht fast alles ab."
+
+# AI Translated
+msgid "Invert"
+msgstr "Invertieren"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "Kehrt das Relief um: Was hervorstand, wird eingeschnitten, und umgekehrt. Dasselbe wie die Verwendung eines Negativs des Bildes."
+
+# AI Translated
+msgid "Colours"
+msgstr "Farben"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "Druckt den bemalten Bereich zusätzlich zum Relief in den Farben der Textur. Jede Farbe wird dem nächstgelegenen Ihrer geladenen Filamente zugeordnet; alles, was Sie nicht bemalt haben, behält die Farbe des Objekts."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "Diese Textur ist eine Graustufen-Höhenkarte und hat daher keine Farben, die angewendet werden könnten. Importieren Sie ein Farbbild, um dies zu nutzen."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "Filamente mischen"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "Verschachtelt zwei Filamente, um die Zwischenfarben zu simulieren, sodass wenige Filamente ein Foto oder einen Farbverlauf abdecken können. Ein Bild mit flachen Farben wird in beiden Fällen gleich gedruckt. Ist dies deaktiviert, wird ein Filament pro Bereich verwendet."
+
+# AI Translated
+msgid "Mix by"
+msgstr "Mischen nach"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "Oberfläche"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"Schichten: Die beiden Filamente wechseln sich zwischen den Druckschichten ab, was auf senkrechten Flächen gleichmäßig verläuft, auf flach liegenden aber verschwindet, da dort eine ganze Schicht ein einziges Band ist.\n"
+"Oberfläche: ein feines Schachbrettmuster über die Oberfläche, das bei jedem Winkel funktioniert, aber eher als Textur denn als Mischung wirken kann.\n"
+"Automatisch: Schichten auf senkrechten Flächen; flach liegende Flächen erhalten das nächstgelegene einzelne Filament, da ein Schachbrettmuster dort als Muster sichtbar wird."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% druckbare Farben aus %2% Filamenten"
+
+# AI Translated
+msgid "Denoise"
+msgstr "Entrauschen"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "Bereinigt einzelne verstreute Dreiecke in der falschen Farbe, die Details zurücklassen, die feiner als das Netz sind. Erhöhen Sie den Wert, wenn das Ergebnis gesprenkelt aussieht, und verringern Sie ihn, wenn kleine Merkmale verschluckt werden."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "Texturabbildung"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "Triplanar (überblendet)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "Triplanar - projiziert die Textur gleichzeitig aus allen drei Achsen und überblendet zwischen ihnen, sodass ein Bereich, der sich um eine scharfe Kante legt, keine sichtbare Naht hat."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "Zylindrisch - wickelt die Textur um den eigenen Mittelpunkt des bemalten Bereichs, für runde Formen."
+
+# AI Translated
+msgid "Spherical"
+msgstr "Kugelförmig"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "Kugelförmig - wickelt die Textur in beide Richtungen um den eigenen Mittelpunkt des bemalten Bereichs."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "Abwickeln (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "Abwickeln - flacht den bemalten Bereich ab und bildet die Textur mit möglichst geringer Dehnung darauf ab. Der Bereich wird zuerst an seinen scharfen Kanten in Teile geschnitten (siehe Nahtwinkel), sodass jedes Teil für sich flach liegen kann."
+
+# AI Translated
+msgid "From view"
+msgstr "Aus Ansicht"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "Aus Ansicht - projiziert direkt aus Ihrer Blickrichtung auf den bemalten Bereich, wie ein Diaprojektor."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "UV-Editor öffnen"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "Öffnet den UV-Editor, in dem Sie sehen, wie die Textur über den bemalten Bereich gelegt ist, Nähte schneiden und die Teile verschieben können."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "Noch nicht abgewickelt"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% Inseln"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "Aktuelle Ansicht erfassen"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "Aus diesem Winkel ist nichts sichtbar - drehen Sie das Modell so, dass der Teil, auf den Sie projizieren möchten, zu Ihnen zeigt."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "Projiziert die Textur aus Ihrer aktuellen Blickrichtung auf den bemalten Bereich, wie ein Diaprojektor. Von Ihnen abgewandte Flächen werden gedehnt, richten Sie die Ansicht daher zuerst auf die gewünschte Oberfläche aus."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "Nur auf Sichtbares projizieren"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "Bemalt nur die Flächen, die Sie gerade tatsächlich sehen können - Ihnen zugewandt und nicht verdeckt - und projiziert auf diese. Ersetzt die bisherige Bemalung der Ebene."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "Projektionsrahmen"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "Öffnet ein Fenster, das Sie über das Modell ziehen. Alles, was Sie dadurch sehen können, erhält die Textur, und sein Rand wird zur Kante der Projektion."
+
+# AI Translated
+msgid "Opacity"
+msgstr "Deckkraft"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "Wie undurchsichtig das Rahmenfenster beim Platzieren wirkt. Verringern Sie den Wert, um das Modell hindurch zu sehen; das Ergebnis wird nicht beeinflusst."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "Projektionsrahmen anwenden"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "Kein Teil des Modells befindet sich im Rahmen - verschieben Sie ihn über den Teil, auf den Sie projizieren möchten."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "Der Rahmen konnte nicht angewendet werden. Stellen Sie sicher, dass er die 3D-Ansicht überlappt."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "Projiziert die Textur durch den Rahmen aus Ihrer aktuellen Blickrichtung und bemalt die Flächen darin. Ersetzt die bisherige Bemalung der Ebene; das Ergebnis haftet am Modell, sodass Sie die Ansicht anschließend drehen können."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "Durch Projektionsrahmen platziert."
+
+# AI Translated
+msgid "Tile"
+msgstr "Kacheln"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "Wiederholt die Textur über den bemalten Bereich. Deaktiviert wird eine einzelne Kopie wie ein Aufkleber in der unter „Kachelgröße“ festgelegten Größe platziert."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "Aktivieren Sie „Kacheln“, um festzulegen, wie die Textur wiederholt wird."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Wiederholen"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "Gespiegelt wiederholen"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "Gespiegelt wiederholen - jede zweite Kachel wird gespiegelt, sodass die Kanten nahtlos aneinanderstoßen"
+
+# AI Translated
+msgid "Blend"
+msgstr "Überblenden"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "Hinzufügen"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "Subtrahieren"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "Multiplizieren"
+
+# AI Translated
+msgid "Divide"
+msgstr "Dividieren"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "Die Basisebene hat nichts darunter, mit dem sie kombiniert werden könnte, daher wird sie immer hinzugefügt."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "Was diese Ebene dort bewirkt, wo sie die darunterliegenden überlappt. „Hinzufügen“ und „Subtrahieren“ häufen Relief auf oder tragen es ab. „Multiplizieren“ und „Dividieren“ skalieren das Darunterliegende, wodurch diese Ebene zu einer Maske darüber wird - dort wirkt „Tiefe“ als Stärke, und 1 mm lässt weiße Bereiche unverändert."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "Platzierung anpassen"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "Platzierung anpassen - den Griff auf dem Modell ziehen, um die Textur zu verschieben"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "Bemalen Sie zuerst etwas mit dieser Ebene."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "Weniger Einstellungen"
+
+# AI Translated
+msgid "More settings"
+msgstr "Mehr Einstellungen"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "Alle %1% Ebenen belegt"
+
+# AI Translated
+msgid "Add layer"
+msgstr "Ebene hinzufügen"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "Unterteilung"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "Nur bemalter Bereich (adaptiv)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "Fügt nur dort Dreiecke hinzu, wo Sie gemalt haben, statt überall. Bei einem großen Teil mit einem kleinen Aufkleber ist das der Unterschied zwischen Tausenden und Millionen von Dreiecken, und Ihre Bemalung übersteht die Verfeinerung."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "Texturdetails folgen"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "Setzt die Dreiecke dort ein, wo sich die Textur tatsächlich krümmt - dicht entlang von Graten und Kanten, spärlich über ebenen Flächen - statt sie gleichmäßig zu verteilen. Bei den meisten Texturen dieselben Details mit weniger Dreiecken."
+
+# AI Translated
+msgid "Max edge"
+msgstr "Max. Kante"
+
+# AI Translated
+msgid "Target edge"
+msgstr "Zielkante"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "Kein Dreieck im bemalten Bereich bleibt größer als dieser Wert, auch dort, wo die Textur flach ist. Halten Sie ihn nahe an der Größe des kleinsten Merkmals, das herauskommen soll."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "Dreiecke im bemalten Bereich werden geteilt, bis keines größer als dieser Wert ist. Kleiner bedeutet feinere Details und, sehr schnell, deutlich mehr Dreiecke."
+
+# AI Translated
+msgid "Detail"
+msgstr "Detail"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "Wie weit das Netz von der Form, die die Textur beschreibt, abweichen darf, in Millimetern. Kleinere Werte folgen feinen Details und kosten Dreiecke; größere erfassen nur die großen Merkmale."
+
+# AI Translated
+msgid "Min edge"
+msgstr "Min. Kante"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "Eine Untergrenze für die Dreiecksgröße, damit eine scharfe Stufe in der Textur nicht endlos verfolgt wird. Verringern Sie den Wert für ein feineres Relief, erhöhen Sie ihn, wenn die Anzahl an harten Kanten ausufert."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "Kantendetail"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "Dreiecksgröße entlang des Umrisses des bemalten Bereichs, wo das Relief auf die blanke Oberfläche zurückfällt. Verringern Sie den Wert, wenn dieser Rand gezackt aussieht; es kostet nur Dreiecke entlang des Umrisses. 0 deaktiviert dies."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "Farbdetail"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "Dreiecksgröße dort, wo zwei Farben aufeinandertreffen. Jedes Dreieck wird mit einem Filament gedruckt, daher kann eine Farbkante nur so scharf sein wie die Dreiecke entlang dieser Kante - und dort verfeinert sonst nichts, da die Oberfläche über einen Farbwechsel hinweg flach ist. 0 deaktiviert dies."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "Dreiecksbudget: wird unten mit „Dreiecke“ festgelegt."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "Vorschau: %1% Dreiecke"
+
+# AI Translated
+msgid "Steps"
+msgstr "Schritte"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "Teilt jedes Dreieck des Modells in vier, so oft wie angegeben. Jeder Schritt vervierfacht die Anzahl - 3 macht aus 100 k Dreiecken 6,4 M - verfeinern Sie daher besser nur den bemalten Bereich, es sei denn, Sie benötigen das ganze Modell feiner."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "Vorschau ausblenden"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "Vorschau der Unterteilung"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "Zeigt als Gittermodell, was die Verfeinerung erzeugen würde, ohne das Modell zu verändern."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "Unterteilen"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "Verfeinert den bemalten Bereich auf die Ziel-Kantenlänge und überträgt Ihre Bemalung auf das feinere Netz. Der Rest des Modells bleibt unverändert."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "Ersetzt die Geometrie des Modells durch das unterteilte Netz und löscht noch nicht eingebrannte Bemalung darauf (bereits eingebranntes Relief ist nicht betroffen)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "Neuvernetzung"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "Dreiecksgröße, mit der das ganze Modell neu aufgebaut wird, in Millimetern. Die Verschiebung funktioniert am besten auf einem gleichmäßigen Netz; so entsteht eines aus einem ungleichmäßigen Import."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "Scharfe Kanten beibehalten"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "Hält harte Kanten und offene Ränder an Ort und Stelle, während der Rest neu vernetzt wird. Ohne diese Option verschiebt die Neuvernetzung Eckpunkte entlang der Oberfläche und rundet jede scharfe Kante ab - ein Würfel kommt mit welligen Kanten zurück."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "Wie scharf ein Knick in Grad sein muss, damit die Neuvernetzung ihn als erhaltenswerte Kante behandelt. Niedrigere Werte schützen mehr von der Form des Modells; höhere bauen mehr davon gleichmäßig neu auf."
+
+# AI Translated
+msgid "Remesh"
+msgstr "Neu vernetzen"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "Baut das ganze Modell mit Dreiecken nahe dieser Kantenlänge neu auf - große werden geteilt, kleine zusammengeführt -, damit die Verschiebung eine gleichmäßige Dichte vorfindet. Ersetzt die Geometrie; Ihre Bemalung wird räumlich auf die neuen Dreiecke übertragen und bleibt so erhalten (bereits eingebranntes Relief bleibt ebenfalls erhalten)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "Bis zum Rand verschieben"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "Lässt das Relief bis direkt an den Rand des bemalten Bereichs reichen. Deaktivieren Sie dies, um den äußeren Ring flach zu halten. Dadurch bleibt die Verschiebung strikt innerhalb Ihrer Bemalung, aber das Muster wird am Rand abgeflacht."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "Ergebnis glätten"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "Glättet die Geometrie, nachdem die Textur angewendet wurde, um die harten Stufen eines niedrig aufgelösten Bildes zu entfernen. Nur was die Verschiebung bewegt hat, wird verändert. Der Schieberegler „Glättung“ einer Ebene ist etwas anderes: Er zeichnet das Bild vor der Verwendung weich."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "Stärke"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "Wie stark jeder Durchgang einen Eckpunkt zu seinen Nachbarn zieht. Hohe Werte runden das Relief schnell ab; niedrige Werte benötigen mehr Durchgänge, erhalten aber mehr Details."
+
+# AI Translated
+msgid "Passes"
+msgstr "Durchgänge"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "Wie viele Glättungsdurchgänge ausgeführt werden. Mehr Durchgänge verteilen die Glättung weiter über die Oberfläche; „Stärke“ bestimmt, wie stark jeder einzelne bewegt."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "Äußeren Ring ignorieren"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "Hält den äußeren Ring des bemalten Bereichs aus der Glättung heraus. Seine Nachbarn außerhalb der Bemalung bewegen sich nie, sodass das Glätten das Relief nach unten ziehen und das Muster am Rand halb geschmolzen zurücklassen würde."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "Eingebranntes Netz jetzt glätten"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "Wendet die obige Glättung sofort auf das Modell selbst an, innerhalb des bemalten Bereichs. Für bereits eingebranntes Relief - alles noch nicht Eingebrannte wird beim Einbrennen geglättet."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "Experimentell: klassische Einbrenn-Pipeline"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "Brennt ein, indem die bereits vorhandenen Eckpunkte des Netzes verschoben werden, nachdem es vorbereitet wurde (Neuvernetzung, adaptive Unterteilung und ein Schnitt entlang scharfer Stufen in der Textur). Behält die Topologie bei, die für Farben benötigt wird. Die Standard-Pipeline hingegen verfeinert, bereinigt Splitterdreiecke, verschiebt und vereinfacht in einem Durchgang; nichts muss vorher vorbereitet werden, sie erzeugt aber noch keine Farben."
+
+# AI Translated
+msgid "Budget"
+msgstr "Budget"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Wie viele tausend Dreiecke dieser Einbrennvorgang für den bemalten Bereich verwenden darf. Bereits in den Rest des Modells eingebranntes Relief bleibt zusätzlich erhalten, sodass ein zweiter Einbrennvorgang an anderer Stelle dasselbe Budget erhält wie der erste. Erhöhen Sie den Wert, wenn die Warnung unter „Auflösung“ meldet, dass die Details nicht hineinpassen; 0 behält jedes von der Verfeinerung erzeugte Dreieck, egal wie viele es sind."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "Netz an Texturkanten ausrichten"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "Schiebt Eckpunkte seitlich auf die Kanten in der Textur, bevor die Verschiebung angewendet wird. Die Verschiebung kann Eckpunkte nur auf und ab bewegen, daher landet eine scharfe Stufe im Bild ohne diese Option dort, wo die Dreiecke zufällig liegen, und erscheint als Treppe. Werden die Eckpunkte zuerst auf die Stufe gelegt, entsteht bei gleicher Dreiecksanzahl eine gerade Wand."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "Splitterdreiecke bereinigen"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "Lässt die dünnen Dreiecke, die die Verfeinerung von der Tessellierung des Modells übernimmt, zusammenfallen, bevor die Verschiebung sie abtastet. Die drei Ecken eines Splitterdreiecks landen auf drei unzusammenhängenden Stellen der Textur, wodurch das Relief gezackt aussieht."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "Ein: Die Auflösung richtet sich nach der Größe des Modells, und das Budget bleibt auf dem Standardwert. Deaktivieren Sie dies, um beides selbst festzulegen - lohnenswert bei einer Textur, die viel feiner oder viel gröber ist als das Teil, auf dem sie liegt."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "Aus der Größe des Modells gewählt: Dreiecke mit %1$.2f mm, Budget %2% k. Deaktivieren Sie „Automatisch“, um die Werte selbst festzulegen."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "Wie fein das Netz unter der Bemalung erzeugt wird, in Millimetern. Der Wert muss kleiner sein als die Details, die Sie aus der Textur herausholen möchten - eine 0,5-mm-Rille benötigt Dreiecke deutlich unter 0,5 mm. Kleinere Werte kosten schnell Dreiecke: Eine Halbierung erfordert viermal so viele, und sobald sie nicht mehr ins Budget passen, vereinfacht der Einbrennvorgang wieder und die Details gehen verloren."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "Benötigt etwa %1% Dreiecke, Budget %2% - der Einbrennvorgang vereinfacht wieder und verliert Details."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "Wie viele tausend Dreiecke die Verfeinerung dem Modell hinzufügen darf. Das am schlechtesten passende Dreieck wird immer zuerst geteilt, sodass selbst ein Durchlauf, der alles aufbraucht, die Dreiecke dort eingesetzt hat, wo es am meisten auffällt. Erhöhen Sie den Wert, wenn das Relief noch grob aussieht."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "Stoppt das Einbrennen. Was bereits fertiggestellt wurde, bleibt auf dem Modell und kann rückgängig gemacht werden."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "Schließt das Werkzeug ohne Einbrennen. Ihre Bemalung, Ebenen und Einstellungen bleiben beim Modell."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "Vorbereiten..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "Einbrennen..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "Es ist noch nichts bemalt. Das Nahtwerkzeug des UV-Editors ist aktiv, daher markieren Striche auf dem Modell Nähte, statt zu malen - schalten Sie es im Bereich aus, um zu malen."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "Es ist noch nichts bemalt."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "Wandelt die gemalten Höhenkarten in echte Geometrie um, indem die bereits vorhandenen Eckpunkte verschoben werden. Verwenden Sie zuerst „Unterteilen“, wenn das Netz zu grob ist, um die Details darzustellen."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "Wandelt die gemalten Höhenkarten in echte Geometrie um. Das Netz wird auf eine gleichmäßige Dichte neu vernetzt und zuerst dort verfeinert, wo sich die Textur krümmt, damit die Details Eckpunkte vorfinden - alles in einem Schritt."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "Modell: %1% Dreiecke - der Einbrennvorgang verfeinert bis zur obigen Auflösung, bis zu seinem Budget"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "Einbrennen verschiebt vorhandene Eckpunkte - das Modell bleibt bei %1% Dreiecken"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "Einbrennergebnis bis zu ~%1% k Dreiecke"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% Ebenen nicht bemalt, übersprungen"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% nicht bemalt, übersprungen"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "Texturverschiebung malen beginnen"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "Texturverschiebung malen verlassen"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "Texturverschiebung bearbeiten"
+
+msgid "Choose SLA archive:"
+msgstr "SLA-Archiv auswählen:"
+
+# AI Translated
+msgid "Import file"
+msgstr "Datei importieren"
+
+msgid "Import model and profile"
+msgstr "Modell und Profil importieren"
+
+msgid "Import profile only"
+msgstr "Nur Profil importieren"
+
+msgid "Import model only"
+msgstr "Importiere nur das Modell"
+
+msgid "Accurate"
+msgstr "Genau"
+
+msgid "Balanced"
+msgstr "Gleichmäßig"
+
+msgid "Quick"
+msgstr "Schnell"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "Texturverschiebung wird eingebrannt"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "Das Einbrennen hat keine Verschiebung erzeugt, daher wurde nichts geändert und die Bemalung beibehalten. Prüfen Sie, ob die bemalte Ebene eine Textur und eine Tiefe ungleich null hat."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "Das Dreiecksbudget hat die Details begrenzt: Diese Auflösung benötigt %1% Dreiecke, das Budget hat %2% behalten. Erhöhen Sie „Budget“ oder verwenden Sie eine gröbere „Auflösung“, um alle Details zu erhalten."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "Einbrennstufen werden erfasst"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "Netz wird für die Texturverschiebung vorbereitet"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "Klicken Sie hier, um das Verhältnis zu bearbeiten"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "Mischfilament bearbeiten"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "Effektvorschau"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "Zu mischende Materialien auswählen"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ Material hinzufügen"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- Material löschen"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "Verlaufseffekt"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "Verlaufseffekt pro Teil aktivieren"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "Mischempfehlungen"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- Auswählen --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "Platz %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "Unterschiedliche Filamenttypen können nicht gemischt werden: %s. Bitte wählen Sie denselben Filamenttyp aus."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "Bitte wählen Sie für alle Komponenten ein Filament aus"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "Verschiedene Filamenttypen können nicht gemischt werden"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "Maximal 3 Materialien zum Mischen"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "Maximale Anzahl an Komponenten erreicht"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "Das dritte Material entfernen"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3D-Modelle"
+
+# AI Translated
+msgid "Click to return"
+msgstr "Zum Zurückkehren klicken"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "Pfeil nach links"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "Zum Fortfahren klicken"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "Pfeil nach rechts"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "%s-Plugin auswählen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "Wählen Sie ein %s-Plugin aus der folgenden Liste."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "Keine Plugins für diesen Typ gefunden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "Plugin-Datei: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "Prozess-Plugins"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "Filament-Plugins"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "Drucker-Plugins"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "Die Konfiguration ist kein gültiges JSON. Ihre Änderungen wurden nicht gespeichert."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "Konfiguration aktualisiert. Speichern Sie das Profil, um sie dauerhaft zu übernehmen."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"Standardkonfiguration für „%s“ wiederherstellen?\n"
+"\n"
+"Dadurch wird die Überschreibung des Profils verworfen und die globale Konfiguration verwendet."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "Standardwerte wiederherstellen"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "Globale Konfiguration wird verwendet. Speichern Sie das Profil, um dies dauerhaft zu übernehmen."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "Diese Funktion ist nicht mehr verfügbar."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "Die Konfigurationsoberfläche des Plugins konnte nicht geladen werden (%1%). Der Standardeditor wird angezeigt."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "Plugin löschen"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "Abbestellen"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "Plugin überschreiben"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "Wählen Sie ein .py- oder .whl-Plugin-Paket aus."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "Das Plugin-Paket konnte nicht installiert werden. Details finden Sie im Protokoll."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"Plugin „%s“ ist bereits installiert.\n"
+"\n"
+"Die Installation dieses Pakets überschreibt das vorhandene Plugin."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "Überschreiben"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "Plugin wird installiert"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "„%s“ installiert."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "„%s“ konnte nicht aktiviert werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "„%s“ aktiviert."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"Die folgenden installierten Plugins wurden auf dem Datenträger nicht gefunden:\n"
+"%s\n"
+"\n"
+"Aus OrcaSlicer entfernen?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "Fehlende Plugins"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "Plugin-Daten werden aktualisiert"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "Plugin konnte nicht entladen werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "„%s“ deaktiviert."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "Plugin-Manifest wurde nicht gefunden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "„%s“ wird aktiviert..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "„%s“ eingeschaltet."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "„%s“ ausgeschaltet."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "Plugin wird heruntergeladen"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "Download des Plugins fehlgeschlagen."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "Konfiguration gespeichert."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"Standardkonfiguration für „%s“ wiederherstellen?\n"
+"\n"
+"Dadurch werden die derzeit für diese Funktion gespeicherten Einstellungen verworfen."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "Standardkonfiguration wiederhergestellt."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "Plugin wird aktualisiert"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "Plugin konnte nicht aktualisiert werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "„%s“ aktualisiert."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "Der Plugin-Ordner konnte nicht ermittelt werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"Plugin „%s“ löschen?\n"
+"\n"
+"Dadurch werden die lokalen Plugin-Dateien entfernt. Das Plugin bleibt in der Cloud und kann erneut installiert werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"Plugin „%s“ löschen?\n"
+"\n"
+"Dadurch wird der Plugin-Ordner dauerhaft entfernt."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "Plugin konnte nicht gelöscht werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "„%s“ gelöscht."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "Plugin wird gelöscht"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "Plugin wird gelöscht..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"Plugin „%s“ abbestellen?\n"
+"\n"
+"Dadurch wird das Plugin nicht mehr verfolgt und alle lokalen Plugin-Dateien werden gelöscht."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "Plugin konnte nicht abbestellt werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "„%s“ abbestellt."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "Plugin wird abbestellt"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "Lokale Dateien werden gelöscht und Plugin wird abbestellt..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "Plugin wird neu geladen"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "Plugin konnte nicht neu geladen werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "„%s“ neu geladen."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "Einstellungen des Spülmodus"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "Führt eine vollständige Spülung mit Geschwindigkeits- und Temperaturübergang für die beste Druckqualität durch."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "Verwendet eine optimierte Spültemperatur, einen optimierten Multiplikator und eine stärkere Extrusion für schnelleres Spülen. Kann in einigen Extremfällen zu leichter Farbvermischung führen."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "Spül-Sparmodus"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "Reduziert den Spülabfall und druckt schneller. Kann zu leichter Farbvermischung oder kleinen Oberflächenfehlern führen."
+
+# AI Translated
+msgid "Terminal"
+msgstr "Terminal"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "CMYW-Automischung mit einem Klick"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "RYBW-Automischung mit einem Klick"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "Physische Projektfilamente"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "Neue physische Filamente"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "Projekt-Mischfilamente"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "Neue Mischfilamente"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "Das Projekt unterstützt bis zu %d Filamente. Zusätzliche Filamente werden verworfen."
+
+# AI Translated
+msgid "Import Model"
+msgstr "Modell importieren"
+
+# AI Translated
+msgid "Original"
+msgstr "Original"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "Mehrfarbig"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "Ihr importiertes Texturmodell"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "Verarbeitetes mehrfarbiges Modell"
+
+# AI Translated
+msgid "Color Count"
+msgstr "Farbanzahl"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "Glättungsstufe"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "Nur die optimale Farbanzahl automatisch bestimmen und die Filamentzuordnung neu berechnen"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "Textur mit der angegebenen Farbanzahl und Glättungsstufe in eine Bemalung umwandeln"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "Hinweis: Parameter geändert, klicken Sie auf „Anwenden“, damit sie wirksam werden"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "Filamentzuordnung"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "Filamentzuordnung auf den Zustand vor dem Mischen mit einem Klick zurücksetzen"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "Modus der Automischung mit einem Klick für den Import von Texturfarben wählen"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "Gleiche Filamente automatisch zusammenführen"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "Identische Filamente automatisch mit vorhandenen Filamenten im Projekt zusammenführen"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "Zuordnung überspringen"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "Filamentzuordnung überspringen und als einfarbiges Modell importieren"
+
+# AI Translated
+msgid "Processing"
+msgstr "Verarbeitung"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "Texturfarben werden berechnet..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "Netz wird repariert"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "Berechnung fehlgeschlagen. Bitte passen Sie die Parameter an und versuchen Sie es erneut."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "Das Netz enthält nicht-manifold Geometrie oder offene Ränder. Sie können es unverändert importieren oder vor dem Import mit dem Windows-3D-Reparaturdienst reparieren."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "Netzreparatur"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "Ohne Reparatur importieren"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "Reparieren und importieren"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "Bitte beachten Sie, dass das Netz nicht-manifold Geometrie oder offene Ränder enthält."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "Netzproblem"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "Das ausgewählte Bild ist leer."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "Die Textur konnte nicht für die Verwendung vorbereitet werden."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "Nur Ihre eigenen importierten Texturen können entfernt werden."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "Die Texturdatei konnte nicht gelöscht werden."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "Der Ordner für importierte Texturen konnte nicht erstellt werden."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "Das ausgewählte Bild konnte nicht geladen werden."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "Die importierte Textur konnte nicht gespeichert werden."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "Die Texturdatei konnte nicht gelesen werden."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "Projektionsrahmen - über das Modell ziehen, dann „Anwenden“"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "Insel wird verschoben  |  loslassen zum Ablegen, Esc zum Abbrechen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "Insel wird gedreht: %d°  |  Umschalt = auf 15° einrasten, klicken zum Bestätigen, Esc zum Abbrechen"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "Insel wird skaliert  |  klicken zum Bestätigen, Esc zum Abbrechen"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "Eckpunkt wird verschoben  |  loslassen zum Ablegen"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "Kante wird verschoben  |  loslassen zum Ablegen"
+
+# AI Translated
+msgid "Panning"
+msgstr "Schwenken"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "Bemalen Sie den Bereich auf dem Modell und drücken Sie dann „Abwickeln“"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "Wählen Sie „Abwickeln“ als Projektion einer Texturebene, um ihre UVs hier zu bearbeiten"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d Eckpunkte ausgewählt  |  ziehen = gemeinsam verschieben, Umschalt/Strg-Klick = hinzufügen/entfernen"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Eckpunktmodus: Eckpunkt zum Umformen ziehen  |  Umschalt/Strg-Klick = Mehrfachauswahl, Mausrad = Zoom, Pos1 = einpassen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d Kanten ausgewählt  |  ziehen = gemeinsam verschieben, Umschalt/Strg-Klick = hinzufügen/entfernen"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Kantenmodus: Inselkante zum Umformen ziehen  |  Umschalt/Strg-Klick = Mehrfachauswahl, Mausrad = Zoom, Pos1 = einpassen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "%d Inseln ausgewählt  |  ziehen = gemeinsam verschieben, Umschalt/Strg-Klick = hinzufügen/entfernen, R/S = primäre drehen/skalieren"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "Insel %d ausgewählt  |  ziehen = verschieben, R = drehen, S = skalieren, Umschalt/Strg-Klick = Mehrfachauswahl, Pos1 = einpassen"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "Insel zum Auswählen anklicken  |  Umschalt/Strg-Klick = Mehrfachauswahl, Mausrad = Zoom, mit mittlerer Maustaste ziehen = schwenken, Pos1 = alles einpassen"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  Einrasten EIN"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "Textur ändern - eine andere aus der Texturbibliothek wählen"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "Höhenkarte - die Textur der Ebene unter den Inseln anzeigen"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "Schachbrett - ein Testraster; die Quadrate bleiben quadratisch, wo die Abwicklung nicht dehnt"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "Verzerrung - jede Insel danach einfärben, wie stark die Abwicklung sie dehnt"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "Abwickeln"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "Nahtwinkel"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "Kanten, die schärfer als dieser Wert sind, werden geschnitten, und die Teile auf beiden Seiten werden getrennt abgeflacht. Verringern Sie den Wert, um mehr zu schneiden: Jedes Teil liegt dann mit weniger Dehnung flach, allerdings verläuft die Textur nicht durchgehend über den Schnitt. Wirkt sich beim nächsten Abwickeln aus."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "Inseln verbinden"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "Legt die Abwicklung als zusammenhängendes Faltnetz aus: Teile, die eine Kante teilen, werden nebeneinander aufgeklappt (ein Würfel wird zu einem zusammenhängenden Würfelnetz statt zu sechs losen Quadraten). Sie bleiben getrennte Inseln, sodass Sie jede davon anschließend noch von Hand verschieben können."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "Insel - ganze Inseln verschieben, drehen und skalieren"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "Eckpunkt - Eckpunkte zum Umformen ziehen; Umschalt/Strg für Mehrfachauswahl"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "Kante - Kanten zum Umformen ziehen; Umschalt/Strg für Mehrfachauswahl"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "Nähte markieren - Kanten auf dem Modell anklicken, um die Abwicklung entlang dieser Kanten zu schneiden. Die Kante unter dem Mauszeiger wird gelb hervorgehoben; klicken, um sie rot zu markieren, eine rote Kante erneut anklicken, um die Markierung aufzuheben. Das Malen ist pausiert, solange dies aktiv ist."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "Pfad - statt jede Kante anzuklicken, einen Start- und dann einen Endpunkt anklicken: Der gesamte kürzeste Pfad dazwischen wird auf einmal zur Naht. Verfügbar beim Markieren von Nähten."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "Nähte löschen - alle auf dieser Ebene markierten Nähte entfernen"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "Skalierung angleichen - jeder Insel dieselbe Texeldichte geben"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "Teilen - die ausgewählte Insel quer zu ihrer Längsachse teilen"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "Verbinden - die ausgewählte Insel entlang der gemeinsamen Kante an ihren nächsten Nachbarn aufklappen"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "Lösen - die ausgewählte Insel an ihre eigene gepackte Position zurücksetzen"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "UV-Bearbeitungen löschen - alle manuellen Eckpunkt-/Kantenverschiebungen verwerfen und die Abwicklung in ihre automatische Form zurückversetzen"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "Einrasten - Inseln aneinander haften lassen, wenn eine gegen eine andere gezogen wird"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "Alle Inseln einpassen (Pos1)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "Keine Ebene mit „Abwickeln“ projiziert"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "Kachel %.1f mm"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "Veraltet - die Bemalung, die Nähte oder der Nahtwinkel haben sich seit dieser Abwicklung geändert. Drücken, um erneut abzuwickeln."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "Flacht den bemalten Bereich in UV-Inseln ab. Dies wird nur beim Drücken berechnet, nicht bei jeder Bearbeitung - also zuerst malen, den Nahtwinkel ändern oder Nähte markieren und dann „Abwickeln“ drücken."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d Inseln, %s Flächen"
+
+# AI Translated
+msgid "Forward"
+msgstr "Vorwärts"
+
+# AI Translated
+msgid "Tools"
+msgstr "Werkzeuge"
+
+# AI Translated
+msgid "View Source"
+msgstr "Quelltext anzeigen"
+
+# AI Translated
+msgid "View Text"
+msgstr "Text anzeigen"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "Navigation verarbeiten"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "Neue Fenster verarbeiten"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "Bearbeitungsmodus"
+
+# AI Translated
+msgid "Run Script"
+msgstr "Skript ausführen"
+
+# AI Translated
+msgid "Add user script"
+msgstr "Benutzerskript hinzufügen"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "Benutzerdefinierten User-Agent festlegen"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "Auswahl aufheben"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "Auswahl löschen"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "Beispiel für benutzerdefiniertes Schema"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "Beispiel für Speicher-Dateisystem"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "Kontextmenü aktivieren"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "Entwicklertools aktivieren"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "Fehler beim Laden von %s"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "%1% laden in: %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "%s laden"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"Plugin „%s“ fordert eine Berechtigung für das Python-Audit-Ereignis „%s“ an.\n"
+"\n"
+"Dieser Vorgang stellt kein Ziel bereit, das der Audit-Hook anzeigen kann."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte die folgende(n) Datei(en) lesen:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte die folgende(n) Datei(en) lesen/schreiben:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte die folgende(n) Datei(en) erstellen:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte die folgende(n) Datei(en) löschen:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte eine HTTP-Anfrage senden an:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte eine Netzwerkverbindung öffnen zu:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"Plugin „%s“ möchte den/die folgenden Befehl(e) ausführen:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "Plugin „%s“ fordert eine Berechtigung für das Python-Audit-Ereignis „%s“ an."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "Berechtigungsanfrage eines Plugins"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "Die Konfigurationsoberfläche des Plugins war leer. Der Standardeditor wird angezeigt."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "Diese Funktion ist nicht mehr verfügbar. Ihre Änderungen wurden nicht gespeichert."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "Die Konfiguration konnte nicht auf den Datenträger geschrieben werden. Ihre Änderungen wurden nicht gespeichert."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "Das Plugin konnte keine Standardkonfiguration bereitstellen (%1%). Es wurde nichts geändert."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "Die Konfiguration konnte nicht auf den Datenträger geschrieben werden. Es wurde nichts geändert."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "Plugin-Installation fehlgeschlagen"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -25994,6 +28714,85 @@ msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "Fehler beim Generieren des Kalibrierungs-G-Codes"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "Subtrahieren"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "Multiplizieren"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " und "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "können nicht gemischt werden. Bitte wählen Sie denselben Filamenttyp aus."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "Fehler beim Laden von "
+
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "%s laden in: "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "Im Tab Konstruktion einen Verknüpfungskonnektor als kleine Fläche statt als herkömmliche Scheibe mit Rollquadrant zeichnen. Die Ausrichtung einer Fläche ist ohne Einarbeitung ablesbar. Deaktivieren Sie dies für die herkömmliche CAD-Darstellung."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "Experte"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "Einfach"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "Punkte klicken; auf den ersten Punkt klicken / Rechtsklick, um die Schleife zu schließen"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "X-Hinweis X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "X-Hinweis Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "X-Hinweis Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — das Auge unterdrückt diese Verknüpfung"
+
+#~ msgid "Del"
+#~ msgstr "Entf"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "Skizze beibehalten — „Fertig“ zum Übernehmen, „Abbrechen“ zum Verwerfen"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "Bearbeiten: Skizze %d   ·   N = senkrecht auf die Ebene blicken   ·   Fertig oder Abbrechen in der Werkzeugleiste"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "Skizze wird bearbeitet — einen Griff ziehen oder auf ein Maß klicken, um es zu bearbeiten"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -26126,9 +28925,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "Rückgängig  (%zu weitere)"
-
-#~ msgid "Reset direction"
-#~ msgstr "Ausrichtung zurücksetzen"
 
 #~ msgid "Section View"
 #~ msgstr "Schnittansicht"
@@ -26342,9 +29138,6 @@ msgstr ""
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "Automatisch an den eingestellten Bereich anpassen?\n"
 
-#~ msgid "Head diameter"
-#~ msgstr "Kopfdurchmesser"
-
 #~ msgid "Print order within a single layer."
 #~ msgstr "Druckreihenfolge innerhalb einer einzelnen Schicht"
 
@@ -26395,9 +29188,6 @@ msgstr ""
 
 #~ msgid "Select filament that installed to the right nozzle"
 #~ msgstr "wählen Sie das Filament aus, das in die rechte Düse eingesetzt ist"
-
-#~ msgid "Select Filament && Hotends"
-#~ msgstr "Filament & Hotends auswählen"
 
 #, c-format, boost-format
 #~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -26920,14 +29710,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "Ihre Düsenart im Profil stimmt nicht mit der gespeicherten Düse überein. Haben Sie Ihre Düse kürzlich gewechselt?"
 
-#~ msgid "Remove selected points"
-#~ msgstr "Ausgewählte Punkte entfernen"
-
 #~ msgid "Remove all"
 #~ msgstr "Alle entfernen"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Punkte automatisch generieren"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "Ein Mausohr hinzufügen"
@@ -26959,12 +29743,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "Schlüssel 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "Linksklick"
-
-#~ msgid "Right click"
-#~ msgstr "Rechtsklick"
 
 #~ msgid "Select feature"
 #~ msgstr "Feature auswählen"
@@ -28016,12 +30794,6 @@ msgstr ""
 #~ msgid "The target object contains only one part and cannot be split."
 #~ msgstr "Das Zielobjekt enthält nur einen Teil und kann nicht geteilt werden."
 
-#~ msgid "?"
-#~ msgstr "?"
-
-#~ msgid "/"
-#~ msgstr "/"
-
 #~ msgid "Color Scheme"
 #~ msgstr "Farbschema"
 
@@ -29021,27 +31793,6 @@ msgstr ""
 
 #~ msgid "Exception"
 #~ msgstr "Ausnahme"
-
-#~ msgid "Choose SLA archive:"
-#~ msgstr "SLA-Archiv auswählen:"
-
-#~ msgid "Import model and profile"
-#~ msgstr "Modell und Profil importieren"
-
-#~ msgid "Import profile only"
-#~ msgstr "Nur Profil importieren"
-
-#~ msgid "Import model only"
-#~ msgstr "Importiere nur das Modell"
-
-#~ msgid "Accurate"
-#~ msgstr "Genau"
-
-#~ msgid "Balanced"
-#~ msgstr "Gleichmäßig"
-
-#~ msgid "Quick"
-#~ msgstr "Schnell"
 
 #~ msgid "Print sequence of inner wall and outer wall. "
 #~ msgstr "Druckreihenfolge der Innen- und Außenwand."

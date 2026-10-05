@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -1709,9 +1709,10 @@ msgstr ""
 "Yerel yolu 3MF dosyasına kaydetmeyin.\n"
 "Ayrıca 'diskten yeniden yükle' seçeneğini de devre dışı bırakır."
 
+# AI Translated
 #. TRN: An menu option to convert the SVG into an unmodifiable model part.
 msgid "Bake"
-msgstr "Düzenlenemez"
+msgstr "Pişir"
 
 #. TRN: Tooltip for the menu item.
 msgid "Bake into model as uneditable part"
@@ -5279,8 +5280,9 @@ msgstr "Geçerli akış hızı cali parametresi geçersiz"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "Seçilen çap ile makine çapı eşleşmiyor"
 
-msgid "Failed to generate cali G-code"
-msgstr "Cali G-code oluşturma başarısız oldu"
+# AI Translated
+msgid "Failed to generate calibration G-code"
+msgstr "Kalibrasyon G-code'u oluşturulamadı"
 
 msgid "Calibration error"
 msgstr "Kalibrasyon hatası"
@@ -6118,6 +6120,7 @@ msgid "Wireframe"
 msgstr "Wireframe"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "Röntgen"
 
@@ -8457,6 +8460,7 @@ msgid "Click to edit preset"
 msgstr "Ön ayarı düzenlemek için tıklayın"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "Varyant"
 
@@ -9646,6 +9650,7 @@ msgid "Recent actions"
 msgstr "Son eylemler"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "eylem"
 
@@ -9763,8 +9768,8 @@ msgid "Draw mate connectors as a face"
 msgstr "Montaj bağlayıcılarını yüz olarak çiz"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "Tasarım sekmesinde montaj bağlayıcısını, dönüş çeyreği olan geleneksel disk yerine küçük bir yüz olarak çizer. Bir yüzün yönü, öğrenmeye gerek kalmadan okunur. Geleneksel CAD gösterimi için bunu kapatın."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Tasarım sekmesinde montaj bağlayıcısını, dönüş çeyreği olan geleneksel disk yerine küçük bir yüz olarak çizer. Bir yüz, disk kuralını öğrenmeye gerek kalmadan yönünü bir bakışta gösterir. Geleneksel CAD gösterimi için bunu kapatın."
 
 # AI Translated
 msgid "Pan"
@@ -9874,10 +9879,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "Gerçekçi görünümde SSAO uygular."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "Sabit"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "Yörünge"
 
@@ -10684,10 +10691,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "Geçerli grafik ayarlarını kullanır ve genellikle bir dakikadan kısa sürer. Bitene kadar ana pencere kilitli kalır."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "Gelişmiş"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Uzman"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "Geliştirici"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Basit"
 
@@ -23389,8 +23408,8 @@ msgid "Polyline"
 msgstr "Çoklu çizgi"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Noktalara tıklayın; döngüyü kapatmak için ilk noktaya tıklayın / sağ tıklayın"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "Noktalara tıklayın; döngüyü kapatmak için ilk noktaya tıklayın, zinciri bitirmek için sağ tıklayın"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23837,6 +23856,11 @@ msgstr "Yeni gövde"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "Birleştir"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "Kes"
 
@@ -23860,6 +23884,7 @@ msgid "Bottom"
 msgstr "Alt"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "Yanal"
 
@@ -24014,8 +24039,9 @@ msgid "Plane type"
 msgstr "Düzlem türü"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
-msgstr "Taban"
+msgstr "Temel"
 
 # AI Translated
 msgid "Angle°"
@@ -24311,15 +24337,15 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "Kenar seçilmezse çerçeve X'i yüzün ilk kenarından alır — kendiniz belirlemek için bir kenar seçin"
 
 # AI Translated
-msgid "X hint X"
+msgid "X direction X"
 msgstr "X yönü X"
 
 # AI Translated
-msgid "X hint Y"
+msgid "X direction Y"
 msgstr "X yönü Y"
 
 # AI Translated
-msgid "X hint Z"
+msgid "X direction Z"
 msgstr "X yönü Z"
 
 # AI Translated
@@ -24395,8 +24421,9 @@ msgid "Feature tree"
 msgstr "Unsur ağacı"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — göz simgesi bu montaj ilişkisini devre dışı bırakır"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. Bu montaj ilişkisini devre dışı bırakmak için göz simgesine tıklayın."
 
 # AI Translated
 #, c-format, boost-format
@@ -24455,9 +24482,6 @@ msgstr "Değişkenler"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-msgid "Del"
-msgstr "Sil"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24560,8 +24584,8 @@ msgid "Tool exited"
 msgstr "Araçtan çıkıldı"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "Eskiz korundu — kaydetmek için Bitir'e, atmak için İptal'e basın"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "Eskiz korundu — kaydetmek için Onayla'ya, atmak için İptal'e basın"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24585,8 +24609,8 @@ msgstr "Eskiz %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "Düzenleniyor: Eskiz %d   ·   N = düzleme dik bak   ·   Araç çubuğunda Bitir veya İptal"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Düzenleniyor: Eskiz %d   ·   N = düzleme dik bak   ·   Araç çubuğunda Onayla veya İptal"
 
 # AI Translated
 #, c-format
@@ -25790,8 +25814,8 @@ msgid "On a stored face"
 msgstr "Kayıtlı bir yüzde"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Eskiz düzenleniyor — düzenlemek için bir tutamacı sürükleyin veya bir ölçüye tıklayın"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "Eskiz düzenleniyor — düzenlemek için bir tutamacı sürükleyin veya bir ölçüye çift tıklayın"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -26217,6 +26241,2712 @@ msgstr "Uygulama"
 msgid "Speed Dial"
 msgstr "Hızlı Erişim"
 
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "Gövde %1% zaten \"%2%\" (unsur %3%) tarafından konumlandırılmış, bu nedenle \"%4%\" onu geçersiz kılar"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "Bu montaj ilişkisi Gövde %1% öğesini kendisine göre konumlandırıyor"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "Montaj ilişkisi zinciri döngüsel: Gövde %1%, Gövde %2% öğesine bağlı ve bu da yeniden Gövde %1% öğesine çıkıyor — sonuç unsur sırasına bağlı"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "\"%1%\" bağlayıcısı farklı bir yüze taşınmış olabilir (önceki bir düzenleme bu gövdenin yüzlerini yeniden numaralandırdı)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "Yapılandırma anlık görüntüsü alınamadı."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer, yapılandırma anlık görüntüsü alınırken bir hatayla karşılaştı."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicer hatası"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "Lütfen %s üzerinde takılı olan filamenti seçin."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "Lütfen filamenti seçin."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "Filament eşleştirme kurallarını öğrenmek için."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Filament Track Switch takılı olduğundan harici makaralar desteklenmez. Harici makara kullanmak istiyorsanız lütfen onu sökün."
+
+# AI Translated
+msgid "Select Filament && Hotends"
+msgstr "Filament && Hotend Seçin"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "Model Resimleri"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "Yardımcılar"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "Proje Filament Listesi"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "Standart Mod Önerileri"
+
+# AI Translated
+msgid "Target Color"
+msgstr "Hedef Renk"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "Renk Ayrıştırmayı Seçin"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "Serbest Mod"
+
+# AI Translated
+msgid "Material List"
+msgstr "Malzeme Listesi"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "Standart Mod"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "Ayrıştırma için aynı malzeme türünden en az iki filament gereklidir"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "Malzeme listesi en fazla %1% rengi destekler. %2% ayrıştırmasından sonra malzeme sayısı %1% sınırını aşacaktır. Lütfen ayrıştırmadan önce ana ekrandaki kullanılmayan filamentleri silin."
+
+# AI Translated
+msgid "Cyan"
+msgstr "Camgöbeği"
+
+# AI Translated
+msgid "Magenta"
+msgstr "Macenta"
+
+# AI Translated
+msgid "Yellow"
+msgstr "Sarı"
+
+# AI Translated
+msgid "White"
+msgstr "Beyaz"
+
+# AI Translated
+msgid "Red"
+msgstr "Kırmızı"
+
+# AI Translated
+msgid "Green"
+msgstr "Yeşil"
+
+# AI Translated
+msgid "Blue"
+msgstr "Mavi"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "Mevcut filament listesi %s içermiyor. Karışık filamentin gerektirdiği bir proje filamenti, ayrıştırmadan sonra otomatik olarak oluşturulacak."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "Alternatif nozullar:"
+
+# AI Translated
+msgid "All standard"
+msgstr "Tümü standart"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "%s Yapılandırma Asistanına Hoş Geldiniz"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "%s Yapılandırma Sihirbazına Hoş Geldiniz"
+
+# AI Translated
+msgid "Welcome"
+msgstr "Hoş Geldiniz"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "Merhaba, %s uygulamasına hoş geldiniz! Bu %s ilk yapılandırmada size yardımcı olur; yalnızca birkaç ayardan sonra yazdırmaya hazır olacaksınız."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "Kullanıcı profillerini kaldır (öncesinde bir anlık görüntü alınacaktır)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "Masaüstü entegrasyonu yap (Bu uygulamanın sistem tarafından aranabilir olmasını sağlar)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "%s Ailesi"
+
+# AI Translated
+msgid "Printer:"
+msgstr "Yazıcı:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "Satıcı:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "Profil:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(Tümü)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "<b>*</b> ile işaretlenen %1%, bazı yüklü yazıcılarla uyumlu <b>değildir</b>."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA malzemeleri"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "Tüm yüklü yazıcılar seçilen %1% ile uyumludur."
+
+# AI Translated
+msgid "filament"
+msgstr "filament"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA malzemesi"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "Seçilen filamentlerle yalnızca aşağıdaki yüklü yazıcılar uyumludur"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "Seçilen SLA malzemeleriyle yalnızca aşağıdaki yüklü yazıcılar uyumludur"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "Özel Yazıcı Kurulumu"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "Özel Yazıcı"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "Özel bir yazıcı profili tanımlayın"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "Özel profil adı:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "Ürün Yazılımı Türü"
+
+# AI Translated
+msgid "Firmware"
+msgstr "Ürün yazılımı"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "Yazıcınızın kullandığı ürün yazılımı türünü seçin."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "Yatak Şekli ve Boyutu"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "Yazıcınızın yatağının şeklini ayarlayın."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Geçersiz sayısal giriş."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "Filament ve Nozul Çapları"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "Baskı Çapları"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "Yazıcınızın hotend nozulunun çapını girin."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "Nozul Çapı:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "Filamentinizin çapını girin."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "İyi bir hassasiyet gerekir; bu nedenle bir kumpas kullanıp filament boyunca birden çok ölçüm yapın ve ardından ortalamayı hesaplayın."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "Filament Çapı:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "Nozul ve Yatak Sıcaklıkları"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "Filamentinizi ekstrüde etmek için gereken nozzle_temperature değerini girin."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "Genel bir kural olarak PLA için 160 ile 230℃, ABS için 215 ile 250℃ arası kullanılır."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "Ekstrüzyon Sıcaklığı:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "Filamentinizin ısıtmalı yatağa yapışması için gereken yatak sıcaklığını girin."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "Genel bir kural olarak PLA için 60℃, ABS için 110℃ kullanılır. Isıtmalı yatağınız yoksa sıfır bırakın."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "Yatak Sıcaklığı:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA Malzemeleri"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "FFF Teknolojili Yazıcılar"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "SLA Teknolojili Yazıcılar"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "Aşağıdaki yazıcı profillerinin varsayılan filamenti yok: %1%Lütfen elle birini seçin."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "Aşağıdaki yazıcı profillerinin varsayılan malzemesi yok: %1%Lütfen elle birini seçin."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "Aşağıdaki FFF yazıcı modellerinde seçili filament yok:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "Bu FFF yazıcı modelleri için varsayılan filamentleri seçmek istiyor musunuz?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "Yapılandırma ConfigWizard içinde düzenlendi"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "Tüm kullanıcı ön ayarları silinecek."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "Yeni bir satıcı yüklendi ve yazıcılarından biri etkinleştirilecek"
+msgstr[1] "Yeni satıcılar yüklendi ve yazıcılarından biri etkinleştirilecek"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "Yeni bir yazıcı yüklendi ve etkinleştirilecek."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "Bazı yazıcılar kaldırıldı."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "Yeni bir filament yüklendi ve etkinleştirilecek."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "Yeni bir SLA malzemesi yüklendi ve etkinleştirilecek."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "Bazı filamentler kaldırıldı."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "Özel yazıcı yüklendi ve etkinleştirilecek."
+
+# AI Translated
+msgid "<Back"
+msgstr "<Geri"
+
+# AI Translated
+msgid "Next>"
+msgstr "İleri>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "Filament Profilleri Seçimi"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "Yapılandırma Asistanı"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "Yapılandırma &Asistanı"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "Yapılandırma Sihirbazı"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "Yapılandırma &Sihirbazı"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "Filament Girişi A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "Filament Girişi B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "Önerilen yeniden düzenleme"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "Nasıl zaman kazanılır?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "Filament Durumu:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "Konum ayarlaması gerekli"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "Uygun"
+
+# AI Translated
+msgid "Unused"
+msgstr "Kullanılmıyor"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "En iyi sonuç için aşağıdaki şemaya göre yazıcıdaki filamentleri yeniden düzenleyin; böylece yaklaşık %s tasarruf edersiniz."
+
+# AI Translated
+msgid "Summary:"
+msgstr "Özet:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "Filament Girişi A'daki AMS"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "Filament Girişi B'deki AMS"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "%d numaralı dilimleme filamenti '%s' ile eşleştirildi. Onu '%s' konumuna atamak yazdırma süresinden tasarruf sağlayabilir."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*İpucu: Makinedeki makara konumunu değiştirdiyseniz lütfen bu sayfayı kapatıp filamenti yeniden eşleştirin."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "Özet: Şu anda yerleştirme için en uygun konum budur."
+
+# AI Translated
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "Not:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "Bu nesnenin içini boşalt"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "İçi boşaltılmış ve delinmiş modeli önizle"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "Kapanma mesafesi"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "Delik çapı"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "Delik derinliği"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "Seçili delikleri kaldır"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "Tüm delikleri kaldır"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "Görünüm kırpma"
+
+msgid "Reset direction"
+msgstr "Yönü sıfırla"
+
+# AI Translated
+msgid "Show supports"
+msgstr "Destekleri göster"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "İçini boşalt ve del"
+
+msgid "Head diameter"
+msgstr "Kafa çapı"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "Yeni adaların altındaki destekleri kilitle"
+
+msgid "Remove selected points"
+msgstr "Seçili noktaları kaldır"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "Tüm noktaları kaldır"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "Değişiklikleri uygula"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "Değişiklikleri at"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "Minimum nokta mesafesi"
+
+# AI Translated
+msgid "Support points density"
+msgstr "Destek noktası yoğunluğu"
+
+msgid "Auto-generate points"
+msgstr "Noktaları otomatik olarak üret"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "Manuel düzenleme"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLA Destek Noktaları"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "Manuel düzenlediğiniz destek noktalarını kaydetmek istiyor musunuz?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "Destek noktaları kaydedilsin mi?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "Otomatik oluşturma, manuel düzenlenen tüm noktaları silecek."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "Bunu yapmak istediğinizden emin misiniz?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "SLA gizmo klavye kısayolları"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "Not: bazı kısayollar yalnızca düzenleme modunda ya da yalnızca bu mod dışında çalışır."
+
+msgid "Left click"
+msgstr "Sol tık"
+
+# AI Translated
+msgid "Add point"
+msgstr "Nokta ekle"
+
+msgid "Right click"
+msgstr "Sağ tık"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Noktayı kaldır"
+
+# AI Translated
+msgid "Move point"
+msgstr "Noktayı taşı"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "Seçime nokta ekle"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "Noktayı seçimden kaldır"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "Dikdörtgenle seç"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "Dikdörtgenle seçimi kaldır"
+
+# AI Translated
+msgid "Select all points"
+msgstr "Tüm noktaları seç"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "Kırpma düzlemini taşı"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "Kırpma düzlemini sıfırla"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "Düzenleme moduna geç"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "Pişir"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "Doku yer değiştirme"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "Doku yer değiştirme boyasını sil"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "Doku yer değiştirme boyama"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "Doku kesim çizgisi işaretle"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "Doku kesim çizgisi yolu işaretle"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "Katman %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "Ada ölçeğini ortala"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "Önce UV düzenleyicide bir ada seçin."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "Doku adasını kes"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "Bu adanın kenar paylaştığı bir komşusu yok."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "Doku adasını birleştir"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "Doku adasını ayır"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "Doku kesim çizgilerini temizle"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "Doku UV düzenlemelerini temizle"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "Doku projeksiyon çerçevesini uygula"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "Doku adasını taşı"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "Doku UV'sini düzenle"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "Maksimum doku yer değiştirme katmanı sayısına ulaşıldı."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "Doku yer değiştirme katmanı ekle"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "Seçilen doku yüklenemedi."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "Doku yer değiştirme dokusunu değiştir"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "Bir doku görüntüsü seçin (yükseklik haritası)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "Bir doku seçin"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "Dokularım'dan kaldır"
+
+# AI Translated
+msgid "Built-in"
+msgstr "Yerleşik"
+
+# AI Translated
+msgid "No textures found."
+msgstr "Doku bulunamadı."
+
+# AI Translated
+msgid "My textures"
+msgstr "Dokularım"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "Kendi görüntünüzü yükseklik haritası olarak içe aktarın. Görüntü, dilimleyicinin pişirmede kullandığı biçime dönüştürülür ve OrcaSlicer ile birlikte gelen dokulardan ayrı tutulan kişisel doku klasörünüze kaydedilir."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG veya BMP - içe aktarılırken yükseklik haritasına dönüştürülür. Kaldırmak için kendi dokularınızdan birinin üzerine gelin."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"\"%s\" Dokularım'dan kaldırılsın mı?\n"
+"\n"
+"Görüntü dosyası doku klasörünüzden silinir. Onu zaten kullanan katmanlar onu korur."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "Dokuyu kaldır"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "Doku yer değiştirme katmanını kaldır"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "Doku yer değiştirme katmanlarını yeniden sırala"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "Doku yer değiştirme için görünür yüzleri seç"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "Doku yer değiştirme için tüm modeli seç"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "Doku yer değiştirme için modeli alt bölümle"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "Önce alt bölümlemek istediğiniz alanı boyayın - uyarlanabilir alt bölümleme yalnızca boyadığınız yerleri sıklaştırır."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "Doku yer değiştirme için uyarlanabilir alt bölümleme"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "Alt bölümlenecek bir şey yok - boyalı alan hedef kenar uzunluğunu ve ayrıntı toleransını zaten karşılıyor ya da üçgen bütçesi zaten tükendi."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "Önce yumuşatmak istediğiniz alanı boyayın - yumuşatma yalnızca modelin boyalı kısmını etkiler."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "Yumuşatılacak bir şey yok - boyalı alan yalnızca bir üçgen derinliğinde olduğundan \"Dış halkayı yok say\" açıkken gevşetilecek iç tepe noktası kalmıyor."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "Doku yer değiştirmeyi yumuşat"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "Doku yer değiştirme için modelin mesh'ini yeniden oluştur"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "Yeniden mesh oluşturma modeli değiştirmedi. Model manifold olmayabilir (açık kenarlar veya ikiden fazla üçgenin paylaştığı kenarlar) ya da hedef kenar uzunluğu zaten karşılanmış olabilir."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "Hiçbir şey boyanmadı, pişirilecek bir şey yok."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "Doku yer değiştirmeyi pişir"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "Hiçbir şey boyanmadığı için yakalanacak pişirme aşaması yok."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "Pişirme aşamaları (hata ayıklama)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "Yakalanıyor..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "Aşamaları yakala"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "Pişir düğmesinin çalıştırdığı pişirmenin aynısını, her aşamadan sonraki mesh'i saklayarak çalıştırın ve aşamalar arasında burada gezinin. Modele hiçbir şey işlenmez - bu, kötü bir sonucun hangi aşamadan geldiğini bulmak içindir."
+
+# AI Translated
+msgid "Check topology"
+msgstr "Topolojiyi denetle"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "Her aşamadan sonra açık ve manifold olmayan kenarları sayar; mesh'i yırtan bir aşama bu şekilde fark edilir. Her kenarı taradığı için ince bir pişirmede yakalama süresini belirgin şekilde uzatır."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< Önceki"
+
+# AI Translated
+msgid "Next >"
+msgstr "Sonraki >"
+
+# AI Translated
+msgid "triangles"
+msgstr "üçgen"
+
+# AI Translated
+msgid "vertices"
+msgstr "tepe noktası"
+
+# AI Translated
+msgid "Open edges"
+msgstr "Açık kenarlar"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "Manifold olmayan"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "Dejenere"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "Aşama mesh'lerini yaz"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "Aşama mesh'leri OBJ dosyaları olarak şuraya yazıldı:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "Aşama mesh'leri yazılamadı."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "Yakalanan her aşamayı bir OBJ dosyası olarak dışa yazar; böylece bir mesh görüntüleyicide yan yana açılabilirler."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "Boyalı alan, mesh'i yeniden oluşturulan modele aktarılamadı; bu nedenle hiçbir şey değiştirilmedi. Pro moduna geçin ve boyamadan önce mesh'i yeniden oluşturun."
+
+# AI Translated
+msgid "Pro"
+msgstr "Pro"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "Standart - bir doku seçin, gideceği yeri boyayın, Pişir'e basın. Mesh'in ihtiyaç duyduğu her şey bu tek adımda sizin için yapılır."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "Pro - mesh hazırlığını siz yürütürsünüz: Yeniden mesh oluştur, Alt bölümle ve Pişir ayrı adımlardır ve tüm ayarlar görünür. Standart modun sonucu istediğiniz gibi olmadığında ve nedenini bildiğinizde kullanın."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "Paneli yerleştir"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "Paneli ayır"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "Bu paneli 3D görünüm üzerinde istediğiniz yere sürüklenebilecek şekilde ayırın veya araç çubuğunun yanına geri yerleştirin."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "%1% içine"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "boyamak için bir katman ekleyin"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "Boyama - tıkladığınız veya sürüklediğiniz yere etkin katmanı ekler. Sağ tuş siler; Shift tuşunu basılı tutmak da siler."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "Sil - tıkladığınız veya sürüklediğiniz yerden etkin katmanı kaldırır. Sağ tuş boyar."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "Fırça - sürükleyerek yüzeyin üzerine boyayın"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "Yüzey - tek tek üçgenlere tıklayın"
+
+# AI Translated
+msgid "Connected area"
+msgstr "Bağlı alan"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "Bağlı alan - açı eşiğinden daha keskin bir kenarı geçmeden ulaşılabilen bölgeyi doldurur"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "Pişirmenin bitmesini bekleyin."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "Önce bir katman ekleyin."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "Etkin katmanda henüz boya yok."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "Tüm modeli seç"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "Tüm modeli seç - modelin her yüzünü etkin katmanla boyar"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "Tüm modeli temizle"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "Tüm modeli temizle - etkin katmanın boyasını her yüzden kaldırır"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "Doku yer değiştirme seçimini sıfırla"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "Daire - kameradan görüldüğü şekliyle fırçanın altındaki her şeyi boyar"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "Küre - yalnızca imlecin altındaki noktanın çevresindeki bir kürenin içini boyar"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "Açı eşiği - doldurma bundan daha keskin kenarlarda durur"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "Boyamak için bir üçgene tıklayın"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "Etkin katmanın Açınım (LSCM) ile haritalanmış olmasını gerektirir."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "Normal - gerçek geometri; tam olarak Pişir'in üreteceği sonuç. Güncellenmesi daha yavaştır"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "Hızlı - kabartma oluşturulmaz, yalnızca gölgelendirmeyle gösterilir ve yalnızca düzenlediğiniz katman için. Siz boyarken anında güncellenir"
+
+# AI Translated
+msgid "Checker"
+msgstr "Dama"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "Dama - doku yerine bir test ızgarası. Karelerin kare kaldığı yerlerde doku bozulmamıştır; karelerin gerildiği yerlerde doku da gerilecektir"
+
+# AI Translated
+msgid "Distortion"
+msgstr "Bozulma"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "Bozulma - açınım üzerinde maviden kırmızıya gerilme ısı haritası"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "Wireframe - mesh kenarlarını üste bindirir; yukarıdaki görünümden bağımsızdır"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "Herhangi bir şey değiştiği anda ön izlemeyi yeniden oluşturur. Ağır bir modelde boyama veya kaydırıcı sürükleme takılmaya başlarsa kapatın - ön izleme bu durumda siz bırakana kadar bekler."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "Doku katmanları"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "Yeniden sıralamak için başka bir katmanın üzerine sürükleyin. İlk katman çıplak yüzeyin üzerinde durur; sonraki her katman kendi kabartmasını öncekilerin üzerine ekler."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "Bu katman için farklı bir görüntü seçin. Boya, derinlik ve döşeme olduğu gibi kalır."
+
+# AI Translated
+msgid "not painted"
+msgstr "boyanmadı"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "Yukarı taşı - daha önce uygulanır"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "Aşağı taşı - daha sonra uygulanır"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "Bu katmanı kaldır"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "Kabartmanın yüksekliği: dokudaki beyazın yüzeyi milimetre cinsinden ne kadar yükselttiği. Orta seviye aksini belirtmedikçe siyah yüzeyi hiç hareket ettirmez."
+
+# AI Translated
+msgid "Tile size"
+msgstr "Döşeme boyutu"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "Dokunun bir kopyasının model üzerindeki genişliği. Küçük değerler deseni daha sık tekrarlar ve ayrıntısını inceltir; Döşeme kapalıyken bu, tek kopyanın boyutudur."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "Dokuyu yüzey üzerinde derece cinsinden döndürür - bir deseni modelin bir kenarıyla hizalamak için."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "Orta seviye"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"Hangi gri tonunun yüzeyin mevcut konumunda kalacağı. 0'da doku yalnızca dışarı iter; 0.5'te orta gri yerinde kalır, böylece daha koyu griler içeri oyar, daha açık olanlar yine dışarı iter - tek bir görüntü hem kabartır hem oyar.\n"
+"\n"
+"İçeri oyulan kısım sığmalıdır: keskin bir köşenin içinde veya ince bir duvarda derin bir oyma diğer taraftan çıkabilir."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "Derin içe doğru yer değiştirme kendisiyle kesişebilir."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "Görüntüyü kullanılmadan önce bulanıklaştırır; bu, sert basamakları yuvarlar ve gürültülü bir fotoğraftaki benekleri giderir. Kabartma sert veya grenli görünüyorsa artırın; ince ayrıntıdan kaybettirir."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "Kenar solması"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "Kabartmayı boyalı alanın kenarına yaklaştıkça düzleştirir; böylece bir basamakla bitmek yerine çıplak yüzeye karışır."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "Solmanın boyalı alanın ne kadar içine uzandığı, alanın oranı olarak. Küçük değerler kenardaki dar bir şeridi yumuşatır; 1 neredeyse tamamını düzleştirir."
+
+# AI Translated
+msgid "Invert"
+msgstr "Ters çevir"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "Kabartmayı tersine çevirir: çıkıntılı olan içeri oyulur, oyuk olan dışarı çıkar. Görüntünün negatifini kullanmakla aynıdır."
+
+# AI Translated
+msgid "Colours"
+msgstr "Renkler"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "Boyalı alanı dokunun kabartmasının yanı sıra renkleriyle de yazdırır. Her renk, yüklü filamentlerinizden en yakın olanla eşleştirilir; boyamadığınız her yer nesnenin kendi rengini korur."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "Bu doku gri tonlamalı bir yükseklik haritası olduğundan uygulanacak rengi yok. Bunu kullanmak için renkli bir görüntü içe aktarın."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "Filamentleri karıştır"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "Aradaki renkleri taklit etmek için iki filamenti dönüşümlü kullanır; böylece birkaç filament bir fotoğrafı veya bir gradyanı karşılayabilir. Düz renklerden oluşan bir görüntü her iki durumda da aynı yazdırılır. Kapalıyken her alan için tek filament kullanılır."
+
+# AI Translated
+msgid "Mix by"
+msgstr "Karıştırma yöntemi"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "Yüzey"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"Katmanlar: iki filament baskı katmanları arasında dönüşümlü kullanılır; bu, dik yüzeylerde yumuşak bir karışım verir ancak tüm katmanın tek bir şerit olduğu düz bakan yüzeylerde kaybolur.\n"
+"Yüzey: yüzey boyunca ince bir dama deseni; her açıda çalışır ancak karışım yerine doku gibi algılanabilir.\n"
+"Otomatik: dik yüzlerde katmanlar; düz bakan yüzler en yakın tek filamenti alır, çünkü orada dama deseni bir desen olarak görünür."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%2% filamentten %1% yazdırılabilir renk"
+
+# AI Translated
+msgid "Denoise"
+msgstr "Gürültü giderme"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "Mesh'ten daha ince ayrıntıların geride bıraktığı, yanlış renkteki tek tük başıboş üçgenleri temizler. Sonuç benekli görünüyorsa artırın, küçük ayrıntılar kayboluyorsa azaltın."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "Haritalama"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "Üç düzlemli (harmanlanmış)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "Üç düzlemli - dokuyu üç eksenden aynı anda yansıtır ve aralarında harmanlar; böylece keskin bir kenarı saran bir yamada ek yeri oluşmaz."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "Silindirik - dokuyu boyalı alanın kendi merkezinin çevresine sarar; yuvarlak şekiller için."
+
+# AI Translated
+msgid "Spherical"
+msgstr "Küresel"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "Küresel - dokuyu boyalı alanın kendi merkezinin çevresine her iki yönde sarar."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "Açınım (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "Açınım - boyalı alanı düzleştirir ve dokuyu mümkün olduğunca az gererek üzerine haritalar. Alan önce keskin kenarlarından parçalara kesilir (bkz. Kesim açısı); böylece her parça kendi başına düz yatabilir."
+
+# AI Translated
+msgid "From view"
+msgstr "Görünümden"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "Görünümden - bir slayt projektörü gibi, baktığınız yerden doğrudan boyalı alana yansıtır."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "UV düzenleyiciyi aç"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "Dokunun boyalı alan üzerine nasıl yerleştiğini görebileceğiniz, kesim çizgileri ekleyebileceğiniz ve parçaları taşıyabileceğiniz UV düzenleyiciyi açar."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "Henüz açınımı çıkarılmadı"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% ada"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "Geçerli görünümü yakala"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "Bu açıdan hiçbir şey görünmüyor - modeli, yansıtmak istediğiniz kısım size bakacak şekilde döndürün."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "Bir slayt projektörü gibi, dokuyu şu anda baktığınız yerden boyalı alana yansıtır. Size dönük olmayan yüzler gerilir; bu nedenle önce görünümü önem verdiğiniz yüzeyle hizalayın."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "Yalnızca görünenlere yansıt"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "Yalnızca şu anda gerçekten görebildiğiniz yüzleri - size bakan ve hiçbir şeyin arkasında gizlenmeyenleri - boyar ve bunlara yansıtır. Katmanın önceki boyasının yerini alır."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "Projeksiyon çerçevesi"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "Model üzerine sürükleyeceğiniz bir pencere açar. İçinden ne görüyorsanız doku ona uygulanır ve pencerenin sınırı projeksiyonun kenarı olur."
+
+# AI Translated
+msgid "Opacity"
+msgstr "Opaklık"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "Çerçeve penceresinin siz yerleştirirken ne kadar opak göründüğü. Modeli içinden görmek için azaltın; sonucu etkilemez."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "Projeksiyon çerçevesini uygula"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "Modelin hiçbir kısmı çerçevenin içinde değil - çerçeveyi yansıtmak istediğiniz kısmın üzerine taşıyın."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "Çerçeve uygulanamadı. 3D görünümle örtüştüğünden emin olun."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "Dokuyu şu anda baktığınız yerden çerçevenin içinden yansıtır ve içindeki yüzleri boyar. Katmanın önceki boyasının yerini alır; sonuç modele sabitlenir, böylece ardından kamerayı döndürebilirsiniz."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "Projeksiyon çerçevesiyle yerleştirildi."
+
+# AI Translated
+msgid "Tile"
+msgstr "Döşeme"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "Dokuyu boyalı alan boyunca tekrarlar. Kapalıyken, bir çıkartma gibi, Döşeme boyutu ile ayarlanan boyutta tek bir kopya yerleştirir."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "Dokunun nasıl tekrarlanacağını seçmek için Döşeme'yi açın."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Tekrar"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "Aynalı tekrar"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "Aynalı tekrar - her ikinci karo ters çevrilir, böylece kenarlar kusursuzca birleşir"
+
+# AI Translated
+msgid "Blend"
+msgstr "Harmanlama"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "Ekle"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "Çıkar"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "Çarp"
+
+# AI Translated
+msgid "Divide"
+msgstr "Böl"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "Taban katmanın altında birleşeceği bir şey olmadığından her zaman ekler."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "Bu katmanın alttakilerle örtüştüğü yerde ne yaptığı. Ekle ve Çıkar kabartmayı üst üste ekler veya oyar. Çarp ve Böl alttakini ölçekler; bu da bu katmanı onun üzerinde bir maskeye dönüştürür - bu durumda Derinlik bir şiddet gibi davranır ve 1 mm beyaz alanlara dokunmaz."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "Yerleşimi ayarla"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "Yerleşimi ayarla - dokuyu taşımak için model üzerindeki tutamacı sürükleyin"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "Önce bu katmanla bir şey boyayın."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "Daha az ayar"
+
+# AI Translated
+msgid "More settings"
+msgstr "Daha fazla ayar"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "%1% katmanın tümü kullanıldı"
+
+# AI Translated
+msgid "Add layer"
+msgstr "Katman ekle"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "Alt bölümleme"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "Yalnızca boyalı alan (uyarlanabilir)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "Üçgenleri her yere değil, yalnızca boyadığınız yere ekler. Küçük bir çıkartmalı büyük bir parçada bu, binlerce ile milyonlarca üçgen arasındaki farktır ve boyanız sıklaştırmadan sonra korunur."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "Doku ayrıntısını izle"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "Üçgenleri eşit dağıtmak yerine dokunun gerçekten büküldüğü yerlere harcar - sırtlar ve kenarlar boyunca sık, düz alanlarda seyrek. Çoğu dokuda daha az üçgenle aynı ayrıntı."
+
+# AI Translated
+msgid "Max edge"
+msgstr "Maks. kenar"
+
+# AI Translated
+msgid "Target edge"
+msgstr "Hedef kenar"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "Doku düz olsa bile boyalı alandaki hiçbir üçgen bundan büyük kalmaz. Ortaya çıkmasını istediğiniz en küçük ayrıntının boyutuna yakın tutun."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "Boyalı alandaki üçgenler hiçbiri bundan büyük kalmayana kadar bölünür. Daha küçük değer daha ince ayrıntı ve hızla artan çok sayıda üçgen demektir."
+
+# AI Translated
+msgid "Detail"
+msgstr "Ayrıntı"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "Mesh'in, dokunun tanımladığı şekilden milimetre cinsinden ne kadar uzakta kalabileceği. Küçük değerler ince ayrıntıyı izler ve üçgen harcar; büyük değerler yalnızca büyük ayrıntıların peşinden gider."
+
+# AI Translated
+msgid "Min edge"
+msgstr "Min. kenar"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "Üçgen boyutu için bir alt sınır; böylece dokudaki keskin bir basamağın sonsuza kadar peşinden gidilmez. Daha ince kabartma için azaltın, sert kenarlarda üçgen sayısı kontrolden çıkıyorsa artırın."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "Kenar ayrıntısı"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "Kabartmanın çıplak yüzeye geri indiği, boyalı alanın dış hattı boyunca üçgen boyutu. Bu kenar tırtıklı görünüyorsa azaltın; yalnızca dış hat boyunca üçgen harcar. 0 kapatır."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "Renk ayrıntısı"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "İki rengin buluştuğu yerdeki üçgen boyutu. Her üçgen tek bir filamentle yazdırılır; bu nedenle bir renk sınırı ancak boyunca uzanan üçgenler kadar keskin olabilir - ve renk değişiminde yüzey düz olduğundan orada başka hiçbir şey sıklaştırma yapmaz. 0 kapatır."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "Üçgen bütçesi: aşağıdaki Üçgenler ile ayarlanır."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "Ön izleme: %1% üçgen"
+
+# AI Translated
+msgid "Steps"
+msgstr "Adımlar"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "Modelin her üçgenini bu sayı kadar tekrar dörde böler. Her adım sayıyı dört katına çıkarır - 3, 100 k üçgeni 6.4 M yapar - bu nedenle tüm modelin daha ince olmasına ihtiyacınız yoksa yalnızca boyalı alanı sıklaştırmayı tercih edin."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "Ön izlemeyi gizle"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "Alt bölümlemeyi önizle"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "Sıklaştırmanın ne üreteceğini modele dokunmadan wireframe olarak gösterir."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "Alt bölümle"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "Boyalı alanı hedef kenar uzunluğuna kadar sıklaştırır ve boyanızı daha ince mesh'e aktarır. Modelin geri kalanı olduğu gibi bırakılır."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "Modelin geometrisini alt bölümlenmiş mesh ile değiştirir ve üzerindeki henüz pişirilmemiş boyayı temizler (önceden pişirilmiş kabartma etkilenmez)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "Yeniden mesh oluşturma"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "Tüm modelin yeniden oluşturulacağı üçgen boyutu (milimetre). Yer değiştirme en iyi düzgün bir mesh üzerinde çalışır; düzensiz bir içe aktarmadan düzgün mesh bu şekilde elde edilir."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "Keskin kenarları koru"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "Geri kalanın mesh'i yeniden oluşturulurken sert kenarları ve açık sınırları yerinde tutar. Bu olmadan yeniden mesh oluşturucu tepe noktalarını yüzey boyunca kaydırır ve her keskin kenarı yuvarlar - bir küp eğri büğrü kenarlarla geri gelir."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "Yeniden mesh oluşturucunun bir kıvrımı korunmaya değer bir kenar olarak görmesi için kıvrımın derece cinsinden ne kadar keskin olması gerektiği. Düşük değer modelin şeklinin daha fazlasını korur; yüksek değer daha fazlasını düzgün biçimde yeniden oluşturur."
+
+# AI Translated
+msgid "Remesh"
+msgstr "Yeniden mesh oluştur"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "Tüm modeli bu kenar uzunluğuna yakın üçgenlerle yeniden oluşturur - büyükleri böler, küçükleri birleştirir - böylece yer değiştirme düzgün bir yoğunlukla çalışır. Geometrinin yerini alır; boyanız yeni üçgenlere uzamsal olarak aktarıldığı için korunur (önceden pişirilmiş kabartma da korunur)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "Sınıra kadar yer değiştir"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "Kabartmanın boyalı alanın tam kenarına kadar uzanmasını sağlar. Dış halkayı düz tutmak için kapatın; bu, yer değiştirmeyi kesinlikle boyanın içinde tutar ancak sınırdaki deseni düzleştirir."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "Sonucu yumuşat"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "Düşük çözünürlüklü bir görüntünün sert basamaklarını gidermek için doku uygulandıktan sonra geometriyi yumuşatır. Yalnızca yer değiştirmenin hareket ettirdiği kısımlara dokunulur. Bir katmandaki Pürüzsüzleştirme kaydırıcısı farklı bir şeydir: görüntüyü kullanılmadan önce bulanıklaştırır."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "Güç"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "Her geçişin bir tepe noktasını komşularına doğru ne kadar çektiği. Yüksek değerler kabartmayı hızla yuvarlar; düşük değerler daha fazla geçiş gerektirir ancak ayrıntının daha fazlasını korur."
+
+# AI Translated
+msgid "Passes"
+msgstr "Geçişler"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "Kaç yumuşatma geçişi çalıştırılacağı. Daha fazla geçiş, yumuşatmayı yüzey boyunca daha uzağa yayar; her birinin ne kadar hareket ettireceğini Güç belirler."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "Dış halkayı yok say"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "Boyalı alanın dış halkasını yumuşatmanın dışında tutar. Bu halkanın boya dışındaki komşuları hiç hareket etmez; bu yüzden onu yumuşatmak kabartmayı aşağı çeker ve deseni sınırda yarı erimiş halde bırakır."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "Pişirilmiş mesh'i şimdi yumuşat"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "Yukarıdaki yumuşatmayı hemen şimdi, boyalı alan içinde modelin kendisine uygular. Önceden pişirilmiş kabartma içindir - henüz pişirilmemiş her şey Pişir tarafından yumuşatılır."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "Deneysel: klasik pişirme hattı"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "Mesh'i hazırladıktan sonra (yeniden mesh oluşturma, uyarlanabilir alt bölümleme ve dokudaki keskin basamaklar boyunca kesme) mesh'te zaten var olan tepe noktalarını hareket ettirerek pişirir. Renklerin ihtiyaç duyduğu topolojiyi korur. Varsayılan hat ise tek seferde sıklaştırır, ince uzun üçgenleri temizler, yer değiştirir ve sadeleştirir; önceden hiçbir hazırlık gerekmez, ancak henüz renk üretmez."
+
+# AI Translated
+msgid "Budget"
+msgstr "Bütçe"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Bu pişirmenin boyadığınız alana kaç bin üçgen harcayabileceği. Modelin geri kalanına önceden pişirilmiş kabartma buna ek olarak korunur; böylece başka bir yerdeki ikinci pişirme de ilkiyle aynı bütçeyi alır. Çözünürlük altındaki uyarı ayrıntının sığmayacağını söylüyorsa artırın; 0, sıklaştırmanın ürettiği her üçgeni, sayısı ne olursa olsun korur."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "Mesh'i doku kenarlarına hizala"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "Tepe noktalarını yer değiştirmeden önce yanlamasına dokudaki kenarlara kaydırır. Yer değiştirme tepe noktalarını yalnızca yukarı ve aşağı hareket ettirebilir; bu olmadan görüntüdeki keskin bir basamak üçgenler nerede denk gelirse oraya düşer ve merdiven gibi çıkar. Tepe noktalarını önce basamağa taşımak, aynı üçgen sayısıyla düz bir duvar sağlar."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "İnce uzun üçgenleri temizle"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "Sıklaştırmanın modelin kendi üçgenlemesinden devraldığı ince üçgenleri, yer değiştirme onları örneklemeden önce çökertir. İnce uzun bir üçgenin üç köşesi dokunun birbiriyle ilgisiz üç kısmına denk gelir; kabartmanın tırtıklı görünmesinin nedeni budur."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "Açık: çözünürlük modelin boyutunu izler ve bütçe varsayılan değerinde bırakılır. İkisini de kendiniz ayarlamak için işareti kaldırın - üzerinde durduğu parçadan çok daha ince veya çok daha kaba bir doku için buna değer."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "Modelin boyutuna göre seçildi: %1$.2f mm üçgenler, bütçe %2% k. Kendiniz ayarlamak için Otomatik'in işaretini kaldırın."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "Boyanın altındaki mesh'in milimetre cinsinden ne kadar ince yapılacağı. Dokudan elde etmek istediğiniz ayrıntıdan küçük olmalıdır - 0.5 mm'lik bir oluk, 0.5 mm'nin epey altında üçgenler gerektirir. Küçük değerler hızla üçgen harcar: yarıya indirmek dört kat fazla üçgen gerektirir ve üçgenler artık bütçeye sığmadığında pişirme mesh'i yeniden sadeleştirir ve ayrıntı da kaybolur."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "Yaklaşık %1% üçgen gerekiyor, bütçe %2% - pişirme mesh'i yeniden sadeleştirecek ve ayrıntı kaybolacak."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "Sıklaştırmanın modele kaç bin üçgen ekleyebileceği. En kötü uyan üçgen her zaman önce bölünür; böylece bütçenin tamamını harcayan bir çalışma bile onu en çok fark edilen yerlere harcamış olur. Kabartma hâlâ kaba görünüyorsa artırın."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "Pişirmeyi durdurur. O ana kadar tamamlanan her şey modelde kalır ve geri alınabilir."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "Aracı pişirmeden kapatır. Boyanız, katmanlarınız ve ayarlarınız modelde kalır."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "Hazırlanıyor..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "Pişiriliyor..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "Henüz hiçbir şey boyanmadı. UV düzenleyicinin kesim çizgisi aracı açık olduğundan model üzerindeki fırça darbeleri boyamak yerine kesim çizgisi işaretler - boyamak için panelden kapatın."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "Henüz hiçbir şey boyanmadı."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "Boyanmış yükseklik haritalarını, var olan tepe noktalarını hareket ettirerek gerçek geometriye dönüştürür. Mesh ayrıntıyı gösteremeyecek kadar kabaysa önce Alt bölümle'yi kullanın."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "Boyanmış yükseklik haritalarını gerçek geometriye dönüştürür. Mesh önce düzgün bir yoğunlukta yeniden oluşturulur ve dokunun büküldüğü yerlerde sıklaştırılır; böylece ayrıntının oturacağı tepe noktaları olur - hepsi tek adımda."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "Model: %1% üçgen - pişirme, bütçesi elverdiğince yukarıdaki çözünürlüğe kadar sıklaştırır"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "Pişirme mevcut tepe noktalarını hareket ettirir - model %1% üçgende kalır"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "Pişirme sonucu en fazla ~%1% k üçgen"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% katman boyanmadı, atlandı"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% boyanmadı, atlandı"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "Doku yer değiştirme boyamaya giriliyor"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "Doku yer değiştirme boyamasından çıkılıyor"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "Doku yer değiştirme düzenleme"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "SLA arşivini seçin:"
+
+# AI Translated
+msgid "Import file"
+msgstr "Dosya içe aktar"
+
+# AI Translated
+msgid "Import model and profile"
+msgstr "Model ve profili içe aktar"
+
+# AI Translated
+msgid "Import profile only"
+msgstr "Yalnızca profili içe aktar"
+
+# AI Translated
+msgid "Import model only"
+msgstr "Yalnızca modeli içe aktar"
+
+# AI Translated
+msgid "Accurate"
+msgstr "Hassas"
+
+# AI Translated
+msgid "Balanced"
+msgstr "Dengeli"
+
+# AI Translated
+msgid "Quick"
+msgstr "Hızlı"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "Doku yer değiştirme pişiriliyor"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "Pişirme herhangi bir yer değiştirme üretmedi; bu nedenle hiçbir şey değiştirilmedi ve boya korundu. Boyalı katmanın bir dokusu ve sıfırdan farklı bir derinliği olduğunu kontrol edin."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "Üçgen bütçesi ayrıntıyı sınırladı: bu çözünürlük %1% üçgen gerektiriyor, bütçe %2% üçgen tuttu. Ayrıntının tamamı için Bütçe'yi artırın veya daha kaba bir Çözünürlük kullanın."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "Pişirme aşamaları yakalanıyor"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "Mesh doku yer değiştirme için hazırlanıyor"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "Oranı düzenlemek için tıklayın"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "Karışık Filamenti Düzenle"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "Efekt Ön İzlemesi"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "Karıştırılacak Malzemeleri Seçin"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ Malzeme Ekle"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- Malzemeyi Sil"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "Gradyan Efekti"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "Parça başına gradyan efektini etkinleştir"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "Karıştırma Önerileri"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- Seçin --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "Yuva %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "Farklı filament türleri karıştırılamaz: %s. Lütfen aynı filament türünü seçin."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "Lütfen tüm bileşenler için bir filament seçin"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "Farklı filament türleri karıştırılamaz"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "Karıştırma için en fazla 3 malzeme"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "Maksimum bileşen sayısına ulaşıldı"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "Üçüncü malzemeyi kaldır"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3D Modeller"
+
+# AI Translated
+msgid "Click to return"
+msgstr "Geri dönmek için tıklayın"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "Sol Ok"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "Devam etmek için tıklayın"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "Sağ Ok"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "%s Eklentisi Seçin"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "Aşağıdaki listeden bir %s eklentisi seçin."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "Bu tür için eklenti bulunamadı."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "Eklenti dosyası: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "İşlem eklentileri"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "Filament eklentileri"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "Yazıcı eklentileri"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "Yapılandırma geçerli bir JSON değil. Değişiklikleriniz kaydedilmedi."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "Yapılandırma güncellendi. Kalıcı hale getirmek için ön ayarı kaydedin."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"\"%s\" için varsayılan yapılandırma geri yüklensin mi?\n"
+"\n"
+"Bu, ön ayarın geçersiz kılmasını siler ve genel yapılandırmayı kullanır."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "Varsayılanları geri yükle"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "Genel yapılandırma kullanılıyor. Kalıcı hale getirmek için ön ayarı kaydedin."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "Bu yetenek artık kullanılamıyor."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "Eklentinin yapılandırma arayüzü yüklenemedi (%1%). Varsayılan düzenleyici gösteriliyor."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "Eklentiyi Sil"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "Abonelikten çık"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "Eklentinin Üzerine Yaz"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "Bir .py veya .whl eklenti paketi seçin."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "Eklenti paketi yüklenemedi. Ayrıntılar için günlüğe bakın."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"\"%s\" eklentisi zaten yüklü.\n"
+"\n"
+"Bu paketi yüklemek mevcut eklentinin üzerine yazacak."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "Üzerine yaz"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "Eklenti yükleniyor"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "\"%s\" yüklendi."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "\"%s\" aktifleştirilemedi."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "\"%s\" aktifleştirildi."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"Aşağıdaki yüklü eklentiler diskte bulunamadı:\n"
+"%s\n"
+"\n"
+"OrcaSlicer'dan kaldırılsınlar mı?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "Eksik Eklentiler"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "Eklenti verileri yenileniyor"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "Eklenti bellekten kaldırılamadı."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "\"%s\" pasifleştirildi."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "Eklenti manifest dosyası bulunamadı."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "\"%s\" aktifleştiriliyor..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "\"%s\" etkinleştirildi."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "\"%s\" devre dışı bırakıldı."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "Eklenti indiriliyor"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "Eklenti indirilemedi."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "Yapılandırma kaydedildi."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"\"%s\" için varsayılan yapılandırma geri yüklensin mi?\n"
+"\n"
+"Bu, bu yetenek için şu anda kayıtlı ayarları siler."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "Varsayılan yapılandırma geri yüklendi."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "Eklenti güncelleniyor"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "Eklenti güncellenemedi."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "\"%s\" güncellendi."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "Eklenti klasörü belirlenemedi."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"\"%s\" eklentisi silinsin mi?\n"
+"\n"
+"Bu, yerel eklenti dosyalarını kaldırır. Eklenti bulutta kalır ve yeniden yüklenebilir."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"\"%s\" eklentisi silinsin mi?\n"
+"\n"
+"Bu, eklenti klasörünü kalıcı olarak kaldırır."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "Eklenti silinemedi."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "\"%s\" silindi."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "Eklenti siliniyor"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "Eklenti siliniyor..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"\"%s\" eklentisinin aboneliğinden çıkılsın mı?\n"
+"\n"
+"Bu, eklentinin takibini durdurur ve tüm yerel eklenti dosyalarını siler."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "Eklenti aboneliğinden çıkılamadı."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "\"%s\" aboneliğinden çıkıldı."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "Eklenti aboneliğinden çıkılıyor"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "Yerel dosyalar siliniyor ve eklenti aboneliğinden çıkılıyor..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "Eklenti yeniden yükleniyor"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "Eklenti yeniden yüklenemedi."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "\"%s\" yeniden yüklendi."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "Yıkama Modu Ayarları"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "En iyi baskı kalitesi için hız ve sıcaklık geçişiyle tam yıkama yapar."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "Daha hızlı yıkama için optimize edilmiş yıkama sıcaklığı, çarpanı ve daha güçlü ekstrüzyon kullanır. Bazı aşırı durumlarda hafif renk karışmasına neden olabilir."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "Prime Tasarrufu"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "Prime atığını azaltır ve daha hızlı yazdırır. Hafif renk karışmasına veya küçük yüzey kusurlarına neden olabilir."
+
+# AI Translated
+msgid "Terminal"
+msgstr "Terminal"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "Tek tıkla CMYW otomatik karıştırma"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "Tek tıkla RYBW otomatik karıştırma"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "Proje Fiziksel Filamentleri"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "Yeni Fiziksel Filamentler"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "Proje Karışık Filamentleri"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "Yeni Karışık Filamentler"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "Proje en fazla %d filamenti destekler. Fazla filamentler atılacak."
+
+# AI Translated
+msgid "Import Model"
+msgstr "Model İçe Aktar"
+
+# AI Translated
+msgid "Original"
+msgstr "Orijinal"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "Çok Renkli"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "Giriş dokulu modeliniz"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "İşlenmiş çok renkli model"
+
+# AI Translated
+msgid "Color Count"
+msgstr "Renk Sayısı"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "Yumuşatma Seviyesi"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "Yalnızca en uygun renk sayısını otomatik olarak belirle ve filament eşlemesini yeniden hesapla"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "Belirtilen renk sayısını ve yumuşatma seviyesini kullanarak dokuyu boyamaya dönüştür"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "Hatırlatma: parametreler değişti, geçerli olması için Uygula'ya tıklayın"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "Filament Eşlemesi"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "Filament eşlemesini tek tıkla karıştırmadan önceki duruma sıfırla"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "Doku rengi içe aktarma için tek tıkla otomatik karıştırma modunu seçin"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "Aynı filamenti otomatik birleştir"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "Özdeş filamentleri projedeki mevcut filamentlerle otomatik olarak birleştir"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "Eşleştirmeyi Atla"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "Filament eşlemesini atla ve tek renkli model olarak içe aktar"
+
+# AI Translated
+msgid "Processing"
+msgstr "İşleniyor"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "Doku renkleri hesaplanıyor..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "Mesh onarılıyor"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "Hesaplama başarısız oldu. Lütfen parametreleri ayarlayıp yeniden deneyin."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "Mesh'te manifold olmayan geometri veya açık sınırlar var. Olduğu gibi içe aktarabilir ya da içe aktarmadan önce Windows 3D onarım hizmetiyle onarabilirsiniz."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "Mesh onarımı"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "Onarmadan içe aktar"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "Onar ve içe aktar"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "Lütfen mesh'te manifold olmayan geometri veya açık sınırlar olduğunu unutmayın."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "Mesh sorunu"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "Seçilen görüntü boş."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "Doku kullanıma hazırlanamadı."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "Yalnızca kendi içe aktardığınız dokular kaldırılabilir."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "Doku dosyası silinemedi."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "İçe aktarılan dokular için klasör oluşturulamadı."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "Seçilen görüntü yüklenemedi."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "İçe aktarılan doku kaydedilemedi."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "Doku dosyası okunamadı."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "Projeksiyon çerçevesi - model üzerine sürükleyin, ardından Uygula"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "Ada taşınıyor  |  yerleştirmek için bırakın, iptal için Esc"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "Ada döndürülüyor: %d°  |  Shift = 15° adımlarla, onaylamak için tıklayın, iptal için Esc"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "Ada ölçekleniyor  |  onaylamak için tıklayın, iptal için Esc"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "Tepe noktası taşınıyor  |  yerleştirmek için bırakın"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "Kenar taşınıyor  |  yerleştirmek için bırakın"
+
+# AI Translated
+msgid "Panning"
+msgstr "Kaydırılıyor"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "Model üzerindeki alanı boyayın, ardından Açınım'a basın"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "UV'lerini burada düzenlemek için bir doku katmanının haritalaması olarak Açınım'ı seçin"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d tepe noktası seçildi  |  sürükle = birlikte taşı, Shift/Ctrl tıklama = ekle/kaldır"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Tepe noktası modu: yeniden şekillendirmek için bir tepe noktasını sürükleyin  |  Shift/Ctrl tıklama = çoklu seçim, tekerlek = yakınlaştır, Home = çerçevele"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d kenar seçildi  |  sürükle = birlikte taşı, Shift/Ctrl tıklama = ekle/kaldır"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Kenar modu: yeniden şekillendirmek için bir ada kenarını sürükleyin  |  Shift/Ctrl tıklama = çoklu seçim, tekerlek = yakınlaştır, Home = çerçevele"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "%d ada seçildi  |  sürükle = birlikte taşı, Shift/Ctrl tıklama = ekle/kaldır, R/S = birincil adayı döndür/ölçekle"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "Ada %d seçildi  |  sürükle = taşı, R = döndür, S = ölçekle, Shift/Ctrl tıklama = çoklu seçim, Home = çerçevele"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "Seçmek için bir adaya tıklayın  |  Shift/Ctrl tıklama = çoklu seçim, tekerlek = yakınlaştır, orta tuşla sürükle = kaydır, Home = tümünü çerçevele"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  yaslama AÇIK"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "Dokuyu değiştir - doku kütüphanesinden başka bir doku seçin"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "Yükseklik haritası - katmanın dokusunu adaların altında gösterir"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "Dama - bir test ızgarası; açınımın germediği yerlerde kareler kare kalır"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "Bozulma - her adayı açınımın onu ne kadar gerdiğine göre renklendirir"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "Açınım"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "Kesim açısı"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "Bundan daha keskin kenarlar kesilir ve her iki yanlarındaki parçalar ayrı ayrı düzleştirilir. Daha fazla kesmek için azaltın: her parça daha az gerilerek düz yatar, ancak doku kesim boyunca kesintisiz devam etmez. Bir sonraki Açınım'da geçerli olur."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "Adaları bağla"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "Açınımı bağlı bir ağ olarak yerleştirir: kenar paylaşan parçalar yan yana açılır (bir küp altı ayrı kare yerine birleşik bir açınım olur). Ayrı adalar olarak kalırlar; böylece daha sonra herhangi birini yine elle taşıyabilirsiniz."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "Ada - adaların tamamını taşı, döndür ve ölçekle"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "Tepe noktası - yeniden şekillendirmek için tepe noktalarını sürükleyin; çoklu seçim için Shift/Ctrl"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "Kenar - yeniden şekillendirmek için kenarları sürükleyin; çoklu seçim için Shift/Ctrl"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "Kesim çizgisi işaretle - açınımı boyunca kesmek için model üzerindeki kenarlara tıklayın. İmlecin altındaki kenar sarı renkte vurgulanır; kırmızı olarak işaretlemek için tıklayın, işareti kaldırmak için kırmızı bir kenara yeniden tıklayın. Bu açıkken boyama duraklatılır."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "Yol - her kenara tek tek tıklamak yerine bir başlangıç noktasına, ardından bir bitiş noktasına tıklayın: aralarındaki en kısa yolun tamamı tek seferde kesim çizgisi olarak işaretlenir. Kesim çizgisi işaretlenirken kullanılabilir."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "Kesim çizgilerini temizle - bu katmanda işaretlenen tüm kesim çizgilerini kaldırır"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "Ölçeği ortala - her adaya aynı texel yoğunluğunu verir"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "Kes - seçili adayı uzun eksenine dik olarak ikiye böler"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "Birleştir - seçili adayı ortak kenarları boyunca en yakın komşusunun yanına açar"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "Ayır - seçili adayı kendi paketlenmiş konumuna geri gönderir"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "UV düzenlemelerini temizle - tüm manuel tepe noktası/kenar taşımalarını atar ve açınımı otomatik şekline döndürür"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "Yasla - bir adayı diğerine doğru sürüklerken adaları birbirine yapıştırır"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "Tüm adaları çerçevele (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "Açınım ile haritalanmış katman yok"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "%.1f mm karo"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "Güncel değil - bu açınım oluşturulduktan sonra boya, kesim çizgileri veya kesim açısı değişti. Açınımı yeniden çıkarmak için basın."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "Boyalı alanı UV adalarına düzleştirir. Her düzenlemede değil, yalnızca buna bastığınızda hesaplanır - bu yüzden önce boyayın, kesim açısını değiştirin veya kesim çizgilerini işaretleyin, ardından Açınım'a basın."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d ada, %s yüz"
+
+# AI Translated
+msgid "Forward"
+msgstr "İleri"
+
+# AI Translated
+msgid "Tools"
+msgstr "Araçlar"
+
+# AI Translated
+msgid "View Source"
+msgstr "Kaynağı Görüntüle"
+
+# AI Translated
+msgid "View Text"
+msgstr "Metni Görüntüle"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "Gezinmeyi İşle"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "Yeni Pencereleri İşle"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "Düzenleme Modu"
+
+# AI Translated
+msgid "Run Script"
+msgstr "Betik Çalıştır"
+
+# AI Translated
+msgid "Add user script"
+msgstr "Kullanıcı betiği ekle"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "Özel kullanıcı aracısını ayarla"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "Seçimi Temizle"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "Seçimi Sil"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "Özel Şema Örneği"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "Bellek Dosya Sistemi Örneği"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "Bağlam Menüsünü Etkinleştir"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "Geliştirici Araçlarını Etkinleştir"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "%s yüklenirken bir hata oluştu"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "%1% şuraya yükle: %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "%s yükle"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"\"%s\" eklentisi \"%s\" Python denetim olayı için izin istiyor.\n"
+"\n"
+"Bu işlem, denetim kancasının görüntüleyebileceği bir hedef sunmuyor."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi aşağıdaki dosyaları okumak istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi aşağıdaki dosyaları okumak/yazmak istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi aşağıdaki dosyaları oluşturmak istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi aşağıdaki dosyaları silmek istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi şu adrese HTTP isteği yapmak istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi şu adrese ağ bağlantısı açmak istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"\"%s\" eklentisi aşağıdaki komutları çalıştırmak istiyor:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "\"%s\" eklentisi \"%s\" Python denetim olayı için izin istiyor."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "Eklenti izin isteği"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "Eklentinin yapılandırma arayüzü boştu. Varsayılan düzenleyici gösteriliyor."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "Bu yetenek artık kullanılamıyor. Değişiklikleriniz kaydedilmedi."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "Yapılandırma diske yazılamadı. Değişiklikleriniz kaydedilmedi."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "Eklenti varsayılan bir yapılandırma sağlayamadı (%1%). Hiçbir şey değiştirilmedi."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "Yapılandırma diske yazılamadı. Hiçbir şey değiştirilmedi."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "Eklenti yüklemesi başarısız oldu"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -26519,6 +29249,86 @@ msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "Cali G-code oluşturma başarısız oldu"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "Çıkar"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "Çarp"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " ve "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "karıştırılamaz. Lütfen aynı filament türünü seçin."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "Yüklenirken bir hata oluştu: "
+
+# AI Translated
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "%s şuraya yükle: "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "Tasarım sekmesinde montaj bağlayıcısını, dönüş çeyreği olan geleneksel disk yerine küçük bir yüz olarak çizer. Bir yüzün yönü, öğrenmeye gerek kalmadan okunur. Geleneksel CAD gösterimi için bunu kapatın."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "Uzman"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "Basit"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "Noktalara tıklayın; döngüyü kapatmak için ilk noktaya tıklayın / sağ tıklayın"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "X yönü X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "X yönü Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "X yönü Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — göz simgesi bu montaj ilişkisini devre dışı bırakır"
+
+#~ msgid "Del"
+#~ msgstr "Sil"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "Eskiz korundu — kaydetmek için Bitir'e, atmak için İptal'e basın"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "Düzenleniyor: Eskiz %d   ·   N = düzleme dik bak   ·   Araç çubuğunda Bitir veya İptal"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "Eskiz düzenleniyor — düzenlemek için bir tutamacı sürükleyin veya bir ölçüye tıklayın"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -26651,9 +29461,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "Geri al  (%zu tane daha)"
-
-#~ msgid "Reset direction"
-#~ msgstr "Yönü sıfırla"
 
 #~ msgid "Section View"
 #~ msgstr "Bölüm Görünümü"
@@ -26873,9 +29680,6 @@ msgstr ""
 
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "Ayarlanan aralığa otomatik olarak ayarlansın mı?\n"
-
-#~ msgid "Head diameter"
-#~ msgstr "Kafa çapı"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Tek bir katmanda yazdırma sırası."
@@ -27263,14 +30067,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "Ön ayardaki püskürtme ucu tipiniz hafızaya alınan püskürtme ucuyla tutarlı değil. Son zamanlarda nozulunuzu değiştirdiniz mi?"
 
-#~ msgid "Remove selected points"
-#~ msgstr "Seçili noktaları kaldır"
-
 #~ msgid "Remove all"
 #~ msgstr "Hepsini kaldır"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Noktaları otomatik olarak üret"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "Destek kulağı ekle"
@@ -27302,12 +30100,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "Tuş 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "Sol tık"
-
-#~ msgid "Right click"
-#~ msgstr "Sağ tık"
 
 #~ msgid "Select feature"
 #~ msgstr "Özellik seçin"

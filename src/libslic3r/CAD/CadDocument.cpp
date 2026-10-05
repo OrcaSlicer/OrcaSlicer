@@ -1,4 +1,6 @@
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/I18N.hpp"
+#include "libslic3r/format.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
@@ -3712,12 +3714,11 @@ void CadDocument::detect_mate_conflicts()
         auto it = first_driver.find(dst);
         if (it != first_driver.end()) {
             int first_fi = it->second;
-            std::string first_name = features[first_fi].name.empty() ? "Mate" : features[first_fi].name;
-            std::string this_name = f.name.empty() ? "Mate" : f.name;
+            std::string first_name = features[first_fi].name.empty() ? _u8L("Mate") : features[first_fi].name;
+            std::string this_name = f.name.empty() ? _u8L("Mate") : f.name;
             mate_conflicts.push_back({fi,
-                "Body " + std::to_string(dst + 1) + " is already positioned by '" +
-                first_name + "' (feature " + std::to_string(first_fi + 1) +
-                ") — '" + this_name + "' overrides it; suppress one"});
+                format(_u8L("Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"),
+                       dst + 1, first_name, first_fi + 1, this_name)});
         } else {
             first_driver[dst] = fi;
         }
@@ -3726,7 +3727,7 @@ void CadDocument::detect_mate_conflicts()
         if (src >= 0 && dst >= 0) {
             if (src == dst) {
                 mate_conflicts.push_back({fi,
-                    "this mate positions Body " + std::to_string(dst + 1) + " against itself"});
+                    format(_u8L("This mate positions Body %1% against itself"), dst + 1)});
             } else {
                 graph[dst].push_back(src);
             }
@@ -3771,10 +3772,9 @@ void CadDocument::detect_mate_conflicts()
                         mate_conflicts.push_back({fi,
                             // Worded for ANY cycle length: "leads back" is true transitively,
                             // where "depends back on" would be a lie for a 3+ body chain.
-                            "circular mate chain: Body " + std::to_string(top.node + 1) +
-                            " depends on Body " + std::to_string(child + 1) +
-                            ", which leads back to Body " + std::to_string(top.node + 1) +
-                            " — the result depends on feature order"});
+                            format(_u8L("Mate chain is circular: Body %1% depends on Body %2%, which leads "
+                                        "back to Body %1% — the result depends on feature order"),
+                                   top.node + 1, child + 1)});
                         break;
                     }
                 }
@@ -4176,8 +4176,8 @@ bool CadDocument::recompute()
         }
         if (f.coordsys_face_kind != kind || f.coordsys_face_edges != edges) {
             mate_conflicts.emplace_back(int(fi),
-                "connector \"" + f.name + "\" may have moved to a different face "
-                "(an upstream edit renumbered this body's faces)");
+                format(_u8L("Connector \"%1%\" may have moved to a different face (an upstream edit "
+                            "renumbered this body's faces)"), f.name));
         }
     }
 

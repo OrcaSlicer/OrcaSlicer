@@ -57,10 +57,10 @@ int json_int_or(const nlohmann::json& j, const char* key, int fallback)
 wxString mode_label(ConfigOptionMode mode)
 {
     switch (mode) {
-    case comAdvanced: return _L("Advanced");
-    case comExpert: return _L("Expert");
-    case comDevelop: return _L("Developer");
-    default: return _L("Simple");
+    case comAdvanced: return _L_CONTEXT("Advanced", "Settings Mode");
+    case comExpert: return _L_CONTEXT("Expert", "Settings Mode");
+    case comDevelop: return _L_CONTEXT("Developer", "Settings Mode");
+    default: return _L_CONTEXT("Simple", "Settings Mode");
     }
 }
 
@@ -122,9 +122,9 @@ nlohmann::json speed_dial_ui_strings()
         {"sd_move_left", _u8L("Move left")},
         {"sd_move_right", _u8L("Move right")},
         {"sd_unpin", _u8L("Unpin")},
-        {"sd_mode_advanced", _u8L("Advanced")},
-        {"sd_mode_expert", _u8L("Expert")},
-        {"sd_mode_develop", _u8L("Developer")},
+        {"sd_mode_advanced", _u8L_CONTEXT("Advanced", "Settings Mode")},
+        {"sd_mode_expert", _u8L_CONTEXT("Expert", "Settings Mode")},
+        {"sd_mode_develop", _u8L_CONTEXT("Developer", "Settings Mode")},
         {"sd_wiki_f1", _u8L("Wiki (F1)")},
         {"sd_no_wiki", _u8L("No wiki page for this action")},
         {"sd_show_details", _u8L("Show details")},

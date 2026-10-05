@@ -10190,6 +10190,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this, p]{p->toggle_show_wireframe(); m_dirty = true;}
         );
 
+        // TRN View toggle that draws models see-through, so hidden parts show.
         create_menu_item( _utf8(L("X-Ray")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             p->is_show_xray(),

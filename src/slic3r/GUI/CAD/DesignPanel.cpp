@@ -1932,7 +1932,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Order is load-bearing: index maps to BooleanMode (New=0, Add=1, Cut=2, Intersect=3).
         // Labels use Onshape wording so the choice reads as the user thinks of it.
         m_mode->Append(_L("New body"));   // separate coexisting solid
-        m_mode->Append(_L("Join"));       // fuse into the target body (was "Add")
+        m_mode->Append(_L_CONTEXT("Join", "Boolean Mode"));       // fuse into the target body (was "Add")
         m_mode->Append(_L_CONTEXT("Cut", "Boolean Mode"));        // subtract from the target body
         m_mode->Append(_L("Intersect"));  // keep only the overlap
         m_mode->SetSelection(0);
@@ -1969,6 +1969,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_face_group = make_combo(m_cards);
     m_face_group->Append(_L("Top"));      // index 0 -> FaceGroup::Top
     m_face_group->Append(_L("Bottom"));   // 1 -> Bottom
+    // TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
     m_face_group->Append(_L("Lateral"));  // 2 -> Lateral
     m_face_group->Append(_L("All"));      // 3 -> All
     m_face_group->SetSelection(3);
@@ -2130,7 +2131,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_revolve_mode = make_combo(m_cards);
         m_revolve_mode->Append(_L("New body"));   // same four words as Extrude
-        m_revolve_mode->Append(_L("Join"));
+        m_revolve_mode->Append(_L_CONTEXT("Join", "Boolean Mode"));
         m_revolve_mode->Append(_L_CONTEXT("Cut", "Boolean Mode"));
         m_revolve_mode->Append(_L("Intersect"));
         m_revolve_mode->SetSelection(0);
@@ -2160,7 +2161,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_sweep_mode = make_combo(m_cards);
         m_sweep_mode->Append(_L("New body"));   // same four words as Extrude
-        m_sweep_mode->Append(_L("Join"));
+        m_sweep_mode->Append(_L_CONTEXT("Join", "Boolean Mode"));
         m_sweep_mode->Append(_L_CONTEXT("Cut", "Boolean Mode"));
         m_sweep_mode->Append(_L("Intersect"));
         m_sweep_mode->SetSelection(0);
@@ -2216,7 +2217,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* bform = two_col_form();
 
         m_bool_op = make_combo(m_cards);
-        m_bool_op->Append(_L("Join"));   // the Extrude result word; the offer row says the same
+        m_bool_op->Append(_L_CONTEXT("Join", "Boolean Mode"));   // the Extrude result word; the offer row says the same
         m_bool_op->Append(_L("Subtract"));
         m_bool_op->Append(_L("Intersect"));
         m_bool_op->SetSelection(0);
@@ -2315,6 +2316,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_plane_base = make_combo(m_cards);
         populate_plane_choices(m_plane_base);   // XY/XZ/YZ + any existing datum planes
+        // TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Base")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(m_plane_base, 0, wxEXPAND);
 
@@ -2372,7 +2374,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_loft_mode = make_combo(m_cards);
         m_loft_mode->Append(_L("New body"));   // same four words as Extrude
-        m_loft_mode->Append(_L("Join"));
+        m_loft_mode->Append(_L_CONTEXT("Join", "Boolean Mode"));
         m_loft_mode->Append(_L_CONTEXT("Cut", "Boolean Mode"));
         m_loft_mode->Append(_L("Intersect"));
         m_loft_mode->SetSelection(0);
@@ -2938,11 +2940,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_cs_hx = make_spin(m_cards, 1.0, -100000.0, 100000.0);
         m_cs_hy = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_cs_hz = make_spin(m_cards, 0.0, -100000.0, 100000.0);
-        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X hint X")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X direction X")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_hx), 0, wxEXPAND);
-        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X hint Y")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X direction Y")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_hy), 0, wxEXPAND);
-        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X hint Z")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X direction Z")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_hz), 0, wxEXPAND);
 
         m_box_coordsys->Add(csform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
@@ -3191,7 +3193,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // one click away on a row the user has just selected — the message points at it instead
         // of describing a problem with no way out.
         if (const std::string* why = (sel >= 0) ? mate_conflict_reason(sel) : nullptr) {
-            set_status(StatusKind::Error, wxString::FromUTF8(*why) + _L(" — the eye suppresses this mate"));
+            set_status(StatusKind::Error, wxString::Format(_L("%s. Click the eye icon to suppress this mate."), wxString::FromUTF8(*why)));
         } else if (sel >= 0 && sel < int(m_doc.features.size())) {
             // Name the two gestures the row supports, because neither is visible on it.
             set_status(StatusKind::Info, wxString::Format(
@@ -4138,7 +4140,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_status(error ? StatusKind::Error : StatusKind::Info, wxString::FromUTF8(msg));
     });
     m_viewport->set_on_sketch_exit_refused([this]() {
-        set_status(StatusKind::Info, _L("Sketch kept — Finish to commit it, Cancel to discard"));
+        set_status(StatusKind::Info, _L("Sketch kept — Confirm to commit it, Cancel to discard"));
     });
 
     // Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) from the viewport → feature-history undo/redo.
@@ -4533,7 +4535,7 @@ void DesignPanel::set_ui_mode(UiMode m)
         if (sketching && m_sketch_banner_txt != nullptr)
             m_sketch_banner_txt->SetLabel(
                 wxString::Format(_L("Editing: Sketch %d   ·   N = look normal to the plane   ·   "
-                                    "Finish or Cancel in the toolbar"),
+                                    "Confirm or Cancel in the toolbar"),
                                  m_feature_counter + 1));
         m_sketch_banner->Show(sketching);
         m_sketch_banner->GetParent()->Layout();
@@ -9787,7 +9789,7 @@ void DesignPanel::on_edit_feature()
                 m_viewport->set_display_sketches({});
                 m_viewport->edit_sketch(f.entities, f.entity_constraints, f.plane);
             }
-            set_status(StatusKind::Info, _L("Editing sketch — drag a handle or click a quote to edit"));
+            set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
         } else {
             load_feature_into_dialog(f);
             open_tool(Tool::Sketch);
@@ -11892,7 +11894,7 @@ void DesignPanel::escape()
             return;
         }
         if (m_ui_mode == UiMode::Sketch) {
-            set_status(StatusKind::Info, _L("Sketch kept — Finish to commit it, Cancel to discard"));
+            set_status(StatusKind::Info, _L("Sketch kept — Confirm to commit it, Cancel to discard"));
         }
         return;
     }

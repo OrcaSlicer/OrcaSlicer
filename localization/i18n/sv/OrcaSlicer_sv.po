@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5767,8 +5767,9 @@ msgstr "Aktuell flödeshastighets kalibrerings parameter är ogiltig"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "Vald diameter och maskinens diameter stämmer inte överens"
 
-msgid "Failed to generate cali G-code"
-msgstr "Misslyckades med att generera cali G kod"
+# AI Translated
+msgid "Failed to generate calibration G-code"
+msgstr "Det gick inte att generera G-code för kalibrering"
 
 msgid "Calibration error"
 msgstr "Fel vid kalibrering"
@@ -6691,6 +6692,7 @@ msgid "Wireframe"
 msgstr "Trådram"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "Röntgen"
 
@@ -9216,6 +9218,7 @@ msgid "Click to edit preset"
 msgstr "Tryck för att redigera inställningar"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "Variant"
 
@@ -10523,6 +10526,7 @@ msgid "Recent actions"
 msgstr "Senaste åtgärder"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "åtgärder"
 
@@ -10655,8 +10659,8 @@ msgid "Draw mate connectors as a face"
 msgstr "Rita parningskopplingar som en yta"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "I fliken Design ritas en parningskoppling som en liten yta i stället för den konventionella skivan med en rullkvadrant. En ytas orientering går att avläsa utan inlärning. Stäng av detta för den konventionella CAD-representationen."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "I fliken Design ritas en parningskoppling som en liten yta i stället för den konventionella skivan med en rullkvadrant. En yta visar sin orientering direkt, utan att du behöver lära dig skivkonventionen. Stäng av detta för den konventionella CAD-representationen."
 
 # AI Translated
 msgid "Pan"
@@ -10771,10 +10775,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "Tillämpar SSAO i den realistiska vyn."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "Statisk"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "Omlopp"
 
@@ -11610,10 +11616,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "Det använder de aktuella grafikinställningarna och tar oftast mindre än en minut. Huvudfönstret är låst tills det är klart."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "Avancerat"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Expert"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "Utvecklare"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Enkelt"
 
@@ -25601,8 +25619,8 @@ msgid "Polyline"
 msgstr "Polylinje"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Klicka på punkter; klicka på den första / högerklicka för att stänga slingan"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "Klicka på punkter; klicka på den första punkten för att stänga slingan, högerklicka för att avsluta kedjan"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -26049,6 +26067,11 @@ msgstr "Ny kropp"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "Förena"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "Skär"
 
@@ -26072,8 +26095,9 @@ msgid "Bottom"
 msgstr "Botten"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
-msgstr "Lateral"
+msgstr "Sidor"
 
 # AI Translated
 msgid "Edges"
@@ -26226,6 +26250,7 @@ msgid "Plane type"
 msgstr "Plantyp"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "Bas"
 
@@ -26523,15 +26548,15 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "Utan en kant tar koordinatsystemet X från ytans första kant — välj en för att bestämma det själv"
 
 # AI Translated
-msgid "X hint X"
+msgid "X direction X"
 msgstr "X-riktning X"
 
 # AI Translated
-msgid "X hint Y"
+msgid "X direction Y"
 msgstr "X-riktning Y"
 
 # AI Translated
-msgid "X hint Z"
+msgid "X direction Z"
 msgstr "X-riktning Z"
 
 # AI Translated
@@ -26607,8 +26632,9 @@ msgid "Feature tree"
 msgstr "Operationsträd"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — ögat undertrycker den här parningen"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. Klicka på ögonikonen för att undertrycka den här parningen."
 
 # AI Translated
 #, c-format, boost-format
@@ -26667,10 +26693,6 @@ msgstr "Variabler"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-# AI Translated
-msgid "Del"
-msgstr "Ta bort"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -26773,8 +26795,8 @@ msgid "Tool exited"
 msgstr "Verktyget avslutat"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "Skissen behålls — Slutför för att spara den, Avbryt för att förkasta den"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "Skissen behålls — Bekräfta för att spara den, Avbryt för att förkasta den"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -26798,8 +26820,8 @@ msgstr "Skiss %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "Redigerar: Skiss %d   ·   N = titta vinkelrätt mot planet   ·   Slutför eller Avbryt i verktygsfältet"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Redigerar: Skiss %d   ·   N = titta vinkelrätt mot planet   ·   Bekräfta eller Avbryt i verktygsfältet"
 
 # AI Translated
 #, c-format
@@ -28003,8 +28025,8 @@ msgid "On a stored face"
 msgstr "På en lagrad yta"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Redigerar skiss — dra i ett handtag eller klicka på ett mått för att redigera"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "Redigerar skiss — dra i ett handtag eller dubbelklicka på ett mått för att redigera det"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -28436,6 +28458,2704 @@ msgid "Speed Dial"
 msgstr "Snabbval"
 
 # AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "Kropp %1% är redan positionerad av \"%2%\" (operation %3%), så \"%4%\" åsidosätter den"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "Den här parningen positionerar Kropp %1% mot sig själv"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "Parningskedjan är cirkulär: Kropp %1% beror på Kropp %2%, som leder tillbaka till Kropp %1% — resultatet beror på operationernas ordning"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "Kopplingen \"%1%\" kan ha flyttats till en annan yta (en tidigare redigering numrerade om kroppens ytor)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "Det gick inte att ta en ögonblicksbild av konfigurationen."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer stötte på ett fel när en ögonblicksbild av konfigurationen skulle tas."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicer-fel"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "Välj filamentet som är installerat på %s."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "Välj filamentet."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "Läs mer om reglerna för filamentmatchning."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Externa spolar stöds inte eftersom Filament Track Switch är installerad. Avinstallera den om du vill använda en extern spole."
+
+msgid "Select Filament && Hotends"
+msgstr "Välj Filament && Hotends"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "Modellbilder"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "Hjälpfiler"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "Projektets filamentlista"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "Rekommendationer för standardläge"
+
+# AI Translated
+msgid "Target Color"
+msgstr "Målfärg"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "Välj färguppdelning"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "Godtyckligt läge"
+
+# AI Translated
+msgid "Material List"
+msgstr "Materiallista"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "Standardläge"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "Minst två filament av samma materialtyp krävs för uppdelning"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "Materiallistan stöder högst %1% färger. Efter uppdelningen av %2% skulle antalet material överstiga %1%. Ta bort oanvända filament på huvudskärmen innan du delar upp."
+
+# AI Translated
+msgid "Cyan"
+msgstr "Cyan"
+
+# AI Translated
+msgid "Magenta"
+msgstr "Magenta"
+
+# AI Translated
+msgid "Yellow"
+msgstr "Gul"
+
+# AI Translated
+msgid "White"
+msgstr "Vit"
+
+# AI Translated
+msgid "Red"
+msgstr "Röd"
+
+# AI Translated
+msgid "Green"
+msgstr "Grön"
+
+# AI Translated
+msgid "Blue"
+msgstr "Blå"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "Den aktuella filamentlistan innehåller inte %s. Ett projektfilament som det blandade filamentet kräver skapas automatiskt efter uppdelningen."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "Alternativa nozzlar:"
+
+# AI Translated
+msgid "All standard"
+msgstr "Alla standard"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "Välkommen till konfigurationsassistenten för %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "Välkommen till konfigurationsguiden för %s"
+
+# AI Translated
+msgid "Welcome"
+msgstr "Välkommen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "Hej och välkommen till %s! Den här %s hjälper dig med den första konfigurationen; bara några få inställningar så är du redo att skriva ut."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "Ta bort användarprofiler (en ögonblicksbild tas först)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "Utför skrivbordsintegration (gör att systemet kan hitta den här programfilen)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "Familjen %s"
+
+# AI Translated
+msgid "Printer:"
+msgstr "Skrivare:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "Tillverkare:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "Profil:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(Alla)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "%1% markerade med <b>*</b> är <b>inte</b> kompatibla med vissa installerade skrivare."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA-material"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "Alla installerade skrivare är kompatibla med det valda %1%."
+
+# AI Translated
+msgid "filament"
+msgstr "filament"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA-material"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "Endast följande installerade skrivare är kompatibla med de valda filamenten"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "Endast följande installerade skrivare är kompatibla med de valda SLA-materialen"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "Konfiguration av anpassad skrivare"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "Anpassad skrivare"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "Definiera en anpassad skrivarprofil"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "Namn på anpassad profil:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "Firmwaretyp"
+
+# AI Translated
+msgid "Firmware"
+msgstr "Firmware"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "Välj vilken typ av firmware som din skrivare använder."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "Byggplattans form och storlek"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "Ange formen på skrivarens byggplatta."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Ogiltig numerisk inmatning."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "Filament- och nozzeldiametrar"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "Utskriftsdiametrar"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "Ange diametern på skrivarens hotend-nozzel."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "Nozzeldiameter:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "Ange diametern på ditt filament."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "God precision krävs, så använd ett skjutmått och mät flera gånger längs filamentet och beräkna sedan medelvärdet."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "Filamentdiameter:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "Nozzel- och byggplattstemperaturer"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "Ange den nozzeltemperatur (nozzle_temperature) som krävs för att extrudera ditt filament."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "En tumregel är 160 till 230℃ för PLA och 215 till 250℃ för ABS."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "Extruderingstemperatur:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "Ange den byggplattstemperatur som krävs för att filamentet ska fastna på den uppvärmda byggplattan."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "En tumregel är 60℃ för PLA och 110℃ för ABS. Lämna noll om du inte har någon uppvärmd byggplatta."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "Byggplattans temperatur:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA-material"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "Skrivare med FFF-teknik"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "Skrivare med SLA-teknik"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "Följande skrivarprofiler har inget standardfilament: %1%Välj ett manuellt."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "Följande skrivarprofiler har inget standardmaterial: %1%Välj ett manuellt."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "Följande FFF-skrivarmodeller har inget valt filament:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "Vill du välja standardfilament för dessa FFF-skrivarmodeller?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "Konfigurationen har redigerats i konfigurationsguiden"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "Alla användarförinställningar kommer att raderas."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "En ny tillverkare har installerats och en av dess skrivare kommer att aktiveras"
+msgstr[1] "Nya tillverkare har installerats och en av deras skrivare kommer att aktiveras"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "En ny skrivare har installerats och den kommer att aktiveras."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "Vissa skrivare har avinstallerats."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "Ett nytt filament har installerats och det kommer att aktiveras."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "Ett nytt SLA-material har installerats och det kommer att aktiveras."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "Vissa filament har avinstallerats."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "En anpassad skrivare har installerats och den kommer att aktiveras."
+
+# AI Translated
+msgid "<Back"
+msgstr "<Tillbaka"
+
+# AI Translated
+msgid "Next>"
+msgstr "Nästa>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "Val av filamentprofiler"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "Konfigurationsassistent"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "Konfigurations&assistent"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "Konfigurationsguide"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "Konfigurations&guide"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "Filamentinlopp A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "Filamentinlopp B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "Föreslagen omplacering"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "Hur sparar man tid?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "Filamentstatus:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "Positionsjustering krävs"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "OK"
+
+# AI Translated
+msgid "Unused"
+msgstr "Oanvänd"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "Placera om filamenten på skrivaren enligt diagrammet nedan för bästa resultat och spara cirka %s."
+
+# AI Translated
+msgid "Summary:"
+msgstr "Sammanfattning:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "AMS på filamentinlopp A"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "AMS på filamentinlopp B"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "Beredningsfilament nr %d är matchat mot '%s'. Om du tilldelar det till '%s' kan du spara utskriftstid."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*Tips: Om du har flyttat spolens position på maskinen stänger du den här sidan och matchar filamentet igen."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "Sammanfattning: Detta är för närvarande den lämpligaste placeringen."
+
+msgid "?"
+msgstr " ?"
+
+# AI Translated
+msgid "Note:"
+msgstr "Obs:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "Gör objektet ihåligt"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "Förhandsvisa urholkad och borrad modell"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "Stängningsavstånd"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "Håldiameter"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "Håldjup"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "Ta bort valda hål"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "Ta bort alla hål"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "Klippning av vyn"
+
+msgid "Reset direction"
+msgstr "Återställ riktning"
+
+# AI Translated
+msgid "Show supports"
+msgstr "Visa support"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "Urholka och borra"
+
+# AI Translated
+msgid "Head diameter"
+msgstr "Huvuddiameter"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "Lås support under nya öar"
+
+msgid "Remove selected points"
+msgstr "Remove selected points"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "Ta bort alla punkter"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "Tillämpa ändringar"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "Förkasta ändringar"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "Minsta punktavstånd"
+
+# AI Translated
+msgid "Support points density"
+msgstr "Täthet för supportpunkter"
+
+msgid "Auto-generate points"
+msgstr "Auto-generate points"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "Manuell redigering"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLA-supportpunkter"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "Vill du spara dina manuellt redigerade supportpunkter?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "Spara supportpunkter?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "Automatisk generering raderar alla manuellt redigerade punkter."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "Är du säker på att du vill göra det?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "Kortkommandon för SLA-gizmo"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "Obs: vissa kortkommandon fungerar bara i redigeringsläge eller bara utanför det."
+
+msgid "Left click"
+msgstr "Vänsterklicka"
+
+# AI Translated
+msgid "Add point"
+msgstr "Lägg till punkt"
+
+msgid "Right click"
+msgstr "Högerklicka"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Ta bort punkt"
+
+# AI Translated
+msgid "Move point"
+msgstr "Flytta punkt"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "Lägg till punkt i urvalet"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "Ta bort punkt från urvalet"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "Välj med rektangel"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "Avmarkera med rektangel"
+
+# AI Translated
+msgid "Select all points"
+msgstr "Välj alla punkter"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "Flytta klipplanet"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "Återställ klipplanet"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "Växla till redigeringsläge"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "Baka"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "Texturförskjutning"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "Radera målning för texturförskjutning"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "Måla texturförskjutning"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "Markera textursöm"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "Markera textursöm längs väg"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "Lager %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "Medelskala för öar"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "Välj först en ö i UV-redigeraren."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "Dela texturö"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "Den här ön har ingen granne som den delar en kant med."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "Sammanfoga texturö"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "Separera texturö"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "Rensa textursömmar"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "Rensa UV-ändringar för textur"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "Tillämpa projektionsram för textur"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "Flytta texturö"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "Redigera textur-UV"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "Högsta antalet texturlager för texturförskjutning har uppnåtts."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "Lägg till texturlager för texturförskjutning"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "Det gick inte att läsa in den valda texturen."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "Byt textur för texturförskjutning"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "Välj en texturbild (höjdkarta)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "Välj en textur"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "Ta bort från Mina texturer"
+
+# AI Translated
+msgid "Built-in"
+msgstr "Inbyggda"
+
+# AI Translated
+msgid "No textures found."
+msgstr "Inga texturer hittades."
+
+# AI Translated
+msgid "My textures"
+msgstr "Mina texturer"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "Importera din egen bild som höjdkarta. Den konverteras till det format som används vid inbakningen och sparas i din personliga texturmapp, separat från texturerna som följer med OrcaSlicer."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG eller BMP - konverteras till en höjdkarta vid import. Håll muspekaren över en av dina egna för att ta bort den."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"Ta bort \"%s\" från Mina texturer?\n"
+"\n"
+"Bildfilen raderas från din texturmapp. Lager som redan använder den behåller den."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "Ta bort textur"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "Ta bort texturlager för texturförskjutning"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "Ändra ordning på texturlager för texturförskjutning"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "Välj synliga ytor för texturförskjutning"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "Välj hela modellen för texturförskjutning"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "Underindela modellen för texturförskjutning"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "Måla först området som du vill underindela - adaptiv underindelning förfinar bara där du har målat."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "Adaptiv underindelning för texturförskjutning"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "Inget att underindela - det målade området uppfyller redan målkantlängden och detaljtoleransen, eller så är triangelbudgeten redan förbrukad."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "Måla först området som du vill jämna ut - utjämningen påverkar bara den målade delen av modellen."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "Inget att jämna ut - det målade området är bara en triangel djupt, så med \"Ignorera yttre ring\" aktiverat finns det inga inre hörn att jämna ut."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "Jämna ut texturförskjutning"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "Bygg om mesh för texturförskjutning"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "Ombyggnaden av meshen ändrade inte modellen. Den kan vara icke-mångfaldig (öppna kanter eller kanter som delas av fler än två trianglar), eller så är målkantlängden redan uppfylld."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "Inget är målat, så det finns inget att baka in."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "Baka in texturförskjutning"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "Inget är målat, så det finns inga inbakningssteg att fånga."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "Inbakningssteg (felsökning)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "Fångar..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "Fånga steg"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "Kör samma inbakning som knappen Baka kör, behåll meshen efter varje steg och stega igenom dem här. Inget sparas i modellen - detta är till för att hitta vilket steg ett dåligt resultat kom från."
+
+# AI Translated
+msgid "Check topology"
+msgstr "Kontrollera topologi"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "Räkna öppna och icke-mångfaldiga kanter efter varje steg, vilket är hur man upptäcker ett steg som har rivit sönder meshen. Varje kant genomsöks, så det gör fångsten märkbart långsammare vid en fin inbakning."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< Föregående"
+
+# AI Translated
+msgid "Next >"
+msgstr "Nästa >"
+
+# AI Translated
+msgid "triangles"
+msgstr "trianglar"
+
+# AI Translated
+msgid "vertices"
+msgstr "hörn"
+
+# AI Translated
+msgid "Open edges"
+msgstr "Öppna kanter"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "Icke-mångfaldiga"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "Degenererade"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "Spara stegens mesher"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "Stegens mesher sparades som OBJ-filer i:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "Det gick inte att spara stegens mesher."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "Spara varje fångat steg som en OBJ-fil, så att de kan öppnas sida vid sida i ett meshvisningsprogram."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "Det målade området kunde inte föras över till den ombyggda meshen, så inget ändrades. Växla till Pro-läget och bygg om meshen innan du målar."
+
+# AI Translated
+msgid "Pro"
+msgstr "Pro"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "Standard - välj en textur, måla där den ska vara och tryck på Baka. Allt som meshen behöver görs åt dig i det enda steget."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "Pro - du kör själv förberedelserna av meshen: Bygg om mesh, Underindela och Baka som separata steg, med alla inställningar synliga. För när resultatet i Standard inte blir som du ville och du vet varför."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "Docka panel"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "Lossa panel"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "Lossa panelen så att den kan dras var som helst över 3D-vyn, eller docka den tillbaka bredvid verktygsfältet."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "i %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "lägg till ett lager för att måla"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "Måla - lägg till det aktiva lagret där du klickar eller drar. Höger musknapp raderar, och det gör även Skift nedtryckt."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "Radera - ta bort det aktiva lagret där du klickar eller drar. Höger musknapp målar."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "Pensel - måla på ytan genom att dra"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "Yta - klicka på enskilda trianglar"
+
+# AI Translated
+msgid "Connected area"
+msgstr "Sammanhängande område"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "Sammanhängande område - fyll området som nås utan att korsa en kant som är skarpare än vinkeltröskeln"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "Vänta tills inbakningen är klar."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "Lägg först till ett lager."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "Det aktiva lagret har ingen målning ännu."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "Välj hela modellen"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "Välj hela modellen - måla varje yta på modellen med det aktiva lagret"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "Radera hela modellen"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "Radera hela modellen - ta bort det aktiva lagrets målning från varje yta"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "Återställ markering för texturförskjutning"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "Cirkel - målar allt under penseln sett från kameran"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "Sfär - målar bara inom ett klot runt punkten under markören"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "Vinkeltröskel - fyllningen stannar vid kanter som är skarpare än detta"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "Klicka på en triangel för att måla den"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "Kräver att det aktiva lagret är mappat med Veckla ut (LSCM)."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "Normal - den verkliga geometrin, exakt det som Baka ger. Långsammare att uppdatera"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "Snabb - reliefen skuggas bara på, byggs inte, och bara för lagret du redigerar. Uppdateras direkt medan du målar"
+
+# AI Translated
+msgid "Checker"
+msgstr "Schackmönster"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "Schackmönster - ett testrutnät i stället för texturen. Där rutorna förblir kvadratiska är texturen oförvrängd; där de sträcks ut blir även den det"
+
+# AI Translated
+msgid "Distortion"
+msgstr "Förvrängning"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "Förvrängning - värmekarta från blått till rött över utsträckningen i UV-utvecklingen"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "Trådram - visa meshens kanter ovanpå; oberoende av vyn ovan"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "Bygger om förhandsvisningen så snart något ändras. Stäng av det på en tung modell om målning eller dragning av ett reglage börjar hacka - förhandsvisningen väntar då tills du släpper."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "Texturlager"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "Dra till ett annat lager för att ändra ordningen. Det första lagret ligger på den bara ytan; varje lager efter det lägger sin relief ovanpå de tidigare."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "Välj en annan bild för det här lagret. Målningen, djupet och upprepningen förblir som de är."
+
+# AI Translated
+msgid "not painted"
+msgstr "inte målat"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "Flytta upp - tillämpas tidigare"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "Flytta ned - tillämpas senare"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "Ta bort det här lagret"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "Reliefens höjd: hur långt vitt i texturen lyfter ytan, i millimeter. Svart flyttar den inte alls, om inte Mellannivå säger något annat."
+
+# AI Translated
+msgid "Tile size"
+msgstr "Rutstorlek"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "Hur bred en kopia av texturen är på modellen. Mindre värden upprepar mönstret oftare och gör detaljerna finare; med Sida vid sida avstängt är detta storleken på den enda kopian."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "Vrider texturen på ytan, i grader - för att rikta in ett mönster mot en kant på modellen."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "Mellannivå"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"Vilken grå nyans som stannar där ytan redan är. Vid 0 trycker texturen bara utåt; vid 0,5 står mellangrått still, så mörkare gråtoner skär in och ljusare trycker fortfarande ut - en och samma bild både präglar och graverar.\n"
+"\n"
+"Det som skär in måste få plats: inne i ett skarpt hörn eller genom en tunn vägg kan ett djupt snitt gå igenom till andra sidan."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "Djup förskjutning inåt kan skära sig själv."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "Gör bilden suddig innan den används, vilket rundar av hårda steg och tar bort prickar från ett brusigt foto. Höj värdet om reliefen ser hård eller kornig ut; det kostar fina detaljer."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "Kanttoning"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "Planar ut reliefen när den närmar sig kanten av det målade området, så att den smälter in i den bara ytan i stället för att sluta med ett steg."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "Hur långt in toningen når, som andel av det målade området. Små värden mjukar upp ett smalt band vid kanten; 1 planar ut nästan hela området."
+
+# AI Translated
+msgid "Invert"
+msgstr "Invertera"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "Vänder reliefen ut och in: det som stack ut skärs in, och tvärtom. Samma sak som att använda ett negativ av bilden."
+
+# AI Translated
+msgid "Colours"
+msgstr "Färger"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "Skriver ut det målade området i texturens färger utöver dess relief. Varje färg matchas mot det närmaste av dina inlästa filament; allt du inte målat behåller objektets egen färg."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "Den här texturen är en höjdkarta i gråskala, så den har inga färger att tillämpa. Importera en färgbild för att använda detta."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "Blanda filament"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "Varvar två filament för att efterlikna färgerna däremellan, så att en handfull filament kan återge ett foto eller en gradient. En bild med enhetliga färger skrivs ut likadant i båda fallen. Av använder ett filament per område."
+
+# AI Translated
+msgid "Mix by"
+msgstr "Blanda efter"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "Yta"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"Lager: de två filamenten växlar mellan utskriftslager, vilket blandas jämnt på stående ytor men försvinner på plana ytor, där ett helt lager är ett enda band.\n"
+"Yta: ett fint schackmönster över ytan, som fungerar i alla vinklar men kan uppfattas som textur snarare än som en blandning.\n"
+"Automatisk: lager på stående ytor; plana ytor får det närmaste enskilda filamentet, eftersom ett schackmönster där syns som ett mönster."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% utskrivbara färger från %2% filament"
+
+# AI Translated
+msgid "Denoise"
+msgstr "Brusreducering"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "Rensar bort enstaka triangelfläckar i fel färg, som detaljer finare än meshen lämnar efter sig. Höj värdet om resultatet ser prickigt ut, sänk det om små detaljer försvinner."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "Mappning"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "Triplanar (blandad)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "Triplanar - projicerar texturen från alla tre axlarna samtidigt och blandar mellan dem, så att ett område som löper runt en skarp kant inte får någon synlig skarv."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "Cylindrisk - lindar texturen runt det målade områdets egen mittpunkt, för runda former."
+
+# AI Translated
+msgid "Spherical"
+msgstr "Sfärisk"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "Sfärisk - lindar texturen runt det målade områdets egen mittpunkt i båda riktningarna."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "Veckla ut (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "Veckla ut - planar ut det målade området och mappar texturen på det med så lite utsträckning som möjligt. Området delas först upp i bitar vid sina skarpa kanter (se Sömvinkel), så att varje bit kan ligga plant för sig."
+
+# AI Translated
+msgid "From view"
+msgstr "Från vy"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "Från vy - projicerar rakt på det målade området från där du tittar, som en diaprojektor."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "Öppna UV-redigeraren"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "Öppnar UV-redigeraren, där du kan se hur texturen är utlagd över det målade området, skära upp sömmar och flytta runt bitarna."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "Ännu inte utvecklat"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% öar"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "Fånga aktuell vy"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "Inget syns från den här vinkeln - vrid modellen så att den del du vill projicera på vänds mot dig."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "Projicerar texturen på det målade området från där du tittar nu, som en diaprojektor. Ytor som vetter bort från dig sträcks ut, så rikta först in vyn mot den yta som är viktig."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "Projicera bara på synliga"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "Målar bara de ytor du faktiskt ser just nu - vända mot dig och inte dolda bakom något - och projicerar på dem. Ersätter det som lagret hade målat."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "Projektionsram"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "Öppnar ett fönster som du drar över modellen. Det du kan se genom det är det som får texturen, och dess kant blir projektionens kant."
+
+# AI Translated
+msgid "Opacity"
+msgstr "Opacitet"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "Hur heltäckande ramfönstret ser ut medan du placerar det. Sänk värdet för att se modellen genom det; det påverkar inte resultatet."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "Tillämpa projektionsram"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "Ingen del av modellen är inuti ramen - flytta den över den del du vill projicera på."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "Ramen kunde inte tillämpas. Se till att den överlappar 3D-vyn."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "Projicerar texturen genom ramen från där du tittar nu och målar ytorna inuti den. Ersätter det som lagret hade målat; resultatet sitter fast på modellen, så du kan rotera vyn efteråt."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "Placerad med projektionsram."
+
+# AI Translated
+msgid "Tile"
+msgstr "Sida vid sida"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "Upprepar texturen över det målade området. Av placerar en enda kopia, som en dekal, i den storlek som anges av Rutstorlek."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "Aktivera Sida vid sida för att välja hur texturen upprepas."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Upprepa"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "Speglad upprepning"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "Speglad upprepning - varannan ruta vänds, så att kanterna möts utan skarv"
+
+# AI Translated
+msgid "Blend"
+msgstr "Blandning"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "Lägg till"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "Subtrahera"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "Multiplicera"
+
+# AI Translated
+msgid "Divide"
+msgstr "Dividera"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "Baslagret har inget under sig att kombinera med, så det adderar alltid."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "Vad det här lagret gör där det överlappar lagren under. Lägg till och Subtrahera lägger på relief eller skär bort den. Multiplicera och Dividera skalar det som ligger under, vilket gör lagret till en mask över det - där fungerar Djup som en styrka, och 1 mm lämnar vita områden orörda."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "Justera placering"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "Justera placering - dra i handtaget på modellen för att flytta texturen"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "Måla först något med det här lagret."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "Färre inställningar"
+
+# AI Translated
+msgid "More settings"
+msgstr "Fler inställningar"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "Alla %1% lager används"
+
+# AI Translated
+msgid "Add layer"
+msgstr "Lägg till lager"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "Underindelning"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "Endast målat område (adaptiv)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "Lägger bara till trianglar där du har målat, i stället för överallt. På en stor del med en liten dekal är det skillnaden mellan tusentals och miljontals trianglar, och din målning överlever förfiningen."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "Följ texturens detaljer"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "Lägger trianglarna där texturen faktiskt böjer sig - tätt längs åsar och kanter, glest över platta partier - i stället för att sprida dem jämnt. Samma detaljnivå med färre trianglar för de flesta texturer."
+
+# AI Translated
+msgid "Max edge"
+msgstr "Max kant"
+
+# AI Translated
+msgid "Target edge"
+msgstr "Målkant"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "Ingen triangel i det målade området blir större än detta, inte ens där texturen är plan. Håll värdet nära storleken på den minsta detalj du vill få fram."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "Trianglar i det målade området delas tills ingen är större än detta. Mindre ger finare detaljer och, snabbt, betydligt fler trianglar."
+
+# AI Translated
+msgid "Detail"
+msgstr "Detalj"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "Hur långt meshen får avvika från formen som texturen beskriver, i millimeter. Mindre följer fina detaljer och kostar trianglar; större fångar bara de stora formerna."
+
+# AI Translated
+msgid "Min edge"
+msgstr "Min kant"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "En nedre gräns för triangelstorleken, så att ett skarpt steg i texturen inte kan jagas i all oändlighet. Sänk den för finare relief, höj den om antalet skenar vid hårda kanter."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "Kantdetalj"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "Triangelstorlek längs konturen av det målade området, där reliefen faller tillbaka till den bara ytan. Sänk den om kanten ser taggig ut; det kostar bara trianglar längs konturen. 0 stänger av den."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "Färgdetalj"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "Triangelstorlek där två färger möts. Varje triangel skrivs ut i ett filament, så en färgkant kan bara bli så skarp som trianglarna längs den - och inget annat förfinar där, eftersom ytan är plan över ett färgbyte. 0 stänger av den."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "Triangelbudget: anges med Trianglar nedan."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "Förhandsvisning: %1% trianglar"
+
+# AI Translated
+msgid "Steps"
+msgstr "Steg"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "Delar varje triangel i modellen i fyra, så här många gånger. Varje steg fyrdubblar antalet - 3 gör 100 k trianglar till 6,4 M - så förfina hellre bara det målade området om du inte behöver hela modellen finare."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "Dölj förhandsvisning"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "Förhandsvisa underindelning"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "Visar vad förfiningen skulle ge som en trådram, utan att ändra modellen."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "Underindela"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "Förfinar det målade området till målkantlängden och för över din målning till den finare meshen. Resten av modellen lämnas som den är."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "Ersätter modellens geometri med den underindelade meshen och rensar all målning som ännu inte bakats in (relief som redan bakats in påverkas inte)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "Ombyggnad av mesh"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "Triangelstorleken som hela modellen byggs om med, i millimeter. Förskjutning fungerar bäst på en jämn mesh; det är detta som skapar en sådan av en ojämn import."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "Behåll skarpa kanter"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "Håller hårda kanter och öppna gränser på plats medan resten byggs om. Utan detta låter ombyggnaden hörnen glida längs ytan och rundar av varje skarp kant - en kub kommer tillbaka med vågiga kanter."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "Hur skarp en vikning måste vara, i grader, innan ombyggnaden behandlar den som en kant värd att behålla. Lägre värden skyddar mer av modellens form; högre bygger om mer av den jämnt."
+
+# AI Translated
+msgid "Remesh"
+msgstr "Bygg om mesh"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "Bygger om hela modellen med trianglar nära den här kantlängden - delar de stora och slår ihop de små - så att förskjutningen får en jämn täthet att arbeta med. Ersätter geometrin; din målning förs över till de nya trianglarna utifrån deras position, så den finns kvar (relief som redan bakats in behålls också)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "Förskjut ända ut till kanten"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "Låter reliefen gå ända ut till kanten av det målade området. Stäng av för att hålla den yttre ringen plan, vilket håller förskjutningen strikt inom din målning men planar ut mönstret vid kanten."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "Jämna ut resultatet"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "Jämnar ut geometrin efter att texturen har tillämpats, för att ta bort de hårda stegen från en bild med låg upplösning. Bara det som förskjutningen flyttade påverkas. Reglaget Utjämning på ett lager är något annat: det gör bilden suddig innan den används."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "Styrka"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "Hur långt varje omgång drar ett hörn mot sina grannar. Höga värden rundar snabbt av reliefen; låga värden kräver fler omgångar men bevarar mer av detaljerna."
+
+# AI Translated
+msgid "Passes"
+msgstr "Omgångar"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "Hur många utjämningsomgångar som ska köras. Fler omgångar sprider utjämningen längre över ytan; Styrka avgör hur mycket varje omgång flyttar."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "Ignorera yttre ring"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "Håller den yttre ringen av det målade området utanför utjämningen. Dess grannar utanför målningen flyttas aldrig, så att jämna ut den drar ned reliefen och lämnar mönstret halvsmält vid kanten."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "Jämna ut inbakad mesh nu"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "Tillämpar utjämningen ovan på själva modellen, direkt, inom det målade området. För relief som redan är inbakad - allt som ännu inte är inbakat jämnas ut av Baka."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "Experimentellt: klassisk inbakningsprocess"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "Baka in genom att flytta de hörn som meshen redan har, efter att ha förberett den (ombyggnad av mesh, adaptiv underindelning och ett snitt längs skarpa steg i texturen). Behåller topologin, vilket är vad färger kräver. Standardprocessen förfinar i stället, rensar bort smala trianglar, förskjuter och förenklar i en körning; inget behöver förberedas först, men den ger inga färger ännu."
+
+# AI Translated
+msgid "Budget"
+msgstr "Budget"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Hur många tusen trianglar den här inbakningen får använda på området du målade. Relief som redan bakats in på resten av modellen behålls ovanpå den, så en andra inbakning någon annanstans får samma budget som den första. Höj värdet om varningen under Upplösning säger att detaljerna inte får plats; 0 behåller varje triangel som förfiningen gav, hur många det än är."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "Rikta in meshen mot texturens kanter"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "Skjuter hörnen i sidled till kanterna i texturen innan de förskjuts. Förskjutning kan bara flytta hörn upp och ned, så utan detta hamnar ett skarpt steg i bilden där trianglarna råkar vara och blir en trappa. Om hörnen först flyttas till steget blir det en rak vägg med samma antal trianglar."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "Rensa bort smala trianglar"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "Slår ihop de tunna trianglar som förfiningen ärver från modellens egen tessellering innan förskjutningen samplar dem. En smal triangels tre hörn hamnar på tre orelaterade delar av texturen, vilket är det som får reliefen att se taggig ut."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "På: upplösningen följer modellens storlek och budgeten lämnas på sitt standardvärde. Avmarkera för att ange båda själv - värt att göra för en textur som är mycket finare eller mycket grövre än delen den sitter på."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "Valt utifrån modellens storlek: %1$.2f mm trianglar, budget %2% k. Avmarkera Auto för att ange dem själv."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "Hur fin meshen görs under målningen, i millimeter. Den måste vara mindre än detaljerna du vill få fram ur texturen - ett spår på 0,5 mm kräver trianglar som är klart mindre än 0,5 mm. Mindre kostar snabbt trianglar: att halvera värdet kräver fyra gånger så många, och när de inte längre ryms i budgeten förenklar inbakningen tillbaka och detaljerna försvinner med dem."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "Kräver cirka %1% trianglar, budget %2% - inbakningen förenklar tillbaka och förlorar detaljer."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "Hur många tusen trianglar förfiningen får lägga till i modellen. Den triangel som passar sämst delas alltid först, så även en körning som förbrukar allt har använt dem där det syns mest. Höj värdet om reliefen fortfarande ser grov ut."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "Stoppar inbakningen. Det som redan hade slutförts finns kvar på modellen och kan ångras."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "Stänger verktyget utan att baka in. Din målning, dina lager och dina inställningar stannar kvar på modellen."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "Förbereder..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "Bakar in..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "Inget är målat ännu. UV-redigerarens sömverktyg är aktiverat, så drag på modellen markerar sömmar i stället för att måla - stäng av det i panelen för att måla."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "Inget är målat ännu."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "Gör om de målade höjdkartorna till verklig geometri genom att flytta de hörn som redan finns. Använd Underindela först om meshen är för grov för att visa detaljerna."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "Gör om de målade höjdkartorna till verklig geometri. Meshen byggs först om till en jämn täthet och förfinas där texturen böjer sig, så att detaljerna har hörn att landa på - allt i ett steg."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "Modell: %1% trianglar - inbakningen förfinar till upplösningen ovan, upp till sin budget"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "Inbakningen flyttar befintliga hörn - modellen förblir på %1% trianglar"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "Inbakat resultat upp till ~%1% k trianglar"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% lager inte målade, hoppades över"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% inte målat, hoppades över"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "Öppnar målning av texturförskjutning"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "Lämnar målning av texturförskjutning"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "Redigering av texturförskjutning"
+
+msgid "Choose SLA archive:"
+msgstr "Välj SLA arkiv:"
+
+# AI Translated
+msgid "Import file"
+msgstr "Importera fil"
+
+msgid "Import model and profile"
+msgstr "Importera modell och profil"
+
+msgid "Import profile only"
+msgstr "Importera endast profil"
+
+msgid "Import model only"
+msgstr "Importera endast modell"
+
+msgid "Accurate"
+msgstr "Exakt"
+
+msgid "Balanced"
+msgstr "Balanserad"
+
+msgid "Quick"
+msgstr "Snabb"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "Bakar in texturförskjutning"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "Inbakningen gav ingen förskjutning, så inget ändrades och målningen behölls. Kontrollera att det målade lagret har en textur och ett djup som inte är noll."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "Triangelbudgeten begränsade detaljerna: den här upplösningen kräver %1% trianglar, budgeten behöll %2%. Höj Budget eller använd en grövre Upplösning för att få alla detaljer."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "Fångar inbakningssteg"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "Förbereder mesh för texturförskjutning"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "Klicka för att redigera förhållandet"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "Redigera blandat filament"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "Förhandsvisning av effekt"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "Välj material att blanda"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ Lägg till material"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- Ta bort material"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "Gradienteffekt"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "Aktivera gradienteffekt per del"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "Blandningsrekommendationer"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- Välj --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "Fack %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "Olika filamenttyper kan inte blandas: %s. Välj samma filamenttyp."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "Välj ett filament för alla komponenter"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "Olika filamenttyper kan inte blandas"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "Högst 3 material kan blandas"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "Högsta antalet komponenter har uppnåtts"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "Ta bort det tredje materialet"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3D-modeller"
+
+# AI Translated
+msgid "Click to return"
+msgstr "Klicka för att gå tillbaka"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "Vänsterpil"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "Klicka för att fortsätta"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "Högerpil"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "Välj insticksmodul för %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "Välj en insticksmodul för %s i listan nedan."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "Inga insticksmoduler hittades för den här typen."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "Insticksmodulfil: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "Processinsticksmoduler"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "Filamentinsticksmoduler"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "Skrivarinsticksmoduler"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "Konfigurationen är inte giltig JSON. Dina ändringar sparades inte."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "Konfigurationen har uppdaterats. Spara förinställningen för att behålla den."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"Återställa standardkonfigurationen för \"%s\"?\n"
+"\n"
+"Detta förkastar förinställningens åsidosättning och använder den globala konfigurationen."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "Återställ standardvärden"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "Använder den globala konfigurationen. Spara förinställningen för att behålla den."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "Den här funktionen är inte längre tillgänglig."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "Insticksmodulens konfigurationsgränssnitt kunde inte läsas in (%1%). Standardredigeraren visas."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "Radera insticksmodul"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "Avprenumerera"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "Skriv över insticksmodul"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "Välj ett insticksmodulpaket i .py- eller .whl-format."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "Det gick inte att installera insticksmodulpaketet. Se loggen för mer information."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"Insticksmodulen \"%s\" är redan installerad.\n"
+"\n"
+"Om du installerar det här paketet skrivs den befintliga insticksmodulen över."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "Skriv över"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "Installerar insticksmodul"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "\"%s\" har installerats."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "Det gick inte att aktivera \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "\"%s\" har aktiverats."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"Följande installerade insticksmoduler hittades inte på disken:\n"
+"%s\n"
+"\n"
+"Vill du ta bort dem från OrcaSlicer?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "Saknade insticksmoduler"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "Uppdaterar data för insticksmoduler"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "Det gick inte att ladda ur insticksmodulen."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "\"%s\" har avaktiverats."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "Insticksmodulens manifest hittades inte."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "Aktiverar \"%s\"..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "\"%s\" har slagits på."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "\"%s\" har stängts av."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "Laddar ned insticksmodul"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "Nedladdningen av insticksmodulen misslyckades."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "Konfigurationen har sparats."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"Återställa standardkonfigurationen för \"%s\"?\n"
+"\n"
+"Detta förkastar de inställningar som för närvarande är sparade för den här funktionen."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "Standardkonfigurationen har återställts."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "Uppdaterar insticksmodul"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "Det gick inte att uppdatera insticksmodulen."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "\"%s\" har uppdaterats."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "Mappen för insticksmoduler kunde inte fastställas."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"Radera insticksmodulen \"%s\"?\n"
+"\n"
+"Detta tar bort insticksmodulens lokala filer. Insticksmodulen finns kvar i molnet och kan installeras igen."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"Radera insticksmodulen \"%s\"?\n"
+"\n"
+"Detta tar bort insticksmodulens mapp permanent."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "Det gick inte att radera insticksmodulen."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "\"%s\" har raderats."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "Raderar insticksmodul"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "Raderar insticksmodul..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"Avprenumerera på insticksmodulen \"%s\"?\n"
+"\n"
+"Insticksmodulen kommer inte längre att spåras och alla dess lokala filer raderas."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "Det gick inte att avprenumerera på insticksmodulen."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "Prenumerationen på \"%s\" har avslutats."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "Avprenumererar på insticksmodul"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "Raderar lokala filer och avprenumererar på insticksmodul..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "Läser in insticksmodul igen"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "Det gick inte att läsa in insticksmodulen igen."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "\"%s\" har lästs in igen."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "Inställningar för rensningsläge"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "Utför fullständig rensning med hastighets- och temperaturövergång för bästa utskriftskvalitet."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "Använder optimerad rensningstemperatur, multiplikator och kraftigare extrudering för snabbare rensning. Kan orsaka lätt färgblandning i vissa extrema fall."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "Prime-besparing"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "Minskar spillet från priming och skriver ut snabbare. Kan orsaka lätt färgblandning eller små ytdefekter."
+
+# AI Translated
+msgid "Terminal"
+msgstr "Terminal"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "Automatisk CMYW-blandning med ett klick"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "Automatisk RYBW-blandning med ett klick"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "Projektets fysiska filament"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "Nya fysiska filament"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "Projektets blandade filament"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "Nya blandade filament"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "Projektet stöder upp till %d filament. Extra filament kommer att förkastas."
+
+# AI Translated
+msgid "Import Model"
+msgstr "Importera modell"
+
+# AI Translated
+msgid "Original"
+msgstr "Original"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "Flerfärgad"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "Din inmatade texturmodell"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "Bearbetad flerfärgsmodell"
+
+# AI Translated
+msgid "Color Count"
+msgstr "Antal färger"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "Utjämningsnivå"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "Bestäm automatiskt endast det optimala antalet färger och beräkna om filamentmappningen"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "Konvertera texturen till målning med angivet antal färger och angiven utjämningsnivå"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "Påminnelse: parametrarna har ändrats, klicka på Applicera för att de ska träda i kraft"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "Filamentmappning"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "Återställ filamentmappningen till läget före blandningen med ett klick"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "Välj läge för automatisk blandning med ett klick vid import av texturfärger"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "Slå ihop identiska filament automatiskt"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "Slå automatiskt ihop identiska filament med befintliga filament i projektet"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "Hoppa över matchning"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "Hoppa över filamentmappningen och importera som en enfärgad modell"
+
+# AI Translated
+msgid "Processing"
+msgstr "Bearbetar"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "Beräknar texturfärger..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "Reparerar mesh"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "Beräkningen misslyckades. Justera parametrarna och försök igen."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "Meshen har icke-mångfaldig geometri eller öppna gränser. Du kan importera den som den är eller reparera den med Windows 3D-reparationstjänst innan du importerar."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "Reparation av mesh"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "Importera utan reparation"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "Reparera och importera"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "Observera att meshen har icke-mångfaldig geometri eller öppna gränser."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "Problem med mesh"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "Den valda bilden är tom."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "Det gick inte att förbereda texturen för användning."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "Endast dina egna importerade texturer kan tas bort."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "Det gick inte att radera texturfilen."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "Det gick inte att skapa mappen för importerade texturer."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "Det gick inte att läsa in den valda bilden."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "Det gick inte att spara den importerade texturen."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "Det gick inte att läsa texturfilen."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "Projektionsram - dra över modellen och tryck sedan på Tillämpa"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "Flyttar ö  |  släpp för att placera, Esc för att avbryta"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "Roterar ö: %d°  |  Skift = fäst vid 15°, klicka för att bekräfta, Esc för att avbryta"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "Skalar ö  |  klicka för att bekräfta, Esc för att avbryta"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "Flyttar hörn  |  släpp för att placera"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "Flyttar kant  |  släpp för att placera"
+
+# AI Translated
+msgid "Panning"
+msgstr "Panorerar"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "Måla området på modellen och tryck sedan på Veckla ut"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "Välj Veckla ut som mappning för ett texturlager för att redigera dess UV här"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d hörn valda  |  dra = flytta tillsammans, Skift/Ctrl-klick = lägg till/ta bort"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Hörnläge: dra ett hörn för att ändra formen  |  Skift/Ctrl-klick = flerval, hjul = zooma, Home = anpassa vy"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d kanter valda  |  dra = flytta tillsammans, Skift/Ctrl-klick = lägg till/ta bort"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Kantläge: dra en kant på en ö för att ändra formen  |  Skift/Ctrl-klick = flerval, hjul = zooma, Home = anpassa vy"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "%d öar valda  |  dra = flytta tillsammans, Skift/Ctrl-klick = lägg till/ta bort, R/S = rotera/skala den primära"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "Ö %d vald  |  dra = flytta, R = rotera, S = skala, Skift/Ctrl-klick = flerval, Home = anpassa vy"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "Klicka på en ö för att välja den  |  Skift/Ctrl-klick = flerval, hjul = zooma, dra med mittknappen = panorera, Home = visa alla"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  fästning PÅ"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "Byt textur - välj en annan från texturbiblioteket"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "Höjdkarta - visa lagrets textur under öarna"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "Schackmönster - ett testrutnät; rutorna förblir kvadratiska där utvecklingen inte sträcker ut"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "Förvrängning - färga varje ö efter hur mycket utvecklingen sträcker ut den"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "Veckla ut"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "Sömvinkel"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "Kanter som är skarpare än detta skärs upp, och bitarna på var sida om dem planas ut separat. Sänk värdet för att skära mer: varje bit ligger då plant med mindre utsträckning, på bekostnad av att texturen inte löper obruten över snittet. Träder i kraft vid nästa Veckla ut."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "Koppla ihop öar"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "Lägg ut UV-utvecklingen som ett sammanhängande nät: bitar som delar en kant vecklas ut bredvid varandra (en kub blir ett sammanhängande nät i stället för sex lösa kvadrater). De förblir separata öar, så du kan fortfarande flytta vilken som helst av dem för hand efteråt."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "Ö - flytta, rotera och skala hela öar"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "Hörn - dra hörn för att ändra formen; Skift/Ctrl för flerval"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "Kant - dra kanter för att ändra formen; Skift/Ctrl för flerval"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "Markera sömmar - klicka på kanter på modellen för att skära upp utvecklingen längs dem. Kanten under markören markeras gul; klicka för att markera den röd, klicka på en röd kant igen för att avmarkera den. Målning är pausad medan detta är aktiverat."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "Bana - i stället för att klicka på varje kant klickar du på en startpunkt och sedan en slutpunkt: hela den kortaste vägen mellan dem blir en söm på en gång. Tillgängligt när du markerar sömmar."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "Rensa sömmar - ta bort alla sömmar som markerats på det här lagret"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "Medelskala - ge varje ö samma texeltäthet"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "Dela - dela den valda ön tvärs över dess långa axel"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "Sammanfoga - veckla ut den valda ön mot dess närmaste granne längs den gemensamma kanten"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "Separera - skicka tillbaka den valda ön till sin egen packade position"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "Rensa UV-ändringar - förkasta alla manuella förflyttningar av hörn/kanter och återställ utvecklingen till dess automatiska form"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "Fäst - fäst öar mot varandra när du drar en mot en annan"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "Visa alla öar (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "Inget lager mappat med Veckla ut"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "%.1f mm ruta"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "Inaktuell - målningen, sömmarna eller sömvinkeln har ändrats sedan den här utvecklingen gjordes. Tryck för att veckla ut igen."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "Plana ut det målade området till UV-öar. Det beräknas bara när du trycker här, inte vid varje ändring - så måla, ändra sömvinkeln eller markera sömmar först, och tryck sedan på Veckla ut."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d öar, %s ytor"
+
+# AI Translated
+msgid "Forward"
+msgstr "Framåt"
+
+# AI Translated
+msgid "Tools"
+msgstr "Verktyg"
+
+# AI Translated
+msgid "View Source"
+msgstr "Visa källkod"
+
+# AI Translated
+msgid "View Text"
+msgstr "Visa text"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "Hantera navigering"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "Hantera nya fönster"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "Redigeringsläge"
+
+# AI Translated
+msgid "Run Script"
+msgstr "Kör skript"
+
+# AI Translated
+msgid "Add user script"
+msgstr "Lägg till användarskript"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "Ange anpassad användaragent"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "Rensa markering"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "Radera markering"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "Exempel på anpassat schema"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "Exempel på minnesfilsystem"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "Aktivera snabbmeny"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "Aktivera utvecklarverktyg"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "Ett fel uppstod vid inläsning av %s"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "Ladda %1% till %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "Ladda %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"Insticksmodulen \"%s\" begär behörighet för Python-granskningshändelsen \"%s\".\n"
+"\n"
+"Den här åtgärden exponerar inget mål som granskningskroken kan visa."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få läsa följande fil(er):\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få läsa/skriva följande fil(er):\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få skapa följande fil(er):\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få radera följande fil(er):\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få göra en HTTP-begäran till:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få öppna en nätverksanslutning till:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"Insticksmodulen \"%s\" begär att få köra följande kommando(n):\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "Insticksmodulen \"%s\" begär behörighet för Python-granskningshändelsen \"%s\"."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "Behörighetsbegäran från insticksmodul"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "Insticksmodulens konfigurationsgränssnitt var tomt. Standardredigeraren visas."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "Den här funktionen är inte längre tillgänglig. Dina ändringar sparades inte."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "Konfigurationen kunde inte skrivas till disken. Dina ändringar sparades inte."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "Insticksmodulen kunde inte tillhandahålla någon standardkonfiguration (%1%). Inget ändrades."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "Konfigurationen kunde inte skrivas till disken. Inget ändrades."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "Installationen av insticksmodulen misslyckades"
+
+# AI Translated
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -28750,6 +31470,86 @@ msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "Misslyckades med att generera cali G kod"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "Subtrahera"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "Multiplicera"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " och "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "kan inte blandas. Välj samma filamenttyp."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "Ett fel uppstod vid inläsning av "
+
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "Läs in %s till "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "I fliken Design ritas en parningskoppling som en liten yta i stället för den konventionella skivan med en rullkvadrant. En ytas orientering går att avläsa utan inlärning. Stäng av detta för den konventionella CAD-representationen."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "Expert"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "Enkelt"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "Klicka på punkter; klicka på den första / högerklicka för att stänga slingan"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "X-riktning X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "X-riktning Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "X-riktning Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — ögat undertrycker den här parningen"
+
+# AI Translated
+#~ msgid "Del"
+#~ msgstr "Ta bort"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "Skissen behålls — Slutför för att spara den, Avbryt för att förkasta den"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "Redigerar: Skiss %d   ·   N = titta vinkelrätt mot planet   ·   Slutför eller Avbryt i verktygsfältet"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "Redigerar skiss — dra i ett handtag eller klicka på ett mått för att redigera"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -28882,9 +31682,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "Ångra  (%zu till)"
-
-#~ msgid "Reset direction"
-#~ msgstr "Återställ riktning"
 
 #~ msgid "Section View"
 #~ msgstr "Sektionsvy"
@@ -29124,10 +31921,6 @@ msgstr ""
 #~ msgstr "Justera automatiskt till det inställda området?\n"
 
 # AI Translated
-#~ msgid "Head diameter"
-#~ msgstr "Huvuddiameter"
-
-# AI Translated
 #~ msgid "Print order within a single layer."
 #~ msgstr "Utskriftsordning inom ett enskilt lager."
 
@@ -29154,9 +31947,6 @@ msgstr ""
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"
-
-#~ msgid "Select Filament && Hotends"
-#~ msgstr "Välj Filament && Hotends"
 
 # TODO: Review, changed by lang refactor. PR 14254
 #~ msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
@@ -29420,14 +32210,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 
-#~ msgid "Remove selected points"
-#~ msgstr "Remove selected points"
-
 #~ msgid "Remove all"
 #~ msgstr "Remove all"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Auto-generate points"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "Add a brim ear"
@@ -29459,12 +32243,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "Nyckel 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "Vänsterklicka"
-
-#~ msgid "Right click"
-#~ msgstr "Högerklicka"
 
 #~ msgid "Select feature"
 #~ msgstr "Select feature"
@@ -30124,12 +32902,6 @@ msgstr ""
 #~ msgid "The target object contains only one part and cannot be split."
 #~ msgstr "Det valda objektet innehåller endast en del och kan inte delas."
 
-#~ msgid "?"
-#~ msgstr " ?"
-
-#~ msgid "/"
-#~ msgstr "/"
-
 #~ msgid "Failed to start printing job"
 #~ msgstr "Det gick inte att starta utskriftsjobbet"
 
@@ -30557,27 +33329,6 @@ msgstr ""
 
 #~ msgid "Exception"
 #~ msgstr "Undantag"
-
-#~ msgid "Choose SLA archive:"
-#~ msgstr "Välj SLA arkiv:"
-
-#~ msgid "Import model and profile"
-#~ msgstr "Importera modell och profil"
-
-#~ msgid "Import profile only"
-#~ msgstr "Importera endast profil"
-
-#~ msgid "Import model only"
-#~ msgstr "Importera endast modell"
-
-#~ msgid "Accurate"
-#~ msgstr "Exakt"
-
-#~ msgid "Balanced"
-#~ msgstr "Balanserad"
-
-#~ msgid "Quick"
-#~ msgstr "Snabb"
 
 #~ msgid "Discribe how long the nozzle will move along the last path when retracting"
 #~ msgstr "Detta beskriver hur länge nozzeln kommer att röra sig längs den sista banan medan den retrakterar"

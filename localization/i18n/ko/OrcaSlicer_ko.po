@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -1883,8 +1883,9 @@ msgstr ""
 "객체 위의 점이나 원 2개를 선택하고\n"
 " 그들 사이의 거리를 지정하십시오."
 
+# AI Translated
 msgid "Face"
-msgstr "얼굴"
+msgstr "면"
 
 msgid " (Fixed)"
 msgstr " (고정된)"
@@ -5261,8 +5262,9 @@ msgstr "현재 압출량 교정 매개변수가 잘못되었습니다"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "선택한 직경과 장치의 직경이 일치하지 않습니다"
 
-msgid "Failed to generate cali G-code"
-msgstr "교정 Gcode를 생성하지 못했습니다"
+# AI Translated
+msgid "Failed to generate calibration G-code"
+msgstr "교정 G-code를 생성하지 못했습니다"
 
 msgid "Calibration error"
 msgstr "교정 오류"
@@ -5549,7 +5551,7 @@ msgid "Layer Time (log)"
 msgstr "레이어 시간 (log)"
 
 msgid "Pressure Advance"
-msgstr "압력 어드밴스"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr "작업 없음"
@@ -6099,6 +6101,7 @@ msgid "Wireframe"
 msgstr "와이어프레임"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "엑스레이"
 
@@ -6702,7 +6705,7 @@ msgid "Max flowrate"
 msgstr "최대 압출량"
 
 msgid "Pressure advance"
-msgstr "프레셔 어드밴스"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "압출량 비율"
@@ -8431,6 +8434,7 @@ msgid "Click to edit preset"
 msgstr "클릭하여 사전 설정 편집"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "변형"
 
@@ -9672,6 +9676,7 @@ msgid "Recent actions"
 msgstr "최근 작업"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "개"
 
@@ -9798,8 +9803,8 @@ msgid "Draw mate connectors as a face"
 msgstr "메이트 커넥터를 면으로 그리기"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "디자인 탭에서 메이트 커넥터를 롤 사분면이 있는 일반적인 원판 대신 작은 면으로 그립니다. 면은 따로 익히지 않아도 방향을 읽을 수 있습니다. 일반적인 CAD 표현을 사용하려면 이 옵션을 끄십시오."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "디자인 탭에서 메이트 커넥터를 롤 사분면이 있는 일반적인 원판 대신 작은 면으로 그립니다. 면은 원판 표기법을 익히지 않아도 방향을 한눈에 보여 줍니다. 일반적인 CAD 표현을 사용하려면 이 옵션을 끄십시오."
 
 # AI Translated
 msgid "Pan"
@@ -9913,10 +9918,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "사실적 보기에서 SSAO를 적용합니다."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "고정"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "궤도"
 
@@ -10739,10 +10746,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "현재 그래픽 설정을 사용하며 보통 1분도 걸리지 않습니다. 완료될 때까지 기본 창이 잠깁니다."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "고급"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "전문가"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "개발자"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "간단"
 
@@ -15188,7 +15207,7 @@ msgid "Enable pressure advance, auto calibration result will be overwritten once
 msgstr "PA를 활성화합니다. 활성화되면 자동 보정 결과를 덮어씁니다."
 
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "프레셔 어드밴스(Klipper) / 리니어 어드밴스(Marlin)"
+msgstr "Pressure Advance(Klipper) / 리니어 어드밴스(Marlin)"
 
 msgid "Enable adaptive pressure advance (beta)"
 msgstr "적응형 PA 활성화(베타)"
@@ -17195,9 +17214,9 @@ msgstr ""
 "\n"
 "값이 0이면 기능이 비활성화됩니다.\n"
 "\n"
-"고속, 고압출량 직접 구동 프린터(예: 뱀부랩 또는 보론)의 경우 일반적으로 이 값이 필요하지 않습니다. 그러나 기능 속도가 크게 달라지는 특정 경우에는 약간의 이점을 제공할 수 있습니다. 예를 들어 오버행로 인해 급격하게 감속이 발생하는 경우입니다. 이러한 경우 약 300-350 mm³/s²의 높은 값이 권장됩니다. 이렇게 하면 프레셔 어드밴스가 더 부드러운 압출량 전환을 달성하는 데 도움이 될 만큼 충분히 매끄러워질 수 있기 때문입니다.\n"
+"고속, 고압출량 직접 구동 프린터(예: 뱀부랩 또는 보론)의 경우 일반적으로 이 값이 필요하지 않습니다. 그러나 기능 속도가 크게 달라지는 특정 경우에는 약간의 이점을 제공할 수 있습니다. 예를 들어 오버행로 인해 급격하게 감속이 발생하는 경우입니다. 이러한 경우 약 300-350 mm³/s²의 높은 값이 권장됩니다. 이렇게 하면 Pressure Advance가 더 부드러운 압출량 전환을 달성하는 데 도움이 될 만큼 충분히 매끄러워질 수 있기 때문입니다.\n"
 "\n"
-"프레셔 어드밴스 기능이 없는 느린 프린터의 경우 값을 훨씬 낮게 설정해야 합니다. 10-15 mm³/s² 값은 직접 구동 압출기의 좋은 시작점이고 보우덴 스타일의 경우 5-10 mm³/s²입니다.\n"
+"Pressure Advance 기능이 없는 느린 프린터의 경우 값을 훨씬 낮게 설정해야 합니다. 10-15 mm³/s² 값은 직접 구동 압출기의 좋은 시작점이고 보우덴 스타일의 경우 5-10 mm³/s²입니다.\n"
 "\n"
 "이 기능은 Prusa 슬라이서에서는 프레셔 이퀄라이저(Pressure Equalizer)로 알려져 있습니다.\n"
 "\n"
@@ -23621,8 +23640,8 @@ msgid "Polyline"
 msgstr "폴리선"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "점을 클릭하고, 첫 점을 클릭하거나 마우스 오른쪽 버튼을 클릭하여 루프 닫기"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "점을 클릭하고, 첫 점을 클릭하여 루프 닫기, 마우스 오른쪽 클릭으로 체인 종료"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -24068,6 +24087,11 @@ msgstr "새 바디"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "결합"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "잘라내기"
 
@@ -24091,6 +24115,7 @@ msgid "Bottom"
 msgstr "아래"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "측면"
 
@@ -24245,6 +24270,7 @@ msgid "Plane type"
 msgstr "평면 유형"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "베이스"
 
@@ -24542,16 +24568,16 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "모서리가 없으면 프레임의 X 방향은 면의 첫 번째 모서리를 따릅니다 — 직접 정하려면 모서리를 선택하십시오"
 
 # AI Translated
-msgid "X hint X"
-msgstr "X 힌트 X"
+msgid "X direction X"
+msgstr "X 방향 X"
 
 # AI Translated
-msgid "X hint Y"
-msgstr "X 힌트 Y"
+msgid "X direction Y"
+msgstr "X 방향 Y"
 
 # AI Translated
-msgid "X hint Z"
-msgstr "X 힌트 Z"
+msgid "X direction Z"
+msgstr "X 방향 Z"
 
 # AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
@@ -24626,8 +24652,9 @@ msgid "Feature tree"
 msgstr "피처 트리"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — 눈 아이콘으로 이 메이트를 억제합니다"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. 이 메이트를 억제하려면 눈 아이콘을 클릭하십시오."
 
 # AI Translated
 #, c-format, boost-format
@@ -24686,10 +24713,6 @@ msgstr "변수"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-# AI Translated
-msgid "Del"
-msgstr "삭제"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24792,8 +24815,8 @@ msgid "Tool exited"
 msgstr "도구 종료됨"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "스케치 유지됨 — 완료를 눌러 확정하거나 취소를 눌러 버리기"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "스케치 유지됨 — 확인을 눌러 확정하거나 취소를 눌러 버리기"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24816,8 +24839,8 @@ msgstr "스케치 %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "편집 중: 스케치 %d   ·   N = 평면에 수직으로 보기   ·   도구 모음에서 완료 또는 취소"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "편집 중: 스케치 %d   ·   N = 평면에 수직으로 보기   ·   도구 모음에서 확인 또는 취소"
 
 # AI Translated
 #, c-format
@@ -26017,8 +26040,8 @@ msgid "On a stored face"
 msgstr "저장된 면 위"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "스케치 편집 중 — 핸들을 드래그하거나 치수를 클릭하여 편집"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "스케치 편집 중 — 핸들을 드래그하거나 치수를 더블 클릭하여 편집"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -26443,6 +26466,2702 @@ msgstr "응용 프로그램"
 msgid "Speed Dial"
 msgstr "스피드 다이얼"
 
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "바디 %1%은(는) 이미 \"%2%\"(피처 %3%)에 의해 위치가 지정되어 있으므로 \"%4%\"이(가) 이를 덮어씁니다"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "이 메이트는 바디 %1%을(를) 자기 자신을 기준으로 배치합니다"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "메이트 체인이 순환합니다: 바디 %1%이(가) 바디 %2%에 종속되고, 이는 다시 바디 %1%(으)로 이어집니다 — 결과가 피처 순서에 따라 달라집니다"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "커넥터 \"%1%\"이(가) 다른 면으로 옮겨졌을 수 있습니다(상위 편집으로 이 바디의 면 번호가 다시 매겨졌습니다)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "구성 스냅샷을 만들지 못했습니다."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer에서 구성 스냅샷을 만드는 중 오류가 발생했습니다."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicer 오류"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "%s에 장착된 필라멘트를 선택하십시오."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "필라멘트를 선택하십시오."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "필라멘트 매칭 규칙 알아보기."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Filament Track Switch가 설치되어 있어 외부 스풀은 지원되지 않습니다. 외부 스풀을 사용하려면 Filament Track Switch를 제거하십시오."
+
+msgid "Select Filament && Hotends"
+msgstr "필라멘트 및 핫엔드"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "모델 사진"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "보조 자료"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "프로젝트 필라멘트 목록"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "표준 모드 추천"
+
+# AI Translated
+msgid "Target Color"
+msgstr "목표 색상"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "색상 분해 선택"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "임의 모드"
+
+# AI Translated
+msgid "Material List"
+msgstr "재료 목록"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "표준 모드"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "분해하려면 같은 재료 유형의 필라멘트가 2개 이상 필요합니다"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "재료 목록은 최대 %1%가지 색상을 지원합니다. %2% 분해 후에는 재료 수가 %1%개를 초과합니다. 분해하기 전에 메인 화면에서 사용하지 않는 필라멘트를 삭제하십시오."
+
+# AI Translated
+msgid "Cyan"
+msgstr "시안"
+
+# AI Translated
+msgid "Magenta"
+msgstr "마젠타"
+
+# AI Translated
+msgid "Yellow"
+msgstr "노랑"
+
+# AI Translated
+msgid "White"
+msgstr "흰색"
+
+# AI Translated
+msgid "Red"
+msgstr "빨강"
+
+# AI Translated
+msgid "Green"
+msgstr "초록"
+
+# AI Translated
+msgid "Blue"
+msgstr "파랑"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "현재 필라멘트 목록에 %s이(가) 없습니다. 분해 후 혼합 필라멘트에 필요한 프로젝트 필라멘트가 자동으로 생성됩니다."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "대체 노즐:"
+
+# AI Translated
+msgid "All standard"
+msgstr "모든 표준"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "%s 구성 도우미에 오신 것을 환영합니다"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "%s 구성 마법사에 오신 것을 환영합니다"
+
+# AI Translated
+msgid "Welcome"
+msgstr "환영합니다"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "안녕하세요, %s에 오신 것을 환영합니다! 이 %s을(를) 통해 초기 구성을 진행합니다. 몇 가지만 설정하면 바로 출력할 수 있습니다."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "사용자 프로파일 제거 (제거 전에 스냅샷을 만듭니다)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "데스크톱 통합 수행 (시스템에서 이 실행 파일을 검색할 수 있도록 설정합니다)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "%s 제품군"
+
+# AI Translated
+msgid "Printer:"
+msgstr "프린터:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "제조사:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "프로파일:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(전체)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "<b>*</b> 표시된 %1%은(는) 설치된 일부 프린터와 <b>호환되지 않습니다</b>."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA 재료"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "설치된 모든 프린터가 선택한 %1%와(과) 호환됩니다."
+
+# AI Translated
+msgid "filament"
+msgstr "필라멘트"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA 재료"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "설치된 프린터 중 다음 프린터만 선택한 필라멘트와 호환됩니다"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "설치된 프린터 중 다음 프린터만 선택한 SLA 재료와 호환됩니다"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "사용자 정의 프린터 설정"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "사용자 정의 프린터"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "사용자 정의 프린터 프로파일 정의"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "사용자 정의 프로파일 이름:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "펌웨어 유형"
+
+# AI Translated
+msgid "Firmware"
+msgstr "펌웨어"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "프린터에서 사용하는 펌웨어 유형을 선택하십시오."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "베드 모양 및 크기"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "프린터 베드의 모양을 설정하십시오."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "잘못된 숫자 입력입니다."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "필라멘트 및 노즐 직경"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "출력 직경"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "프린터 핫엔드 노즐의 직경을 입력하십시오."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "노즐 직경:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "필라멘트의 직경을 입력하십시오."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "정밀도가 중요하므로 캘리퍼스로 필라멘트를 따라 여러 번 측정한 다음 평균을 계산하십시오."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "필라멘트 직경:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "노즐 및 베드 온도"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "필라멘트 압출에 필요한 노즐 온도(nozzle_temperature)를 입력하십시오."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "PLA는 160~230℃, ABS는 215~250℃가 일반적인 기준입니다."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "압출 온도:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "필라멘트가 가열 베드에 잘 붙는 데 필요한 베드 온도를 입력하십시오."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "PLA는 60℃, ABS는 110℃가 일반적인 기준입니다. 가열 베드가 없으면 0으로 두십시오."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "베드 온도:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA 재료"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "FFF 방식 프린터"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "SLA 방식 프린터"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "다음 프린터 프로파일에 기본 필라멘트가 없습니다: %1%수동으로 선택하십시오."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "다음 프린터 프로파일에 기본 재료가 없습니다: %1%수동으로 선택하십시오."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "다음 FFF 프린터 모델에 선택된 필라멘트가 없습니다:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "이 FFF 프린터 모델의 기본 필라멘트를 선택하시겠습니까?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "구성 마법사에서 구성이 편집되었습니다"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "모든 사용자 사전 설정이 삭제됩니다."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "새 제조사가 설치되었으며 해당 제조사의 프린터 중 하나가 활성화됩니다"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "새 프린터가 설치되었으며 활성화됩니다."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "일부 프린터가 제거되었습니다."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "새 필라멘트가 설치되었으며 활성화됩니다."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "새 SLA 재료가 설치되었으며 활성화됩니다."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "일부 필라멘트가 제거되었습니다."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "사용자 정의 프린터가 설치되었으며 활성화됩니다."
+
+# AI Translated
+msgid "<Back"
+msgstr "<뒤로"
+
+# AI Translated
+msgid "Next>"
+msgstr "다음>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "필라멘트 프로파일 선택"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "구성 도우미"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "구성 도우미 (&A)"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "구성 마법사"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "구성 마법사 (&W)"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "필라멘트 입구 A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "필라멘트 입구 B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "추천 재배치"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "시간을 절약하려면?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "필라멘트 상태:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "위치 조정 필요"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "정상"
+
+# AI Translated
+msgid "Unused"
+msgstr "미사용"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "아래 그림을 참고하여 프린터의 필라멘트를 재배치하면 최적의 결과를 얻고 약 %s을(를) 절약할 수 있습니다."
+
+# AI Translated
+msgid "Summary:"
+msgstr "요약:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "필라멘트 입구 A의 AMS"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "필라멘트 입구 B의 AMS"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "%d번 슬라이싱 필라멘트가 '%s'에 매칭되어 있습니다. '%s'에 할당하면 출력 시간을 절약할 수 있습니다."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*팁: 프린터에서 스풀 위치를 옮긴 경우 이 페이지를 닫고 필라멘트를 다시 매칭하십시오."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "요약: 현재 이 위치가 배치에 가장 적합합니다."
+
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "참고:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "이 객체 속 비우기"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "속을 비우고 구멍을 뚫은 모델 미리 보기"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "닫힘 거리"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "구멍 직경"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "구멍 깊이"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "선택한 구멍 제거"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "모든 구멍 제거"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "뷰 클리핑"
+
+msgid "Reset direction"
+msgstr "방향 초기화"
+
+# AI Translated
+msgid "Show supports"
+msgstr "서포트 표시"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "속 비우기 및 구멍 뚫기"
+
+msgid "Head diameter"
+msgstr "헤드 직경"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "새 섬 아래 서포트 고정"
+
+msgid "Remove selected points"
+msgstr "선택한 지점 제거"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "모든 지점 제거"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "변경 사항 적용"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "변경 사항 버리기"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "최소 지점 거리"
+
+# AI Translated
+msgid "Support points density"
+msgstr "서포트 지점 밀도"
+
+msgid "Auto-generate points"
+msgstr "포인트 자동 생성"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "수동 편집"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLA 서포트 지점"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "수동으로 편집한 서포트 지점을 저장하시겠습니까?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "서포트 지점을 저장하시겠습니까?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "자동 생성하면 수동으로 편집한 모든 지점이 지워집니다."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "정말 실행하시겠습니까?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "SLA 변형도구 키보드 단축키"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "참고: 일부 단축키는 편집 모드 또는 비편집 모드에서만 작동합니다."
+
+msgid "Left click"
+msgstr "좌 클릭"
+
+# AI Translated
+msgid "Add point"
+msgstr "지점 추가"
+
+msgid "Right click"
+msgstr "우 클릭"
+
+# AI Translated
+msgid "Remove point"
+msgstr "지점 제거"
+
+# AI Translated
+msgid "Move point"
+msgstr "지점 이동"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "선택 항목에 지점 추가"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "선택 항목에서 지점 제거"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "사각형으로 선택"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "사각형으로 선택 해제"
+
+# AI Translated
+msgid "Select all points"
+msgstr "모든 지점 선택"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "클리핑 평면 이동"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "클리핑 평면 재설정"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "편집 모드로 전환"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "굽기"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "텍스처 변위"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "텍스처 변위 칠 지우기"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "텍스처 변위 칠하기"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "텍스처 심 표시"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "텍스처 심 경로 표시"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "레이어 %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "아일랜드 배율 평균화"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "먼저 UV 편집기에서 아일랜드를 선택하십시오."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "텍스처 아일랜드 자르기"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "이 아일랜드에는 모서리를 공유하는 인접 아일랜드가 없습니다."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "텍스처 아일랜드 결합"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "텍스처 아일랜드 결합 해제"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "텍스처 심 지우기"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "텍스처 UV 편집 지우기"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "텍스처 투영 프레임 적용"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "텍스처 아일랜드 이동"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "텍스처 UV 편집"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "텍스처 변위 레이어 최대 개수에 도달했습니다."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "텍스처 변위 레이어 추가"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "선택한 텍스처를 불러올 수 없습니다."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "텍스처 변위 텍스처 변경"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "텍스처 이미지 선택 (높이 맵)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "텍스처 선택"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "내 텍스처에서 제거"
+
+# AI Translated
+msgid "Built-in"
+msgstr "기본 제공"
+
+# AI Translated
+msgid "No textures found."
+msgstr "텍스처가 없습니다."
+
+# AI Translated
+msgid "My textures"
+msgstr "내 텍스처"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "직접 가진 이미지를 높이 맵으로 가져옵니다. 이미지는 슬라이서가 굽기에 사용하는 형식으로 변환되어 개인 텍스처 폴더에 저장되며, OrcaSlicer와 함께 제공되는 텍스처와는 따로 보관됩니다."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG 또는 BMP - 가져올 때 높이 맵으로 변환됩니다. 직접 가져온 텍스처 위에 마우스를 올리면 제거할 수 있습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"내 텍스처에서 \"%s\"을(를) 제거하시겠습니까?\n"
+"\n"
+"이미지 파일이 텍스처 폴더에서 삭제됩니다. 이미 이 이미지를 사용하는 레이어는 그대로 유지됩니다."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "텍스처 제거"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "텍스처 변위 레이어 제거"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "텍스처 변위 레이어 순서 변경"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "텍스처 변위용 보이는 면 선택"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "텍스처 변위용 모델 전체 선택"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "텍스처 변위용 모델 세분화"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "먼저 세분화할 영역을 칠하십시오 - 적응형 세분화는 칠한 부분만 세분화합니다."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "텍스처 변위용 적응형 세분화"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "세분화할 부분이 없습니다 - 칠한 영역이 이미 목표 모서리 길이와 디테일 허용 오차를 충족하거나, 삼각형 예산을 이미 모두 사용했습니다."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "먼저 부드럽게 할 영역을 칠하십시오 - 스무딩은 모델에서 칠한 부분에만 적용됩니다."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "부드럽게 할 부분이 없습니다 - 칠한 영역의 폭이 삼각형 하나뿐이어서 \"바깥 테두리 무시\"가 켜져 있으면 이완할 내부 정점이 없습니다."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "텍스처 변위 부드럽게 하기"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "텍스처 변위용 모델 리메시"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "리메시로 모델이 바뀌지 않았습니다. 모델이 비다양체(열린 모서리 또는 세 개 이상의 삼각형이 공유하는 모서리)이거나, 이미 목표 모서리 길이를 충족했을 수 있습니다."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "칠한 부분이 없어 구울 것이 없습니다."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "텍스처 변위 굽기"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "칠한 부분이 없어 캡처할 굽기 단계가 없습니다."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "굽기 단계 (디버그)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "캡처 중..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "단계 캡처"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "굽기 버튼과 같은 굽기를 실행하되 단계마다 메시를 보관하여 여기에서 하나씩 살펴볼 수 있습니다. 모델에는 아무것도 반영되지 않습니다 - 잘못된 결과가 어느 단계에서 나왔는지 찾기 위한 기능입니다."
+
+# AI Translated
+msgid "Check topology"
+msgstr "토폴로지 확인"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "각 단계 후 열린 모서리와 비다양체 모서리의 수를 셉니다. 이를 통해 메시를 찢은 단계를 찾아낼 수 있습니다. 모든 모서리를 검사하므로 세밀한 굽기에서는 캡처 시간이 눈에 띄게 늘어납니다."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< 이전"
+
+# AI Translated
+msgid "Next >"
+msgstr "다음 >"
+
+# AI Translated
+msgid "triangles"
+msgstr "삼각형"
+
+# AI Translated
+msgid "vertices"
+msgstr "정점"
+
+# AI Translated
+msgid "Open edges"
+msgstr "열린 모서리"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "비다양체"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "퇴화"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "단계 메시 저장"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "단계 메시를 OBJ 파일로 다음 위치에 저장했습니다:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "단계 메시를 저장할 수 없습니다."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "캡처한 모든 단계를 OBJ 파일로 저장하여 메시 뷰어에서 나란히 열어 볼 수 있게 합니다."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "칠한 영역을 리메시된 모델로 옮길 수 없어 아무것도 변경하지 않았습니다. 프로 모드로 전환하여 칠하기 전에 리메시하십시오."
+
+# AI Translated
+msgid "Pro"
+msgstr "프로"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "표준 - 텍스처를 고르고, 원하는 곳에 칠한 뒤 굽기를 누릅니다. 메시에 필요한 작업은 이 한 단계에서 모두 자동으로 처리됩니다."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "프로 - 메시 준비를 직접 실행합니다: 리메시, 세분화, 굽기를 각각 별도 단계로 실행하며 모든 설정이 표시됩니다. 표준의 결과가 원하는 것과 다르고 그 이유를 알 때 사용하십시오."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "패널 도킹"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "패널 도킹 해제"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "이 패널을 분리하여 3D 뷰 위 어디로든 끌어 옮길 수 있게 하거나, 다시 도구 모음 옆에 도킹합니다."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "대상: %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "칠하려면 레이어 추가"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "칠하기 - 클릭하거나 드래그한 곳에 활성 레이어를 추가합니다. 마우스 오른쪽 버튼을 사용하거나 Shift를 누르고 있으면 지웁니다."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "지우기 - 클릭하거나 드래그한 곳에서 활성 레이어를 제거합니다. 마우스 오른쪽 버튼은 칠합니다."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "브러시 - 드래그하여 표면을 칠합니다"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "면 - 개별 삼각형을 클릭합니다"
+
+# AI Translated
+msgid "Connected area"
+msgstr "연결된 영역"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "연결된 영역 - 각도 임계값보다 날카로운 모서리를 넘지 않고 도달할 수 있는 영역을 채웁니다"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "굽기가 끝날 때까지 기다리십시오."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "먼저 레이어를 추가하십시오."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "활성 레이어에 아직 칠한 부분이 없습니다."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "모델 전체 선택"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "모델 전체 선택 - 모델의 모든 면을 활성 레이어로 칠합니다"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "모델 전체 지우기"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "모델 전체 지우기 - 모든 면에서 활성 레이어의 칠을 지웁니다"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "텍스처 변위 선택 재설정"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "원 - 카메라에서 보이는 브러시 아래의 모든 것을 칠합니다"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "구 - 커서 아래 지점을 둘러싼 구 안쪽만 칠합니다"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "각도 임계값 - 이보다 날카로운 모서리에서 채우기가 멈춥니다"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "삼각형을 클릭하여 칠하십시오"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "활성 레이어가 펼치기(LSCM)로 매핑되어 있어야 합니다."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "일반 - 실제 형상으로, 굽기가 만들 결과와 정확히 같습니다. 업데이트가 느립니다"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "빠름 - 요철을 실제로 만들지 않고 음영으로만 표시하며, 편집 중인 레이어에만 적용됩니다. 칠하는 동안 즉시 업데이트됩니다"
+
+# AI Translated
+msgid "Checker"
+msgstr "체커"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "체커 - 텍스처 대신 테스트 격자를 표시합니다. 정사각형이 정사각형으로 유지되는 곳은 텍스처가 왜곡되지 않으며, 늘어나는 곳은 텍스처도 늘어납니다"
+
+# AI Translated
+msgid "Distortion"
+msgstr "왜곡"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "왜곡 - 펼친 면 위에 늘어난 정도를 파랑에서 빨강으로 이어지는 히트맵으로 표시합니다"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "와이어프레임 - 메시 모서리를 겹쳐 표시합니다. 위의 보기와 별개로 작동합니다"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "무언가 바뀌는 즉시 미리 보기를 다시 만듭니다. 무거운 모델에서 칠하거나 슬라이더를 드래그할 때 끊김이 생기면 끄십시오 - 그러면 미리 보기는 손을 뗄 때까지 기다립니다."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "텍스처 레이어"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "다른 레이어 위로 드래그하여 순서를 바꿉니다. 첫 번째 레이어는 원래 표면 위에 놓이고, 그 뒤의 각 레이어는 앞선 레이어 위에 요철을 더합니다."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "이 레이어의 이미지를 다른 것으로 고릅니다. 칠, 깊이, 타일링은 그대로 유지됩니다."
+
+# AI Translated
+msgid "not painted"
+msgstr "칠하지 않음"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "위로 이동 - 먼저 적용"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "아래로 이동 - 나중에 적용"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "이 레이어 제거"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "요철의 높이: 텍스처의 흰색이 표면을 얼마나 들어 올리는지를 밀리미터 단위로 나타냅니다. 중간 레벨에서 달리 정하지 않는 한 검은색은 표면을 전혀 움직이지 않습니다."
+
+# AI Translated
+msgid "Tile size"
+msgstr "타일 크기"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "모델 위에서 텍스처 한 장의 폭입니다. 작을수록 패턴이 더 자주 반복되고 디테일이 더 세밀해집니다. 타일이 꺼져 있으면 단일 텍스처의 크기입니다."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "표면 위의 텍스처를 도 단위로 회전합니다 - 패턴을 모델의 모서리에 맞출 때 사용합니다."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "중간 레벨"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"어떤 회색이 원래 표면 위치에 머무를지 정합니다. 0이면 텍스처가 바깥쪽으로만 밀어냅니다. 0.5이면 중간 회색은 그대로 있고 더 어두운 회색은 안으로 파고들며 더 밝은 회색은 여전히 바깥으로 밀어냅니다 - 이미지 하나로 양각과 음각을 모두 만듭니다.\n"
+"\n"
+"안으로 파고드는 부분은 들어갈 공간이 있어야 합니다: 날카로운 안쪽 모서리나 얇은 벽에서는 깊은 홈이 반대편까지 뚫고 나갈 수 있습니다."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "안쪽으로 깊게 변위하면 자기 교차가 생길 수 있습니다."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "사용하기 전에 이미지를 흐리게 하여 급한 단차를 둥글게 다듬고 노이즈가 많은 사진의 잡티를 없앱니다. 요철이 거칠거나 자글자글해 보이면 높이십시오. 세밀한 디테일이 줄어듭니다."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "가장자리 페이드"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "칠한 영역의 가장자리에 가까워질수록 요철을 평평하게 하여, 단차로 끝나는 대신 원래 표면과 자연스럽게 이어지게 합니다."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "페이드가 안쪽으로 미치는 범위로, 칠한 영역에 대한 비율입니다. 값이 작으면 가장자리의 좁은 띠만 부드러워지고, 1이면 거의 전체가 평평해집니다."
+
+# AI Translated
+msgid "Invert"
+msgstr "요철 반전"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "요철을 뒤집습니다: 튀어나왔던 부분은 파이고, 파였던 부분은 튀어나옵니다. 이미지의 네거티브를 사용하는 것과 같습니다."
+
+# AI Translated
+msgid "Colours"
+msgstr "색상"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "칠한 영역을 텍스처의 요철뿐 아니라 색상으로도 출력합니다. 각 색상은 불러온 필라멘트 중 가장 가까운 것에 매칭되며, 칠하지 않은 부분은 객체 본래의 색상을 유지합니다."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "이 텍스처는 회색조 높이 맵이므로 적용할 색상이 없습니다. 이 기능을 사용하려면 컬러 이미지를 가져오십시오."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "필라멘트 혼합"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "두 필라멘트를 번갈아 배치하여 그 사이의 색상을 흉내 내므로, 적은 수의 필라멘트로도 사진이나 그라데이션을 표현할 수 있습니다. 단색 영역으로 이루어진 이미지는 어느 쪽이든 똑같이 출력됩니다. 끄면 영역마다 필라멘트 하나를 사용합니다."
+
+# AI Translated
+msgid "Mix by"
+msgstr "혼합 방식"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "표면"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"레이어: 두 필라멘트가 출력 레이어마다 번갈아 사용됩니다. 수직면에서는 부드럽게 섞이지만, 레이어 하나가 하나의 띠가 되는 평평한 면에서는 효과가 사라집니다.\n"
+"표면: 표면 전체에 촘촘한 체커보드를 만듭니다. 어떤 각도에서도 작동하지만 혼색이 아니라 질감처럼 보일 수 있습니다.\n"
+"자동: 수직면에는 레이어를 사용하고, 평평한 면에서는 체커보드가 패턴으로 드러나므로 더 가까운 필라멘트 하나를 사용합니다."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "필라멘트 %2%개로 출력 가능한 색상 %1%개"
+
+# AI Translated
+msgid "Denoise"
+msgstr "노이즈 제거"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "메시보다 세밀한 디테일 때문에 남는, 잘못된 색상의 외딴 삼각형을 정리합니다. 결과가 얼룩덜룩해 보이면 높이고, 작은 형상이 사라지면 낮추십시오."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "매핑"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "삼면 투영 (블렌딩)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "삼면 투영 - 세 축 모두에서 동시에 텍스처를 투영하고 그 사이를 블렌딩하므로, 날카로운 모서리를 감싸는 패치에도 이음매가 생기지 않습니다."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "원통 - 칠한 영역 자체의 중심을 기준으로 텍스처를 감쌉니다. 둥근 형상에 적합합니다."
+
+# AI Translated
+msgid "Spherical"
+msgstr "구형"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "구형 - 칠한 영역 자체의 중심을 기준으로 텍스처를 두 방향으로 감쌉니다."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "펼치기 (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "펼치기 - 칠한 영역을 평평하게 펼쳐 텍스처가 최대한 늘어나지 않도록 매핑합니다. 먼저 날카로운 모서리를 따라 영역을 여러 조각으로 잘라(심 각도 참조) 각 조각이 따로 평평하게 놓일 수 있게 합니다."
+
+# AI Translated
+msgid "From view"
+msgstr "현재 뷰에서"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "현재 뷰에서 - 슬라이드 프로젝터처럼 보고 있는 방향에서 칠한 영역에 곧바로 투영합니다."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "UV 편집기 열기"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "UV 편집기를 엽니다. 칠한 영역 위에 텍스처가 어떻게 배치되었는지 보고, 심을 자르고, 조각을 옮길 수 있습니다."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "아직 펼치지 않음"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "아일랜드 %1%개"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "현재 뷰 캡처"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "이 각도에서는 아무것도 보이지 않습니다 - 투영할 부분이 보이도록 모델을 돌리십시오."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "슬라이드 프로젝터처럼 지금 보고 있는 방향에서 칠한 영역에 텍스처를 투영합니다. 사용자를 등진 면은 늘어나므로, 먼저 원하는 표면에 뷰를 맞추십시오."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "보이는 면에만 투영"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "지금 실제로 보이는 면 - 사용자를 향하고 다른 것에 가려지지 않은 면 - 만 칠하고 그 면에 투영합니다. 레이어에 칠한 내용을 대체합니다."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "투영 프레임"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "모델 위로 끌어 놓는 창을 엽니다. 이 창을 통해 보이는 부분에 텍스처가 적용되고, 창의 테두리가 투영의 가장자리가 됩니다."
+
+# AI Translated
+msgid "Opacity"
+msgstr "불투명도"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "프레임 창을 배치하는 동안 얼마나 불투명하게 보일지 정합니다. 낮추면 창 너머로 모델이 보입니다. 결과에는 영향을 주지 않습니다."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "투영 프레임 적용"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "프레임 안에 모델이 없습니다 - 투영할 부분 위로 프레임을 옮기십시오."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "프레임을 적용할 수 없습니다. 프레임이 3D 뷰와 겹치는지 확인하십시오."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "지금 보고 있는 방향에서 프레임을 통해 텍스처를 투영하고 프레임 안의 면을 칠합니다. 레이어에 칠한 내용을 대체하며, 결과가 모델에 고정되므로 이후에 시점을 돌려도 됩니다."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "투영 프레임으로 배치됨."
+
+# AI Translated
+msgid "Tile"
+msgstr "타일"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "칠한 영역 전체에 텍스처를 반복합니다. 끄면 데칼처럼 텍스처 한 장을 타일 크기에서 정한 크기로 배치합니다."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "텍스처 반복 방식을 고르려면 타일을 켜십시오."
+
+# AI Translated
+msgid "Repeat"
+msgstr "반복"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "반전 반복"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "반전 반복 - 타일을 하나 걸러 뒤집어 가장자리가 끊김 없이 맞닿게 합니다"
+
+# AI Translated
+msgid "Blend"
+msgstr "블렌드"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "추가"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "빼기"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "곱하기"
+
+# AI Translated
+msgid "Divide"
+msgstr "나누기"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "기본 레이어는 아래에 결합할 대상이 없으므로 항상 더해집니다."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "이 레이어가 아래 레이어와 겹치는 곳에서 어떻게 작용할지 정합니다. 추가와 빼기는 요철을 쌓거나 깎아 냅니다. 곱하기와 나누기는 아래에 있는 것의 크기를 조절하므로 이 레이어가 그 위의 마스크가 됩니다 - 이 경우 깊이는 강도로 작용하며, 1 mm이면 흰색 영역은 그대로 유지됩니다."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "배치 조정"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "배치 조정 - 모델 위의 핸들을 드래그하여 텍스처를 옮깁니다"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "먼저 이 레이어로 무언가를 칠하십시오."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "설정 간단히"
+
+# AI Translated
+msgid "More settings"
+msgstr "설정 더 보기"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "레이어 %1%개 모두 사용함"
+
+# AI Translated
+msgid "Add layer"
+msgstr "레이어 추가"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "세분화"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "칠한 영역만 (적응형)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "모든 곳이 아니라 칠한 곳에만 삼각형을 추가합니다. 작은 데칼이 있는 큰 부품에서는 삼각형 수천 개와 수백만 개의 차이가 나며, 칠한 내용도 세분화 후에 그대로 유지됩니다."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "텍스처 디테일 따르기"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "삼각형을 고르게 퍼뜨리는 대신 텍스처가 실제로 굽어지는 곳에 사용합니다 - 능선과 모서리를 따라서는 촘촘하게, 평평한 곳에서는 성기게 배치합니다. 대부분의 텍스처에서 더 적은 삼각형으로 같은 디테일을 얻습니다."
+
+# AI Translated
+msgid "Max edge"
+msgstr "최대 모서리"
+
+# AI Translated
+msgid "Target edge"
+msgstr "목표 모서리"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "텍스처가 평평한 곳이라도 칠한 영역의 어떤 삼각형도 이보다 크게 남지 않습니다. 표현하려는 가장 작은 형상의 크기에 가깝게 유지하십시오."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "칠한 영역의 삼각형을 이보다 큰 것이 없을 때까지 분할합니다. 작을수록 디테일이 세밀해지지만 삼각형이 빠르게 크게 늘어납니다."
+
+# AI Translated
+msgid "Detail"
+msgstr "디테일"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "메시가 텍스처가 나타내는 형상에서 얼마나 벗어날 수 있는지를 밀리미터 단위로 정합니다. 작을수록 세밀한 디테일을 따르지만 삼각형이 늘어나고, 클수록 큰 형상만 따릅니다."
+
+# AI Translated
+msgid "Min edge"
+msgstr "최소 모서리"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "삼각형 크기의 하한으로, 텍스처의 급한 단차를 끝없이 따라가지 않게 합니다. 더 세밀한 요철을 원하면 낮추고, 날카로운 모서리에서 삼각형 수가 폭증하면 높이십시오."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "가장자리 디테일"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "요철이 원래 표면으로 돌아가는, 칠한 영역의 윤곽을 따라 사용할 삼각형 크기입니다. 그 테두리가 들쭉날쭉해 보이면 낮추십시오. 윤곽을 따라서만 삼각형이 늘어납니다. 0이면 끕니다."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "색상 디테일"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "두 색상이 만나는 곳의 삼각형 크기입니다. 삼각형마다 필라멘트 하나로 출력되므로 색상 경계는 그 경계를 따라 놓인 삼각형만큼만 선명해질 수 있습니다 - 색상이 바뀌는 곳은 표면이 평평하므로 다른 어떤 설정도 그곳을 세분화하지 않습니다. 0이면 끕니다."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "삼각형 예산: 아래의 삼각형에서 설정합니다."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "미리 보기: 삼각형 %1%개"
+
+# AI Translated
+msgid "Steps"
+msgstr "단계"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "모델의 모든 삼각형을 4개로 나누는 작업을 이 횟수만큼 반복합니다. 단계마다 삼각형 수가 4배가 되므로 - 3단계면 100 k개가 6.4 M개가 됨 - 모델 전체를 세밀하게 할 필요가 없다면 칠한 영역만 세분화하는 편이 좋습니다."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "미리 보기 숨기기"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "세분화 미리 보기"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "모델을 건드리지 않고 세분화 결과를 와이어프레임으로 보여 줍니다."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "세분화"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "칠한 영역을 목표 모서리 길이까지 세분화하고 칠한 내용을 더 세밀한 메시로 옮깁니다. 모델의 나머지 부분은 그대로 둡니다."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "모델의 형상을 세분화된 메시로 대체하고 아직 굽지 않은 칠을 지웁니다(이미 구운 요철에는 영향이 없습니다)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "리메시"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "모델 전체를 다시 만들 때 사용할 삼각형 크기(밀리미터)입니다. 변위는 고른 메시에서 가장 잘 작동하며, 이 설정으로 고르지 않은 가져온 메시를 고르게 만듭니다."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "날카로운 모서리 유지"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "나머지 부분을 리메시하는 동안 날카로운 모서리와 열린 경계를 제자리에 고정합니다. 이 옵션이 없으면 리메셔가 표면을 따라 정점을 밀어 모든 뚜렷한 모서리를 둥글게 만듭니다 - 정육면체의 모서리가 울퉁불퉁해집니다."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "리메셔가 보존할 모서리로 취급하려면 접힌 부분이 얼마나 날카로워야 하는지를 도 단위로 정합니다. 낮추면 모델의 형상이 더 많이 보존되고, 높이면 더 많은 부분이 고르게 다시 만들어집니다."
+
+# AI Translated
+msgid "Remesh"
+msgstr "리메시"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "모델 전체를 이 모서리 길이에 가까운 삼각형으로 다시 만들어 - 큰 삼각형은 나누고 작은 삼각형은 합침 - 변위가 고른 밀도로 작동하게 합니다. 형상을 대체하지만, 칠한 내용은 공간적으로 새 삼각형에 옮겨지므로 유지됩니다(이미 구운 요철도 유지됩니다)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "경계까지 변위"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "요철이 칠한 영역의 가장자리까지 이어지게 합니다. 끄면 바깥 테두리를 평평하게 유지하여 변위가 칠한 영역 안에만 머물지만, 경계의 패턴이 평평해집니다."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "결과 부드럽게 하기"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "텍스처를 적용한 후 형상을 부드럽게 하여 저해상도 이미지로 생긴 급한 단차를 없앱니다. 변위로 움직인 부분만 처리합니다. 레이어의 스무딩 슬라이더는 다른 기능으로, 사용하기 전에 이미지를 흐리게 합니다."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "강도"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "각 패스에서 정점을 이웃 정점 쪽으로 얼마나 끌어당길지 정합니다. 값이 높으면 요철이 빠르게 둥글어지고, 값이 낮으면 패스가 더 필요하지만 디테일이 더 많이 남습니다."
+
+# AI Translated
+msgid "Passes"
+msgstr "패스"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "실행할 스무딩 패스 횟수입니다. 패스가 많을수록 스무딩이 표면에 더 넓게 퍼지며, 각 패스에서 얼마나 움직일지는 강도가 정합니다."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "바깥 테두리 무시"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "칠한 영역의 바깥 테두리를 스무딩에서 제외합니다. 칠한 영역 바깥의 이웃 정점은 움직이지 않으므로, 테두리를 부드럽게 하면 요철이 아래로 끌려 내려가 경계의 패턴이 반쯤 녹은 것처럼 남습니다."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "구운 메시 지금 부드럽게 하기"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "위의 스무딩을 칠한 영역 안의 모델 자체에 지금 바로 적용합니다. 이미 구워진 요철을 위한 기능입니다 - 아직 굽지 않은 부분은 굽기에서 부드럽게 처리됩니다."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "실험적: 기존 굽기 파이프라인"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "메시를 준비(리메시, 적응형 세분화, 텍스처의 급한 단차를 따른 절단)한 후 메시에 이미 있는 정점을 움직여 굽습니다. 색상에 필요한 토폴로지가 유지됩니다. 기본 파이프라인은 대신 세분화, 가느다란 삼각형 정리, 변위, 단순화를 한 번에 실행합니다. 미리 준비할 것은 없지만 아직 색상은 만들지 못합니다."
+
+# AI Translated
+msgid "Budget"
+msgstr "예산"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "이번 굽기에서 칠한 영역에 사용할 수 있는 삼각형 수(천 개 단위)입니다. 모델의 나머지 부분에 이미 구운 요철은 이와 별도로 유지되므로, 다른 곳을 두 번째로 구워도 첫 번째와 같은 예산을 받습니다. 해상도 아래의 경고에 디테일이 들어가지 않는다고 표시되면 높이십시오. 0이면 세분화로 만들어진 삼각형을 개수와 관계없이 모두 유지합니다."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "메시를 텍스처 경계에 맞추기"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "변위하기 전에 정점을 옆으로 밀어 텍스처의 경계 위로 옮깁니다. 변위는 정점을 위아래로만 움직일 수 있으므로, 이 옵션이 없으면 이미지의 급한 단차가 삼각형이 우연히 놓인 곳에 생겨 계단 모양이 됩니다. 정점을 먼저 단차 위로 옮기면 같은 삼각형 수로 곧은 벽을 얻습니다."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "가느다란 삼각형 정리"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "변위가 샘플링하기 전에, 세분화가 모델의 원래 테셀레이션에서 물려받은 가느다란 삼각형을 병합하여 없앱니다. 가느다란 삼각형의 세 꼭짓점은 텍스처의 서로 무관한 세 곳에 놓이게 되며, 이 때문에 요철이 들쭉날쭉해 보입니다."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "켜짐: 해상도가 모델 크기에 맞춰지고 예산은 기본값으로 유지됩니다. 둘 다 직접 설정하려면 선택을 해제하십시오 - 텍스처가 부품에 비해 훨씬 세밀하거나 훨씬 거칠 때 해 볼 만합니다."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "모델 크기에 따라 선택됨: 삼각형 %1$.2f mm, 예산 %2% k. 직접 설정하려면 자동을 선택 해제하십시오."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "칠한 영역 아래의 메시를 얼마나 세밀하게 만들지를 밀리미터 단위로 정합니다. 텍스처에서 얻으려는 디테일보다 작아야 합니다 - 0.5 mm 홈에는 0.5 mm보다 훨씬 작은 삼각형이 필요합니다. 작을수록 삼각형이 빠르게 늘어납니다: 절반으로 줄이면 4배가 필요하며, 예산을 넘으면 굽기가 다시 단순화하면서 디테일도 함께 사라집니다."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "삼각형이 약 %1%개 필요하지만 예산은 %2%입니다 - 굽기가 다시 단순화하면서 디테일이 사라집니다."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "세분화로 모델에 추가할 수 있는 삼각형 수(천 개 단위)입니다. 가장 맞지 않는 삼각형부터 항상 먼저 분할하므로, 예산을 모두 쓰더라도 가장 눈에 띄는 곳에 쓰입니다. 요철이 여전히 거칠어 보이면 높이십시오."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "굽기를 중지합니다. 이미 완료된 부분은 모델에 남으며 실행 취소할 수 있습니다."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "굽지 않고 도구를 닫습니다. 칠, 레이어, 설정은 모델에 그대로 남습니다."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "준비 중..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "굽는 중..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "아직 칠한 부분이 없습니다. UV 편집기의 심 도구가 켜져 있어 모델에 그은 획이 칠하기 대신 심을 표시합니다 - 칠하려면 창에서 심 도구를 끄십시오."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "아직 칠한 부분이 없습니다."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "이미 있는 정점을 움직여 칠한 높이 맵을 실제 형상으로 바꿉니다. 메시가 너무 거칠어 디테일이 드러나지 않으면 먼저 세분화를 사용하십시오."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "칠한 높이 맵을 실제 형상으로 바꿉니다. 먼저 메시를 고른 밀도로 리메시하고 텍스처가 굽어지는 곳을 세분화하여 디테일이 놓일 정점을 확보합니다 - 이 모든 것을 한 단계로 처리합니다."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "모델: 삼각형 %1%개 - 굽기는 예산 한도 내에서 위의 해상도까지 세분화합니다"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "굽기는 기존 정점을 움직입니다 - 모델은 삼각형 %1%개로 유지됩니다"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "굽기 결과: 삼각형 최대 약 %1% k개"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "칠하지 않은 레이어 %1%개, 건너뜀"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% 칠하지 않음, 건너뜀"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "텍스처 변위 칠하기 진입"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "텍스처 변위 칠하기 나가기"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "텍스처 변위 편집"
+
+msgid "Choose SLA archive:"
+msgstr "SLA 압축파일 선택:"
+
+# AI Translated
+msgid "Import file"
+msgstr "파일 가져오기"
+
+msgid "Import model and profile"
+msgstr "모델과 파일 가져오기"
+
+msgid "Import profile only"
+msgstr "프로필만 가져오기"
+
+msgid "Import model only"
+msgstr "모델만 가져오기"
+
+msgid "Accurate"
+msgstr "정밀한"
+
+msgid "Balanced"
+msgstr "균형 잡힌"
+
+msgid "Quick"
+msgstr "빠른"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "텍스처 변위 굽는 중"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "굽기로 변위가 생기지 않아 아무것도 변경하지 않았으며 칠은 유지되었습니다. 칠한 레이어에 텍스처가 있고 깊이가 0이 아닌지 확인하십시오."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "삼각형 예산 때문에 디테일이 제한되었습니다: 이 해상도에는 삼각형 %1%개가 필요하지만 예산으로 %2%개만 유지되었습니다. 전체 디테일을 얻으려면 예산을 높이거나 해상도를 더 거칠게 하십시오."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "굽기 단계 캡처 중"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "텍스처 변위용 메시 준비 중"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "클릭하여 비율 편집"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "혼합 필라멘트 편집"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "효과 미리 보기"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "혼합할 재료 선택"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ 재료 추가"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- 재료 삭제"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "그라데이션 효과"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "부품별 그라데이션 효과 사용"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "혼합 추천"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- 선택 --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "슬롯 %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "서로 다른 필라멘트 유형은 혼합할 수 없습니다: %s. 같은 필라멘트 유형을 선택하십시오."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "모든 구성 요소에 필라멘트를 선택하십시오."
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "서로 다른 필라멘트 유형은 혼합할 수 없습니다"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "최대 3가지 재료까지 혼합할 수 있습니다"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "최대 구성 요소 수에 도달했습니다"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "세 번째 재료 제거"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3D 모델"
+
+# AI Translated
+msgid "Click to return"
+msgstr "클릭하여 돌아가기"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "왼쪽 화살표"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "클릭하여 계속"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "오른쪽 화살표"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "%s 플러그인 선택"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "아래 목록에서 %s 플러그인을 선택하십시오."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "이 유형의 플러그인이 없습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "플러그인 파일: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "프로세스 플러그인"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "필라멘트 플러그인"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "프린터 플러그인"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "구성이 올바른 JSON이 아닙니다. 변경 사항이 저장되지 않았습니다."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "구성이 업데이트되었습니다. 유지하려면 사전 설정을 저장하십시오."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"\"%s\"의 기본 구성을 복원하시겠습니까?\n"
+"\n"
+"사전 설정의 재정의를 버리고 전역 구성을 사용합니다."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "기본값 복원"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "전역 구성을 사용합니다. 유지하려면 사전 설정을 저장하십시오."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "이 기능은 더 이상 사용할 수 없습니다."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "플러그인의 구성 UI를 불러오지 못했습니다(%1%). 기본 편집기를 표시합니다."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "플러그인 삭제"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "구독 취소"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "플러그인 덮어쓰기"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr ".py 또는 .whl 플러그인 패키지를 선택하십시오."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "플러그인 패키지를 설치하지 못했습니다. 자세한 내용은 로그를 확인하십시오."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"플러그인 \"%s\"이(가) 이미 설치되어 있습니다.\n"
+"\n"
+"이 패키지를 설치하면 기존 플러그인을 덮어씁니다."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "덮어쓰기"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "플러그인 설치 중"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "\"%s\"을(를) 설치했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "\"%s\"을(를) 활성화하지 못했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "\"%s\"을(를) 활성화했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"설치된 다음 플러그인을 디스크에서 찾을 수 없습니다:\n"
+"%s\n"
+"\n"
+"OrcaSlicer에서 제거하시겠습니까?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "누락된 플러그인"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "플러그인 데이터 새로 고치는 중"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "플러그인을 언로드하지 못했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "\"%s\"을(를) 비활성화했습니다."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "플러그인 매니페스트를 찾을 수 없습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "\"%s\" 활성화 중..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "\"%s\"을(를) 사용하도록 설정했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "\"%s\"을(를) 사용하지 않도록 설정했습니다."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "플러그인 다운로드 중"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "플러그인을 다운로드하지 못했습니다."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "구성이 저장되었습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"\"%s\"의 기본 구성을 복원하시겠습니까?\n"
+"\n"
+"이 기능에 현재 저장된 설정을 버립니다."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "기본 구성이 복원되었습니다."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "플러그인 업데이트 중"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "플러그인을 업데이트하지 못했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "\"%s\"을(를) 업데이트했습니다."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "플러그인 폴더를 확인할 수 없습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"플러그인 \"%s\"을(를) 삭제하시겠습니까?\n"
+"\n"
+"로컬 플러그인 파일이 제거됩니다. 플러그인은 클라우드에 남아 있으므로 다시 설치할 수 있습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"플러그인 \"%s\"을(를) 삭제하시겠습니까?\n"
+"\n"
+"플러그인 폴더가 영구적으로 제거됩니다."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "플러그인을 삭제하지 못했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "\"%s\"을(를) 삭제했습니다."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "플러그인 삭제 중"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "플러그인 삭제 중..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"플러그인 \"%s\"의 구독을 취소하시겠습니까?\n"
+"\n"
+"플러그인 추적을 중지하고 로컬 플러그인 파일을 모두 삭제합니다."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "플러그인 구독을 취소하지 못했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "\"%s\"의 구독을 취소했습니다."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "플러그인 구독 취소 중"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "로컬 파일을 삭제하고 플러그인 구독을 취소하는 중..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "플러그인 다시 불러오는 중"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "플러그인을 다시 불러오지 못했습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "\"%s\"을(를) 다시 불러왔습니다."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "플러시 모드 설정"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "최상의 출력 품질을 위해 속도 및 온도 전환과 함께 완전한 플러시를 수행합니다."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "더 빠른 플러시를 위해 최적화된 플러시 온도와 배수, 더 강한 압출을 사용합니다. 일부 극단적인 경우 색상이 약간 섞일 수 있습니다."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "프라임 절약"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "프라임 낭비를 줄이고 더 빠르게 출력합니다. 색상이 약간 섞이거나 작은 표면 결함이 생길 수 있습니다."
+
+# AI Translated
+msgid "Terminal"
+msgstr "터미널"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "원클릭 CMYW 자동 혼합"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "원클릭 RYBW 자동 혼합"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "프로젝트 물리 필라멘트"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "새 물리 필라멘트"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "프로젝트 혼합 필라멘트"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "새 혼합 필라멘트"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "프로젝트는 최대 %d개의 필라멘트를 지원합니다. 초과한 필라멘트는 버려집니다."
+
+# AI Translated
+msgid "Import Model"
+msgstr "모델 가져오기"
+
+# AI Translated
+msgid "Original"
+msgstr "원본"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "다색"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "입력한 텍스처 모델"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "처리된 다색 모델"
+
+# AI Translated
+msgid "Color Count"
+msgstr "색상 수"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "스무딩 수준"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "최적의 색상 수만 자동으로 결정하고 필라멘트 매핑을 다시 계산합니다"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "지정한 색상 수와 스무딩 수준으로 텍스처를 칠하기로 변환합니다"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "알림: 매개변수가 변경되었습니다. 반영하려면 적용을 클릭하십시오"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "필라멘트 매핑"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "필라멘트 매핑을 원클릭 혼합 이전 상태로 재설정합니다"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "텍스처 색상 가져오기에 사용할 원클릭 자동 혼합 모드를 선택하십시오"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "같은 필라멘트 자동 병합"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "동일한 필라멘트를 프로젝트의 기존 필라멘트에 자동으로 병합합니다"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "매칭 건너뛰기"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "필라멘트 매핑을 건너뛰고 단색 모델로 가져옵니다"
+
+# AI Translated
+msgid "Processing"
+msgstr "처리 중"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "텍스처 색상 계산 중..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "메시 복구 중"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "계산에 실패했습니다. 매개변수를 조정한 후 다시 시도하십시오."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "메시에 비다양체 형상이나 열린 경계가 있습니다. 그대로 가져오거나, 가져오기 전에 Windows 3D 복구 서비스로 복구할 수 있습니다."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "메시 복구"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "복구하지 않고 가져오기"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "복구 후 가져오기"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "메시에 비다양체 형상이나 열린 경계가 있습니다."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "메시 문제"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "선택한 이미지가 비어 있습니다."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "텍스처를 사용할 수 있도록 준비하지 못했습니다."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "직접 가져온 텍스처만 제거할 수 있습니다."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "텍스처 파일을 삭제할 수 없습니다."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "가져온 텍스처용 폴더를 만들 수 없습니다."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "선택한 이미지를 불러올 수 없습니다."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "가져온 텍스처를 저장하지 못했습니다."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "텍스처 파일을 읽을 수 없습니다."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "투영 프레임 - 모델 위로 끌어 놓은 다음 적용"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "아일랜드 이동 중  |  손을 떼면 놓기, Esc로 취소"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "아일랜드 회전 중: %d°  |  Shift = 15° 단위 스냅, 클릭하여 확정, Esc로 취소"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "아일랜드 배율 조정 중  |  클릭하여 확정, Esc로 취소"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "정점 이동 중  |  손을 떼면 놓기"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "모서리 이동 중  |  손을 떼면 놓기"
+
+# AI Translated
+msgid "Panning"
+msgstr "화면 이동 중"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "모델에서 영역을 칠한 다음 펼치기를 누르십시오"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "여기에서 UV를 편집하려면 텍스처 레이어의 매핑으로 펼치기를 선택하십시오"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "정점 %d개 선택됨  |  드래그 = 함께 이동, Shift/Ctrl 클릭 = 추가/제거"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "정점 모드: 정점을 드래그하여 모양 변경  |  Shift/Ctrl 클릭 = 다중 선택, 휠 = 확대/축소, Home = 맞추기"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "모서리 %d개 선택됨  |  드래그 = 함께 이동, Shift/Ctrl 클릭 = 추가/제거"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "모서리 모드: 아일랜드 모서리를 드래그하여 모양 변경  |  Shift/Ctrl 클릭 = 다중 선택, 휠 = 확대/축소, Home = 맞추기"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "아일랜드 %d개 선택됨  |  드래그 = 함께 이동, Shift/Ctrl 클릭 = 추가/제거, R/S = 기준 아일랜드 회전/배율 조정"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "아일랜드 %d 선택됨  |  드래그 = 이동, R = 회전, S = 배율 조정, Shift/Ctrl 클릭 = 다중 선택, Home = 맞추기"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "아일랜드를 클릭하여 선택  |  Shift/Ctrl 클릭 = 다중 선택, 휠 = 확대/축소, 가운데 버튼 드래그 = 화면 이동, Home = 모두 맞추기"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  스냅 켜짐"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "텍스처 변경 - 텍스처 라이브러리에서 다른 텍스처를 선택합니다"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "높이 맵 - 아일랜드 아래에 레이어의 텍스처를 표시합니다"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "체커 - 테스트 격자입니다. 펼친 면이 늘어나지 않는 곳에서는 정사각형이 정사각형으로 유지됩니다"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "왜곡 - 펼치기로 늘어난 정도에 따라 각 아일랜드에 색을 칠합니다"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "펼치기"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "심 각도"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "이보다 날카로운 모서리는 잘리고, 양쪽 조각은 따로 평평하게 펼쳐집니다. 낮추면 더 많이 자릅니다: 각 조각이 덜 늘어난 채로 평평하게 놓이지만, 잘린 곳에서 텍스처가 이어지지 않습니다. 다음 펼치기부터 적용됩니다."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "아일랜드 연결"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "펼친 결과를 연결된 전개도로 배치합니다: 모서리를 공유하는 조각을 서로 옆에 펼칩니다(정육면체가 흩어진 정사각형 6개가 아니라 이어진 전개도가 됩니다). 각 조각은 별개의 아일랜드로 남으므로, 나중에 어느 것이든 직접 옮길 수 있습니다."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "아일랜드 - 아일랜드 전체를 이동, 회전, 배율 조정합니다"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "정점 - 정점을 드래그하여 모양을 바꿉니다. Shift/Ctrl로 다중 선택"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "모서리 - 모서리를 드래그하여 모양을 바꿉니다. Shift/Ctrl로 다중 선택"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "심 표시 - 모델에서 모서리를 클릭하여 그 모서리를 따라 펼친 면을 자릅니다. 커서 아래의 모서리는 노란색으로 강조 표시됩니다. 클릭하면 빨간색으로 표시되고, 빨간 모서리를 다시 클릭하면 표시가 해제됩니다. 이 기능이 켜져 있는 동안에는 칠하기가 일시 중지됩니다."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "경로 - 모서리를 하나하나 클릭하는 대신 시작점과 끝점을 클릭하면, 그 사이의 최단 경로 전체가 한 번에 심으로 지정됩니다. 심을 표시하는 동안 사용할 수 있습니다."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "심 지우기 - 이 레이어에 표시된 모든 심을 제거합니다"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "배율 평균화 - 모든 아일랜드에 같은 텍셀 밀도를 부여합니다"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "자르기 - 선택한 아일랜드를 긴 축을 가로질러 나눕니다"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "결합 - 선택한 아일랜드를 공유 모서리를 따라 가장 가까운 인접 아일랜드 쪽으로 펼칩니다"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "결합 해제 - 선택한 아일랜드를 원래의 패킹 위치로 되돌립니다"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "UV 편집 지우기 - 수동으로 옮긴 정점/모서리를 모두 버리고 펼친 결과를 자동 생성된 모양으로 되돌립니다"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "스냅 - 아일랜드를 다른 아일랜드에 대고 드래그하면 서로 붙입니다"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "모든 아일랜드 맞추기 (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "펼치기로 매핑된 레이어 없음"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "%.1f mm 타일"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "오래됨 - 이 펼치기를 만든 뒤 칠, 심 또는 심 각도가 변경되었습니다. 눌러서 다시 펼치십시오."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "칠한 영역을 UV 아일랜드로 펼칩니다. 편집할 때마다가 아니라 이 버튼을 누를 때만 계산되므로, 먼저 칠하고 심 각도를 바꾸거나 심을 표시한 다음 펼치기를 누르십시오."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "아일랜드 %d개, 면 %s개"
+
+# AI Translated
+msgid "Forward"
+msgstr "앞으로"
+
+# AI Translated
+msgid "Tools"
+msgstr "도구"
+
+# AI Translated
+msgid "View Source"
+msgstr "소스 보기"
+
+# AI Translated
+msgid "View Text"
+msgstr "텍스트 보기"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "탐색 처리"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "새 창 처리"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "편집 모드"
+
+# AI Translated
+msgid "Run Script"
+msgstr "스크립트 실행"
+
+# AI Translated
+msgid "Add user script"
+msgstr "사용자 스크립트 추가"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "사용자 지정 사용자 에이전트 설정"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "선택 해제"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "선택 항목 삭제"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "사용자 지정 스킴 예제"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "메모리 파일 시스템 예제"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "컨텍스트 메뉴 사용"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "개발자 도구 사용"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "%s 로드 중 오류가 발생했습니다"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "%1% 로드 대상: %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "%s 로드"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"플러그인 \"%s\"이(가) Python 감사 이벤트 \"%s\"에 대한 권한을 요청하고 있습니다.\n"
+"\n"
+"이 작업에는 감사 후크가 표시할 수 있는 대상이 없습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 파일 읽기를 요청하고 있습니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 파일 읽기/쓰기를 요청하고 있습니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 파일 생성을 요청하고 있습니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 파일 삭제를 요청하고 있습니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 주소로 HTTP 요청을 보내려고 합니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 주소로 네트워크 연결을 열려고 합니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"플러그인 \"%s\"이(가) 다음 명령 실행을 요청하고 있습니다:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "플러그인 \"%s\"이(가) Python 감사 이벤트 \"%s\"에 대한 권한을 요청하고 있습니다."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "플러그인 권한 요청"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "플러그인의 구성 UI가 비어 있습니다. 기본 편집기를 표시합니다."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "이 기능은 더 이상 사용할 수 없습니다. 변경 사항이 저장되지 않았습니다."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "구성을 디스크에 쓸 수 없습니다. 변경 사항이 저장되지 않았습니다."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "플러그인이 기본 구성을 제공하지 못했습니다(%1%). 아무것도 변경되지 않았습니다."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "구성을 디스크에 쓸 수 없습니다. 아무것도 변경되지 않았습니다."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "플러그인 설치 실패"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -26745,6 +29464,86 @@ msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "교정 Gcode를 생성하지 못했습니다"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "빼기"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "곱하기"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " 및 "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "서로 혼합할 수 없습니다. 같은 필라멘트 유형을 선택하십시오."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "로드 중 오류가 발생했습니다: "
+
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "%s 로드 대상: "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "디자인 탭에서 메이트 커넥터를 롤 사분면이 있는 일반적인 원판 대신 작은 면으로 그립니다. 면은 따로 익히지 않아도 방향을 읽을 수 있습니다. 일반적인 CAD 표현을 사용하려면 이 옵션을 끄십시오."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "전문가"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "간단"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "점을 클릭하고, 첫 점을 클릭하거나 마우스 오른쪽 버튼을 클릭하여 루프 닫기"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "X 힌트 X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "X 힌트 Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "X 힌트 Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — 눈 아이콘으로 이 메이트를 억제합니다"
+
+# AI Translated
+#~ msgid "Del"
+#~ msgstr "삭제"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "스케치 유지됨 — 완료를 눌러 확정하거나 취소를 눌러 버리기"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "편집 중: 스케치 %d   ·   N = 평면에 수직으로 보기   ·   도구 모음에서 완료 또는 취소"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "스케치 편집 중 — 핸들을 드래그하거나 치수를 클릭하여 편집"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -26877,9 +29676,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "실행 취소  (%zu개 더)"
-
-#~ msgid "Reset direction"
-#~ msgstr "방향 초기화"
 
 #~ msgid "Section View"
 #~ msgstr "단면도"
@@ -27102,9 +29898,6 @@ msgstr ""
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "설정 범위에 자동으로 맞춰지나요?\n"
 
-#~ msgid "Head diameter"
-#~ msgstr "헤드 직경"
-
 #~ msgid "Print order within a single layer."
 #~ msgstr "단일 레이어 내의 출력 순서"
 
@@ -27134,9 +29927,6 @@ msgstr ""
 
 #~ msgid "Select filament that installed to the right nozzle"
 #~ msgstr "오른쪽 노즐에 설치된 필라멘트를 선택합니다"
-
-#~ msgid "Select Filament && Hotends"
-#~ msgstr "필라멘트 및 핫엔드"
 
 #, c-format, boost-format
 #~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -27419,14 +30209,8 @@ msgstr ""
 #~ msgid "If enabled, swaps the left and right mouse buttons pan and rotate functions."
 #~ msgstr "이 기능을 활성화하면 왼쪽 마우스 버튼과 오른쪽 마우스 버튼의 팬 및 회전 기능이 바뀝니다."
 
-#~ msgid "Remove selected points"
-#~ msgstr "선택한 지점 제거"
-
 #~ msgid "Remove all"
 #~ msgstr "모두 제거"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "포인트 자동 생성"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "브림 귀 추가"
@@ -27455,12 +30239,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "키 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "좌 클릭"
-
-#~ msgid "Right click"
-#~ msgstr "우 클릭"
 
 #~ msgid "Select feature"
 #~ msgstr "기능 선택"
@@ -28255,12 +31033,6 @@ msgstr ""
 
 #~ msgid "The target object contains only one part and cannot be split."
 #~ msgstr "대상 객체는 한 부품만 포함하고 있어 분할할 수 없습니다."
-
-#~ msgid "?"
-#~ msgstr "?"
-
-#~ msgid "/"
-#~ msgstr "/"
 
 #~ msgid "Color Scheme"
 #~ msgstr "색 구성표"
@@ -29185,27 +31957,6 @@ msgstr ""
 
 #~ msgid "Exception"
 #~ msgstr "예외"
-
-#~ msgid "Choose SLA archive:"
-#~ msgstr "SLA 압축파일 선택:"
-
-#~ msgid "Import model and profile"
-#~ msgstr "모델과 파일 가져오기"
-
-#~ msgid "Import profile only"
-#~ msgstr "프로필만 가져오기"
-
-#~ msgid "Import model only"
-#~ msgstr "모델만 가져오기"
-
-#~ msgid "Accurate"
-#~ msgstr "정밀한"
-
-#~ msgid "Balanced"
-#~ msgstr "균형 잡힌"
-
-#~ msgid "Quick"
-#~ msgstr "빠른"
 
 #~ msgid "Print sequence of inner wall and outer wall. "
 #~ msgstr "내벽과 외벽의 순서를 인쇄합니다."

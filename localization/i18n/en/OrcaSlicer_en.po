@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -4867,7 +4867,7 @@ msgstr ""
 msgid "Selected diameter and machine diameter do not match"
 msgstr ""
 
-msgid "Failed to generate cali G-code"
+msgid "Failed to generate calibration G-code"
 msgstr ""
 
 msgid "Calibration error"
@@ -5671,6 +5671,7 @@ msgstr ""
 msgid "Wireframe"
 msgstr ""
 
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr ""
 
@@ -7832,6 +7833,7 @@ msgstr ""
 msgid "Click to edit preset"
 msgstr ""
 
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr ""
 
@@ -8907,6 +8909,7 @@ msgstr ""
 msgid "Recent actions"
 msgstr ""
 
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr ""
 
@@ -9009,7 +9012,7 @@ msgstr ""
 msgid "Draw mate connectors as a face"
 msgstr ""
 
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
 msgstr ""
 
 msgid "Pan"
@@ -9095,9 +9098,11 @@ msgstr ""
 msgid "Applies SSAO in realistic view."
 msgstr ""
 
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr ""
 
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr ""
 
@@ -9775,9 +9780,19 @@ msgstr ""
 msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
 msgstr ""
 
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr ""
+
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr ""
 
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr ""
+
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr ""
 
@@ -20844,7 +20859,7 @@ msgstr ""
 msgid "Polyline"
 msgstr ""
 
-msgid "Click points; click first / right-click to close the loop"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
 msgstr ""
 
 msgid "Corner rectangle"
@@ -21183,6 +21198,10 @@ msgid "New body"
 msgstr ""
 
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr ""
+
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr ""
 
@@ -21201,6 +21220,7 @@ msgstr ""
 msgid "Bottom"
 msgstr ""
 
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr ""
 
@@ -21316,6 +21336,7 @@ msgstr ""
 msgid "Plane type"
 msgstr ""
 
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr ""
 
@@ -21539,13 +21560,13 @@ msgstr ""
 msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
 msgstr ""
 
-msgid "X hint X"
+msgid "X direction X"
 msgstr ""
 
-msgid "X hint Y"
+msgid "X direction Y"
 msgstr ""
 
-msgid "X hint Z"
+msgid "X direction Z"
 msgstr ""
 
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
@@ -21602,7 +21623,8 @@ msgstr ""
 msgid "Feature tree"
 msgstr ""
 
-msgid " — the eye suppresses this mate"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
 msgstr ""
 
 #, c-format, boost-format
@@ -21647,9 +21669,6 @@ msgid "Variables"
 msgstr ""
 
 msgid "+"
-msgstr ""
-
-msgid "Del"
 msgstr ""
 
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -21730,7 +21749,7 @@ msgstr ""
 msgid "Tool exited"
 msgstr ""
 
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr ""
 
 msgid "✗ Conflicting constraints"
@@ -21750,7 +21769,7 @@ msgid "Sketch %d"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
 msgstr ""
 
 #, c-format
@@ -22655,7 +22674,7 @@ msgstr ""
 msgid "On a stored face"
 msgstr ""
 
-msgid "Editing sketch — drag a handle or click a quote to edit"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
 msgstr ""
 
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -23009,6 +23028,2038 @@ msgid "Application"
 msgstr ""
 
 msgid "Speed Dial"
+msgstr ""
+
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr ""
+
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr ""
+
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr ""
+
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr ""
+
+msgid "Taking a configuration snapshot failed."
+msgstr ""
+
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr ""
+
+msgid "OrcaSlicer error"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr ""
+
+msgid "Please select the filament."
+msgstr ""
+
+msgid "To learn about the filaments matching rules."
+msgstr ""
+
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr ""
+
+msgid "Select Filament && Hotends"
+msgstr ""
+
+msgid "Model Pictures"
+msgstr ""
+
+msgid "Auxiliaries"
+msgstr ""
+
+msgid "Project Filament List"
+msgstr ""
+
+msgid "Standard Mode Recommendations"
+msgstr ""
+
+msgid "Target Color"
+msgstr ""
+
+msgid "Select Color Decomposition"
+msgstr ""
+
+msgid "Arbitrary Mode"
+msgstr ""
+
+msgid "Material List"
+msgstr ""
+
+msgid "Standard Mode"
+msgstr ""
+
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr ""
+
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr ""
+
+msgid "Cyan"
+msgstr ""
+
+msgid "Magenta"
+msgstr ""
+
+msgid "Yellow"
+msgstr ""
+
+msgid "White"
+msgstr ""
+
+msgid "Red"
+msgstr ""
+
+msgid "Green"
+msgstr ""
+
+msgid "Blue"
+msgstr ""
+
+msgid ", "
+msgstr ""
+
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr ""
+
+msgid "Alternate nozzles:"
+msgstr ""
+
+msgid "All standard"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr ""
+
+msgid "Welcome"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr ""
+
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr ""
+
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s Family"
+msgstr ""
+
+msgid "Printer:"
+msgstr ""
+
+msgid "Vendor:"
+msgstr ""
+
+msgid "Profile:"
+msgstr ""
+
+msgid "(All)"
+msgstr ""
+
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr ""
+
+msgid "SLA materials"
+msgstr ""
+
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr ""
+
+msgid "filament"
+msgstr ""
+
+msgid "SLA material"
+msgstr ""
+
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr ""
+
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr ""
+
+msgid "Custom Printer Setup"
+msgstr ""
+
+msgid "Custom Printer"
+msgstr ""
+
+msgid "Define a custom printer profile"
+msgstr ""
+
+msgid "Custom profile name:"
+msgstr ""
+
+msgid "Firmware Type"
+msgstr ""
+
+msgid "Firmware"
+msgstr ""
+
+msgid "Choose the type of firmware used by your printer."
+msgstr ""
+
+msgid "Bed Shape and Size"
+msgstr ""
+
+msgid "Set the shape of your printer's bed."
+msgstr ""
+
+msgid "Invalid numeric input."
+msgstr ""
+
+msgid "Filament and Nozzle Diameters"
+msgstr ""
+
+msgid "Print Diameters"
+msgstr ""
+
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr ""
+
+msgid "Nozzle Diameter:"
+msgstr ""
+
+msgid "Enter the diameter of your filament."
+msgstr ""
+
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr ""
+
+msgid "Filament Diameter:"
+msgstr ""
+
+msgid "Nozzle and Bed Temperatures"
+msgstr ""
+
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr ""
+
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr ""
+
+msgid "Extrusion Temperature:"
+msgstr ""
+
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr ""
+
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr ""
+
+msgid "Bed Temperature:"
+msgstr ""
+
+msgid "SLA Materials"
+msgstr ""
+
+msgid "FFF Technology Printers"
+msgstr ""
+
+msgid "SLA Technology Printers"
+msgstr ""
+
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr ""
+
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr ""
+
+msgid "The following FFF printer models have no filament selected:"
+msgstr ""
+
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr ""
+
+msgid "Configuration is edited in ConfigWizard"
+msgstr ""
+
+msgid "All user presets will be deleted."
+msgstr ""
+
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "A new Printer was installed and it will be activated."
+msgstr ""
+
+msgid "Some Printers were uninstalled."
+msgstr ""
+
+msgid "A new filament was installed and it will be activated."
+msgstr ""
+
+msgid "A new SLA material was installed and it will be activated."
+msgstr ""
+
+msgid "Some filaments were uninstalled."
+msgstr ""
+
+msgid "Custom printer was installed and it will be activated."
+msgstr ""
+
+msgid "<Back"
+msgstr ""
+
+msgid "Next>"
+msgstr ""
+
+msgid "Filament Profiles Selection"
+msgstr ""
+
+msgid "Configuration Assistant"
+msgstr ""
+
+msgid "Configuration &Assistant"
+msgstr ""
+
+msgid "Configuration Wizard"
+msgstr ""
+
+msgid "Configuration &Wizard"
+msgstr ""
+
+msgid "Filament Inlet A"
+msgstr ""
+
+msgid "Filament Inlet B"
+msgstr ""
+
+msgid "Suggested rearrangement"
+msgstr ""
+
+msgid "How to save time?→"
+msgstr ""
+
+msgid "Filament Status:"
+msgstr ""
+
+msgid "Position adjustment required"
+msgstr ""
+
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr ""
+
+msgid "Unused"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr ""
+
+msgid "Summary:"
+msgstr ""
+
+msgid "AMS on Filament Inlet A"
+msgstr ""
+
+msgid "AMS on Filament Inlet B"
+msgstr ""
+
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr ""
+
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr ""
+
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr ""
+
+msgid "?"
+msgstr ""
+
+msgid "Note:"
+msgstr ""
+
+msgid "Hollow this object"
+msgstr ""
+
+msgid "Preview hollowed and drilled model"
+msgstr ""
+
+msgid "Closing distance"
+msgstr ""
+
+msgid "Hole diameter"
+msgstr ""
+
+msgid "Hole depth"
+msgstr ""
+
+msgid "Remove selected holes"
+msgstr ""
+
+msgid "Remove all holes"
+msgstr ""
+
+msgid "Clipping of view"
+msgstr ""
+
+msgid "Reset direction"
+msgstr ""
+
+msgid "Show supports"
+msgstr ""
+
+msgid "Hollow and drill"
+msgstr ""
+
+msgid "Head diameter"
+msgstr ""
+
+msgid "Lock supports under new islands"
+msgstr ""
+
+msgid "Remove selected points"
+msgstr ""
+
+msgid "Remove all points"
+msgstr ""
+
+msgid "Apply changes"
+msgstr ""
+
+msgid "Discard changes"
+msgstr ""
+
+msgid "Minimal points distance"
+msgstr ""
+
+msgid "Support points density"
+msgstr ""
+
+msgid "Auto-generate points"
+msgstr ""
+
+msgid "Manual editing"
+msgstr ""
+
+msgid "SLA Support Points"
+msgstr ""
+
+msgid "Do you want to save your manually edited support points?"
+msgstr ""
+
+msgid "Save support points?"
+msgstr ""
+
+msgid "Autogeneration will erase all manually edited points."
+msgstr ""
+
+msgid "Are you sure you want to do it?"
+msgstr ""
+
+msgid "SLA gizmo keyboard shortcuts"
+msgstr ""
+
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr ""
+
+msgid "Left click"
+msgstr ""
+
+msgid "Add point"
+msgstr ""
+
+msgid "Right click"
+msgstr ""
+
+msgid "Remove point"
+msgstr ""
+
+msgid "Move point"
+msgstr ""
+
+msgid "Add point to selection"
+msgstr ""
+
+msgid "Remove point from selection"
+msgstr ""
+
+msgid "Select by rectangle"
+msgstr ""
+
+msgid "Deselect by rectangle"
+msgstr ""
+
+msgid "Select all points"
+msgstr ""
+
+msgid "Move clipping plane"
+msgstr ""
+
+msgid "Reset clipping plane"
+msgstr ""
+
+msgid "Switch to editing mode"
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr ""
+
+msgid "Texture displacement"
+msgstr ""
+
+msgid "Erase texture displacement paint"
+msgstr ""
+
+msgid "Paint texture displacement"
+msgstr ""
+
+msgid "Mark texture seam"
+msgstr ""
+
+msgid "Mark texture seam path"
+msgstr ""
+
+#, boost-format
+msgid "Layer %1%"
+msgstr ""
+
+msgid "Average island scale"
+msgstr ""
+
+msgid "Select an island in the UV editor first."
+msgstr ""
+
+msgid "Cut texture island"
+msgstr ""
+
+msgid "This island has no neighbour it shares an edge with."
+msgstr ""
+
+msgid "Join texture island"
+msgstr ""
+
+msgid "Unjoin texture island"
+msgstr ""
+
+msgid "Clear texture seams"
+msgstr ""
+
+msgid "Clear texture UV edits"
+msgstr ""
+
+msgid "Apply texture projection frame"
+msgstr ""
+
+msgid "Move texture island"
+msgstr ""
+
+msgid "Edit texture UV"
+msgstr ""
+
+msgid "Maximum number of texture displacement layers reached."
+msgstr ""
+
+msgid "Add texture displacement layer"
+msgstr ""
+
+msgid "Could not load the selected texture."
+msgstr ""
+
+msgid "Change texture displacement texture"
+msgstr ""
+
+msgid "Choose a texture image (height map)"
+msgstr ""
+
+msgid "Choose a texture"
+msgstr ""
+
+msgid "Remove from My textures"
+msgstr ""
+
+msgid "Built-in"
+msgstr ""
+
+msgid "No textures found."
+msgstr ""
+
+msgid "My textures"
+msgstr ""
+
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr ""
+
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+
+msgid "Remove texture"
+msgstr ""
+
+msgid "Remove texture displacement layer"
+msgstr ""
+
+msgid "Reorder texture displacement layers"
+msgstr ""
+
+msgid "Select visible faces for texture displacement"
+msgstr ""
+
+msgid "Select whole model for texture displacement"
+msgstr ""
+
+msgid "Subdivide model for texture displacement"
+msgstr ""
+
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr ""
+
+msgid "Adaptive subdivide for texture displacement"
+msgstr ""
+
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr ""
+
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr ""
+
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr ""
+
+msgid "Smooth texture displacement"
+msgstr ""
+
+msgid "Remesh model for texture displacement"
+msgstr ""
+
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr ""
+
+msgid "Nothing is painted, there is nothing to bake."
+msgstr ""
+
+msgid "Bake texture displacement"
+msgstr ""
+
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr ""
+
+msgid "Bake stages (debug)"
+msgstr ""
+
+msgid "Capturing..."
+msgstr ""
+
+msgid "Capture stages"
+msgstr ""
+
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr ""
+
+msgid "Check topology"
+msgstr ""
+
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr ""
+
+msgid "< Previous"
+msgstr ""
+
+msgid "Next >"
+msgstr ""
+
+msgid "triangles"
+msgstr ""
+
+msgid "vertices"
+msgstr ""
+
+msgid "Open edges"
+msgstr ""
+
+msgid "Non-manifold"
+msgstr ""
+
+msgid "Degenerate"
+msgstr ""
+
+msgid "Write stage meshes"
+msgstr ""
+
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr ""
+
+msgid "Could not write the stage meshes."
+msgstr ""
+
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr ""
+
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr ""
+
+msgid "Pro"
+msgstr ""
+
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr ""
+
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr ""
+
+msgid "Dock panel"
+msgstr ""
+
+msgid "Undock panel"
+msgstr ""
+
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr ""
+
+#, boost-format
+msgid "into %1%"
+msgstr ""
+
+msgid "add a layer to paint"
+msgstr ""
+
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr ""
+
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr ""
+
+msgid "Brush - paint over the surface by dragging"
+msgstr ""
+
+msgid "Face - click individual triangles"
+msgstr ""
+
+msgid "Connected area"
+msgstr ""
+
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr ""
+
+msgid "Wait for the bake to finish."
+msgstr ""
+
+msgid "Add a layer first."
+msgstr ""
+
+msgid "The active layer has no paint yet."
+msgstr ""
+
+msgid "Select whole model"
+msgstr ""
+
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr ""
+
+msgid "Erase whole model"
+msgstr ""
+
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr ""
+
+msgid "Reset texture displacement selection"
+msgstr ""
+
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr ""
+
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr ""
+
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr ""
+
+msgid "Click a triangle to paint it"
+msgstr ""
+
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr ""
+
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr ""
+
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr ""
+
+msgid "Checker"
+msgstr ""
+
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr ""
+
+msgid "Distortion"
+msgstr ""
+
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr ""
+
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr ""
+
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr ""
+
+msgid "Texture layers"
+msgstr ""
+
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr ""
+
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr ""
+
+msgid "not painted"
+msgstr ""
+
+msgid "Move up - applied earlier"
+msgstr ""
+
+msgid "Move down - applied later"
+msgstr ""
+
+msgid "Remove this layer"
+msgstr ""
+
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr ""
+
+msgid "Tile size"
+msgstr ""
+
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr ""
+
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr ""
+
+msgid "Midlevel"
+msgstr ""
+
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+
+msgid "Deep inward displacement may self-intersect."
+msgstr ""
+
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr ""
+
+msgid "Edge fade"
+msgstr ""
+
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr ""
+
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr ""
+
+msgid "Invert"
+msgstr ""
+
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr ""
+
+msgid "Colours"
+msgstr ""
+
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr ""
+
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr ""
+
+msgid "Mix filaments"
+msgstr ""
+
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr ""
+
+msgid "Mix by"
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr ""
+
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr ""
+
+msgid "Denoise"
+msgstr ""
+
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr ""
+
+msgid "Triplanar (blended)"
+msgstr ""
+
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr ""
+
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr ""
+
+msgid "Spherical"
+msgstr ""
+
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr ""
+
+msgid "Unwrap (LSCM)"
+msgstr ""
+
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr ""
+
+msgid "From view"
+msgstr ""
+
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr ""
+
+msgid "Open UV editor"
+msgstr ""
+
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr ""
+
+msgid "Not unwrapped yet"
+msgstr ""
+
+#, boost-format
+msgid "%1% islands"
+msgstr ""
+
+msgid "Capture current view"
+msgstr ""
+
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr ""
+
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr ""
+
+msgid "Project only on visible"
+msgstr ""
+
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr ""
+
+msgid "Projection frame"
+msgstr ""
+
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr ""
+
+msgid "Opacity"
+msgstr ""
+
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr ""
+
+msgid "Apply projection frame"
+msgstr ""
+
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr ""
+
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr ""
+
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr ""
+
+msgid "Placed by projection frame."
+msgstr ""
+
+msgid "Tile"
+msgstr ""
+
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr ""
+
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr ""
+
+msgid "Repeat"
+msgstr ""
+
+msgid "Mirrored repeat"
+msgstr ""
+
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr ""
+
+msgid "Blend"
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr ""
+
+msgid "Divide"
+msgstr ""
+
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr ""
+
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr ""
+
+msgid "Adjust placement"
+msgstr ""
+
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr ""
+
+msgid "Paint something with this layer first."
+msgstr ""
+
+msgid "Fewer settings"
+msgstr ""
+
+msgid "More settings"
+msgstr ""
+
+#, boost-format
+msgid "All %1% layers used"
+msgstr ""
+
+msgid "Add layer"
+msgstr ""
+
+msgid "Subdivision"
+msgstr ""
+
+msgid "Only painted area (adaptive)"
+msgstr ""
+
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr ""
+
+msgid "Follow texture detail"
+msgstr ""
+
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr ""
+
+msgid "Max edge"
+msgstr ""
+
+msgid "Target edge"
+msgstr ""
+
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr ""
+
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr ""
+
+msgid "Detail"
+msgstr ""
+
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr ""
+
+msgid "Min edge"
+msgstr ""
+
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr ""
+
+msgid "Edge detail"
+msgstr ""
+
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr ""
+
+msgid "Colour detail"
+msgstr ""
+
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr ""
+
+msgid "Triangle budget: set with Triangles, below."
+msgstr ""
+
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr ""
+
+msgid "Steps"
+msgstr ""
+
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr ""
+
+msgid "Hide preview"
+msgstr ""
+
+msgid "Preview subdivision"
+msgstr ""
+
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr ""
+
+msgid "Subdivide"
+msgstr ""
+
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr ""
+
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr ""
+
+msgid "Remeshing"
+msgstr ""
+
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr ""
+
+msgid "Keep sharp edges"
+msgstr ""
+
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr ""
+
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr ""
+
+msgid "Remesh"
+msgstr ""
+
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr ""
+
+msgid "Displace up to the border"
+msgstr ""
+
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr ""
+
+msgid "Smooth result"
+msgstr ""
+
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr ""
+
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr ""
+
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr ""
+
+msgid "Passes"
+msgstr ""
+
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr ""
+
+msgid "Ignore outer ring"
+msgstr ""
+
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr ""
+
+msgid "Smooth baked mesh now"
+msgstr ""
+
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr ""
+
+msgid "Experimental: classic bake pipeline"
+msgstr ""
+
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr ""
+
+msgid "Budget"
+msgstr ""
+
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr ""
+
+msgid "Align mesh to texture edges"
+msgstr ""
+
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr ""
+
+msgid "Clean up slivers"
+msgstr ""
+
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr ""
+
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr ""
+
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr ""
+
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr ""
+
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr ""
+
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr ""
+
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr ""
+
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr ""
+
+msgid "Preparing..."
+msgstr ""
+
+msgid "Baking..."
+msgstr ""
+
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr ""
+
+msgid "Nothing is painted yet."
+msgstr ""
+
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr ""
+
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr ""
+
+#, boost-format
+msgid "%1% k"
+msgstr ""
+
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr ""
+
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr ""
+
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr ""
+
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr ""
+
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr ""
+
+msgid "Entering Texture displacement painting"
+msgstr ""
+
+msgid "Leaving Texture displacement painting"
+msgstr ""
+
+msgid "Texture displacement editing"
+msgstr ""
+
+msgid "Choose SLA archive:"
+msgstr ""
+
+msgid "Import file"
+msgstr ""
+
+msgid "Import model and profile"
+msgstr ""
+
+msgid "Import profile only"
+msgstr ""
+
+msgid "Import model only"
+msgstr ""
+
+msgid "Accurate"
+msgstr ""
+
+msgid "Balanced"
+msgstr ""
+
+msgid "Quick"
+msgstr ""
+
+msgid "Baking texture displacement"
+msgstr ""
+
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr ""
+
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr ""
+
+msgid "Capturing bake stages"
+msgstr ""
+
+msgid "Preparing mesh for texture displacement"
+msgstr ""
+
+msgid "Click to edit ratio"
+msgstr ""
+
+msgid "Edit Mixed Filament"
+msgstr ""
+
+msgid "Effect Preview"
+msgstr ""
+
+msgid "Select Mixed Materials"
+msgstr ""
+
+msgid "+ Add Material"
+msgstr ""
+
+msgid "- Delete Material"
+msgstr ""
+
+msgid "Gradient Effect"
+msgstr ""
+
+msgid "Enable per-part gradient effect"
+msgstr ""
+
+msgid "Mixing Recommendations"
+msgstr ""
+
+msgid "-- Select --"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr ""
+
+msgid "Please select a filament for all components"
+msgstr ""
+
+msgid "Cannot mix different filament types"
+msgstr ""
+
+msgid "Maximum 3 materials for mixing"
+msgstr ""
+
+msgid "Maximum number of components reached"
+msgstr ""
+
+msgid "Remove the third material"
+msgstr ""
+
+msgid "3D Models"
+msgstr ""
+
+msgid "Click to return"
+msgstr ""
+
+msgid "Left Arrow"
+msgstr ""
+
+msgid "Click to continue"
+msgstr ""
+
+msgid "Right Arrow"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr ""
+
+msgid "No plugins found for this type."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr ""
+
+msgid "Process plugins"
+msgstr ""
+
+msgid "Filament plugins"
+msgstr ""
+
+msgid "Printer plugins"
+msgstr ""
+
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr ""
+
+msgid "Configuration updated. Save the preset to persist it."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+
+msgid "Restore defaults"
+msgstr ""
+
+msgid "Using global configuration. Save the preset to persist it."
+msgstr ""
+
+msgid "This capability is no longer available."
+msgstr ""
+
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr ""
+
+msgid "Delete Plugin"
+msgstr ""
+
+msgid "Unsubscribe"
+msgstr ""
+
+msgid "Overwrite Plugin"
+msgstr ""
+
+msgid "Select a .py or .whl plugin package."
+msgstr ""
+
+msgid "Failed to install plugin package. See the log for details."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+
+msgid "Overwrite"
+msgstr ""
+
+msgid "Installing plugin"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+
+msgid "Missing Plugins"
+msgstr ""
+
+msgid "Refreshing plugins data"
+msgstr ""
+
+msgid "Failed to unload plugin."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr ""
+
+msgid "Plugin manifest was not found."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr ""
+
+msgid "Downloading plugin"
+msgstr ""
+
+msgid "Plugin download failed."
+msgstr ""
+
+msgid "Configuration saved."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+
+msgid "Default configuration restored."
+msgstr ""
+
+msgid "Updating plugin"
+msgstr ""
+
+msgid "Failed to update plugin."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr ""
+
+msgid "Plugin folder could not be determined."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+
+msgid "Failed to delete plugin."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr ""
+
+msgid "Deleting plugin"
+msgstr ""
+
+msgid "Deleting plugin..."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+
+msgid "Failed to unsubscribe plugin."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr ""
+
+msgid "Unsubscribing plugin"
+msgstr ""
+
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr ""
+
+msgid "Reloading plugin"
+msgstr ""
+
+msgid "Failed to reload plugin."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr ""
+
+msgid "Purge Mode Settings"
+msgstr ""
+
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr ""
+
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr ""
+
+msgid "Prime Saving"
+msgstr ""
+
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr ""
+
+msgid "Terminal"
+msgstr ""
+
+msgid "One-click CMYW auto-mix"
+msgstr ""
+
+msgid "One-click RYBW auto-mix"
+msgstr ""
+
+msgid "Project Physical Filaments"
+msgstr ""
+
+msgid "New Physical Filaments"
+msgstr ""
+
+msgid "Project Mixed Filaments"
+msgstr ""
+
+msgid "New Mixed Filaments"
+msgstr ""
+
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr ""
+
+msgid "Import Model"
+msgstr ""
+
+msgid "Original"
+msgstr ""
+
+msgid "Multi-Color"
+msgstr ""
+
+msgid "Your input texture model"
+msgstr ""
+
+msgid "Processed multi-color model"
+msgstr ""
+
+msgid "Color Count"
+msgstr ""
+
+msgid "Smooth Level"
+msgstr ""
+
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr ""
+
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr ""
+
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr ""
+
+msgid "Filament Mapping"
+msgstr ""
+
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr ""
+
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr ""
+
+msgid "Auto-merge same filament"
+msgstr ""
+
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr ""
+
+msgid "Skip Matching"
+msgstr ""
+
+msgid "Skip filament mapping and import as a single-color model"
+msgstr ""
+
+msgid "Processing"
+msgstr ""
+
+msgid "Computing texture colors..."
+msgstr ""
+
+msgid "Repairing mesh"
+msgstr ""
+
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr ""
+
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr ""
+
+msgid "Mesh repair"
+msgstr ""
+
+msgid "Import without repair"
+msgstr ""
+
+msgid "Repair and import"
+msgstr ""
+
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr ""
+
+msgid "Mesh issue"
+msgstr ""
+
+msgid "The selected image is empty."
+msgstr ""
+
+msgid "Failed to prepare the texture for use."
+msgstr ""
+
+msgid "Only your own imported textures can be removed."
+msgstr ""
+
+msgid "Could not delete the texture file."
+msgstr ""
+
+msgid "Could not create the folder for imported textures."
+msgstr ""
+
+msgid "Could not load the selected image."
+msgstr ""
+
+msgid "Failed to save the imported texture."
+msgstr ""
+
+msgid "Could not read the texture file."
+msgstr ""
+
+msgid "Projection frame - drag over the model, then Apply"
+msgstr ""
+
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr ""
+
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr ""
+
+msgid "Moving vertex  |  release to drop"
+msgstr ""
+
+msgid "Moving edge  |  release to drop"
+msgstr ""
+
+msgid "Panning"
+msgstr ""
+
+msgid "Paint the area on the model, then press Unwrap"
+msgstr ""
+
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr ""
+
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr ""
+
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr ""
+
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr ""
+
+msgid "  |  snap ON"
+msgstr ""
+
+msgid "Change texture - choose another one from the texture library"
+msgstr ""
+
+msgid "Height map - show the layer's texture under the islands"
+msgstr ""
+
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr ""
+
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr ""
+
+msgid "Unwrap"
+msgstr ""
+
+msgid "Seam angle"
+msgstr ""
+
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr ""
+
+msgid "Connect islands"
+msgstr ""
+
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr ""
+
+msgid "Island - move, rotate and scale whole islands"
+msgstr ""
+
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr ""
+
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr ""
+
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr ""
+
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr ""
+
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr ""
+
+msgid "Average scale - give every island the same texel density"
+msgstr ""
+
+msgid "Cut - split the selected island across its long axis"
+msgstr ""
+
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr ""
+
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr ""
+
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr ""
+
+msgid "Snap - stick islands together when dragging one against another"
+msgstr ""
+
+msgid "Frame all islands (Home)"
+msgstr ""
+
+msgid "No layer mapped with Unwrap"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr ""
+
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr ""
+
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr ""
+
+msgid "Forward"
+msgstr ""
+
+msgid "Tools"
+msgstr ""
+
+msgid "View Source"
+msgstr ""
+
+msgid "View Text"
+msgstr ""
+
+msgid "Handle Navigation"
+msgstr ""
+
+msgid "Handle New Windows"
+msgstr ""
+
+msgid "Edit Mode"
+msgstr ""
+
+msgid "Run Script"
+msgstr ""
+
+msgid "Add user script"
+msgstr ""
+
+msgid "Set custom user agent"
+msgstr ""
+
+msgid "Clear Selection"
+msgstr ""
+
+msgid "Delete Selection"
+msgstr ""
+
+msgid "Custom Scheme Example"
+msgstr ""
+
+msgid "Memory File System Example"
+msgstr ""
+
+msgid "Enable Context Menu"
+msgstr ""
+
+msgid "Enable Dev Tools"
+msgstr ""
+
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr ""
+
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Load %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr ""
+
+msgid "Plugin permission request"
+msgstr ""
+
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr ""
+
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr ""
+
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr ""
+
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr ""
+
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr ""
+
+msgid "Plugin installation failed"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

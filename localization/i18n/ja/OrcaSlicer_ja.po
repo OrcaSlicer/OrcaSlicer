@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4832,7 +4832,7 @@ msgstr "このフィラメントで推奨ノズル温度は %d ~ %d ℃です。
 
 # AI Translated
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr "アダプティブプレッシャーアドバンスのモデル検証に失敗しました:\n"
+msgstr "アダプティブPressure Advanceのモデル検証に失敗しました:\n"
 
 # AI Translated
 msgid ""
@@ -5250,7 +5250,8 @@ msgstr "現在のフロー率キャリブレーションパラメータが無効
 msgid "Selected diameter and machine diameter do not match"
 msgstr "選択された径とマシンの径が一致しません"
 
-msgid "Failed to generate cali G-code"
+# AI Translated
+msgid "Failed to generate calibration G-code"
 msgstr "キャリブレーションG-codeの生成に失敗しました"
 
 msgid "Calibration error"
@@ -5538,7 +5539,7 @@ msgid "Layer Time (log)"
 msgstr "積層時間 (Log)"
 
 msgid "Pressure Advance"
-msgstr "圧力アドバンス"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr "操作なし"
@@ -6088,6 +6089,7 @@ msgid "Wireframe"
 msgstr "ワイヤフレーム"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "X線"
 
@@ -6690,7 +6692,7 @@ msgid "Max flowrate"
 msgstr "最大フロー率"
 
 msgid "Pressure advance"
-msgstr "圧力アドバンス"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "流量比"
@@ -7676,7 +7678,7 @@ msgstr "最大体積速度キャリブレーション"
 
 # AI Translated
 msgid "Pressure Advance Calibration"
-msgstr "圧力アドバンスキャリブレーション"
+msgstr "Pressure Advanceキャリブレーション"
 
 # AI Translated
 msgid "Flow Ratio Calibration"
@@ -8421,6 +8423,7 @@ msgid "Click to edit preset"
 msgstr "プリセットを編集"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "バリエーション"
 
@@ -9613,6 +9616,7 @@ msgid "Recent actions"
 msgstr "最近のアクション"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "件"
 
@@ -9730,8 +9734,8 @@ msgid "Draw mate connectors as a face"
 msgstr "合致コネクターを面として描画"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "デザインタブで、合致コネクターを従来のロール象限付きの円盤ではなく、小さな面として描画します。面であれば、慣れていなくても向きを読み取れます。従来のCADの表現にするにはオフにしてください。"
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "デザインタブで、合致コネクターを従来のロール象限付きの円盤ではなく、小さな面として描画します。面なら、円盤の表記ルールを覚えなくても向きがひと目でわかります。従来のCADの表現にするにはオフにしてください。"
 
 # AI Translated
 msgid "Pan"
@@ -9841,10 +9845,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "リアルビューでSSAOを適用します。"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "固定"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "オービット"
 
@@ -10651,10 +10657,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "現在のグラフィック設定を使用し、通常は1分以内に終了します。完了するまでメインウィンドウはロックされます。"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "高度な設定"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "エキスパート"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "開発者"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "シンプル"
 
@@ -11731,7 +11749,7 @@ msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "フィラメントの推奨ノズル温度、0は未設定との意味です"
 
 msgid "Flow ratio and Pressure Advance"
-msgstr "フロー率と圧力アドバンス"
+msgstr "フロー率とPressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "印刷チャンバー温度"
@@ -13511,7 +13529,7 @@ msgstr "正確な壁オプションは外側-内側または内側-外側-内側
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "1つ以上の押出機のアダプティブプレッシャーアドバンスモデルに、無効な値が含まれている可能性があります。"
+msgstr "1つ以上の押出機のアダプティブPressure Advanceモデルに、無効な値が含まれている可能性があります。"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "使用するフィラメントの収縮率が大きく異なるため、フィラメント収縮率は使用しません。"
@@ -14340,7 +14358,7 @@ msgstr ""
 "これらのアーティファクトの根本原因は、多くの場合PAの調整がわずかにずれていることであり、特にPAスムーズ時間が長い場合に顕著です。\n"
 "\n"
 "このオプションを有効にする際の推奨事項:\n"
-"1. プレッシャーアドバンスのスムーズ時間を0.015〜0.02に下げ、押出機が速度変化に素早く反応するようにします。\n"
+"1. Pressure Advanceのスムーズ時間を0.015〜0.02に下げ、押出機が速度変化に素早く反応するようにします。\n"
 "2. 最小印刷速度を上げて減速の幅を抑え、速い区間と遅い区間の差を小さくします。\n"
 "3. それでもアーティファクトが出る場合は、Extrusion Rate Smoothing (ERS) を有効にして流量の遷移をさらに滑らかにします。\n"
 "\n"
@@ -15066,18 +15084,18 @@ msgstr ""
 "最終的なオブジェクトの流量比は、この値にフィラメントの流量比を掛けた値になります。"
 
 msgid "Enable pressure advance"
-msgstr "圧力アドバンスを有効にする"
+msgstr "Pressure Advanceを有効にする"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "圧力アドバンスを有効にします。有効にすると自動キャリブレーション結果が上書きされます。"
+msgstr "Pressure Advanceを有効にします。有効にすると自動キャリブレーション結果が上書きされます。"
 
 # AI Translated
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "プレッシャーアドバンス (Klipper)、別名リニアアドバンス係数 (Marlin) です。"
+msgstr "Pressure Advance (Klipper)、別名リニアアドバンス係数 (Marlin) です。"
 
 # AI Translated
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "アダプティブプレッシャーアドバンスを有効にする (ベータ)"
+msgstr "アダプティブPressure Advanceを有効にする (ベータ)"
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -15091,14 +15109,14 @@ msgid ""
 msgstr ""
 "印刷速度が上がる (つまりノズルを通る体積流量が増える) ほど、また加速度が上がるほど、実効的なPA値は一般に小さくなることが知られています。つまり、単一のPA値がすべてのフィーチャーで常に最適とは限らず、流量や加速度が低いフィーチャーで膨らみすぎず、速いフィーチャーで隙間も生じない妥協値が使われるのが通例です。\n"
 "\n"
-"この機能は、印刷時の体積流量と加速度に応じたプリンターの押出システムの応答をモデル化することで、この制約に対処します。内部的には、任意の体積流量と加速度に対して必要なプレッシャーアドバンスを外挿できる近似モデルを生成し、現在の印刷条件に応じてプリンターへ出力します。\n"
+"この機能は、印刷時の体積流量と加速度に応じたプリンターの押出システムの応答をモデル化することで、この制約に対処します。内部的には、任意の体積流量と加速度に対して必要なPressure Advanceを外挿できる近似モデルを生成し、現在の印刷条件に応じてプリンターへ出力します。\n"
 "\n"
-"有効にすると、上のプレッシャーアドバンス値は上書きされます。ただし、フォールバックとして、またツール交換時のために、上には妥当なデフォルト値を設定しておくことを強くおすすめします。\n"
+"有効にすると、上のPressure Advance値は上書きされます。ただし、フォールバックとして、またツール交換時のために、上には妥当なデフォルト値を設定しておくことを強くおすすめします。\n"
 "\n"
 
 # AI Translated
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "アダプティブプレッシャーアドバンスの測定値 (ベータ)"
+msgstr "アダプティブPressure Advanceの測定値 (ベータ)"
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -15114,20 +15132,20 @@ msgid ""
 "2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile."
 msgstr ""
-"プレッシャーアドバンス (PA) の値と、それを測定したときの体積流量および加速度の組をカンマ区切りで追加します。1行につき1組です。例:\n"
+"Pressure Advance (PA) の値と、それを測定したときの体積流量および加速度の組をカンマ区切りで追加します。1行につき1組です。例:\n"
 "0.04,3.96,3000\n"
 "0.033,3.96,10000\n"
 "0.029,7.91,3000\n"
 "0.026,7.91,10000\n"
 "\n"
 "キャリブレーションの方法:\n"
-"1. 各加速度値につき最低3種類の速度でプレッシャーアドバンステストを実行します。少なくとも外周の速度、内周の速度、そしてプロファイル内で最も速いフィーチャーの印刷速度 (通常はスパース インフィルかソリッドインフィル) でテストすることをおすすめします。次に、同じ速度で最も遅い印刷加速度と最も速い印刷加速度についても実行してください。Klipperのインプットシェイパーが示す推奨最大加速度を超えないようにします\n"
+"1. 各加速度値につき最低3種類の速度でPressure Advanceテストを実行します。少なくとも外周の速度、内周の速度、そしてプロファイル内で最も速いフィーチャーの印刷速度 (通常はスパース インフィルかソリッドインフィル) でテストすることをおすすめします。次に、同じ速度で最も遅い印刷加速度と最も速い印刷加速度についても実行してください。Klipperのインプットシェイパーが示す推奨最大加速度を超えないようにします\n"
 "2. 各体積流量と加速度における最適なPA値を記録します。流量の数値は、カラースキームのドロップダウンから流量を選択し、水平スライダーをPAパターンのライン上で動かすと確認できます。数値はページ下部に表示されます。理想的なPA値は体積流量が大きいほど小さくなるはずです。そうならない場合は、押出機が正常に動作しているか確認してください。速度と加速度が低いほど、許容できるPA値の範囲は広くなります。違いが見られない場合は、速いテストのPA値を使用してください\n"
 "3. PA値、流量、加速度の3つ組をここのテキストボックスに入力し、フィラメントプロファイルを保存します。"
 
 # AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "フィーチャー内でのアダプティブプレッシャーアドバンスを有効にする (ベータ)"
+msgstr "フィーチャー内でのアダプティブPressure Advanceを有効にする (ベータ)"
 
 # AI Translated
 msgid ""
@@ -15145,7 +15163,7 @@ msgstr ""
 
 # AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "ブリッジ用の固定プレッシャーアドバンス"
+msgstr "ブリッジ用の固定Pressure Advance"
 
 # AI Translated
 msgid ""
@@ -15154,7 +15172,7 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"ブリッジ用の固定プレッシャーアドバンス値です。0に設定すると、同等の壁面と同じプレッシャーアドバンス \n"
+"ブリッジ用の固定Pressure Advance値です。0に設定すると、同等の壁面と同じPressure Advance \n"
 "(有効な場合はアダプティブ設定を使用) が適用されます。\n"
 "\n"
 "ブリッジ印刷時にPA値を低くすると、ブリッジ直後に生じるわずかな押出不足が目立ちにくくなります。これは空中での印刷時にノズル内の圧力が下がることが原因で、PAを低くすることで打ち消せます。"
@@ -17150,9 +17168,9 @@ msgstr ""
 "\n"
 "0にするとこの機能は無効になります。\n"
 "\n"
-"Bambu labやVoronのような高速・高流量のダイレクトドライブプリンターでは、通常この値は必要ありません。ただし、フィーチャーごとの速度差が大きい場合、例えばオーバーハングによる急激な減速がある場合には、わずかに効果があります。そのような場合は300〜350 mm³/s²程度の高めの値をおすすめします。プレッシャーアドバンスがより滑らかな流量遷移を実現するのに、ちょうど十分なスムージングが得られます。\n"
+"Bambu labやVoronのような高速・高流量のダイレクトドライブプリンターでは、通常この値は必要ありません。ただし、フィーチャーごとの速度差が大きい場合、例えばオーバーハングによる急激な減速がある場合には、わずかに効果があります。そのような場合は300〜350 mm³/s²程度の高めの値をおすすめします。Pressure Advanceがより滑らかな流量遷移を実現するのに、ちょうど十分なスムージングが得られます。\n"
 "\n"
-"プレッシャーアドバンスのない低速なプリンターでは、値をかなり低く設定してください。ダイレクトドライブ押出機では10〜15 mm³/s²、ボーデン方式では5〜10 mm³/s²が良い出発点です。\n"
+"Pressure Advanceのない低速なプリンターでは、値をかなり低く設定してください。ダイレクトドライブ押出機では10〜15 mm³/s²、ボーデン方式では5〜10 mm³/s²が良い出発点です。\n"
 "\n"
 "この機能はPrusaSlicerではPressure Equalizerと呼ばれています。\n"
 "\n"
@@ -23746,8 +23764,8 @@ msgid "Polyline"
 msgstr "ポリライン"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "点を順にクリック。最初の点をクリックまたは右クリックでループを閉じます"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "点を順にクリック。最初の点をクリックするとループを閉じ、右クリックでチェーンを終了します"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -24193,6 +24211,11 @@ msgstr "新規ボディ"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "結合"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "切り取り"
 
@@ -24216,6 +24239,7 @@ msgid "Bottom"
 msgstr "底面"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "側面"
 
@@ -24370,6 +24394,7 @@ msgid "Plane type"
 msgstr "平面タイプ"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "基準"
 
@@ -24667,16 +24692,16 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "エッジがない場合、座標系のXは面の最初のエッジから取得されます — 自分で決めるにはエッジを選択してください"
 
 # AI Translated
-msgid "X hint X"
-msgstr "Xヒント X"
+msgid "X direction X"
+msgstr "X方向 X"
 
 # AI Translated
-msgid "X hint Y"
-msgstr "Xヒント Y"
+msgid "X direction Y"
+msgstr "X方向 Y"
 
 # AI Translated
-msgid "X hint Z"
-msgstr "Xヒント Z"
+msgid "X direction Z"
+msgstr "X方向 Z"
 
 # AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
@@ -24751,8 +24776,9 @@ msgid "Feature tree"
 msgstr "フィーチャーツリー"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — 目のアイコンでこの合致を抑制できます"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s。目のアイコンをクリックすると、この合致を抑制します。"
 
 # AI Translated
 #, c-format, boost-format
@@ -24811,10 +24837,6 @@ msgstr "変数"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-# AI Translated
-msgid "Del"
-msgstr "削除"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24917,8 +24939,8 @@ msgid "Tool exited"
 msgstr "ツールを終了しました"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "スケッチを保持しました — 完了で確定、取消しで破棄"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "スケッチを保持しました — 「確定」で確定、「取消し」で破棄"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24941,8 +24963,8 @@ msgstr "スケッチ%d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "編集中: スケッチ%d   ·   N = 平面に垂直に表示   ·   ツールバーで完了または取消し"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "編集中: スケッチ%d   ·   N = 平面に垂直に表示   ·   ツールバーで確定または取消し"
 
 # AI Translated
 #, c-format
@@ -26142,8 +26164,8 @@ msgid "On a stored face"
 msgstr "保存された面上"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "スケッチを編集中 — ハンドルをドラッグするか、寸法値をクリックして編集"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "スケッチを編集中 — ハンドルをドラッグするか、寸法をダブルクリックして編集"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -26568,6 +26590,2703 @@ msgid "Speed Dial"
 msgstr "スピードダイヤル"
 
 # AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "ボディ%1%はすでに「%2%」(フィーチャー%3%) によって配置されているため、「%4%」がそれを上書きします"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "この合致はボディ%1%をそれ自身に対して配置しています"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "合致チェーンが循環しています: ボディ%1%はボディ%2%に依存し、それがボディ%1%に戻ります — 結果はフィーチャーの順序によって変わります"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "コネクター「%1%」が別の面に移動した可能性があります (上流の編集によってこのボディの面番号が振り直されました)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "設定スナップショットの作成に失敗しました。"
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicerで設定スナップショットの作成中にエラーが発生しました。"
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicerエラー"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "%sに取り付けられているフィラメントを選択してください。"
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "フィラメントを選択してください。"
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "フィラメントのマッチングルールについて詳しく見る。"
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "Filament Track Switchが取り付けられているため、外部スプールには対応していません。外部スプールを使用する場合は、Filament Track Switchを取り外してください。"
+
+msgid "Select Filament && Hotends"
+msgstr "フィラメントとホットエンドを選択"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "モデル画像"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "補助ファイル"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "プロジェクトフィラメントリスト"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "標準モードの推奨"
+
+# AI Translated
+msgid "Target Color"
+msgstr "目標の色"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "色分解を選択"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "任意モード"
+
+# AI Translated
+msgid "Material List"
+msgstr "材料リスト"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "標準モード"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "分解するには、同じ材料タイプのフィラメントが2つ以上必要です"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "材料リストは最大%1%色までサポートしています。%2%で分解すると、材料数が%1%を超えてしまいます。分解する前に、メイン画面で未使用のフィラメントを削除してください。"
+
+# AI Translated
+msgid "Cyan"
+msgstr "シアン"
+
+# AI Translated
+msgid "Magenta"
+msgstr "マゼンタ"
+
+# AI Translated
+msgid "Yellow"
+msgstr "イエロー"
+
+# AI Translated
+msgid "White"
+msgstr "ホワイト"
+
+# AI Translated
+msgid "Red"
+msgstr "レッド"
+
+# AI Translated
+msgid "Green"
+msgstr "グリーン"
+
+# AI Translated
+msgid "Blue"
+msgstr "ブルー"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "現在のフィラメントリストに%sが含まれていません。混合フィラメントに必要なプロジェクトフィラメントは、分解後に自動的に作成されます。"
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "その他のノズル:"
+
+# AI Translated
+msgid "All standard"
+msgstr "標準をすべて選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "%s 設定アシスタントへようこそ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "%s 設定ウィザードへようこそ"
+
+# AI Translated
+msgid "Welcome"
+msgstr "ようこそ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "%sへようこそ！この%sで初期設定を行います。いくつか設定するだけで、すぐに印刷を始められます。"
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "ユーザープロファイルを削除 (事前にスナップショットを作成します)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "デスクトップ統合を実行 (このバイナリをシステムから検索できるようにします)。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "%sファミリー"
+
+# AI Translated
+msgid "Printer:"
+msgstr "プリンター:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "ベンダー:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "プロファイル:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(すべて)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "<b>*</b>が付いた%1%は、インストール済みの一部のプリンターと互換性が<b>ありません</b>。"
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA材料"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "選択した%1%は、インストール済みのすべてのプリンターと互換性があります。"
+
+# AI Translated
+msgid "filament"
+msgstr "フィラメント"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA材料"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "選択したフィラメントと互換性があるのは、インストール済みの以下のプリンターのみです"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "選択したSLA材料と互換性があるのは、インストール済みの以下のプリンターのみです"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "カスタムプリンターのセットアップ"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "カスタムプリンター"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "カスタムプリンタープロファイルを定義"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "カスタムプロファイル名:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "ファームウェアの種類"
+
+# AI Translated
+msgid "Firmware"
+msgstr "ファームウェア"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "プリンターで使用しているファームウェアの種類を選択してください。"
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "ベッドの形状とサイズ"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "プリンターのベッドの形状を設定してください。"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "無効な数値入力です。"
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "フィラメントとノズルの直径"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "直径"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "プリンターのホットエンドのノズル直径を入力してください。"
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "ノズル直径:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "フィラメントの直径を入力してください。"
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "高い精度が必要です。ノギスを使ってフィラメントの数か所を測定し、その平均値を計算してください。"
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "フィラメント直径:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "ノズルとベッドの温度"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "フィラメントの押出に必要なノズル温度を入力してください。"
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "目安として、PLAは160～230℃、ABSは215～250℃です。"
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "押出温度:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "フィラメントをヒートベッドに定着させるために必要なベッド温度を入力してください。"
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "目安として、PLAは60℃、ABSは110℃です。ヒートベッドがない場合は0のままにしてください。"
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "ベッド温度:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA材料"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "FFF方式のプリンター"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "SLA方式のプリンター"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "以下のプリンタープロファイルにはデフォルトのフィラメントがありません: %1%手動で選択してください。"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "以下のプリンタープロファイルにはデフォルトの材料がありません: %1%手動で選択してください。"
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "以下のFFFプリンターモデルでフィラメントが選択されていません:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "これらのFFFプリンターモデルにデフォルトのフィラメントを選択しますか？"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "設定ウィザードで設定が編集されました"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "すべてのユーザープリセットが削除されます。"
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "新しいベンダーがインストールされ、そのプリンターの1台が有効化されます"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "新しいプリンターがインストールされ、有効化されます。"
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "一部のプリンターがアンインストールされました。"
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "新しいフィラメントがインストールされ、有効化されます。"
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "新しいSLA材料がインストールされ、有効化されます。"
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "一部のフィラメントがアンインストールされました。"
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "カスタムプリンターがインストールされ、有効化されます。"
+
+# AI Translated
+msgid "<Back"
+msgstr "<戻る"
+
+# AI Translated
+msgid "Next>"
+msgstr "次へ>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "フィラメントプロファイルの選択"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "設定アシスタント"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "設定アシスタント(&A)"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "設定ウィザード"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "設定ウィザード(&W)"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "フィラメント入口A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "フィラメント入口B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "推奨される配置換え"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "時間を節約するには？→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "フィラメントの状態:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "位置の調整が必要です"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "OK"
+
+# AI Translated
+msgid "Unused"
+msgstr "未使用"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "下の図に従ってプリンター上のフィラメントを並べ替えると最適な結果が得られ、約%s節約できます。"
+
+# AI Translated
+msgid "Summary:"
+msgstr "サマリー:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "フィラメント入口AのAMS"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "フィラメント入口BのAMS"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "No.%dのスライス用フィラメントは「%s」にマッチングされています。「%s」に割り当てると印刷時間を短縮できます。"
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*ヒント: 本体のスプール位置を移動した場合は、このページを閉じてフィラメントを再マッチングしてください。"
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "サマリー: 現在の配置が最適な位置です。"
+
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "注:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "このオブジェクトを中空化"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "中空化・穴あけしたモデルをプレビュー"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "クロージング距離"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "穴の直径"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "穴の深さ"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "選択した穴を削除"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "すべての穴を削除"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "ビューのクリッピング"
+
+msgid "Reset direction"
+msgstr "方向をリセット"
+
+# AI Translated
+msgid "Show supports"
+msgstr "サポートを表示"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "中空化と穴あけ"
+
+msgid "Head diameter"
+msgstr "直径"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "新しいアイランドの下のサポートをロック"
+
+msgid "Remove selected points"
+msgstr "選択したポイントを削除"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "すべての点を削除"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "変更を適用"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "変更を破棄"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "最小点間距離"
+
+# AI Translated
+msgid "Support points density"
+msgstr "サポートポイント密度"
+
+msgid "Auto-generate points"
+msgstr "自動ポイント生成"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "手動編集"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLAサポートポイント"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "手動で編集したサポートポイントを保存しますか？"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "サポートポイントを保存しますか？"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "自動生成すると、手動で編集したポイントはすべて消去されます。"
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "実行してもよろしいですか？"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "SLAギズモのキーボードショートカット"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "注: 一部のショートカットは、編集モードまたは非編集モードでのみ機能します。"
+
+msgid "Left click"
+msgstr "左クリック"
+
+# AI Translated
+msgid "Add point"
+msgstr "点を追加"
+
+msgid "Right click"
+msgstr "右クリック"
+
+# AI Translated
+msgid "Remove point"
+msgstr "点を削除"
+
+# AI Translated
+msgid "Move point"
+msgstr "点を移動"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "選択に点を追加"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "選択から点を削除"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "矩形で選択"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "矩形で選択解除"
+
+# AI Translated
+msgid "Select all points"
+msgstr "すべての点を選択"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "クリッピング面を移動"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "クリッピング面をリセット"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "編集モードに切り替え"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "焼付け"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "テクスチャ変位"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "テクスチャ変位のペイントを消去"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "テクスチャ変位をペイント"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "テクスチャのシームをマーク"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "テクスチャのシームをパスでマーク"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "レイヤー%1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "UVアイランドのスケールを平均化"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "先にUVエディターでUVアイランドを選択してください。"
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "テクスチャのUVアイランドを分割"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "このUVアイランドには、エッジを共有する隣接アイランドがありません。"
+
+# AI Translated
+msgid "Join texture island"
+msgstr "テクスチャのUVアイランドを結合"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "テクスチャのUVアイランドの結合を解除"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "テクスチャのシームをクリア"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "テクスチャのUV編集をクリア"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "テクスチャの投影フレームを適用"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "テクスチャのUVアイランドを移動"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "テクスチャのUVを編集"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "テクスチャ変位レイヤーの最大数に達しました。"
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "テクスチャ変位レイヤーを追加"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "選択したテクスチャを読み込めませんでした。"
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "テクスチャ変位のテクスチャを変更"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "テクスチャ画像 (ハイトマップ) を選択"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "テクスチャを選択"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "マイテクスチャから削除"
+
+# AI Translated
+msgid "Built-in"
+msgstr "内蔵"
+
+# AI Translated
+msgid "No textures found."
+msgstr "テクスチャが見つかりません。"
+
+# AI Translated
+msgid "My textures"
+msgstr "マイテクスチャ"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "独自の画像をハイトマップとしてインポートします。スライサーが焼付けに使う形式に変換され、OrcaSlicerに同梱されたテクスチャとは別に、個人用のテクスチャフォルダーに保存されます。"
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG、JPG、BMP - インポート時にハイトマップに変換されます。自分のテクスチャにカーソルを合わせると削除できます。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"マイテクスチャから「%s」を削除しますか？\n"
+"\n"
+"画像ファイルはテクスチャフォルダーから削除されます。すでにこの画像を使用しているレイヤーはそのまま保持します。"
+
+# AI Translated
+msgid "Remove texture"
+msgstr "テクスチャを削除"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "テクスチャ変位レイヤーを削除"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "テクスチャ変位レイヤーを並べ替え"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "テクスチャ変位のために表示されている面を選択"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "テクスチャ変位のためにモデル全体を選択"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "テクスチャ変位のためにモデルを細分化"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "先に細分化したい領域をペイントしてください - アダプティブ細分化はペイントした場所のみを細かくします。"
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "テクスチャ変位のためにアダプティブ細分化"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "細分化する箇所がありません - ペイント領域はすでに目標エッジ長とディテールの許容値を満たしているか、三角形の上限数を使い切っています。"
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "先にスムージングしたい領域をペイントしてください - スムージングはモデルのペイントした部分にのみ適用されます。"
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "スムージングする箇所がありません - ペイント領域の奥行きが三角形1つ分しかないため、「外側のリングを無視」がオンの場合は緩和できる内部頂点がありません。"
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "テクスチャ変位をスムージング"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "テクスチャ変位のためにモデルをリメッシュ"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "リメッシュしてもモデルは変化しませんでした。モデルが非多様体 (開いたエッジ、または3つ以上の三角形で共有されるエッジ) であるか、すでに目標エッジ長を満たしている可能性があります。"
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "何もペイントされていないため、焼付けするものがありません。"
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "テクスチャ変位を焼付け"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "何もペイントされていないため、キャプチャする焼付けの段階がありません。"
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "焼付けの段階 (デバッグ)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "キャプチャ中..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "段階をキャプチャ"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "「焼付け」ボタンと同じ焼付けを実行し、各段階の後のメッシュを保持して、ここで順に確認できるようにします。モデルには何も反映されません - 不良な結果がどの段階で生じたかを調べるためのものです。"
+
+# AI Translated
+msgid "Check topology"
+msgstr "トポロジーをチェック"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "各段階の後に開いたエッジと非多様体エッジの数を数えます。メッシュを破損させた段階はこれで見つけられます。すべてのエッジを走査するため、細かい焼付けではキャプチャにかかる時間が目に見えて増えます。"
+
+# AI Translated
+msgid "< Previous"
+msgstr "< 前へ"
+
+# AI Translated
+msgid "Next >"
+msgstr "次へ >"
+
+# AI Translated
+msgid "triangles"
+msgstr "三角形"
+
+# AI Translated
+msgid "vertices"
+msgstr "頂点"
+
+# AI Translated
+msgid "Open edges"
+msgstr "開いたエッジ"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "非多様体"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "縮退"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "段階のメッシュを書き出す"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "段階のメッシュをOBJファイルとして書き出しました:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "段階のメッシュを書き出せませんでした。"
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "キャプチャした各段階をOBJファイルとして書き出し、メッシュビューアーで並べて開けるようにします。"
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "ペイント領域をリメッシュ後のモデルに引き継げなかったため、何も変更されませんでした。プロモードに切り替え、ペイントする前にリメッシュしてください。"
+
+# AI Translated
+msgid "Pro"
+msgstr "プロ"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "標準 - テクスチャを選び、適用する場所をペイントして「焼付け」を押します。メッシュに必要な処理はすべてこの1ステップで自動的に行われます。"
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "プロ - メッシュの準備は自分で行います: リメッシュ、細分化、焼付けを個別のステップとして実行し、すべての設定が表示されます。標準の結果が期待どおりでなく、その理由がわかっている場合に使用します。"
+
+# AI Translated
+msgid "Dock panel"
+msgstr "パネルをドッキング"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "パネルのドッキングを解除"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "このパネルを切り離して3Dビュー上の任意の場所にドラッグできるようにするか、ツールバーの横に戻してドッキングします。"
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "ペイント先: %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "ペイントするにはレイヤーを追加"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "ペイント - クリックまたはドラッグした場所にアクティブレイヤーを追加します。右ボタン、またはShiftを押しながらの操作で消去します。"
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "消去 - クリックまたはドラッグした場所からアクティブレイヤーを取り除きます。右ボタンでペイントします。"
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "ブラシ - ドラッグして表面をペイント"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "面 - 三角形を個別にクリック"
+
+# AI Translated
+msgid "Connected area"
+msgstr "連結領域"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "連結領域 - 角度しきい値より鋭いエッジを越えずに到達できる領域を塗りつぶします"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "焼付けが完了するまでお待ちください。"
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "先にレイヤーを追加してください。"
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "アクティブレイヤーはまだペイントされていません。"
+
+# AI Translated
+msgid "Select whole model"
+msgstr "モデル全体を選択"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "モデル全体を選択 - モデルのすべての面をアクティブレイヤーでペイント"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "モデル全体を消去"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "モデル全体を消去 - すべての面からアクティブレイヤーのペイントを消去"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "テクスチャ変位の選択をリセット"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "円形 - カメラから見てブラシの下にあるものをすべてペイント"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "球体 - カーソル下の点を中心とする球の内側のみをペイント"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "角度しきい値 - これより鋭いエッジで塗りつぶしが止まります"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "三角形をクリックしてペイント"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "展開 (LSCM) でマッピングされたアクティブレイヤーが必要です。"
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "普通 - 実際のジオメトリで、焼付けの結果と完全に一致します。更新は遅めです"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "高速 - 起伏は陰影で表示されるだけで実際には生成されず、編集中のレイヤーのみが対象です。ペイント中に即座に更新されます"
+
+# AI Translated
+msgid "Checker"
+msgstr "チェッカー"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "チェッカー - テクスチャの代わりにテストグリッドを表示します。マス目が正方形のままの場所ではテクスチャは歪まず、引き伸ばされる場所ではテクスチャも引き伸ばされます"
+
+# AI Translated
+msgid "Distortion"
+msgstr "歪み"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "歪み - 展開による引き伸ばしを青から赤のヒートマップで表示"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "ワイヤフレーム - メッシュのエッジを重ねて表示します。上の表示とは独立しています"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "何かが変更されるとすぐにプレビューを再構築します。重いモデルでペイントやスライダーのドラッグがカクつく場合はオフにしてください - プレビューは操作を終えるまで更新されなくなります。"
+
+# AI Translated
+msgid "Texture layers"
+msgstr "テクスチャレイヤー"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "別のレイヤーにドラッグして並べ替えます。最初のレイヤーは素の表面に乗り、以降の各レイヤーはそれより前のレイヤーの上に起伏を重ねます。"
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "このレイヤーに別の画像を選択します。ペイント、深さ、タイリングはそのまま保持されます。"
+
+# AI Translated
+msgid "not painted"
+msgstr "未ペイント"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "上へ移動 - 先に適用"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "下へ移動 - 後に適用"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "このレイヤーを削除"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "起伏の高さ: テクスチャの白い部分が表面を持ち上げる量 (mm) です。「中間レベル」で別の値を指定しない限り、黒い部分は表面を動かしません。"
+
+# AI Translated
+msgid "Tile size"
+msgstr "タイルサイズ"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "モデル上でのテクスチャ1枚分の幅です。小さくするとパターンの繰り返しが増え、ディテールが細かくなります。「タイル」がオフの場合は、1枚だけ配置されるテクスチャのサイズになります。"
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "表面上でテクスチャを回転させます (度)。パターンをモデルのエッジに揃えるときに使用します。"
+
+# AI Translated
+msgid "Midlevel"
+msgstr "中間レベル"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"どのグレーを現在の表面の位置に保つかを指定します。0ではテクスチャは外側にのみ押し出します。0.5では中間のグレーが動かず、それより暗いグレーは内側に彫り込まれ、明るいグレーは外側に押し出されます - 1枚の画像でエンボスと彫刻の両方を行えます。\n"
+"\n"
+"彫り込む部分は収まる必要があります: 鋭い角の内側や薄い壁では、深い彫り込みが反対側まで突き抜けることがあります。"
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "内側への深い変位は自己交差する可能性があります。"
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "使用する前に画像をぼかし、急な段差を丸めて、ノイズの多い写真の斑点を取り除きます。起伏が硬い、または粗く見える場合は値を上げてください。細かいディテールは失われます。"
+
+# AI Translated
+msgid "Edge fade"
+msgstr "エッジフェード"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "ペイント領域の端に近づくにつれて起伏を平らにし、段差で途切れるのではなく素の表面になじませます。"
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "フェードが内側に及ぶ範囲を、ペイント領域に対する割合で指定します。小さい値では端の狭い帯だけが柔らかくなり、1ではほぼ全体が平らになります。"
+
+# AI Translated
+msgid "Invert"
+msgstr "凹凸反転"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "起伏を裏返します: 突き出ていた部分は彫り込まれ、その逆も同様です。画像のネガを使うのと同じです。"
+
+# AI Translated
+msgid "Colours"
+msgstr "カラー"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "ペイント領域を、起伏だけでなくテクスチャの色でも印刷します。各色は読み込まれているフィラメントのうち最も近いものに対応付けられ、ペイントしていない部分はオブジェクト本来の色のままです。"
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "このテクスチャはグレースケールのハイトマップのため、適用できる色がありません。この機能を使うにはカラー画像をインポートしてください。"
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "フィラメントを混合"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "2つのフィラメントを交互に配置して中間色を擬似的に表現し、少数のフィラメントで写真やグラデーションを再現できるようにします。単色で構成された画像はどちらでも同じように印刷されます。オフの場合は、領域ごとに1つのフィラメントを使用します。"
+
+# AI Translated
+msgid "Mix by"
+msgstr "混合方法"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "表面"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"積層: 2つのフィラメントを積層ごとに交互に使います。垂直に近い面では滑らかに混ざりますが、上や下を向いた面では1つの積層全体が1色の帯になるため効果がありません。\n"
+"表面: 表面全体に細かい市松模様を配置します。どの角度でも機能しますが、混色ではなくテクスチャのように見えることがあります。\n"
+"自動: 垂直に近い面には積層を使い、上や下を向いた面には近い方の単一フィラメントを使います。そこでは市松模様が模様として見えてしまうためです。"
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%2%個のフィラメントで印刷可能な色: %1%色"
+
+# AI Translated
+msgid "Denoise"
+msgstr "ノイズ除去"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "メッシュより細かいディテールによって残る、色の違う孤立した三角形を除去します。結果に斑点が見える場合は値を上げ、小さな特徴が消えてしまう場合は下げてください。"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "マッピング"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "トライプラナー (ブレンド)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "トライプラナー - 3つの軸すべてから同時にテクスチャを投影してその間をブレンドするため、鋭いエッジを回り込む領域にもテクスチャのつなぎ目が生じません。"
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "円筒 - ペイント領域自体の中心の周りにテクスチャを巻き付けます。丸い形状向けです。"
+
+# AI Translated
+msgid "Spherical"
+msgstr "球面"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "球面 - ペイント領域自体の中心の周りに、両方向にテクスチャを巻き付けます。"
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "展開 (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "展開 - ペイント領域を平らに広げ、引き伸ばしが最小になるようにテクスチャをマッピングします。領域は先に鋭いエッジで分割されるため (「シーム角度」を参照)、各部分をそれぞれ平らにできます。"
+
+# AI Translated
+msgid "From view"
+msgstr "ビューから"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "ビューから - スライドプロジェクターのように、現在見ている方向からペイント領域にまっすぐ投影します。"
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "UVエディターを開く"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "UVエディターを開きます。ペイント領域上でのテクスチャの配置を確認し、シームを切ったり各部分を移動したりできます。"
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "未展開"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1%個のUVアイランド"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "現在のビューをキャプチャ"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "この角度からは何も見えません - 投影したい部分がこちらを向くようにモデルを回転させてください。"
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "スライドプロジェクターのように、現在見ている方向からペイント領域にテクスチャを投影します。こちらを向いていない面は引き伸ばされるため、先に対象の表面に合わせてビューを調整してください。"
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "表示されている面のみに投影"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "現在実際に見えている面 (こちらを向いていて、何にも隠れていない面) のみをペイントし、そこに投影します。レイヤーでペイントされていた内容は置き換えられます。"
+
+# AI Translated
+msgid "Projection frame"
+msgstr "投影フレーム"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "モデル上にドラッグするウィンドウを開きます。そのウィンドウを通して見える部分にテクスチャが適用され、ウィンドウの枠が投影の境界になります。"
+
+# AI Translated
+msgid "Opacity"
+msgstr "不透明度"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "配置中のフレームウィンドウの不透明度です。下げるとフレーム越しにモデルが見えます。結果には影響しません。"
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "投影フレームを適用"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "フレームの内側にモデルがありません - 投影したい部分の上にフレームを移動してください。"
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "フレームを適用できませんでした。フレームが3Dビューに重なっていることを確認してください。"
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "現在見ている方向からフレームを通してテクスチャを投影し、フレーム内の面をペイントします。レイヤーでペイントされていた内容は置き換えられます。結果はモデルに固定されるため、その後に視点を回転させても問題ありません。"
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "投影フレームで配置済み。"
+
+# AI Translated
+msgid "Tile"
+msgstr "タイル"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "ペイント領域全体にテクスチャを繰り返します。オフの場合は、デカールのように「タイルサイズ」で設定したサイズで1枚だけ配置します。"
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "テクスチャの繰り返し方法を選ぶには「タイル」をオンにしてください。"
+
+# AI Translated
+msgid "Repeat"
+msgstr "繰り返し"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "ミラー繰り返し"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "ミラー繰り返し - 1枚おきにタイルを反転させ、端同士がシームレスにつながるようにします"
+
+# AI Translated
+msgid "Blend"
+msgstr "ブレンド"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "追加"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "減算"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "乗算"
+
+# AI Translated
+msgid "Divide"
+msgstr "除算"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "ベースレイヤーは下に組み合わせるものがないため、常に追加になります。"
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "このレイヤーが下のレイヤーと重なる部分での動作です。「追加」と「減算」は起伏を盛り上げたり削ったりします。「乗算」と「除算」は下にあるものを拡大縮小するため、このレイヤーはその上のマスクになります - その場合「深さ」は強度として働き、1 mmでは白い部分は変化しません。"
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "配置を調整"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "配置を調整 - モデル上のハンドルをドラッグしてテクスチャを移動"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "先にこのレイヤーで何かをペイントしてください。"
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "設定を減らす"
+
+# AI Translated
+msgid "More settings"
+msgstr "その他の設定"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "%1%個のレイヤーをすべて使用済み"
+
+# AI Translated
+msgid "Add layer"
+msgstr "レイヤーを追加"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "細分化"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "ペイント領域のみ (アダプティブ)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "全体ではなく、ペイントした場所にのみ三角形を追加します。大きなパーツに小さなデカールを貼る場合、三角形が数千個で済むか数百万個になるかの違いになり、ペイントも細分化後に保持されます。"
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "テクスチャのディテールに追従"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "三角形を均等に配置するのではなく、テクスチャが実際に曲がる場所 (稜線やエッジ沿いは密に、平坦な部分は疎に) に割り当てます。ほとんどのテクスチャで、より少ない三角形で同じディテールが得られます。"
+
+# AI Translated
+msgid "Max edge"
+msgstr "最大エッジ長"
+
+# AI Translated
+msgid "Target edge"
+msgstr "目標エッジ長"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "テクスチャが平坦な場所でも、ペイント領域内の三角形はこれより大きくなりません。再現したい最小の特徴のサイズに近い値にしてください。"
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "ペイント領域内の三角形を、これより大きいものがなくなるまで分割します。小さくするとディテールが細かくなり、三角形の数が急速に増えます。"
+
+# AI Translated
+msgid "Detail"
+msgstr "ディテール"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "テクスチャが表す形状からメッシュがずれてもよい距離 (mm) です。小さくすると細かいディテールに追従しますが三角形が増え、大きくすると大きな特徴だけを再現します。"
+
+# AI Translated
+msgid "Min edge"
+msgstr "最小エッジ長"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "三角形のサイズの下限で、テクスチャの急な段差をどこまでも追い続けないようにします。より細かい起伏にするには下げ、急なエッジで三角形の数が増えすぎる場合は上げてください。"
+
+# AI Translated
+msgid "Edge detail"
+msgstr "エッジのディテール"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "ペイント領域の輪郭 (起伏が素の表面に戻る部分) での三角形のサイズです。縁がギザギザに見える場合は下げてください。増えるのは輪郭沿いの三角形だけです。0でオフになります。"
+
+# AI Translated
+msgid "Colour detail"
+msgstr "カラーのディテール"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "2つの色が接する部分での三角形のサイズです。各三角形は1つのフィラメントで印刷されるため、色の境界はそれに沿った三角形と同じ細かさにしかなりません - また、色が変わる部分の表面は平らなため、ほかの設定ではそこが細分化されません。0でオフになります。"
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "三角形の上限数: 下の「三角形」で設定します。"
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "プレビュー: 三角形 %1% 個"
+
+# AI Translated
+msgid "Steps"
+msgstr "ステップ数"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "モデルのすべての三角形を4つに分割する処理を、この回数だけ繰り返します。1ステップごとに数が4倍になり、3では100 k個の三角形が6.4 M個になります。モデル全体を細かくする必要がない限り、ペイント領域のみの細分化をおすすめします。"
+
+# AI Translated
+msgid "Hide preview"
+msgstr "プレビューを非表示"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "細分化をプレビュー"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "モデルを変更せずに、細分化の結果をワイヤフレームで表示します。"
+
+# AI Translated
+msgid "Subdivide"
+msgstr "細分化"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "ペイント領域を目標エッジ長まで細分化し、ペイントを細かくなったメッシュに引き継ぎます。モデルのそれ以外の部分はそのままです。"
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "モデルのジオメトリを細分化したメッシュに置き換え、まだ焼付けしていないペイントをクリアします (焼付け済みの起伏には影響しません)。"
+
+# AI Translated
+msgid "Remeshing"
+msgstr "リメッシュ"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "モデル全体を再構築する際の三角形のサイズ (mm) です。変位は均一なメッシュで最もよく機能します。不均一なインポートモデルから均一なメッシュを作るための設定です。"
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "シャープエッジを保持"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "残りの部分をリメッシュする間、硬いエッジと開いた境界を固定します。オフにすると、リメッシュ処理で頂点が表面に沿って滑り、すべてのシャープなエッジが丸くなります - 立方体のエッジが波打ってしまいます。"
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "リメッシュ処理で保持すべきエッジとして扱う折れ目の鋭さ (度) です。低くするとモデルの形状をより多く保護し、高くするとより多くの部分を均一に再構築します。"
+
+# AI Translated
+msgid "Remesh"
+msgstr "リメッシュ"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "大きな三角形を分割し、小さな三角形を結合して、このエッジ長に近い三角形でモデル全体を再構築し、変位に均一な密度を与えます。ジオメトリは置き換えられますが、ペイントは空間的に新しい三角形へ引き継がれるため保持されます (焼付け済みの起伏も保持されます)。"
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "境界まで変位"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "ペイント領域の端まで起伏を延ばします。オフにすると外側のリングを平らに保ち、変位をペイントの内側に厳密に収めますが、境界部分のパターンは平らになります。"
+
+# AI Translated
+msgid "Smooth result"
+msgstr "結果をスムージング"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "テクスチャ適用後のジオメトリを滑らかにし、低解像度の画像による急な段差を取り除きます。変位で動いた部分のみが対象です。レイヤーの「スムージング」スライダーは別の機能で、使用前に画像をぼかします。"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "強度"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "1回ごとに頂点を隣接頂点に向けて引き寄せる強さです。高い値では起伏がすぐに丸くなり、低い値ではより多くの回数が必要になりますが、ディテールが多く残ります。"
+
+# AI Translated
+msgid "Passes"
+msgstr "反復回数"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "スムージングを実行する回数です。回数を増やすとスムージングが表面のより広い範囲に及びます。1回ごとにどれだけ動かすかは「強度」で決まります。"
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "外側のリングを無視"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "ペイント領域の外側のリングをスムージングの対象から外します。ペイント外の隣接部分は動かないため、外側のリングをスムージングすると起伏が引き下げられ、境界のパターンが半分溶けたようになります。"
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "焼付け済みメッシュを今すぐスムージング"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "上のスムージングを、ペイント領域内のモデル自体に今すぐ適用します。焼付け済みの起伏向けです - まだ焼付けしていない部分は焼付け時にスムージングされます。"
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "実験的: 従来の焼付けパイプライン"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "メッシュを準備 (リメッシュ、アダプティブ細分化、テクスチャの急な段差に沿ったカット) した後、既存の頂点を動かして焼付けします。トポロジーが保持されるため、カラーに必要な方式です。デフォルトのパイプラインは、細分化、細長い三角形の整理、変位、簡略化を1回で行います。事前の準備は不要ですが、まだカラーには対応していません。"
+
+# AI Translated
+msgid "Budget"
+msgstr "上限数"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "この焼付けでペイント領域に使える三角形の数 (千単位) です。モデルの他の部分に焼付け済みの起伏はこれとは別に保持されるため、別の場所での2回目の焼付けにも1回目と同じ上限数が与えられます。「分解能」の下の警告でディテールが収まらないと表示される場合は値を上げてください。0では細分化で生成された三角形をすべて保持します (数に関係なく)。"
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "メッシュをテクスチャのエッジに合わせる"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "変位させる前に、頂点を横方向にスライドさせてテクスチャ内のエッジに合わせます。変位では頂点を上下にしか動かせないため、これがないと画像の急な段差は三角形がたまたまある位置に置かれ、階段状になります。先に頂点を段差の上に移動させることで、同じ三角形数でまっすぐな壁になります。"
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "細長い三角形を整理"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "変位でサンプリングする前に、モデル自体のテッセレーションから細分化で引き継がれた細長い三角形を潰します。細長い三角形の3つの頂点はテクスチャの無関係な3か所に置かれるため、起伏がギザギザに見える原因になります。"
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "オン: 分解能はモデルのサイズに合わせて決まり、上限数はデフォルトのままになります。両方を自分で設定するにはチェックを外してください - テクスチャがパーツに比べてずっと細かい、またはずっと粗い場合に有効です。"
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "モデルのサイズから選択: 三角形 %1$.2f mm、上限数 %2% k。自分で設定するには「自動」のチェックを外してください。"
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "ペイント部分のメッシュをどれだけ細かくするか (mm) です。テクスチャから再現したいディテールより小さくする必要があります - 0.5 mmの溝には0.5 mmより十分小さい三角形が必要です。小さくすると三角形が急速に増えます: 半分にすると4倍の数が必要になり、上限数に収まらなくなると焼付けで簡略化され、ディテールも失われます。"
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "約%1%個の三角形が必要ですが、上限数は%2%です - 焼付けで簡略化され、ディテールが失われます。"
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "細分化でモデルに追加できる三角形の数 (千単位) です。最も合っていない三角形から常に先に分割されるため、上限まで使い切った場合でも、最も目立つ場所に使われています。起伏がまだ粗く見える場合は値を上げてください。"
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "焼付けを停止します。すでに完了した部分はモデルに残り、元に戻すことができます。"
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "焼付けせずにツールを閉じます。ペイント、レイヤー、設定はモデルに保持されます。"
+
+# AI Translated
+msgid "Preparing..."
+msgstr "準備中..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "焼付け中..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "まだ何もペイントされていません。UVエディターのシームツールがオンのため、モデル上のストロークはペイントではなくシームのマークになります - ペイントするにはペインでオフにしてください。"
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "まだ何もペイントされていません。"
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "既存の頂点を動かして、ペイントしたハイトマップを実際のジオメトリにします。メッシュが粗すぎてディテールを表現できない場合は、先に細分化してください。"
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "ペイントしたハイトマップを実際のジオメトリにします。メッシュは均一な密度にリメッシュされ、テクスチャが曲がる場所が先に細分化されるため、ディテールを表す頂点が確保されます - すべて1ステップで行われます。"
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "モデル: 三角形 %1% 個 - 焼付けでは上の分解能まで、上限数の範囲内で細分化します"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "焼付けでは既存の頂点を動かします - モデルは三角形 %1% 個のままです"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "焼付け結果は最大で約 %1% k 個の三角形"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1%個のレイヤーは未ペイントのためスキップ"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1%は未ペイントのためスキップ"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "テクスチャ変位ペイントを開始"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "テクスチャ変位ペイントを終了"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "テクスチャ変位の編集"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "SLAアーカイブを選択:"
+
+# AI Translated
+msgid "Import file"
+msgstr "ファイルをインポート"
+
+msgid "Import model and profile"
+msgstr "モデルとプロファイルを取り込む"
+
+msgid "Import profile only"
+msgstr "プロファイルのみ取り込む"
+
+msgid "Import model only"
+msgstr "モデルのみ取り込む"
+
+msgid "Accurate"
+msgstr "緻密"
+
+msgid "Balanced"
+msgstr "バランス"
+
+msgid "Quick"
+msgstr "高速"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "テクスチャ変位を焼付け中"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "焼付けで変位が生成されなかったため、何も変更されず、ペイントは保持されました。ペイントしたレイヤーにテクスチャがあり、深さが0でないことを確認してください。"
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "三角形の上限数によってディテールが制限されました: この分解能には%1%個の三角形が必要ですが、上限数により%2%個になりました。完全なディテールを得るには、「上限数」を上げるか、より粗い「分解能」を使用してください。"
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "焼付けの段階をキャプチャ中"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "テクスチャ変位のためにメッシュを準備中"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "クリックして比率を編集"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "混合フィラメントを編集"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "効果のプレビュー"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "混合する材料を選択"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ 材料を追加"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- 材料を削除"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "グラデーション効果"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "パーツ別グラデーション効果を有効化"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "混合の推奨"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- 選択 --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "スロット%s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "異なるタイプのフィラメントは混合できません: %s。同じフィラメントタイプを選択してください。"
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "すべてのコンポーネントにフィラメントを選択してください"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "異なるフィラメントタイプは混合できません"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "混合できる材料は最大3つです"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "コンポーネント数が上限に達しました"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "3つ目の材料を削除"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3Dモデル"
+
+# AI Translated
+msgid "Click to return"
+msgstr "クリックして戻る"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "左矢印"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "クリックして続行"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "右矢印"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "%sプラグインを選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "下のリストから%sプラグインを選択してください。"
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "この種類のプラグインが見つかりません。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "プラグインファイル: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "プロセスプラグイン"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "フィラメントプラグイン"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "プリンタープラグイン"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "設定が有効なJSONではありません。変更は保存されませんでした。"
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "設定を更新しました。保持するにはプリセットを保存してください。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"「%s」のデフォルト設定を復元しますか？\n"
+"\n"
+"プリセットでの上書き設定を破棄し、グローバル設定を使用します。"
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "デフォルトに戻す"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "グローバル設定を使用しています。保持するにはプリセットを保存してください。"
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "この機能は利用できなくなりました。"
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "プラグインの設定UIの読み込みに失敗しました (%1%)。デフォルトのエディターを表示します。"
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "プラグインを削除"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "購読を解除"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "プラグインを上書き"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr ".pyまたは.whlのプラグインパッケージを選択してください。"
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "プラグインパッケージのインストールに失敗しました。詳細はログを確認してください。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"プラグイン「%s」はすでにインストールされています。\n"
+"\n"
+"このパッケージをインストールすると、既存のプラグインが上書きされます。"
+
+# AI Translated
+msgid "Overwrite"
+msgstr "上書き"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "プラグインをインストール中"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "「%s」をインストールしました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "「%s」の有効化に失敗しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "「%s」を有効化しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"以下のインストール済みプラグインがディスク上に見つかりませんでした:\n"
+"%s\n"
+"\n"
+"OrcaSlicerから削除しますか？"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "見つからないプラグイン"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "プラグインデータを更新中"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "プラグインのアンロードに失敗しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "「%s」を無効化しました。"
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "プラグインのマニフェストが見つかりませんでした。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "「%s」を有効化中..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "「%s」をオンにしました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "「%s」をオフにしました。"
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "プラグインをダウンロード中"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "プラグインのダウンロードに失敗しました。"
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "設定を保存しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"「%s」のデフォルト設定を復元しますか？\n"
+"\n"
+"この機能に現在保存されている設定は破棄されます。"
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "デフォルト設定を復元しました。"
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "プラグインを更新中"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "プラグインの更新に失敗しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "「%s」を更新しました。"
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "プラグインフォルダーを特定できませんでした。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"プラグイン「%s」を削除しますか？\n"
+"\n"
+"ローカルのプラグインファイルが削除されます。プラグインはクラウドに残り、再インストールできます。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"プラグイン「%s」を削除しますか？\n"
+"\n"
+"プラグインフォルダーが完全に削除されます。"
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "プラグインの削除に失敗しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "「%s」を削除しました。"
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "プラグインを削除中"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "プラグインを削除中..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"プラグイン「%s」の購読を解除しますか？\n"
+"\n"
+"プラグインの追跡を停止し、ローカルのプラグインファイルをすべて削除します。"
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "プラグインの購読解除に失敗しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "「%s」の購読を解除しました。"
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "プラグインの購読を解除中"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "ローカルファイルを削除し、プラグインの購読を解除中..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "プラグインを再読み込み中"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "プラグインの再読み込みに失敗しました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "「%s」を再読み込みしました。"
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "フラッシュモードの設定"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "速度と温度を段階的に切り替えながら完全にフラッシュし、最高の印刷品質を得ます。"
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "最適化されたフラッシュ温度と倍率、より強い押出によってフラッシュを高速化します。極端な場合には、わずかに混色が生じることがあります。"
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "プライム節約"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "プライムの廃材を減らし、より速く印刷します。わずかな混色や小さな表面欠陥が生じることがあります。"
+
+# AI Translated
+msgid "Terminal"
+msgstr "ターミナル"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "ワンクリックCMYW自動混合"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "ワンクリックRYBW自動混合"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "プロジェクトの物理フィラメント"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "新しい物理フィラメント"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "プロジェクトの混合フィラメント"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "新しい混合フィラメント"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "プロジェクトでサポートされるフィラメントは最大%d個です。超過したフィラメントは破棄されます。"
+
+# AI Translated
+msgid "Import Model"
+msgstr "モデルをインポート"
+
+# AI Translated
+msgid "Original"
+msgstr "オリジナル"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "マルチカラー"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "入力したテクスチャモデル"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "処理後のマルチカラーモデル"
+
+# AI Translated
+msgid "Color Count"
+msgstr "色数"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "スムーズレベル"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "最適な色数のみを自動で決定し、フィラメントのマッピングを再計算します"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "指定した色数とスムーズレベルでテクスチャをペイントに変換します"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "リマインダー: パラメータが変更されました。「適用」をクリックすると反映されます"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "フィラメントのマッピング"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "フィラメントのマッピングをワンクリック混合前の状態にリセット"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "テクスチャカラーのインポートに使うワンクリック自動混合モードを選択"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "同じフィラメントを自動マージ"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "同一のフィラメントをプロジェクト内の既存フィラメントに自動でマージします"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "マッチングをスキップ"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "フィラメントのマッピングをスキップし、単色モデルとしてインポート"
+
+# AI Translated
+msgid "Processing"
+msgstr "処理中"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "テクスチャの色を計算しています..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "メッシュを修復中"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "計算に失敗しました。パラメータを調整して再試行してください。"
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "メッシュに非多様体ジオメトリまたは開いた境界があります。そのままインポートするか、インポート前にWindowsの3D修復サービスで修復できます。"
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "メッシュの修復"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "修復せずにインポート"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "修復してインポート"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "メッシュに非多様体ジオメトリまたは開いた境界があることに注意してください。"
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "メッシュの問題"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "選択した画像は空です。"
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "テクスチャを使用できるように準備できませんでした。"
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "削除できるのは自分でインポートしたテクスチャのみです。"
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "テクスチャファイルを削除できませんでした。"
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "インポートしたテクスチャ用のフォルダーを作成できませんでした。"
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "選択した画像を読み込めませんでした。"
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "インポートしたテクスチャの保存に失敗しました。"
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "テクスチャファイルを読み込めませんでした。"
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "投影フレーム - モデル上にドラッグしてから「適用」"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "アイランドを移動中  |  離して配置、Escでキャンセル"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "アイランドを回転中: %d°  |  Shift = 15°単位でスナップ、クリックで確定、Escでキャンセル"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "アイランドを拡大縮小中  |  クリックで確定、Escでキャンセル"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "頂点を移動中  |  離して配置"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "エッジを移動中  |  離して配置"
+
+# AI Translated
+msgid "Panning"
+msgstr "パン中"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "モデル上の領域をペイントしてから「展開」を押してください"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "ここでUVを編集するには、テクスチャレイヤーのマッピングで「展開」を選択してください"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d個の頂点を選択中  |  ドラッグ = まとめて移動、Shift/Ctrlクリック = 追加/削除"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "頂点モード: 頂点をドラッグして形状を変更  |  Shift/Ctrlクリック = 複数選択、ホイール = ズーム、Home = 全体表示"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d本のエッジを選択中  |  ドラッグ = まとめて移動、Shift/Ctrlクリック = 追加/削除"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "エッジモード: アイランドのエッジをドラッグして形状を変更  |  Shift/Ctrlクリック = 複数選択、ホイール = ズーム、Home = 全体表示"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "%d個のアイランドを選択中  |  ドラッグ = まとめて移動、Shift/Ctrlクリック = 追加/削除、R/S = メインのアイランドを回転/拡大縮小"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "アイランド%dを選択中  |  ドラッグ = 移動、R = 回転、S = 拡大縮小、Shift/Ctrlクリック = 複数選択、Home = 全体表示"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "クリックしてアイランドを選択  |  Shift/Ctrlクリック = 複数選択、ホイール = ズーム、中ボタンドラッグ = パン、Home = すべて表示"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  スナップ オン"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "テクスチャを変更 - テクスチャライブラリから別のテクスチャを選択"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "ハイトマップ - アイランドの下にレイヤーのテクスチャを表示"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "チェッカー - テストグリッドを表示します。展開による引き伸ばしがない場所ではマス目が正方形のままです"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "歪み - 展開による引き伸ばしの大きさに応じて各アイランドを色分け"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "展開"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "シーム角度"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "これより鋭いエッジはカットされ、その両側の部分は別々に平らに広げられます。下げるとカットが増え、各部分は引き伸ばしが少ない状態で平らになりますが、カットをまたいでテクスチャが連続しなくなります。次回の「展開」で反映されます。"
+
+# AI Translated
+msgid "Connect islands"
+msgstr "アイランドを接続"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "展開を連結した展開図としてレイアウトします: エッジを共有する部分が隣り合わせに展開されます (立方体はバラバラの6つの正方形ではなく、つながった展開図になります)。それぞれは別のアイランドのままなので、後から個別に手動で移動できます。"
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "アイランド - アイランド全体を移動、回転、拡大縮小"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "頂点 - 頂点をドラッグして形状を変更。Shift/Ctrlで複数選択"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "エッジ - エッジをドラッグして形状を変更。Shift/Ctrlで複数選択"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "シームをマーク - モデル上のエッジをクリックすると、そこに沿って展開がカットされます。カーソル下のエッジは黄色でハイライトされ、クリックすると赤でマークされます。赤いエッジをもう一度クリックするとマークが解除されます。この機能がオンの間、ペイントは一時停止します。"
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "パス - エッジを1本ずつクリックする代わりに、始点と終点をクリックすると、その間の最短経路全体が一度にシームになります。シームのマーク中に使用できます。"
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "シームをクリア - このレイヤーにマークされたすべてのシームを削除"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "スケールを平均化 - すべてのアイランドのテクセル密度を揃える"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "分割 - 選択したアイランドを長軸を横切るように分割"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "結合 - 選択したアイランドを、共有するエッジに沿って最も近い隣接アイランドの隣に展開"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "結合解除 - 選択したアイランドを元のパック位置に戻す"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "UV編集をクリア - 頂点やエッジの手動移動をすべて破棄し、展開を自動生成の形状に戻す"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "スナップ - ドラッグ中のアイランドを他のアイランドに近づけると吸着させる"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "すべてのアイランドを全体表示 (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "「展開」でマッピングされたレイヤーがありません"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "%.1f mm タイル"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "最新ではありません - この展開の作成後に、ペイント、シーム、またはシーム角度が変更されました。押すと再展開します。"
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "ペイント領域を平らに広げてUVアイランドにします。計算はこのボタンを押したときのみ行われ、編集のたびには行われません - 先にペイント、シーム角度の変更、シームのマークを行ってから「展開」を押してください。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "UVアイランド %d 個、面 %s 個"
+
+# AI Translated
+msgid "Forward"
+msgstr "進む"
+
+# AI Translated
+msgid "Tools"
+msgstr "ツール"
+
+# AI Translated
+msgid "View Source"
+msgstr "ソースを表示"
+
+# AI Translated
+msgid "View Text"
+msgstr "テキストを表示"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "ナビゲーションを処理"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "新しいウィンドウを処理"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "編集モード"
+
+# AI Translated
+msgid "Run Script"
+msgstr "スクリプトを実行"
+
+# AI Translated
+msgid "Add user script"
+msgstr "ユーザースクリプトを追加"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "カスタムユーザーエージェントを設定"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "選択を解除"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "選択範囲を削除"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "カスタムスキームの例"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "メモリファイルシステムの例"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "コンテキストメニューを有効化"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "開発者ツールを有効化"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "%s の読み込み中にエラーが発生しました"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "%1%のロード先: %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "%sをロード"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"プラグイン「%s」がPython監査イベント「%s」の許可を要求しています。\n"
+"\n"
+"この操作には、監査フックで表示できる対象がありません。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が以下のファイルの読み取りを要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が以下のファイルの読み取り/書き込みを要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が以下のファイルの作成を要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が以下のファイルの削除を要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が次の宛先へのHTTPリクエストを要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が次の宛先へのネットワーク接続を要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"プラグイン「%s」が以下のコマンドの実行を要求しています:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "プラグイン「%s」がPython監査イベント「%s」の許可を要求しています。"
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "プラグインの権限リクエスト"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "プラグインの設定UIが空でした。デフォルトのエディターを表示します。"
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "この機能は利用できなくなりました。変更は保存されませんでした。"
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "設定をディスクに書き込めませんでした。変更は保存されませんでした。"
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "プラグインがデフォルト設定を提供できませんでした (%1%)。何も変更されていません。"
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "設定をディスクに書き込めませんでした。何も変更されていません。"
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "プラグインのインストールに失敗しました"
+
+# AI Translated
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -26879,6 +29598,86 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "キャリブレーションG-codeの生成に失敗しました"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "減算"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "乗算"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " と "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "は混合できません。同じフィラメントタイプを選択してください。"
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "読み込み中にエラーが発生しました: "
+
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "%sのロード先: "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "デザインタブで、合致コネクターを従来のロール象限付きの円盤ではなく、小さな面として描画します。面であれば、慣れていなくても向きを読み取れます。従来のCADの表現にするにはオフにしてください。"
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "エキスパート"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "シンプル"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "点を順にクリック。最初の点をクリックまたは右クリックでループを閉じます"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "Xヒント X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "Xヒント Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "Xヒント Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — 目のアイコンでこの合致を抑制できます"
+
+# AI Translated
+#~ msgid "Del"
+#~ msgstr "削除"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "スケッチを保持しました — 完了で確定、取消しで破棄"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "編集中: スケッチ%d   ·   N = 平面に垂直に表示   ·   ツールバーで完了または取消し"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "スケッチを編集中 — ハンドルをドラッグするか、寸法値をクリックして編集"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -27011,9 +29810,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "元に戻す  (残り %zu)"
-
-#~ msgid "Reset direction"
-#~ msgstr "方向をリセット"
 
 #~ msgid "Section View"
 #~ msgstr "断面"
@@ -27240,9 +30036,6 @@ msgstr ""
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "設定範囲に自動調整しますか？\n"
 
-#~ msgid "Head diameter"
-#~ msgstr "直径"
-
 #~ msgid "Print order within a single layer."
 #~ msgstr "単一レイヤー内の印刷順序。"
 
@@ -27284,9 +30077,6 @@ msgstr ""
 
 #~ msgid "Select filament that installed to the right nozzle"
 #~ msgstr "右ノズルに取り付けたフィラメントを選択"
-
-#~ msgid "Select Filament && Hotends"
-#~ msgstr "フィラメントとホットエンドを選択"
 
 #, c-format, boost-format
 #~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -27527,14 +30317,8 @@ msgstr ""
 #~ msgid "nozzle[%d] memorized: %.1f"
 #~ msgstr "記憶されたノズル[%d]: %.1f"
 
-#~ msgid "Remove selected points"
-#~ msgstr "選択したポイントを削除"
-
 #~ msgid "Remove all"
 #~ msgstr "全て削除"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "自動ポイント生成"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "ブリムを追加"
@@ -27559,12 +30343,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "キー 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "左クリック"
-
-#~ msgid "Right click"
-#~ msgstr "右クリック"
 
 #~ msgid "Select feature"
 #~ msgstr "フィーチャーを選択"
@@ -28068,12 +30846,6 @@ msgstr ""
 #~ msgid "The target object contains only one part and cannot be split."
 #~ msgstr "オブジェクトは一つだけのパーツが入っており、分割できません。"
 
-#~ msgid "?"
-#~ msgstr "?"
-
-#~ msgid "/"
-#~ msgstr "/"
-
 #~ msgid "Color Scheme"
 #~ msgstr "配色スキーム"
 
@@ -28415,24 +31187,6 @@ msgstr ""
 
 #~ msgid "Exception"
 #~ msgstr "異常"
-
-#~ msgid "Import model and profile"
-#~ msgstr "モデルとプロファイルを取り込む"
-
-#~ msgid "Import profile only"
-#~ msgstr "プロファイルのみ取り込む"
-
-#~ msgid "Import model only"
-#~ msgstr "モデルのみ取り込む"
-
-#~ msgid "Accurate"
-#~ msgstr "緻密"
-
-#~ msgid "Balanced"
-#~ msgstr "バランス"
-
-#~ msgid "Quick"
-#~ msgstr "高速"
 
 #~ msgid "Discribe how long the nozzle will move along the last path when retracting"
 #~ msgstr "リトラクション時にノズルが最後のパスに沿って移動する距離です。"

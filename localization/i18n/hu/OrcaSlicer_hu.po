@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1626,9 +1626,10 @@ msgstr "SVG műveletek"
 msgid "SVG"
 msgstr "SVG"
 
+# AI Translated
 #, boost-format
 msgid "Opacity (%1%)"
-msgstr "Áttetszőség (%1%)"
+msgstr "Átlátszatlanság (%1%)"
 
 #, boost-format
 msgid "Color gradient (%1%)"
@@ -5236,8 +5237,9 @@ msgstr "Az anyagáramlás kalibrációs paramétere érvénytelen"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "A kiválasztott átmérő és a nyomtatóban megadott átmérő nem egyezik"
 
-msgid "Failed to generate cali G-code"
-msgstr "Nem sikerült létrehozni a kalibrációs G-kódot"
+# AI Translated
+msgid "Failed to generate calibration G-code"
+msgstr "Nem sikerült létrehozni a kalibrációs G-code-ot"
 
 msgid "Calibration error"
 msgstr "Kalibrációs hiba"
@@ -6070,6 +6072,7 @@ msgid "Wireframe"
 msgstr "Drótváz"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "Röntgen"
 
@@ -8406,6 +8409,7 @@ msgid "Click to edit preset"
 msgstr "Kattints a beállítás szerkesztéséhez"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "Változat"
 
@@ -9588,6 +9592,7 @@ msgid "Recent actions"
 msgstr "Legutóbbi műveletek"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "művelet"
 
@@ -9705,8 +9710,8 @@ msgid "Draw mate connectors as a face"
 msgstr "Illesztési csatlakozók megjelenítése lapként"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "A Tervezés fülön az illesztési csatlakozót kis lapként rajzolja meg a hagyományos, elfordulási negyedkörrel ellátott korong helyett. Egy lap tájolása előzetes tanulás nélkül is leolvasható. Kapcsold ki a hagyományos CAD-ábrázoláshoz."
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "A Tervezés fülön az illesztési csatlakozót kis lapként rajzolja meg a hagyományos, elfordulási negyedkörrel ellátott korong helyett. Egy lap első pillantásra mutatja a tájolását, a korongos jelölés megtanulása nélkül. Kapcsold ki a hagyományos CAD-ábrázoláshoz."
 
 msgid "Pan"
 msgstr "Pásztázás"
@@ -9808,12 +9813,14 @@ msgid "Applies SSAO in realistic view."
 msgstr "SSAO alkalmazása a valósághű nézetben."
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "Statikus"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
-msgstr "Keringő"
+msgstr "Kamerával forgó"
 
 # AI Translated
 msgid "Shadows"
@@ -10609,10 +10616,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "Az aktuális grafikai beállításokat használja, és általában kevesebb mint egy percig tart. A főablak a befejezésig zárolva marad."
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "Haladó"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "Szakértő"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "Fejlesztői"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "Egyszerű"
 
@@ -23182,8 +23201,8 @@ msgid "Polyline"
 msgstr "Vonallánc"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Kattints a pontokra; a hurok bezárásához kattints az elsőre / jobb kattintás"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "Kattints a pontokra; a hurok bezárásához kattints az első pontra, a lánc befejezéséhez kattints jobb gombbal"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23630,6 +23649,11 @@ msgstr "Új test"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "Egyesítés"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "Kivágás"
 
@@ -23653,6 +23677,7 @@ msgid "Bottom"
 msgstr "Alul"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
 msgstr "Oldalsó"
 
@@ -23807,8 +23832,9 @@ msgid "Plane type"
 msgstr "Síktípus"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
-msgstr "Alap"
+msgstr "Alapsík"
 
 # AI Translated
 msgid "Angle°"
@@ -24104,15 +24130,15 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "Él nélkül a koordináta-rendszer X tengelye a lap első élét követi — válassz egy élt, ha magad szeretnéd megadni"
 
 # AI Translated
-msgid "X hint X"
+msgid "X direction X"
 msgstr "X-irány X"
 
 # AI Translated
-msgid "X hint Y"
+msgid "X direction Y"
 msgstr "X-irány Y"
 
 # AI Translated
-msgid "X hint Z"
+msgid "X direction Z"
 msgstr "X-irány Z"
 
 # AI Translated
@@ -24188,8 +24214,9 @@ msgid "Feature tree"
 msgstr "Jellemzőfa"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — a szem ikon letiltja ezt az illesztést"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s. Kattints a szem ikonra az illesztés letiltásához."
 
 # AI Translated
 #, c-format, boost-format
@@ -24248,10 +24275,6 @@ msgstr "Változók"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-# AI Translated
-msgid "Del"
-msgstr "Törlés"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24354,8 +24377,8 @@ msgid "Tool exited"
 msgstr "Kilépve az eszközből"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "Vázlat megtartva — Kész: véglegesítés, Mégse: elvetés"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "Vázlat megtartva — Megerősítés: véglegesítés, Mégse: elvetés"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24379,8 +24402,8 @@ msgstr "Vázlat %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "Szerkesztés: Vázlat %d   ·   N = merőleges nézet a síkra   ·   Kész vagy Mégse az eszköztáron"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Szerkesztés: Vázlat %d   ·   N = merőleges nézet a síkra   ·   Megerősítés vagy Mégse az eszköztáron"
 
 # AI Translated
 #, c-format
@@ -25584,8 +25607,8 @@ msgid "On a stored face"
 msgstr "Egy tárolt lapon"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Vázlat szerkesztése — húzz egy fogantyút, vagy kattints egy méretszámra a szerkesztéshez"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "Vázlat szerkesztése — húzz egy fogantyút, vagy kattints duplán egy méretre a szerkesztéséhez"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -26010,6 +26033,2711 @@ msgstr "Alkalmazás"
 msgid "Speed Dial"
 msgstr "Gyorsindító"
 
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "A Test %1% helyzetét már meghatározza a(z) \"%2%\" (jellemző %3%), ezért a(z) \"%4%\" felülírja"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "Ez az illesztés önmagához képest helyezi el ezt a testet: Test %1%"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "Az illesztési lánc körkörös: Test %1% függ ettől: Test %2%, amely visszavezet ide: Test %1% — az eredmény a jellemzők sorrendjétől függ"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "A(z) \"%1%\" csatlakozó másik lapra kerülhetett (egy korábbi lépés módosítása átszámozta a test lapjait)"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "Nem sikerült konfigurációs pillanatképet készíteni."
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "Az OrcaSlicer hibát észlelt a konfigurációs pillanatkép készítése közben."
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicer-hiba"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "Kérlek, válaszd ki a(z) %s filamentjét."
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "Kérlek, válaszd ki a filamentet."
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "Tudj meg többet a filamentek hozzárendelési szabályairól."
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "A külső tekercs nem támogatott, mert Filament Track Switch van felszerelve. Ha külső tekercset szeretnél használni, szereld le."
+
+msgid "Select Filament && Hotends"
+msgstr "Válassz filamentet és hotendet"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "Modellképek"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "Kiegészítők"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "Projekt filamentlista"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "Normál mód javaslatai"
+
+# AI Translated
+msgid "Target Color"
+msgstr "Célszín"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "Színszétbontás kiválasztása"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "Tetszőleges mód"
+
+# AI Translated
+msgid "Material List"
+msgstr "Anyaglista"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "Normál mód"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "A szétbontáshoz legalább két azonos anyagtípusú filament szükséges"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "Az anyaglista legfeljebb %1% színt támogat. A(z) %2% szétbontása után az anyagok száma meghaladná ezt: %1%. Szétbontás előtt töröld a nem használt filamenteket a főképernyőn."
+
+# AI Translated
+msgid "Cyan"
+msgstr "Cián"
+
+# AI Translated
+msgid "Magenta"
+msgstr "Magenta"
+
+# AI Translated
+msgid "Yellow"
+msgstr "Sárga"
+
+# AI Translated
+msgid "White"
+msgstr "Fehér"
+
+# AI Translated
+msgid "Red"
+msgstr "Piros"
+
+# AI Translated
+msgid "Green"
+msgstr "Zöld"
+
+# AI Translated
+msgid "Blue"
+msgstr "Kék"
+
+# AI Translated
+msgid ", "
+msgstr ", "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "A jelenlegi filamentlista nem tartalmazza ezt: %s. A kevert filamenthez szükséges projektfilament a szétbontás után automatikusan létrejön."
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "Alternatív fúvókák:"
+
+# AI Translated
+msgid "All standard"
+msgstr "Összes normál"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "Üdvözöl a(z) %s konfigurációs asszisztense"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "Üdvözöl a(z) %s konfigurációs varázslója"
+
+# AI Translated
+msgid "Welcome"
+msgstr "Üdvözlünk"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "Szia, üdvözlünk a(z) %s alkalmazásban! Ez a(z) %s segít a kezdeti beállításban; néhány beállítás, és már nyomtathatsz is."
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "Felhasználói profilok eltávolítása (előtte pillanatkép készül)"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "Asztali integráció végrehajtása (a rendszer számára kereshetővé teszi ezt a programfájlt)."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "%s család"
+
+# AI Translated
+msgid "Printer:"
+msgstr "Nyomtató:"
+
+# AI Translated
+msgid "Vendor:"
+msgstr "Gyártó:"
+
+# AI Translated
+msgid "Profile:"
+msgstr "Profil:"
+
+# AI Translated
+msgid "(All)"
+msgstr "(Összes)"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "%1%: a <b>*</b> jellel jelöltek <b>nem</b> kompatibilisek néhány telepített nyomtatóval."
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA anyagok"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "Minden telepített nyomtató kompatibilis a kiválasztott elemekkel (%1%)."
+
+# AI Translated
+msgid "filament"
+msgstr "filament"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA anyag"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "Csak a következő telepített nyomtatók kompatibilisek a kiválasztott filamentekkel"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "Csak a következő telepített nyomtatók kompatibilisek a kiválasztott SLA anyagokkal"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "Egyedi nyomtató beállítása"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "Egyedi nyomtató"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "Egyedi nyomtatóprofil létrehozása"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "Egyedi profil neve:"
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "Firmware típusa"
+
+# AI Translated
+msgid "Firmware"
+msgstr "Firmware"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "Válaszd ki a nyomtatód által használt firmware típusát."
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "Asztal alakja és mérete"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "Állítsd be a nyomtatód asztalának alakját."
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Érvénytelen számérték."
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "Filament- és fúvókaátmérők"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "Nyomtatási átmérők"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "Add meg a nyomtatód fejegységében lévő fúvóka átmérőjét."
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "Fúvóka átmérője:"
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "Add meg a filament átmérőjét."
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "Nagy pontosság szükséges, ezért használj tolómérőt, mérj több helyen a filament mentén, majd számold ki az átlagot."
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "Filament átmérője:"
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "Fúvóka- és asztalhőmérséklet"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "Add meg a filament extrudálásához szükséges nozzle_temperature értéket."
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "Ökölszabályként PLA-hoz 160–230℃, ABS-hez 215–250℃ ajánlott."
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "Extrudálási hőmérséklet:"
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "Add meg azt az asztalhőmérsékletet, amely ahhoz szükséges, hogy a filament megtapadjon a fűtött asztalon."
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "Ökölszabályként PLA-hoz 60℃, ABS-hez 110℃ ajánlott. Hagyd nullán, ha nincs fűtött asztalod."
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "Asztalhőmérséklet:"
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA anyagok"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "FFF technológiájú nyomtatók"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "SLA technológiájú nyomtatók"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "A következő nyomtatóprofiloknak nincs alapértelmezett filamentje: %1%Kérlek, válassz egyet kézzel."
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "A következő nyomtatóprofiloknak nincs alapértelmezett anyaga: %1%Kérlek, válassz egyet kézzel."
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "A következő FFF nyomtatómodelleknél nincs kiválasztva filament:"
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "Szeretnél alapértelmezett filamenteket választani ezekhez az FFF nyomtatómodellekhez?"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "A konfiguráció a Konfigurációs varázslóban módosult"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "Minden felhasználói beállítás törlődik."
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "Új gyártó lett telepítve, és az egyik nyomtatója aktiválódik"
+msgstr[1] "Új gyártók lettek telepítve, és az egyik nyomtatójuk aktiválódik"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "Új nyomtató lett telepítve, és aktiválódik."
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "Néhány nyomtató el lett távolítva."
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "Új filament lett telepítve, és aktiválódik."
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "Új SLA anyag lett telepítve, és aktiválódik."
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "Néhány filament el lett távolítva."
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "Egyedi nyomtató lett telepítve, és aktiválódik."
+
+# AI Translated
+msgid "<Back"
+msgstr "<Vissza"
+
+# AI Translated
+msgid "Next>"
+msgstr "Tovább>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "Filamentprofilok kiválasztása"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "Konfigurációs asszisztens"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "Konfigurációs &asszisztens"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "Konfigurációs varázsló"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "Konfigurációs &varázsló"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "A filamentbemenet"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "B filamentbemenet"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "Javasolt átrendezés"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "Hogyan takaríthatsz meg időt?→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "Filament állapota:"
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "A pozíciót módosítani kell"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "OK"
+
+# AI Translated
+msgid "Unused"
+msgstr "Nem használt"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "Az alábbi ábra alapján rendezd át a filamenteket a nyomtatón az optimális eredményért, így kb. %s időt takaríthatsz meg."
+
+# AI Translated
+msgid "Summary:"
+msgstr "Összegzés:"
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "AMS az A filamentbemeneten"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "AMS a B filamentbemeneten"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "A(z) %d. szeletelési filament ehhez van rendelve: '%s'. Ha ehhez rendeled: '%s', nyomtatási időt takaríthatsz meg."
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*Tipp: Ha áthelyezted a tekercset a gépen, zárd be ezt az oldalt, és rendeld hozzá újra a filamentet."
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "Összegzés: Jelenleg ez a legmegfelelőbb elhelyezés."
+
+# AI Translated
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "Megjegyzés:"
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "Objektum kiüregelése"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "Kiüregelt és fúrt modell előnézete"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "Zárási távolság"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "Furatátmérő"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "Furatmélység"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "Kijelölt furatok eltávolítása"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "Összes furat eltávolítása"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "Nézet vágása"
+
+msgid "Reset direction"
+msgstr "Irány visszaállítása"
+
+# AI Translated
+msgid "Show supports"
+msgstr "Támaszok megjelenítése"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "Kiüregelés és fúrás"
+
+msgid "Head diameter"
+msgstr "Fej átmérő"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "Támaszok rögzítése az új szigetek alatt"
+
+msgid "Remove selected points"
+msgstr "Kijelölt pontok eltávolítása"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "Összes pont eltávolítása"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "Változtatások alkalmazása"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "Változtatások elvetése"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "Pontok minimális távolsága"
+
+# AI Translated
+msgid "Support points density"
+msgstr "Támaszpontok sűrűsége"
+
+msgid "Auto-generate points"
+msgstr "Pontok automatikus generálása"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "Kézi szerkesztés"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLA támaszpontok"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "Szeretnéd menteni a kézzel szerkesztett támaszpontokat?"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "Mented a támaszpontokat?"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "Az automatikus generálás törli az összes kézzel szerkesztett pontot."
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "Biztosan ezt szeretnéd tenni?"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "SLA gizmo gyorsbillentyűi"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "Megjegyzés: egyes gyorsbillentyűk csak szerkesztő vagy csak nem szerkesztő módban működnek."
+
+msgid "Left click"
+msgstr "Bal kattintás"
+
+# AI Translated
+msgid "Add point"
+msgstr "Pont hozzáadása"
+
+msgid "Right click"
+msgstr "Jobb kattintás"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Pont eltávolítása"
+
+# AI Translated
+msgid "Move point"
+msgstr "Pont mozgatása"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "Pont hozzáadása a kijelöléshez"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "Pont eltávolítása a kijelölésből"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "Kijelölés téglalappal"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "Kijelölés megszüntetése téglalappal"
+
+# AI Translated
+msgid "Select all points"
+msgstr "Összes pont kijelölése"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "Vágósík mozgatása"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "Vágósík visszaállítása"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "Váltás szerkesztő módra"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "Beégetés"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "Textúrás domborítás"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "Textúrás domborítás festésének törlése"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "Textúrás domborítás festése"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "UV-varrat jelölése"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "UV-varrat útvonalának jelölése"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "%1%. réteg"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "UV-szigetek méretének kiegyenlítése"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "Előbb válassz ki egy szigetet az UV-szerkesztőben."
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "UV-sziget vágása"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "Ennek a szigetnek nincs olyan szomszédja, amellyel közös éle lenne."
+
+# AI Translated
+msgid "Join texture island"
+msgstr "UV-sziget összekapcsolása"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "UV-sziget szétválasztása"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "UV-varratok törlése"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "Textúra UV-módosításainak törlése"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "Textúra vetítési keretének alkalmazása"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "UV-sziget mozgatása"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "Textúra UV-koordinátáinak szerkesztése"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "Elérted a textúrás domborítási rétegek maximális számát."
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "Textúrás domborítási réteg hozzáadása"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "Nem sikerült betölteni a kiválasztott textúrát."
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "Textúrás domborítás textúrájának cseréje"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "Válassz textúraképet (magasságtérkép)"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "Válassz textúrát"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "Eltávolítás a Saját textúrák közül"
+
+# AI Translated
+msgid "Built-in"
+msgstr "Beépített"
+
+# AI Translated
+msgid "No textures found."
+msgstr "Nem található textúra."
+
+# AI Translated
+msgid "My textures"
+msgstr "Saját textúrák"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "Importáld a saját képedet magasságtérképként. A program átalakítja arra a formátumra, amelyből a szeletelő beéget, és a személyes textúramappádba menti, elkülönítve az OrcaSlicerrel szállított textúráktól."
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG, JPG vagy BMP - importáláskor magasságtérképpé alakul. Saját textúra eltávolításához vidd fölé az egeret."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"Eltávolítod a(z) \"%s\" textúrát a Saját textúrák közül?\n"
+"\n"
+"A képfájl törlődik a textúramappádból. Az ezt már használó rétegek megtartják."
+
+# AI Translated
+msgid "Remove texture"
+msgstr "Textúra eltávolítása"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "Textúrás domborítási réteg eltávolítása"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "Textúrás domborítási rétegek átrendezése"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "Látható felületek kijelölése textúrás domborításhoz"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "Teljes modell kijelölése textúrás domborításhoz"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "Modell felosztása textúrás domborításhoz"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "Előbb fesd be a felosztandó területet - az adaptív felosztás csak a befestett részt finomítja."
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "Adaptív felosztás textúrás domborításhoz"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "Nincs mit felosztani - a befestett terület már megfelel a cél élhossznak és a részletességi tűrésnek, vagy a háromszögkeret már elfogyott."
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "Előbb fesd be a simítandó területet - a simítás csak a modell befestett részét érinti."
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "Nincs mit simítani - a befestett terület csak egy háromszögnyi mély, így bekapcsolt \"Külső gyűrű kihagyása\" mellett nincsenek belső csúcsok, amelyeket simítani lehetne."
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "Textúrás domborítás simítása"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "Modell újrahálózása textúrás domborításhoz"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "Az újrahálózás nem változtatta meg a modellt. Lehet, hogy nem manifold (nyitott élek, vagy kettőnél több háromszög által közösen használt élek), vagy a cél élhossz már teljesül."
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "Nincs semmi befestve, nincs mit beégetni."
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "Textúrás domborítás beégetése"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "Nincs semmi befestve, így nincsenek rögzíthető beégetési szakaszok."
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "Beégetési szakaszok (hibakeresés)"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "Rögzítés..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "Szakaszok rögzítése"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "Ugyanazt a beégetést futtatja, mint a Beégetés gomb, de minden szakasz után megtartja a hálót, és itt végiglépkedhetsz rajtuk. A modellen semmi sem véglegesül - ez annak kiderítésére szolgál, melyik szakaszból ered egy rossz eredmény."
+
+# AI Translated
+msgid "Check topology"
+msgstr "Topológia ellenőrzése"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "Minden szakasz után megszámolja a nyitott és a nem manifold éleket, így szúrható ki az a szakasz, amely felszakította a hálót. Minden élt átvizsgál, ezért finom beégetésnél jelentősen lassítja a rögzítést."
+
+# AI Translated
+msgid "< Previous"
+msgstr "< Előző"
+
+# AI Translated
+msgid "Next >"
+msgstr "Következő >"
+
+# AI Translated
+msgid "triangles"
+msgstr "háromszög"
+
+# AI Translated
+msgid "vertices"
+msgstr "csúcs"
+
+# AI Translated
+msgid "Open edges"
+msgstr "Nyitott élek"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "Nem manifold"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "Degenerált"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "Szakaszhálók kiírása"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "A szakaszhálók OBJ fájlként kiírva ide:"
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "Nem sikerült kiírni a szakaszhálókat."
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "Minden rögzített szakaszt OBJ fájlként ír ki, így egymás mellett megnyithatók egy hálónézegetőben."
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "A befestett területet nem sikerült átvinni az újrahálózott modellre, így semmi sem változott. Válts Pro módra, és festés előtt hálózd újra a modellt."
+
+# AI Translated
+msgid "Pro"
+msgstr "Pro"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "Normál - válassz textúrát, fesd be, hová kerüljön, majd nyomd meg a Beégetés gombot. A háló minden szükséges előkészítése ebben az egy lépésben megtörténik."
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "Pro - a háló előkészítését te futtatod: Újrahálózás, Felosztás és Beégetés külön lépésekben, minden beállítás látható. Akkor hasznos, ha a Normál mód eredménye nem az, amit szerettél volna, és tudod, miért."
+
+# AI Translated
+msgid "Dock panel"
+msgstr "Panel rögzítése"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "Panel leválasztása"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "Leválasztja a panelt, hogy bárhová húzhasd a 3D nézet fölött, vagy visszarögzíti az eszköztár mellé."
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "ide: %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "adj hozzá egy réteget a festéshez"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "Festés - az aktív réteget adja hozzá ott, ahová kattintasz vagy húzol. A jobb gomb töröl, ahogy a Shift lenyomva tartása is."
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "Radír - eltávolítja az aktív réteget ott, ahová kattintasz vagy húzol. A jobb gomb fest."
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "Ecset - fess a felületre húzással"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "Felület - kattints az egyes háromszögekre"
+
+# AI Translated
+msgid "Connected area"
+msgstr "Összefüggő terület"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "Összefüggő terület - kitölti azt a régiót, amely a szögküszöbnél élesebb él átlépése nélkül elérhető"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "Várd meg, amíg a beégetés befejeződik."
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "Előbb adj hozzá egy réteget."
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "Az aktív réteg még nincs befestve."
+
+# AI Translated
+msgid "Select whole model"
+msgstr "Teljes modell kijelölése"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "Teljes modell kijelölése - a modell minden felületét befesti az aktív réteggel"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "Festés törlése a teljes modellről"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "Festés törlése a teljes modellről - az aktív réteg festését minden felületről eltávolítja"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "Textúrás domborítás kijelölésének visszaállítása"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "Kör - mindent befest az ecset alatt, a kamera nézőpontjából"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "Gömb - csak a kurzor alatti pont körüli gömbön belül fest"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "Szögküszöb - a kitöltés az ennél élesebb éleknél megáll"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "Kattints egy háromszögre a befestéséhez"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "Az aktív réteghez Kiterítés (LSCM) hozzárendelés szükséges."
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "Normál - a valódi geometria, pontosan az, amit a Beégetés létrehoz. Lassabban frissül"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "Gyors - a domborzat csak árnyékolással jelenik meg, nem épül fel, és csak a szerkesztett rétegnél. Festés közben azonnal frissül"
+
+# AI Translated
+msgid "Checker"
+msgstr "Sakktábla"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "Sakktábla - tesztrács a textúra helyett. Ahol a négyzetek négyzetek maradnak, a textúra torzításmentes; ahol megnyúlnak, ott a textúra is meg fog"
+
+# AI Translated
+msgid "Distortion"
+msgstr "Torzítás"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "Torzítás - kéktől pirosig terjedő nyúlási hőtérkép a kiterítésen"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "Drótváz - a háló éleinek megjelenítése rárajzolva; független a fenti nézettől"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "Bármilyen változáskor azonnal újraépíti az előnézetet. Nagy modellnél kapcsold ki, ha a festés vagy egy csúszka húzása akadozni kezd - ekkor az előnézet megvárja, amíg elengeded."
+
+# AI Translated
+msgid "Texture layers"
+msgstr "Textúrarétegek"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "Húzd egy másik rétegre az átrendezéshez. Az első réteg a csupasz felületen ül; minden további a korábbiak tetejére adja a saját domborzatát."
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "Válassz másik képet ehhez a réteghez. A festés, a mélység és a csempézés változatlan marad."
+
+# AI Translated
+msgid "not painted"
+msgstr "nincs befestve"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "Feljebb - korábban alkalmazva"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "Lejjebb - később alkalmazva"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "Réteg eltávolítása"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "A domborzat magassága: a textúra fehér részei milliméterben mennyivel emelik meg a felületet. A fekete egyáltalán nem mozdítja el, hacsak a Középszint mást nem ír elő."
+
+# AI Translated
+msgid "Tile size"
+msgstr "Csempeméret"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "A textúra egy példányának szélessége a modellen. Kisebb értéknél a minta gyakrabban ismétlődik, és a részletei finomabbak; kikapcsolt Csempézésnél ez az egyetlen példány mérete."
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "Elforgatja a textúrát a felületen, fokban megadva - egy minta a modell egyik éléhez igazításához."
+
+# AI Translated
+msgid "Midlevel"
+msgstr "Középszint"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"Melyik szürkeárnyalat marad ott, ahol a felület már van. 0-nál a textúra csak kifelé tol; 0,5-nél a középszürke helyben marad, így a sötétebb szürkék bevágnak, a világosabbak pedig továbbra is kifelé tolnak - egyetlen kép egyszerre domborít és gravíroz.\n"
+"\n"
+"A bevágásnak el is kell férnie: éles belső saroknál vagy vékony falon egy mély bevágás a túloldalon is átjöhet."
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "A mély, befelé irányuló elmozdítás önátmetszést okozhat."
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "Használat előtt elmossa a képet, ami lekerekíti az éles lépcsőket, és eltávolítja a pöttyöket egy zajos fotóról. Növeld, ha a domborzat durvának vagy szemcsésnek tűnik; a finom részletek rovására megy."
+
+# AI Translated
+msgid "Edge fade"
+msgstr "Szélek elhalványítása"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "Ellapítja a domborzatot a befestett terület széle felé közeledve, így az lépcső helyett a csupasz felületbe olvad."
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "Milyen messzire nyúlik be az elhalványítás, a befestett terület arányában. Kis értékek a szélen egy keskeny sávot lágyítanak; 1 szinte az egészet ellapítja."
+
+# AI Translated
+msgid "Invert"
+msgstr "Invertálás"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "Kifordítja a domborzatot: ami kiemelkedett, az bevágódik, és fordítva. Ugyanaz, mintha a kép negatívját használnád."
+
+# AI Translated
+msgid "Colours"
+msgstr "Színek"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "A befestett területet a textúra színeivel is kinyomtatja, nem csak a domborzatával. Minden szín a betöltött filamentek közül a legközelebbihez lesz rendelve; amit nem festettél be, az megtartja az objektum saját színét."
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "Ez a textúra szürkeárnyalatos magasságtérkép, így nincsenek alkalmazható színei. Ehhez importálj egy színes képet."
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "Filamentek keverése"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "Két filamentet váltakoztat a köztes színek imitálásához, így néhány filamenttel is lefedhető egy fotó vagy egy színátmenet. Egy egyszínű foltokból álló kép mindkét módon ugyanúgy nyomtatódik. Kikapcsolva területenként egy filamentet használ."
+
+# AI Translated
+msgid "Mix by"
+msgstr "Keverés módja"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "Felület"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"Rétegek: a két filament a nyomtatási rétegek között váltakozik, ami függőleges felületeken simán összeolvad, de vízszintes felületeken eltűnik, ahol egy teljes réteg egyetlen sáv.\n"
+"Felület: finom sakktáblaminta a felületen, ami bármilyen szögben működik, de keverék helyett inkább textúrának hathat.\n"
+"Automatikus: függőleges felületeken rétegek; a vízszintes felületek a közelebbi egyetlen filamentet kapják, mivel ott a sakktábla mintázatként látszik."
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% nyomtatható szín %2% filamentből"
+
+# AI Translated
+msgid "Denoise"
+msgstr "Zajszűrés"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "Eltakarítja a rossz színű, magányos háromszögeket, amelyeket a hálónál finomabb részletek hagynak maguk után. Növeld, ha az eredmény pöttyösnek tűnik, csökkentsd, ha apró részletek tűnnek el."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "Leképezés"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "Triplanáris (kevert)"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "Triplanáris - egyszerre mindhárom tengely felől vetíti a textúrát, és átmenetet képez közöttük, így egy éles élen átforduló folton nem látszik illesztés."
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "Hengeres - a textúrát a befestett terület saját középpontja köré tekeri, kerek formákhoz."
+
+# AI Translated
+msgid "Spherical"
+msgstr "Gömbi"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "Gömbi - a textúrát a befestett terület saját középpontja köré tekeri, mindkét irányban."
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "Kiterítés (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "Kiterítés - síkba teríti a befestett területet, és a lehető legkisebb nyúlással képezi rá a textúrát. A területet előbb az éles éleinél darabokra vágja (lásd Varratszög), így minden darab külön is síkba fektethető."
+
+# AI Translated
+msgid "From view"
+msgstr "Nézetből"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "Nézetből - egyenesen a befestett területre vetít onnan, ahonnan nézed, mint egy diavetítő."
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "UV-szerkesztő megnyitása"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "Megnyitja az UV-szerkesztőt, ahol láthatod, hogyan helyezkedik el a textúra a befestett területen, varratokat vághatsz, és mozgathatod a darabokat."
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "Még nincs kiterítve"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% sziget"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "Jelenlegi nézet rögzítése"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "Ebből a szögből semmi sem látszik - fordítsd a modellt úgy, hogy az a rész nézzen feléd, amelyre vetíteni szeretnél."
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "A textúrát a befestett területre vetíti onnan, ahonnan most nézed, mint egy diavetítő. A tőled elforduló felületek megnyúlnak, ezért előbb igazítsd a nézetet a fontos felülethez."
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "Vetítés csak a láthatóra"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "Csak azokat a felületeket festi be, amelyeket most ténylegesen látsz - feléd néznek, és semmi sem takarja őket -, és ezekre vetít. Felülírja a réteg addigi festését."
+
+# AI Translated
+msgid "Projection frame"
+msgstr "Vetítési keret"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "Megnyit egy ablakot, amelyet a modell fölé húzhatsz. Ami rajta keresztül látszik, az kapja a textúrát, a kerete pedig a vetítés széle lesz."
+
+# AI Translated
+msgid "Opacity"
+msgstr "Átlátszatlanság"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "Mennyire tömörnek látszik a keretablak, amíg elhelyezed. Csökkentsd, hogy átláss rajta a modellre; az eredményt nem befolyásolja."
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "Vetítési keret alkalmazása"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "A modellnek egyetlen része sincs a kereten belül - mozgasd a keretet arra a részre, amelyre vetíteni szeretnél."
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "A keretet nem sikerült alkalmazni. Győződj meg róla, hogy átfedi a 3D nézetet."
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "A textúrát a kereten keresztül vetíti onnan, ahonnan most nézed, és befesti a kereten belüli felületeket. Felülírja a réteg addigi festését; az eredmény a modellhez rögzül, így utána körbeforgathatod a nézetet."
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "Vetítési kerettel elhelyezve."
+
+# AI Translated
+msgid "Tile"
+msgstr "Csempézés"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "Ismétli a textúrát a befestett területen. Kikapcsolva egyetlen példányt helyez el, mint egy matricát, a Csempeméretben megadott méretben."
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "Kapcsold be a Csempézést, hogy megadhasd, hogyan ismétlődjön a textúra."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Ismétlés"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "Tükrözött ismétlés"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "Tükrözött ismétlés - minden második csempe tükrözve van, így az élek illesztés nélkül találkoznak"
+
+# AI Translated
+msgid "Blend"
+msgstr "Keverés"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "Hozzáadás"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "Kivonás"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "Szorzás"
+
+# AI Translated
+msgid "Divide"
+msgstr "Osztás"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "Az alapréteg alatt nincs semmi, amivel kombinálódhatna, ezért mindig hozzáad."
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "Mit tesz ez a réteg ott, ahol átfedi az alatta lévőket. A Hozzáadás és a Kivonás domborzatot halmoz rá vagy farag el. A Szorzás és az Osztás az alatta lévőt skálázza, így ez a réteg maszkká válik fölötte - ott a Mélység erősségként működik, és 1 mm érintetlenül hagyja a fehér területeket."
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "Elhelyezés módosítása"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "Elhelyezés módosítása - húzd a fogantyút a modellen a textúra mozgatásához"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "Előbb fess valamit ezzel a réteggel."
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "Kevesebb beállítás"
+
+# AI Translated
+msgid "More settings"
+msgstr "Több beállítás"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "Mind a(z) %1% réteg használatban"
+
+# AI Translated
+msgid "Add layer"
+msgstr "Réteg hozzáadása"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "Felosztás"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "Csak a befestett terület (adaptív)"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "Csak ott ad hozzá háromszögeket, ahol festettél, nem mindenhol. Egy nagy tárgyon egy kis matricánál ez ezrek és milliók közötti különbség a háromszögek számában, és a festésed is megmarad a finomítás után."
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "Textúrarészletek követése"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "Oda teszi a háromszögeket, ahol a textúra ténylegesen hajlik - sűrűn a gerincek és élek mentén, ritkán a sík részeken -, ahelyett, hogy egyenletesen szórná szét őket. A legtöbb textúránál ugyanaz a részletesség kevesebb háromszögből."
+
+# AI Translated
+msgid "Max edge"
+msgstr "Max. él"
+
+# AI Translated
+msgid "Target edge"
+msgstr "Cél élhossz"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "A befestett területen egyetlen háromszög sem marad ennél nagyobb, még ott sem, ahol a textúra sík. Tartsd a legkisebb kívánt részlet méretének közelében."
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "A befestett terület háromszögeit addig osztja, amíg egyik sem nagyobb ennél. A kisebb érték finomabb részletet és rohamosan sokkal több háromszöget jelent."
+
+# AI Translated
+msgid "Detail"
+msgstr "Részletesség"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "Milyen messze lehet a háló a textúra által leírt alaktól, milliméterben. A kisebb érték követi a finom részleteket, de háromszögekbe kerül; a nagyobb csak a nagy formákat követi."
+
+# AI Translated
+msgid "Min edge"
+msgstr "Min. él"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "A háromszögméret alsó korlátja, hogy a textúra egy éles lépcsőjét ne kövesse a végtelenségig. Csökkentsd finomabb domborzathoz, növeld, ha a háromszögszám elszáll az éles éleknél."
+
+# AI Translated
+msgid "Edge detail"
+msgstr "Élrészletesség"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "Háromszögméret a befestett terület körvonala mentén, ahol a domborzat visszaesik a csupasz felületre. Csökkentsd, ha ez a perem csipkézettnek tűnik; csak a körvonal mentén kerül háromszögekbe. A 0 kikapcsolja."
+
+# AI Translated
+msgid "Colour detail"
+msgstr "Színrészletesség"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "Háromszögméret ott, ahol két szín találkozik. Minden háromszög egy filamenttel nyomtatódik, így egy színhatár csak olyan éles lehet, mint a mentén lévő háromszögek - és ott semmi más nem finomít, mivel színváltásnál a felület sík. A 0 kikapcsolja."
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "Háromszögkeret: lent, a Háromszögek beállításnál adható meg."
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "Előnézet: %1% háromszög"
+
+# AI Translated
+msgid "Steps"
+msgstr "Lépések"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "A modell minden háromszögét négyfelé osztja, ennyiszer egymás után. Minden lépés megnégyszerezi a számukat - 3 lépés 100 ezer háromszögből 6,4 milliót csinál -, ezért inkább csak a befestett területet finomítsd, hacsak nem az egész modellnek kell finomabbnak lennie."
+
+# AI Translated
+msgid "Hide preview"
+msgstr "Előnézet elrejtése"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "Felosztás előnézete"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "Drótvázként mutatja, mit eredményezne a finomítás, a modell módosítása nélkül."
+
+# AI Translated
+msgid "Subdivide"
+msgstr "Felosztás"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "A befestett területet a cél élhosszra finomítja, és átviszi a festésedet a finomabb hálóra. A modell többi része változatlan marad."
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "A modell geometriáját a felosztott hálóra cseréli, és törli rajta a még be nem égetett festést (a már beégetett domborzatot nem érinti)."
+
+# AI Translated
+msgid "Remeshing"
+msgstr "Újrahálózás"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "Háromszögméret, amellyel a teljes modell újraépül, milliméterben. A domborítás egyenletes hálón működik a legjobban; ez készít ilyet egy egyenetlen importált modellből."
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "Éles élek megtartása"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "Helyben tartja az éles éleket és a nyitott határokat, miközben a többi részt újrahálózza. Nélküle az újrahálózó a felület mentén csúsztatja a csúcsokat, és minden éles élt lekerekít - egy kocka hullámos élekkel jön vissza."
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "Milyen élesnek kell lennie egy hajlatnak fokban, hogy az újrahálózó megtartandó élként kezelje. Kisebb érték a modell alakjából többet véd; nagyobb érték többet épít újra egyenletesen."
+
+# AI Translated
+msgid "Remesh"
+msgstr "Újrahálózás"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "A teljes modellt ehhez az élhosszhoz közeli háromszögekkel építi újra - a nagyokat felosztja, a kicsiket összevonja -, hogy a domborításnak egyenletes sűrűség álljon rendelkezésére. Lecseréli a geometriát; a festésed térbeli alapon kerül át az új háromszögekre, így megmarad (a már beégetett domborzat is megmarad)."
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "Domborítás a határig"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "A domborzat egészen a befestett terület széléig ér. Kapcsold ki, hogy a külső gyűrű sík maradjon; így a domborítás szigorúan a festésen belül marad, de a minta a határon ellapul."
+
+# AI Translated
+msgid "Smooth result"
+msgstr "Eredmény simítása"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "A textúra alkalmazása után simítja a geometriát, hogy eltüntesse egy alacsony felbontású kép éles lépcsőit. Csak azt érinti, amit a domborítás elmozdított. Egy réteg Simítás csúszkája más: az a képet mossa el használat előtt."
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "Erősség"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "Egy-egy menet mennyire húzza a csúcsot a szomszédai felé. Nagy értékek gyorsan lekerekítik a domborzatot; kis értékekhez több menet kell, de több részlet marad meg."
+
+# AI Translated
+msgid "Passes"
+msgstr "Menetek"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "Hány simítási menet fusson. Több menet messzebbre terjeszti a simítást a felületen; hogy egy-egy menet mennyit mozdít, azt az Erősség határozza meg."
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "Külső gyűrű kihagyása"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "Kihagyja a simításból a befestett terület külső gyűrűjét. A festésen kívüli szomszédai sosem mozdulnak, így a simítása lehúzná a domborzatot, és a mintát a határon félig megolvadtnak hagyná."
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "Beégetett háló simítása most"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "A fenti simítást azonnal magára a modellre alkalmazza a befestett területen belül. Már beégetett domborzathoz - ami még nincs beégetve, azt a Beégetés simítja."
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "Kísérleti: klasszikus beégetési folyamat"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "Beégetés a háló meglévő csúcsainak mozgatásával, előkészítés után (újrahálózás, adaptív felosztás és vágás a textúra éles lépcsői mentén). Megtartja a topológiát, ami a színekhez szükséges. Az alapértelmezett folyamat ehelyett egy menetben finomít, eltakarítja a szilánkháromszögeket, domborít és egyszerűsít; nem kell előkészíteni semmit, de színeket még nem állít elő."
+
+# AI Translated
+msgid "Budget"
+msgstr "Keret"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Hány ezer háromszöget használhat fel ez a beégetés a befestett területen. A modell többi részébe már beégetett domborzat ezen felül megmarad, így egy máshol végzett második beégetés ugyanakkora keretet kap, mint az első. Növeld, ha a Felbontás alatti figyelmeztetés szerint a részletek nem férnek bele; a 0 a finomítás által létrehozott összes háromszöget megtartja, akárhány is az."
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "Háló igazítása a textúra éleihez"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "A csúcsokat elmozdításuk előtt oldalirányban a textúra éleire csúsztatja. A domborítás csak fel és le tudja mozgatni a csúcsokat, így enélkül a kép egy éles lépcsője oda kerül, ahol épp a háromszögek vannak, és lépcsőzetes lesz. Ha a csúcsok előbb a lépcsőre kerülnek, ugyanannyi háromszöggel egyenes fal jön létre."
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "Szilánkok eltakarítása"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "Összevonja a vékony háromszögeket, amelyeket a finomítás a modell saját tesszellációjából örököl, mielőtt a domborítás mintát venne belőlük. Egy szilánk három sarka a textúra három, egymástól független pontjára esik, emiatt tűnik csipkézettnek a domborzat."
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "Bekapcsolva a felbontás a modell méretét követi, a keret pedig az alapértelmezett értéken marad. Vedd ki a pipát, ha mindkettőt magad állítanád be - érdemes, ha a textúra jóval finomabb vagy durvább, mint a tárgy, amelyen van."
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "A modell mérete alapján választva: %1$.2f mm-es háromszögek, keret: %2% k. Vedd ki az Automatikus pipát, ha magad állítanád be."
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "Milyen finom legyen a háló a festés alatt, milliméterben. Kisebbnek kell lennie, mint a textúrából kinyerni kívánt részlet - egy 0,5 mm-es horonyhoz jóval 0,5 mm alatti háromszögek kellenek. A kisebb érték gyorsan növeli a háromszögszámot: a felére csökkentése négyszer annyit igényel, és ha már nem férnek bele a keretbe, a beégetés visszaegyszerűsít, és vele vesznek a részletek."
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "Kb. %1% háromszög szükséges, a keret %2% - a beégetés visszaegyszerűsít, és részletek vesznek el."
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "Hány ezer háromszöget adhat hozzá a finomítás a modellhez. Mindig a legrosszabbul illeszkedő háromszöget osztja fel először, így még a teljes keretet elhasználó futás is ott költötte el, ahol a leginkább látszik. Növeld, ha a domborzat még mindig durvának tűnik."
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "Leállítja a beégetést. Amit már befejezett, az a modellen marad, és visszavonható."
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "Beégetés nélkül bezárja az eszközt. A festésed, a rétegek és a beállítások a modellnél maradnak."
+
+# AI Translated
+msgid "Preparing..."
+msgstr "Előkészítés..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "Beégetés..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "Még nincs semmi befestve. Az UV-szerkesztő varrateszköze be van kapcsolva, így a modellen húzott vonások festés helyett varratokat jelölnek - a festéshez kapcsold ki a panelen."
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "Még nincs semmi befestve."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "A befestett magasságtérképeket valódi geometriává alakítja a már meglévő csúcsok mozgatásával. Ha a háló túl durva a részletek megjelenítéséhez, előbb használd a Felosztást."
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "A befestett magasságtérképeket valódi geometriává alakítja. A hálót előbb egyenletes sűrűségűre hálózza újra, és ott finomítja, ahol a textúra hajlik, hogy a részleteknek legyenek csúcsai - mindezt egy lépésben."
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "Modell: %1% háromszög - a beégetés a fenti felbontásig finomít, legfeljebb a keretéig"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "A beégetés a meglévő csúcsokat mozgatja - a modell %1% háromszögű marad"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "A beégetés eredménye legfeljebb ~%1% k háromszög"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% réteg nincs befestve, kihagyva"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1%: nincs befestve, kihagyva"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "Belépés a textúrás domborítás festő módjába"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "Kilépés a textúrás domborítás festő módjából"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "Textúrás domborítás szerkesztése"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "Válassz SLA archívumot:"
+
+# AI Translated
+msgid "Import file"
+msgstr "Fájl importálása"
+
+# AI Translated
+msgid "Import model and profile"
+msgstr "Modell és profil importálása"
+
+# AI Translated
+msgid "Import profile only"
+msgstr "Csak profil importálása"
+
+# AI Translated
+msgid "Import model only"
+msgstr "Csak modell importálása"
+
+# AI Translated
+msgid "Accurate"
+msgstr "Pontos"
+
+# AI Translated
+msgid "Balanced"
+msgstr "Kiegyensúlyozott"
+
+# AI Translated
+msgid "Quick"
+msgstr "Gyors"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "Textúrás domborítás beégetése"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "A beégetés nem hozott létre domborítást, ezért semmi sem változott, és a festés megmaradt. Ellenőrizd, hogy a befestett rétegnek van-e textúrája, és nem nulla-e a mélysége."
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "A háromszögkeret korlátozta a részletességet: ehhez a felbontáshoz %1% háromszög kell, a keret %2% háromszöget tartott meg. A teljes részletességhez növeld a Keretet, vagy használj durvább Felbontást."
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "Beégetési szakaszok rögzítése"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "Háló előkészítése textúrás domborításhoz"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "Kattints az arány szerkesztéséhez"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "Kevert filament szerkesztése"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "Hatás előnézete"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "Kevert anyagok kiválasztása"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ Anyag hozzáadása"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- Anyag törlése"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "Színátmenet-hatás"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "Tárgyankénti színátmenet-hatás engedélyezése"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "Keverési javaslatok"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- Válassz --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "Férőhely %s (%s)"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "Különböző filamenttípusok nem keverhetők: %s. Válassz azonos filamenttípust."
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "Válassz filamentet minden összetevőhöz"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "Különböző filamenttípusok nem keverhetők"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "Legfeljebb 3 anyag keverhető"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "Elérted az összetevők maximális számát"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "A harmadik anyag eltávolítása"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3D modellek"
+
+# AI Translated
+msgid "Click to return"
+msgstr "Kattints a visszatéréshez"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "Balra nyíl"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "Kattints a folytatáshoz"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "Jobbra nyíl"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "%s bővítmény kiválasztása"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "Válassz egy %s bővítményt az alábbi listából."
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "Ehhez a típushoz nem található bővítmény."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "Bővítményfájl: %s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "Folyamatbővítmények"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "Filamentbővítmények"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "Nyomtatóbővítmények"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "A konfiguráció nem érvényes JSON. A módosításaid nem lettek mentve."
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "A konfiguráció frissítve. A megőrzéséhez mentsd a beállítást."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"Visszaállítod a(z) \"%s\" alapértelmezett konfigurációját?\n"
+"\n"
+"Ez elveti a beállítás felülírását, és a globális konfigurációt használja."
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "Alapértékek visszaállítása"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "A globális konfiguráció van használatban. A megőrzéséhez mentsd a beállítást."
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "Ez a képesség már nem érhető el."
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "A bővítmény konfigurációs felülete nem töltődött be (%1%). Az alapértelmezett szerkesztő jelenik meg."
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "Bővítmény törlése"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "Leiratkozás"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "Bővítmény felülírása"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "Válassz egy .py vagy .whl bővítménycsomagot."
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "Nem sikerült telepíteni a bővítménycsomagot. A részleteket lásd a naplóban."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"A(z) \"%s\" bővítmény már telepítve van.\n"
+"\n"
+"A csomag telepítése felülírja a meglévő bővítményt."
+
+# AI Translated
+msgid "Overwrite"
+msgstr "Felülírás"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "Bővítmény telepítése"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "\"%s\" telepítve."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "Nem sikerült aktiválni: \"%s\"."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "\"%s\" aktiválva."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"A következő telepített bővítmények nem találhatók a lemezen:\n"
+"%s\n"
+"\n"
+"Eltávolítod őket az OrcaSlicerből?"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "Hiányzó bővítmények"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "Bővítményadatok frissítése"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "Nem sikerült a bővítmény eltávolítása a memóriából."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "\"%s\" deaktiválva."
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "A bővítményjegyzék (manifest) nem található."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "\"%s\" aktiválása..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "\"%s\" engedélyezve."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "\"%s\" letiltva."
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "Bővítmény letöltése"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "A bővítmény letöltése sikertelen."
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "Konfiguráció mentve."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"Visszaállítod a(z) \"%s\" alapértelmezett konfigurációját?\n"
+"\n"
+"Ez elveti az ehhez a képességhez jelenleg mentett beállításokat."
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "Alapértelmezett konfiguráció visszaállítva."
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "Bővítmény frissítése"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "Nem sikerült frissíteni a bővítményt."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "\"%s\" frissítve."
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "A bővítmény mappája nem határozható meg."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"Törlöd a(z) \"%s\" bővítményt?\n"
+"\n"
+"Ez eltávolítja a bővítmény helyi fájljait. A bővítmény a felhőben marad, és újratelepíthető."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"Törlöd a(z) \"%s\" bővítményt?\n"
+"\n"
+"Ez véglegesen eltávolítja a bővítmény mappáját."
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "Nem sikerült törölni a bővítményt."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "\"%s\" törölve."
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "Bővítmény törlése"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "Bővítmény törlése..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"Leiratkozol a(z) \"%s\" bővítményről?\n"
+"\n"
+"Ezzel megszűnik a bővítmény követése, és minden helyi bővítményfájl törlődik."
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "Nem sikerült leiratkozni a bővítményről."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "Leiratkoztál erről: \"%s\"."
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "Leiratkozás a bővítményről"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "Helyi fájlok törlése és leiratkozás a bővítményről..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "Bővítmény újratöltése"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "Nem sikerült újratölteni a bővítményt."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "\"%s\" újratöltve."
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "Öblítési mód beállításai"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "Teljes öblítést végez sebesség- és hőmérséklet-átmenettel a legjobb nyomtatási minőség érdekében."
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "Optimalizált öblítési hőmérsékletet, szorzót és erősebb extrudálást használ a gyorsabb öblítéshez. Néhány szélsőséges esetben enyhe színkeveredést okozhat."
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "Takarékos előkészítés"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "Csökkenti az előkészítési hulladékot, és gyorsabban nyomtat. Enyhe színkeveredést vagy apró felületi hibákat okozhat."
+
+# AI Translated
+msgid "Terminal"
+msgstr "Terminál"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "Egykattintásos CMYW automatikus keverés"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "Egykattintásos RYBW automatikus keverés"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "Projekt fizikai filamentjei"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "Új fizikai filamentek"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "Projekt kevert filamentjei"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "Új kevert filamentek"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "A projekt legfeljebb %d filamentet támogat. A felesleges filamentek el lesznek vetve."
+
+# AI Translated
+msgid "Import Model"
+msgstr "Modell importálása"
+
+# AI Translated
+msgid "Original"
+msgstr "Eredeti"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "Többszínű"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "A bemeneti textúrás modelled"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "Feldolgozott többszínű modell"
+
+# AI Translated
+msgid "Color Count"
+msgstr "Színek száma"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "Simítási szint"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "Csak az optimális színszámot határozza meg automatikusan, és újraszámolja a filament-hozzárendelést"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "A textúrát festéssé alakítja a megadott színszámmal és simítási szinttel"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "Emlékeztető: a paraméterek megváltoztak, kattints az Alkalmaz gombra az érvényesítéshez"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "Filament-hozzárendelés"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "A filament-hozzárendelés visszaállítása az egykattintásos keverés előtti állapotra"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "Válaszd ki az egykattintásos automatikus keverés módját a textúraszínek importálásához"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "Azonos filament automatikus összevonása"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "Az azonos filamentek automatikus összevonása a projekt meglévő filamentjeivel"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "Hozzárendelés kihagyása"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "Kihagyja a filament-hozzárendelést, és egyszínű modellként importál"
+
+# AI Translated
+msgid "Processing"
+msgstr "Feldolgozás"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "Textúraszínek kiszámítása..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "Háló javítása"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "A számítás sikertelen. Módosítsd a paramétereket, és próbáld újra."
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "A háló nem manifold geometriát vagy nyitott határokat tartalmaz. Importálhatod így is, vagy importálás előtt kijavíthatod a Windows 3D-javító szolgáltatásával."
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "Hálójavítás"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "Importálás javítás nélkül"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "Javítás és importálás"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "Figyelem: a háló nem manifold geometriát vagy nyitott határokat tartalmaz."
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "Hálóprobléma"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "A kiválasztott kép üres."
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "Nem sikerült előkészíteni a textúrát a használatra."
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "Csak a saját importált textúráid távolíthatók el."
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "Nem sikerült törölni a textúrafájlt."
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "Nem sikerült létrehozni az importált textúrák mappáját."
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "Nem sikerült betölteni a kiválasztott képet."
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "Nem sikerült menteni az importált textúrát."
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "Nem sikerült beolvasni a textúrafájlt."
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "Vetítési keret - húzd a modell fölé, majd Alkalmaz"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "Sziget mozgatása  |  elengedés: lerakás, Esc: mégse"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "Sziget forgatása: %d°  |  Shift = 15°-os léptetés, kattintás: megerősítés, Esc: mégse"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "Sziget átméretezése  |  kattintás: megerősítés, Esc: mégse"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "Csúcs mozgatása  |  elengedés: lerakás"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "Él mozgatása  |  elengedés: lerakás"
+
+# AI Translated
+msgid "Panning"
+msgstr "Pásztázás"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "Fesd be a területet a modellen, majd nyomd meg a Kiterítés gombot"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "Válaszd a Kiterítés hozzárendelést egy textúrarétegnél, hogy itt szerkeszthesd az UV-koordinátáit"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d csúcs kijelölve  |  húzás = együttes mozgatás, Shift/Ctrl + kattintás = hozzáadás/eltávolítás"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Csúcs mód: húzz egy csúcsot az alakításhoz  |  Shift/Ctrl + kattintás = többszörös kijelölés, görgő = nagyítás, Home = teljes nézet"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "%d él kijelölve  |  húzás = együttes mozgatás, Shift/Ctrl + kattintás = hozzáadás/eltávolítás"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "Él mód: húzd egy sziget élét az alakításhoz  |  Shift/Ctrl + kattintás = többszörös kijelölés, görgő = nagyítás, Home = teljes nézet"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "%d sziget kijelölve  |  húzás = együttes mozgatás, Shift/Ctrl + kattintás = hozzáadás/eltávolítás, R/S = az elsődleges forgatása/átméretezése"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "%d. sziget kijelölve  |  húzás = mozgatás, R = forgatás, S = átméretezés, Shift/Ctrl + kattintás = többszörös kijelölés, Home = teljes nézet"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "Kattints egy szigetre a kijelöléshez  |  Shift/Ctrl + kattintás = többszörös kijelölés, görgő = nagyítás, középső gombos húzás = pásztázás, Home = minden látható"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  illesztés BE"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "Textúra cseréje - válassz másikat a textúratárból"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "Magasságtérkép - a réteg textúrájának megjelenítése a szigetek alatt"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "Sakktábla - tesztrács; a négyzetek ott maradnak négyzetek, ahol a kiterítés nem nyújt"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "Torzítás - minden sziget színezése aszerint, mennyire nyújtja meg a kiterítés"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "Kiterítés"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "Varratszög"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "Az ennél élesebb éleket elvágja, és a két oldalukon lévő darabokat külön teríti síkba. Csökkentsd több vágáshoz: így minden darab kisebb nyúlással fekszik síkban, cserébe a textúra nem fut folytonosan át a vágáson. A következő Kiterítéskor lép érvénybe."
+
+# AI Translated
+msgid "Connect islands"
+msgstr "Szigetek összekapcsolása"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "A kiterítést összefüggő hálóként rendezi el: a közös élű darabok egymás mellé hajtódnak ki (egy kocka hat különálló négyzet helyett összefüggő kiterített hálót ad). Különálló szigetek maradnak, így utána bármelyiket kézzel is mozgathatod."
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "Sziget - teljes szigetek mozgatása, forgatása és átméretezése"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "Csúcs - csúcsok húzása az alakításhoz; Shift/Ctrl a többszörös kijelöléshez"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "Él - élek húzása az alakításhoz; Shift/Ctrl a többszörös kijelöléshez"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "Varratok jelölése - kattints az élekre a modellen, hogy mentén elvágd a kiterítést. A kurzor alatti él sárgán kiemelve látszik; kattintásra pirosra jelölöd, egy piros élre újra kattintva megszünteted a jelölést. Amíg ez be van kapcsolva, a festés szünetel."
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "Útvonal - ahelyett, hogy minden élre kattintanál, kattints egy kezdő- és egy végpontra: a köztük lévő teljes legrövidebb útvonal egyszerre varrattá válik. Varratok jelölése közben érhető el."
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "Varratok törlése - a rétegen jelölt összes varrat eltávolítása"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "Méret kiegyenlítése - minden sziget azonos texelsűrűséget kap"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "Vágás - a kijelölt sziget kettévágása keresztben, a hossztengelyére merőlegesen"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "Összekapcsolás - a kijelölt sziget kihajtása a legközelebbi szomszédjára a közös élük mentén"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "Szétválasztás - a kijelölt sziget visszaküldése a saját elrendezett helyére"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "UV-módosítások törlése - az összes kézi csúcs- és élmozgatás elvetése, és a kiterítés visszaállítása az automatikus alakjára"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "Illesztés - a szigetek összetapadnak, amikor egyiket a másikhoz húzod"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "Összes sziget a nézetben (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "Nincs Kiterítés hozzárendelésű réteg"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "%.1f mm-es csempe"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "Elavult - a festés, a varratok vagy a varratszög megváltozott a kiterítés óta. Nyomd meg az újbóli kiterítéshez."
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "A befestett területet UV-szigetekké teríti ki. Csak akkor számolódik ki, amikor ezt megnyomod, nem minden szerkesztéskor - ezért előbb fess, módosítsd a varratszöget vagy jelölj varratokat, majd nyomd meg a Kiterítés gombot."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d sziget, %s felület"
+
+# AI Translated
+msgid "Forward"
+msgstr "Előre"
+
+# AI Translated
+msgid "Tools"
+msgstr "Eszközök"
+
+# AI Translated
+msgid "View Source"
+msgstr "Forrás megtekintése"
+
+# AI Translated
+msgid "View Text"
+msgstr "Szöveg megtekintése"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "Navigáció kezelése"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "Új ablakok kezelése"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "Szerkesztő mód"
+
+# AI Translated
+msgid "Run Script"
+msgstr "Szkript futtatása"
+
+# AI Translated
+msgid "Add user script"
+msgstr "Felhasználói szkript hozzáadása"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "Egyedi böngészőazonosító (user agent) beállítása"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "Kijelölés megszüntetése"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "Kijelölés törlése"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "Egyedi séma példa"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "Memória-fájlrendszer példa"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "Helyi menü engedélyezése"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "Fejlesztői eszközök engedélyezése"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "Hiba történt a(z) %s betöltésekor"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "%1% betöltése ide: %2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "%s betöltése"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"A(z) \"%s\" bővítmény engedélyt kér a(z) \"%s\" Python audit eseményhez.\n"
+"\n"
+"Ez a művelet nem ad meg olyan célt, amelyet az audit hook meg tudna jeleníteni."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény a következő fájl(ok) olvasását kéri:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény a következő fájl(ok) olvasását/írását kéri:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény a következő fájl(ok) létrehozását kéri:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény a következő fájl(ok) törlését kéri:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény HTTP-kérést szeretne küldeni ide:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény hálózati kapcsolatot szeretne nyitni ide:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"A(z) \"%s\" bővítmény a következő parancs(ok) futtatását kéri:\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "A(z) \"%s\" bővítmény engedélyt kér a(z) \"%s\" Python audit eseményhez."
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "Bővítmény engedélykérése"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "A bővítmény konfigurációs felülete üres volt. Az alapértelmezett szerkesztő jelenik meg."
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "Ez a képesség már nem érhető el. A módosításaid nem lettek mentve."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "A konfigurációt nem sikerült lemezre írni. A módosításaid nem lettek mentve."
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "A bővítmény nem tudott alapértelmezett konfigurációt adni (%1%). Semmi sem változott."
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "A konfigurációt nem sikerült lemezre írni. Semmi sem változott."
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "A bővítmény telepítése sikertelen"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -26311,6 +29039,87 @@ msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "Nem sikerült létrehozni a kalibrációs G-kódot"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "Kivonás"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "Szorzás"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " és "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "nem keverhetők. Válassz azonos filamenttípust."
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "Hiba történt a betöltés során: "
+
+# AI Translated
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "%s betöltése ide: "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "A Tervezés fülön az illesztési csatlakozót kis lapként rajzolja meg a hagyományos, elfordulási negyedkörrel ellátott korong helyett. Egy lap tájolása előzetes tanulás nélkül is leolvasható. Kapcsold ki a hagyományos CAD-ábrázoláshoz."
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "Szakértő"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "Egyszerű"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "Kattints a pontokra; a hurok bezárásához kattints az elsőre / jobb kattintás"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "X-irány X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "X-irány Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "X-irány Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — a szem ikon letiltja ezt az illesztést"
+
+# AI Translated
+#~ msgid "Del"
+#~ msgstr "Törlés"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "Vázlat megtartva — Kész: véglegesítés, Mégse: elvetés"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "Szerkesztés: Vázlat %d   ·   N = merőleges nézet a síkra   ·   Kész vagy Mégse az eszköztáron"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "Vázlat szerkesztése — húzz egy fogantyút, vagy kattints egy méretszámra a szerkesztéshez"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -26443,9 +29252,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "Visszavonás  (még %zu)"
-
-#~ msgid "Reset direction"
-#~ msgstr "Irány visszaállítása"
 
 #~ msgid "Section View"
 #~ msgstr "Keresztmetszet nézet"
@@ -26662,9 +29468,6 @@ msgstr ""
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "Szeretnéd az értéket automatikusan a beállított tartományhoz igazítani?\n"
 
-#~ msgid "Head diameter"
-#~ msgstr "Fej átmérő"
-
 #~ msgid "Print order within a single layer."
 #~ msgstr "Nyomtatási sorrend egyetlen rétegen belül."
 
@@ -26709,9 +29512,6 @@ msgstr ""
 
 #~ msgid "Select filament that installed to the right nozzle"
 #~ msgstr "Válaszd ki a jobb fúvókába betöltött filamentet"
-
-#~ msgid "Select Filament && Hotends"
-#~ msgstr "Válassz filamentet és hotendet"
 
 #, c-format, boost-format
 #~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -27094,14 +29894,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "A beállításban szereplő fúvókatípus nem egyezik a megjegyzett fúvókával. Mostanában cseréltél fúvókát?"
 
-#~ msgid "Remove selected points"
-#~ msgstr "Kijelölt pontok eltávolítása"
-
 #~ msgid "Remove all"
 #~ msgstr "Összes eltávolítása"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Pontok automatikus generálása"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "Karimafül hozzáadása"
@@ -27133,12 +29927,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "Számgombok 1-9"
-
-#~ msgid "Left click"
-#~ msgstr "Bal kattintás"
-
-#~ msgid "Right click"
-#~ msgstr "Jobb kattintás"
 
 #~ msgid "Select feature"
 #~ msgstr "Jellemző kiválasztása"

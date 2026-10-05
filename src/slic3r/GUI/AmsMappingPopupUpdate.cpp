@@ -506,7 +506,7 @@ void AmsMapingPopup::update_ams_tips(MachineObject* obj)
         }
 
         if (obj && obj->GetFilaSwitch()->IsInstalled()) {
-            const auto& msg = _L("External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it.");
+            const auto& msg = _L("External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it.");
             m_ams_tips_msg_panel->AddMessage(msg, "#FF6F00", "");
         }
 
@@ -607,7 +607,7 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
                     can_pick_the_item = !devPrinterUtil::IsVirtualSlot(m_mapping_item->m_ams_id);
                     if (!can_pick_the_item) {
                         item_tooltip_msg = _L(
-                            "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it.");
+                            "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it.");
                     }
                 }
             }
@@ -624,7 +624,7 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
                         can_pick_the_item = !devPrinterUtil::IsVirtualSlot(m_mapping_item->m_ams_id);
                         if (!can_pick_the_item) {
                             item_tooltip_msg = _L(
-                                "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it.");
+                                "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it.");
                         }
                     } else if (m_show_type != ShowType::RIGHT && m_show_type != ShowType::LEFT_AND_RIGHT) {
                         can_pick_the_item = false;

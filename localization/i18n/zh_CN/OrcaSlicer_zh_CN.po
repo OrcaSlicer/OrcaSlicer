@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:03-0300\n"
+"POT-Creation-Date: 2026-10-04 22:37-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -5072,8 +5072,9 @@ msgstr "当前流量校准参数无效"
 msgid "Selected diameter and machine diameter do not match"
 msgstr "选择的直径和机器直径不匹配"
 
-msgid "Failed to generate cali G-code"
-msgstr "生成校准gcode失败"
+# AI Translated
+msgid "Failed to generate calibration G-code"
+msgstr "生成校准 G-code 失败"
 
 msgid "Calibration error"
 msgstr "校准错误"
@@ -5907,6 +5908,7 @@ msgid "Wireframe"
 msgstr "线框"
 
 # AI Translated
+#. TRN View toggle that draws models see-through, so hidden parts show.
 msgid "X-Ray"
 msgstr "X 射线"
 
@@ -8196,6 +8198,7 @@ msgid "Click to edit preset"
 msgstr "点击编辑配置"
 
 # AI Translated
+#. TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
 msgid "Variant"
 msgstr "变种"
 
@@ -9364,6 +9367,7 @@ msgid "Recent actions"
 msgstr "最近的操作"
 
 # AI Translated
+#. TRN Unit shown after the number of recent actions, as in "5 actions".
 msgid "actions"
 msgstr "个操作"
 
@@ -9481,8 +9485,8 @@ msgid "Draw mate connectors as a face"
 msgstr "将配合连接器绘制为面"
 
 # AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr "在“设计”标签页中，将配合连接器绘制为一个小面，而不是带有滚转象限的传统圆盘。面的朝向无需学习即可读懂。关闭此选项可使用传统的 CAD 表示方式。"
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "在“设计”标签页中，将配合连接器绘制为一个小面，而不是带有滚转象限的传统圆盘。面的朝向一目了然，无需先熟悉圆盘的表示约定。关闭此选项可使用传统的 CAD 表示方式。"
 
 msgid "Pan"
 msgstr "平移"
@@ -9579,10 +9583,12 @@ msgid "Applies SSAO in realistic view."
 msgstr "在写实渲染中应用 SSAO。"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light stays fixed in the scene.
 msgid "Static"
 msgstr "静态"
 
 # AI Translated
+#. TRN Realistic-view shadow mode: the light turns with the camera.
 msgid "Orbit"
 msgstr "环绕"
 
@@ -10364,10 +10370,22 @@ msgid "It uses the current graphics settings and usually takes less than a minut
 msgstr "它使用当前的图形设置，通常不到一分钟即可完成。完成之前主窗口将保持锁定。"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Advanced"
+msgstr "高级"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Expert"
 msgstr "专家"
 
 # AI Translated
+msgctxt "Settings Mode"
+msgid "Developer"
+msgstr "开发者"
+
+# AI Translated
+msgctxt "Settings Mode"
 msgid "Simple"
 msgstr "简单"
 
@@ -22684,8 +22702,8 @@ msgid "Polyline"
 msgstr "多段线"
 
 # AI Translated
-msgid "Click points; click first / right-click to close the loop"
-msgstr "单击各点；单击第一个点 / 右键单击以闭合环"
+msgid "Click points; click the first point to close the loop, right-click to end the chain"
+msgstr "单击各点；单击第一个点以闭合环，右键单击结束连线"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23131,6 +23149,11 @@ msgstr "新建实体"
 
 # AI Translated
 msgctxt "Boolean Mode"
+msgid "Join"
+msgstr "合并"
+
+# AI Translated
+msgctxt "Boolean Mode"
 msgid "Cut"
 msgstr "切除"
 
@@ -23154,8 +23177,9 @@ msgid "Bottom"
 msgstr "底部"
 
 # AI Translated
+#. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
-msgstr "侧面"
+msgstr "侧边"
 
 # AI Translated
 msgid "Edges"
@@ -23308,6 +23332,7 @@ msgid "Plane type"
 msgstr "平面类型"
 
 # AI Translated
+#. TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
 msgid "Base"
 msgstr "基面"
 
@@ -23605,16 +23630,16 @@ msgid "Without an edge the frame takes X from the face's first edge — pick one
 msgstr "如未选取边，坐标系将以该面的第一条边作为 X 方向 — 选取一条边可自行指定"
 
 # AI Translated
-msgid "X hint X"
-msgstr "X 方向提示 X"
+msgid "X direction X"
+msgstr "X 方向 X"
 
 # AI Translated
-msgid "X hint Y"
-msgstr "X 方向提示 Y"
+msgid "X direction Y"
+msgstr "X 方向 Y"
 
 # AI Translated
-msgid "X hint Z"
-msgstr "X 方向提示 Z"
+msgid "X direction Z"
+msgstr "X 方向 Z"
 
 # AI Translated
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
@@ -23689,8 +23714,9 @@ msgid "Feature tree"
 msgstr "特征树"
 
 # AI Translated
-msgid " — the eye suppresses this mate"
-msgstr " — 单击眼睛图标可压缩此配合"
+#, c-format, boost-format
+msgid "%s. Click the eye icon to suppress this mate."
+msgstr "%s。单击眼睛图标可压缩此配合。"
 
 # AI Translated
 #, c-format, boost-format
@@ -23749,9 +23775,6 @@ msgstr "变量"
 # AI Translated
 msgid "+"
 msgstr "+"
-
-msgid "Del"
-msgstr "删除"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -23854,8 +23877,8 @@ msgid "Tool exited"
 msgstr "已退出工具"
 
 # AI Translated
-msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr "草图已保留 — 单击“完成”提交，单击“取消”放弃"
+msgid "Sketch kept — Confirm to commit it, Cancel to discard"
+msgstr "草图已保留 — 单击“确定”提交，单击“取消”放弃"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -23878,8 +23901,8 @@ msgstr "草图 %d"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr "正在编辑：草图 %d   ·   N = 正视于平面   ·   在工具栏中完成或取消"
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "正在编辑：草图 %d   ·   N = 正视于平面   ·   在工具栏中确定或取消"
 
 # AI Translated
 #, c-format
@@ -25079,8 +25102,8 @@ msgid "On a stored face"
 msgstr "位于已存储的面上"
 
 # AI Translated
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "正在编辑草图 — 拖动控制柄或单击尺寸标注进行编辑"
+msgid "Editing sketch — drag a handle or double-click a dimension to edit it"
+msgstr "正在编辑草图 — 拖动控制柄或双击尺寸进行编辑"
 
 # AI Translated
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
@@ -25352,14 +25375,16 @@ msgstr "将所选项逆时针旋转 45 度"
 msgid "Rotate selection 45 degrees clockwise"
 msgstr "将所选项顺时针旋转 45 度"
 
+# AI Translated
 msgid "Gizmo move"
-msgstr "线框移动"
+msgstr "移动小工具"
 
 msgid "Gizmo rotate"
 msgstr "旋转物件"
 
+# AI Translated
 msgid "Gizmo scale"
-msgstr "线框缩放"
+msgstr "缩放小工具"
 
 msgid "Gizmo place face on bed"
 msgstr "选择底面"
@@ -25367,8 +25392,9 @@ msgstr "选择底面"
 msgid "Gizmo cut"
 msgstr "剪切物件"
 
+# AI Translated
 msgid "Gizmo mesh boolean"
-msgstr "线框网格布尔操作"
+msgstr "网格布尔操作小工具"
 
 # AI Translated
 msgid "Gizmo FDM paint-on supports"
@@ -25384,17 +25410,21 @@ msgstr "Gizmo FDM手绘绒毛表面"
 msgid "Gizmo multi-material painting"
 msgstr "多材料绘制小工具"
 
+# AI Translated
 msgid "Gizmo text emboss/engrave"
-msgstr "线框文本浮雕/雕刻"
+msgstr "文本浮雕/雕刻小工具"
 
+# AI Translated
 msgid "Gizmo measure"
-msgstr "线框测量"
+msgstr "测量小工具"
 
+# AI Translated
 msgid "Gizmo assemble"
-msgstr "线框组合"
+msgstr "组合小工具"
 
+# AI Translated
 msgid "Gizmo brim ears"
-msgstr "线框耳状帽檐"
+msgstr "耳状帽檐小工具"
 
 msgid "Vertical slider - Move active thumb Up"
 msgstr "垂直滑动条 - 向上移动一层"
@@ -25506,6 +25536,2710 @@ msgstr "应用程序"
 # AI Translated
 msgid "Speed Dial"
 msgstr "快捷面板"
+
+# AI Translated
+#, boost-format
+msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
+msgstr "实体 %1% 已由“%2%”（特征 %3%）定位，因此“%4%”会将其覆盖"
+
+# AI Translated
+#, boost-format
+msgid "This mate positions Body %1% against itself"
+msgstr "此配合将实体 %1% 相对于其自身定位"
+
+# AI Translated
+#, boost-format
+msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to Body %1% — the result depends on feature order"
+msgstr "配合链存在循环：实体 %1% 依赖于实体 %2%，而后者又回到实体 %1% — 结果取决于特征顺序"
+
+# AI Translated
+#, boost-format
+msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr "连接器“%1%”可能已移到另一个面（上游编辑对此实体的面重新进行了编号）"
+
+# AI Translated
+msgid "Taking a configuration snapshot failed."
+msgstr "创建配置快照失败。"
+
+# AI Translated
+msgid "OrcaSlicer has encountered an error while taking a configuration snapshot."
+msgstr "OrcaSlicer 在创建配置快照时遇到错误。"
+
+# AI Translated
+msgid "OrcaSlicer error"
+msgstr "OrcaSlicer 错误"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Please select the filament installed on the %s."
+msgstr "请选择安装在 %s 上的耗材丝。"
+
+# AI Translated
+msgid "Please select the filament."
+msgstr "请选择耗材丝。"
+
+# AI Translated
+msgid "To learn about the filaments matching rules."
+msgstr "了解耗材丝匹配规则。"
+
+# AI Translated
+msgid "External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it."
+msgstr "由于已安装耗材变轨器，不支持使用外置料盘。如需使用外置料盘，请将其卸载。"
+
+msgid "Select Filament && Hotends"
+msgstr "选择材料预设和喷嘴"
+
+# AI Translated
+msgid "Model Pictures"
+msgstr "模型图片"
+
+# AI Translated
+msgid "Auxiliaries"
+msgstr "附件"
+
+# AI Translated
+msgid "Project Filament List"
+msgstr "项目耗材丝列表"
+
+# AI Translated
+msgid "Standard Mode Recommendations"
+msgstr "标准模式推荐"
+
+# AI Translated
+msgid "Target Color"
+msgstr "目标颜色"
+
+# AI Translated
+msgid "Select Color Decomposition"
+msgstr "选择颜色分解"
+
+# AI Translated
+msgid "Arbitrary Mode"
+msgstr "任意模式"
+
+# AI Translated
+msgid "Material List"
+msgstr "材料列表"
+
+# AI Translated
+msgid "Standard Mode"
+msgstr "标准模式"
+
+# AI Translated
+msgid "At least two filaments of the same material type are required for decomposition"
+msgstr "分解至少需要两种相同材料类型的耗材丝"
+
+# AI Translated
+#, boost-format
+msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
+msgstr "材料列表最多支持 %1% 种颜色。进行 %2% 分解后，材料数量将超过 %1%。请先在主界面删除未使用的耗材丝，再进行分解。"
+
+# AI Translated
+msgid "Cyan"
+msgstr "青色"
+
+# AI Translated
+msgid "Magenta"
+msgstr "品红色"
+
+# AI Translated
+msgid "Yellow"
+msgstr "黄色"
+
+# AI Translated
+msgid "White"
+msgstr "白色"
+
+# AI Translated
+msgid "Red"
+msgstr "红色"
+
+# AI Translated
+msgid "Green"
+msgstr "绿色"
+
+# AI Translated
+msgid "Blue"
+msgstr "蓝色"
+
+# AI Translated
+msgid ", "
+msgstr "、 "
+
+# AI Translated
+#, c-format, boost-format
+msgid "The current filament list does not contain %s. A project filament required by the mixed filament will be created automatically after decomposition."
+msgstr "当前耗材丝列表中不包含 %s。分解后将自动创建混合耗材丝所需的项目耗材丝。"
+
+# AI Translated
+msgid "Alternate nozzles:"
+msgstr "其他喷嘴："
+
+# AI Translated
+msgid "All standard"
+msgstr "全部标准"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Assistant"
+msgstr "欢迎使用 %s 配置助手"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Welcome to the %s Configuration Wizard"
+msgstr "欢迎使用 %s 配置向导"
+
+# AI Translated
+msgid "Welcome"
+msgstr "欢迎"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Hello, welcome to %s! This %s helps you with the initial configuration; just a few settings and you will be ready to print."
+msgstr "您好，欢迎使用 %s！此%s将帮助您完成初始配置，只需几项设置即可开始打印。"
+
+# AI Translated
+msgid "Remove user profiles (a snapshot will be taken beforehand)"
+msgstr "删除用户配置文件（删除前会先创建快照）"
+
+# AI Translated
+msgid "Perform desktop integration (Sets this binary to be searchable by the system)."
+msgstr "执行桌面集成（使系统能够搜索到此程序）。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s Family"
+msgstr "%s 系列"
+
+# AI Translated
+msgid "Printer:"
+msgstr "打印机："
+
+# AI Translated
+msgid "Vendor:"
+msgstr "供应商："
+
+# AI Translated
+msgid "Profile:"
+msgstr "配置文件："
+
+# AI Translated
+msgid "(All)"
+msgstr "（全部）"
+
+# AI Translated
+#, boost-format
+msgid "%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."
+msgstr "标有 <b>*</b> 的%1%与部分已安装的打印机<b>不</b>兼容。"
+
+# AI Translated
+msgid "SLA materials"
+msgstr "SLA 材料"
+
+# AI Translated
+#, boost-format
+msgid "All installed printers are compatible with the selected %1%."
+msgstr "所有已安装的打印机都与所选%1%兼容。"
+
+# AI Translated
+msgid "filament"
+msgstr "耗材丝"
+
+# AI Translated
+msgid "SLA material"
+msgstr "SLA 材料"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected filaments"
+msgstr "只有以下已安装的打印机与所选耗材丝兼容"
+
+# AI Translated
+msgid "Only the following installed printers are compatible with the selected SLA materials"
+msgstr "只有以下已安装的打印机与所选 SLA 材料兼容"
+
+# AI Translated
+msgid "Custom Printer Setup"
+msgstr "自定义打印机设置"
+
+# AI Translated
+msgid "Custom Printer"
+msgstr "自定义打印机"
+
+# AI Translated
+msgid "Define a custom printer profile"
+msgstr "定义自定义打印机配置文件"
+
+# AI Translated
+msgid "Custom profile name:"
+msgstr "自定义配置文件名称："
+
+# AI Translated
+msgid "Firmware Type"
+msgstr "固件类型"
+
+# AI Translated
+msgid "Firmware"
+msgstr "固件"
+
+# AI Translated
+msgid "Choose the type of firmware used by your printer."
+msgstr "选择打印机所使用的固件类型。"
+
+# AI Translated
+msgid "Bed Shape and Size"
+msgstr "热床形状和尺寸"
+
+# AI Translated
+msgid "Set the shape of your printer's bed."
+msgstr "设置打印机热床的形状。"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "数值输入无效。"
+
+# AI Translated
+msgid "Filament and Nozzle Diameters"
+msgstr "耗材丝和喷嘴直径"
+
+# AI Translated
+msgid "Print Diameters"
+msgstr "打印直径"
+
+# AI Translated
+msgid "Enter the diameter of your printer's hot end nozzle."
+msgstr "输入打印机热端喷嘴的直径。"
+
+# AI Translated
+msgid "Nozzle Diameter:"
+msgstr "喷嘴直径："
+
+# AI Translated
+msgid "Enter the diameter of your filament."
+msgstr "输入耗材丝的直径。"
+
+# AI Translated
+msgid "Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average."
+msgstr "需要较高的精度，因此请使用卡尺沿耗材丝多次测量，然后计算平均值。"
+
+# AI Translated
+msgid "Filament Diameter:"
+msgstr "耗材丝直径："
+
+# AI Translated
+msgid "Nozzle and Bed Temperatures"
+msgstr "喷嘴和热床温度"
+
+# AI Translated
+msgid "Enter the nozzle temperature needed for extruding your filament."
+msgstr "输入挤出耗材丝所需的喷嘴温度。"
+
+# AI Translated
+msgid "A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."
+msgstr "经验值：PLA 为 160 至 230℃，ABS 为 215 至 250℃。"
+
+# AI Translated
+msgid "Extrusion Temperature:"
+msgstr "挤出温度："
+
+# AI Translated
+msgid "Enter the bed temperature needed for getting your filament to stick to your heated bed."
+msgstr "输入使耗材丝粘附在热床上所需的热床温度。"
+
+# AI Translated
+msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."
+msgstr "经验值：PLA 为 60℃，ABS 为 110℃。如果没有热床，请保留为零。"
+
+# AI Translated
+msgid "Bed Temperature:"
+msgstr "热床温度："
+
+# AI Translated
+msgid "SLA Materials"
+msgstr "SLA 材料"
+
+# AI Translated
+msgid "FFF Technology Printers"
+msgstr "FFF 技术打印机"
+
+# AI Translated
+msgid "SLA Technology Printers"
+msgstr "SLA 技术打印机"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default filament: %1%Please select one manually."
+msgstr "以下打印机配置文件没有默认耗材丝：%1%请手动选择一个。"
+
+# AI Translated
+#, boost-format
+msgid "The following printer profiles have no default material: %1%Please select one manually."
+msgstr "以下打印机配置文件没有默认材料：%1%请手动选择一个。"
+
+# AI Translated
+msgid "The following FFF printer models have no filament selected:"
+msgstr "以下 FFF 打印机型号未选择耗材丝："
+
+# AI Translated
+msgid "Do you want to select default filaments for these FFF printer models?"
+msgstr "是否为这些 FFF 打印机型号选择默认耗材丝？"
+
+# AI Translated
+msgid "Configuration is edited in ConfigWizard"
+msgstr "已在配置向导中编辑配置"
+
+# AI Translated
+msgid "All user presets will be deleted."
+msgstr "所有用户预设都将被删除。"
+
+# AI Translated
+msgid "A new vendor was installed and one of its printers will be activated"
+msgid_plural "New vendors were installed and one of their printers will be activated"
+msgstr[0] "已安装新的供应商，其中一台打印机将被激活"
+
+# AI Translated
+msgid "A new Printer was installed and it will be activated."
+msgstr "已安装一台新打印机，它将被激活。"
+
+# AI Translated
+msgid "Some Printers were uninstalled."
+msgstr "已卸载部分打印机。"
+
+# AI Translated
+msgid "A new filament was installed and it will be activated."
+msgstr "已安装一种新耗材丝，它将被激活。"
+
+# AI Translated
+msgid "A new SLA material was installed and it will be activated."
+msgstr "已安装一种新 SLA 材料，它将被激活。"
+
+# AI Translated
+msgid "Some filaments were uninstalled."
+msgstr "已卸载部分耗材丝。"
+
+# AI Translated
+msgid "Custom printer was installed and it will be activated."
+msgstr "已安装自定义打印机，它将被激活。"
+
+# AI Translated
+msgid "<Back"
+msgstr "<上一步"
+
+# AI Translated
+msgid "Next>"
+msgstr "下一步>"
+
+# AI Translated
+msgid "Filament Profiles Selection"
+msgstr "耗材丝配置文件选择"
+
+# AI Translated
+msgid "Configuration Assistant"
+msgstr "配置助手"
+
+# AI Translated
+msgid "Configuration &Assistant"
+msgstr "配置助手(&A)"
+
+# AI Translated
+msgid "Configuration Wizard"
+msgstr "配置向导"
+
+# AI Translated
+msgid "Configuration &Wizard"
+msgstr "配置向导(&W)"
+
+# AI Translated
+msgid "Filament Inlet A"
+msgstr "耗材丝入口 A"
+
+# AI Translated
+msgid "Filament Inlet B"
+msgstr "耗材丝入口 B"
+
+# AI Translated
+msgid "Suggested rearrangement"
+msgstr "建议重新摆放"
+
+# AI Translated
+msgid "How to save time?→"
+msgstr "如何节省时间？→"
+
+# AI Translated
+msgid "Filament Status:"
+msgstr "耗材丝状态："
+
+# AI Translated
+msgid "Position adjustment required"
+msgstr "需要调整位置"
+
+# AI Translated
+msgctxt "FilamentTrack"
+msgid "OK"
+msgstr "确定"
+
+# AI Translated
+msgid "Unused"
+msgstr "未使用"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Based on the diagram below, rearrange the filaments on the printer for optimal results to save approximately %s."
+msgstr "请参照下图在打印机上重新摆放耗材丝，以获得最佳效果，约可节省 %s。"
+
+# AI Translated
+msgid "Summary:"
+msgstr "总结："
+
+# AI Translated
+msgid "AMS on Filament Inlet A"
+msgstr "耗材丝入口 A 上的 AMS"
+
+# AI Translated
+msgid "AMS on Filament Inlet B"
+msgstr "耗材丝入口 B 上的 AMS"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The No.%d slicing filament is matched to '%s'. Assigning it to '%s' can save printing time."
+msgstr "第 %d 个切片耗材丝已匹配到“%s”。将其分配到“%s”可节省打印时间。"
+
+# AI Translated
+msgid "*Tips: If you have moved the spool position on the machine, please close this page and re‑match the filament."
+msgstr "*提示：如果您已在机器上移动了料盘位置，请关闭此页面并重新匹配耗材丝。"
+
+# AI Translated
+msgid "Summary: This is currently the most suitable position for placement."
+msgstr "总结：这是当前最合适的摆放位置。"
+
+# AI Translated
+msgid "?"
+msgstr "?"
+
+# AI Translated
+msgid "Note:"
+msgstr "注意："
+
+# AI Translated
+msgid "Hollow this object"
+msgstr "挖空此对象"
+
+# AI Translated
+msgid "Preview hollowed and drilled model"
+msgstr "预览已挖空和钻孔的模型"
+
+# AI Translated
+msgid "Closing distance"
+msgstr "闭合距离"
+
+# AI Translated
+msgid "Hole diameter"
+msgstr "孔直径"
+
+# AI Translated
+msgid "Hole depth"
+msgstr "孔深度"
+
+# AI Translated
+msgid "Remove selected holes"
+msgstr "删除所选孔"
+
+# AI Translated
+msgid "Remove all holes"
+msgstr "删除所有孔"
+
+# AI Translated
+msgid "Clipping of view"
+msgstr "视图剖切"
+
+msgid "Reset direction"
+msgstr "重置方向"
+
+# AI Translated
+msgid "Show supports"
+msgstr "显示支撑"
+
+# AI Translated
+msgid "Hollow and drill"
+msgstr "挖空并钻孔"
+
+msgid "Head diameter"
+msgstr "Brim 直径"
+
+# AI Translated
+msgid "Lock supports under new islands"
+msgstr "锁定新岛屿下方的支撑"
+
+msgid "Remove selected points"
+msgstr "删除已选择的点"
+
+# AI Translated
+msgid "Remove all points"
+msgstr "删除所有点"
+
+# AI Translated
+msgid "Apply changes"
+msgstr "应用更改"
+
+# AI Translated
+msgid "Discard changes"
+msgstr "放弃更改"
+
+# AI Translated
+msgid "Minimal points distance"
+msgstr "最小点间距"
+
+# AI Translated
+msgid "Support points density"
+msgstr "支撑点密度"
+
+msgid "Auto-generate points"
+msgstr "自动生成点"
+
+# AI Translated
+msgid "Manual editing"
+msgstr "手动编辑"
+
+# AI Translated
+msgid "SLA Support Points"
+msgstr "SLA 支撑点"
+
+# AI Translated
+msgid "Do you want to save your manually edited support points?"
+msgstr "是否保存手动编辑的支撑点？"
+
+# AI Translated
+msgid "Save support points?"
+msgstr "保存支撑点？"
+
+# AI Translated
+msgid "Autogeneration will erase all manually edited points."
+msgstr "自动生成将清除所有手动编辑的点。"
+
+# AI Translated
+msgid "Are you sure you want to do it?"
+msgstr "您确定要执行此操作吗？"
+
+# AI Translated
+msgid "SLA gizmo keyboard shortcuts"
+msgstr "SLA 小工具键盘快捷键"
+
+# AI Translated
+msgid "Note: some shortcuts work in (non)editing mode only."
+msgstr "注意：部分快捷键仅在编辑模式（或非编辑模式）下有效。"
+
+msgid "Left click"
+msgstr "左击"
+
+# AI Translated
+msgid "Add point"
+msgstr "添加点"
+
+msgid "Right click"
+msgstr "右击"
+
+# AI Translated
+msgid "Remove point"
+msgstr "删除点"
+
+# AI Translated
+msgid "Move point"
+msgstr "移动点"
+
+# AI Translated
+msgid "Add point to selection"
+msgstr "将点添加到选择"
+
+# AI Translated
+msgid "Remove point from selection"
+msgstr "从选择中移除点"
+
+# AI Translated
+msgid "Select by rectangle"
+msgstr "框选"
+
+# AI Translated
+msgid "Deselect by rectangle"
+msgstr "框选取消选择"
+
+# AI Translated
+msgid "Select all points"
+msgstr "选择所有点"
+
+# AI Translated
+msgid "Move clipping plane"
+msgstr "移动剖切平面"
+
+# AI Translated
+msgid "Reset clipping plane"
+msgstr "重置剖切平面"
+
+# AI Translated
+msgid "Switch to editing mode"
+msgstr "切换到编辑模式"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Bake"
+msgstr "烘焙"
+
+# AI Translated
+msgid "Texture displacement"
+msgstr "纹理置换"
+
+# AI Translated
+msgid "Erase texture displacement paint"
+msgstr "擦除纹理置换绘制"
+
+# AI Translated
+msgid "Paint texture displacement"
+msgstr "绘制纹理置换"
+
+# AI Translated
+msgid "Mark texture seam"
+msgstr "标记纹理切缝"
+
+# AI Translated
+msgid "Mark texture seam path"
+msgstr "标记纹理切缝路径"
+
+# AI Translated
+#, boost-format
+msgid "Layer %1%"
+msgstr "图层 %1%"
+
+# AI Translated
+msgid "Average island scale"
+msgstr "平均岛缩放"
+
+# AI Translated
+msgid "Select an island in the UV editor first."
+msgstr "请先在 UV 编辑器中选择一个岛。"
+
+# AI Translated
+msgid "Cut texture island"
+msgstr "切开纹理岛"
+
+# AI Translated
+msgid "This island has no neighbour it shares an edge with."
+msgstr "此岛没有与之共享边的相邻岛。"
+
+# AI Translated
+msgid "Join texture island"
+msgstr "拼接纹理岛"
+
+# AI Translated
+msgid "Unjoin texture island"
+msgstr "取消拼接纹理岛"
+
+# AI Translated
+msgid "Clear texture seams"
+msgstr "清除纹理切缝"
+
+# AI Translated
+msgid "Clear texture UV edits"
+msgstr "清除纹理 UV 编辑"
+
+# AI Translated
+msgid "Apply texture projection frame"
+msgstr "应用纹理投影框"
+
+# AI Translated
+msgid "Move texture island"
+msgstr "移动纹理岛"
+
+# AI Translated
+msgid "Edit texture UV"
+msgstr "编辑纹理 UV"
+
+# AI Translated
+msgid "Maximum number of texture displacement layers reached."
+msgstr "已达到纹理置换图层的数量上限。"
+
+# AI Translated
+msgid "Add texture displacement layer"
+msgstr "添加纹理置换图层"
+
+# AI Translated
+msgid "Could not load the selected texture."
+msgstr "无法加载所选纹理。"
+
+# AI Translated
+msgid "Change texture displacement texture"
+msgstr "更换纹理置换的纹理"
+
+# AI Translated
+msgid "Choose a texture image (height map)"
+msgstr "选择纹理图像（高度图）"
+
+# AI Translated
+msgid "Choose a texture"
+msgstr "选择纹理"
+
+# AI Translated
+msgid "Remove from My textures"
+msgstr "从“我的纹理”中移除"
+
+# AI Translated
+msgid "Built-in"
+msgstr "内置"
+
+# AI Translated
+msgid "No textures found."
+msgstr "未找到纹理。"
+
+# AI Translated
+msgid "My textures"
+msgstr "我的纹理"
+
+# AI Translated
+msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
+msgstr "导入您自己的图像作为高度图。图像会被转换为切片软件烘焙所用的格式，并保存到您的个人纹理文件夹中，与 OrcaSlicer 自带的纹理分开存放。"
+
+# AI Translated
+msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
+msgstr "PNG、JPG 或 BMP - 导入时转换为高度图。将鼠标悬停在您自己的纹理上即可将其移除。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Remove \"%s\" from My textures?\n"
+"\n"
+"The image file is deleted from your texture folder. Layers already using it keep it."
+msgstr ""
+"从“我的纹理”中移除“%s”？\n"
+"\n"
+"图像文件将从您的纹理文件夹中删除。已在使用它的图层会继续保留它。"
+
+# AI Translated
+msgid "Remove texture"
+msgstr "移除纹理"
+
+# AI Translated
+msgid "Remove texture displacement layer"
+msgstr "移除纹理置换图层"
+
+# AI Translated
+msgid "Reorder texture displacement layers"
+msgstr "重新排序纹理置换图层"
+
+# AI Translated
+msgid "Select visible faces for texture displacement"
+msgstr "选择可见面进行纹理置换"
+
+# AI Translated
+msgid "Select whole model for texture displacement"
+msgstr "选择整个模型进行纹理置换"
+
+# AI Translated
+msgid "Subdivide model for texture displacement"
+msgstr "细分模型以进行纹理置换"
+
+# AI Translated
+msgid "Paint the area you want to subdivide first - adaptive subdivision only refines where you have painted."
+msgstr "请先绘制要细分的区域 - 自适应细分只会细化您绘制过的区域。"
+
+# AI Translated
+msgid "Adaptive subdivide for texture displacement"
+msgstr "自适应细分以进行纹理置换"
+
+# AI Translated
+msgid "Nothing to subdivide - the painted area already meets the target edge length and detail tolerance, or the triangle budget is already used up."
+msgstr "无需细分 - 绘制区域已满足目标边长和细节容差，或三角形预算已用完。"
+
+# AI Translated
+msgid "Paint the area you want to smooth first - smoothing only touches the painted part of the model."
+msgstr "请先绘制要平滑的区域 - 平滑只作用于模型上已绘制的部分。"
+
+# AI Translated
+msgid "Nothing to smooth - the painted area is only one triangle deep, so with \"Ignore outer ring\" on there are no interior vertices to relax."
+msgstr "无需平滑 - 绘制区域只有一个三角形的深度，因此开启“忽略外圈”时没有可松弛的内部顶点。"
+
+# AI Translated
+msgid "Smooth texture displacement"
+msgstr "平滑纹理置换"
+
+# AI Translated
+msgid "Remesh model for texture displacement"
+msgstr "重新网格化模型以进行纹理置换"
+
+# AI Translated
+msgid "Remeshing did not change the model. It may be non-manifold (open edges or edges shared by more than two triangles), or the target edge length may already be met."
+msgstr "重新网格化未改变模型。模型可能是非流形的（存在开放边或被两个以上三角形共享的边），或者已满足目标边长。"
+
+# AI Translated
+msgid "Nothing is painted, there is nothing to bake."
+msgstr "未进行任何绘制，没有可烘焙的内容。"
+
+# AI Translated
+msgid "Bake texture displacement"
+msgstr "烘焙纹理置换"
+
+# AI Translated
+msgid "Nothing is painted, so there are no bake stages to capture."
+msgstr "未进行任何绘制，因此没有可捕获的烘焙阶段。"
+
+# AI Translated
+msgid "Bake stages (debug)"
+msgstr "烘焙阶段（调试）"
+
+# AI Translated
+msgid "Capturing..."
+msgstr "正在捕获..."
+
+# AI Translated
+msgid "Capture stages"
+msgstr "捕获阶段"
+
+# AI Translated
+msgid "Run the same bake the Bake button runs, keeping the mesh after every stage, and step through them here. Nothing is committed to the model - this is for finding which stage a bad result came from."
+msgstr "执行与“烘焙”按钮相同的烘焙，保留每个阶段之后的网格，并可在此逐一查看。不会向模型提交任何内容 - 用于找出不良结果来自哪个阶段。"
+
+# AI Translated
+msgid "Check topology"
+msgstr "检查拓扑"
+
+# AI Translated
+msgid "Count open and non-manifold edges after each stage, which is how a stage that tore the mesh is spotted. It scans every edge, so it adds noticeably to the capture on a fine bake."
+msgstr "统计每个阶段之后的开放边和非流形边，以此找出撕裂网格的阶段。由于需要扫描每条边，精细烘焙时会明显增加捕获时间。"
+
+# AI Translated
+msgid "< Previous"
+msgstr "< 上一步"
+
+# AI Translated
+msgid "Next >"
+msgstr "下一步 >"
+
+# AI Translated
+msgid "triangles"
+msgstr "三角形"
+
+# AI Translated
+msgid "vertices"
+msgstr "顶点"
+
+# AI Translated
+msgid "Open edges"
+msgstr "开放边"
+
+# AI Translated
+msgid "Non-manifold"
+msgstr "非流形"
+
+# AI Translated
+msgid "Degenerate"
+msgstr "退化"
+
+# AI Translated
+msgid "Write stage meshes"
+msgstr "写出阶段网格"
+
+# AI Translated
+msgid "Wrote the stage meshes as OBJ files to:"
+msgstr "已将阶段网格以 OBJ 文件写入到："
+
+# AI Translated
+msgid "Could not write the stage meshes."
+msgstr "无法写出阶段网格。"
+
+# AI Translated
+msgid "Write every captured stage out as an OBJ file, so they can be opened side by side in a mesh viewer."
+msgstr "将每个已捕获的阶段写出为 OBJ 文件，以便在网格查看器中并排打开。"
+
+# AI Translated
+msgid "The painted area could not be carried onto the remeshed model, so nothing was changed. Switch to Pro mode and remesh before painting."
+msgstr "绘制区域无法转移到重新网格化后的模型上，因此未作任何更改。请切换到专业模式，并在绘制前进行重新网格化。"
+
+# AI Translated
+msgid "Pro"
+msgstr "专业"
+
+# AI Translated
+msgid "Standard - pick a texture, paint where it goes, press Bake. Everything the mesh needs is done for you in that one step."
+msgstr "标准 - 选择纹理，在需要的位置绘制，然后按“烘焙”。网格所需的所有处理都会在这一步中自动完成。"
+
+# AI Translated
+msgid "Pro - the mesh preparation is yours to run: Remesh, Subdivide and Bake as separate steps, with every setting on show. For when Standard's result is not what you wanted and you know why."
+msgstr "专业 - 网格准备由您自行执行：重新网格化、细分和烘焙为独立的步骤，所有设置均会显示。适用于标准模式的结果不符合预期、且您清楚原因的情况。"
+
+# AI Translated
+msgid "Dock panel"
+msgstr "停靠面板"
+
+# AI Translated
+msgid "Undock panel"
+msgstr "取消停靠面板"
+
+# AI Translated
+msgid "Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside the toolbar."
+msgstr "分离此面板，使其可在 3D 视图上任意拖动，或将其停靠回工具栏旁。"
+
+# AI Translated
+#, boost-format
+msgid "into %1%"
+msgstr "绘制到 %1%"
+
+# AI Translated
+msgid "add a layer to paint"
+msgstr "添加图层以进行绘制"
+
+# AI Translated
+msgid "Paint - add the active layer where you click or drag. The right button erases, and so does holding Shift."
+msgstr "绘制 - 在单击或拖动处添加当前图层。右键可擦除，按住 Shift 也可擦除。"
+
+# AI Translated
+msgid "Erase - remove the active layer where you click or drag. The right button paints."
+msgstr "擦除 - 在单击或拖动处移除当前图层。右键可绘制。"
+
+# AI Translated
+msgid "Brush - paint over the surface by dragging"
+msgstr "画刷 - 拖动以在表面上绘制"
+
+# AI Translated
+msgid "Face - click individual triangles"
+msgstr "面 - 单击单个三角形"
+
+# AI Translated
+msgid "Connected area"
+msgstr "连通区域"
+
+# AI Translated
+msgid "Connected area - flood-fill the region reachable without crossing an edge sharper than the angle threshold"
+msgstr "连通区域 - 填充无需跨越比角度阈值更锐利的边即可到达的区域"
+
+# AI Translated
+msgid "Wait for the bake to finish."
+msgstr "请等待烘焙完成。"
+
+# AI Translated
+msgid "Add a layer first."
+msgstr "请先添加图层。"
+
+# AI Translated
+msgid "The active layer has no paint yet."
+msgstr "当前图层尚未绘制。"
+
+# AI Translated
+msgid "Select whole model"
+msgstr "选择整个模型"
+
+# AI Translated
+msgid "Select whole model - paint every face of the model with the active layer"
+msgstr "选择整个模型 - 用当前图层绘制模型的每个面"
+
+# AI Translated
+msgid "Erase whole model"
+msgstr "擦除整个模型"
+
+# AI Translated
+msgid "Erase whole model - clear the active layer's paint from every face"
+msgstr "擦除整个模型 - 清除当前图层在每个面上的绘制"
+
+# AI Translated
+msgid "Reset texture displacement selection"
+msgstr "重置纹理置换选择"
+
+# AI Translated
+msgid "Circle - paints everything under the brush as seen from the camera"
+msgstr "圆 - 绘制从相机视角看画刷下的所有内容"
+
+# AI Translated
+msgid "Sphere - paints only within a ball around the point under the cursor"
+msgstr "球 - 仅在光标所指点周围的球体内绘制"
+
+# AI Translated
+msgid "Angle threshold - the fill stops at edges sharper than this"
+msgstr "角度阈值 - 填充会在比此角度更锐利的边处停止"
+
+# AI Translated
+msgid "Click a triangle to paint it"
+msgstr "单击三角形以进行绘制"
+
+# AI Translated
+msgid "Needs the active layer mapped with Unwrap (LSCM)."
+msgstr "需要当前图层使用“展开 (LSCM)”映射。"
+
+# AI Translated
+msgid "Normal - the real geometry, exactly what Bake will produce. Slower to update"
+msgstr "常规 - 真实几何体，与烘焙结果完全一致。更新较慢"
+
+# AI Translated
+msgid "Fast - the relief is only shaded on, not built, and only for the layer you are editing. Updates instantly while you paint"
+msgstr "快速 - 起伏仅通过着色显示而未实际构建，且仅针对正在编辑的图层。绘制时即时更新"
+
+# AI Translated
+msgid "Checker"
+msgstr "棋盘格"
+
+# AI Translated
+msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
+msgstr "棋盘格 - 用测试网格代替纹理。方格保持正方形的地方纹理没有变形；方格被拉伸的地方，纹理也会被拉伸"
+
+# AI Translated
+msgid "Distortion"
+msgstr "畸变"
+
+# AI Translated
+msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
+msgstr "畸变 - 在展开上叠加由蓝到红的拉伸热力图"
+
+# AI Translated
+msgid "Wireframe - overlay the mesh edges; independent of the view above"
+msgstr "线框 - 叠加显示网格边；与上方的视图无关"
+
+# AI Translated
+msgid "Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting or dragging a slider starts to stutter - the preview then waits until you let go."
+msgstr "任何内容更改后立即重建预览。如果在较大的模型上绘制或拖动滑块时开始卡顿，请将其关闭 - 预览将等到您松开后再更新。"
+
+# AI Translated
+msgid "Texture layers"
+msgstr "纹理图层"
+
+# AI Translated
+msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
+msgstr "拖动到另一个图层上以重新排序。第一个图层位于原始表面上；之后的每个图层都会在前面图层之上叠加其起伏。"
+
+# AI Translated
+msgid "Pick a different image for this layer. The paint, depth and tiling stay as they are."
+msgstr "为此图层选择另一张图像。绘制、深度和平铺保持不变。"
+
+# AI Translated
+msgid "not painted"
+msgstr "未绘制"
+
+# AI Translated
+msgid "Move up - applied earlier"
+msgstr "上移 - 更早应用"
+
+# AI Translated
+msgid "Move down - applied later"
+msgstr "下移 - 更晚应用"
+
+# AI Translated
+msgid "Remove this layer"
+msgstr "移除此图层"
+
+# AI Translated
+msgid "Height of the relief: how far white in the texture lifts the surface, in millimetres. Black does not move it at all, unless Midlevel says otherwise."
+msgstr "起伏的高度：纹理中的白色将表面抬起多少，单位为毫米。黑色完全不会移动表面，除非“中间值”另有设置。"
+
+# AI Translated
+msgid "Tile size"
+msgstr "平铺尺寸"
+
+# AI Translated
+msgid "How wide one copy of the texture is on the model. Smaller repeats the pattern more often and makes its detail finer; with Tile off, this is the size of the single copy."
+msgstr "纹理的一个副本在模型上的宽度。数值越小，图案重复越频繁、细节越精细；关闭“平铺”时，这是单个副本的尺寸。"
+
+# AI Translated
+msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
+msgstr "旋转表面上的纹理，单位为度 - 用于将图案与模型的某条边对齐。"
+
+# AI Translated
+msgid "Midlevel"
+msgstr "中间值"
+
+# AI Translated
+msgid ""
+"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"\n"
+"What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
+msgstr ""
+"哪种灰度保持在表面当前的位置。设为 0 时，纹理只向外推出；设为 0.5 时，中灰色保持不动，较暗的灰色向内切入，较亮的灰色仍向外推出 - 同一张图像既能浮雕又能雕刻。\n"
+"\n"
+"向内切入的部分必须有足够空间：在尖锐的内角处或薄壁上，较深的切入可能会穿透到另一侧。"
+
+# AI Translated
+msgid "Deep inward displacement may self-intersect."
+msgstr "较深的向内置换可能会自相交。"
+
+# AI Translated
+msgid "Blurs the image before it is used, which rounds off hard steps and removes speckle from a noisy photo. Raise it if the relief looks harsh or grainy; it costs fine detail."
+msgstr "在使用前模糊图像，可圆化生硬的台阶并去除噪点较多照片中的斑点。如果起伏看起来生硬或粗糙，请调高此值；代价是损失精细细节。"
+
+# AI Translated
+msgid "Edge fade"
+msgstr "边缘渐隐"
+
+# AI Translated
+msgid "Flattens the relief as it approaches the edge of the painted area, so it blends into the bare surface instead of stopping at a step."
+msgstr "在接近绘制区域边缘时逐渐压平起伏，使其融入原始表面，而不是以台阶状突然终止。"
+
+# AI Translated
+msgid "How far in the fade reaches, as a share of the painted area. Small values soften a narrow band at the edge; 1 flattens almost all of it."
+msgstr "渐隐向内延伸的范围，以占绘制区域的比例表示。较小的值只柔化边缘的窄带；设为 1 时几乎全部压平。"
+
+# AI Translated
+msgid "Invert"
+msgstr "反转"
+
+# AI Translated
+msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
+msgstr "将起伏内外翻转：原本凸起的部分变为切入，反之亦然。效果等同于使用图像的负片。"
+
+# AI Translated
+msgid "Colours"
+msgstr "颜色"
+
+# AI Translated
+msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgstr "打印绘制区域的起伏时，同时按纹理的颜色打印。每种颜色都会匹配到您已加载的耗材丝中最接近的一种；未绘制的部分保持对象原有的颜色。"
+
+# AI Translated
+msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgstr "此纹理是灰度高度图，没有可应用的颜色。请导入彩色图像以使用此功能。"
+
+# AI Translated
+msgid "Mix filaments"
+msgstr "混合耗材丝"
+
+# AI Translated
+msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgstr "交替使用两种耗材丝来模拟它们之间的颜色，从而用少量耗材丝呈现照片或渐变。纯色图像无论是否开启，打印效果都相同。关闭时每个区域只使用一种耗材丝。"
+
+# AI Translated
+msgid "Mix by"
+msgstr "混合方式"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Surface"
+msgstr "表面"
+
+# AI Translated
+msgid ""
+"Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
+"Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
+"Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
+msgstr ""
+"层：两种耗材丝在打印层之间交替，在竖直表面上过渡平滑，但在朝上或朝下的平坦表面上会失效，因为那里整层只是一条色带。\n"
+"表面：在表面上形成细密的棋盘格，适用于任何角度，但看起来可能更像纹理而非混色。\n"
+"自动：竖直面按层混合；平坦面采用较接近的单一耗材丝，因为棋盘格在那里会显现为图案。"
+
+# AI Translated
+#, boost-format
+msgid "%1% printable colours from %2% filaments"
+msgstr "%1% 种可打印颜色，来自 %2% 种耗材丝"
+
+# AI Translated
+msgid "Denoise"
+msgstr "去噪"
+
+# AI Translated
+msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgstr "清除因细节比网格更精细而残留的、颜色错误的零散三角形。如果结果看起来有斑点，请调高此值；如果小特征被吞没，请调低此值。"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Mapping"
+msgstr "映射"
+
+# AI Translated
+msgid "Triplanar (blended)"
+msgstr "三平面（混合）"
+
+# AI Translated
+msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
+msgstr "三平面 - 同时从三个轴向投影纹理并在它们之间混合，因此环绕尖锐边的区域不会出现接痕。"
+
+# AI Translated
+msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgstr "柱面 - 以绘制区域自身的中心为轴环绕纹理，适用于圆形物体。"
+
+# AI Translated
+msgid "Spherical"
+msgstr "球面"
+
+# AI Translated
+msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgstr "球面 - 以绘制区域自身的中心在两个方向上环绕纹理。"
+
+# AI Translated
+msgid "Unwrap (LSCM)"
+msgstr "展开 (LSCM)"
+
+# AI Translated
+msgid "Unwrap - flattens the painted area and maps the texture onto it with as little stretching as possible. The area is cut into pieces at its sharp edges first (see Seam angle), so each piece can lie flat on its own."
+msgstr "展开 - 将绘制区域展平，并以尽可能小的拉伸将纹理映射到其上。该区域会先在其尖锐边处切成若干块（参见“切缝角度”），使每一块都能单独展平。"
+
+# AI Translated
+msgid "From view"
+msgstr "从视图"
+
+# AI Translated
+msgid "From view - projects straight onto the painted area from where you are looking, like a slide projector."
+msgstr "从视图 - 从您当前观察的方向直接投影到绘制区域上，就像幻灯机一样。"
+
+# AI Translated
+msgid "Open UV editor"
+msgstr "打开 UV 编辑器"
+
+# AI Translated
+msgid "Opens the UV editor, where you can see how the texture is laid out over the painted area, cut seams and move the pieces around."
+msgstr "打开 UV 编辑器，您可以在其中查看纹理在绘制区域上的布局、标记切缝并移动各个块。"
+
+# AI Translated
+msgid "Not unwrapped yet"
+msgstr "尚未展开"
+
+# AI Translated
+#, boost-format
+msgid "%1% islands"
+msgstr "%1% 个岛"
+
+# AI Translated
+msgid "Capture current view"
+msgstr "捕获当前视图"
+
+# AI Translated
+msgid "Nothing is visible from this angle - turn the model to face the part you want to project onto."
+msgstr "从此角度看不到任何内容 - 请旋转模型，使要投影的部分朝向您。"
+
+# AI Translated
+msgid "Projects the texture onto the painted area from where you are looking now, like a slide projector. Faces turned away from you stretch, so line the view up with the surface you care about first."
+msgstr "从您当前观察的方向将纹理投影到绘制区域上，就像幻灯机一样。背向您的面会被拉伸，因此请先将视图对准您关心的表面。"
+
+# AI Translated
+msgid "Project only on visible"
+msgstr "仅投影到可见面"
+
+# AI Translated
+msgid "Paints only the faces you can actually see right now - facing you and not hidden behind anything - and projects onto those. Replaces what the layer had painted."
+msgstr "仅绘制您此刻真正能看到的面 - 朝向您且未被任何物体遮挡 - 并投影到这些面上。会替换该图层原有的绘制。"
+
+# AI Translated
+msgid "Projection frame"
+msgstr "投影框"
+
+# AI Translated
+msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
+msgstr "打开一个可在模型上拖动的窗口。透过它能看到的部分会获得纹理，其边框即为投影的边缘。"
+
+# AI Translated
+msgid "Opacity"
+msgstr "不透明度"
+
+# AI Translated
+msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
+msgstr "放置时投影框窗口的不透明程度。调低可透过它看到模型；不影响结果。"
+
+# AI Translated
+msgid "Apply projection frame"
+msgstr "应用投影框"
+
+# AI Translated
+msgid "Nothing of the model is inside the frame - move it over the part you want to project onto."
+msgstr "框内没有模型的任何部分 - 请将其移到要投影的部分上。"
+
+# AI Translated
+msgid "The frame could not be applied. Make sure it overlaps the 3D view."
+msgstr "无法应用投影框。请确保它与 3D 视图重叠。"
+
+# AI Translated
+msgid "Projects the texture through the frame from where you are looking now and paints the faces inside it. Replaces what the layer had painted; the result sticks to the model, so you can orbit afterwards."
+msgstr "从您当前观察的方向透过投影框投影纹理，并绘制框内的面。会替换该图层原有的绘制；结果会固定在模型上，因此之后可以自由环绕查看。"
+
+# AI Translated
+msgid "Placed by projection frame."
+msgstr "已通过投影框放置。"
+
+# AI Translated
+msgid "Tile"
+msgstr "平铺"
+
+# AI Translated
+msgid "Repeats the texture across the painted area. Off places one copy, like a decal, at the size set by Tile size."
+msgstr "在绘制区域上重复纹理。关闭时只放置一个副本（类似贴花），尺寸由“平铺尺寸”决定。"
+
+# AI Translated
+msgid "Turn Tile on to choose how the texture repeats."
+msgstr "开启“平铺”以选择纹理的重复方式。"
+
+# AI Translated
+msgid "Repeat"
+msgstr "重复"
+
+# AI Translated
+msgid "Mirrored repeat"
+msgstr "镜像重复"
+
+# AI Translated
+msgid "Mirrored repeat - every other tile is flipped, so edges meet seamlessly"
+msgstr "镜像重复 - 每隔一块翻转一次，使边缘无缝衔接"
+
+# AI Translated
+msgid "Blend"
+msgstr "混合"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Add"
+msgstr "添加"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Subtract"
+msgstr "相减"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Multiply"
+msgstr "相乘"
+
+# AI Translated
+msgid "Divide"
+msgstr "相除"
+
+# AI Translated
+msgid "The base layer has nothing beneath it to combine with, so it always adds."
+msgstr "基础图层下方没有可与之组合的内容，因此始终使用“添加”。"
+
+# AI Translated
+msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
+msgstr "此图层与下方图层重叠处的作用方式。“添加”和“相减”会堆叠或削减起伏。“相乘”和“相除”会缩放下方的内容，使此图层成为其上的遮罩 - 此时“深度”相当于强度，1 mm 时白色区域保持不变。"
+
+# AI Translated
+msgid "Adjust placement"
+msgstr "调整位置"
+
+# AI Translated
+msgid "Adjust placement - drag the handle on the model to move the texture"
+msgstr "调整位置 - 拖动模型上的控制柄以移动纹理"
+
+# AI Translated
+msgid "Paint something with this layer first."
+msgstr "请先用此图层绘制一些内容。"
+
+# AI Translated
+msgid "Fewer settings"
+msgstr "较少设置"
+
+# AI Translated
+msgid "More settings"
+msgstr "更多设置"
+
+# AI Translated
+#, boost-format
+msgid "All %1% layers used"
+msgstr "已使用全部 %1% 个图层"
+
+# AI Translated
+msgid "Add layer"
+msgstr "添加图层"
+
+# AI Translated
+msgid "Subdivision"
+msgstr "细分"
+
+# AI Translated
+msgid "Only painted area (adaptive)"
+msgstr "仅绘制区域（自适应）"
+
+# AI Translated
+msgid "Adds triangles only where you painted, instead of everywhere. On a large part with a small decal that is the difference between thousands of triangles and millions, and your paint survives the refinement."
+msgstr "仅在您绘制的位置添加三角形，而不是全部添加。在带有小贴花的大零件上，这就是数千个与数百万个三角形的差别，而且您的绘制在细化后会保留。"
+
+# AI Translated
+msgid "Follow texture detail"
+msgstr "跟随纹理细节"
+
+# AI Translated
+msgid "Spends the triangles where the texture actually bends - packed along ridges and edges, sparse over flat ground - instead of spreading them evenly. The same detail for fewer triangles on most textures."
+msgstr "将三角形用在纹理实际发生弯折的地方 - 沿脊线和边缘密集分布，在平坦处稀疏分布 - 而不是均匀分布。对大多数纹理而言，可用更少的三角形获得相同的细节。"
+
+# AI Translated
+msgid "Max edge"
+msgstr "最大边长"
+
+# AI Translated
+msgid "Target edge"
+msgstr "目标边长"
+
+# AI Translated
+msgid "No triangle in the painted area stays larger than this, even where the texture is flat. Keep it near the size of the smallest feature you want to come out."
+msgstr "绘制区域中的三角形都不会大于此值，即使在纹理平坦处也是如此。请将其保持在接近您希望呈现的最小特征的尺寸。"
+
+# AI Translated
+msgid "Triangles in the painted area are split until none is larger than this. Smaller means finer detail and, fast, a lot more triangles."
+msgstr "绘制区域中的三角形会不断拆分，直到没有一个大于此值。数值越小细节越精细，但三角形数量也会迅速大幅增加。"
+
+# AI Translated
+msgid "Detail"
+msgstr "细节"
+
+# AI Translated
+msgid "How far the mesh may sit from the shape the texture describes, in millimetres. Smaller follows fine detail and costs triangles; larger only chases the big features."
+msgstr "网格与纹理所描述形状之间允许的偏差，单位为毫米。数值越小越能贴合精细细节，但会消耗更多三角形；数值越大则只追踪主要特征。"
+
+# AI Translated
+msgid "Min edge"
+msgstr "最小边长"
+
+# AI Translated
+msgid "A floor on triangle size, so a sharp step in the texture cannot be chased forever. Lower it for finer relief, raise it if the count runs away at hard edges."
+msgstr "三角形尺寸的下限，避免纹理中的陡峭台阶被无限细化。调低可获得更精细的起伏；如果在硬边处三角形数量失控，请调高。"
+
+# AI Translated
+msgid "Edge detail"
+msgstr "边缘细节"
+
+# AI Translated
+msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
+msgstr "绘制区域轮廓处的三角形尺寸，起伏在此处回落到原始表面。如果轮廓看起来呈锯齿状，请调低此值；只会在轮廓处增加三角形。0 表示关闭。"
+
+# AI Translated
+msgid "Colour detail"
+msgstr "颜色细节"
+
+# AI Translated
+msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgstr "两种颜色交界处的三角形尺寸。每个三角形只用一种耗材丝打印，因此颜色边界的锐利程度取决于沿边界的三角形 - 而由于颜色变化处的表面是平坦的，那里不会有其他细化。0 表示关闭。"
+
+# AI Translated
+msgid "Triangle budget: set with Triangles, below."
+msgstr "三角形预算：在下方的“三角形”中设置。"
+
+# AI Translated
+#, boost-format
+msgid "Preview: %1% triangles"
+msgstr "预览：%1% 个三角形"
+
+# AI Translated
+msgid "Steps"
+msgstr "次数"
+
+# AI Translated
+msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
+msgstr "将模型的每个三角形拆分为四个，重复此次数。每一次都会使数量变为四倍 - 3 次会把 10 万个三角形变成 640 万个 - 因此除非需要整个模型都更精细，否则请优先只细化绘制区域。"
+
+# AI Translated
+msgid "Hide preview"
+msgstr "隐藏预览"
+
+# AI Translated
+msgid "Preview subdivision"
+msgstr "预览细分"
+
+# AI Translated
+msgid "Shows what the refinement would produce as a wireframe, without touching the model."
+msgstr "以线框显示细化后的结果，而不改动模型。"
+
+# AI Translated
+msgid "Subdivide"
+msgstr "细分"
+
+# AI Translated
+msgid "Refines the painted area to the target edge length and carries your paint onto the finer mesh. The rest of the model is left as it is."
+msgstr "将绘制区域细化到目标边长，并把您的绘制转移到更精细的网格上。模型的其余部分保持不变。"
+
+# AI Translated
+msgid "Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked paint on it (already-baked relief is unaffected)."
+msgstr "用细分后的网格替换模型的几何体，并清除其上尚未烘焙的绘制（已烘焙的起伏不受影响）。"
+
+# AI Translated
+msgid "Remeshing"
+msgstr "重新网格化"
+
+# AI Translated
+msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
+msgstr "重建整个模型所用的三角形尺寸，单位为毫米。置换在均匀的网格上效果最好；这一步能把不均匀的导入模型变为均匀网格。"
+
+# AI Translated
+msgid "Keep sharp edges"
+msgstr "保留锐边"
+
+# AI Translated
+msgid "Holds hard edges and open borders in place while the rest is remeshed. Without it the remesher slides vertices along the surface and rounds every crisp edge off - a cube comes back with wobbly edges."
+msgstr "在重新网格化其余部分时，保持硬边和开放边界不动。否则重新网格化会让顶点沿表面滑动，把每条锐利的边都磨圆 - 立方体会变得边缘歪歪扭扭。"
+
+# AI Translated
+msgid "How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."
+msgstr "折痕需要多锐利（以度为单位）才会被视为值得保留的边。调低可保护模型更多的形状；调高则会将更多部分均匀重建。"
+
+# AI Translated
+msgid "Remesh"
+msgstr "重新网格化"
+
+# AI Translated
+msgid "Rebuilds the whole model with triangles close to this edge length - splitting the big ones and merging the small ones - so displacement has an even density to work with. Replaces the geometry; your paint is carried onto the new triangles spatially, so it survives (already-baked relief is kept too)."
+msgstr "以接近此边长的三角形重建整个模型 - 拆分大的三角形、合并小的三角形 - 使置换有均匀的密度可用。会替换几何体；您的绘制会按空间位置转移到新三角形上，因此会被保留（已烘焙的起伏也会保留）。"
+
+# AI Translated
+msgid "Displace up to the border"
+msgstr "置换至边界"
+
+# AI Translated
+msgid "Lets the relief run right to the edge of the painted area. Turn it off to hold that outer ring flat, which keeps the displacement strictly inside your paint but flattens the pattern at the border."
+msgstr "让起伏一直延伸到绘制区域的边缘。关闭后将保持外圈平坦，使置换严格限制在您的绘制范围内，但边界处的图案会被压平。"
+
+# AI Translated
+msgid "Smooth result"
+msgstr "平滑结果"
+
+# AI Translated
+msgid "Smooths the geometry after the texture has been applied, to take the hard steps out of a low-resolution image. Only what the displacement moved is touched. The Smoothing slider on a layer is a different thing: it blurs the image before it is used."
+msgstr "在应用纹理后平滑几何体，以消除低分辨率图像造成的生硬台阶。仅作用于被置换移动过的部分。图层上的“平滑”滑块是另一回事：它在使用图像前对其进行模糊。"
+
+# AI Translated
+msgctxt "Texture Displacement"
+msgid "Strength"
+msgstr "强度"
+
+# AI Translated
+msgid "How far each pass pulls a vertex towards its neighbours. High values round the relief off quickly; low values need more passes but keep more of the detail."
+msgstr "每一遍将顶点向其相邻顶点拉近的程度。较高的值会很快把起伏磨圆；较低的值需要更多遍数，但能保留更多细节。"
+
+# AI Translated
+msgid "Passes"
+msgstr "遍数"
+
+# AI Translated
+msgid "How many smoothing passes to run. More passes spread the smoothing further across the surface; Strength decides how much each one moves."
+msgstr "要执行的平滑遍数。遍数越多，平滑在表面上扩散得越远；“强度”决定每一遍移动多少。"
+
+# AI Translated
+msgid "Ignore outer ring"
+msgstr "忽略外圈"
+
+# AI Translated
+msgid "Keeps the outer ring of the painted area out of the smoothing. Its neighbours outside the paint never move, so smoothing it drags the relief down and leaves the pattern half-melted at the border."
+msgstr "将绘制区域的外圈排除在平滑之外。外圈在绘制区域外的相邻顶点永远不会移动，因此对其平滑会把起伏往下拉，使边界处的图案像融化了一半。"
+
+# AI Translated
+msgid "Smooth baked mesh now"
+msgstr "立即平滑已烘焙的网格"
+
+# AI Translated
+msgid "Applies the smoothing above to the model itself, right now, within the painted area. For relief that is already baked in - anything not yet baked is smoothed by Bake."
+msgstr "立即将上述平滑应用于模型本身的绘制区域内。用于已烘焙的起伏 - 尚未烘焙的部分会在烘焙时平滑。"
+
+# AI Translated
+msgid "Experimental: classic bake pipeline"
+msgstr "实验性：经典烘焙流程"
+
+# AI Translated
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgstr "在准备网格（重新网格化、自适应细分，以及沿纹理中的陡峭台阶进行切割）之后，通过移动网格已有的顶点进行烘焙。会保留拓扑，这是颜色所必需的。默认流程则在一次运行中完成细化、清理狭长三角形、置换和简化；无需事先准备，但暂不支持生成颜色。"
+
+# AI Translated
+msgid "Budget"
+msgstr "预算"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "此次烘焙可在您绘制的区域上使用多少千个三角形。模型其余部分已烘焙的起伏会在此之外保留，因此在其他位置的第二次烘焙会获得与第一次相同的预算。如果“分辨率”下方的警告提示细节无法容纳，请调高此值；0 表示保留细化产生的所有三角形，无论数量多少。"
+
+# AI Translated
+msgid "Align mesh to texture edges"
+msgstr "将网格对齐到纹理边缘"
+
+# AI Translated
+msgid "Slide vertices sideways onto the edges in the texture before displacing them. Displacement can only move vertices up and down, so without this a sharp step in the image lands wherever the triangles happen to be and comes out as a staircase. Moving the vertices onto the step first gives a straight wall at the same triangle count."
+msgstr "在置换之前，将顶点横向滑动到纹理中的边缘上。置换只能上下移动顶点，因此若不开启此项，图像中的陡峭台阶会落在三角形恰好所在的位置，呈现为阶梯状。先把顶点移到台阶上，就能在相同三角形数量下得到笔直的侧壁。"
+
+# AI Translated
+msgid "Clean up slivers"
+msgstr "清理狭长三角形"
+
+# AI Translated
+msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr "在置换对纹理进行采样之前，合并细化过程从模型自身的三角剖分中继承下来的细长三角形。狭长三角形的三个角会落在纹理中三个互不相关的位置，这正是起伏看起来呈锯齿状的原因。"
+
+# AI Translated
+msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr "开启：分辨率随模型尺寸确定，预算保持默认值。取消勾选可自行设置两者 - 当纹理比其所在零件精细或粗糙得多时，值得这样做。"
+
+# AI Translated
+#, boost-format
+msgid "Chosen from the size of the model: %1$.2f mm triangles, budget %2% k. Untick Auto to set them yourself."
+msgstr "根据模型尺寸选择：%1$.2f mm 三角形，预算 %2% k。取消勾选“自动”可自行设置。"
+
+# AI Translated
+msgid "How fine the mesh is made under the paint, in millimetres. It has to be smaller than the detail you want out of the texture - a 0.5 mm groove needs triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs four times as many, and once they no longer fit the budget the bake simplifies back down and the detail goes with it."
+msgstr "绘制区域下网格的精细程度，单位为毫米。它必须小于您希望从纹理中得到的细节 - 0.5 mm 的凹槽需要远小于 0.5 mm 的三角形。数值越小，三角形消耗增长越快：减半需要四倍的数量，一旦超出预算，烘焙就会重新简化，细节也随之丢失。"
+
+# AI Translated
+#, boost-format
+msgid "Needs about %1% triangles, budget %2% - the bake will simplify back down and lose detail."
+msgstr "需要约 %1% 个三角形，预算为 %2% - 烘焙将重新简化并丢失细节。"
+
+# AI Translated
+msgid "How many thousand triangles the refinement may add to the model. The triangle that fits worst is always split first, so even a run that spends the lot has spent it where it shows most. Raise it if the relief still looks coarse."
+msgstr "细化过程最多可向模型添加多少千个三角形。最不贴合的三角形总是优先拆分，因此即使用完全部预算，也是用在最明显的地方。如果起伏看起来仍然粗糙，请调高此值。"
+
+# AI Translated
+msgid "Stops the bake. Whatever it had already finished stays on the model, and can be undone."
+msgstr "停止烘焙。已完成的部分会保留在模型上，并且可以撤销。"
+
+# AI Translated
+msgid "Closes the tool without baking. Your paint, layers and settings stay with the model."
+msgstr "不烘焙并关闭工具。您的绘制、图层和设置都会保留在模型中。"
+
+# AI Translated
+msgid "Preparing..."
+msgstr "正在准备..."
+
+# AI Translated
+msgid "Baking..."
+msgstr "正在烘焙..."
+
+# AI Translated
+msgid "Nothing is painted yet. The UV editor's seam tool is on, so strokes on the model mark seams instead of painting - turn it off in the pane to paint."
+msgstr "尚未进行任何绘制。UV 编辑器的切缝工具已开启，因此在模型上的笔画会标记切缝而不是绘制 - 请在面板中将其关闭后再绘制。"
+
+# AI Translated
+msgid "Nothing is painted yet."
+msgstr "尚未进行任何绘制。"
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry, by moving the vertices that are already there. Use Subdivide first if the mesh is too coarse to show the detail."
+msgstr "通过移动现有的顶点，将绘制的高度图转换为真实的几何体。如果网格太粗糙而无法呈现细节，请先使用“细分”。"
+
+# AI Translated
+msgid "Turn the painted height maps into real geometry. The mesh is remeshed to an even density and refined where the texture bends first, so the detail has vertices to land on - all in one step."
+msgstr "将绘制的高度图转换为真实的几何体。网格会先被重新网格化为均匀密度，并在纹理弯折处进行细化，使细节有顶点可落 - 一步完成。"
+
+# AI Translated
+#, boost-format
+msgid "%1% k"
+msgstr "%1% k"
+
+# AI Translated
+#, boost-format
+msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
+msgstr "模型：%1% 个三角形 - 烘焙会细化到上方的分辨率，直至达到预算"
+
+# AI Translated
+#, boost-format
+msgid "Bake moves existing vertices - the model stays at %1% triangles"
+msgstr "烘焙会移动现有顶点 - 模型保持 %1% 个三角形"
+
+# AI Translated
+#, boost-format
+msgid "Bake result up to ~%1% k triangles"
+msgstr "烘焙结果最多约 %1% k 个三角形"
+
+# AI Translated
+#, boost-format
+msgid "%1% layers not painted, skipped"
+msgstr "%1% 个图层未绘制，已跳过"
+
+# AI Translated
+#, boost-format
+msgid "%1% not painted, skipped"
+msgstr "%1% 未绘制，已跳过"
+
+# AI Translated
+msgid "Entering Texture displacement painting"
+msgstr "进入纹理置换绘制"
+
+# AI Translated
+msgid "Leaving Texture displacement painting"
+msgstr "离开纹理置换绘制"
+
+# AI Translated
+msgid "Texture displacement editing"
+msgstr "纹理置换编辑"
+
+# AI Translated
+msgid "Choose SLA archive:"
+msgstr "选择 SLA 存档文件："
+
+# AI Translated
+msgid "Import file"
+msgstr "导入文件"
+
+# AI Translated
+msgid "Import model and profile"
+msgstr "导入模型和配置文件"
+
+# AI Translated
+msgid "Import profile only"
+msgstr "仅导入配置文件"
+
+# AI Translated
+msgid "Import model only"
+msgstr "仅导入模型"
+
+# AI Translated
+msgid "Accurate"
+msgstr "精确"
+
+# AI Translated
+msgid "Balanced"
+msgstr "均衡"
+
+# AI Translated
+msgid "Quick"
+msgstr "快速"
+
+# AI Translated
+msgid "Baking texture displacement"
+msgstr "正在烘焙纹理置换"
+
+# AI Translated
+msgid "The bake produced no displacement, so nothing was changed and the paint was kept. Check that the painted layer has a texture and a non-zero depth."
+msgstr "烘焙未产生任何置换，因此未作任何更改，绘制已保留。请检查绘制的图层是否有纹理且深度不为零。"
+
+# AI Translated
+#, boost-format
+msgid "The triangle budget limited the detail: this resolution needs %1% triangles, the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."
+msgstr "三角形预算限制了细节：此分辨率需要 %1% 个三角形，预算保留了 %2% 个。请调高“预算”或使用较粗的“分辨率”以获得完整细节。"
+
+# AI Translated
+msgid "Capturing bake stages"
+msgstr "正在捕获烘焙阶段"
+
+# AI Translated
+msgid "Preparing mesh for texture displacement"
+msgstr "正在为纹理置换准备网格"
+
+# AI Translated
+msgid "Click to edit ratio"
+msgstr "单击以编辑比例"
+
+# AI Translated
+msgid "Edit Mixed Filament"
+msgstr "编辑混合耗材丝"
+
+# AI Translated
+msgid "Effect Preview"
+msgstr "效果预览"
+
+# AI Translated
+msgid "Select Mixed Materials"
+msgstr "选择混合材料"
+
+# AI Translated
+msgid "+ Add Material"
+msgstr "+ 添加材料"
+
+# AI Translated
+msgid "- Delete Material"
+msgstr "- 删除材料"
+
+# AI Translated
+msgid "Gradient Effect"
+msgstr "渐变效果"
+
+# AI Translated
+msgid "Enable per-part gradient effect"
+msgstr "启用逐零件渐变效果"
+
+# AI Translated
+msgid "Mixing Recommendations"
+msgstr "混合推荐"
+
+# AI Translated
+msgid "-- Select --"
+msgstr "-- 请选择 --"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Slot %s (%s)"
+msgstr "槽位 %s（%s）"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Different filament types cannot be mixed: %s. Please select the same filament type."
+msgstr "不同类型的耗材丝无法混合：%s。请选择相同类型的耗材丝。"
+
+# AI Translated
+msgid "Please select a filament for all components"
+msgstr "请为所有组分选择耗材丝"
+
+# AI Translated
+msgid "Cannot mix different filament types"
+msgstr "无法混合不同类型的耗材丝"
+
+# AI Translated
+msgid "Maximum 3 materials for mixing"
+msgstr "最多混合 3 种材料"
+
+# AI Translated
+msgid "Maximum number of components reached"
+msgstr "已达到组分数量上限"
+
+# AI Translated
+msgid "Remove the third material"
+msgstr "移除第三种材料"
+
+# AI Translated
+msgid "3D Models"
+msgstr "3D 模型"
+
+# AI Translated
+msgid "Click to return"
+msgstr "单击返回"
+
+# AI Translated
+msgid "Left Arrow"
+msgstr "左箭头"
+
+# AI Translated
+msgid "Click to continue"
+msgstr "单击继续"
+
+# AI Translated
+msgid "Right Arrow"
+msgstr "右箭头"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Select %s Plugin"
+msgstr "选择 %s 插件"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Choose a %s plugin from the list below."
+msgstr "从下方列表中选择一个 %s 插件。"
+
+# AI Translated
+msgid "No plugins found for this type."
+msgstr "未找到此类型的插件。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin file: %s"
+msgstr "插件文件：%s"
+
+# AI Translated
+msgid "Process plugins"
+msgstr "工艺插件"
+
+# AI Translated
+msgid "Filament plugins"
+msgstr "耗材丝插件"
+
+# AI Translated
+msgid "Printer plugins"
+msgstr "打印机插件"
+
+# AI Translated
+msgid "The configuration is not valid JSON. Your changes were not saved."
+msgstr "配置不是有效的 JSON。您的更改未保存。"
+
+# AI Translated
+msgid "Configuration updated. Save the preset to persist it."
+msgstr "配置已更新。请保存预设以使其持久生效。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the preset's override and uses the global configuration."
+msgstr ""
+"恢复“%s”的默认配置？\n"
+"\n"
+"这将放弃该预设的覆盖设置，并使用全局配置。"
+
+# AI Translated
+msgid "Restore defaults"
+msgstr "恢复默认"
+
+# AI Translated
+msgid "Using global configuration. Save the preset to persist it."
+msgstr "正在使用全局配置。请保存预设以使其持久生效。"
+
+# AI Translated
+msgid "This capability is no longer available."
+msgstr "此功能已不再可用。"
+
+# AI Translated
+#, boost-format
+msgid "The plugin's configuration UI failed to load (%1%). Showing the default editor."
+msgstr "插件的配置界面加载失败（%1%）。正在显示默认编辑器。"
+
+# AI Translated
+msgid "Delete Plugin"
+msgstr "删除插件"
+
+# AI Translated
+msgid "Unsubscribe"
+msgstr "取消订阅"
+
+# AI Translated
+msgid "Overwrite Plugin"
+msgstr "覆盖插件"
+
+# AI Translated
+msgid "Select a .py or .whl plugin package."
+msgstr "请选择 .py 或 .whl 插件包。"
+
+# AI Translated
+msgid "Failed to install plugin package. See the log for details."
+msgstr "安装插件包失败。详情请查看日志。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is already installed.\n"
+"\n"
+"Installing this package will overwrite the existing plugin."
+msgstr ""
+"插件“%s”已安装。\n"
+"\n"
+"安装此包将覆盖现有插件。"
+
+# AI Translated
+msgid "Overwrite"
+msgstr "覆盖"
+
+# AI Translated
+msgid "Installing plugin"
+msgstr "正在安装插件"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Installed \"%s\"."
+msgstr "已安装“%s”。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Failed to activate \"%s\"."
+msgstr "激活“%s”失败。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activated \"%s\"."
+msgstr "已激活“%s”。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The following installed plugins were not found on disk:\n"
+"%s\n"
+"\n"
+"Remove them from OrcaSlicer?"
+msgstr ""
+"在磁盘上未找到以下已安装的插件：\n"
+"%s\n"
+"\n"
+"是否从 OrcaSlicer 中移除它们？"
+
+# AI Translated
+msgid "Missing Plugins"
+msgstr "缺失的插件"
+
+# AI Translated
+msgid "Refreshing plugins data"
+msgstr "正在刷新插件数据"
+
+# AI Translated
+msgid "Failed to unload plugin."
+msgstr "卸载插件失败。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deactivated \"%s\"."
+msgstr "已停用“%s”。"
+
+# AI Translated
+msgid "Plugin manifest was not found."
+msgstr "未找到插件清单。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Activating \"%s\"..."
+msgstr "正在激活“%s”..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Enabled \"%s\"."
+msgstr "已启用“%s”。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Disabled \"%s\"."
+msgstr "已禁用“%s”。"
+
+# AI Translated
+msgid "Downloading plugin"
+msgstr "正在下载插件"
+
+# AI Translated
+msgid "Plugin download failed."
+msgstr "插件下载失败。"
+
+# AI Translated
+msgid "Configuration saved."
+msgstr "配置已保存。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Restore the default configuration for \"%s\"?\n"
+"\n"
+"This discards the settings currently saved for this capability."
+msgstr ""
+"恢复“%s”的默认配置？\n"
+"\n"
+"这将放弃当前为此功能保存的设置。"
+
+# AI Translated
+msgid "Default configuration restored."
+msgstr "已恢复默认配置。"
+
+# AI Translated
+msgid "Updating plugin"
+msgstr "正在更新插件"
+
+# AI Translated
+msgid "Failed to update plugin."
+msgstr "更新插件失败。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Updated \"%s\"."
+msgstr "已更新“%s”。"
+
+# AI Translated
+msgid "Plugin folder could not be determined."
+msgstr "无法确定插件文件夹。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This removes the local plugin files. The plugin stays in the cloud and can be reinstalled."
+msgstr ""
+"删除插件“%s”？\n"
+"\n"
+"这将删除本地插件文件。插件仍保留在云端，可以重新安装。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Delete plugin \"%s\"?\n"
+"\n"
+"This permanently removes the plugin folder."
+msgstr ""
+"删除插件“%s”？\n"
+"\n"
+"这将永久删除插件文件夹。"
+
+# AI Translated
+msgid "Failed to delete plugin."
+msgstr "删除插件失败。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Deleted \"%s\"."
+msgstr "已删除“%s”。"
+
+# AI Translated
+msgid "Deleting plugin"
+msgstr "正在删除插件"
+
+# AI Translated
+msgid "Deleting plugin..."
+msgstr "正在删除插件..."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Unsubscribe plugin \"%s\"?\n"
+"\n"
+"This will stop tracking the plugin and delete any local plugin files."
+msgstr ""
+"取消订阅插件“%s”？\n"
+"\n"
+"这将停止跟踪该插件，并删除所有本地插件文件。"
+
+# AI Translated
+msgid "Failed to unsubscribe plugin."
+msgstr "取消订阅插件失败。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Unsubscribed \"%s\"."
+msgstr "已取消订阅“%s”。"
+
+# AI Translated
+msgid "Unsubscribing plugin"
+msgstr "正在取消订阅插件"
+
+# AI Translated
+msgid "Deleting local files and unsubscribing plugin..."
+msgstr "正在删除本地文件并取消订阅插件..."
+
+# AI Translated
+msgid "Reloading plugin"
+msgstr "正在重新加载插件"
+
+# AI Translated
+msgid "Failed to reload plugin."
+msgstr "重新加载插件失败。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Reloaded \"%s\"."
+msgstr "已重新加载“%s”。"
+
+# AI Translated
+msgid "Purge Mode Settings"
+msgstr "冲刷模式设置"
+
+# AI Translated
+msgid "Perform full purging with speed and temperature transition for the best print quality."
+msgstr "执行完整冲刷，并进行速度和温度过渡，以获得最佳打印质量。"
+
+# AI Translated
+msgid "Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."
+msgstr "使用优化的冲刷温度、倍数和更强的挤出以加快冲刷。在某些极端情况下可能导致轻微混色。"
+
+# AI Translated
+msgid "Prime Saving"
+msgstr "省料"
+
+# AI Translated
+msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
+msgstr "减少冲刷浪费并加快打印。可能导致轻微混色或细小的表面瑕疵。"
+
+# AI Translated
+msgid "Terminal"
+msgstr "终端"
+
+# AI Translated
+msgid "One-click CMYW auto-mix"
+msgstr "一键 CMYW 自动混色"
+
+# AI Translated
+msgid "One-click RYBW auto-mix"
+msgstr "一键 RYBW 自动混色"
+
+# AI Translated
+msgid "Project Physical Filaments"
+msgstr "项目物理耗材丝"
+
+# AI Translated
+msgid "New Physical Filaments"
+msgstr "新物理耗材丝"
+
+# AI Translated
+msgid "Project Mixed Filaments"
+msgstr "项目混合耗材丝"
+
+# AI Translated
+msgid "New Mixed Filaments"
+msgstr "新混合耗材丝"
+
+# AI Translated
+#, c-format, boost-format
+msgid "The project supports up to %d filaments. Extra filaments will be discarded."
+msgstr "项目最多支持 %d 种耗材丝。多余的耗材丝将被丢弃。"
+
+# AI Translated
+msgid "Import Model"
+msgstr "导入模型"
+
+# AI Translated
+msgid "Original"
+msgstr "原始"
+
+# AI Translated
+msgid "Multi-Color"
+msgstr "多色"
+
+# AI Translated
+msgid "Your input texture model"
+msgstr "您输入的纹理模型"
+
+# AI Translated
+msgid "Processed multi-color model"
+msgstr "处理后的多色模型"
+
+# AI Translated
+msgid "Color Count"
+msgstr "颜色数量"
+
+# AI Translated
+msgid "Smooth Level"
+msgstr "平滑等级"
+
+# AI Translated
+msgid "Automatically determine the optimal color count only and recompute filament mapping"
+msgstr "仅自动确定最佳颜色数量，并重新计算耗材丝映射"
+
+# AI Translated
+msgid "Convert texture to painting using the specified color count and smooth level"
+msgstr "使用指定的颜色数量和平滑等级将纹理转换为颜色绘制"
+
+# AI Translated
+msgid "Reminder: parameters changed, click Apply to take effect"
+msgstr "提醒：参数已更改，单击“应用”后生效"
+
+# AI Translated
+msgid "Filament Mapping"
+msgstr "耗材丝映射"
+
+# AI Translated
+msgid "Reset filament mapping to the state before one-click mixing"
+msgstr "将耗材丝映射重置为一键混色之前的状态"
+
+# AI Translated
+msgid "Choose the one-click auto-mix mode for texture color import"
+msgstr "选择纹理颜色导入的一键自动混色模式"
+
+# AI Translated
+msgid "Auto-merge same filament"
+msgstr "自动合并相同耗材丝"
+
+# AI Translated
+msgid "Automatically merge identical filaments into existing filaments in the project"
+msgstr "自动将相同的耗材丝合并到项目中已有的耗材丝"
+
+# AI Translated
+msgid "Skip Matching"
+msgstr "跳过匹配"
+
+# AI Translated
+msgid "Skip filament mapping and import as a single-color model"
+msgstr "跳过耗材丝映射，作为单色模型导入"
+
+# AI Translated
+msgid "Processing"
+msgstr "正在处理"
+
+# AI Translated
+msgid "Computing texture colors..."
+msgstr "正在计算纹理颜色..."
+
+# AI Translated
+msgid "Repairing mesh"
+msgstr "正在修复网格"
+
+# AI Translated
+msgid "Computation failed. Please adjust parameters and retry."
+msgstr "计算失败。请调整参数后重试。"
+
+# AI Translated
+msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
+msgstr "网格存在非流形几何体或开放边界。您可以按原样导入，或在导入前使用 Windows 3D 修复服务进行修复。"
+
+# AI Translated
+msgid "Mesh repair"
+msgstr "网格修复"
+
+# AI Translated
+msgid "Import without repair"
+msgstr "不修复直接导入"
+
+# AI Translated
+msgid "Repair and import"
+msgstr "修复并导入"
+
+# AI Translated
+msgid "Please note that the mesh has non-manifold geometry or open boundaries."
+msgstr "请注意，该网格存在非流形几何体或开放边界。"
+
+# AI Translated
+msgid "Mesh issue"
+msgstr "网格问题"
+
+# AI Translated
+msgid "The selected image is empty."
+msgstr "所选图像为空。"
+
+# AI Translated
+msgid "Failed to prepare the texture for use."
+msgstr "准备纹理以供使用失败。"
+
+# AI Translated
+msgid "Only your own imported textures can be removed."
+msgstr "只能移除您自己导入的纹理。"
+
+# AI Translated
+msgid "Could not delete the texture file."
+msgstr "无法删除纹理文件。"
+
+# AI Translated
+msgid "Could not create the folder for imported textures."
+msgstr "无法创建用于存放导入纹理的文件夹。"
+
+# AI Translated
+msgid "Could not load the selected image."
+msgstr "无法加载所选图像。"
+
+# AI Translated
+msgid "Failed to save the imported texture."
+msgstr "保存导入的纹理失败。"
+
+# AI Translated
+msgid "Could not read the texture file."
+msgstr "无法读取纹理文件。"
+
+# AI Translated
+msgid "Projection frame - drag over the model, then Apply"
+msgstr "投影框 - 拖动到模型上，然后单击“应用”"
+
+# AI Translated
+msgid "Moving island  |  release to drop, Esc to cancel"
+msgstr "正在移动岛  |  松开以放下，Esc 取消"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Rotating island: %d°  |  Shift = snap 15°, click to confirm, Esc to cancel"
+msgstr "正在旋转岛：%d°  |  Shift = 以 15° 吸附，单击确认，Esc 取消"
+
+# AI Translated
+msgid "Scaling island  |  click to confirm, Esc to cancel"
+msgstr "正在缩放岛  |  单击确认，Esc 取消"
+
+# AI Translated
+msgid "Moving vertex  |  release to drop"
+msgstr "正在移动顶点  |  松开以放下"
+
+# AI Translated
+msgid "Moving edge  |  release to drop"
+msgstr "正在移动边  |  松开以放下"
+
+# AI Translated
+msgid "Panning"
+msgstr "平移中"
+
+# AI Translated
+msgid "Paint the area on the model, then press Unwrap"
+msgstr "在模型上绘制区域，然后按“展开”"
+
+# AI Translated
+msgid "Pick Unwrap as a texture layer's mapping to edit its UVs here"
+msgstr "将纹理图层的映射方式选为“展开”，即可在此编辑其 UV"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "已选择 %d 个顶点  |  拖动 = 一起移动，Shift/Ctrl 单击 = 添加/移除"
+
+# AI Translated
+msgid "Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "顶点模式：拖动顶点以调整形状  |  Shift/Ctrl 单击 = 多选，滚轮 = 缩放，Home = 适配视图"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
+msgstr "已选择 %d 条边  |  拖动 = 一起移动，Shift/Ctrl 单击 = 添加/移除"
+
+# AI Translated
+msgid "Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame"
+msgstr "边模式：拖动岛的边以调整形状  |  Shift/Ctrl 单击 = 多选，滚轮 = 缩放，Home = 适配视图"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
+msgstr "已选择 %d 个岛  |  拖动 = 一起移动，Shift/Ctrl 单击 = 添加/移除，R/S = 旋转/缩放主岛"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"
+msgstr "已选择岛 %d  |  拖动 = 移动，R = 旋转，S = 缩放，Shift/Ctrl 单击 = 多选，Home = 适配视图"
+
+# AI Translated
+msgid "Click an island to select  |  Shift/Ctrl click = multi-select, wheel = zoom, middle-drag = pan, Home = frame all"
+msgstr "单击岛以选择  |  Shift/Ctrl 单击 = 多选，滚轮 = 缩放，中键拖动 = 平移，Home = 全部适配视图"
+
+# AI Translated
+msgid "  |  snap ON"
+msgstr "  |  吸附已开启"
+
+# AI Translated
+msgid "Change texture - choose another one from the texture library"
+msgstr "更换纹理 - 从纹理库中选择另一个纹理"
+
+# AI Translated
+msgid "Height map - show the layer's texture under the islands"
+msgstr "高度图 - 在岛下方显示图层的纹理"
+
+# AI Translated
+msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
+msgstr "棋盘格 - 测试网格；展开没有拉伸的地方，方格保持正方形"
+
+# AI Translated
+msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgstr "畸变 - 按展开对每个岛的拉伸程度为其着色"
+
+# AI Translated
+msgid "Unwrap"
+msgstr "展开"
+
+# AI Translated
+msgid "Seam angle"
+msgstr "切缝角度"
+
+# AI Translated
+msgid "Edges sharper than this are cut, and the pieces either side of them are flattened separately. Lower it to cut more: each piece then lies flat with less stretching, at the cost of the texture not running continuously across the cut. Takes effect at the next Unwrap."
+msgstr "比此角度更锐利的边会被切开，其两侧的部分分别展平。调低可切开更多：每一块展平时拉伸更小，但纹理在切口处不再连续。在下次“展开”时生效。"
+
+# AI Translated
+msgid "Connect islands"
+msgstr "连接岛"
+
+# AI Translated
+msgid "Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each other (a cube becomes a joined net rather than six loose squares). They stay separate islands, so you can still move any of them by hand afterwards."
+msgstr "将展开布局为相连的展开图：共享边的块会相邻展开（立方体会变成相连的展开图，而不是六个分散的正方形）。它们仍是独立的岛，因此之后仍可手动移动其中任何一个。"
+
+# AI Translated
+msgid "Island - move, rotate and scale whole islands"
+msgstr "岛 - 移动、旋转和缩放整个岛"
+
+# AI Translated
+msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
+msgstr "顶点 - 拖动顶点以调整形状；按住 Shift/Ctrl 可多选"
+
+# AI Translated
+msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
+msgstr "边 - 拖动边以调整形状；按住 Shift/Ctrl 可多选"
+
+# AI Translated
+msgid "Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is highlighted yellow; click to mark it red, click a red edge again to unmark it. Painting is paused while this is on."
+msgstr "标记切缝 - 单击模型上的边，沿其切开展开。光标下的边以黄色高亮；单击可将其标记为红色，再次单击红色边可取消标记。开启此功能时会暂停绘制。"
+
+# AI Translated
+msgid "Path - instead of clicking every edge, click a start point and then an end point: the whole shortest path between them is seamed at once. Available while marking seams."
+msgstr "路径 - 无需逐条单击边，只需单击起点和终点：两点之间的整条最短路径会一次性标记为切缝。在标记切缝时可用。"
+
+# AI Translated
+msgid "Clear seams - remove every seam marked on this layer"
+msgstr "清除切缝 - 移除此图层上标记的所有切缝"
+
+# AI Translated
+msgid "Average scale - give every island the same texel density"
+msgstr "平均缩放 - 使每个岛具有相同的纹素密度"
+
+# AI Translated
+msgid "Cut - split the selected island across its long axis"
+msgstr "切开 - 沿所选岛的长轴将其拆分"
+
+# AI Translated
+msgid "Join - unfold the selected island onto its nearest neighbour along their shared edge"
+msgstr "拼接 - 沿共享边将所选岛展开到其最近的相邻岛上"
+
+# AI Translated
+msgid "Unjoin - send the selected island back to its own packed position"
+msgstr "取消拼接 - 将所选岛送回其自身的排布位置"
+
+# AI Translated
+msgid "Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"
+msgstr "清除 UV 编辑 - 放弃所有手动的顶点/边移动，使展开恢复为自动生成的形状"
+
+# AI Translated
+msgid "Snap - stick islands together when dragging one against another"
+msgstr "吸附 - 将一个岛拖向另一个岛时使它们贴合在一起"
+
+# AI Translated
+msgid "Frame all islands (Home)"
+msgstr "适配显示所有岛 (Home)"
+
+# AI Translated
+msgid "No layer mapped with Unwrap"
+msgstr "没有使用“展开”映射的图层"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.1f mm tile"
+msgstr "%.1f mm 平铺"
+
+# AI Translated
+msgid "Out of date - the paint, the seams or the seam angle changed since this unwrap was made. Press to unwrap again."
+msgstr "已过期 - 自生成此展开以来，绘制、切缝或切缝角度已更改。按下以重新展开。"
+
+# AI Translated
+msgid "Flatten the painted area into UV islands. It is computed only when you press this, not on every edit - so paint, change the seam angle or mark seams first, then press Unwrap."
+msgstr "将绘制区域展平为 UV 岛。仅在您按下此按钮时才会计算，而不是每次编辑都计算 - 因此请先绘制、更改切缝角度或标记切缝，然后再按“展开”。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d islands, %s faces"
+msgstr "%d 个岛，%s 个面"
+
+# AI Translated
+msgid "Forward"
+msgstr "前进"
+
+# AI Translated
+msgid "Tools"
+msgstr "工具"
+
+# AI Translated
+msgid "View Source"
+msgstr "查看源代码"
+
+# AI Translated
+msgid "View Text"
+msgstr "查看文本"
+
+# AI Translated
+msgid "Handle Navigation"
+msgstr "处理导航"
+
+# AI Translated
+msgid "Handle New Windows"
+msgstr "处理新窗口"
+
+# AI Translated
+msgid "Edit Mode"
+msgstr "编辑模式"
+
+# AI Translated
+msgid "Run Script"
+msgstr "运行脚本"
+
+# AI Translated
+msgid "Add user script"
+msgstr "添加用户脚本"
+
+# AI Translated
+msgid "Set custom user agent"
+msgstr "设置自定义用户代理"
+
+# AI Translated
+msgid "Clear Selection"
+msgstr "清除选择"
+
+# AI Translated
+msgid "Delete Selection"
+msgstr "删除所选内容"
+
+# AI Translated
+msgid "Custom Scheme Example"
+msgstr "自定义协议示例"
+
+# AI Translated
+msgid "Memory File System Example"
+msgstr "内存文件系统示例"
+
+# AI Translated
+msgid "Enable Context Menu"
+msgstr "启用右键菜单"
+
+# AI Translated
+msgid "Enable Dev Tools"
+msgstr "启用开发者工具"
+
+# AI Translated
+#, c-format, boost-format
+msgid "An error occurred loading %s"
+msgstr "加载 %s 时出错"
+
+# AI Translated
+#, boost-format
+msgid "Load %1% to %2%"
+msgstr "将 %1% 装载到%2%"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Load %s"
+msgstr "装载 %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
+"\n"
+"This operation does not expose a target the audit hook can display."
+msgstr ""
+"插件“%s”正在请求 Python 审计事件“%s”的权限。\n"
+"\n"
+"此操作未提供审计钩子可显示的目标。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read the following file(s):\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求读取以下文件：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to read/write the following file(s):\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求读写以下文件：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to create the following file(s):\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求创建以下文件：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to delete the following file(s):\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求删除以下文件：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to make an HTTP request to:\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求向以下地址发送 HTTP 请求：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to open a network connection to:\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求打开到以下地址的网络连接：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" is requesting to run the following command(s):\n"
+"%s"
+msgstr ""
+"插件“%s”正在请求运行以下命令：\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."
+msgstr "插件“%s”正在请求 Python 审计事件“%s”的权限。"
+
+# AI Translated
+msgid "Plugin permission request"
+msgstr "插件权限请求"
+
+# AI Translated
+msgid "The plugin's configuration UI was empty. Showing the default editor."
+msgstr "插件的配置界面为空。正在显示默认编辑器。"
+
+# AI Translated
+msgid "This capability is no longer available. Your changes were not saved."
+msgstr "此功能已不再可用。您的更改未保存。"
+
+# AI Translated
+msgid "The configuration could not be written to disk. Your changes were not saved."
+msgstr "无法将配置写入磁盘。您的更改未保存。"
+
+# AI Translated
+#, boost-format
+msgid "The plugin could not supply a default configuration (%1%). Nothing was changed."
+msgstr "插件无法提供默认配置（%1%）。未作任何更改。"
+
+# AI Translated
+msgid "The configuration could not be written to disk. Nothing was changed."
+msgstr "无法将配置写入磁盘。未作任何更改。"
+
+# AI Translated
+msgid "Plugin installation failed"
+msgstr "插件安装失败"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -25807,6 +28541,86 @@ msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
 
+#~ msgid "Failed to generate cali G-code"
+#~ msgstr "生成校准gcode失败"
+
+# AI Translated
+#~ msgid "Subtract"
+#~ msgstr "相减"
+
+# AI Translated
+#~ msgid "Multiply"
+#~ msgstr "相乘"
+
+# AI Translated
+#~ msgid " and "
+#~ msgstr " 和 "
+
+# AI Translated
+#~ msgid "cannot be mixed. Please select the same filament type."
+#~ msgstr "无法混合。请选择相同类型的耗材丝。"
+
+# AI Translated
+#~ msgid "An error occurred loading "
+#~ msgstr "加载时出错： "
+
+# AI Translated
+#~ msgid "/"
+#~ msgstr "/"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Load %s to "
+#~ msgstr "将 %s 装载到 "
+
+# AI Translated
+#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+#~ msgstr "在“设计”标签页中，将配合连接器绘制为一个小面，而不是带有滚转象限的传统圆盘。面的朝向无需学习即可读懂。关闭此选项可使用传统的 CAD 表示方式。"
+
+# AI Translated
+#~ msgid "Expert"
+#~ msgstr "专家"
+
+# AI Translated
+#~ msgid "Simple"
+#~ msgstr "简单"
+
+# AI Translated
+#~ msgid "Click points; click first / right-click to close the loop"
+#~ msgstr "单击各点；单击第一个点 / 右键单击以闭合环"
+
+# AI Translated
+#~ msgid "X hint X"
+#~ msgstr "X 方向提示 X"
+
+# AI Translated
+#~ msgid "X hint Y"
+#~ msgstr "X 方向提示 Y"
+
+# AI Translated
+#~ msgid "X hint Z"
+#~ msgstr "X 方向提示 Z"
+
+# AI Translated
+#~ msgid " — the eye suppresses this mate"
+#~ msgstr " — 单击眼睛图标可压缩此配合"
+
+#~ msgid "Del"
+#~ msgstr "删除"
+
+# AI Translated
+#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
+#~ msgstr "草图已保留 — 单击“完成”提交，单击“取消”放弃"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+#~ msgstr "正在编辑：草图 %d   ·   N = 正视于平面   ·   在工具栏中完成或取消"
+
+# AI Translated
+#~ msgid "Editing sketch — drag a handle or click a quote to edit"
+#~ msgstr "正在编辑草图 — 拖动控制柄或单击尺寸标注进行编辑"
+
 # AI Translated
 #, c-format, boost-format
 #~ msgid "Showing %s actions"
@@ -25939,9 +28753,6 @@ msgstr ""
 #, c-format
 #~ msgid "Undo  (%zu more)"
 #~ msgstr "撤销  （还有 %zu 步）"
-
-#~ msgid "Reset direction"
-#~ msgstr "重置方向"
 
 #~ msgid "Section View"
 #~ msgstr "剖面视图"
@@ -26161,9 +28972,6 @@ msgstr ""
 #~ msgid "Adjust to the set range automatically?\n"
 #~ msgstr "是否自动调整到范围内？\n"
 
-#~ msgid "Head diameter"
-#~ msgstr "Brim 直径"
-
 #~ msgid "Print order within a single layer."
 #~ msgstr "同一层内的打印顺序"
 
@@ -26214,9 +29022,6 @@ msgstr ""
 
 #~ msgid "Select filament that installed to the right nozzle"
 #~ msgstr "选择安装到正确喷嘴的耗材"
-
-#~ msgid "Select Filament && Hotends"
-#~ msgstr "选择材料预设和喷嘴"
 
 #, c-format, boost-format
 #~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -26718,14 +29523,8 @@ msgstr ""
 #~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
 #~ msgstr "您预设中的喷嘴类型与已记住的喷嘴不一致。您最近有更换喷嘴吗？"
 
-#~ msgid "Remove selected points"
-#~ msgstr "删除已选择的点"
-
 #~ msgid "Remove all"
 #~ msgstr "删除所有点"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "自动生成点"
 
 #~ msgid "Add a brim ear"
 #~ msgstr "加入一个耳状Brim"
@@ -26757,12 +29556,6 @@ msgstr ""
 
 #~ msgid "Key 1~9"
 #~ msgstr "按键 1~9"
-
-#~ msgid "Left click"
-#~ msgstr "左击"
-
-#~ msgid "Right click"
-#~ msgstr "右击"
 
 #~ msgid "Select feature"
 #~ msgstr "选择特征"

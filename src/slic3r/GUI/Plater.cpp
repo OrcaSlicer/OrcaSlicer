@@ -3000,6 +3000,7 @@ Sidebar::Sidebar(Plater *parent)
         });
 
         // "Variant", not "Nozzle": picking one switches the printer preset (see panel_nozzle_dia).
+        // TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
         p->label_nozzle_title = new Label(p->panel_nozzle_dia, _L("Variant"), LB_PROPAGATE_MOUSE_EVENT);
         p->label_nozzle_title->SetFont(Label::Body_10);
 
