@@ -28,6 +28,9 @@ protected:
     void on_render_input_window(float x, float y, float bottom_limit) override;
     std::string on_get_name() const override;
     PainterGizmoType get_painter_type() const override;
+    bool is_volume_supported(const ModelVolume* mv) const override {
+        return mv->is_model_part() || mv->is_negative_volume();
+    }
 
     void tool_changed(wchar_t old_tool, wchar_t new_tool);
 

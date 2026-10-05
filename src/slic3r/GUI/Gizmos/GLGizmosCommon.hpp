@@ -10,6 +10,7 @@
 #include <map>
 #include <vector>
 #include <utility>
+#include <functional>
 
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
@@ -215,6 +216,9 @@ public:
     std::vector<const MeshRaycaster*> raycasters() const;
     void  set_only_support_model_part_flag(bool);
 
+    using VolumeFilter = std::function<bool(const ModelVolume*)>;
+    void  set_volume_filter(VolumeFilter filter);
+
 protected:
     void on_update() override;
     void on_release() override;
@@ -223,6 +227,7 @@ private:
     std::vector<std::unique_ptr<MeshRaycaster>> m_raycasters;
     std::vector<const TriangleMesh*> m_old_meshes;
     bool  m_only_support_model_part{true};
+    VolumeFilter m_volume_filter;
 };
 
 

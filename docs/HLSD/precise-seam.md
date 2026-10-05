@@ -454,16 +454,13 @@ exceeded, one summary marker reports the total and the number omitted.
   have no effect.
 - Scarf seams, the seam gap and wiping start from the chosen point exactly as
   they would from an ordinary seam.
-- Seam painting acts only from model parts, the volumes the seam gizmo shows and
-  edits, and from negative volumes. Painting retained on a volume after a change
-  from part to a Precise Seam, ordinary or support modifier is ignored. A type
-  change back to a model part reactivates any retained painting.
-  Negative volumes keep it on purpose: painting a
-  part and turning it into a negative volume is the only way to paint the wall
-  of the hole it cuts. That painting still affects the seam but is invisible in
-  the gizmo and cannot be edited there; this is known technical debt.
-  If painting them is ever made editable, G-code invalidation must track it too:
-  `model_custom_seam_data_changed()` checks model parts only.
+- Seam painting acts only from model parts and negative volumes, the volumes the
+  seam gizmo shows and edits. Painting retained on a volume after a change from
+  part or negative volume to a Precise Seam, ordinary or support modifier is ignored.
+  A type change back to a model part or negative volume reactivates any retained painting.
+  Negative volumes allow painting the wall of the hole they cut; painting is visible
+  and editable in the seam gizmo, and G-code invalidation tracks it via
+  `model_custom_seam_data_changed()`.
 
 ### Model storage and 3MF compatibility
 

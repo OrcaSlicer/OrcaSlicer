@@ -126,7 +126,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection) const
     const ModelObject* mo = m_c->selection_info()->model_object();
     int                mesh_id = -1;
     for (const ModelVolume* mv : mo->volumes) {
-        if (!mv->is_model_part())
+        if (!is_volume_supported(mv))
             continue;
 
         ++mesh_id;
@@ -174,7 +174,7 @@ std::vector<Transform3d> GLGizmoPainterBase::mesh_trafo_matrices() const
 
     std::vector<Transform3d> trafo_matrices;
     for (const ModelVolume* mv : mo->volumes) {
-        if (mv->is_model_part())
+        if (is_volume_supported(mv))
         {
             if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
                 Transform3d temp = mi->get_assemble_transformation().get_matrix() * mv->get_matrix();
@@ -801,7 +801,7 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
         std::vector<Transform3d> trafo_matrices;
         std::vector<Transform3d> trafo_matrices_not_translate;
         for (const ModelVolume *mv : mo->volumes)
-            if (mv->is_model_part()) {
+            if (is_volume_supported(mv)) {
                 if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
                     Transform3d temp = instance_trafo * mv->get_matrix();
                     temp.translate(mv->get_transformation().get_offset() * (GLVolume::explosion_ratio - 1.0) + mi->get_offset_to_assembly() * (GLVolume::explosion_ratio - 1.0));
@@ -949,7 +949,7 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
         std::vector<Transform3d> trafo_matrices;
         std::vector<Transform3d> trafo_matrices_not_translate;
         for (const ModelVolume *mv : mo->volumes)
-            if (mv->is_model_part()) {
+            if (is_volume_supported(mv)) {
                 if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
                     Transform3d temp = instance_trafo * mv->get_matrix();
                     temp.translate(mv->get_transformation().get_offset() * (GLVolume::explosion_ratio - 1.0) + mi->get_offset_to_assembly() * (GLVolume::explosion_ratio - 1.0));
@@ -1162,6 +1162,11 @@ bool GLGizmoPainterBase::on_is_selectable() const
 
 CommonGizmosDataID GLGizmoPainterBase::on_get_requirements() const
 {
+    if (m_c && m_c->raycaster_ptr()) {
+        m_c->raycaster_ptr()->set_volume_filter([this](const ModelVolume* mv) {
+            return this->is_volume_supported(mv);
+        });
+    }
     return CommonGizmosDataID(
                 int(CommonGizmosDataID::SelectionInfo)
               | int(CommonGizmosDataID::InstancesHider)

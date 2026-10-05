@@ -235,7 +235,10 @@ void Raycaster::on_update()
     std::vector<const TriangleMesh*> meshes;
     const std::vector<ModelVolume*>& mvs = mo->volumes;
     for (const ModelVolume* mv : mvs) {
-        if (m_only_support_model_part) {
+        if (m_volume_filter) {
+            if (m_volume_filter(mv))
+                meshes.push_back(&mv->mesh());
+        } else if (m_only_support_model_part) {
             if (mv->is_model_part()) {
                 meshes.push_back(&mv->mesh());
             }
@@ -256,6 +259,8 @@ void Raycaster::on_release()
 {
     m_raycasters.clear();
     m_old_meshes.clear();
+    m_volume_filter = nullptr;
+    m_only_support_model_part = true;
 }
 
 std::vector<const MeshRaycaster*> Raycaster::raycasters() const
@@ -268,6 +273,10 @@ std::vector<const MeshRaycaster*> Raycaster::raycasters() const
 
 void CommonGizmosDataObjects::Raycaster::set_only_support_model_part_flag(bool flag) {
     m_only_support_model_part = flag;
+}
+
+void CommonGizmosDataObjects::Raycaster::set_volume_filter(VolumeFilter filter) {
+    m_volume_filter = std::move(filter);
 }
 
 void ObjectClipper::on_update()

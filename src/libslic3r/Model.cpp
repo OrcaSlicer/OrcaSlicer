@@ -3921,7 +3921,7 @@ bool model_custom_supports_data_changed(const ModelObject& mo, const ModelObject
 bool model_custom_seam_data_changed(const ModelObject& mo, const ModelObject& mo_new)
 {
     return model_property_changed(mo, mo_new,
-        [](const ModelVolumeType t) { return t == ModelVolumeType::MODEL_PART; },
+        [](const ModelVolumeType t) { return t == ModelVolumeType::MODEL_PART || t == ModelVolumeType::NEGATIVE_VOLUME; },
         [](const ModelVolume &mv_old, const ModelVolume &mv_new){ return mv_old.seam_facets.timestamp_matches(mv_new.seam_facets); });
 }
 

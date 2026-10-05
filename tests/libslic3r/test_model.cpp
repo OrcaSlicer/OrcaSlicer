@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
 using namespace Slic3r;
 
@@ -44,3 +45,35 @@ TEST_CASE("A part's 2D convex hull is its footprint projected onto the bed", "[M
         CHECK(bb.max.y() == scaled(45.));
     }
 }
+
+TEST_CASE("model_custom_seam_data_changed tracks model parts and negative volumes", "[Model]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    ModelVolume* part = object->add_volume(make_cube(20, 20, 20), ModelVolumeType::MODEL_PART);
+    ModelVolume* neg  = object->add_volume(make_cube(5, 5, 20), ModelVolumeType::NEGATIVE_VOLUME);
+
+    Model model_copy = model;
+    ModelObject* object_copy = model_copy.objects.front();
+    CHECK_FALSE(model_custom_seam_data_changed(*object, *object_copy));
+
+    // Changing seam on negative volume is detected
+    ModelVolume* neg_copy = object_copy->volumes[1];
+    TriangleSelector sel(neg_copy->mesh());
+    sel.set_facet(0, EnforcerBlockerType::ENFORCER);
+    neg_copy->seam_facets.set(sel);
+    CHECK(model_custom_seam_data_changed(*object, *object_copy));
+
+    // Changing seam on modifier is ignored
+    Model model_mod = model;
+    ModelObject* object_mod = model_mod.objects.front();
+    ModelVolume* mod = object_mod->add_volume(make_cube(2, 2, 2), ModelVolumeType::PARAMETER_MODIFIER);
+    Model model_mod_copy = model_mod;
+    ModelObject* object_mod_copy = model_mod_copy.objects.front();
+    ModelVolume* mod_copy = object_mod_copy->volumes.back();
+    TriangleSelector sel_mod(mod_copy->mesh());
+    sel_mod.set_facet(0, EnforcerBlockerType::ENFORCER);
+    mod_copy->seam_facets.set(sel_mod);
+    CHECK_FALSE(model_custom_seam_data_changed(*object_mod, *object_mod_copy));
+}
+

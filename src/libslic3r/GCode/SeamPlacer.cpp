@@ -799,10 +799,8 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
   auto obj_transform = po->trafo_centered();
 
   for (const ModelVolume *mv : po->model_object()->volumes) {
-    // Collect painting only from model parts (what the gizmo edits) and negative volumes (the only way
+    // Collect painting only from model parts and negative volumes (the only way
     // to paint a hole's wall); painting left on modifiers and helpers after a type change is ignored.
-    // TODO: painting on negative volumes still affects the seam, but the gizmo neither shows nor edits it;
-    // making it editable also needs model_custom_seam_data_changed() to track it.
     if (!mv->is_model_part() && !mv->is_negative_volume())
       continue;
     if (mv->is_seam_painted()) {

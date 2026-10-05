@@ -246,7 +246,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         ModelObject         *mo  = m_c->selection_info()->model_object();
         int                  idx = -1;
         for (ModelVolume *mv : mo->volumes)
-            if (mv->is_model_part()) {
+            if (is_volume_supported(mv)) {
                 ++idx;
                 m_triangle_selectors[idx]->reset();
                 m_triangle_selectors[idx]->request_update_render_data(true);
@@ -288,7 +288,7 @@ void GLGizmoSeam::update_model_object()
     ModelObject* mo = m_c->selection_info()->model_object();
     int idx = -1;
     for (ModelVolume* mv : mo->volumes) {
-        if (! mv->is_model_part())
+        if (! is_volume_supported(mv))
             continue;
         ++idx;
         updated |= mv->seam_facets.set(*m_triangle_selectors[idx].get());
@@ -316,7 +316,7 @@ void GLGizmoSeam::update_from_model_object(bool first_update)
     ebt_colors.push_back(TriangleSelectorGUI::enforcers_color);
     ebt_colors.push_back(TriangleSelectorGUI::blockers_color);
     for (const ModelVolume* mv : mo->volumes) {
-        if (! mv->is_model_part())
+        if (! is_volume_supported(mv))
             continue;
 
         ++volume_id;
@@ -324,7 +324,11 @@ void GLGizmoSeam::update_from_model_object(bool first_update)
         // This mesh does not account for the possible Z up SLA offset.
         const TriangleMesh* mesh = &mv->mesh();
 
-        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors));
+        std::vector<ColorRGBA> vol_ebt_colors = ebt_colors;
+        if (mv->is_negative_volume())
+            vol_ebt_colors[0] = GLVolume::MODEL_NEGTIVE_COL;
+
+        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, vol_ebt_colors));
         // Reset of TriangleSelector is done inside TriangleSelectorGUI's constructor, so we don't need it to perform it again in deserialize().
         m_triangle_selectors.back()->deserialize(mv->seam_facets.get_data(), false);
         m_triangle_selectors.back()->request_update_render_data();
