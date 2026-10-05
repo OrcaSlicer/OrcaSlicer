@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "libslic3r/CurveModel.hpp"
 
 namespace Slic3r {

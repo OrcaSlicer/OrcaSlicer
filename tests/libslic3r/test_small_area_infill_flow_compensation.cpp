@@ -1,11 +1,23 @@
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/CurveModel.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <string>
+#include <vector>
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
