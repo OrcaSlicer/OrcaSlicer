@@ -1,21 +1,38 @@
 #include "CurveEditorDialog.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <utility>
+#include <vector>
+#include <wx/colour.h>
+#include <wx/defs.h>
+#include <wx/dialog.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/grid.h>
 #include <wx/sizer.h>
 #include <wx/spinbutt.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/toplevel.h>
+#include "libslic3r/CurveModel.hpp"
+#include "CurveEditorPanel.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/Label.hpp"
+#include "Widgets/StateColor.hpp"
+#include "Widgets/TextInput.hpp"
 
 namespace Slic3r::GUI {
 namespace {

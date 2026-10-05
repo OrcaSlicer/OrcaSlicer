@@ -2,9 +2,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <utility>
+#include <vector>
+#include <wx/colour.h>
+#include <wx/dc.h>
 #include <wx/dcbuffer.h>
+#include <wx/dcclient.h>
+#include <wx/debug.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/peninfobase.h>
+#include <wx/string.h>
+#include "libslic3r/CurveModel.hpp"
 #include "GUI_App.hpp"
 #include "Widgets/StateColor.hpp"
 

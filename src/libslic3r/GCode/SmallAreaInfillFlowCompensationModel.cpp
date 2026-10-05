@@ -2,7 +2,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <vector>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/CurveModel.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "PchipInterpolatorHelper.hpp"

@@ -1,5 +1,9 @@
 #include "SmallAreaInfillFlowCompensationDialog.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
+#include "CurveEditorDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
 
