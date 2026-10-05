@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
 #include <algorithm>
+#include "libslic3r/TriangleMesh.hpp"
+#include <cstdint>
+#include <ios>
 #include <string>
 #include "libslic3r/Point.hpp"
 
