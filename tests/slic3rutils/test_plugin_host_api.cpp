@@ -207,6 +207,7 @@ TEST_CASE("Plugin pane names identify the plugin and title without layout delimi
 
 TEST_CASE("A pane's saved layout entry is found by pane name", "[PluginHost]")
 {
+    using Slic3r::GUI::aui_dock_layout_size;
     using Slic3r::GUI::aui_pane_layout_entry;
 
     const std::string sidebar = "name=sidebar;caption=;state=2099196;dir=4;layer=0;row=0;pos=0;bestw=390;besth=900";
@@ -218,6 +219,14 @@ TEST_CASE("A pane's saved layout entry is found by pane name", "[PluginHost]")
     CHECK(aui_pane_layout_entry(layout, "sidebar") == sidebar);
     CHECK(aui_pane_layout_entry(layout, "plugin:demo").empty());
     CHECK(aui_pane_layout_entry("", "plugin:demo:Scene").empty());
+
+    CHECK(aui_dock_layout_size(layout, 4, 0, 0) == 392);
+    CHECK(aui_dock_layout_size(layout, 2, 0, 0) == 0);
+    CHECK(aui_dock_layout_size("", 4, 0, 0) == 0);
+
+    const std::string layout_with_right = layout + "dock_size(2,0,0)=320|";
+    CHECK(aui_dock_layout_size(layout_with_right, 2, 0, 0) == 320);
+    CHECK(aui_dock_layout_size(layout_with_right, 4, 0, 0) == 392);
 }
 
 TEST_CASE("A reloaded plugin page is recognised by its base URL, fragment aside", "[PluginHost]")

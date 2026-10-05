@@ -52,14 +52,50 @@ void AuiMgr::apply_color_mode()
     GetArtProvider()->SetColour(wxAUI_DOCKART_BORDER_COLOUR, is_dark ? *wxBLACK : wxColour(165, 165, 165));
 }
 
+void AuiMgr::set_dock_size(int direction, int layer, int row, int size)
+{
+    for (size_t i = 0; i < m_docks.GetCount(); ++i) {
+        wxAuiDockInfo& dock = m_docks.Item(i);
+        if (dock.dock_direction == direction && dock.dock_layer == layer && dock.dock_row == row) {
+            dock.size = size;
+            return;
+        }
+    }
+    wxAuiDockInfo d;
+    d.dock_direction = direction;
+    d.dock_layer     = layer;
+    d.dock_row       = row;
+    d.size           = size;
+    m_docks.Add(d);
+}
+
+int AuiMgr::get_dock_size(int direction, int layer, int row) const
+{
+    for (size_t i = 0; i < m_docks.GetCount(); ++i) {
+        const wxAuiDockInfo& dock = m_docks.Item(i);
+        if (dock.dock_direction == direction && dock.dock_layer == layer && dock.dock_row == row) {
+            return dock.size;
+        }
+    }
+    return 0;
+}
+
 void AuiMgr::track_docked_size(wxWindow* window)
 {
     window->Bind(wxEVT_IDLE, [this, window](wxIdleEvent& evt) {
         wxAuiPaneInfo& pane = GetPane(window);
-        if (pane.IsOk() && pane.IsShown() && pane.IsDocked() && pane.rect.GetWidth() > 0 && pane.rect.GetHeight() > 0) {
-            const bool horizontal = pane.dock_direction == wxAUI_DOCK_TOP || pane.dock_direction == wxAUI_DOCK_BOTTOM;
-            pane.BestSize(horizontal ? pane.best_size.GetWidth() : pane.rect.GetWidth(),
-                          horizontal ? pane.rect.GetHeight() : pane.best_size.GetHeight());
+        if (pane.IsOk() && pane.IsShown() && pane.IsDocked()) {
+            wxWindow*  managed        = GetManagedWindow();
+            const int  min_valid_size = managed ? managed->FromDIP(50) : 50;
+            const bool managed_ready  = managed == nullptr ||
+                                       (managed->IsShown() &&
+                                        managed->GetClientSize().x >= managed->FromDIP(200) &&
+                                        managed->GetClientSize().y >= managed->FromDIP(200));
+            if (managed_ready && pane.rect.GetWidth() >= min_valid_size && pane.rect.GetHeight() >= min_valid_size) {
+                const bool horizontal = pane.dock_direction == wxAUI_DOCK_TOP || pane.dock_direction == wxAUI_DOCK_BOTTOM;
+                pane.BestSize(horizontal ? pane.best_size.GetWidth() : pane.rect.GetWidth(),
+                              horizontal ? pane.rect.GetHeight() : pane.best_size.GetHeight());
+            }
         }
         evt.Skip();
     });
@@ -67,13 +103,16 @@ void AuiMgr::track_docked_size(wxWindow* window)
 
 wxAuiPaneInfo AuiMgr::sidebar_pane_info()
 {
-    return wxAuiPaneInfo()
+    const int sidebar_width = 39 * wxGetApp().em_unit();
+    wxAuiPaneInfo info = wxAuiPaneInfo()
         .Name("sidebar")
         .Left()
         .CloseButton(false)
         .TopDockable(false)
         .BottomDockable(false)
-        .BestSize(wxSize(39 * wxGetApp().em_unit(), 90 * wxGetApp().em_unit()));
+        .BestSize(wxSize(sidebar_width, 90 * wxGetApp().em_unit()));
+    info.dock_size = sidebar_width;
+    return info;
 }
 
 wxAuiFloatingFrame* AuiMgr::CreateFloatingFrame(wxWindow* parent, const wxAuiPaneInfo& pane)

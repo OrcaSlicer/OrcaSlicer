@@ -19,4 +19,24 @@ std::string aui_pane_layout_entry(const std::string& layout, const std::string& 
     return {};
 }
 
+int aui_dock_layout_size(const std::string& layout, int direction, int layer, int row)
+{
+    const std::string prefix = "dock_size(" + std::to_string(direction) + "," +
+                               std::to_string(layer) + "," + std::to_string(row) + ")=";
+    size_t begin = 0;
+    for (size_t i = 0; i <= layout.size(); ++i) {
+        if (i < layout.size() && (layout[i] != '|' || (i > 0 && layout[i - 1] == '\\')))
+            continue;
+        if (layout.compare(begin, prefix.size(), prefix) == 0) {
+            try {
+                return std::stoi(layout.substr(begin + prefix.size(), i - begin - prefix.size()));
+            } catch (...) {
+                return 0;
+            }
+        }
+        begin = i + 1;
+    }
+    return 0;
+}
+
 }} // namespace Slic3r::GUI

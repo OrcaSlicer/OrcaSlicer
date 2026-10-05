@@ -17,6 +17,11 @@ public:
     // use: wxAUI does not record a dragged sash there.
     void track_docked_size(wxWindow* window);
 
+    // Explicitly sets or restores a dock's size in m_docks so it does not default to 0 and get clamped
+    // against an unlaid-out managed window during startup.
+    void set_dock_size(int direction, int layer, int row, int size);
+    int  get_dock_size(int direction, int layer, int row) const;
+
     // A tab's sidebar pane: docked left by default, movable to the right or floating, no close button.
     static wxAuiPaneInfo sidebar_pane_info();
 

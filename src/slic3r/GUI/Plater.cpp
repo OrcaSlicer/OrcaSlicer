@@ -8634,6 +8634,7 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
     const wxSize  pixels = q->FromDIP(size);
     wxAuiPaneInfo info;
     info.Name(unique_name).Caption(caption).BestSize(pixels).FloatingSize(pixels).DestroyOnClose(true);
+    info.MinSize(wxSize(std::min(pixels.x, q->FromDIP(100)), std::min(pixels.y, q->FromDIP(100))));
     if (dock == "left")
         info.Left();
     else if (dock == "bottom")
@@ -8644,10 +8645,16 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
         info.Float();
 
     // Put the pane back where it was the last time the window layout was saved with it open.
-    const std::string saved = aui_pane_layout_entry(wxGetApp().app_config->get("window_layout"), unique_name.utf8_string());
+    const std::string saved_layout = wxGetApp().app_config->get("window_layout");
+    const std::string saved        = aui_pane_layout_entry(saved_layout, unique_name.utf8_string());
     if (!saved.empty()) {
         m_aui_mgr.LoadPaneInfo(wxString::FromUTF8(saved), info);
         info.Caption(caption).DestroyOnClose(true).Show();
+        // Guard against previously saved corrupted/collapsed sizes (< 50 DIP).
+        if (info.best_size.x < q->FromDIP(50))
+            info.best_size.x = pixels.x;
+        if (info.best_size.y < q->FromDIP(50))
+            info.best_size.y = pixels.y;
     }
 
     // Floating is disabled on Wayland.
@@ -8656,6 +8663,15 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
         if (info.dock_direction == wxAUI_DOCK_NONE)
             info.Right();
     }
+
+    const bool is_horizontal    = (info.dock_direction == wxAUI_DOCK_TOP || info.dock_direction == wxAUI_DOCK_BOTTOM);
+    int        target_dock_size = is_horizontal ? info.best_size.y : info.best_size.x;
+    const int  saved_dock_size  = aui_dock_layout_size(saved_layout, info.dock_direction, info.dock_layer, info.dock_row);
+    if (saved_dock_size >= q->FromDIP(50))
+        target_dock_size = saved_dock_size;
+
+    info.dock_size = target_dock_size;
+    m_aui_mgr.set_dock_size(info.dock_direction, info.dock_layer, info.dock_row, target_dock_size);
 
     const DockPane& dock_pane = m_dock_panes[window] = DockPane{std::move(on_close)};
     info.Show(dock_pane_visible(dock_pane, info));
