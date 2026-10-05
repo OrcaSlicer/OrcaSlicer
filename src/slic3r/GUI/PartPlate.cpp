@@ -2633,6 +2633,9 @@ void PartPlate::set_plate_name(const std::string& name)
     if (boost::equals(m_name, name))
         return;
 
+    if (m_plater != nullptr && !m_plater->is_loading_project())
+        m_plater->take_snapshot(_u8L("Rename Plate"));
+
 	const std::string previous_name = m_name;
 	m_name = name;
     if (m_print != nullptr)
@@ -2641,6 +2644,8 @@ void PartPlate::set_plate_name(const std::string& name)
 	invalidate_plate_name_texture();
 
     if (m_plater != nullptr && !m_plater->is_loading_project()) {
+        if (wxGetApp().obj_list() && wxGetApp().obj_list()->GetModel())
+            wxGetApp().obj_list()->GetModel()->SetCurSelectedPlateFullName(m_plate_index, name);
         LifecycleEventContext ctx;
         ctx.name = name;
         ctx.previous_name = previous_name;

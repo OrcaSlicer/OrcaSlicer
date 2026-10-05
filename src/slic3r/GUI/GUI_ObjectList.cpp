@@ -1197,12 +1197,8 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
         const ItemType type0 = m_objects_model->GetItemType(item, plate_idx);
         if (plate_idx >= 0) {
             auto plate = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
-            if (plate->get_plate_name() != name) {
-                take_snapshot(_u8L("Rename Plate"));
-                plate->set_plate_name(name);
-                wxGetApp().plater()->set_plater_dirty(true);
-            }
-            m_objects_model->SetCurSelectedPlateFullName(plate_idx, name);
+            plate->set_plate_name(name);
+            m_objects_model->SetCurSelectedPlateFullName(plate_idx, plate->get_plate_name());
         }
         return;
     }

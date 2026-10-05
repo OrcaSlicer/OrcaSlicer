@@ -22204,18 +22204,10 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
         update();
         wxGetApp().obj_list()->update_selections();
         });
-    wxString curr_plate_name = from_u8(curr_plate->get_plate_name());
-    dlg.set_plate_name(curr_plate_name);
+    dlg.set_plate_name(from_u8(curr_plate->get_plate_name()));
 
     if (dlg.ShowModal() == wxID_YES) {
-        wxString dlg_plate_name = dlg.get_plate_name();
-        if (dlg_plate_name != curr_plate_name) {
-            std::string new_name = into_u8(dlg_plate_name);
-            curr_plate->set_plate_name(new_name);
-            if (p->sidebar && p->sidebar->obj_list() && p->sidebar->obj_list()->GetModel())
-                p->sidebar->obj_list()->GetModel()->SetCurSelectedPlateFullName(plate_index, new_name);
-            set_plater_dirty(true);
-        }
+        curr_plate->set_plate_name(into_u8(dlg.get_plate_name()));
     }
 }
 
@@ -22468,20 +22460,11 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             PlateNameEditDialog dlg(this, wxID_ANY, _L("Edit Plate Name"));
             PartPlate *         curr_plate = p->partplate_list.get_curr_plate();
 
-            wxString curr_plate_name = from_u8(curr_plate->get_plate_name());
-            dlg.set_plate_name(curr_plate_name);
+            dlg.set_plate_name(from_u8(curr_plate->get_plate_name()));
 
             int result = dlg.ShowModal();
             if (result == wxID_YES) {
-                wxString dlg_plate_name = dlg.get_plate_name();
-                if (dlg_plate_name != curr_plate_name) {
-                    take_snapshot(_u8L("Rename Plate"));
-                    std::string new_name = into_u8(dlg_plate_name);
-                    curr_plate->set_plate_name(new_name);
-                    if (p->sidebar && p->sidebar->obj_list() && p->sidebar->obj_list()->GetModel())
-                        p->sidebar->obj_list()->GetModel()->SetCurSelectedPlateFullName(plate_index, new_name);
-                    set_plater_dirty(true);
-                }
+                curr_plate->set_plate_name(into_u8(dlg.get_plate_name()));
             }
         } else {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
