@@ -940,6 +940,21 @@ class TestNormalized(TreeCase):
 # ---------------------------------------------------------------------------
 
 class TestFixVariant(TreeCase):
+    def test_cooling_arrays_require_one_value_per_declared_variant(self):
+        keys = ("fan_min_speed", "fan_max_speed", "additional_cooling_fan_speed")
+        variants = ["Direct Drive Standard", "Direct Drive High Flow", "Bowden Standard"]
+        for width in (1, 2, 3, 4):
+            with self.subTest(width=width):
+                self.preset("filament/F.json", instantiation="true",
+                            filament_extruder_variant=variants,
+                            **{key: ["20"] * width for key in keys})
+                apt.load_vendor_configs.cache_clear()
+                errors, out = self.width_errors()
+                self.assertEqual(errors, 0 if width == 3 else len(keys), out)
+                if width != 3:
+                    for key in keys:
+                        self.assertIn(f'"{key}" has {width} values', out)
+
     def preset(self, rel, **data):
         name = os.path.splitext(os.path.basename(rel))[0]
         self.t.write("V", rel, {"type": rel.split("/")[0], "name": name, **data})

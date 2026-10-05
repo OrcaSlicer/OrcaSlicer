@@ -6,6 +6,7 @@
 	"setting_id": "BUKCpukEUmocfz3v",
 	"instantiation": "true",
 	"fan_min_speed": [
+		"20",
 		"20"
 	],
 	"filament_deretraction_speed": [

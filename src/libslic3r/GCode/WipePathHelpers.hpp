@@ -5,6 +5,7 @@
 #include "../ExtrusionEntity.hpp"
 #include "../Polyline.hpp"
 #include "../Line.hpp"
+#include "libslic3r/Point.hpp"
 
 namespace Slic3r {
 

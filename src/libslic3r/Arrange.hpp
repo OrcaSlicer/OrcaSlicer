@@ -2,8 +2,17 @@
 #define ARRANGE_HPP
 
 #include "ExPolygon.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "PrintConfig.hpp"
 #include "Print.hpp"
+#include <cmath>
+#include "libslic3r.h"
+#include <vector>
+#include <string>
+#include <functional>
+#include <iostream>
+#include <ostream>
 
 #define BED_SHRINK_SEQ_PRINT 5
 

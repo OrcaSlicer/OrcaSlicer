@@ -1,4 +1,19 @@
 #include "EmbossStyleManager.hpp"
+#include <imgui.h>
+#include <functional>
+#include "libslic3r/TextConfiguration.hpp"
+#include <cstddef>
+#include <boost/assign/list_of.hpp>
+#include <cassert>
+#include <limits>
+#include <memory>
+#include "libslic3r/Emboss.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstdint>
+#include <cstdlib>
+#include <map>
+#include <cmath>
+#include "libslic3r/EmbossShape.hpp"
 #include <optional>
 #include <glad/gl.h> // Imgui texture
 #include <imgui/imgui_internal.h> // ImTextCharFromUtf8
@@ -12,6 +27,13 @@
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
+#include <string>
+#include <string_view>
+#include <utility>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <vector>
+#include "slic3r/GUI/OpenGLManager.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Emboss;

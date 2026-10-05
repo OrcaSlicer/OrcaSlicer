@@ -1,14 +1,22 @@
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
-#include "Exception.hpp"
 #include "Geometry/MedialAxis.hpp"
+#include "Point.hpp"
+#include "MultiPoint.hpp"
 #include "Polygon.hpp"
 #include "Line.hpp"
 #include "ClipperUtils.hpp"
-#include "SVG.hpp"
+#include "Polyline.hpp"
+#include "libslic3r.h"
 #include <algorithm>
 #include <cassert>
+#include <limits>
+#include <cstddef>
+#include <cmath>
+#include <cstdlib>
 #include <list>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

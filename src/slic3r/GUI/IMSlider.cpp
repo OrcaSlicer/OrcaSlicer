@@ -1,13 +1,48 @@
 #include "IMSlider.hpp"
-#include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
 #include "Widgets/StateColor.hpp"
+#include "libslic3r/libslic3r.h"
+#include <imgui.h>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/ExPolygon.hpp"
+#include <string>
+#include "libslic3r/CustomGCode.hpp"
+#include <cstdio>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Utils.hpp"
+#include <algorithm>
+#include <vector>
+#include "slic3r/GUI/TickCode.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/colour.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <set>
+#include <wx/string.h>
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include <wx/slider.h>
+#include <array>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 

@@ -1,8 +1,15 @@
 #include "SideMenuPopup.hpp"
-#include "Label.hpp"
 
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <algorithm>
+#include <wx/dcclient.h>
+#include <wx/colour.h>
 #include <wx/display.h>
 #include <wx/dcgraph.h>
+#include <wx/stattext.h>
+#include <wx/popupwin.h>
+#include <wx/event.h>
+#include <wx/sizer.h>
 #include "../GUI_App.hpp"
 
 

@@ -1,6 +1,8 @@
 #ifndef PNGREAD_HPP
 #define PNGREAD_HPP
 
+#include <cstddef>
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 #include <string>

@@ -1,16 +1,20 @@
 #ifndef slic3r_CadDocument_hpp_
 #define slic3r_CadDocument_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"   // FaceGroup
 #include "libslic3r/Color.hpp"            // ColorRGBA (per-body display colour override)
 
+#include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Wire.hxx>
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
+#include <cstdint>
+#include <cstddef>
 #include <map>
 #include <cereal/types/map.hpp>
 #include <string>
@@ -74,7 +78,7 @@ struct CadFeature {
     // the OCCT shape verbatim — it is adopted as a base body in route_feature (no parametric
     // recipe). Downstream face/edge features (fillet/chamfer/cut/shell/...) act on it like any
     // other body. TopoDS_Shape is a cheap handle, so copying it through recompute/checkpoint
-    // snapshots is cheap. In-session only for now (no BRep serialization yet).
+    // snapshots is cheap. Saved with the recipe as a BRep string (see save()/load()).
     TopoDS_Shape imported_solid;
 
     // Non-destructive placement transform for imported_regions (Text/SVG),
@@ -112,6 +116,25 @@ struct CadFeature {
     double      dressup_size{1.0};         // fillet radius or chamfer distance
     FaceGroup   face_group{FaceGroup::All};
     int         dressup_edge{-1};          // global edge id for edge-targeted fillet/chamfer; -1 = use face_group
+    // Several picked edges dressed in ONE operation, all resolved against the same body, so
+    // the ids cannot drift the way they do across a chain of single-edge features. When set,
+    // dressup_edge holds the first of them: a build that predates the list still dresses that
+    // one edge instead of falling back to the whole face group.
+    std::vector<int> dressup_edges;
+    // The edges this dress-up targets: the list, else the single edge, else none (face group).
+    // Text feature: a Sketch whose imported_regions were vectorised from this string in this font
+    // (a WxFontUtils descriptor, bold/italic included) at this cap height in mm. The regions are
+    // what gets built — they are saved too, so the project opens on a machine without the font —
+    // and these three are what an edit reopens the Text dialog with. Empty = not a text feature.
+    std::string text_string;
+    std::string text_font;
+    double      text_height{0.0};
+    bool is_text() const { return !text_string.empty(); }
+    std::vector<int> dressup_edge_ids() const {
+        if (!dressup_edges.empty()) return dressup_edges;
+        if (dressup_edge >= 0) return { dressup_edge };
+        return {};
+    }
 
     // Hole params (positioned circular cut into the current body)
     double      hole_diameter{5};
@@ -130,12 +153,21 @@ struct CadFeature {
     std::string hole_standard;             // provenance only, e.g. "M6" / "1/4-20"; not used by geometry
 
     // Thread params (helical thread about the plane normal at a positioned point)
-    double      thread_radius{5};          // nominal cylinder radius
+    double      thread_radius{5};          // MAJOR (nominal) radius when thread_major_nominal,
+                                           // else the legacy reference radius (see below)
     double      thread_pitch{2};           // axial advance per turn
     double      thread_height{10};         // total axial length
-    double      thread_depth{1};           // radial crest depth of the thread profile
-    bool        thread_internal{false};    // false = external threaded rod (New body);
-                                           // true = tapped bore cut into the current body
+    double      thread_depth{1};           // radial depth of the thread profile
+    bool        thread_internal{false};    // false = external: the thread goes on the target body
+                                           // (or on a standalone rod when there is none);
+                                           // true = tapped bore cut into the target body
+    // How thread_radius is read. true (every thread made since): it is the nominal MAJOR
+    // radius, for both kinds — an internal thread bores to R - depth and grooves out to R, an
+    // external one is a rod of radius R with its groove cut in to R - depth, so an M6 is 6 mm
+    // across its crests either way. false (older recipes, kept bit-for-bit): the ridge was
+    // added OUTSIDE R, so an internal thread given the minor diameter came out undersized and
+    // an external one given the major diameter came out oversized.
+    bool        thread_major_nominal{false};
     double      thread_x{0};               // axis position on the plane (u/x axis)
     double      thread_y{0};               // axis position on the plane (v/y axis)
 
@@ -152,6 +184,9 @@ struct CadFeature {
     // target_body. revolve_axis: 0 = plane X axis, 1 = plane Y axis.
     double      revolve_angle{360};        // sweep angle in degrees (1..360)
     int         revolve_axis{0};           // 0 = plane X, 1 = plane Y
+    // A Line of the profile sketch to revolve about instead (index into its entities: a
+    // centerline, usually construction, or an edge of the profile itself); -1 = revolve_axis.
+    int         revolve_axis_entity{-1};
 
     // Sweep: profile carried by sketch_ref / entities (like Extrude); the spine is a
     // second Sketch referenced by sweep_path_ref (an open or closed wire). Reuses
@@ -174,6 +209,12 @@ struct CadFeature {
     double      pattern_spacing{20};       // linear step (mm)
     int         pattern_dir{0};            // linear direction: 0 = plane X, 1 = plane Y
     double      pattern_angle{360};        // circular total angle (degrees)
+    // How a circular pattern spreads its copies over pattern_angle. true (every pattern made
+    // since): a full turn is split into `count` equal steps, anything less is spanned end to end,
+    // first copy at 0 and last at pattern_angle — the way a pattern along a curve spans its
+    // curve. false (older recipes, kept as they were built): always angle / count, so 90° with 3
+    // copies stopped at 60°.
+    bool        pattern_inclusive{false};
 
     // Pattern along a curve: when pattern_curve_sketch >= 0 this mode takes precedence over
     // linear/circular. Copies are placed at equal-parameter points along entity
@@ -185,6 +226,16 @@ struct CadFeature {
     // is evaluated against the document variables and written into the named numeric field
     // BEFORE geometry runs. Empty (the common case) means the feature uses its literal fields.
     std::map<std::string, std::string> expr;
+
+    // Transient, never serialized. A body is referred to above by its INDEX, and an index is
+    // only meaningful against the history it was taken in: delete, reorder or disable a
+    // feature that makes a body and every later index points at a different body. So recompute
+    // records, for each body field, the identity of the body it resolved to — the feature that
+    // made it, and which of that feature's bodies it is — and when the history changes the
+    // fields are re-pointed from those identities (see CadDocument::recompute).
+    struct BodyId { int src{-1}; int ord{0}; };
+    std::vector<BodyId> body_ref_ids;
+    bool                body_refs_pending{false};
 
     // Datum/reference plane: a derived SketchPlane the document offers as a selectable
     // sketch plane (no solid). plane_base selects the reference (0=XY,1=XZ,2=YZ, or 3+N
@@ -357,7 +408,11 @@ struct CadFeature {
                pattern_curve_sketch, pattern_curve_entity,
                expr,
                mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip,
-               coordsys_face_kind, coordsys_face_edges);
+               coordsys_face_kind, coordsys_face_edges,
+               thread_major_nominal, pattern_inclusive,
+               dressup_edges,
+               text_string, text_font, text_height,
+               revolve_axis_entity);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -396,9 +451,58 @@ struct CadFeature {
                 pattern_curve_sketch, pattern_curve_entity,
                expr,
                mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip,
+               coordsys_face_kind, coordsys_face_edges,
+               thread_major_nominal, pattern_inclusive,
+               dressup_edges,
+               text_string, text_font, text_height,
+               revolve_axis_entity);
+        imported_solid = brep_from_string(brep);
+    }
+    // The pre-framing (v4) layout, FROZEN. A v4 recipe is one flat stream with no per-feature
+    // length, so it can only be read with exactly the field list it was written with; reading it
+    // through load() above breaks the moment a field is appended there (every field added since
+    // v5 is appended ONLY above, never here).
+    template<class Archive>
+    void load_flat_v4(Archive& ar) {
+        std::string brep;
+        ar(type, name, enabled, shape, plane, width, height, radius,
+           profile, entities, constraints, entity_constraints, imported_regions,
+           import_offset, import_scale_x, import_scale_y, import_on_face, import_face_body,
+           sketch_ref, distance, symmetric, mode, extrude_end, distance2, taper_deg, flip,
+           up_to_face, extrude_src_face, up_to_point, target_body,
+           dressup_size, face_group, dressup_edge,
+           hole_diameter, hole_depth, hole_through, hole_x, hole_y,
+           thread_radius, thread_pitch, thread_height, thread_depth, thread_internal, thread_x, thread_y,
+           shell_thickness, shell_face,
+           draft_face, draft_angle,
+           revolve_angle, revolve_axis,
+           sweep_path_ref, loft_profile_refs, loft_ruled,
+           pattern_circular, pattern_count, pattern_spacing, pattern_dir, pattern_angle,
+           plane_base, plane_offset, plane_angle_tilt, plane_axis,
+           bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
+           cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
+           brep,
+           plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
+           plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
+           mirror_keep_original,
+           axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
+           coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
+           helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
+            xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
+            thicken_face, thicken_thickness, thicken_flip,
+            cut_face_body, cut_face,
+             project_source_body, project_edges, project_face,
+               delete_faces,
+               hole_style, hole_cbore_diameter, hole_cbore_depth,
+               hole_csink_diameter, hole_csink_angle, hole_standard,
+               rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
+                pattern_curve_sketch, pattern_curve_entity,
+               expr,
+               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip,
                coordsys_face_kind, coordsys_face_edges);
         imported_solid = brep_from_string(brep);
     }
+
 };
 
 // Serialize a TopoDS_Shape to/from a BRep string for cereal persistence.
@@ -436,6 +540,13 @@ public:
     // Named document variables: name -> expression. Evaluated topologically each recompute();
     // an expression may reference other variables. Feature `expr` bindings resolve against these.
     std::map<std::string, std::string> variables;
+    // Can a feature expression drive this numeric field? The single allow-list the evaluator
+    // uses, so a caller can refuse a name before it breaks the next recompute.
+    static bool is_bindable_field(const std::string& field);
+    // Does a feature of this type leave a body behind? Sketches, datums, the helix curve and
+    // Project (which emits sketch entities) do not. The one answer recompute(), the rollback
+    // rule and the GUI's preview all use.
+    static bool produces_body(CadFeatureType t);
     // Multi-body result of the last replay. A "New" extrude appends a body; other ops
     // mutate a target body. Empty after a failed/empty recompute.
     std::vector<CadBody>    bodies;
@@ -455,8 +566,16 @@ public:
 
     // Modeling origin: the world point the default XY/XZ/YZ planes pass through. The GUI sets this
     // to the bed centre so sketches/datums land in the middle of the bed (not the bed corner =
-    // world 0). Not serialized — the GUI re-applies it from the live bed on every tab show.
+    // world 0) — for a NEW document. It is saved with the recipe: sketches bake it into their
+    // planes while datum planes add it when they are resolved, so a project reopened on another
+    // printer must keep the origin it was made with or its datums move and its sketches do not.
     Vec3d modeling_origin{Vec3d::Zero()};
+    bool  origin_from_recipe{false};   // modeling_origin came from the loaded project
+    // Weld sketch endpoints within kSketchJoinTol (the "Auto-close sketch loops" preference, taken
+    // when the document is started). A property of the DOCUMENT, saved with it: as a machine-wide
+    // preference it made one project rebuild into a closed solid on one computer and an open
+    // loop on another. recompute() pushes it into the kernel.
+    bool  auto_close_loops{true};
 
     // Tessellation quality, matched to Orca's OWN STEP importer (Format/STEP.hpp defaults:
     // linear 0.003, angular 0.5 rad) so a body modelled here reaches the screen at the same
@@ -509,8 +628,10 @@ public:
                           BooleanMode mode, const std::string& name);
     int  add_fillet(double radius, FaceGroup faces, const std::string& name);
     int  add_fillet(double radius, int edge_id, const std::string& name);
+    int  add_fillet(double radius, const std::vector<int>& edge_ids, const std::string& name);
     int  add_chamfer(double distance, FaceGroup faces, const std::string& name);
     int  add_chamfer(double distance, int edge_id, const std::string& name);
+    int  add_chamfer(double distance, const std::vector<int>& edge_ids, const std::string& name);
     int  add_hole(double diameter, double depth, bool through,
                   double x, double y, const SketchPlane& plane,
                   const std::string& name);
@@ -703,6 +824,9 @@ public:
     //   an Extrude, its sketch_ref are preserved from the original).
     bool remove_feature(int index);
     bool move_feature(int index, int delta);
+    // Show or hide a feature. Transactional like the others, and it keeps body and datum-plane
+    // references pointing at the same objects, which a bare `enabled` flip does not.
+    bool set_feature_enabled(int index, bool enabled);
     bool replace_feature(int index, const CadFeature& edited);
     // replace_sketch_extrude: a box is two linked features (Sketch + Extrude);
     //   overwrite both slots from one `edited` candidate (sketch params ->
@@ -714,12 +838,25 @@ public:
     // tessellate the result into out_mesh, WITHOUT modifying features/body/
     // display_mesh. Returns false (with err set) if the candidate is invalid.
     // Used by the Design tab to show a translucent ghost before Confirm.
+    // The solid body the closed profile of sketch `sketch_ref` lies on or touches, or -1. Drives
+    // the Extrude default: a profile drawn on a body joins it, one in free space is a new body.
+    int body_touching_sketch(int sketch_ref) const;
     bool preview(const CadFeature& candidate, TriangleMesh& out_mesh, std::string& err) const;
     // Same, but also returns the per-body meshes (in `bodies` order; the candidate may append
     // one), so the GUI can apply its display-only per-body Move transforms to the ghost and keep
     // it overlaid on the moved body instead of floating back at the untransformed origin.
     bool preview(const CadFeature& candidate, TriangleMesh& out_mesh,
                  std::vector<TriangleMesh>& out_body_meshes, std::string& err) const;
+
+    // The faces of the current bodies that features[index] made, as (body, face id) pairs: what
+    // the Design tab highlights when that feature is selected. A face counts when it lies on the
+    // model's boundary, facing the same way, right after the feature and not right before it, so
+    // a face a later feature trimmed still belongs to the one that made it. Positions are
+    // compared, no history is kept: a face a later feature rebuilt in place stays the earlier
+    // feature's. A feature with no face left of its own (a Boolean union, or one whose faces a
+    // later feature removed) answers with every face of each body it changed. Empty for a feature
+    // that leaves no body, a hidden one, or a history that no longer rebuilds up to it.
+    std::vector<std::pair<int, int>> faces_made_by(int index) const;
 
 private:
     TopoDS_Wire build_sketch_wire(const CadFeature& sketch, bool closed_only = false) const;
@@ -737,6 +874,13 @@ private:
     // starts a new body (empty list, or an Extrude with mode New) vs mutates an existing
     // one, then apply_feature. Shared by recompute() (replay all) and preview() (candidate).
     void route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    // The parametric pass every replay starts with: evaluate the variables and write each
+    // feature's expression bindings into its numeric fields.
+    void bind_expressions();
+    // One step of the replay: route features[fi] into `built` and stamp the bodies it created
+    // with fi. A hidden feature, a sketch, a helix or a datum leaves `built` alone. Throws on
+    // failure.
+    void replay_feature(size_t fi, std::vector<CadBody>& built);
     // Boolean between two existing bodies: resolve target + tool, optionally snap the tool so
     // the picked faces mate, run the OCCT op (with fuzzy tolerance), write the result back to the
     // target and erase the consumed tool. Mutates the bodies vector directly (unlike apply_feature,

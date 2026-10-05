@@ -4,7 +4,10 @@
 #include "libslic3r.h"
 #include "Point.hpp"
 
+#include <cmath>
 #include <type_traits>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

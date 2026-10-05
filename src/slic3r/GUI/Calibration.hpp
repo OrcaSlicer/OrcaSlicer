@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_Calibration_hpp_
 #define slic3r_GUI_Calibration_hpp_
 
+#include <map>
+#include <string>
+#include <vector>
+#include <wx/event.h>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>

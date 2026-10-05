@@ -6,11 +6,17 @@
 #include <ankerl/unordered_dense.h>
 #include <boost/log/trivial.hpp>
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <cassert>
 #include <cinttypes>
+#include <optional>
+#include <utility>
 
 #include "../Line.hpp"
+#include "libslic3r/Arachne/utils/HalfEdge.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Arachne/utils/HalfEdgeNode.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidationEdge.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidationJoint.hpp"
 #include "libslic3r/Point.hpp"

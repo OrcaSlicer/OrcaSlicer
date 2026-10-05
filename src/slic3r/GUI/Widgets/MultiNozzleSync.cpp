@@ -1,5 +1,6 @@
 #include "MultiNozzleSync.hpp"
 
+#include "../GUI.hpp"
 #include "../GUI_App.hpp"
 #include "../I18N.hpp"
 #include "../Plater.hpp"
@@ -11,20 +12,49 @@
 #include "Label.hpp"
 #include "ComboBox.hpp"
 #include "StaticBox.hpp"
+#include "json_diff.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <cmath>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <cstdlib>
+#include <cstddef>
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include <map>
+#include <memory>
 #include <numeric>
+#include <optional>
 #include <set>
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/arrstr.h>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <utility>
+#include <unordered_map>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
 #include <wx/choice.h>
-#include <wx/filename.h>
-#include <wx/filesys.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include <wx/dcclient.h>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/timer.h>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
@@ -641,8 +671,7 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
     m_web_view->AddScriptMessageHandler("nozzleListTable");
     m_web_view->EnableContextMenu(false);
     fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
-    wxFileName fn(wxString::FromUTF8(filepath.string()));
-    wxString url = wxFileSystem::FileNameToURL(fn);
+    wxString url = file_url_from_path(filepath);
     m_web_view->LoadURL(url);
 
     auto sizer = new wxBoxSizer(wxVERTICAL);

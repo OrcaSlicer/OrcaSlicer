@@ -1,6 +1,54 @@
 #include "MainFrame.hpp"
 
+#include <wx/event.h>
+#include "slic3r/GUI/Event.hpp"
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/filehistory.h>
+#include "slic3r/GUI/BBLTopbar.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <boost/lexical_cast.hpp>
+#include <optional>
+#include "slic3r/GUI/GLToolbar.hpp"
+#include "libslic3r/Preset.hpp"
+#include <functional>
+#include <wx/busycursor.h>
+#include <cstddef>
+#include "slic3r/GUI/Project.hpp"
+#include <wx/bookctrl.h>
+#include "slic3r/GUI/LazyPage.hpp"
+#include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/PrinterWebView.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "slic3r/GUI/CalibrationPanel.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <vector>
+#include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/FilamentGroupPopup.hpp"
+#include "slic3r/GUI/Widgets/SideMenuPopup.hpp"
+#include <utility>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <algorithm>
+#include <wx/dirdlg.h>
+#include <exception>
+#include <wx/filedlg.h>
+#include "slic3r/GUI/Lazy.hpp"
+#include <wx/filefn.h>
+#include <string>
+#include <sstream>
+#include <wx/base64.h>
+#include <ctime>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/calib_dlg.hpp"
 #include <wx/panel.h>
+#include <wx/settings.h>
 #include <wx/textentry.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -13,11 +61,13 @@
 //#include <wx/glcanvas.h>
 #include <wx/filename.h>
 #include <wx/debug.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <wx/webview.h>
 
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -30,6 +80,7 @@
 #include "3DScene.hpp"
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 #include "GUI_ObjectList.hpp"
 #include "Mouse3DController.hpp"
@@ -66,6 +117,7 @@
 #include "NotificationManager.hpp"
 #include "MarkdownTip.hpp"
 #include "NetworkTestDialog.hpp"
+#include "SceneBenchmark.hpp"
 #include "ConfigWizard.hpp"
 #include "Widgets/WebView.hpp"
 #include "DailyTips.hpp"
@@ -84,6 +136,20 @@
 #include <wx/glcanvas.h>
 #endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Model.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/IdleScheduler.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/Tabbook.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <wx/defs.h>
 
 
 namespace Slic3r {
@@ -1197,6 +1263,10 @@ void MainFrame::shutdown()
     m_plugin_pages.shutdown();
     if (m_plater != nullptr)
         m_plater->remove_dock_panes();
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->shutdown();
+#endif
 #ifdef __WXGTK__
     // Edge panels are child windows — wxWidgets destroys them automatically.
     m_edge_bottom = nullptr;
@@ -1320,6 +1390,23 @@ void MainFrame::show_option(bool show)
     }
 }
 
+void MainFrame::set_undo_redo_enabled(bool undo, bool redo)
+{
+#ifndef __APPLE__
+    m_topbar->EnableUndoRedo(undo, redo);
+#else
+    (void) undo; (void) redo;   // macOS has no top bar; Edit asks the tab when it opens
+#endif
+}
+
+#ifdef SLIC3R_CAD
+DesignPanel* MainFrame::shown_design_panel() const
+{
+    DesignPanel* design = DesignPanel::if_built();
+    return (design != nullptr && m_design_page != nullptr && m_design_page->IsShownOnScreen()) ? design : nullptr;
+}
+#endif
+
 void MainFrame::init_tabpanel() {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on
     // Windows 10 with multiple high resolution displays connected.
@@ -1385,6 +1472,11 @@ void MainFrame::init_tabpanel() {
             m_topbar->DisableUndoRedoItems();
         }
 #endif
+#ifdef SLIC3R_CAD
+        // Design keeps its own history, and the top bar's Undo/Redo drive it while it is shown.
+        if (m_design_page != nullptr && panel == m_design_page)
+            DesignPanel::ensure()->update_undo_redo_buttons();
+#endif
 
         if (panel)
             panel->SetFocus();
@@ -1411,8 +1503,9 @@ void MainFrame::init_tabpanel() {
 #ifdef SLIC3R_CAD
     // The experimental feature is off by default, and when it is off the page is never
     // created, so the tab does not appear at all (the preference takes effect on the next
-    // start, like the other feature toggles).
-    if (wxGetApp().is_enable_cad_feature()) {
+    // start, like the other feature toggles). Nor in the G-code viewer, which has no Design tab to put
+    // it in — and no business opening a control socket onto one.
+    if (wxGetApp().is_enable_cad_feature() && wxGetApp().is_editor()) {
         // Experimental and heavy enough that building it unasked would cost more than it saves.
         m_design_page = new LazyPage<DesignPanel>(this, TAB_ID_DESIGN, -1);
         m_lazy_pages.push_back(m_design_page);
@@ -1997,6 +2090,126 @@ bool MainFrame::can_reslice() const
     return (m_plater != nullptr) && !m_plater->model().objects.empty();
 }
 
+namespace {
+// Orca: stable key persisted by the "remember last print action" preference. Reordering PrintSelectType
+// must not silently remap a saved preference, so the key never derives from the enum value.
+const char* print_select_type_key(MainFrame::PrintSelectType type)
+{
+    switch (type) {
+    case MainFrame::ePrintAll:            return "print_all";
+    case MainFrame::ePrintPlate:          return "print_plate";
+    case MainFrame::eExportSlicedFile:    return "export_sliced_file";
+    case MainFrame::eExportAllSlicedFile: return "export_all_sliced_file";
+    case MainFrame::eExportGcode:         return "export_gcode";
+    case MainFrame::eSendGcode:           return "send_gcode";
+    case MainFrame::eSendToPrinter:       return "send_to_printer";
+    case MainFrame::eSendToPrinterAll:    return "send_to_printer_all";
+    case MainFrame::ePrintMultiMachine:   return "print_multi_machine";
+    case MainFrame::eUploadGcode:         break; // Orca: no dropdown entry, never selectable
+    }
+    return "";
+}
+
+// Orca: single source for the print button and print dropdown labels
+wxString print_select_type_label(MainFrame::PrintSelectType type)
+{
+    switch (type) {
+    case MainFrame::ePrintAll:            return _L("Print all");
+    case MainFrame::ePrintPlate:          return _L("Print plate");
+    case MainFrame::eExportSlicedFile:    return _L("Export plate sliced file");
+    case MainFrame::eExportAllSlicedFile: return _L("Export all sliced file");
+    case MainFrame::eExportGcode:         return _L("Export G-code file");
+    case MainFrame::eSendGcode:           return _L_CONTEXT("Print", "Verb");
+    case MainFrame::eSendToPrinter:       return _L("Send");
+    case MainFrame::eSendToPrinterAll:    return _L("Send all");
+    case MainFrame::ePrintMultiMachine:   return _L("Send to Multi-device");
+    case MainFrame::eUploadGcode:         break; // Orca: no dropdown entry, never selectable
+    }
+    return _L("Print plate");
+}
+} // namespace
+
+std::vector<MainFrame::PrintSelectType> MainFrame::available_print_actions() const
+{
+    std::vector<PrintSelectType> actions;
+    const auto preset_bundle      = wxGetApp().preset_bundle;
+    const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
+
+    if (preset_bundle && !preset_bundle->is_bbl_vendor() && !use_printer_agents) {
+        // ThirdParty actions
+        actions.push_back(eSendGcode);
+        // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
+        // also offer exporting the sliced .gcode.3mf bundle
+        const auto* use_3mf_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("use_3mf");
+        if (use_3mf_opt != nullptr && use_3mf_opt->value)
+            actions.push_back(eExportSlicedFile);
+        actions.push_back(eExportGcode);
+        return actions;
+    }
+
+    // Orca Slicer actions
+    bool support_send      = true;
+    bool support_print_all = true;
+    if (preset_bundle && !preset_bundle->use_bbl_network() && !use_printer_agents) {
+        support_send = false; // All 3rd print hosts do not have the send options
+
+        const auto& cfg           = preset_bundle->printers.get_edited_preset().config;
+        const auto* host_type_opt = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
+        // Only simply print support uploading all plates
+        support_print_all = host_type_opt != nullptr && host_type_opt->value == PrintHostType::htSimplyPrint;
+    }
+
+    actions.push_back(ePrintPlate);
+    if (support_print_all)
+        actions.push_back(ePrintAll);
+    if (support_send) {
+        actions.push_back(eSendToPrinter);
+        actions.push_back(eSendToPrinterAll);
+    }
+    if (enable_multi_machine)
+        actions.push_back(ePrintMultiMachine);
+    actions.push_back(eExportSlicedFile);
+    actions.push_back(eExportAllSlicedFile);
+    actions.push_back(eExportGcode);
+    return actions;
+}
+
+void MainFrame::select_print_action(PrintSelectType select_type)
+{
+    m_print_btn->SetLabel(print_select_type_label(select_type));
+    m_print_select = select_type;
+    remember_print_select(select_type);
+    m_print_enable = get_enable_print_status();
+    m_print_btn->Enable(m_print_enable);
+    this->Layout();
+    fit_tab_labels(); // ORCA on label change
+}
+
+void MainFrame::remember_print_select(PrintSelectType select_type)
+{
+    if (!wxGetApp().app_config->get_bool("remember_print_action"))
+        return;
+    // AppConfig is marked dirty here and flushed by the regular autosave
+    wxGetApp().app_config->set("last_print_action", print_select_type_key(select_type));
+}
+
+bool MainFrame::get_remembered_print_select(PrintSelectType& out) const
+{
+    if (!wxGetApp().app_config->get_bool("remember_print_action"))
+        return false;
+    const std::string saved = wxGetApp().app_config->get("last_print_action");
+    if (saved.empty())
+        return false;
+    // Orca: only restore an action the current printer actually offers in the dropdown
+    for (PrintSelectType type : available_print_actions()) {
+        if (saved == print_select_type_key(type)) {
+            out = type;
+            return true;
+        }
+    }
+    return false;
+}
+
 wxBoxSizer* MainFrame::create_side_tools()
 {
     enable_multi_machine = wxGetApp().is_enable_multi_machine();
@@ -2015,6 +2228,14 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_slice_option_btn = new SideButton(slice_panel, "", "sidebutton_dropdown", 0, 14);
     m_print_btn = new SideButton(print_panel, _L("Print plate"), "");
     m_print_option_btn = new SideButton(print_panel, "", "sidebutton_dropdown", 0, 14);
+
+    // Orca: restore the last used print/export action if the user opted to remember it
+    PrintSelectType remembered_print_select;
+    if (get_remembered_print_select(remembered_print_select)) {
+        m_print_select = remembered_print_select;
+        m_print_btn->SetLabel(print_select_type_label(remembered_print_select));
+        fit_tab_labels(); // ORCA on label change
+    }
 
     auto slice_sizer = new wxBoxSizer(wxHORIZONTAL);
     slice_sizer->Add(m_slice_option_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(1));
@@ -2178,193 +2399,15 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_print_option_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
             SidePopup* p = new SidePopup(this);
-
-            if (wxGetApp().preset_bundle
-                && !wxGetApp().preset_bundle->is_bbl_vendor()
-                && !wxGetApp().app_config->get_bool("use_printer_agents")) {
-                // ThirdParty Buttons
-                SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
-                export_gcode_btn->SetCornerRadius(0);
-                export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export G-code file"));
-                    m_print_select = eExportGcode;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
+            for (PrintSelectType type : available_print_actions()) {
+                SideButton* btn = new SideButton(p, print_select_type_label(type), "");
+                btn->SetCornerRadius(0);
+                btn->Bind(wxEVT_BUTTON, [this, p, type](wxCommandEvent&) {
+                    select_print_action(type);
                     p->Dismiss();
                     });
-
-                // upload and print
-                SideButton* send_gcode_btn = new SideButton(p, _L_CONTEXT("Print", "Verb"), "");
-                send_gcode_btn->SetCornerRadius(0);
-                send_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
-                    m_print_select = eSendGcode;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                p->append_button(send_gcode_btn);
-
-                // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
-                // also offer exporting the sliced .gcode.3mf bundle
-                const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-                const auto* use_3mf_opt    = printer_config.option<ConfigOptionBool>("use_3mf");
-                if (use_3mf_opt != nullptr && use_3mf_opt->value) {
-                    SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
-                    export_sliced_file_btn->SetCornerRadius(0);
-                    export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                        m_print_btn->SetLabel(_L("Export plate sliced file"));
-                        m_print_select = eExportSlicedFile;
-                        m_print_enable = get_enable_print_status();
-                        m_print_btn->Enable(m_print_enable);
-                        this->Layout();
-                        fit_tab_labels(); // ORCA on label change
-                        p->Dismiss();
-                        });
-                    p->append_button(export_sliced_file_btn);
-                }
-
-                p->append_button(export_gcode_btn);
+                p->append_button(btn);
             }
-            else {
-                //Orca Slicer Buttons
-                SideButton* print_plate_btn = new SideButton(p, _L("Print plate"), "");
-                print_plate_btn->SetCornerRadius(0);
-
-                SideButton* send_to_printer_btn = new SideButton(p, _L("Send"), "");
-                send_to_printer_btn->SetCornerRadius(0);
-
-                SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
-                export_sliced_file_btn->SetCornerRadius(0);
-
-                SideButton* export_all_sliced_file_btn = new SideButton(p, _L("Export all sliced file"), "");
-                export_all_sliced_file_btn->SetCornerRadius(0);
-
-                print_plate_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Print plate"));
-                    m_print_select = ePrintPlate;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                SideButton* print_all_btn = new SideButton(p, _L("Print all"), "");
-                print_all_btn->SetCornerRadius(0);
-                print_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Print all"));
-                    m_print_select = ePrintAll;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                send_to_printer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Send"));
-                    m_print_select = eSendToPrinter;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                SideButton* send_to_printer_all_btn = new SideButton(p, _L("Send all"), "");
-                send_to_printer_all_btn->SetCornerRadius(0);
-                send_to_printer_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Send all"));
-                    m_print_select = eSendToPrinterAll;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export plate sliced file"));
-                    m_print_select = eExportSlicedFile;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                export_all_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export all sliced file"));
-                    m_print_select = eExportAllSlicedFile;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                bool support_send = true;
-                bool support_print_all = true;
-
-                const auto preset_bundle = wxGetApp().preset_bundle;
-                if (preset_bundle) {
-                    if (preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
-                        // BBL network support everything
-                    } else {
-                        support_send = false; // All 3rd print hosts do not have the send options
-
-                        auto cfg = preset_bundle->printers.get_edited_preset().config;
-                        const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
-
-                        // Only simply print support uploading all plates
-                        support_print_all = host_type == PrintHostType::htSimplyPrint;
-                    }
-                }
-
-                p->append_button(print_plate_btn);
-                if (support_print_all) {
-                    p->append_button(print_all_btn);
-                }
-                if (support_send) {
-                    p->append_button(send_to_printer_btn);
-                    p->append_button(send_to_printer_all_btn);
-                }
-                if (enable_multi_machine) {
-                    SideButton* print_multi_machine_btn = new SideButton(p, _L("Send to Multi-device"), "");
-                    print_multi_machine_btn->SetCornerRadius(0);
-                    print_multi_machine_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                        m_print_btn->SetLabel(_L("Send to Multi-device"));
-                        m_print_select = ePrintMultiMachine;
-                        m_print_enable = get_enable_print_status();
-                        m_print_btn->Enable(m_print_enable);
-                        this->Layout();
-                        fit_tab_labels(); // ORCA on label change
-                        p->Dismiss();
-                    });
-                    p->append_button(print_multi_machine_btn);
-                }
-                p->append_button(export_sliced_file_btn);
-                p->append_button(export_all_sliced_file_btn);
-                SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
-                export_gcode_btn->SetCornerRadius(0);
-                export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export G-code file"));
-                    m_print_select = eExportGcode;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                });
-                p->append_button(export_gcode_btn);
-            }
-
             p->Popup(m_print_btn);
         }
     );
@@ -2653,6 +2696,9 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
     MultiMachinePage::when_built([](MultiMachinePage& multi_machine) { multi_machine.msw_rescale(); });
     CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.msw_rescale(); });
+#ifdef SLIC3R_CAD
+    DesignPanel::when_built([](DesignPanel& design) { design.msw_rescale(); });
+#endif
 
     // BBS
 #if 0
@@ -2717,6 +2763,9 @@ void MainFrame::on_sys_color_changed()
     wxGetApp().plater()->sys_color_changed();
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.on_sys_color_changed(); });
     CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.on_sys_color_changed(); });
+#ifdef SLIC3R_CAD
+    DesignPanel::when_built([](DesignPanel& design) { design.on_sys_color_changed(); });
+#endif
     // update Tabs
     for (auto tab : wxGetApp().tabs_list)
         tab->sys_color_changed();
@@ -2784,6 +2833,10 @@ wxMenu* MainFrame::generate_help_menu()
             NetworkTestDialog dlg(wxGetApp().mainframe);
             dlg.ShowModal();
         });
+
+    if (wxGetApp().is_editor())
+        append_menu_item(helpMenu, wxID_ANY, _L("Benchmark 3D Scene"), _L("Measure how fast the 3D scene renders in Prepare and Preview"),
+            [](wxCommandEvent&) { run_scene_benchmark(); });
 
     helpMenu->AppendSeparator();
 
@@ -3051,12 +3104,28 @@ void MainFrame::init_menubar_as_editor()
 #ifndef __APPLE__
         // BBS undo
         append_shortcut_item(editMenu, Shortcut::Undo, true, _L("Undo"),
-            _L("Undo"), [this](wxCommandEvent&) { m_plater->undo(); },
-            "menu_undo", nullptr, [this](){return m_plater->can_undo(); }, this);
+            _L("Undo"), [this](wxCommandEvent&) {
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(false); return; }
+#endif
+                m_plater->undo(); },
+            "menu_undo", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(false);
+#endif
+                return m_plater->can_undo(); }, this);
         // BBS redo
         append_shortcut_item(editMenu, Shortcut::Redo, true, _L("Redo"),
-            _L("Redo"), [this](wxCommandEvent&) { m_plater->redo(); },
-            "menu_redo", nullptr, [this](){return m_plater->can_redo(); }, this);
+            _L("Redo"), [this](wxCommandEvent&) {
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(true); return; }
+#endif
+                m_plater->redo(); },
+            "menu_redo", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(true);
+#endif
+                return m_plater->can_redo(); }, this);
         editMenu->AppendSeparator();
         // BBS Cut TODO
         append_shortcut_item(editMenu, Shortcut::Cut, true, _L("Cut"),
@@ -3103,8 +3172,15 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(false); return; }
+#endif
                 m_plater->undo(); },
-            "", nullptr, [this](){return m_plater->can_undo(); }, this);
+            "", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(false);
+#endif
+                return m_plater->can_undo(); }, this);
         // BBS redo
         append_shortcut_item(editMenu, Shortcut::Redo, false, _L("Redo"),
             _L("Redo"), [this, handle_key_event](wxCommandEvent&) {
@@ -3115,8 +3191,15 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(true); return; }
+#endif
                 m_plater->redo(); },
-            "", nullptr, [this](){return m_plater->can_redo(); }, this);
+            "", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(true);
+#endif
+                return m_plater->can_redo(); }, this);
         editMenu->AppendSeparator();
         // BBS Cut TODO
         append_shortcut_item(editMenu, Shortcut::Cut, false, _L("Cut"),
@@ -3312,6 +3395,10 @@ void MainFrame::init_menubar_as_editor()
             viewMenu, wxID_ANY, _L("Reset Window Layout"), _L("Reset to default window layout"),
             [this](wxCommandEvent&) { m_plater->reset_window_layout(); }, "", this,
             [this]() {
+#ifdef SLIC3R_CAD
+                if (shown_design_panel() != nullptr)
+                    return true;
+#endif
                 return is_prepare_or_preview_tab() && m_plater->is_sidebar_enabled();
             },
             this);
@@ -3864,6 +3951,8 @@ bool MainFrame::load_config_file(const std::string &path)
         return false;
     }
     wxGetApp().load_current_presets();
+    if (Plater *plater = wxGetApp().plater())
+        plater->normalize_bed_types(false);
     return true;
 }
 
@@ -4224,38 +4313,22 @@ void MainFrame::on_config_changed(DynamicPrintConfig* config) const
 
 void MainFrame::set_print_button_to_default(PrintSelectType select_type)
 {
-    if (select_type == PrintSelectType::ePrintPlate) {
-        m_print_btn->SetLabel(_L("Print plate"));
-        m_print_select = ePrintPlate;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eSendGcode) {
-        m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
-        m_print_select = eSendGcode;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eExportGcode) {
-        m_print_btn->SetLabel(_L("Export G-code file"));
-        m_print_select = eExportGcode;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eExportSlicedFile) {
-        m_print_btn->SetLabel(_L("Export plate sliced file"));
-        m_print_select = eExportSlicedFile;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else {
-        // unsupport
-        return;
-    }
+    // Orca: keep the user's remembered print/export action instead of resetting it to the computed
+    // default. get_remembered_print_select() already rejects anything this printer does not offer.
+    PrintSelectType remembered;
+    if (get_remembered_print_select(remembered))
+        select_type = remembered;
+
+    if (select_type == eUploadGcode)
+        return; // unsupported: no dropdown entry exists for this action
+
+    m_print_btn->SetLabel(print_select_type_label(select_type));
+    m_print_select = select_type;
+    // get_enable_print_status() already applies can_send_gcode() to the actions that need it
+    if (m_print_enable)
+        m_print_enable = get_enable_print_status();
+    m_print_btn->Enable(m_print_enable);
+    this->Layout();
 }
 
 void MainFrame::add_to_recent_projects(const wxString& filename)
@@ -4443,7 +4516,7 @@ void MainFrame::load_printer_url()
         if (auto *device_manager = wxGetApp().getDeviceManager()) {
             auto *machine = device_manager->get_selected_machine();
             if (!machine) {
-                auto machines = device_manager->get_my_machine_list();
+                auto machines = device_manager->get_my_machine_list(device_manager->get_current_printer_agent_id());
                 if (machines.size() == 1)
                     machine = machines.begin()->second;
             }

@@ -8,6 +8,28 @@
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvg/nanosvgrast.h"
 
+#include <vector>
+#include <boost/filesystem/path.hpp>
+#include <map>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
+#include "libslic3r/CustomGCode.hpp"
+#include <iterator>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/log/core/record_view.hpp>
+#include <boost/log/expressions/message.hpp>
+#include <cstddef>
+#include <exception>
+#include "libslic3r/PlaceholderParser.hpp"
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/errors.hpp>
+
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
@@ -35,6 +57,10 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/STEP.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 namespace po = boost::program_options;
@@ -308,11 +334,17 @@ DynamicPrintConfig slice_config(PresetBundle &bundle)
     // type (Direct Drive + Bowden) the mismatched lookup spams [error] lines. Single-nozzle and non-BBL
     // printers keep the default map (their toolchange rides the AMS/tool-changer path unchanged).
     const bool pin_filament_map = bundle.is_bbl_vendor() && nozzles > 1;
+    auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
     if (pin_filament_map) {
-        auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
         for (size_t i = 0; i < fmap.size(); ++i)
             fmap[i] = int(i % nozzles) + 1;
     }
+
+    // A fresh printer selection uses its declared nozzle volumes, just like the
+    // app. Otherwise a high-flow preset is silently sliced with Standard tuning.
+    bundle.reset_default_nozzle_volume_type();
+    bundle.project_config.option<ConfigOptionInts>("filament_volume_map", true)->values =
+        bundle.get_default_nozzle_volume_types_for_filaments(fmap);
 
     DynamicPrintConfig cfg = bundle.full_config();
     cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(true)); // force a purge tower so the change is detectable

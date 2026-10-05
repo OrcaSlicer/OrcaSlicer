@@ -1,6 +1,8 @@
 #include "Obico.hpp"
 
 #include <algorithm>
+#include "libslic3r/Exception.hpp"
+#include <boost/property_tree/exceptions.hpp>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -14,15 +16,18 @@
 #include <boost/nowide/convert.hpp>
 
 #include <curl/curl.h>
+#include <utility>
+#include <wx/arrstr.h>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 
+#include "PrintHost.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
 
 namespace fs = boost::filesystem;

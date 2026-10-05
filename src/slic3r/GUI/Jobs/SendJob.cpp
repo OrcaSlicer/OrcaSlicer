@@ -1,4 +1,6 @@
 #include "SendJob.hpp"
+#include "json_diff.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -9,6 +11,18 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <cstdio>
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/DeviceCore/DevStorage.h"
+#include <wx/event.h>
+#include <functional>
+#include <exception>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {
@@ -127,7 +141,7 @@ void SendJob::process(Ctl &ctl)
     if (m_is_check_mode) {
         PrintParams verify_params;
         verify_params.dev_ip           = m_dev_ip;
-        verify_params.username         = "bblp";
+        verify_params.username         = agent->default_lan_username();
         verify_params.password         = m_access_code;
         verify_params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
         verify_params.use_ssl_for_mqtt = m_local_use_ssl;
@@ -219,7 +233,7 @@ void SendJob::process(Ctl &ctl)
 
     // local print access
     params.dev_ip = m_dev_ip;
-    params.username = "bblp";
+    params.username = agent->default_lan_username();
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
     params.use_ssl_for_mqtt = m_local_use_ssl;

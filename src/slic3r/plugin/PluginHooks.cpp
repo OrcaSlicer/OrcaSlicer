@@ -13,9 +13,14 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <exception>
+#include <cstddef>
 #include <memory>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <string>
 #include <stdexcept>
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r::plugin_hooks {
 namespace {

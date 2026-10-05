@@ -9,6 +9,7 @@ add_executable(${_TEST_NAME}_tests
 	test_fill.cpp
 	test_flow.cpp
 	test_gcode_timing.cpp
+	test_gcode.cpp
 	test_gcodeprocessor.cpp
 	test_gcodewriter.cpp
 	test_model.cpp
@@ -23,6 +24,7 @@ add_executable(${_TEST_NAME}_tests
 	test_skirt_brim.cpp
 	test_slicing_pipeline_hook.cpp
 	test_support_material.cpp
+	test_texture_displacement.cpp
 	test_tree_support.cpp
 	test_trianglemesh.cpp
 	test_wipe.cpp

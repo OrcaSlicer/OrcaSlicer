@@ -6,9 +6,11 @@
     "setting_id": "GFSG01_42",
     "instantiation": "true",
     "fan_max_speed": [
+        "60",
         "60"
     ],
     "fan_min_speed": [
+        "20",
         "20"
     ],
     "filament_change_length": [

@@ -1,6 +1,9 @@
 #ifndef FILAMENT_GROUP_UTILS_HPP
 #define FILAMENT_GROUP_UTILS_HPP
 
+#include <set>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <map>
 #include <string>

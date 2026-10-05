@@ -1,7 +1,8 @@
 #pragma once
-#include "libslic3r/CommonDefs.hpp"
 
 #include "slic3r/Utils/json_diff.hpp"
+#include <string>
+#include <ctime>
 #include <wx/string.h>
 
 namespace Slic3r

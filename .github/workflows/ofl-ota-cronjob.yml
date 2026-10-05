@@ -146,7 +146,7 @@ jobs:
                 "repos/${{ github.repository }}/actions/workflows/post_merge_profiles.yml/runs" \
                 -f branch="$branch" -f event=workflow_dispatch -f per_page=100)"
               run_id="$(jq -r --arg marker "[OFL cron $dispatch_id]" \
-                '[.workflow_runs[] | select((.display_title // "") | contains($marker))] \
+                '[.workflow_runs[] | select((.display_title // "") | contains($marker))]
                 | sort_by(.created_at) | last | .id // empty' <<< "$runs_json")"
               [ -n "$run_id" ] && break
               sleep 5

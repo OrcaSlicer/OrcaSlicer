@@ -4,7 +4,26 @@
 #include "format.hpp"
 #include "I18N.hpp"
 
-#include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include <vector>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include "libslic3r/Point.hpp"
+#include <exception>
+#include <wx/log.h>
+#include <cassert>
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstddef>
+#include <wx/utils.h>
+#include <utility>
+#include <boost/filesystem/operations.hpp>
+#include <wx/string.h>
 #ifdef __APPLE__
 #include "slic3r/Utils/MacDarkMode.hpp"
 #endif
@@ -13,6 +32,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/any.hpp>
+
+#include <wx/filename.h>
+#include <wx/filesys.h>
 
 #if __APPLE__
 #import <IOKit/pwr_mgt/IOPMLib.h>
@@ -27,11 +49,15 @@
 
 #include "AboutDialog.hpp"
 #include "MsgDialog.hpp"
+#include "Plater.hpp"
 #include "format.hpp"
 
 #include "WebUserLoginDialog.hpp"
 
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Utils.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
@@ -531,6 +557,11 @@ boost::filesystem::path into_path(const wxString &str)
 	return boost::filesystem::path(str.wx_str());
 }
 
+wxString file_url_from_path(const boost::filesystem::path &path)
+{
+	return wxFileSystem::FileNameToURL(wxFileName(from_path(path)));
+}
+
 void about()
 {
     AboutDialog dlg;
@@ -634,5 +665,27 @@ void desktop_open_any_folder( const std::string& path )
 #endif
 }
 
+
+bool desktop_open_project_attachment(wxWindow *parent, const boost::filesystem::path &path)
+{
+    // The auxiliary path is UTF-8, which is what boost::filesystem reads a narrow string as.
+    const boost::filesystem::path aux_root(wxGetApp().plater()->model().get_auxiliary_file_temp_path());
+    boost::system::error_code ec;
+    if (!is_absolute_path_within_root(path, aux_root) || !boost::filesystem::is_regular_file(path, ec))
+        return false;
+
+    // Attachments come with the project and carry no download mark, so the desktop would open them without a warning.
+    if (!is_safe_to_open_file_name(path.filename().string())) {
+        MessageDialog dlg(parent,
+                          wxString::Format(_L("\"%s\" is not a plain document, image or model file. Opening it may run it as a "
+                                              "program or script on this computer.\n\n"
+                                              "Only open attachments from projects you trust. Open it anyway?"),
+                                           from_path(path.filename())),
+                          _L("Open attachment"), wxICON_WARNING | wxYES_NO);
+        if (dlg.ShowModal() != wxID_YES)
+            return false;
+    }
+    return wxLaunchDefaultApplication(from_path(path), 0);
+}
 
 } }

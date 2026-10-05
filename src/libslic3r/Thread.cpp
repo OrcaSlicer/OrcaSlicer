@@ -6,6 +6,14 @@
 	#include <pthread.h>
 #endif
 
+#include <optional>
+#include <string>
+#include <cstddef>
+#include <cassert>
+#include <sstream>
+#include <locale.h>
+#include <clocale>
+
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -14,7 +22,6 @@
 #include <tbb/task_arena.h>
 
 #include "Thread.hpp"
-#include "Utils.hpp"
 
 namespace Slic3r {
 

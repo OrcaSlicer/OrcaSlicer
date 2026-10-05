@@ -1,4 +1,5 @@
 #include "Preferences.hpp"
+#include "CloudProvider.hpp"
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -9,13 +10,61 @@
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Format/DRC.hpp"
-#include "libslic3r/CAD/SketchEngine.hpp"
+#include <wx/gdicmn.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <cmath>
+#include <tuple>
+#include <string>
+#include <vector>
+#include <functional>
+#include <cstdlib>
+#include <cassert>
+#include <algorithm>
+#include <wx/intl.h>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <boost/lexical_cast.hpp>
+#include "slic3r/GUI/Event.hpp"
+#include <boost/log/trivial.hpp>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/chartype.h>
+#include <wx/dirdlg.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Widgets/TabCtrl.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include <map>
+#include "slic3r/GUI/ReleaseNote.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
+#include "libslic3r_version.h"
 #include "wx/graphics.h"
 #include <wx/listimpl.cpp>
 #include <wx/display.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/utils.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/spinctrl.h>
+#include <wx/tglbtn.h>
+#include <wx/stattext.h>
+#include <wx/treebase.h>
+#include <wx/types.h>
+#include <wx/timer.h>
 #include "NetworkTestDialog.hpp"
+#include "SceneBenchmark.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Shortcuts.hpp"
@@ -1765,13 +1814,6 @@ void PreferencesDialog::create_items()
            "parametrically. This feature is experimental and still under development."),
         "enable_cad_feature", _L("(Requires restart)"));
     g_sizer->Add(item_cad_feature);
-
-    auto item_auto_close_sketch_loops = create_item_checkbox(_L("Auto-close sketch loops"),
-        _L("Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. "
-           "Off: only exactly coincident endpoints join, so a loop with a tiny gap is "
-           "shown as open instead of being closed for you."),
-        "auto_close_sketch_loops");
-    g_sizer->Add(item_auto_close_sketch_loops);
 #endif
 
 #if 0
@@ -1830,7 +1872,10 @@ void PreferencesDialog::create_items()
 
     auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
     g_sizer->Add(item_mix_print_high_low_temperature);
- 
+
+    auto item_remember_print_action = create_item_checkbox(_L("Remember last print action"), _L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."), "remember_print_action");
+    g_sizer->Add(item_remember_print_action);
+
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
 
@@ -1858,11 +1903,18 @@ void PreferencesDialog::create_items()
                "disc with a roll quadrant. A face's orientation is read without being learned. "
                "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
         g_sizer->Add(item_connector_face_glyph);
-    }
 
-    // Push the weld preference into the kernel now so toggling it takes effect without
-    // a restart (the sketch tool also re-pushes on activation, see DesignSketchTool::begin).
-    Slic3r::set_sketch_auto_close(wxGetApp().is_auto_close_sketch_loops());
+        // Saved WITH each design (it decides which loops are closed, i.e. what solid a project
+        // rebuilds into), so it applies to designs started from now on; an open design keeps
+        // the rule it was made with.
+        auto item_auto_close_sketch_loops = create_item_checkbox(_L("Auto-close sketch loops"),
+            _L("Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. "
+               "Off: only exactly coincident endpoints join, so a loop with a tiny gap is "
+               "shown as open instead of being closed for you. Saved with each design; "
+               "applies to designs started after the change."),
+            "auto_close_sketch_loops");
+        g_sizer->Add(item_auto_close_sketch_loops);
+    }
 #endif
 
     std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
@@ -1947,11 +1999,14 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_ssao);
 
-    auto item_realistic_shadows = create_item_checkbox(
+    std::vector<wxString> ShadowsLabels = { _L("Off"), _L("Static"), _L("Orbit") };
+    std::vector<std::string> ShadowsValues = { "off", "static", "orbit" };
+    auto item_realistic_shadows = create_item_combobox(
         _L("Shadows"),
-        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."),
-        SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
-    );
+        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+           "Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+           "Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."),
+        SETTING_OPENGL_REALISTIC_SHADOWS, ShadowsLabels, ShadowsValues);
     g_sizer->Add(item_realistic_shadows);
 
     //// GRAPHICS > Anti-aliasing
@@ -2023,6 +2078,26 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);
+
+    auto item_render_timings = create_item_checkbox(
+        _L("Show render timings"),
+        _L("Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport.") + "\n" +
+        _L("CPU: time spent issuing the drawing commands.") + "\n" +
+        _L("GPU: time the graphics card spent running them.") + "\n" +
+        _L("Adds a small overhead to each frame while enabled."),
+        SETTING_OPENGL_SHOW_RENDER_TIMINGS
+    );
+    g_sizer->Add(item_render_timings);
+
+    if (wxGetApp().is_editor()) {
+        auto item_benchmark = create_item_button(_L("3D scene benchmark"), _L("Run") + " " + dots, "",
+            _L("Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."),
+            [this]() {
+                EndModal(wxID_OK);
+                wxGetApp().CallAfter([] { run_scene_benchmark(); });
+            });
+        g_sizer->Add(item_benchmark);
+    }
 
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);

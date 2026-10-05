@@ -1,13 +1,53 @@
+#include "libslic3r/calib.hpp"
+#include <functional>
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/CommonDefs.hpp"
+#include <cstdint>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <algorithm>
+#include <map>
+#include <cassert>
+#include "libslic3r/PresetBundle.hpp"
+#include <cstdlib>
 #include <regex>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <string>
+#include <wx/sizer.h>
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <vector>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/chartype.h>
 #include "CalibrationWizardPresetPage.hpp"
+#include "CalibUtils.hpp"
 #include "GUI.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Print.hpp"
+#include "PrePrintChecker.hpp"
 
 #include "DeviceCore/DevConfig.h"
+#include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
@@ -1637,29 +1677,6 @@ void CalibrationPresetPage::update_combobox_filaments(MachineObject* obj)
     select_default_compatible_filament();
 }
 
-bool CalibrationPresetPage::is_blocking_printing()
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-
-    MachineObject* obj_ = dev->get_selected_machine();
-    if (obj_ == nullptr) return true;
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-    auto target_model = obj_->printer_type;
-
-    if (source_model != target_model) {
-        std::vector<std::string> compatible_machine = obj_->get_compatible_machine();
-        vector<std::string>::iterator it = find(compatible_machine.begin(), compatible_machine.end(), source_model);
-        if (it == compatible_machine.end()) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 bool CalibrationPresetPage::is_nozzle_info_synced() const
 {
     if (!curr_obj || !curr_obj->is_info_ready())
@@ -1741,11 +1758,13 @@ void CalibrationPresetPage::update_show_status()
         }
     }
 
-    //if (is_blocking_printing()) {
-    //    show_status(CaliPresetPageStatus::CaliPresetStatusUnsupportedPrinter);
-    //    return;
-    //}
-    //else
+    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
+        has_optional_printer_model = has_optional_printer_model ||
+            DevPrinterConfigUtil::is_optional_printer_model_id(
+                preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
+    }
+
     if (obj_->is_connecting() || !obj_->is_connected()) {
         show_status(CaliPresetPageStatus::CaliPresetStatusInConnecting);
         return;
@@ -1797,7 +1816,9 @@ void CalibrationPresetPage::update_show_status()
         return;
     }
 
-    show_status(CaliPresetPageStatus::CaliPresetStatusNormal);
+    show_status(has_optional_printer_model ?
+        CaliPresetPageStatus::CaliPresetStatusOptionalPrinterModel :
+        CaliPresetPageStatus::CaliPresetStatusNormal);
 }
 
 
@@ -1850,6 +1871,10 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(true);
         Layout();
         Fit();
+    }
+    else if (status == CaliPresetPageStatus::CaliPresetStatusOptionalPrinterModel) {
+        update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusOptionalPrinterModel), true);
+        Enable_Send_Button(true);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNoUserLogin) {
         wxString msg_text = _L("No login account, only printers in LAN mode are displayed.");

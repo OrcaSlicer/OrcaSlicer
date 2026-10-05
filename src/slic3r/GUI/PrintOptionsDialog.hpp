@@ -1,6 +1,12 @@
 #ifndef slic3r_GUI_PrintOptionsDialog_hpp_
 #define slic3r_GUI_PrintOptionsDialog_hpp_
 
+#include <wx/panel.h>
+#include <wx/event.h>
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <vector>
+#include <string>
 #include <wx/wx.h>
 #include <wx/font.h>
 #include <wx/colour.h>

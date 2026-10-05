@@ -4,6 +4,11 @@
 #include "DevUtil.h"
 
 #include "slic3r/GUI/DeviceManager.hpp"
+#include <boost/log/trivial.hpp>
+#include <optional>
+#include <string>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 namespace Slic3r {
 

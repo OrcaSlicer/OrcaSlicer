@@ -1,7 +1,9 @@
 #ifndef _libslic3r_Exception_h_
 #define _libslic3r_Exception_h_
 
+#include <cstddef>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace Slic3r {
