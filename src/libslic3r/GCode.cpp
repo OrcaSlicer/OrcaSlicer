@@ -8498,13 +8498,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
                                                                               fan_overlap_threshold);
             }
+            if (!NOZZLE_CONFIG(enable_overhang_speed))
+                for (ProcessedPoint &point : new_points)
+                    point.speed = speed;
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
-            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
-                if (!NOZZLE_CONFIG(enable_overhang_speed))
-                    for (ProcessedPoint &point : new_points)
-                        point.speed = speed;
-                variable_speed = new_points.size() > 1;
+            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers && fan_overlap_threshold >= 0.f) {
+                const bool has_overhang_fan = std::any_of(new_points.begin(), new_points.end(),
+                                                          [fan_overlap_threshold](const ProcessedPoint &p) { return p.overlap <= fan_overlap_threshold; });
+                variable_speed = variable_speed || has_overhang_fan;
             }
     }
 

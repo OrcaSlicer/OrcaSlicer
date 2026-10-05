@@ -99,3 +99,39 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
 }
+
+TEST_CASE("Arc fitting generates arcs when overhang cooling fan is enabled", "[GCode][Cooling][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_arc_fitting",             true },
+        { "enable_overhang_bridge_fan",     true },
+        { "enable_overhang_speed",          true },
+        { "initial_layer_print_height",     0.2 },
+        { "layer_height",                   0.2 },
+        { "slow_down_for_layer_cooling",    false },
+    });
+    config.set_key_value("fan_max_speed", new ConfigOptionFloats{20.0});
+    config.set_key_value("fan_min_speed", new ConfigOptionFloats{20.0});
+    config.set_key_value("overhang_fan_speed", new ConfigOptionInts{100});
+    config.set_key_value("overhang_fan_threshold", new ConfigOptionEnumsGeneric{Overhang_threshold_2_4});
+
+    const auto count_arcs = [](const std::string &gcode) {
+        size_t count = 0;
+        std::istringstream input(gcode);
+        std::string line;
+        while (std::getline(input, line)) {
+            if (line.rfind("G2 ", 0) == 0 || line.rfind("G3 ", 0) == 0)
+                count++;
+        }
+        return count;
+    };
+
+    const std::string gcode_with_fan = slice({make_cylinder(25.0, 10.0, 2.0 * PI / 72.0)}, config);
+    CHECK(count_arcs(gcode_with_fan) > 0);
+
+    config.set_deserialize_strict({{"enable_overhang_speed", false}});
+    const std::string gcode_without_speed = slice({make_cylinder(25.0, 10.0, 2.0 * PI / 72.0)}, config);
+    CHECK(count_arcs(gcode_without_speed) > 0);
+}
+
