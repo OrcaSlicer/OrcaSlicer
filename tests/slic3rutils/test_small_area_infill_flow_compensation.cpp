@@ -1,8 +1,13 @@
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <boost/any.hpp>
+#include <string>
+#include <vector>
 
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 
 using namespace Slic3r;

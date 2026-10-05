@@ -2,7 +2,11 @@
 
 #include "CurveEditorPanel.hpp"
 #include <memory>
+#include <string>
+#include <vector>
 #include <wx/dialog.h>
+#include <wx/string.h>
+#include "libslic3r/CurveModel.hpp"
 #include "Widgets/TextInput.hpp"
 
 class wxGrid;

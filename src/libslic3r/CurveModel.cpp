@@ -1,9 +1,15 @@
 #include "CurveModel.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
+#include <istream>
 #include <locale>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 #include <boost/algorithm/string/trim.hpp>
 #include "I18N.hpp"
 

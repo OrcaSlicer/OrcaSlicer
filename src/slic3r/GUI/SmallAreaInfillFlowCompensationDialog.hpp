@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <vector>
 #include "CurveEditorDialog.hpp"
 
 namespace Slic3r::GUI {
