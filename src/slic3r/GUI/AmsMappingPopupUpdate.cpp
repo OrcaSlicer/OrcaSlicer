@@ -329,7 +329,8 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
 
         if (m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC) {
             auto sizer_mapping_list = new wxBoxSizer(wxHORIZONTAL);
-            const auto& shown_name = td_opt->ams_id == VIRTUAL_TRAY_MAIN_ID ? "Ext-R" : "Ext-L";
+            // TRN Short labels of the external spool of the right and left nozzle
+            const auto& shown_name = td_opt->ams_id == VIRTUAL_TRAY_MAIN_ID ? _L("Ext-R") : _L("Ext-L");
             auto ams_mapping_item_container = new MappingContainer(m_right_marea_panel, shown_name, 1);
             ams_mapping_item_container->SetName(m_right_marea_panel->GetName());
             ams_mapping_item_container->SetSizer(sizer_mapping_list);
@@ -588,7 +589,7 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
         // slots Ext-R / Ext-L inline in the two-nozzle left+right views (matches that overload's result).
         if ((m_show_type == ShowType::LEFT_AND_RIGHT || m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC)
             && (tray_data[i].id == VIRTUAL_TRAY_MAIN_ID || tray_data[i].id == VIRTUAL_TRAY_DEPUTY_ID)) {
-            m_mapping_item->set_tray_index(tray_data[i].id == VIRTUAL_TRAY_MAIN_ID ? wxString("Ext-R") : wxString("Ext-L"));
+            m_mapping_item->set_tray_index(tray_data[i].id == VIRTUAL_TRAY_MAIN_ID ? _L("Ext-R") : _L("Ext-L"));
         } else {
             m_mapping_item->set_tray_index(wxGetApp().transition_tridid(tray_data[i].id));
         }
@@ -718,7 +719,7 @@ void AmsMapingPopup::add_ext_ams_mapping(TrayData tray_data, MappingItem* item)
         });
     }
 
-    item->set_tray_index("Ext");
+    item->set_tray_index(_L("Ext"));
 }
 
 } // namespace Slic3r::GUI

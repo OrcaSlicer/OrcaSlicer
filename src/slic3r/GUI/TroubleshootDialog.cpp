@@ -1249,7 +1249,7 @@ bool TroubleshootDialog::ExportAsJson(const wxString& json_data, const wxString&
 
     wxFileDialog dialog(this, _L("Choose where to save the exported JSON file"), defaultPath,
         export_name.IsEmpty() ? "export.json" : export_name + ".json",
-        "JSON files (*.json)|*.json",
+        _L("JSON files (*.json)|*.json"),
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT
     );
 

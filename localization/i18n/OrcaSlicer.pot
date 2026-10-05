@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 22:37-0300\n"
+"POT-Creation-Date: 2026-10-05 06:46-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -81,6 +81,7 @@ msgstr ""
 msgid "left nozzle"
 msgstr ""
 
+#. TRN Nozzle counts: Std = standard flow, HF = high flow
 msgid "Right Nozzle"
 msgstr ""
 
@@ -1591,6 +1592,18 @@ msgstr ""
 msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr ""
 
+msgid "Not valid state please report reproduction steps on github"
+msgstr ""
+
+msgid "No embossed file"
+msgstr ""
+
+msgid "Missing svg file in embossed shape"
+msgstr ""
+
+msgid "Missing data of svg file"
+msgstr ""
+
 msgid "Face the camera"
 msgstr ""
 
@@ -1673,6 +1686,9 @@ msgstr ""
 
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
+msgstr ""
+
+msgid "SVG shape"
 msgstr ""
 
 #. TRN - Input label. Be short as possible
@@ -2307,6 +2323,9 @@ msgstr ""
 msgid ""
 "\n"
 "You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Application will close."
 msgstr ""
 
 msgid "Orca Slicer - Switching language failed"
@@ -3354,6 +3373,14 @@ msgstr ""
 msgid "code"
 msgstr ""
 
+#. TRN Short for "description" of a connection error
+msgid "desc"
+msgstr ""
+
+#. TRN Short for "additional information" about a connection error
+msgid "info"
+msgstr ""
+
 msgid "Failed to connect to cloud service"
 msgstr ""
 
@@ -3529,6 +3556,11 @@ msgstr ""
 msgid "Switch track at Filament Track Switch"
 msgstr ""
 
+#. TRN AMS unit number, then slot number
+#, possible-c-format, possible-boost-format
+msgid "AMS-%d-%d Slot"
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid "The maximum temperature cannot exceed %d"
 msgstr ""
@@ -3635,6 +3667,9 @@ msgstr ""
 msgid "Ignore"
 msgstr ""
 
+msgid "unknown"
+msgstr ""
+
 msgid "Done."
 msgstr ""
 
@@ -3652,6 +3687,10 @@ msgid ""
 msgstr ""
 
 msgid "Arranging..."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Object %s has zero size and can't be arranged."
 msgstr ""
 
 msgid "Arranging"
@@ -3827,7 +3866,13 @@ msgstr ""
 msgid "The Storage in the printer is read-only. Please replace it with a normal Storage before sending to printer."
 msgstr ""
 
+msgid "Can't create empty volume."
+msgstr ""
+
 msgid "Bad input data for EmbossCreateObjectJob."
+msgstr ""
+
+msgid "Can't create empty object."
 msgstr ""
 
 msgid "Add Emboss text object"
@@ -3845,9 +3890,18 @@ msgstr ""
 msgid "Bad input data for UseSurfaceJob."
 msgstr ""
 
+msgid "It is used default volume for embossed text, try to change text or font to fix it."
+msgstr ""
+
+msgid "Empty mesh can't be created."
+msgstr ""
+
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
+msgstr ""
+
+msgid "Bad object to create volume."
 msgstr ""
 
 msgid "Add Emboss text Volume"
@@ -3945,6 +3999,11 @@ msgstr ""
 msgid "About %s"
 msgstr ""
 
+#. TRN %s is the commit the application was built from
+#, possible-c-format, possible-boost-format
+msgid "Build %s"
+msgstr ""
+
 msgid "Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."
 msgstr ""
 
@@ -3952,6 +4011,9 @@ msgid "OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStud
 msgstr ""
 
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
+msgstr ""
+
+msgid "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"
 msgstr ""
 
 msgid "Script plugin skipped."
@@ -4099,6 +4161,7 @@ msgstr ""
 msgid "%s does not support %s"
 msgstr ""
 
+#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr ""
 
@@ -5087,6 +5150,11 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr ""
 
 msgid "System agents"
+msgstr ""
+
+#. TRN %1% is the ID of a printer agent that is no longer available
+#, possible-boost-format
+msgid "%1% (missing)"
 msgstr ""
 
 msgid "Add plugin"
@@ -6795,6 +6863,9 @@ msgstr ""
 msgid "Rate"
 msgstr ""
 
+msgid "Calculating..."
+msgstr ""
+
 msgid "Camera"
 msgstr ""
 
@@ -6975,9 +7046,6 @@ msgstr ""
 msgid ""
 "The following issues occurred during the process of uploading images. Do you want to ignore them?\n"
 "\n"
-msgstr ""
-
-msgid "info"
 msgstr ""
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
@@ -7388,6 +7456,9 @@ msgstr ""
 msgid "Safely remove hardware."
 msgstr ""
 
+msgid "Ejecting."
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
@@ -7416,6 +7487,10 @@ msgid "ERROR"
 msgstr ""
 
 msgid "COMPLETED"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%d%% - %.2f of %.2fMB uploaded"
 msgstr ""
 
 msgid "CANCELED"
@@ -7469,10 +7544,25 @@ msgstr ""
 msgid "G-code path overlap"
 msgstr ""
 
+msgid "Click for more."
+msgstr ""
+
 msgid "Cut connectors"
 msgstr ""
 
+msgid "Instances"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Instance %d"
+msgstr ""
+
 msgid "Layers"
+msgstr ""
+
+#. TRN Object list item: plate number, then instance number
+#, possible-c-format, possible-boost-format
+msgid "[P%d]Instance %d"
 msgstr ""
 
 msgid "The application cannot run normally because OpenGL version is lower than 3.2.\n"
@@ -8328,6 +8418,9 @@ msgstr ""
 msgid "Project downloaded %d%%"
 msgstr ""
 
+msgid "Pressure Advance Test"
+msgstr ""
+
 msgid "INFO:"
 msgstr ""
 
@@ -8335,6 +8428,34 @@ msgid "No accelerations provided for calibration. Use default acceleration value
 msgstr ""
 
 msgid "No speeds provided for calibration. Use default optimal speed "
+msgstr ""
+
+msgid "Orca YOLO Flow Calibration - Perfectionist version"
+msgstr ""
+
+msgid "Orca YOLO Flow Calibration"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Flowrate Test - Pass%d"
+msgstr ""
+
+msgid "Nozzle temperature test"
+msgstr ""
+
+msgid "Max volumetric speed test"
+msgstr ""
+
+msgid "VFA test"
+msgstr ""
+
+msgid "Input shaping Frequency test"
+msgstr ""
+
+msgid "Input shaping Damping test"
+msgstr ""
+
+msgid "Cornering test"
 msgstr ""
 
 msgid "Import SLA archive"
@@ -8782,7 +8903,7 @@ msgstr ""
 msgid "Load Geometry Only"
 msgstr ""
 
-msgid "Load behaviour"
+msgid "Load behavior"
 msgstr ""
 
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
@@ -8944,7 +9065,7 @@ msgstr ""
 msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
 msgstr ""
 
-msgid "Behaviour"
+msgid "Behavior"
 msgstr ""
 
 msgid "Auto flush after changing..."
@@ -10139,6 +10260,12 @@ msgstr ""
 msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr ""
 
+msgid "Right-Ext"
+msgstr ""
+
+msgid "Left-Ext"
+msgstr ""
+
 msgid "nozzle"
 msgstr ""
 
@@ -10621,6 +10748,10 @@ msgid "Additional information:"
 msgstr ""
 
 msgid "vendor"
+msgstr ""
+
+#. TRN Short for "version"
+msgid "ver"
 msgstr ""
 
 msgid "printer model"
@@ -11600,6 +11731,12 @@ msgstr ""
 msgid "[Action Required]"
 msgstr ""
 
+msgid "Printer update service is unavailable."
+msgstr ""
+
+msgid "Failed to check for new printers."
+msgstr ""
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr ""
 
@@ -11736,6 +11873,9 @@ msgstr ""
 msgid ""
 "Press the new shortcut for\n"
 "\"%s\""
+msgstr ""
+
+msgid "Unbind"
 msgstr ""
 
 msgid "The system uses this shortcut, so it cannot be assigned."
@@ -11896,6 +12036,12 @@ msgid "Laser 40W"
 msgstr ""
 
 msgid "Cutting Module"
+msgstr ""
+
+msgid "Active Cutting Module"
+msgstr ""
+
+msgid "Ultrasonic Cutting Module"
 msgstr ""
 
 msgid "Auto Fire Extinguishing System"
@@ -17961,6 +18107,18 @@ msgstr ""
 msgid "materials with inaccurate filament diameter"
 msgstr ""
 
+#, possible-boost-format
+msgid "%1% Flow Rate Calibrated"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% Temperature Calibrated"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% Max Vol Speed Calibrated"
+msgstr ""
+
 msgid "We found the best Flow Dynamics Calibration Factor"
 msgstr ""
 
@@ -18300,14 +18458,16 @@ msgstr ""
 msgid "Temp step: "
 msgstr ""
 
+#. TRN %s is the temperature unit
+#, possible-c-format, possible-boost-format
+msgid "Supported range: 170%s - 500%s"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 500\n"
 "End temp: >= 155\n"
 "Start temp >= End temp + 5"
-msgstr ""
-
-msgid "Max volumetric speed test"
 msgstr ""
 
 msgid "Start volumetric speed: "
@@ -18321,9 +18481,6 @@ msgid ""
 "start > 0\n"
 "step >= 0\n"
 "end > start + step"
-msgstr ""
-
-msgid "VFA test"
 msgstr ""
 
 msgid "Start speed: "
@@ -18382,9 +18539,6 @@ msgid "Start retraction length: "
 msgstr ""
 
 msgid "End retraction length: "
-msgstr ""
-
-msgid "Input shaping Frequency test"
 msgstr ""
 
 msgid "Test model"
@@ -18464,9 +18618,6 @@ msgid ""
 msgstr ""
 
 msgid "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
-msgstr ""
-
-msgid "Cornering test"
 msgstr ""
 
 msgid "SCV-V2"
@@ -18654,6 +18805,11 @@ msgstr ""
 msgid "Filament Mapping:"
 msgstr ""
 
+#. TRN External spool slot, followed by its filament type
+#, possible-c-format, possible-boost-format
+msgid "Ext - %s"
+msgstr ""
+
 msgid "Unable to perform boolean operation on selected parts"
 msgstr ""
 
@@ -18727,6 +18883,23 @@ msgid "Test bing.com:"
 msgstr ""
 
 msgid "Log Info"
+msgstr ""
+
+#. TRN %s is the name of the tested website
+#, possible-c-format, possible-boost-format
+msgid "test %s start..."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "test %s ip resolved = %s"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "test %s failed"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "test %s ok"
 msgstr ""
 
 msgid "Select filament preset"
@@ -19223,6 +19396,12 @@ msgstr ""
 msgid "Generate API Key"
 msgstr ""
 
+msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
+msgstr ""
+
+msgid "API Key created."
+msgstr ""
+
 msgid "Are you sure to log out?"
 msgstr ""
 
@@ -19251,10 +19430,16 @@ msgstr ""
 msgid "Click Scan to look for K-series printers on your network."
 msgstr ""
 
+msgid "Scan"
+msgstr ""
+
 msgid "Use Selected"
 msgstr ""
 
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
+msgstr ""
+
+msgid "(unknown K-series)"
 msgstr ""
 
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
@@ -19355,6 +19540,9 @@ msgid "log(s)"
 msgstr ""
 
 msgid "Choose where to save the exported JSON file"
+msgstr ""
+
+msgid "JSON files (*.json)|*.json"
 msgstr ""
 
 msgid ""
@@ -19773,6 +19961,10 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
+#. TRN Button that jumps to the page number typed next to it
+msgid "Go"
+msgstr ""
+
 msgid "Task Status"
 msgstr ""
 
@@ -19880,6 +20072,10 @@ msgid " to set nozzle count"
 msgstr ""
 
 msgid "Set the physical nozzle count..."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "(Std: %d, HF: %d)"
 msgstr ""
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
@@ -20156,6 +20352,9 @@ msgstr ""
 msgid "Download and Install"
 msgstr ""
 
+msgid "Skip for Now"
+msgstr ""
+
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
@@ -20172,6 +20371,12 @@ msgstr ""
 msgid "Update Now"
 msgstr ""
 
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
 msgid "(Latest)"
 msgstr ""
 
@@ -20185,6 +20390,9 @@ msgid "A restart is required to load the new plug-in. Would you like to restart 
 msgstr ""
 
 msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
@@ -20268,6 +20476,9 @@ msgstr ""
 msgid "Save preset bundle"
 msgstr ""
 
+msgid "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"
+msgstr ""
+
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr ""
 
@@ -20298,7 +20509,17 @@ msgid ""
 "Press \"Perform\" to proceed."
 msgstr ""
 
+msgid "Press \"Undo\" to remove previous integration."
+msgstr ""
+
+msgid "Could not start download due to malformed URL"
+msgstr ""
+
 msgid "The download has failed"
+msgstr ""
+
+#, possible-boost-format
+msgid "Failed to find suitable filename. Last name: %1%."
 msgstr ""
 
 #. TRN %1% = file path
@@ -20306,7 +20527,16 @@ msgstr ""
 msgid "Can't create file at %1%"
 msgstr ""
 
+msgid "Failed to write and move."
+msgstr ""
+
 msgid "Archive preview"
+msgstr ""
+
+msgid "filename"
+msgstr ""
+
+msgid "All files (*.*)|*.*"
 msgstr ""
 
 msgid "Open File"
@@ -21189,6 +21419,21 @@ msgstr ""
 msgid "Extrude dist"
 msgstr ""
 
+msgid "Blind"
+msgstr ""
+
+msgid "Two-sided"
+msgstr ""
+
+msgid "Through all"
+msgstr ""
+
+msgid "Up to face"
+msgstr ""
+
+msgid "Up to vertex"
+msgstr ""
+
 msgid "End"
 msgstr ""
 
@@ -21483,6 +21728,10 @@ msgstr ""
 msgid "Face %d is already in the list"
 msgstr ""
 
+#, possible-c-format, possible-boost-format
+msgid "Face %d"
+msgstr ""
+
 msgid "Faces to delete"
 msgstr ""
 
@@ -21688,6 +21937,9 @@ msgstr ""
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr ""
 
+msgid "(locked)"
+msgstr ""
+
 msgid "Could not resolve the sketch to extrude"
 msgstr ""
 
@@ -21698,10 +21950,6 @@ msgid "Region selected — right-click to Extrude, or double-click to edit"
 msgstr ""
 
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Face %d"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -21790,7 +22038,13 @@ msgstr ""
 msgid "Import SVG"
 msgstr ""
 
+msgid "SVG files (*.svg)|*.svg|All files|*.*"
+msgstr ""
+
 msgid "Import STEP"
+msgstr ""
+
+msgid "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"
 msgstr ""
 
 msgid "Reading STEP…"
@@ -21812,6 +22066,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Import mesh"
+msgstr ""
+
+msgid "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"
 msgstr ""
 
 msgid "Could not read the STL file"
@@ -21863,7 +22120,7 @@ msgstr ""
 msgid " — drag to place/size, then Confirm"
 msgstr ""
 
-msgid "Insert cancelled"
+msgid "Insert canceled"
 msgstr ""
 
 msgid "Drag a corner to scale, the center to move — right-click when done"
@@ -22508,6 +22765,10 @@ msgstr[1] ""
 msgid "Applied constraint"
 msgstr ""
 
+#. TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+msgid "·Ctr"
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid "Fix %s"
 msgstr ""
@@ -22693,6 +22954,9 @@ msgstr ""
 msgid "Export STEP"
 msgstr ""
 
+msgid "STEP files (*.step;*.stp)|*.step;*.stp"
+msgstr ""
+
 msgid "Exported STEP"
 msgstr ""
 
@@ -22750,7 +23014,7 @@ msgstr ""
 msgid "Face %d (push/pull)"
 msgstr ""
 
-msgid "Move cancelled"
+msgid "Move canceled"
 msgstr ""
 
 msgid "Discard this sketch and everything drawn in it?"
@@ -22821,10 +23085,158 @@ msgstr ""
 msgid "Empty mesh generated"
 msgstr ""
 
+#. TRN Default name of an object created from the box primitive shape.
+msgid "Box"
+msgstr ""
+
+#. TRN Primitive gizmo: label in front of the preset cube size buttons
+msgid "Quick:"
+msgstr ""
+
+msgid "Width (X)"
+msgstr ""
+
+msgid "Depth (Y)"
+msgstr ""
+
+msgid "Height (Z)"
+msgstr ""
+
+#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
+msgid "Bottom R"
+msgstr ""
+
+msgid "Top R"
+msgstr ""
+
+#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
+msgid "Major R"
+msgstr ""
+
+msgid "Minor R"
+msgstr ""
+
+msgid "All edges"
+msgstr ""
+
+msgid "Top edges"
+msgstr ""
+
+msgid "Bottom edges"
+msgstr ""
+
+msgid "Lateral edges"
+msgstr ""
+
+msgid "Mesh resolution"
+msgstr ""
+
+msgid "Add Shape"
+msgstr ""
+
+msgid "No outer profile"
+msgstr ""
+
+msgid "Failed to make outer face"
+msgstr ""
+
+msgid "Failed to build face with holes"
+msgstr ""
+
+msgid "Revolve failed"
+msgstr ""
+
+msgid "Profile"
+msgstr ""
+
+msgid "Start new profile (for holes)"
+msgstr ""
+
+#. TRN Sketch gizmo: number of segments a circle is built from
+msgid "Seg"
+msgstr ""
+
+msgid "Sides"
+msgstr ""
+
+msgid "Click on canvas to draw"
+msgstr ""
+
+msgid "Snap to grid"
+msgstr ""
+
+msgid "Outer"
+msgstr ""
+
+msgid "CLOSED"
+msgstr ""
+
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#, possible-boost-format
+msgid "%1% %2%: %3% pts %4%"
+msgstr ""
+
+msgid "XY (Top)"
+msgstr ""
+
+msgid "XZ (Front)"
+msgstr ""
+
+msgid "YZ (Side)"
+msgstr ""
+
+msgid "Revolve deg"
+msgstr ""
+
+msgid "Set to 0 for extrude, >0 for revolve"
+msgstr ""
+
+msgid "Pocket (cut)"
+msgstr ""
+
+#, possible-c-format
+msgid "%zu closed profile"
+msgid_plural "%zu closed profiles"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Draw a closed profile to enable"
+msgstr ""
+
 msgid "Pocket (Cut)"
 msgstr ""
 
 msgid "Clear All"
+msgstr ""
+
+msgid "Empty result"
+msgstr ""
+
+#, possible-boost-format
+msgid "Extrude: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "Revolve: %1%"
+msgstr ""
+
+msgid "No object selected"
+msgstr ""
+
+msgid "Face failed"
+msgstr ""
+
+msgid "Face with holes failed"
+msgstr ""
+
+msgid "Tool mesh empty"
+msgstr ""
+
+msgid "Pocket added (negative volume)"
+msgstr ""
+
+#, possible-boost-format
+msgid "Pocket: %1%"
 msgstr ""
 
 msgctxt "Keyboard Shortcut"
@@ -23034,6 +23446,411 @@ msgstr ""
 msgid "Speed Dial"
 msgstr ""
 
+msgid "helix radius must be > 0"
+msgstr ""
+
+msgid "helix pitch must be > 0"
+msgstr ""
+
+msgid "helix height must be >= 0"
+msgstr ""
+
+msgid "helix height of 0 (flat spiral) is not supported"
+msgstr ""
+
+msgid "helix turn count exceeds limit (10000)"
+msgstr ""
+
+msgid "helix taper drives radius negative before reaching height"
+msgstr ""
+
+msgid "bad character in expression"
+msgstr ""
+
+msgid "mismatched parentheses"
+msgstr ""
+
+#, possible-boost-format
+msgid "unknown identifier: %1%"
+msgstr ""
+
+msgid "missing operand for unary minus"
+msgstr ""
+
+#, possible-boost-format
+msgid "not enough operands for '%1%'"
+msgstr ""
+
+msgid "division by zero"
+msgstr ""
+
+#, possible-boost-format
+msgid "not enough arguments for %1%()"
+msgstr ""
+
+#, possible-boost-format
+msgid "unknown function: %1%"
+msgstr ""
+
+msgid "invalid expression"
+msgstr ""
+
+#, possible-boost-format
+msgid "variable cycle: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "unknown parameter: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "unknown hole standard \"%1%\""
+msgstr ""
+
+#, possible-boost-format
+msgid "connector %1% is not a coordinate system"
+msgstr ""
+
+msgid "a mate needs two different connectors"
+msgstr ""
+
+msgid "connector B is not attached to a body — a mate moves B's body"
+msgstr ""
+
+msgid "connector B's body no longer exists"
+msgstr ""
+
+msgid "needs a flat face at both ends — both connectors are on curved faces"
+msgstr ""
+
+#, possible-boost-format
+msgid "needs a flat face at both ends — connector %1% is on a curved face"
+msgstr ""
+
+msgid "needs a cylindrical face at both ends — both connectors are on flat faces"
+msgstr ""
+
+msgid "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces"
+msgstr ""
+
+#, possible-boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a flat face"
+msgstr ""
+
+#, possible-boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr ""
+
+msgid "two points are coincident"
+msgstr ""
+
+msgid "face not found"
+msgstr ""
+
+msgid "face is not a cylinder"
+msgstr ""
+
+msgid "edge not found"
+msgstr ""
+
+msgid "plane ref not found"
+msgstr ""
+
+msgid "planes are parallel (no intersection)"
+msgstr ""
+
+msgid "zero-length direction"
+msgstr ""
+
+msgid "feature is used by a later feature"
+msgstr ""
+
+msgid "sketch entities do not form a closed loop"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Open at (%.3f, %.3f)"
+msgstr ""
+
+#, possible-boost-format
+msgid "...and %1% more open end(s)"
+msgstr ""
+
+msgid "sketch has entities but they do not form a single closed wire — a closed entity (circle/ellipse) combined with other entities, or several closed entities, is not supported yet"
+msgstr ""
+
+msgid "sketch profile wire failed"
+msgstr ""
+
+msgid "circle wire failed"
+msgstr ""
+
+msgid "face-extrude needs a body"
+msgstr ""
+
+msgid "tapered extrude of a sketch with holes is not supported yet"
+msgstr ""
+
+msgid "fuse failed"
+msgstr ""
+
+msgid "cut failed"
+msgstr ""
+
+msgid "intersect failed"
+msgstr ""
+
+msgid "surface-extrude: empty profile"
+msgstr ""
+
+#, possible-boost-format
+msgid "surface-extrude: %1%"
+msgstr ""
+
+msgid "prism failed"
+msgstr ""
+
+msgid "surface-revolve: empty profile"
+msgstr ""
+
+msgid "surface-revolve: revolve failed"
+msgstr ""
+
+msgid "surface-loft needs 2+ valid profile sketches"
+msgstr ""
+
+msgid "surface-loft: loft failed"
+msgstr ""
+
+msgid "surface-fill: empty boundary"
+msgstr ""
+
+msgid "surface-fill: boundary has no edges"
+msgstr ""
+
+msgid "surface-fill: fill failed"
+msgstr ""
+
+msgid "surface-fill: produced no geometry"
+msgstr ""
+
+msgid "sweep needs a valid path reference"
+msgstr ""
+
+#, possible-boost-format
+msgid "helix path: %1%"
+msgstr ""
+
+msgid "sweep path must be a sketch or helix"
+msgstr ""
+
+msgid "loft needs 2+ valid profile sketches"
+msgstr ""
+
+msgid "pattern needs a body"
+msgstr ""
+
+msgid "pattern fuse failed"
+msgstr ""
+
+msgid "rib needs a body"
+msgstr ""
+
+msgid "rib: entity must be a line"
+msgstr ""
+
+msgid "rib: degenerate line"
+msgstr ""
+
+msgid "rib: profile failed"
+msgstr ""
+
+msgid "rib: extrude failed"
+msgstr ""
+
+msgid "rib: fuse failed"
+msgstr ""
+
+msgid "fillet needs a body"
+msgstr ""
+
+msgid "chamfer needs a body"
+msgstr ""
+
+msgid "hole needs a body"
+msgstr ""
+
+msgid "hole wire failed"
+msgstr ""
+
+msgid "hole cut failed"
+msgstr ""
+
+msgid "internal thread needs a body"
+msgstr ""
+
+msgid "shell needs a body"
+msgstr ""
+
+msgid "shell failed"
+msgstr ""
+
+msgid "shell produced no geometry"
+msgstr ""
+
+msgid "draft needs a body"
+msgstr ""
+
+msgid "draft needs a picked face"
+msgstr ""
+
+msgid "draft: face not found"
+msgstr ""
+
+msgid "draft: face cannot be drafted (is it parallel to the base?)"
+msgstr ""
+
+msgid "draft failed"
+msgstr ""
+
+msgid "draft produced no geometry"
+msgstr ""
+
+msgid "delete_face needs a body"
+msgstr ""
+
+msgid "delete_face needs at least one face"
+msgstr ""
+
+msgid "delete_face: face not found"
+msgstr ""
+
+msgid "delete_face failed"
+msgstr ""
+
+msgid "delete_face produced no geometry"
+msgstr ""
+
+msgid "boolean operation failed"
+msgstr ""
+
+msgid "boolean produced an empty shape"
+msgstr ""
+
+msgid "cut: no target body"
+msgstr ""
+
+msgid "cut keeps nothing"
+msgstr ""
+
+msgid "cut: face body is empty"
+msgstr ""
+
+msgid "cut: face not found"
+msgstr ""
+
+msgid "cut: failed to build cut wire"
+msgstr ""
+
+msgid "cut operation failed"
+msgstr ""
+
+msgid "mirror: no target body"
+msgstr ""
+
+msgid "mirror: transform failed"
+msgstr ""
+
+msgid "mirror: result has zero or negative volume"
+msgstr ""
+
+msgid "mirror fuse failed"
+msgstr ""
+
+msgid "transform: no target body"
+msgstr ""
+
+msgid "transform: rotation axis is degenerate"
+msgstr ""
+
+msgid "transform: failed"
+msgstr ""
+
+msgid "thicken: no target body"
+msgstr ""
+
+msgid "thicken: face not found"
+msgstr ""
+
+msgid "thicken: thickness is zero"
+msgstr ""
+
+msgid "thicken: failed"
+msgstr ""
+
+msgid "thicken: produced no geometry"
+msgstr ""
+
+msgid "thicken-surface: no target body"
+msgstr ""
+
+msgid "thicken-surface: target is not a sheet body"
+msgstr ""
+
+msgid "thicken-surface: thickness is zero"
+msgstr ""
+
+msgid "thicken-surface: cannot cap the sheet rim (is it planar?)"
+msgstr ""
+
+msgid "thicken-surface: failed"
+msgstr ""
+
+msgid "thicken-surface: the capped sheet split into more than one shell"
+msgstr ""
+
+msgid "thicken-surface: the capped sheet is not closed"
+msgstr ""
+
+msgid "thicken-surface: produced no geometry"
+msgstr ""
+
+msgid "thicken-surface: produced a shell, not a solid"
+msgstr ""
+
+msgid "surface-offset: no target body"
+msgstr ""
+
+msgid "surface-offset: target is not a sheet body"
+msgstr ""
+
+msgid "surface-offset: zero offset"
+msgstr ""
+
+msgid "surface-offset: failed"
+msgstr ""
+
+msgid "surface-offset: produced no geometry"
+msgstr ""
+
+msgid "project: no source body"
+msgstr ""
+
+msgid "project: source body is empty"
+msgstr ""
+
+msgid "project: edge not found"
+msgstr ""
+
+msgid "project: face not found"
+msgstr ""
+
+msgid "project: no edges to project"
+msgstr ""
+
+msgid "project: produced no entities"
+msgstr ""
+
 #, possible-boost-format
 msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
 msgstr ""
@@ -23047,7 +23864,82 @@ msgid "Mate chain is circular: Body %1% depends on Body %2%, which leads back to
 msgstr ""
 
 #, possible-boost-format
+msgid "mate: %1%"
+msgstr ""
+
+msgid "mate: transform failed"
+msgstr ""
+
+msgid "feature needs a body"
+msgstr ""
+
+msgid "hole removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr ""
+
+msgid "thread removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr ""
+
+msgid "cut removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr ""
+
+msgid "OCCT operation failed"
+msgstr ""
+
+msgid "unknown geometry error"
+msgstr ""
+
+msgid "no solid-producing features"
+msgstr ""
+
+msgid "an unidentified feature"
+msgstr ""
+
+#, possible-boost-format
+msgid "feature %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "body %1% was destroyed by %2% (the operation produced an empty shape)"
+msgstr ""
+
+#, possible-boost-format
 msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
+msgstr ""
+
+msgid "tessellation produced an empty mesh"
+msgstr ""
+
+msgid "preview produced no geometry"
+msgstr ""
+
+msgid "preview produced an empty mesh"
+msgstr ""
+
+#, possible-boost-format
+msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
+msgstr ""
+
+#, possible-boost-format
+msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
+msgstr ""
+
+#, possible-boost-format
+msgid "CAD data could not be read: %1%"
+msgstr ""
+
+msgid "CAD data could not be read"
+msgstr ""
+
+msgid "nothing to export"
+msgstr ""
+
+msgid "STEP transfer failed"
+msgstr ""
+
+msgid "cannot write STEP file"
+msgstr ""
+
+msgid "OCCT failed to write STEP"
 msgstr ""
 
 msgid "Taking a configuration snapshot failed."
@@ -23057,6 +23949,13 @@ msgid "OrcaSlicer has encountered an error while taking a configuration snapshot
 msgstr ""
 
 msgid "OrcaSlicer error"
+msgstr ""
+
+#. TRN Short labels of the external spool of the right and left nozzle
+msgid "Ext-R"
+msgstr ""
+
+msgid "Ext-L"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -23203,6 +24102,9 @@ msgstr ""
 msgid "Only the following installed printers are compatible with the selected SLA materials"
 msgstr ""
 
+msgid "My Settings"
+msgstr ""
+
 msgid "Custom Printer Setup"
 msgstr ""
 
@@ -23273,6 +24175,9 @@ msgid "A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you ha
 msgstr ""
 
 msgid "Bed Temperature:"
+msgstr ""
+
+msgid "(Unknown)"
 msgstr ""
 
 msgid "SLA Materials"
@@ -23397,6 +24302,9 @@ msgid "Summary: This is currently the most suitable position for placement."
 msgstr ""
 
 msgid "?"
+msgstr ""
+
+msgid "Wiki->"
 msgstr ""
 
 msgid "Note:"
@@ -23591,6 +24499,9 @@ msgid "Could not load the selected texture."
 msgstr ""
 
 msgid "Change texture displacement texture"
+msgstr ""
+
+msgid "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
 msgstr ""
 
 msgid "Choose a texture image (height map)"
@@ -23872,7 +24783,7 @@ msgid "Midlevel"
 msgstr ""
 
 msgid ""
-"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"Which gray stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones still push out - one image both embosses and engraves.\n"
 "\n"
 "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
 msgstr ""
@@ -23898,19 +24809,19 @@ msgstr ""
 msgid "Turns the relief inside out: what stood out is cut in, and the other way round. The same as using a negative of the image."
 msgstr ""
 
-msgid "Colours"
+msgid "Colors"
 msgstr ""
 
-msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgid "Prints the painted area in the texture's colors as well as its relief. Each color is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
 msgstr ""
 
-msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgid "This texture is a grayscale height map, so it has no colors to apply. Import a color image to use this."
 msgstr ""
 
 msgid "Mix filaments"
 msgstr ""
 
-msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgid "Interleaves two filaments to fake the colors in between, so a handful of filaments can cover a photo or a gradient. An image of flat colors prints the same either way. Off uses one filament per area."
 msgstr ""
 
 msgid "Mix by"
@@ -23927,13 +24838,13 @@ msgid ""
 msgstr ""
 
 #, possible-boost-format
-msgid "%1% printable colours from %2% filaments"
+msgid "%1% printable colors from %2% filaments"
 msgstr ""
 
 msgid "Denoise"
 msgstr ""
 
-msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgid "Cleans up single stray triangles of the wrong color, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
 msgstr ""
 
 msgctxt "Texture Displacement"
@@ -23946,13 +24857,13 @@ msgstr ""
 msgid "Triplanar - projects the texture from all three axes at once and blends between them, so a patch wrapping around a sharp edge has no seam."
 msgstr ""
 
-msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgid "Cylindrical - wraps the texture around the painted area's own center, for round shapes."
 msgstr ""
 
 msgid "Spherical"
 msgstr ""
 
-msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgid "Spherical - wraps the texture around the painted area's own center in both directions."
 msgstr ""
 
 msgid "Unwrap (LSCM)"
@@ -24131,10 +25042,10 @@ msgstr ""
 msgid "Triangle size along the outline of the painted area, where the relief drops back to the bare surface. Lower it if that rim looks jagged; it only costs triangles along the outline. 0 turns it off."
 msgstr ""
 
-msgid "Colour detail"
+msgid "Color detail"
 msgstr ""
 
-msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgid "Triangle size where two colors meet. Each triangle prints in one filament, so a color edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of color. 0 turns it off."
 msgstr ""
 
 msgid "Triangle budget: set with Triangles, below."
@@ -24229,10 +25140,15 @@ msgstr ""
 msgid "Experimental: classic bake pipeline"
 msgstr ""
 
-msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr ""
 
+#. TRN Slider value: %d is the triangle budget in thousands
 msgid "Budget"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%d k (auto)"
 msgstr ""
 
 msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
@@ -24251,6 +25167,10 @@ msgid "Collapse the thin triangles refinement inherits from the model's own tess
 msgstr ""
 
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%.2f mm (auto)"
 msgstr ""
 
 #, possible-boost-format
@@ -24491,6 +25411,15 @@ msgstr ""
 msgid "Overwrite Plugin"
 msgstr ""
 
+msgid "Show in folder"
+msgstr ""
+
+msgid "Reinstall"
+msgstr ""
+
+msgid "Delete cache and reload"
+msgstr ""
+
 msgid "Select a .py or .whl plugin package."
 msgstr ""
 
@@ -24543,6 +25472,9 @@ msgstr ""
 msgid "Deactivated \"%s\"."
 msgstr ""
 
+msgid "Unauthorized cloud plugins cannot be installed."
+msgstr ""
+
 msgid "Plugin manifest was not found."
 msgstr ""
 
@@ -24575,6 +25507,9 @@ msgid ""
 msgstr ""
 
 msgid "Default configuration restored."
+msgstr ""
+
+msgid "Script plugin failed."
 msgstr ""
 
 msgid "Updating plugin"
@@ -24637,7 +25572,26 @@ msgstr ""
 msgid "Deleting local files and unsubscribing plugin..."
 msgstr ""
 
+msgid "Plugin not found."
+msgstr ""
+
+msgid "Refusing to clear a plugin cache outside the local plugin directory."
+msgstr ""
+
+#, possible-boost-format
+msgid "Failed to clear plugin cache: %1%"
+msgstr ""
+
+msgid "Plugin failed to load."
+msgstr ""
+
+msgid "Plugin reloaded, but failed to restore the inactive state."
+msgstr ""
+
 msgid "Reloading plugin"
+msgstr ""
+
+msgid "Unknown plugin reload error."
 msgstr ""
 
 msgid "Failed to reload plugin."
@@ -24663,6 +25617,21 @@ msgid "Reduces prime waste and prints faster. May cause slight color mixing or s
 msgstr ""
 
 msgid "Terminal"
+msgstr ""
+
+msgid "A command is already running."
+msgstr ""
+
+msgid "Bundled Python executable not found."
+msgstr ""
+
+msgid "uv executable not found."
+msgstr ""
+
+msgid "Only 'python' and 'uv' commands are supported."
+msgstr ""
+
+msgid "Failed to start process."
 msgstr ""
 
 msgid "One-click CMYW auto-mix"
@@ -24857,7 +25826,7 @@ msgstr ""
 msgid "Checker - a test grid; squares stay square where the unwrap does not stretch"
 msgstr ""
 
-msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgid "Distortion - color each island by how much the unwrap stretches it"
 msgstr ""
 
 msgid "Unwrap"
@@ -25064,6 +26033,711 @@ msgid "The configuration could not be written to disk. Nothing was changed."
 msgstr ""
 
 msgid "Plugin installation failed"
+msgstr ""
+
+msgid "Profile has fewer than 2 points"
+msgstr ""
+
+msgid "Failed to build wire from profile"
+msgstr ""
+
+msgid "extrude depth is zero"
+msgstr ""
+
+msgid "extrude failed"
+msgstr ""
+
+msgid "Fuse failed"
+msgstr ""
+
+msgid "Failed to make face from wire"
+msgstr ""
+
+msgid "two-sided extrude fuse failed"
+msgstr ""
+
+msgid "imported regions produced no extrudable geometry"
+msgstr ""
+
+msgid "Failed to revolve"
+msgstr ""
+
+msgid "Failed to make face from sweep profile"
+msgstr ""
+
+msgid "Failed to sweep profile along path"
+msgstr ""
+
+msgid "loft needs at least 2 profiles"
+msgstr ""
+
+msgid "loft failed"
+msgstr ""
+
+msgid "loft produced no solid"
+msgstr ""
+
+msgid "loft produced no shape"
+msgstr ""
+
+msgid "Pocket face failed"
+msgstr ""
+
+msgid "Pocket cut failed"
+msgstr ""
+
+msgid "sketch has no closed loop"
+msgstr ""
+
+msgid "sketch loop does not bound a face"
+msgstr ""
+
+msgid "sketch has two disjoint regions; put each in its own sketch"
+msgstr ""
+
+msgid "cannot read STEP file"
+msgstr ""
+
+msgid "STEP file has no geometry"
+msgstr ""
+
+msgid "OCCT failed to read STEP"
+msgstr ""
+
+msgid "mesh_to_brep: mesh has no triangles"
+msgstr ""
+
+msgid "mesh_to_brep: every triangle was rejected as degenerate (try a smaller tolerance)"
+msgstr ""
+
+msgid "fillet radius too large for this geometry"
+msgstr ""
+
+msgid "chamfer distance too large for this geometry"
+msgstr ""
+
+msgid "apply_fillet: OCCT fillet failed"
+msgstr ""
+
+msgid "apply_chamfer: OCCT chamfer failed"
+msgstr ""
+
+msgid "Add material"
+msgstr ""
+
+msgid "Fillet / chamfer / draft"
+msgstr ""
+
+msgid "Reference"
+msgstr ""
+
+msgid "Modify"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch"
+msgstr ""
+
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr ""
+
+msgctxt "Design"
+msgid "Revolve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sweep"
+msgstr ""
+
+msgctxt "Design"
+msgid "Loft"
+msgstr ""
+
+msgctxt "Design"
+msgid "Thicken"
+msgstr ""
+
+msgctxt "Design"
+msgid "Union"
+msgstr ""
+
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr ""
+
+msgctxt "Design"
+msgid "Subtract"
+msgstr ""
+
+msgid "Cut the tool body out of the target"
+msgstr ""
+
+msgctxt "Design"
+msgid "Intersect"
+msgstr ""
+
+msgid "Keep only where the two bodies overlap"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Create a closed sketch first"
+msgstr ""
+
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "target is not a sheet body"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hole"
+msgstr ""
+
+msgid "Pick a face or a plane to drill into"
+msgstr ""
+
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr ""
+
+msgctxt "Design"
+msgid "Thread"
+msgstr ""
+
+msgid "Shell needs a solid body"
+msgstr ""
+
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr ""
+
+msgctxt "Design"
+msgid "Split"
+msgstr ""
+
+msgid "Split needs a solid body"
+msgstr ""
+
+msgid "Split the body along a picked face into two solids"
+msgstr ""
+
+msgctxt "Design"
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick an edge to round"
+msgstr ""
+
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr ""
+
+msgctxt "Design"
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick an edge to bevel"
+msgstr ""
+
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr ""
+
+msgctxt "Design"
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a face to taper"
+msgstr ""
+
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr ""
+
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr ""
+
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr ""
+
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr ""
+
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr ""
+
+msgctxt "Design"
+msgid "Mirror"
+msgstr ""
+
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr ""
+
+msgid "Pattern on curve needs a body and a curve"
+msgstr ""
+
+msgid "Repeat the body along a picked curve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Move"
+msgstr ""
+
+msgctxt "Design"
+msgid "Mate"
+msgstr ""
+
+msgid "A mate needs two coordinate systems"
+msgstr ""
+
+msgctxt "Design"
+msgid "Align to"
+msgstr ""
+
+msgid "Align needs a body"
+msgstr ""
+
+msgid "Align the body to a picked face or plane"
+msgstr ""
+
+msgctxt "Design"
+msgid "Plane"
+msgstr ""
+
+msgctxt "Design"
+msgid "Axis"
+msgstr ""
+
+msgctxt "Design"
+msgid "Coord Sys"
+msgstr ""
+
+msgctxt "Design"
+msgid "Helix"
+msgstr ""
+
+msgctxt "Design"
+msgid "Measure"
+msgstr ""
+
+msgid "Measure between the picked points, edges or faces"
+msgstr ""
+
+msgctxt "Design"
+msgid "Mass"
+msgstr ""
+
+msgid "Report the volume and surface area of the selected body"
+msgstr ""
+
+msgctxt "Design"
+msgid "Interference"
+msgstr ""
+
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr ""
+
+msgctxt "Design"
+msgid "Edit"
+msgstr ""
+
+msgid "Reopen the selected feature to change what it was made from"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rename…"
+msgstr ""
+
+msgid "Select a feature, or a body, to rename it"
+msgstr ""
+
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Delete Face"
+msgstr ""
+
+msgctxt "Design"
+msgid "Colour"
+msgstr ""
+
+msgid "Set the selected body's display colour"
+msgstr ""
+
+msgctxt "Design"
+msgid "Delete"
+msgstr ""
+
+msgid "Delete what is selected"
+msgstr ""
+
+msgctxt "Design"
+msgid "Delete Body"
+msgstr ""
+
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr ""
+
+msgctxt "Design"
+msgid "Line"
+msgstr ""
+
+msgctxt "Design"
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr ""
+
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Centre rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Centre circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "2-point circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "3-point circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "3-point arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Centre-point arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Slot"
+msgstr ""
+
+msgctxt "Design"
+msgid "Arc slot"
+msgstr ""
+
+msgctxt "Design"
+msgid "Ellipse"
+msgstr ""
+
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Spline"
+msgstr ""
+
+msgctxt "Design"
+msgid "Triangle"
+msgstr ""
+
+msgid "Triangle — click centre, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Square"
+msgstr ""
+
+msgid "Square — click centre, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Pentagon"
+msgstr ""
+
+msgid "Pentagon — click centre, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hexagon"
+msgstr ""
+
+msgid "Hexagon — click centre, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Octagon"
+msgstr ""
+
+msgid "Octagon — click centre, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr ""
+
+msgid "Dodecagon — click centre, then a vertex"
+msgstr ""
+
+msgctxt "Design"
+msgid "Inscribed"
+msgstr ""
+
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr ""
+
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr ""
+
+msgctxt "Design"
+msgid "Point"
+msgstr ""
+
+msgid "Type text; its outline is added to this sketch as editable lines"
+msgstr ""
+
+msgctxt "Design"
+msgid "SVG"
+msgstr ""
+
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr ""
+
+msgctxt "Design"
+msgid "Offset"
+msgstr ""
+
+msgctxt "Design"
+msgid "Trim"
+msgstr ""
+
+msgctxt "Design"
+msgid "Linear array"
+msgstr ""
+
+msgid "Array"
+msgstr ""
+
+msgctxt "Design"
+msgid "Polar array"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rotate"
+msgstr ""
+
+msgctxt "Design"
+msgid "Scale"
+msgstr ""
+
+msgctxt "Design"
+msgid "Dimension"
+msgstr ""
+
+msgctxt "Design"
+msgid "Constrain"
+msgstr ""
+
+msgid "Constrain the selected sketch entities to each other"
+msgstr ""
+
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr ""
+
+msgid "Select a sketch to constrain it"
+msgstr ""
+
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr ""
+
+msgctxt "Design"
+msgid "Construction"
+msgstr ""
+
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr ""
+
+msgctxt "Design"
+msgid "Extend"
+msgstr ""
+
+msgid "Delete the selected sketch entities"
+msgstr ""
+
+msgctxt "Design"
+msgid "Length…"
+msgstr ""
+
+msgid "Type the length of this line"
+msgstr ""
+
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr ""
+
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr ""
+
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr ""
+
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr ""
+
+#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
+msgid "Major"
+msgstr ""
+
+msgid "Minor"
+msgstr ""
+
+msgid "right-click or double-click to finish, click start to close"
+msgstr ""
+
+msgid "Extend: click a line/arc that can reach another live entity"
+msgstr ""
+
+msgid "Trim: click a segment where it crosses another live entity"
+msgstr ""
+
+msgid "Authentication complete"
+msgstr ""
+
+msgid "Authentication failed"
+msgstr ""
+
+msgid "You can return to OrcaSlicer. This window will close automatically."
+msgstr ""
+
+msgid "Something went wrong. Please return to OrcaSlicer and try again."
+msgstr ""
+
+msgid "You can return to OrcaSlicer. If your browser does not redirect automatically, use the button below."
+msgstr ""
+
+#, possible-boost-format
+msgid "Failed starting the script %1%, Win32 error: %2%"
+msgstr ""
+
+#, possible-boost-format
+msgid "Post processing script %1% on file %2% failed. CommandLineToArgvW() refused to parse the command line path."
+msgstr ""
+
+#, possible-boost-format
+msgid "The configured post-processing script does not exist: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "Perl interpreter %1% does not exist."
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Post-processing plugin %1% raised an exception.\n"
+"Error: %2%"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"Error: %2%"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"\n"
+"The post-processing plugin is expected to modify the G-code file %2% in place, but the G-code file was deleted.\n"
+"Please check the plugin implementation.\n"
+msgstr ""
+
+#, possible-boost-format
+msgid "Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%"
+msgstr ""
+
+msgid "Post-processor can't find exported gcode file"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%\n"
+"Output:\n"
+"%4%"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Post-processing script %1% failed.\n"
+"\n"
+"The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
+"Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n"
+msgstr ""
+
+msgid "Unable to parse desired new path from output name file"
+msgstr ""
+
+#, possible-boost-format
+msgid "Output directory does not exist: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "Failed reading a file %1% carrying the final name / path of a G-code file: %2%"
+msgstr ""
+
+msgid "The printing task exceeds the limit, supporting a maximum of 6 printers."
+msgstr ""
+
+msgid "Elapsed time:"
+msgstr ""
+
+msgid "Estimated time:"
+msgstr ""
+
+msgid "Remaining time:"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

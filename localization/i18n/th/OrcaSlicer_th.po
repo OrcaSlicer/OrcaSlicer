@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 22:37-0300\n"
+"POT-Creation-Date: 2026-10-05 06:46-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -92,6 +92,7 @@ msgstr "หัวฉีดซ้าย"
 msgid "left nozzle"
 msgstr "หัวฉีดซ้าย"
 
+#. TRN Nozzle counts: Std = standard flow, HF = high flow
 msgid "Right Nozzle"
 msgstr "หัวฉีดขวา"
 
@@ -1683,6 +1684,22 @@ msgstr "ระยะโครงร่าง (%1%) บางเกินไป (
 msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr "เส้นโครงร่างของรูปร่าง (%1%) ประกอบด้วยที่ไม่รองรับ: %2%"
 
+# AI Translated
+msgid "Not valid state please report reproduction steps on github"
+msgstr "สถานะไม่ถูกต้อง โปรดรายงานขั้นตอนการทำให้เกิดซ้ำบน GitHub"
+
+# AI Translated
+msgid "No embossed file"
+msgstr "ไม่มีไฟล์ลายนูน"
+
+# AI Translated
+msgid "Missing svg file in embossed shape"
+msgstr "ไม่มีไฟล์ SVG ในรูปทรงลายนูน"
+
+# AI Translated
+msgid "Missing data of svg file"
+msgstr "ไม่มีข้อมูลของไฟล์ SVG"
+
 msgid "Face the camera"
 msgstr "หันหน้าเข้าหากล้อง"
 
@@ -1768,6 +1785,10 @@ msgstr "กลับด้านแนวนอน"
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
 msgstr "เปลี่ยนประเภท SVG"
+
+# AI Translated
+msgid "SVG shape"
+msgstr "รูปทรง SVG"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
@@ -2481,6 +2502,10 @@ msgid ""
 msgstr ""
 "\n"
 "คุณอาจต้องตั้งค่าโลแคลที่ขาดหายไปใหม่ ซึ่งอาจทำได้โดยการรันคำสั่ง \"locale-gen\" และ \"dpkg-reconfigure locales\"\n"
+
+# AI Translated
+msgid "Application will close."
+msgstr "แอปพลิเคชันจะปิดลง"
 
 # AI Translated
 msgid "Orca Slicer - Switching language failed"
@@ -3507,14 +3532,17 @@ msgstr "หยุดชั่วคราว:"
 msgid "Custom Template:"
 msgstr "เทมเพลตที่กำหนดเอง:"
 
+# AI Translated
 msgid "Custom G-code:"
-msgstr "รหัส G ที่กำหนดเอง:"
+msgstr "G-code ที่กำหนดเอง:"
 
+# AI Translated
 msgid "Custom G-code"
-msgstr "รหัส G ที่กำหนดเอง"
+msgstr "G-code ที่กำหนดเอง"
 
+# AI Translated
 msgid "Enter Custom G-code used on current layer:"
-msgstr "ป้อนรหัส G ที่กำหนดเองที่ใช้ในเลเยอร์ปัจจุบัน:"
+msgstr "ป้อน G-code ที่กำหนดเองที่ใช้ในเลเยอร์ปัจจุบัน:"
 
 msgid "Jump to layer"
 msgstr "ข้ามไปที่เลเยอร์"
@@ -3528,8 +3556,9 @@ msgstr "เพิ่มการหยุดชั่วคราว"
 msgid "Insert a pause command at the beginning of this layer."
 msgstr "แทรกคำสั่งหยุดชั่วคราวที่จุดเริ่มต้นของเลเยอร์นี้"
 
+# AI Translated
 msgid "Add Custom G-code"
-msgstr "เพิ่มรหัส G ที่กำหนดเอง"
+msgstr "เพิ่ม G-code ที่กำหนดเอง"
 
 msgid "Insert custom G-code at the beginning of this layer."
 msgstr "แทรก G-code ที่กำหนดเองที่จุดเริ่มต้นของเลเยอร์นี้"
@@ -3552,11 +3581,13 @@ msgstr "ลบการหยุดชั่วคราว"
 msgid "Delete Custom Template"
 msgstr "ลบเทมเพลตแบบกำหนดเอง"
 
+# AI Translated
 msgid "Edit Custom G-code"
-msgstr "แก้ไขรหัส G ที่กำหนดเอง"
+msgstr "แก้ไข G-code ที่กำหนดเอง"
 
+# AI Translated
 msgid "Delete Custom G-code"
-msgstr "ลบรหัส G แบบกำหนดเอง"
+msgstr "ลบ G-code แบบกำหนดเอง"
 
 msgid "Delete Filament Change"
 msgstr "ลบการเปลี่ยนแปลงเส้นพลาสติก"
@@ -3575,6 +3606,15 @@ msgstr "ตรวจสอบสถานะของบริการระบ
 
 msgid "code"
 msgstr "รหัส"
+
+# AI Translated
+#. TRN Short for "description" of a connection error
+msgid "desc"
+msgstr "คำอธิบาย"
+
+#. TRN Short for "additional information" about a connection error
+msgid "info"
+msgstr "ข้อมูล"
 
 msgid "Failed to connect to cloud service"
 msgstr "เชื่อมต่อบริการคลาวด์ไม่สำเร็จ"
@@ -3760,6 +3800,12 @@ msgid "Switch track at Filament Track Switch"
 msgstr "สลับแทร็กที่ Filament Track Switch"
 
 # AI Translated
+#. TRN AMS unit number, then slot number
+#, c-format, boost-format
+msgid "AMS-%d-%d Slot"
+msgstr "ช่อง AMS-%d-%d"
+
+# AI Translated
 #, c-format, boost-format
 msgid "The maximum temperature cannot exceed %d"
 msgstr "อุณหภูมิสูงสุดต้องไม่เกิน %d"
@@ -3881,6 +3927,10 @@ msgid "Ignore"
 msgstr "ละเว้น"
 
 # AI Translated
+msgid "unknown"
+msgstr "ไม่ทราบ"
+
+# AI Translated
 msgid "Done."
 msgstr "เสร็จสิ้น"
 
@@ -3903,6 +3953,11 @@ msgstr ""
 
 msgid "Arranging..."
 msgstr "กำลังจัด..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Object %s has zero size and can't be arranged."
+msgstr "วัตถุ %s มีขนาดเป็นศูนย์และไม่สามารถจัดเรียงได้"
 
 msgid "Arranging"
 msgstr "การจัด"
@@ -4084,8 +4139,16 @@ msgstr "พื้นที่จัดเก็บข้อมูลในเค
 msgid "The Storage in the printer is read-only. Please replace it with a normal Storage before sending to printer."
 msgstr "ที่เก็บข้อมูลในเครื่องพิมพ์เป็นแบบอ่านอย่างเดียว โปรดแทนที่ด้วยที่เก็บข้อมูลปกติก่อนที่จะส่งไปยังเครื่องพิมพ์"
 
+# AI Translated
+msgid "Can't create empty volume."
+msgstr "ไม่สามารถสร้างวอลลุ่มว่างได้"
+
 msgid "Bad input data for EmbossCreateObjectJob."
 msgstr "ข้อมูลอินพุตไม่ถูกต้องสำหรับ EmbossCreateObjectJob"
+
+# AI Translated
+msgid "Can't create empty object."
+msgstr "ไม่สามารถสร้างวัตถุว่างได้"
 
 msgid "Add Emboss text object"
 msgstr "เพิ่มวัตถุข้อความนูน"
@@ -4102,10 +4165,22 @@ msgstr "ข้อมูลอินพุตไม่ถูกต้องสำ
 msgid "Bad input data for UseSurfaceJob."
 msgstr "ข้อมูลอินพุตไม่ถูกต้องสำหรับ UseSurfaceJob"
 
+# AI Translated
+msgid "It is used default volume for embossed text, try to change text or font to fix it."
+msgstr "ใช้วอลลุ่มเริ่มต้นสำหรับข้อความนูน ลองเปลี่ยนข้อความหรือแบบอักษรเพื่อแก้ไข"
+
+# AI Translated
+msgid "Empty mesh can't be created."
+msgstr "ไม่สามารถสร้างเมชว่างได้"
+
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
 msgstr "การเปลี่ยนแปลงคุณลักษณะนูน"
+
+# AI Translated
+msgid "Bad object to create volume."
+msgstr "วัตถุไม่เหมาะสำหรับการสร้างวอลลุ่ม"
 
 msgid "Add Emboss text Volume"
 msgstr "เพิ่มปริมาณข้อความลายนูน"
@@ -4202,6 +4277,12 @@ msgstr "ซอฟต์แวร์นี้ใช้ส่วนประกอ
 msgid "About %s"
 msgstr "เกี่ยวกับ %s"
 
+# AI Translated
+#. TRN %s is the commit the application was built from
+#, c-format, boost-format
+msgid "Build %s"
+msgstr "บิลด์ %s"
+
 msgid "Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."
 msgstr "การแบ่งส่วนโอเพ่นซอร์สยืนหยัดบนพื้นฐานของการทำงานร่วมกันและการระบุแหล่งที่มา Slic3r ซึ่งสร้างโดย Alessandro Ranellucci และชุมชน RepRap ได้วางรากฐาน PrusaSlicer โดย Prusa Research สร้างขึ้นจากผลงานดังกล่าว Bambu Studio แยกจาก PrusaSlicer และ SuperSlicer ได้ขยายขอบเขตด้วยการปรับปรุงที่ขับเคลื่อนโดยชุมชน แต่ละโครงการได้สานต่องานของรุ่นก่อนไปข้างหน้า โดยให้เครดิตผู้ที่มาก่อนหน้านี้"
 
@@ -4210,6 +4291,10 @@ msgstr "OrcaSlicer เริ่มต้นด้วยจิตวิญญา�
 
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "ปัจจุบัน OrcaSlicer เป็นตัวแบ่งส่วนข้อมูลแบบโอเพ่นซอร์สที่ใช้กันอย่างแพร่หลายและได้รับการพัฒนาอย่างแข็งขันที่สุดในชุมชนการพิมพ์ 3 มิติ นวัตกรรมหลายอย่างของบริษัทได้ถูกนำไปใช้โดยตัวแบ่งส่วนข้อมูลอื่นๆ ทำให้สิ่งนี้เป็นแรงผลักดันสำหรับอุตสาหกรรมทั้งหมด"
+
+# AI Translated
+msgid "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"
+msgstr "ลิขสิทธิ์ (C) 2026 OrcaSlicer Pte Ltd สงวนลิขสิทธิ์ทั้งหมด"
 
 # AI Translated
 msgid "Script plugin skipped."
@@ -4364,6 +4449,7 @@ msgstr "ปรับเทียบเสร็จแล้ว"
 msgid "%s does not support %s"
 msgstr "%s ไม่รองรับ %s"
 
+#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "ขั้นตอน"
 
@@ -5321,9 +5407,10 @@ msgstr "กำลังโหลด ..."
 msgid "default"
 msgstr "ค่าเริ่มต้น"
 
+# AI Translated
 #, boost-format
 msgid "Edit Custom G-code (%1%)"
-msgstr "แก้ไขรหัส G ที่กำหนดเอง (%1%)"
+msgstr "แก้ไข G-code ที่กำหนดเอง (%1%)"
 
 msgid "Built-in placeholders (Double click item to add to G-code)"
 msgstr "ตัวยึดตำแหน่งในตัว (ดับเบิลคลิกรายการเพื่อเพิ่มใน G-code)"
@@ -5443,6 +5530,12 @@ msgstr "รูปแบบไม่ถูกต้อง รูปแบบเ�
 # AI Translated
 msgid "System agents"
 msgstr "เอเจนต์ระบบ"
+
+# AI Translated
+#. TRN %1% is the ID of a printer agent that is no longer available
+#, boost-format
+msgid "%1% (missing)"
+msgstr "%1% (ไม่พบ)"
 
 # AI Translated
 msgid "Add plugin"
@@ -6119,6 +6212,7 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทาง G-code ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
@@ -6491,8 +6585,9 @@ msgstr "ส่งออกไฟล์ที่สไลซ์เป็นแผ
 msgid "Export G-code"
 msgstr "ส่งออก G-code"
 
+# AI Translated
 msgid "Export current plate as G-code"
-msgstr "ส่งออกแผ่นปัจจุบันเป็นรหัส G"
+msgstr "ส่งออกแผ่นปัจจุบันเป็น G-code"
 
 msgid "Export toolpaths as OBJ"
 msgstr "ส่งออกเส้นทางเครื่องมือเป็น OBJ"
@@ -6686,11 +6781,13 @@ msgstr "VFA"
 msgid "Calibration Guide"
 msgstr "คู่มือการสอบเทียบ"
 
+# AI Translated
 msgid "&Open G-code"
-msgstr "&เปิดรหัส G"
+msgstr "&เปิด G-code"
 
+# AI Translated
 msgid "Open a G-code file"
-msgstr "เปิดไฟล์รหัส G"
+msgstr "เปิดไฟล์ G-code"
 
 msgid "Re&load from Disk"
 msgstr "&โหลดจากดิสก์อีกครั้ง"
@@ -7211,6 +7308,10 @@ msgstr "(แบบจำลองได้รับการจัดอัน�
 msgid "Rate"
 msgstr "ประเมิน"
 
+# AI Translated
+msgid "Calculating..."
+msgstr "กำลังคำนวณ..."
+
 msgid "Camera"
 msgstr "กล้อง"
 
@@ -7397,9 +7498,6 @@ msgid ""
 "The following issues occurred during the process of uploading images. Do you want to ignore them?\n"
 "\n"
 msgstr "ปัญหาต่อไปนี้เกิดขึ้นระหว่างกระบวนการอัพโหลดรูปภาพ คุณต้องการที่จะเพิกเฉยต่อพวกเขาหรือไม่?\n"
-
-msgid "info"
-msgstr "ข้อมูล"
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "การซิงโครไนซ์ผลการพิมพ์ โปรดลองอีกครั้งในภายหลัง"
@@ -7887,6 +7985,10 @@ msgstr "เปิดโฟลเดอร์"
 msgid "Safely remove hardware."
 msgstr "ถอดฮาร์ดแวร์อย่างปลอดภัย"
 
+# AI Translated
+msgid "Ejecting."
+msgstr "กำลังดีดออก"
+
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
@@ -7912,6 +8014,11 @@ msgstr "ข้อผิดพลาด"
 
 msgid "COMPLETED"
 msgstr "เสร็จสมบูรณ์"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d%% - %.2f of %.2fMB uploaded"
+msgstr "อัปโหลดแล้ว %d%% - %.2f จาก %.2fMB"
 
 msgid "CANCELED"
 msgstr "ยกเลิกแล้ว"
@@ -7964,11 +8071,30 @@ msgstr "โมเดลของคุณต้องการส่วนรอ
 msgid "G-code path overlap"
 msgstr "เส้นทาง G-code ทับซ้อนกัน"
 
+# AI Translated
+msgid "Click for more."
+msgstr "คลิกเพื่อดูเพิ่มเติม"
+
 msgid "Cut connectors"
 msgstr "ตัดขั้วต่อ"
 
+# AI Translated
+msgid "Instances"
+msgstr "อินสแตนซ์"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Instance %d"
+msgstr "อินสแตนซ์ %d"
+
 msgid "Layers"
 msgstr "เลเยอร์"
+
+# AI Translated
+#. TRN Object list item: plate number, then instance number
+#, c-format, boost-format
+msgid "[P%d]Instance %d"
+msgstr "[P%d]อินสแตนซ์ %d"
 
 msgid "The application cannot run normally because OpenGL version is lower than 3.2.\n"
 msgstr "แอปพลิเคชันไม่สามารถทำงานได้ตามปกติเนื่องจากเวอร์ชัน OpenGL ต่ำกว่า 3.2\n"
@@ -8560,14 +8686,16 @@ msgstr "3MF มี G-code ที่แก้ไขแล้วต่อไปน
 msgid "Please confirm that all modified G-code is safe to prevent any damage to the machine!"
 msgstr "โปรดยืนยันว่า G-code ที่แก้ไขทั้งหมดนั้นปลอดภัยเพื่อป้องกันความเสียหายต่อเครื่อง!"
 
+# AI Translated
 msgid "Modified G-code"
-msgstr "แก้ไขรหัส G"
+msgstr "G-code ที่ถูกแก้ไข"
 
 msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3MF มีเส้นพลาสติกที่กำหนดเองหรือการตั้งค่าเครื่องพิมพ์ไว้ล่วงหน้าดังต่อไปนี้:"
 
+# AI Translated
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
-msgstr "โปรดยืนยันว่ารหัส G ภายในค่าที่ตั้งล่วงหน้าเหล่านี้ปลอดภัยเพื่อป้องกันความเสียหายต่อเครื่อง!"
+msgstr "โปรดยืนยันว่า G-code ภายในค่าที่ตั้งล่วงหน้าเหล่านี้ปลอดภัยเพื่อป้องกันความเสียหายต่อเครื่อง!"
 
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
@@ -8905,6 +9033,10 @@ msgstr "ดาวน์โหลดล้มเหลว มีข้อยก�
 msgid "Project downloaded %d%%"
 msgstr "ดาวน์โหลดโครงการแล้ว %d%%"
 
+# AI Translated
+msgid "Pressure Advance Test"
+msgstr "การทดสอบ Pressure Advance"
+
 msgid "INFO:"
 msgstr "ข้อมูล:"
 
@@ -8914,14 +9046,48 @@ msgstr "ไม่มีการเร่งความเร็วสำหร
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "ไม่มีความเร็วสำหรับการสอบเทียบ ใช้ความเร็วที่เหมาะสมตามค่าเริ่มต้น"
 
+# AI Translated
+msgid "Orca YOLO Flow Calibration - Perfectionist version"
+msgstr "ปรับเทียบอัตราการไหล Orca YOLO - เวอร์ชันผู้สมบูรณ์แบบ"
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration"
+msgstr "ปรับเทียบอัตราการไหล Orca YOLO"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Flowrate Test - Pass%d"
+msgstr "การทดสอบอัตราการไหล - รอบ %d"
+
+# AI Translated
+msgid "Nozzle temperature test"
+msgstr "การทดสอบอุณหภูมิหัวฉีด"
+
+msgid "Max volumetric speed test"
+msgstr "การทดสอบความเร็วปริมาตรสูงสุด"
+
+msgid "VFA test"
+msgstr "การทดสอบ VFA"
+
+msgid "Input shaping Frequency test"
+msgstr "การทดสอบความถี่การสร้างอินพุต"
+
+# AI Translated
+msgid "Input shaping Damping test"
+msgstr "การทดสอบค่าหน่วง Input Shaping"
+
+msgid "Cornering test"
+msgstr "การทดสอบการเข้าโค้ง"
+
 msgid "Import SLA archive"
 msgstr "นำเข้าเอกสาร SLA"
 
 msgid "The selected file"
 msgstr "ไฟล์ที่เลือก"
 
+# AI Translated
 msgid "Does not contain valid G-code."
-msgstr "ไม่มีรหัส G ที่ถูกต้อง"
+msgstr "ไม่มี G-code ที่ถูกต้อง"
 
 msgid "An Error has occurred while loading the G-code file."
 msgstr "เกิดข้อผิดพลาดขณะโหลดไฟล์ G-code"
@@ -8955,8 +9121,9 @@ msgstr "นำเข้ารูปทรงเรขาคณิตเท่า
 msgid "Only one G-code file can be opened at a time."
 msgstr "สามารถเปิดไฟล์ G-code ได้เพียงไฟล์เดียวเท่านั้น"
 
+# AI Translated
 msgid "G-code loading"
-msgstr "กำลังโหลดรหัส G"
+msgstr "กำลังโหลด G-code"
 
 msgid "G-code files and models cannot be loaded together!"
 msgstr "ไม่สามารถโหลดไฟล์ G-code กับโมเดลด้วยกันได้!"
@@ -9387,7 +9554,7 @@ msgstr "ถามเสมอ"
 msgid "Load Geometry Only"
 msgstr "โหลดรูปทรงเท่านั้น"
 
-msgid "Load behaviour"
+msgid "Load behavior"
 msgstr "พฤติกรรมการโหลด"
 
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
@@ -9583,7 +9750,7 @@ msgstr "หน้า"
 msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
 msgstr "จำนวนหน้าปลั๊กอินที่แสดงเป็นแท็บถาวร ก่อนที่หน้าที่เหลือจะถูกยุบรวมเป็นเมนูแบบเลื่อนลงในแท็บสุดท้าย"
 
-msgid "Behaviour"
+msgid "Behavior"
 msgstr "พฤติกรรม"
 
 msgid "Auto flush after changing..."
@@ -10970,6 +11137,14 @@ msgstr "ชื่อมีความยาวเกินขีดจำกั
 msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr "ราคา %dg เส้นพลาสติกและ %d เปลี่ยนแปลงมากกว่าการจัดกลุ่มที่เหมาะสมที่สุด"
 
+# AI Translated
+msgid "Right-Ext"
+msgstr "ภายนอก-ขวา"
+
+# AI Translated
+msgid "Left-Ext"
+msgstr "ภายนอก-ซ้าย"
+
 msgid "nozzle"
 msgstr "หัวฉีด"
 
@@ -11494,6 +11669,11 @@ msgstr "ข้อมูลเพิ่มเติม:"
 msgid "vendor"
 msgstr "ผู้ขาย"
 
+# AI Translated
+#. TRN Short for "version"
+msgid "ver"
+msgstr "เวอร์ชัน"
+
 msgid "printer model"
 msgstr "รุ่นเครื่องพิมพ์"
 
@@ -11587,8 +11767,9 @@ msgstr "การป้องกันน้ำซึม"
 msgid "Special mode"
 msgstr "โหมดพิเศษ"
 
+# AI Translated
 msgid "G-code output"
-msgstr "เอาต์พุตรหัส G"
+msgstr "เอาต์พุต G-code"
 
 msgid "Change extrusion role G-code"
 msgstr "เปลี่ยนประเภทการพิมพ์ G-code"
@@ -11785,8 +11966,9 @@ msgstr "ตาข่ายฐานพิมพ์ปรับได้"
 msgid "Accessory"
 msgstr "อุปกรณ์เสริม"
 
+# AI Translated
 msgid "Machine G-code"
-msgstr "เครื่องจีโค้ด"
+msgstr "G-code ของเครื่อง"
 
 msgid "File header G-code"
 msgstr "ส่วนหัวของไฟล์ G-code"
@@ -11803,8 +11985,9 @@ msgstr "การพิมพ์ด้วยวัตถุ G-code"
 msgid "Before layer change G-code"
 msgstr "ก่อนเลเยอร์เปลี่ยน G-code"
 
+# AI Translated
 msgid "Layer change G-code"
-msgstr "เลเยอร์เปลี่ยนรหัส G"
+msgstr "G-code เปลี่ยนเลเยอร์"
 
 msgid "Timelapse G-code"
 msgstr "G-code ไทม์แลปส์"
@@ -11815,8 +11998,9 @@ msgstr "G-code การตรวจจับการจับตัวเป�
 msgid "Change filament G-code"
 msgstr "เปลี่ยนเส้นพลาสติก G-code"
 
+# AI Translated
 msgid "Pause G-code"
-msgstr "หยุดรหัส G ชั่วคราว"
+msgstr "G-code หยุดชั่วคราว"
 
 msgid "Template Custom G-code"
 msgstr "เทมเพลต G-code ที่กำหนดเอง"
@@ -12537,6 +12721,14 @@ msgstr "[ต้องดำเนินการ]"
 msgid "[Action Required]"
 msgstr "[ต้องดำเนินการ]"
 
+# AI Translated
+msgid "Printer update service is unavailable."
+msgstr "บริการอัปเดตเครื่องพิมพ์ไม่พร้อมใช้งาน"
+
+# AI Translated
+msgid "Failed to check for new printers."
+msgstr "ไม่สามารถตรวจหาเครื่องพิมพ์ใหม่ได้"
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "แพ็คเกจการกำหนดค่ามีการเปลี่ยนแปลงใน Config Guide ก่อนหน้า"
 
@@ -12700,6 +12892,10 @@ msgid ""
 msgstr ""
 "กดแป้นพิมพ์ลัดใหม่สำหรับ\n"
 "\"%s\""
+
+# AI Translated
+msgid "Unbind"
+msgstr "ยกเลิกการกำหนดปุ่ม"
 
 # AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
@@ -12870,6 +13066,14 @@ msgstr "เลเซอร์ 40W"
 msgid "Cutting Module"
 msgstr "โมดูลการตัด"
 
+# AI Translated
+msgid "Active Cutting Module"
+msgstr "โมดูลตัดแบบแอ็กทีฟ"
+
+# AI Translated
+msgid "Ultrasonic Cutting Module"
+msgstr "โมดูลตัดอัลตราโซนิก"
+
 msgid "Auto Fire Extinguishing System"
 msgstr "ระบบดับเพลิงอัตโนมัติ"
 
@@ -12978,12 +13182,14 @@ msgid ""
 "\n"
 msgstr "ไม่สามารถสร้าง G-code สำหรับ G-code ที่กำหนดเองที่ไม่ถูกต้อง\n"
 
+# AI Translated
 msgid "Please check the custom G-code or use the default custom G-code."
-msgstr "โปรดตรวจสอบรหัส G ที่กำหนดเองหรือใช้รหัส G ที่กำหนดเองเริ่มต้น"
+msgstr "โปรดตรวจสอบ G-code ที่กำหนดเองหรือใช้ G-code ที่กำหนดเองเริ่มต้น"
 
+# AI Translated
 #, boost-format
 msgid "Generating G-code: layer %1%"
-msgstr "กำลังสร้างรหัส G: เลเยอร์ %1%"
+msgstr "กำลังสร้าง G-code: เลเยอร์ %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
 msgstr "เมทริกซ์ไล่เส้นวอลุ่มไม่ตรงกับขนาดที่ถูกต้อง!"
@@ -14363,8 +14569,9 @@ msgstr "โปรไฟล์กระบวนการเริ่มต้น
 msgid "Activate air filtration"
 msgstr "เปิดใช้งานการกรองอากาศ"
 
+# AI Translated
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "เปิดใช้งานเพื่อการกรองอากาศที่ดีขึ้น คำสั่งรหัส G: M106 P3 S(0-255)"
+msgstr "เปิดใช้งานเพื่อการกรองอากาศที่ดีขึ้น คำสั่ง G-code: M106 P3 S(0-255)"
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
 msgstr "เปิดใช้งานสิ่งนี้เพื่อแทนที่ความเร็วพัดลมที่ตั้งไว้ใน G-code แบบกำหนดเองระหว่างการพิมพ์"
@@ -14495,8 +14702,9 @@ msgstr "สิ้นสุด G-code เมื่อพิมพ์เสร็�
 msgid "Between Object G-code"
 msgstr "ระหว่างวัตถุ G-code"
 
+# AI Translated
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
-msgstr "แทรกรหัส G ระหว่างวัตถุ พารามิเตอร์นี้จะมีผลเมื่อคุณพิมพ์โมเดลของคุณทีละวัตถุเท่านั้น"
+msgstr "แทรก G-code ระหว่างวัตถุ พารามิเตอร์นี้จะมีผลเมื่อคุณพิมพ์โมเดลของคุณทีละวัตถุเท่านั้น"
 
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "สิ้นสุด G-code เมื่อเสร็จสิ้นการพิมพ์เส้นพลาสติกนี้"
@@ -14897,7 +15105,7 @@ msgstr ""
 
 # AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "เปิดใช้ adaptive pressure advance ภายในฟีเจอร์ (เบต้า)"
+msgstr "เปิดใช้ Adaptive Pressure Advance ภายในฟีเจอร์ (เบต้า)"
 
 # AI Translated
 msgid ""
@@ -14915,7 +15123,7 @@ msgstr ""
 
 # AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "pressure advance แบบคงที่สำหรับสะพาน"
+msgstr "Pressure Advance แบบคงที่สำหรับสะพาน"
 
 # AI Translated
 msgid ""
@@ -14924,7 +15132,7 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"ค่า pressure advance แบบคงที่สำหรับสะพาน ตั้งเป็น 0 เพื่อใช้ pressure advance เดียวกับ \n"
+"ค่า Pressure Advance แบบคงที่สำหรับสะพาน ตั้งเป็น 0 เพื่อใช้ Pressure Advance เดียวกับ \n"
 "ผนังที่เทียบเท่า (ใช้การตั้งค่าปรับได้หากเปิดใช้งาน)\n"
 "\n"
 "ค่า PA ที่ต่ำกว่าเมื่อพิมพ์สะพานช่วยลดการปรากฏของการอัดขึ้นรูปน้อยเกินไปเล็กน้อยทันทีหลังสะพาน สาเหตุมาจากแรงดันที่ลดลงในหัวฉีดเมื่อพิมพ์กลางอากาศ และค่า PA ที่ต่ำกว่าช่วยชดเชยสิ่งนี้"
@@ -15946,8 +16154,9 @@ msgstr "ตำแหน่งวัตถุที่ดีที่สุด"
 msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "ตำแหน่งการจัดเรียงอัตโนมัติที่ดีที่สุดในช่วง [0,1] w.r.t. รูปร่างฐานพิมพ์"
 
+# AI Translated
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "เปิดใช้งานตัวเลือกนี้หากเครื่องมีพัดลมระบายความร้อนชิ้นส่วนเสริม คำสั่งรหัส G: M106 P2 S(0-255)"
+msgstr "เปิดใช้งานตัวเลือกนี้หากเครื่องมีพัดลมระบายความร้อนชิ้นส่วนเสริม คำสั่ง G-code: M106 P2 S(0-255)"
 
 # AI Translated
 msgid "Fan direction"
@@ -16014,22 +16223,24 @@ msgstr "เงิน/ชม."
 msgid "Support controlling chamber temperature"
 msgstr "รองรับการควบคุมอุณหภูมิห้องพิมพ์"
 
+# AI Translated
 msgid ""
 "This option is enabled if machine support controlling chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
-"ตัวเลือกนี้จะเปิดใช้งานหากเครื่องรองรับการควบคุมอุณหภูมิห้องเพาะเลี้ยง\n"
-"คำสั่งรหัส G: M141 S(0-255)"
+"ตัวเลือกนี้จะเปิดใช้งานหากเครื่องรองรับการควบคุมอุณหภูมิห้องพิมพ์\n"
+"คำสั่ง G-code: M141 S(0-255)"
 
 msgid "Support air filtration"
 msgstr "รองรับการกรองอากาศ"
 
+# AI Translated
 msgid ""
 "Enable this if printer support air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "เปิดใช้งานสิ่งนี้หากเครื่องพิมพ์รองรับการกรองอากาศ\n"
-"คำสั่งรหัส G: M106 P3 S(0-255)"
+"คำสั่ง G-code: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Use cooling filter"
@@ -16039,8 +16250,9 @@ msgstr "ใช้ตัวกรองความเย็น"
 msgid "Enable this if printer support cooling filter"
 msgstr "เปิดใช้งานหากเครื่องพิมพ์รองรับตัวกรองความเย็น"
 
+# AI Translated
 msgid "G-code flavor"
-msgstr "รสจีโค้ด"
+msgstr "รสชาติ G-code"
 
 msgid "What kind of G-code the printer is compatible with."
 msgstr "เครื่องพิมพ์ G-code ชนิดใดที่เข้ากันได้กับ"
@@ -16459,8 +16671,9 @@ msgstr ""
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
 msgstr "G-code นี้จะใช้เป็นรหัสสำหรับการหยุดการพิมพ์ชั่วคราว ผู้ใช้สามารถแทรก G-code หยุดชั่วคราวในโปรแกรมดู G-code"
 
+# AI Translated
 msgid "This G-code will be used as a custom code."
-msgstr "รหัส G นี้จะใช้เป็นรหัสที่กำหนดเอง"
+msgstr "G-code นี้จะใช้เป็นรหัสที่กำหนดเอง"
 
 msgid "Small area flow compensation (beta)"
 msgstr "การชดเชยการไหลของพื้นที่ขนาดเล็ก (เบต้า)"
@@ -16812,12 +17025,13 @@ msgstr "ใช้การปรับให้เรียบด้วยอั
 msgid "Minimum speed for part cooling fan."
 msgstr "ความเร็วขั้นต่ำสำหรับพัดลมระบายความร้อนชิ้นส่วน"
 
+# AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
 "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
 msgstr ""
 "ความเร็วของพัดลมระบายความร้อนชิ้นส่วนเสริม พัดลมเสริมจะทำงานที่ความเร็วนี้ในระหว่างการพิมพ์ ยกเว้นหลายชั้นแรกซึ่งถูกกำหนดโดยไม่มีชั้นระบายความร้อน\n"
-"โปรดเปิดใช้งาน auxiliary_fan ในการตั้งค่าเครื่องพิมพ์เพื่อใช้คุณสมบัตินี้ คำสั่งรหัส G: M106 P2 S(0-255)"
+"โปรดเปิดใช้งาน auxiliary_fan ในการตั้งค่าเครื่องพิมพ์เพื่อใช้คุณสมบัตินี้ คำสั่ง G-code: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "สำหรับครั้งแรก"
@@ -18162,8 +18376,9 @@ msgstr "ตรวจจับผนังบาง"
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "ตรวจจับผนังบางๆ ที่ไม่สามารถมีความกว้างสองบรรทัดได้ และใช้บรรทัดเดียวในการพิมพ์ อาจจะพิมพ์ได้ไม่ดีนักเพราะไม่ใช่วงปิด"
 
+# AI Translated
 msgid "This G-code is inserted when filament is changed, including T commands to trigger tool change."
-msgstr "รหัส G นี้จะถูกแทรกเมื่อมีการเปลี่ยนเส้นพลาสติก รวมถึงคำสั่ง T เพื่อกระตุ้นการเปลี่ยนเครื่องมือ"
+msgstr "G-code นี้จะถูกแทรกเมื่อมีการเปลี่ยนเส้นพลาสติก รวมถึงคำสั่ง T เพื่อกระตุ้นการเปลี่ยนเครื่องมือ"
 
 msgid "This G-code is inserted when the extrusion role is changed."
 msgstr "G-code นี้จะถูกแทรกเมื่อประเภทการพิมพ์มีการเปลี่ยนแปลง"
@@ -18171,8 +18386,9 @@ msgstr "G-code นี้จะถูกแทรกเมื่อประเ�
 msgid "Change extrusion role G-code (filament)"
 msgstr "เปลี่ยนประเภทการพิมพ์ G-code (เส้นพลาสติก)"
 
+# AI Translated
 msgid "This G-code is inserted when the extrusion role is changed for the active filament."
-msgstr "รหัส G นี้จะถูกแทรกเมื่อมีการเปลี่ยนประเภทการพิมพ์สำหรับเส้นพลาสติกที่ใช้งานอยู่"
+msgstr "G-code นี้จะถูกแทรกเมื่อมีการเปลี่ยนประเภทการพิมพ์สำหรับเส้นพลาสติกที่ใช้งานอยู่"
 
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "ความกว้างของเส้นสำหรับพื้นผิวด้านบน หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
@@ -19697,6 +19913,21 @@ msgstr "วัสดุที่มีการหดตัว/การขย�
 msgid "materials with inaccurate filament diameter"
 msgstr "วัสดุที่มีเส้นผ่านศูนย์กลางเส้นพลาสติกไม่ถูกต้อง"
 
+# AI Translated
+#, boost-format
+msgid "%1% Flow Rate Calibrated"
+msgstr "%1% ปรับเทียบอัตราการไหลแล้ว"
+
+# AI Translated
+#, boost-format
+msgid "%1% Temperature Calibrated"
+msgstr "%1% ปรับเทียบอุณหภูมิแล้ว"
+
+# AI Translated
+#, boost-format
+msgid "%1% Max Vol Speed Calibrated"
+msgstr "%1% ปรับเทียบความเร็วปริมาตรสูงสุดแล้ว"
+
 msgid "We found the best Flow Dynamics Calibration Factor"
 msgstr "เราพบปัจจัยการปรับเทียบ Flow Dynamics ที่ดีที่สุด"
 
@@ -20055,6 +20286,12 @@ msgstr "อุณหภูมิสิ้นสุด:"
 msgid "Temp step: "
 msgstr "อุณหภูมิแบบขั้นบันได:"
 
+# AI Translated
+#. TRN %s is the temperature unit
+#, c-format, boost-format
+msgid "Supported range: 170%s - 500%s"
+msgstr "ช่วงที่รองรับ: 170%s - 500%s"
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 500\n"
@@ -20065,9 +20302,6 @@ msgstr ""
 "อุณหภูมิเริ่มต้น: <= 500\n"
 "อุณหภูมิสิ้นสุด: >= 155\n"
 "อุณหภูมิเริ่มต้น >= อุณหภูมิสิ้นสุด + 5"
-
-msgid "Max volumetric speed test"
-msgstr "การทดสอบความเร็วปริมาตรสูงสุด"
 
 msgid "Start volumetric speed: "
 msgstr "เริ่มต้นความเร็วตามปริมาตร:"
@@ -20085,9 +20319,6 @@ msgstr ""
 "เริ่มต้น > 0\n"
 "ขั้นตอน >= 0\n"
 "สิ้นสุด> เริ่มต้น + ขั้นตอน"
-
-msgid "VFA test"
-msgstr "การทดสอบ VFA"
 
 msgid "Start speed: "
 msgstr "ความเร็วเริ่มต้น:"
@@ -20170,9 +20401,6 @@ msgstr "เริ่มต้นความยาวการดึงกลั
 
 msgid "End retraction length: "
 msgstr "ความยาวการดึงกลับสุดท้าย:"
-
-msgid "Input shaping Frequency test"
-msgstr "การทดสอบความถี่การสร้างอินพุต"
 
 msgid "Test model"
 msgstr "แบบทดสอบ"
@@ -20262,9 +20490,6 @@ msgstr ""
 
 msgid "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr "โปรดป้อนปัจจัยการหน่วงที่ถูกต้อง (0 <= DampingStart < DampingEnd <= 1)"
-
-msgid "Cornering test"
-msgstr "การทดสอบการเข้าโค้ง"
 
 msgid "SCV-V2"
 msgstr "SCV-V2"
@@ -20459,6 +20684,12 @@ msgstr "ปรับเทียบก่อนพิมพ์"
 msgid "Filament Mapping:"
 msgstr "การแมปเส้นพลาสติก:"
 
+# AI Translated
+#. TRN External spool slot, followed by its filament type
+#, c-format, boost-format
+msgid "Ext - %s"
+msgstr "ภายนอก - %s"
+
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "ไม่สามารถดำเนินการบูลีนกับส่วนที่เลือกได้"
 
@@ -20533,6 +20764,27 @@ msgstr "ทดสอบ bing.com:"
 
 msgid "Log Info"
 msgstr "ข้อมูลเข้าสู่ระบบ"
+
+# AI Translated
+#. TRN %s is the name of the tested website
+#, c-format, boost-format
+msgid "test %s start..."
+msgstr "เริ่มทดสอบ %s..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ip resolved = %s"
+msgstr "ทดสอบ %s แปลง IP ได้ = %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s failed"
+msgstr "ทดสอบ %s ล้มเหลว"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ok"
+msgstr "ทดสอบ %s สำเร็จ"
 
 msgid "Select filament preset"
 msgstr "เลือกค่าฟิลาเมนต์ที่ตั้งไว้ล่วงหน้า"
@@ -21074,6 +21326,14 @@ msgstr "สำเร็จ!"
 msgid "Generate API Key"
 msgstr "สร้างคีย์ API"
 
+# AI Translated
+msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
+msgstr "สร้าง API Key แล้ว ไปที่เครื่องพิมพ์จริงแล้วกด \"authorize\" บนหน้าจอ จากนั้นเรียกใช้ \"ทดสอบ\" อีกครั้ง"
+
+# AI Translated
+msgid "API Key created."
+msgstr "สร้าง API Key แล้ว"
+
 msgid "Are you sure to log out?"
 msgstr "คุณแน่ใจหรือว่าจะออกจากระบบ?"
 
@@ -21105,12 +21365,20 @@ msgid "Click Scan to look for K-series printers on your network."
 msgstr "คลิก Scan เพื่อค้นหาเครื่องพิมพ์ K-series บนเครือข่ายของคุณ"
 
 # AI Translated
+msgid "Scan"
+msgstr "สแกน"
+
+# AI Translated
 msgid "Use Selected"
 msgstr "ใช้รายการที่เลือก"
 
 # AI Translated
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
 msgstr "กำลังสแกน LAN เพื่อหาเครื่องพิมพ์ K-series... ใช้เวลาสักครู่"
+
+# AI Translated
+msgid "(unknown K-series)"
+msgstr "(K-series ที่ไม่ทราบรุ่น)"
 
 # AI Translated
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
@@ -21244,6 +21512,10 @@ msgstr "บันทึก"
 # AI Translated
 msgid "Choose where to save the exported JSON file"
 msgstr "เลือกตำแหน่งที่จะบันทึกไฟล์ JSON ที่ส่งออก"
+
+# AI Translated
+msgid "JSON files (*.json)|*.json"
+msgstr "ไฟล์ JSON (*.json)|*.json"
 
 # AI Translated
 msgid ""
@@ -21678,6 +21950,11 @@ msgstr "ชื่องาน"
 msgid "Actions"
 msgstr "การทำงาน"
 
+# AI Translated
+#. TRN Button that jumps to the page number typed next to it
+msgid "Go"
+msgstr "ไป"
+
 msgid "Task Status"
 msgstr "สถานะงาน"
 
@@ -21792,6 +22069,11 @@ msgstr " เพื่อตั้งค่าจำนวนหัวฉีด"
 # AI Translated
 msgid "Set the physical nozzle count..."
 msgstr "ตั้งค่าจำนวนหัวฉีดจริง..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "(Std: %d, HF: %d)"
+msgstr "(มาตรฐาน: %d, อัตราไหลสูง: %d)"
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
 msgstr "วิธีการจัดกลุ่มเส้นพลาสติกสำหรับเพลตปัจจุบันถูกกำหนดโดยตัวเลือกแบบเลื่อนลงที่ปุ่มแผ่นสไลซ์"
@@ -22070,6 +22352,9 @@ msgstr "เวอร์ชันที่จะติดตั้ง:"
 msgid "Download and Install"
 msgstr "ดาวน์โหลดและติดตั้ง"
 
+msgid "Skip for Now"
+msgstr "ข้ามไปก่อน"
+
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "ปลั๊กอิน Bambu Network Plug-in เวอร์ชันใหม่พร้อมใช้งานแล้ว"
 
@@ -22086,6 +22371,12 @@ msgstr "อย่าถามอีก"
 msgid "Update Now"
 msgstr "อัปเดตตอนนี้"
 
+msgid "Remind Later"
+msgstr "เตือนทีหลัง"
+
+msgid "Skip Version"
+msgstr "ข้ามเวอร์ชัน"
+
 msgid "(Latest)"
 msgstr "(ล่าสุด)"
 
@@ -22101,6 +22392,9 @@ msgstr "จำเป็นต้องรีสตาร์ทเพื่อโ
 
 msgid "Restart Now"
 msgstr "เริ่มใหม่ตอนนี้"
+
+msgid "Restart Later"
+msgstr "เริ่มใหม่ภายหลัง"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ไม่มีการกระแทกเลย"
@@ -22185,6 +22479,10 @@ msgstr "ส่งออกชุดค่าที่ตั้งไว้ล่
 msgid "Save preset bundle"
 msgstr "บันทึกชุดค่าที่ตั้งไว้ล่วงหน้า"
 
+# AI Translated
+msgid "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"
+msgstr "ชุดพรีเซ็ต Orca (*.orca_bundle)|*.orca_bundle"
+
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "การผสานรวมเดสก์ท็อปล้มเหลว - boost::filesystem::canonical ไม่ได้คืนค่าเส้นทาง AppImage"
 
@@ -22218,16 +22516,41 @@ msgstr ""
 "\n"
 "กด \"ดำเนินการ\" เพื่อดำเนินการต่อ"
 
+# AI Translated
+msgid "Press \"Undo\" to remove previous integration."
+msgstr "กด \"เลิกทำ\" เพื่อลบการบูรณาการก่อนหน้า"
+
+# AI Translated
+msgid "Could not start download due to malformed URL"
+msgstr "ไม่สามารถเริ่มดาวน์โหลดได้เนื่องจาก URL ไม่ถูกต้อง"
+
 msgid "The download has failed"
 msgstr "การดาวน์โหลดล้มเหลว"
+
+# AI Translated
+#, boost-format
+msgid "Failed to find suitable filename. Last name: %1%."
+msgstr "ไม่พบชื่อไฟล์ที่เหมาะสม ชื่อล่าสุด: %1%"
 
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
 msgstr "ไม่สามารถสร้างไฟล์ที่ %1%"
 
+# AI Translated
+msgid "Failed to write and move."
+msgstr "ไม่สามารถเขียนและย้ายไฟล์ได้"
+
 msgid "Archive preview"
 msgstr "ดูตัวอย่างไฟล์บีบอัด"
+
+# AI Translated
+msgid "filename"
+msgstr "ชื่อไฟล์"
+
+# AI Translated
+msgid "All files (*.*)|*.*"
+msgstr "ไฟล์ทั้งหมด (*.*)|*.*"
 
 msgid "Open File"
 msgstr "เปิดไฟล์"
@@ -23390,6 +23713,26 @@ msgstr "สเก็ตช์: —"
 msgid "Extrude dist"
 msgstr "ระยะยืดขึ้นรูป"
 
+# AI Translated
+msgid "Blind"
+msgstr "ระยะที่กำหนด"
+
+# AI Translated
+msgid "Two-sided"
+msgstr "สองทิศทาง"
+
+# AI Translated
+msgid "Through all"
+msgstr "ทะลุทั้งหมด"
+
+# AI Translated
+msgid "Up to face"
+msgstr "ถึงผิวหน้า"
+
+# AI Translated
+msgid "Up to vertex"
+msgstr "ถึงจุดยอด"
+
 msgid "End"
 msgstr "จบ"
 
@@ -23780,6 +24123,11 @@ msgid "Face %d is already in the list"
 msgstr "ผิวหน้า %d อยู่ในรายการแล้ว"
 
 # AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "ผิวหน้า %d"
+
+# AI Translated
 msgid "Faces to delete"
 msgstr "ผิวหน้าที่จะลบ"
 
@@ -24052,6 +24400,10 @@ msgid "Sketch created (%zu driving dims) — select it, then right-click to Extr
 msgstr "สร้างสเก็ตช์แล้ว (มิติขับเคลื่อน %zu รายการ) — เลือกสเก็ตช์ แล้วคลิกขวาเพื่อยืดขึ้นรูป"
 
 # AI Translated
+msgid "(locked)"
+msgstr "(ล็อกแล้ว)"
+
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
 msgstr "ไม่สามารถระบุสเก็ตช์ที่จะยืดขึ้นรูปได้"
 
@@ -24066,11 +24418,6 @@ msgstr "เลือกพื้นที่แล้ว — คลิกขว�
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "เลือกสเก็ตช์แล้ว — คลิกขวาเพื่อยืดขึ้นรูป หรือดับเบิลคลิกเพื่อแก้ไข"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "ผิวหน้า %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -24181,8 +24528,16 @@ msgid "Import SVG"
 msgstr "นำเข้า SVG"
 
 # AI Translated
+msgid "SVG files (*.svg)|*.svg|All files|*.*"
+msgstr "ไฟล์ SVG (*.svg)|*.svg|ไฟล์ทั้งหมด|*.*"
+
+# AI Translated
 msgid "Import STEP"
 msgstr "นำเข้า STEP"
+
+# AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"
+msgstr "ไฟล์ STEP (*.step;*.stp)|*.step;*.stp|ไฟล์ทั้งหมด|*.*"
 
 # AI Translated
 msgid "Reading STEP…"
@@ -24209,6 +24564,10 @@ msgstr[0] "นำเข้าทรงตัน %d รายการแล้�
 # AI Translated
 msgid "Import mesh"
 msgstr "นำเข้าเมช"
+
+# AI Translated
+msgid "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"
+msgstr "ไฟล์เมช (*.stl;*.obj)|*.stl;*.obj|ไฟล์ทั้งหมด|*.*"
 
 # AI Translated
 msgid "Could not read the STL file"
@@ -24277,7 +24636,7 @@ msgid " — drag to place/size, then Confirm"
 msgstr " — ลากเพื่อวาง/ปรับขนาด แล้วกดยืนยัน"
 
 # AI Translated
-msgid "Insert cancelled"
+msgid "Insert canceled"
 msgstr "ยกเลิกการแทรกแล้ว"
 
 # AI Translated
@@ -25136,6 +25495,11 @@ msgid "Applied constraint"
 msgstr "ใช้เงื่อนไขบังคับแล้ว"
 
 # AI Translated
+#. TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+msgid "·Ctr"
+msgstr "·ศูนย์"
+
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
 msgstr "ตรึง %s"
@@ -25380,6 +25744,10 @@ msgid "Export STEP"
 msgstr "ส่งออก STEP"
 
 # AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp"
+msgstr "ไฟล์ STEP (*.step;*.stp)|*.step;*.stp"
+
+# AI Translated
 msgid "Exported STEP"
 msgstr "ส่งออก STEP แล้ว"
 
@@ -25455,7 +25823,7 @@ msgid "Face %d (push/pull)"
 msgstr "ผิวหน้า %d (ดัน/ดึง)"
 
 # AI Translated
-msgid "Move cancelled"
+msgid "Move canceled"
 msgstr "ยกเลิกการย้ายแล้ว"
 
 # AI Translated
@@ -25545,12 +25913,204 @@ msgid "Empty mesh generated"
 msgstr "สร้างเมชว่างเปล่า"
 
 # AI Translated
+#. TRN Default name of an object created from the box primitive shape.
+msgid "Box"
+msgstr "กล่อง"
+
+# AI Translated
+#. TRN Primitive gizmo: label in front of the preset cube size buttons
+msgid "Quick:"
+msgstr "ขนาดด่วน:"
+
+# AI Translated
+msgid "Width (X)"
+msgstr "ความกว้าง (X)"
+
+# AI Translated
+msgid "Depth (Y)"
+msgstr "ความลึก (Y)"
+
+# AI Translated
+msgid "Height (Z)"
+msgstr "ความสูง (Z)"
+
+# AI Translated
+#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
+msgid "Bottom R"
+msgstr "R ล่าง"
+
+# AI Translated
+msgid "Top R"
+msgstr "R บน"
+
+# AI Translated
+#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
+msgid "Major R"
+msgstr "R หลัก"
+
+# AI Translated
+msgid "Minor R"
+msgstr "R รอง"
+
+# AI Translated
+msgid "All edges"
+msgstr "ขอบทั้งหมด"
+
+# AI Translated
+msgid "Top edges"
+msgstr "ขอบบน"
+
+# AI Translated
+msgid "Bottom edges"
+msgstr "ขอบล่าง"
+
+# AI Translated
+msgid "Lateral edges"
+msgstr "ขอบด้านข้าง"
+
+# AI Translated
+msgid "Mesh resolution"
+msgstr "ความละเอียดเมช"
+
+# AI Translated
+msgid "Add Shape"
+msgstr "เพิ่มรูปทรง"
+
+# AI Translated
+msgid "No outer profile"
+msgstr "ไม่มีโปรไฟล์ด้านนอก"
+
+# AI Translated
+msgid "Failed to make outer face"
+msgstr "ไม่สามารถสร้างผิวหน้าด้านนอกได้"
+
+# AI Translated
+msgid "Failed to build face with holes"
+msgstr "ไม่สามารถสร้างผิวหน้าที่มีรูได้"
+
+# AI Translated
+msgid "Revolve failed"
+msgstr "หมุนขึ้นรูปล้มเหลว"
+
+# AI Translated
+msgid "Profile"
+msgstr "โปรไฟล์"
+
+# AI Translated
+msgid "Start new profile (for holes)"
+msgstr "เริ่มโปรไฟล์ใหม่ (สำหรับรู)"
+
+# AI Translated
+#. TRN Sketch gizmo: number of segments a circle is built from
+msgid "Seg"
+msgstr "ส่วน"
+
+# AI Translated
+msgid "Sides"
+msgstr "ด้าน"
+
+# AI Translated
+msgid "Click on canvas to draw"
+msgstr "คลิกบนพื้นที่วาดเพื่อวาด"
+
+# AI Translated
+msgid "Snap to grid"
+msgstr "สแน็ปกับกริด"
+
+# AI Translated
+msgid "Outer"
+msgstr "ด้านนอก"
+
+# AI Translated
+msgid "CLOSED"
+msgstr "ปิดแล้ว"
+
+# AI Translated
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#, boost-format
+msgid "%1% %2%: %3% pts %4%"
+msgstr "%1% %2%: %3% จุด %4%"
+
+# AI Translated
+msgid "XY (Top)"
+msgstr "XY (บน)"
+
+# AI Translated
+msgid "XZ (Front)"
+msgstr "XZ (ด้านหน้า)"
+
+# AI Translated
+msgid "YZ (Side)"
+msgstr "YZ (ด้านข้าง)"
+
+# AI Translated
+msgid "Revolve deg"
+msgstr "องศาหมุนขึ้นรูป"
+
+# AI Translated
+msgid "Set to 0 for extrude, >0 for revolve"
+msgstr "ตั้งเป็น 0 เพื่อยืดขึ้นรูป, >0 เพื่อหมุนขึ้นรูป"
+
+# AI Translated
+msgid "Pocket (cut)"
+msgstr "ช่องเว้า (ตัด)"
+
+# AI Translated
+#, c-format
+msgid "%zu closed profile"
+msgid_plural "%zu closed profiles"
+msgstr[0] "โปรไฟล์ปิด %zu รายการ"
+
+# AI Translated
+msgid "Draw a closed profile to enable"
+msgstr "วาดโปรไฟล์ปิดเพื่อเปิดใช้งาน"
+
+# AI Translated
 msgid "Pocket (Cut)"
 msgstr "หลุม (ตัด)"
 
 # AI Translated
 msgid "Clear All"
 msgstr "ล้างทั้งหมด"
+
+# AI Translated
+msgid "Empty result"
+msgstr "ผลลัพธ์ว่างเปล่า"
+
+# AI Translated
+#, boost-format
+msgid "Extrude: %1%"
+msgstr "ยืดขึ้นรูป: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Revolve: %1%"
+msgstr "หมุนขึ้นรูป: %1%"
+
+# AI Translated
+msgid "No object selected"
+msgstr "ไม่ได้เลือกวัตถุ"
+
+# AI Translated
+msgid "Face failed"
+msgstr "สร้างผิวหน้าล้มเหลว"
+
+# AI Translated
+msgid "Face with holes failed"
+msgstr "สร้างผิวหน้าที่มีรูล้มเหลว"
+
+# AI Translated
+msgid "Tool mesh empty"
+msgstr "เมชเครื่องมือว่างเปล่า"
+
+# AI Translated
+msgid "Pocket added (negative volume)"
+msgstr "เพิ่มช่องเว้าแล้ว (วอลลุ่มเชิงลบ)"
+
+# AI Translated
+#, boost-format
+msgid "Pocket: %1%"
+msgstr "ช่องเว้า: %1%"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -25729,8 +26289,9 @@ msgstr "แสดง/ซ่อนกล่องโต้ตอบการต�
 msgid "Show/Hide wireframe"
 msgstr "แสดง/ซ่อนโครงลวด"
 
+# AI Translated
 msgid "On/Off G-code window"
-msgstr "เปิด/ปิดหน้าต่างรหัส G"
+msgstr "เปิด/ปิดหน้าต่าง G-code"
 
 msgid "On/Off one layer mode of the vertical slider"
 msgstr "เปิด/ปิดโหมดเลเยอร์เดียวของแถบเลื่อนแนวตั้ง"
@@ -25785,6 +26346,541 @@ msgid "Speed Dial"
 msgstr "Speed Dial"
 
 # AI Translated
+msgid "helix radius must be > 0"
+msgstr "รัศมีเฮลิกซ์ต้อง > 0"
+
+# AI Translated
+msgid "helix pitch must be > 0"
+msgstr "ระยะพิตช์เฮลิกซ์ต้อง > 0"
+
+# AI Translated
+msgid "helix height must be >= 0"
+msgstr "ความสูงเฮลิกซ์ต้อง >= 0"
+
+# AI Translated
+msgid "helix height of 0 (flat spiral) is not supported"
+msgstr "ไม่รองรับเฮลิกซ์ที่มีความสูง 0 (ก้นหอยแบนราบ)"
+
+# AI Translated
+msgid "helix turn count exceeds limit (10000)"
+msgstr "จำนวนรอบเฮลิกซ์เกินขีดจำกัด (10000)"
+
+# AI Translated
+msgid "helix taper drives radius negative before reaching height"
+msgstr "มุมเรียวของเฮลิกซ์ทำให้รัศมีติดลบก่อนถึงความสูงที่กำหนด"
+
+# AI Translated
+msgid "bad character in expression"
+msgstr "มีอักขระไม่ถูกต้องในนิพจน์"
+
+# AI Translated
+msgid "mismatched parentheses"
+msgstr "วงเล็บไม่ครบคู่"
+
+# AI Translated
+#, boost-format
+msgid "unknown identifier: %1%"
+msgstr "ไม่รู้จักตัวระบุ: %1%"
+
+# AI Translated
+msgid "missing operand for unary minus"
+msgstr "ไม่มีตัวถูกดำเนินการสำหรับเครื่องหมายลบเอกภาค"
+
+# AI Translated
+#, boost-format
+msgid "not enough operands for '%1%'"
+msgstr "ตัวถูกดำเนินการไม่เพียงพอสำหรับ '%1%'"
+
+# AI Translated
+msgid "division by zero"
+msgstr "การหารด้วยศูนย์"
+
+# AI Translated
+#, boost-format
+msgid "not enough arguments for %1%()"
+msgstr "อาร์กิวเมนต์ไม่เพียงพอสำหรับ %1%()"
+
+# AI Translated
+#, boost-format
+msgid "unknown function: %1%"
+msgstr "ไม่รู้จักฟังก์ชัน: %1%"
+
+# AI Translated
+msgid "invalid expression"
+msgstr "นิพจน์ไม่ถูกต้อง"
+
+# AI Translated
+#, boost-format
+msgid "variable cycle: %1%"
+msgstr "ตัวแปรอ้างอิงวนกัน: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown parameter: %1%"
+msgstr "ไม่รู้จักพารามิเตอร์: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown hole standard \"%1%\""
+msgstr "ไม่รู้จักมาตรฐานรู \"%1%\""
+
+# AI Translated
+#, boost-format
+msgid "connector %1% is not a coordinate system"
+msgstr "ตัวเชื่อมต่อ %1% ไม่ใช่ระบบพิกัด"
+
+# AI Translated
+msgid "a mate needs two different connectors"
+msgstr "เมทต้องใช้ตัวเชื่อมต่อสองตัวที่ต่างกัน"
+
+# AI Translated
+msgid "connector B is not attached to a body — a mate moves B's body"
+msgstr "ตัวเชื่อมต่อ B ไม่ได้ติดอยู่กับบอดี้ — เมทจะย้ายบอดี้ของ B"
+
+# AI Translated
+msgid "connector B's body no longer exists"
+msgstr "บอดี้ของตัวเชื่อมต่อ B ไม่มีอยู่แล้ว"
+
+# AI Translated
+msgid "needs a flat face at both ends — both connectors are on curved faces"
+msgstr "ต้องมีผิวหน้าแบนราบทั้งสองด้าน — ตัวเชื่อมต่อทั้งสองอยู่บนผิวหน้าโค้ง"
+
+# AI Translated
+#, boost-format
+msgid "needs a flat face at both ends — connector %1% is on a curved face"
+msgstr "ต้องมีผิวหน้าแบนราบทั้งสองด้าน — ตัวเชื่อมต่อ %1% อยู่บนผิวหน้าโค้ง"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on flat faces"
+msgstr "ต้องมีผิวหน้าทรงกระบอกทั้งสองด้าน — ตัวเชื่อมต่อทั้งสองอยู่บนผิวหน้าแบนราบ"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces"
+msgstr "ต้องมีผิวหน้าทรงกระบอกทั้งสองด้าน — ตัวเชื่อมต่อทั้งสองอยู่บนผิวหน้าที่ไม่ใช่ทรงกระบอก"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a flat face"
+msgstr "ต้องมีผิวหน้าทรงกระบอกทั้งสองด้าน — ตัวเชื่อมต่อ %1% อยู่บนผิวหน้าแบนราบ"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr "ต้องมีผิวหน้าทรงกระบอกทั้งสองด้าน — ตัวเชื่อมต่อ %1% อยู่บนผิวหน้าโค้ง"
+
+# AI Translated
+msgid "two points are coincident"
+msgstr "จุดสองจุดทับกัน"
+
+# AI Translated
+msgid "face not found"
+msgstr "ไม่พบผิวหน้า"
+
+# AI Translated
+msgid "face is not a cylinder"
+msgstr "ผิวหน้าไม่ใช่ทรงกระบอก"
+
+# AI Translated
+msgid "edge not found"
+msgstr "ไม่พบขอบ"
+
+# AI Translated
+msgid "plane ref not found"
+msgstr "ไม่พบระนาบอ้างอิง"
+
+# AI Translated
+msgid "planes are parallel (no intersection)"
+msgstr "ระนาบขนานกัน (ไม่มีเส้นตัด)"
+
+# AI Translated
+msgid "zero-length direction"
+msgstr "ทิศทางมีความยาวเป็นศูนย์"
+
+# AI Translated
+msgid "feature is used by a later feature"
+msgstr "ฟีเจอร์นี้ถูกใช้โดยฟีเจอร์ถัดไป"
+
+# AI Translated
+msgid "sketch entities do not form a closed loop"
+msgstr "เอนทิตีสเก็ตช์ไม่ได้ประกอบเป็นลูปปิด"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Open at (%.3f, %.3f)"
+msgstr "เปิดอยู่ที่ (%.3f, %.3f)"
+
+# AI Translated
+#, boost-format
+msgid "...and %1% more open end(s)"
+msgstr "...และปลายเปิดอีก %1% จุด"
+
+# AI Translated
+msgid "sketch has entities but they do not form a single closed wire — a closed entity (circle/ellipse) combined with other entities, or several closed entities, is not supported yet"
+msgstr "สเก็ตช์มีเอนทิตี แต่ไม่ได้ประกอบเป็นไวร์ปิดเส้นเดียว — ยังไม่รองรับเอนทิตีปิด (วงกลม/วงรี) ที่ใช้ร่วมกับเอนทิตีอื่น หรือเอนทิตีปิดหลายรายการ"
+
+# AI Translated
+msgid "sketch profile wire failed"
+msgstr "สร้างไวร์ของโปรไฟล์สเก็ตช์ล้มเหลว"
+
+# AI Translated
+msgid "circle wire failed"
+msgstr "สร้างไวร์วงกลมล้มเหลว"
+
+# AI Translated
+msgid "face-extrude needs a body"
+msgstr "การยืดขึ้นรูปผิวหน้าต้องใช้บอดี้"
+
+# AI Translated
+msgid "tapered extrude of a sketch with holes is not supported yet"
+msgstr "ยังไม่รองรับการยืดขึ้นรูปแบบเรียวของสเก็ตช์ที่มีรู"
+
+# AI Translated
+msgid "fuse failed"
+msgstr "หลอมรวมล้มเหลว"
+
+# AI Translated
+msgid "cut failed"
+msgstr "ตัดล้มเหลว"
+
+# AI Translated
+msgid "intersect failed"
+msgstr "หาส่วนร่วมล้มเหลว"
+
+# AI Translated
+msgid "surface-extrude: empty profile"
+msgstr "ยืดขึ้นรูปพื้นผิว: โปรไฟล์ว่างเปล่า"
+
+# AI Translated
+#, boost-format
+msgid "surface-extrude: %1%"
+msgstr "ยืดขึ้นรูปพื้นผิว: %1%"
+
+# AI Translated
+msgid "prism failed"
+msgstr "สร้างปริซึมล้มเหลว"
+
+# AI Translated
+msgid "surface-revolve: empty profile"
+msgstr "หมุนขึ้นรูปพื้นผิว: โปรไฟล์ว่างเปล่า"
+
+# AI Translated
+msgid "surface-revolve: revolve failed"
+msgstr "หมุนขึ้นรูปพื้นผิว: หมุนขึ้นรูปล้มเหลว"
+
+# AI Translated
+msgid "surface-loft needs 2+ valid profile sketches"
+msgstr "ลอฟต์พื้นผิวต้องใช้สเก็ตช์โปรไฟล์ที่ถูกต้อง 2 รายการขึ้นไป"
+
+# AI Translated
+msgid "surface-loft: loft failed"
+msgstr "ลอฟต์พื้นผิว: ลอฟต์ล้มเหลว"
+
+# AI Translated
+msgid "surface-fill: empty boundary"
+msgstr "เติมพื้นผิว: ขอบเขตว่างเปล่า"
+
+# AI Translated
+msgid "surface-fill: boundary has no edges"
+msgstr "เติมพื้นผิว: ขอบเขตไม่มีขอบ"
+
+# AI Translated
+msgid "surface-fill: fill failed"
+msgstr "เติมพื้นผิว: เติมล้มเหลว"
+
+# AI Translated
+msgid "surface-fill: produced no geometry"
+msgstr "เติมพื้นผิว: ไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "sweep needs a valid path reference"
+msgstr "การกวาดขึ้นรูปต้องมีการอ้างอิงเส้นทางที่ถูกต้อง"
+
+# AI Translated
+#, boost-format
+msgid "helix path: %1%"
+msgstr "เส้นทางเฮลิกซ์: %1%"
+
+# AI Translated
+msgid "sweep path must be a sketch or helix"
+msgstr "เส้นทางกวาดขึ้นรูปต้องเป็นสเก็ตช์หรือเฮลิกซ์"
+
+# AI Translated
+msgid "loft needs 2+ valid profile sketches"
+msgstr "การลอฟต์ต้องใช้สเก็ตช์โปรไฟล์ที่ถูกต้อง 2 รายการขึ้นไป"
+
+# AI Translated
+msgid "pattern needs a body"
+msgstr "คำสั่งแพทเทิร์นต้องใช้บอดี้"
+
+# AI Translated
+msgid "pattern fuse failed"
+msgstr "หลอมรวมแพทเทิร์นล้มเหลว"
+
+# AI Translated
+msgid "rib needs a body"
+msgstr "คำสั่งครีบต้องใช้บอดี้"
+
+# AI Translated
+msgid "rib: entity must be a line"
+msgstr "ครีบ: เอนทิตีต้องเป็นเส้น"
+
+# AI Translated
+msgid "rib: degenerate line"
+msgstr "ครีบ: เส้นลดรูป (ความยาวเป็นศูนย์)"
+
+# AI Translated
+msgid "rib: profile failed"
+msgstr "ครีบ: สร้างโปรไฟล์ล้มเหลว"
+
+# AI Translated
+msgid "rib: extrude failed"
+msgstr "ครีบ: ยืดขึ้นรูปล้มเหลว"
+
+# AI Translated
+msgid "rib: fuse failed"
+msgstr "ครีบ: หลอมรวมล้มเหลว"
+
+# AI Translated
+msgid "fillet needs a body"
+msgstr "คำสั่งลบมุมมนต้องใช้บอดี้"
+
+# AI Translated
+msgid "chamfer needs a body"
+msgstr "คำสั่งลบมุมเอียงต้องใช้บอดี้"
+
+# AI Translated
+msgid "hole needs a body"
+msgstr "คำสั่งรูต้องใช้บอดี้"
+
+# AI Translated
+msgid "hole wire failed"
+msgstr "สร้างไวร์ของรูล้มเหลว"
+
+# AI Translated
+msgid "hole cut failed"
+msgstr "ตัดรูล้มเหลว"
+
+# AI Translated
+msgid "internal thread needs a body"
+msgstr "เกลียวในต้องใช้บอดี้"
+
+# AI Translated
+msgid "shell needs a body"
+msgstr "คำสั่งเปลือกต้องใช้บอดี้"
+
+# AI Translated
+msgid "shell failed"
+msgstr "สร้างเปลือกล้มเหลว"
+
+# AI Translated
+msgid "shell produced no geometry"
+msgstr "เปลือกไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "draft needs a body"
+msgstr "คำสั่งมุมถอดแบบต้องใช้บอดี้"
+
+# AI Translated
+msgid "draft needs a picked face"
+msgstr "คำสั่งมุมถอดแบบต้องมีผิวหน้าที่เลือก"
+
+# AI Translated
+msgid "draft: face not found"
+msgstr "มุมถอดแบบ: ไม่พบผิวหน้า"
+
+# AI Translated
+msgid "draft: face cannot be drafted (is it parallel to the base?)"
+msgstr "มุมถอดแบบ: ไม่สามารถทำมุมถอดแบบให้ผิวหน้านี้ได้ (ผิวหน้าขนานกับฐานหรือไม่)"
+
+# AI Translated
+msgid "draft failed"
+msgstr "มุมถอดแบบล้มเหลว"
+
+# AI Translated
+msgid "draft produced no geometry"
+msgstr "มุมถอดแบบไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "delete_face needs a body"
+msgstr "คำสั่งลบผิวหน้าต้องใช้บอดี้"
+
+# AI Translated
+msgid "delete_face needs at least one face"
+msgstr "คำสั่งลบผิวหน้าต้องมีผิวหน้าอย่างน้อยหนึ่งผิวหน้า"
+
+# AI Translated
+msgid "delete_face: face not found"
+msgstr "ลบผิวหน้า: ไม่พบผิวหน้า"
+
+# AI Translated
+msgid "delete_face failed"
+msgstr "ลบผิวหน้าล้มเหลว"
+
+# AI Translated
+msgid "delete_face produced no geometry"
+msgstr "การลบผิวหน้าไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "boolean operation failed"
+msgstr "การดำเนินการบูลีนล้มเหลว"
+
+# AI Translated
+msgid "boolean produced an empty shape"
+msgstr "บูลีนให้ผลเป็นรูปทรงว่างเปล่า"
+
+# AI Translated
+msgid "cut: no target body"
+msgstr "ตัด: ไม่มีบอดี้เป้าหมาย"
+
+# AI Translated
+msgid "cut keeps nothing"
+msgstr "การตัดไม่เหลือส่วนใดไว้"
+
+# AI Translated
+msgid "cut: face body is empty"
+msgstr "ตัด: บอดี้ของผิวหน้าว่างเปล่า"
+
+# AI Translated
+msgid "cut: face not found"
+msgstr "ตัด: ไม่พบผิวหน้า"
+
+# AI Translated
+msgid "cut: failed to build cut wire"
+msgstr "ตัด: ไม่สามารถสร้างไวร์สำหรับตัดได้"
+
+# AI Translated
+msgid "cut operation failed"
+msgstr "การตัดล้มเหลว"
+
+# AI Translated
+msgid "mirror: no target body"
+msgstr "กลับด้าน: ไม่มีบอดี้เป้าหมาย"
+
+# AI Translated
+msgid "mirror: transform failed"
+msgstr "กลับด้าน: แปลงรูปล้มเหลว"
+
+# AI Translated
+msgid "mirror: result has zero or negative volume"
+msgstr "กลับด้าน: ผลลัพธ์มีปริมาตรเป็นศูนย์หรือติดลบ"
+
+# AI Translated
+msgid "mirror fuse failed"
+msgstr "หลอมรวมผลการกลับด้านล้มเหลว"
+
+# AI Translated
+msgid "transform: no target body"
+msgstr "แปลงรูป: ไม่มีบอดี้เป้าหมาย"
+
+# AI Translated
+msgid "transform: rotation axis is degenerate"
+msgstr "แปลงรูป: แกนการหมุนไม่ถูกต้อง (ความยาวเป็นศูนย์)"
+
+# AI Translated
+msgid "transform: failed"
+msgstr "แปลงรูป: ล้มเหลว"
+
+# AI Translated
+msgid "thicken: no target body"
+msgstr "เพิ่มความหนา: ไม่มีบอดี้เป้าหมาย"
+
+# AI Translated
+msgid "thicken: face not found"
+msgstr "เพิ่มความหนา: ไม่พบผิวหน้า"
+
+# AI Translated
+msgid "thicken: thickness is zero"
+msgstr "เพิ่มความหนา: ความหนาเป็นศูนย์"
+
+# AI Translated
+msgid "thicken: failed"
+msgstr "เพิ่มความหนา: ล้มเหลว"
+
+# AI Translated
+msgid "thicken: produced no geometry"
+msgstr "เพิ่มความหนา: ไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "thicken-surface: no target body"
+msgstr "เพิ่มความหนาพื้นผิว: ไม่มีบอดี้เป้าหมาย"
+
+# AI Translated
+msgid "thicken-surface: target is not a sheet body"
+msgstr "เพิ่มความหนาพื้นผิว: เป้าหมายไม่ใช่บอดี้พื้นผิว"
+
+# AI Translated
+msgid "thicken-surface: thickness is zero"
+msgstr "เพิ่มความหนาพื้นผิว: ความหนาเป็นศูนย์"
+
+# AI Translated
+msgid "thicken-surface: cannot cap the sheet rim (is it planar?)"
+msgstr "เพิ่มความหนาพื้นผิว: ไม่สามารถปิดขอบของแผ่นพื้นผิวได้ (ขอบอยู่ในระนาบเดียวกันหรือไม่)"
+
+# AI Translated
+msgid "thicken-surface: failed"
+msgstr "เพิ่มความหนาพื้นผิว: ล้มเหลว"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet split into more than one shell"
+msgstr "เพิ่มความหนาพื้นผิว: แผ่นพื้นผิวที่ปิดขอบแล้วแยกออกเป็นเปลือกมากกว่าหนึ่งชิ้น"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet is not closed"
+msgstr "เพิ่มความหนาพื้นผิว: แผ่นพื้นผิวที่ปิดขอบแล้วไม่ได้ปิดสนิท"
+
+# AI Translated
+msgid "thicken-surface: produced no geometry"
+msgstr "เพิ่มความหนาพื้นผิว: ไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "thicken-surface: produced a shell, not a solid"
+msgstr "เพิ่มความหนาพื้นผิว: ได้เปลือก ไม่ใช่ทรงตัน"
+
+# AI Translated
+msgid "surface-offset: no target body"
+msgstr "ออฟเซ็ตพื้นผิว: ไม่มีบอดี้เป้าหมาย"
+
+# AI Translated
+msgid "surface-offset: target is not a sheet body"
+msgstr "ออฟเซ็ตพื้นผิว: เป้าหมายไม่ใช่บอดี้พื้นผิว"
+
+# AI Translated
+msgid "surface-offset: zero offset"
+msgstr "ออฟเซ็ตพื้นผิว: ระยะออฟเซ็ตเป็นศูนย์"
+
+# AI Translated
+msgid "surface-offset: failed"
+msgstr "ออฟเซ็ตพื้นผิว: ล้มเหลว"
+
+# AI Translated
+msgid "surface-offset: produced no geometry"
+msgstr "ออฟเซ็ตพื้นผิว: ไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "project: no source body"
+msgstr "ฉาย: ไม่มีบอดี้ต้นทาง"
+
+# AI Translated
+msgid "project: source body is empty"
+msgstr "ฉาย: บอดี้ต้นทางว่างเปล่า"
+
+# AI Translated
+msgid "project: edge not found"
+msgstr "ฉาย: ไม่พบขอบ"
+
+# AI Translated
+msgid "project: face not found"
+msgstr "ฉาย: ไม่พบผิวหน้า"
+
+# AI Translated
+msgid "project: no edges to project"
+msgstr "ฉาย: ไม่มีขอบให้ฉาย"
+
+# AI Translated
+msgid "project: produced no entities"
+msgstr "ฉาย: ไม่ได้สร้างเอนทิตีใด ๆ"
+
+# AI Translated
 #, boost-format
 msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
 msgstr "บอดี้ %1% ถูกจัดตำแหน่งโดย \"%2%\" (ฟีเจอร์ %3%) อยู่แล้ว ดังนั้น \"%4%\" จะแทนที่ตำแหน่งนั้น"
@@ -25801,8 +26897,106 @@ msgstr "สายโซ่เมทวนเป็นวง: บอดี้ %1%
 
 # AI Translated
 #, boost-format
+msgid "mate: %1%"
+msgstr "เมท: %1%"
+
+# AI Translated
+msgid "mate: transform failed"
+msgstr "เมท: แปลงรูปล้มเหลว"
+
+# AI Translated
+msgid "feature needs a body"
+msgstr "ฟีเจอร์ต้องใช้บอดี้"
+
+# AI Translated
+msgid "hole removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "รูไม่ได้นำเนื้อวัสดุออก — เครื่องมือไม่ได้ตัดผ่านบอดี้เป้าหมาย (พิกัดอยู่ในกรอบอ้างอิงของระนาบสเก็ตช์ ไม่ใช่พิกัดโลก)"
+
+# AI Translated
+msgid "thread removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "เกลียวไม่ได้นำเนื้อวัสดุออก — เครื่องมือไม่ได้ตัดผ่านบอดี้เป้าหมาย (พิกัดอยู่ในกรอบอ้างอิงของระนาบสเก็ตช์ ไม่ใช่พิกัดโลก)"
+
+# AI Translated
+msgid "cut removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "การตัดไม่ได้นำเนื้อวัสดุออก — เครื่องมือไม่ได้ตัดผ่านบอดี้เป้าหมาย (พิกัดอยู่ในกรอบอ้างอิงของระนาบสเก็ตช์ ไม่ใช่พิกัดโลก)"
+
+# AI Translated
+msgid "OCCT operation failed"
+msgstr "การดำเนินการ OCCT ล้มเหลว"
+
+# AI Translated
+msgid "unknown geometry error"
+msgstr "ข้อผิดพลาดทางเรขาคณิตที่ไม่ทราบสาเหตุ"
+
+# AI Translated
+msgid "no solid-producing features"
+msgstr "ไม่มีฟีเจอร์ที่สร้างทรงตัน"
+
+# AI Translated
+msgid "an unidentified feature"
+msgstr "ฟีเจอร์ที่ไม่สามารถระบุได้"
+
+# AI Translated
+#, boost-format
+msgid "feature %1%"
+msgstr "ฟีเจอร์ %1%"
+
+# AI Translated
+#, boost-format
+msgid "body %1% was destroyed by %2% (the operation produced an empty shape)"
+msgstr "บอดี้ %1% ถูกทำลายโดย %2% (การดำเนินการให้ผลเป็นรูปทรงว่างเปล่า)"
+
+# AI Translated
+#, boost-format
 msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
 msgstr "ตัวเชื่อม \"%1%\" อาจย้ายไปอยู่บนผิวหน้าอื่น (การแก้ไขก่อนหน้าได้เปลี่ยนหมายเลขผิวหน้าของบอดี้นี้)"
+
+# AI Translated
+msgid "tessellation produced an empty mesh"
+msgstr "การแบ่งเมชสามเหลี่ยมได้เมชว่างเปล่า"
+
+# AI Translated
+msgid "preview produced no geometry"
+msgstr "พรีวิวไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
+
+# AI Translated
+msgid "preview produced an empty mesh"
+msgstr "พรีวิวได้เมชว่างเปล่า"
+
+# AI Translated
+#, boost-format
+msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
+msgstr "บันทึกด้วยแท็บออกแบบเวอร์ชันที่ใหม่กว่า (รูปแบบ v%1%, บิลด์นี้อ่านได้ถึง v%2%)"
+
+# AI Translated
+#, boost-format
+msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
+msgstr "บันทึกด้วยแท็บออกแบบเวอร์ชันที่เก่ากว่า (รูปแบบ v%1%); บิลด์นี้ไม่สามารถเปิดโปรเจกต์นี้ได้"
+
+# AI Translated
+#, boost-format
+msgid "CAD data could not be read: %1%"
+msgstr "ไม่สามารถอ่านข้อมูล CAD ได้: %1%"
+
+# AI Translated
+msgid "CAD data could not be read"
+msgstr "ไม่สามารถอ่านข้อมูล CAD ได้"
+
+# AI Translated
+msgid "nothing to export"
+msgstr "ไม่มีสิ่งที่จะส่งออก"
+
+# AI Translated
+msgid "STEP transfer failed"
+msgstr "การถ่ายโอน STEP ล้มเหลว"
+
+# AI Translated
+msgid "cannot write STEP file"
+msgstr "ไม่สามารถเขียนไฟล์ STEP ได้"
+
+# AI Translated
+msgid "OCCT failed to write STEP"
+msgstr "OCCT เขียน STEP ไม่สำเร็จ"
 
 # AI Translated
 msgid "Taking a configuration snapshot failed."
@@ -25815,6 +27009,15 @@ msgstr "OrcaSlicer พบข้อผิดพลาดขณะสร้าง�
 # AI Translated
 msgid "OrcaSlicer error"
 msgstr "ข้อผิดพลาด OrcaSlicer"
+
+# AI Translated
+#. TRN Short labels of the external spool of the right and left nozzle
+msgid "Ext-R"
+msgstr "ภายนอก-ขวา"
+
+# AI Translated
+msgid "Ext-L"
+msgstr "ภายนอก-ซ้าย"
 
 # AI Translated
 #, c-format, boost-format
@@ -26006,6 +27209,10 @@ msgid "Only the following installed printers are compatible with the selected SL
 msgstr "มีเพียงเครื่องพิมพ์ที่ติดตั้งไว้ต่อไปนี้ที่เข้ากันได้กับวัสดุ SLA ที่เลือก"
 
 # AI Translated
+msgid "My Settings"
+msgstr "การตั้งค่าของฉัน"
+
+# AI Translated
 msgid "Custom Printer Setup"
 msgstr "ตั้งค่าเครื่องพิมพ์แบบกำหนดเอง"
 
@@ -26100,6 +27307,10 @@ msgstr "โดยทั่วไปคือ 60℃ สำหรับ PLA แล
 # AI Translated
 msgid "Bed Temperature:"
 msgstr "อุณหภูมิฐานพิมพ์:"
+
+# AI Translated
+msgid "(Unknown)"
+msgstr "(ไม่ทราบ)"
 
 # AI Translated
 msgid "SLA Materials"
@@ -26262,6 +27473,10 @@ msgstr "สรุป: นี่คือตำแหน่งการวาง�
 # AI Translated
 msgid "?"
 msgstr "?"
+
+# AI Translated
+msgid "Wiki->"
+msgstr "วิกิ->"
 
 # AI Translated
 msgid "Note:"
@@ -26518,6 +27733,10 @@ msgstr "ไม่สามารถโหลดพื้นผิวที่เ
 # AI Translated
 msgid "Change texture displacement texture"
 msgstr "เปลี่ยนภาพพื้นผิวของการกระจัดพื้นผิว"
+
+# AI Translated
+msgid "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+msgstr "รูปภาพ (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
 
 # AI Translated
 msgid "Choose a texture image (height map)"
@@ -26893,7 +28112,7 @@ msgstr "ระดับกลาง"
 
 # AI Translated
 msgid ""
-"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"Which gray stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones still push out - one image both embosses and engraves.\n"
 "\n"
 "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
 msgstr ""
@@ -26930,15 +28149,15 @@ msgid "Turns the relief inside out: what stood out is cut in, and the other way 
 msgstr "กลับลายนูนจากในออกนอก: ส่วนที่นูนออกจะกลายเป็นกดลึกลง และในทางกลับกัน เหมือนกับการใช้ภาพเนกาทีฟ"
 
 # AI Translated
-msgid "Colours"
+msgid "Colors"
 msgstr "สี"
 
 # AI Translated
-msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgid "Prints the painted area in the texture's colors as well as its relief. Each color is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
 msgstr "พิมพ์บริเวณที่ระบายด้วยสีของพื้นผิวพร้อมกับลายนูน แต่ละสีจะจับคู่กับเส้นพลาสติกที่โหลดไว้ซึ่งใกล้เคียงที่สุด ส่วนที่ไม่ได้ระบายจะคงสีเดิมของวัตถุ"
 
 # AI Translated
-msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgid "This texture is a grayscale height map, so it has no colors to apply. Import a color image to use this."
 msgstr "พื้นผิวนี้เป็นแผนที่ความสูงแบบโทนสีเทา จึงไม่มีสีให้ใช้ นำเข้าภาพสีเพื่อใช้ตัวเลือกนี้"
 
 # AI Translated
@@ -26946,7 +28165,7 @@ msgid "Mix filaments"
 msgstr "ผสมเส้นพลาสติก"
 
 # AI Translated
-msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgid "Interleaves two filaments to fake the colors in between, so a handful of filaments can cover a photo or a gradient. An image of flat colors prints the same either way. Off uses one filament per area."
 msgstr "สลับใช้เส้นพลาสติกสองเส้นเพื่อจำลองสีที่อยู่ระหว่างกัน ทำให้เส้นพลาสติกเพียงไม่กี่สีครอบคลุมภาพถ่ายหรือการไล่ระดับสีได้ ภาพที่เป็นสีเรียบจะพิมพ์ออกมาเหมือนกันไม่ว่าแบบใด เมื่อปิดจะใช้เส้นพลาสติกหนึ่งเส้นต่อหนึ่งบริเวณ"
 
 # AI Translated
@@ -26970,7 +28189,7 @@ msgstr ""
 
 # AI Translated
 #, boost-format
-msgid "%1% printable colours from %2% filaments"
+msgid "%1% printable colors from %2% filaments"
 msgstr "%1% สีที่พิมพ์ได้จากเส้นพลาสติก %2% เส้น"
 
 # AI Translated
@@ -26978,7 +28197,7 @@ msgid "Denoise"
 msgstr "ลดสัญญาณรบกวน"
 
 # AI Translated
-msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgid "Cleans up single stray triangles of the wrong color, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
 msgstr "กำจัดสามเหลี่ยมเดี่ยวที่มีสีผิด ซึ่งเกิดจากรายละเอียดที่ละเอียดกว่าเมช เพิ่มค่าหากผลลัพธ์ดูเป็นจุดประ ลดค่าหากรายละเอียดเล็ก ๆ ถูกกลืนหายไป"
 
 # AI Translated
@@ -26995,7 +28214,7 @@ msgid "Triplanar - projects the texture from all three axes at once and blends b
 msgstr "สามระนาบ - ฉายพื้นผิวจากทั้งสามแกนพร้อมกันและผสานระหว่างกัน ทำให้บริเวณที่พันรอบขอบคมไม่มีรอยต่อ"
 
 # AI Translated
-msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgid "Cylindrical - wraps the texture around the painted area's own center, for round shapes."
 msgstr "ทรงกระบอก - พันพื้นผิวรอบจุดศูนย์กลางของบริเวณที่ระบาย สำหรับรูปทรงโค้งมน"
 
 # AI Translated
@@ -27003,7 +28222,7 @@ msgid "Spherical"
 msgstr "ทรงกลม"
 
 # AI Translated
-msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgid "Spherical - wraps the texture around the painted area's own center in both directions."
 msgstr "ทรงกลม - พันพื้นผิวรอบจุดศูนย์กลางของบริเวณที่ระบายทั้งสองทิศทาง"
 
 # AI Translated
@@ -27240,11 +28459,11 @@ msgid "Triangle size along the outline of the painted area, where the relief dro
 msgstr "ขนาดสามเหลี่ยมตามเส้นขอบของบริเวณที่ระบาย ซึ่งเป็นจุดที่ลายนูนลดกลับสู่ผิวเปล่า ลดค่าหากขอบนั้นดูขรุขระ โดยจะใช้สามเหลี่ยมเพิ่มเฉพาะตามเส้นขอบ 0 คือปิด"
 
 # AI Translated
-msgid "Colour detail"
+msgid "Color detail"
 msgstr "รายละเอียดสี"
 
 # AI Translated
-msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgid "Triangle size where two colors meet. Each triangle prints in one filament, so a color edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of color. 0 turns it off."
 msgstr "ขนาดสามเหลี่ยมในบริเวณที่สองสีมาบรรจบกัน สามเหลี่ยมแต่ละรูปพิมพ์ด้วยเส้นพลาสติกเดียว ขอบสีจึงคมได้เท่ากับสามเหลี่ยมที่อยู่ตามแนวขอบเท่านั้น - และไม่มีสิ่งอื่นเพิ่มความละเอียดตรงนั้น เนื่องจากผิวแบนราบตลอดแนวที่สีเปลี่ยน 0 คือปิด"
 
 # AI Translated
@@ -27370,12 +28589,18 @@ msgid "Experimental: classic bake pipeline"
 msgstr "ทดลอง: ไปป์ไลน์การอบแบบคลาสสิก"
 
 # AI Translated
-msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr "อบโดยการเคลื่อนจุดยอดที่เมชมีอยู่แล้ว หลังจากเตรียมเมช (รีเมช แบ่งย่อยแบบปรับได้ และตัดตามขั้นที่คมในพื้นผิว) โทโพโลยีจะคงเดิม ซึ่งเป็นสิ่งที่การใช้สีต้องการ ส่วนไปป์ไลน์เริ่มต้นจะเพิ่มความละเอียด กำจัดสามเหลี่ยมแคบยาว กระจัด และลดรายละเอียดในการทำงานครั้งเดียว ไม่ต้องเตรียมการก่อน แต่ยังไม่รองรับการสร้างสี"
 
 # AI Translated
+#. TRN Slider value: %d is the triangle budget in thousands
 msgid "Budget"
 msgstr "งบประมาณ"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr "%d k (อัตโนมัติ)"
 
 # AI Translated
 msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
@@ -27400,6 +28625,11 @@ msgstr "ยุบสามเหลี่ยมบางที่การเพ
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
 msgstr "เปิด: ความละเอียดจะเป็นไปตามขนาดของโมเดล และงบประมาณจะใช้ค่าเริ่มต้น ยกเลิกการเลือกเพื่อตั้งค่าทั้งสองเอง - เหมาะสำหรับพื้นผิวที่ละเอียดหรือหยาบกว่าชิ้นส่วนที่ใช้มาก"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.2f mm (auto)"
+msgstr "%.2f มม. (อัตโนมัติ)"
 
 # AI Translated
 #, boost-format
@@ -27716,6 +28946,18 @@ msgid "Overwrite Plugin"
 msgstr "เขียนทับปลั๊กอิน"
 
 # AI Translated
+msgid "Show in folder"
+msgstr "แสดงในโฟลเดอร์"
+
+# AI Translated
+msgid "Reinstall"
+msgstr "ติดตั้งใหม่"
+
+# AI Translated
+msgid "Delete cache and reload"
+msgstr "ลบแคชและโหลดใหม่"
+
+# AI Translated
 msgid "Select a .py or .whl plugin package."
 msgstr "เลือกแพ็กเกจปลั๊กอิน .py หรือ .whl"
 
@@ -27788,6 +29030,10 @@ msgid "Deactivated \"%s\"."
 msgstr "หยุดใช้งาน \"%s\" แล้ว"
 
 # AI Translated
+msgid "Unauthorized cloud plugins cannot be installed."
+msgstr "ไม่สามารถติดตั้งปลั๊กอินคลาวด์ที่ไม่ได้รับอนุญาตได้"
+
+# AI Translated
 msgid "Plugin manifest was not found."
 msgstr "ไม่พบไฟล์ manifest ของปลั๊กอิน"
 
@@ -27832,6 +29078,10 @@ msgstr ""
 # AI Translated
 msgid "Default configuration restored."
 msgstr "คืนค่าการกำหนดค่าเริ่มต้นแล้ว"
+
+# AI Translated
+msgid "Script plugin failed."
+msgstr "ปลั๊กอินสคริปต์ล้มเหลว"
 
 # AI Translated
 msgid "Updating plugin"
@@ -27918,8 +29168,33 @@ msgid "Deleting local files and unsubscribing plugin..."
 msgstr "กำลังลบไฟล์ในเครื่องและยกเลิกการติดตามปลั๊กอิน..."
 
 # AI Translated
+msgid "Plugin not found."
+msgstr "ไม่พบปลั๊กอิน"
+
+# AI Translated
+msgid "Refusing to clear a plugin cache outside the local plugin directory."
+msgstr "ปฏิเสธการล้างแคชปลั๊กอินที่อยู่นอกไดเรกทอรีปลั๊กอินในเครื่อง"
+
+# AI Translated
+#, boost-format
+msgid "Failed to clear plugin cache: %1%"
+msgstr "ไม่สามารถล้างแคชปลั๊กอินได้: %1%"
+
+# AI Translated
+msgid "Plugin failed to load."
+msgstr "โหลดปลั๊กอินไม่สำเร็จ"
+
+# AI Translated
+msgid "Plugin reloaded, but failed to restore the inactive state."
+msgstr "โหลดปลั๊กอินใหม่แล้ว แต่ไม่สามารถคืนสถานะไม่ใช้งานได้"
+
+# AI Translated
 msgid "Reloading plugin"
 msgstr "กำลังโหลดปลั๊กอินใหม่"
+
+# AI Translated
+msgid "Unknown plugin reload error."
+msgstr "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุขณะโหลดปลั๊กอินใหม่"
 
 # AI Translated
 msgid "Failed to reload plugin."
@@ -27953,6 +29228,26 @@ msgstr "ลดเส้นพลาสติกที่เสียจากก
 # AI Translated
 msgid "Terminal"
 msgstr "เทอร์มินัล"
+
+# AI Translated
+msgid "A command is already running."
+msgstr "มีคำสั่งกำลังทำงานอยู่แล้ว"
+
+# AI Translated
+msgid "Bundled Python executable not found."
+msgstr "ไม่พบไฟล์ปฏิบัติการ Python ที่มาพร้อมโปรแกรม"
+
+# AI Translated
+msgid "uv executable not found."
+msgstr "ไม่พบไฟล์ปฏิบัติการ uv"
+
+# AI Translated
+msgid "Only 'python' and 'uv' commands are supported."
+msgstr "รองรับเฉพาะคำสั่ง 'python' และ 'uv' เท่านั้น"
+
+# AI Translated
+msgid "Failed to start process."
+msgstr "ไม่สามารถเริ่มกระบวนการได้"
 
 # AI Translated
 msgid "One-click CMYW auto-mix"
@@ -28209,7 +29504,7 @@ msgid "Checker - a test grid; squares stay square where the unwrap does not stre
 msgstr "ตาหมากรุก - ตารางทดสอบ; ช่องจะยังเป็นสี่เหลี่ยมจัตุรัสในบริเวณที่การคลี่ UV ไม่ยืด"
 
 # AI Translated
-msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgid "Distortion - color each island by how much the unwrap stretches it"
 msgstr "ความบิดเบี้ยว - ระบายสีแต่ละเกาะตามระดับที่การคลี่ UV ยืดเกาะนั้น"
 
 # AI Translated
@@ -28492,6 +29787,926 @@ msgstr "ไม่สามารถเขียนการกำหนดค่
 # AI Translated
 msgid "Plugin installation failed"
 msgstr "การติดตั้งปลั๊กอินล้มเหลว"
+
+# AI Translated
+msgid "Profile has fewer than 2 points"
+msgstr "โปรไฟล์มีจุดน้อยกว่า 2 จุด"
+
+# AI Translated
+msgid "Failed to build wire from profile"
+msgstr "ไม่สามารถสร้างไวร์จากโปรไฟล์ได้"
+
+# AI Translated
+msgid "extrude depth is zero"
+msgstr "ความลึกยืดขึ้นรูปเป็นศูนย์"
+
+# AI Translated
+msgid "extrude failed"
+msgstr "ยืดขึ้นรูปล้มเหลว"
+
+# AI Translated
+msgid "Fuse failed"
+msgstr "หลอมรวมล้มเหลว"
+
+# AI Translated
+msgid "Failed to make face from wire"
+msgstr "ไม่สามารถสร้างผิวหน้าจากไวร์ได้"
+
+# AI Translated
+msgid "two-sided extrude fuse failed"
+msgstr "หลอมรวมการยืดขึ้นรูปสองทิศทางล้มเหลว"
+
+# AI Translated
+msgid "imported regions produced no extrudable geometry"
+msgstr "พื้นที่ที่นำเข้าไม่ได้สร้างรูปทรงเรขาคณิตที่ยืดขึ้นรูปได้"
+
+# AI Translated
+msgid "Failed to revolve"
+msgstr "หมุนขึ้นรูปไม่สำเร็จ"
+
+# AI Translated
+msgid "Failed to make face from sweep profile"
+msgstr "ไม่สามารถสร้างผิวหน้าจากโปรไฟล์กวาดขึ้นรูปได้"
+
+# AI Translated
+msgid "Failed to sweep profile along path"
+msgstr "ไม่สามารถกวาดโปรไฟล์ไปตามเส้นทางได้"
+
+# AI Translated
+msgid "loft needs at least 2 profiles"
+msgstr "การลอฟต์ต้องใช้โปรไฟล์อย่างน้อย 2 รายการ"
+
+# AI Translated
+msgid "loft failed"
+msgstr "ลอฟต์ล้มเหลว"
+
+# AI Translated
+msgid "loft produced no solid"
+msgstr "การลอฟต์ไม่ได้สร้างทรงตัน"
+
+# AI Translated
+msgid "loft produced no shape"
+msgstr "การลอฟต์ไม่ได้สร้างรูปทรงใด ๆ"
+
+# AI Translated
+msgid "Pocket face failed"
+msgstr "สร้างผิวหน้าช่องเว้าล้มเหลว"
+
+# AI Translated
+msgid "Pocket cut failed"
+msgstr "ตัดช่องเว้าล้มเหลว"
+
+# AI Translated
+msgid "sketch has no closed loop"
+msgstr "สเก็ตช์ไม่มีลูปปิด"
+
+# AI Translated
+msgid "sketch loop does not bound a face"
+msgstr "ลูปของสเก็ตช์ไม่ได้ล้อมรอบเป็นผิวหน้า"
+
+# AI Translated
+msgid "sketch has two disjoint regions; put each in its own sketch"
+msgstr "สเก็ตช์มีสองพื้นที่ที่แยกจากกัน; ให้แยกแต่ละพื้นที่ไว้ในสเก็ตช์ของตัวเอง"
+
+# AI Translated
+msgid "cannot read STEP file"
+msgstr "ไม่สามารถอ่านไฟล์ STEP ได้"
+
+# AI Translated
+msgid "STEP file has no geometry"
+msgstr "ไฟล์ STEP ไม่มีรูปทรงเรขาคณิต"
+
+# AI Translated
+msgid "OCCT failed to read STEP"
+msgstr "OCCT อ่าน STEP ไม่สำเร็จ"
+
+# AI Translated
+msgid "mesh_to_brep: mesh has no triangles"
+msgstr "mesh_to_brep: เมชไม่มีรูปสามเหลี่ยม"
+
+# AI Translated
+msgid "mesh_to_brep: every triangle was rejected as degenerate (try a smaller tolerance)"
+msgstr "mesh_to_brep: รูปสามเหลี่ยมทุกรูปถูกปฏิเสธเพราะลดรูป (ลองใช้ค่าความเผื่อที่เล็กลง)"
+
+# AI Translated
+msgid "fillet radius too large for this geometry"
+msgstr "รัศมีลบมุมมนใหญ่เกินไปสำหรับรูปทรงนี้"
+
+# AI Translated
+msgid "chamfer distance too large for this geometry"
+msgstr "ระยะลบมุมเอียงมากเกินไปสำหรับรูปทรงนี้"
+
+# AI Translated
+msgid "apply_fillet: OCCT fillet failed"
+msgstr "apply_fillet: OCCT ลบมุมมนล้มเหลว"
+
+# AI Translated
+msgid "apply_chamfer: OCCT chamfer failed"
+msgstr "apply_chamfer: OCCT ลบมุมเอียงล้มเหลว"
+
+# AI Translated
+msgid "Add material"
+msgstr "เพิ่มเนื้อวัสดุ"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "ลบมุมมน / ลบมุมเอียง / มุมถอดแบบ"
+
+# AI Translated
+msgid "Reference"
+msgstr "อ้างอิง"
+
+# AI Translated
+msgid "Modify"
+msgstr "ปรับแต่ง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "สเก็ตช์"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "หมุนขึ้นรูป"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "กวาดขึ้นรูป"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "ลอฟต์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "เพิ่มความหนา"
+
+# AI Translated
+msgctxt "Design"
+msgid "Union"
+msgstr "ยูเนี่ยน"
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "หลอมรวมบอดี้เครื่องมือเข้ากับเป้าหมาย — เป็นทรงตันชิ้นเดียว ไม่มีรอยต่อ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "ลบออก"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "ตัดบอดี้เครื่องมือออกจากเป้าหมาย"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "ส่วนร่วม"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "เก็บเฉพาะส่วนที่สองบอดี้ซ้อนทับกัน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "ยืดขึ้นรูปพื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "หมุนขึ้นรูปพื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "ลอฟต์พื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "เติมพื้นผิว"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "สร้างสเก็ตช์แบบปิดก่อน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "เพิ่มความหนาพื้นผิว"
+
+# AI Translated
+msgid "target is not a sheet body"
+msgstr "เป้าหมายไม่ใช่บอดี้พื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "รู"
+
+# AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "เลือกผิวหน้าหรือระนาบที่จะเจาะ"
+
+# AI Translated
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr "เจาะรูที่กึ่งกลางผิวหน้าที่เลือก หรือวางบนระนาบ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "เกลียว"
+
+# AI Translated
+msgid "Shell needs a solid body"
+msgstr "คำสั่งเปลือกต้องใช้บอดี้ทรงตัน"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "ตัดแต่งบอดี้ด้วยระนาบ — ลากลูกศรออฟเซ็ต; เก็บไว้ครึ่งหนึ่งหรือทั้งสองส่วน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "แยก"
+
+# AI Translated
+msgid "Split needs a solid body"
+msgstr "คำสั่งแยกต้องใช้บอดี้ทรงตัน"
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "แยกบอดี้ตามผิวหน้าที่เลือกออกเป็นทรงตันสองชิ้น"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "ลบมุมมน"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "เลือกขอบที่จะทำให้มน"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "เลือกขอบ แล้วลากลูกศรรัศมีหรือพิมพ์ค่า"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "ลบมุมเอียง"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "เลือกขอบที่จะลบมุมเอียง"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "เลือกขอบ แล้วลากลูกศรระยะหรือพิมพ์ค่า"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "มุมถอดแบบ"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "เลือกผิวหน้าที่จะทำให้เอียงสอบ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "ออฟเซ็ตพื้นผิว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "แพทเทิร์นเชิงเส้น"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "ทำซ้ำบอดี้ตามทิศทาง — ลากกำหนดระยะห่าง แล้วกำหนดจำนวน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "แพทเทิร์นแบบวงกลม"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "ทำซ้ำบอดี้รอบแกน — กำหนดจำนวนและมุมกวาด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "กลับด้าน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "แพทเทิร์นตามเส้นโค้ง"
+
+# AI Translated
+msgid "Pattern on curve needs a body and a curve"
+msgstr "แพทเทิร์นตามเส้นโค้งต้องใช้บอดี้และเส้นโค้ง"
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "ทำซ้ำบอดี้ไปตามเส้นโค้งที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "ย้าย"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "เมท"
+
+# AI Translated
+msgid "A mate needs two coordinate systems"
+msgstr "เมทต้องใช้ระบบพิกัดสองระบบ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "จัดแนวกับ"
+
+# AI Translated
+msgid "Align needs a body"
+msgstr "คำสั่งจัดแนวต้องใช้บอดี้"
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "จัดแนวบอดี้กับผิวหน้าหรือระนาบที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "ระนาบ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "แกน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Coord Sys"
+msgstr "ระบบพิกัด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "เฮลิกซ์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "วัด"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "วัดระหว่างจุด ขอบ หรือผิวหน้าที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mass"
+msgstr "มวล"
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "รายงานปริมาตรและพื้นที่ผิวของบอดี้ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "การทับซ้อน"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "ตรวจสอบว่าสองบอดี้ซ้อนทับกันหรือไม่ — รายงานผลเท่านั้น ไม่เปลี่ยนแปลงสิ่งใด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "แก้ไข"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "เปิดฟีเจอร์ที่เลือกอีกครั้งเพื่อเปลี่ยนสิ่งที่ใช้สร้างฟีเจอร์นั้น"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "เปลี่ยนชื่อ…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "เลือกฟีเจอร์หรือบอดี้เพื่อเปลี่ยนชื่อ"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "ตั้งชื่อฟีเจอร์นี้ให้จำได้ง่ายในแผนผัง (บอดี้จะใช้ชื่อตามฟีเจอร์ที่สร้างบอดี้นั้น)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "ลบผิวหน้า"
+
+# AI Translated
+msgctxt "Design"
+msgid "Colour"
+msgstr "สี"
+
+# AI Translated
+msgid "Set the selected body's display colour"
+msgstr "ตั้งค่าสีที่แสดงของบอดี้ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "ลบ"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "ลบรายการที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "ลบบอดี้"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "ลบบอดี้นี้ทั้งหมด — จะนำฟีเจอร์ที่ใช้สร้างบอดี้นี้ออกด้วย"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "เส้น"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "โพลีไลน์"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาเพื่อจบแบบเปิด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "สี่เหลี่ยมผืนผ้าแบบมุม"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre rectangle"
+msgstr "สี่เหลี่ยมผืนผ้าแบบจุดศูนย์กลาง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "สี่เหลี่ยมผืนผ้าแบบเอียง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "สี่เหลี่ยมผืนผ้ามุมมน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre circle"
+msgstr "วงกลมแบบจุดศูนย์กลาง"
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "วงกลมแบบ 2 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "วงกลมแบบ 3 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "ส่วนโค้งแบบ 3 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "ส่วนโค้งสัมผัส"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre-point arc"
+msgstr "ส่วนโค้งแบบจุดศูนย์กลาง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "ร่อง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "ร่องโค้ง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "วงรี"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "ส่วนโค้งวงรี"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "สไปลน์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "สามเหลี่ยม"
+
+# AI Translated
+msgid "Triangle — click centre, then a vertex"
+msgstr "สามเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "สี่เหลี่ยมจัตุรัส"
+
+# AI Translated
+msgid "Square — click centre, then a vertex"
+msgstr "สี่เหลี่ยมจัตุรัส — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "ห้าเหลี่ยม"
+
+# AI Translated
+msgid "Pentagon — click centre, then a vertex"
+msgstr "ห้าเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "หกเหลี่ยม"
+
+# AI Translated
+msgid "Hexagon — click centre, then a vertex"
+msgstr "หกเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "แปดเหลี่ยม"
+
+# AI Translated
+msgid "Octagon — click centre, then a vertex"
+msgstr "แปดเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "สิบสองเหลี่ยม"
+
+# AI Translated
+msgid "Dodecagon — click centre, then a vertex"
+msgstr "สิบสองเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "แบบแนบใน"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "วัดขนาดรูปหลายเหลี่ยมถึงมุม (แบบแนบใน)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "แบบแนบนอก"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "วัดขนาดรูปหลายเหลี่ยมถึงด้านแบน (แบบแนบนอก)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "จุด"
+
+# AI Translated
+msgid "Type text; its outline is added to this sketch as editable lines"
+msgstr "พิมพ์ข้อความ; เส้นขอบของข้อความจะถูกเพิ่มลงในสเก็ตช์นี้เป็นเส้นที่แก้ไขได้"
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "นำเข้าเส้นขอบ SVG ลงในสเก็ตช์นี้เป็นเส้นที่แก้ไขได้"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "ออฟเซ็ต"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "ตัดเล็ม"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "อาร์เรย์เชิงเส้น"
+
+# AI Translated
+msgid "Array"
+msgstr "อาร์เรย์"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "อาร์เรย์เชิงขั้ว"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "หมุน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "ปรับขนาด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "มิติ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "กำหนดเงื่อนไขบังคับ"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "กำหนดเงื่อนไขบังคับระหว่างเอนทิตีสเก็ตช์ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "กำหนดเงื่อนไขบังคับสเก็ตช์"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "เลือกสเก็ตช์เพื่อกำหนดเงื่อนไขบังคับ"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "เพิ่มมิติและความสัมพันธ์ (ทับกัน, สัมผัส, ขนาน...) ให้สเก็ตช์ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "ช่วยสร้าง"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "สลับเรขาคณิตช่วยสร้าง: เรขาคณิตที่ใช้นำทางแต่จะไม่ถูกสร้างเป็นชิ้นงาน"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "ต่อขยาย"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "ลบเอนทิตีสเก็ตช์ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "ความยาว…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "พิมพ์ความยาวของเส้นนี้"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "รัศมี / เส้นผ่านศูนย์กลาง…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "พิมพ์รัศมีของส่วนโค้งนี้ หรือเส้นผ่านศูนย์กลางของวงกลมนี้"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "มุม / ระยะ…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "พิมพ์มุมระหว่างเส้นสองเส้น หรือระยะระหว่างสองตำแหน่งที่เลือก"
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "ความยาวด้าน"
+
+# AI Translated
+#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
+msgid "Major"
+msgstr "แกนหลัก"
+
+# AI Translated
+msgid "Minor"
+msgstr "แกนรอง"
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "คลิกขวาหรือดับเบิลคลิกเพื่อเสร็จสิ้น คลิกจุดเริ่มต้นเพื่อปิด"
+
+# AI Translated
+msgid "Extend: click a line/arc that can reach another live entity"
+msgstr "ต่อขยาย: คลิกเส้น/ส่วนโค้งที่ต่อขยายไปถึงเอนทิตีอื่นในสเก็ตช์ที่กำลังแก้ไขได้"
+
+# AI Translated
+msgid "Trim: click a segment where it crosses another live entity"
+msgstr "ตัดเล็ม: คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่นในสเก็ตช์ที่กำลังแก้ไข"
+
+# AI Translated
+msgid "Authentication complete"
+msgstr "ยืนยันตัวตนเสร็จสมบูรณ์"
+
+# AI Translated
+msgid "Authentication failed"
+msgstr "ยืนยันตัวตนล้มเหลว"
+
+# AI Translated
+msgid "You can return to OrcaSlicer. This window will close automatically."
+msgstr "คุณสามารถกลับไปที่ OrcaSlicer ได้ หน้าต่างนี้จะปิดโดยอัตโนมัติ"
+
+# AI Translated
+msgid "Something went wrong. Please return to OrcaSlicer and try again."
+msgstr "เกิดข้อผิดพลาดบางอย่าง โปรดกลับไปที่ OrcaSlicer แล้วลองอีกครั้ง"
+
+# AI Translated
+msgid "You can return to OrcaSlicer. If your browser does not redirect automatically, use the button below."
+msgstr "คุณสามารถกลับไปที่ OrcaSlicer ได้ หากเบราว์เซอร์ไม่เปลี่ยนเส้นทางโดยอัตโนมัติ ให้ใช้ปุ่มด้านล่าง"
+
+# AI Translated
+#, boost-format
+msgid "Failed starting the script %1%, Win32 error: %2%"
+msgstr "ไม่สามารถเริ่มสคริปต์ %1% ได้ ข้อผิดพลาด Win32: %2%"
+
+# AI Translated
+#, boost-format
+msgid "Post processing script %1% on file %2% failed. CommandLineToArgvW() refused to parse the command line path."
+msgstr "สคริปต์หลังการประมวลผล %1% บนไฟล์ %2% ล้มเหลว CommandLineToArgvW() ปฏิเสธการแยกวิเคราะห์เส้นทางบรรทัดคำสั่ง"
+
+# AI Translated
+#, boost-format
+msgid "The configured post-processing script does not exist: %1%"
+msgstr "ไม่มีสคริปต์หลังการประมวลผลที่กำหนดค่าไว้: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Perl interpreter %1% does not exist."
+msgstr "ไม่มีตัวแปลภาษา Perl %1%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% raised an exception.\n"
+"Error: %2%"
+msgstr ""
+"ปลั๊กอินหลังการประมวลผล %1% เกิดข้อยกเว้น\n"
+"ข้อผิดพลาด: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"Error: %2%"
+msgstr ""
+"ปลั๊กอินหลังการประมวลผล %1% ล้มเหลว\n"
+"ข้อผิดพลาด: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"\n"
+"The post-processing plugin is expected to modify the G-code file %2% in place, but the G-code file was deleted.\n"
+"Please check the plugin implementation.\n"
+msgstr ""
+"ปลั๊กอินหลังการประมวลผล %1% ล้มเหลว\n"
+"\n"
+"ปลั๊กอินหลังการประมวลผลควรแก้ไขไฟล์ G-code %2% ในตำแหน่งเดิม แต่ไฟล์ G-code ถูกลบไปแล้ว\n"
+"โปรดตรวจสอบการทำงานของปลั๊กอิน\n"
+
+# AI Translated
+#, boost-format
+msgid "Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%"
+msgstr "ไม่สามารถสร้างสำเนาชั่วคราวของไฟล์ G-code %1% ก่อนเรียกใช้สคริปต์หลังการประมวลผลได้: %2%"
+
+# AI Translated
+msgid "Post-processor can't find exported gcode file"
+msgstr "ตัวประมวลผลภายหลังไม่พบไฟล์ G-code ที่ส่งออก"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%"
+msgstr ""
+"สคริปต์หลังการประมวลผล %1% บนไฟล์ %2% ล้มเหลว\n"
+"รหัสข้อผิดพลาด: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%\n"
+"Output:\n"
+"%4%"
+msgstr ""
+"สคริปต์หลังการประมวลผล %1% บนไฟล์ %2% ล้มเหลว\n"
+"รหัสข้อผิดพลาด: %3%\n"
+"เอาต์พุต:\n"
+"%4%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% failed.\n"
+"\n"
+"The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
+"Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n"
+msgstr ""
+"สคริปต์หลังการประมวลผล %1% ล้มเหลว\n"
+"\n"
+"สคริปต์หลังการประมวลผลควรเปลี่ยนแปลงไฟล์ G-code %2% ในตำแหน่งเดิม แต่ไฟล์ G-code ถูกลบไปและน่าจะถูกบันทึกภายใต้ชื่อใหม่\n"
+"โปรดปรับสคริปต์หลังการประมวลผลให้เปลี่ยนแปลง G-code ในตำแหน่งเดิม และดูคู่มือเกี่ยวกับวิธีเปลี่ยนชื่อไฟล์ G-code ที่ผ่านการประมวลผลภายหลังหากต้องการ\n"
+
+# AI Translated
+msgid "Unable to parse desired new path from output name file"
+msgstr "ไม่สามารถแยกวิเคราะห์เส้นทางใหม่ที่ต้องการจากไฟล์ชื่อเอาต์พุตได้"
+
+# AI Translated
+#, boost-format
+msgid "Output directory does not exist: %1%"
+msgstr "ไม่มีไดเรกทอรีเอาต์พุต: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Failed reading a file %1% carrying the final name / path of a G-code file: %2%"
+msgstr "ไม่สามารถอ่านไฟล์ %1% ที่เก็บชื่อ / เส้นทางสุดท้ายของไฟล์ G-code ได้: %2%"
+
+# AI Translated
+msgid "The printing task exceeds the limit, supporting a maximum of 6 printers."
+msgstr "งานพิมพ์เกินขีดจำกัด รองรับเครื่องพิมพ์สูงสุด 6 เครื่อง"
+
+# AI Translated
+msgid "Elapsed time:"
+msgstr "เวลาที่ผ่านไป:"
+
+# AI Translated
+msgid "Estimated time:"
+msgstr "เวลาโดยประมาณ:"
+
+# AI Translated
+msgid "Remaining time:"
+msgstr "เวลาที่เหลือ:"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -28792,6 +31007,10 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "closed profile(s)"
+#~ msgstr "โปรไฟล์ปิด"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "ไม่สามารถสร้าง cali G-code"
@@ -29251,18 +31470,6 @@ msgstr ""
 
 #~ msgid "Hotend"
 #~ msgstr "ฮอตเอนด์"
-
-#~ msgid "Skip for Now"
-#~ msgstr "ข้ามไปก่อน"
-
-#~ msgid "Remind Later"
-#~ msgstr "เตือนทีหลัง"
-
-#~ msgid "Skip Version"
-#~ msgstr "ข้ามเวอร์ชัน"
-
-#~ msgid "Restart Later"
-#~ msgstr "เริ่มใหม่ภายหลัง"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "เลือกเส้นพลาสติกที่ติดตั้งไว้ที่หัวฉีดด้านซ้าย"

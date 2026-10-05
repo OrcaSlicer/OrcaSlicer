@@ -1725,6 +1725,7 @@ void DesignSketchTool::open_polygon_side_editor(int fi)
     if (f.begin < 0 || f.begin >= int(m_entities.size())) return;
     const double side = (m_entities[f.begin].p1 - m_entities[f.begin].p0).norm();
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
+    // TRN Design sketch: length of one side of a regular polygon (inline value editor title)
     on_inline_edit(px, side, _u8L("Side"),
                    [this, fi](double v) { set_polygon_side(fi, v); },
                    []()                 {});
@@ -9844,7 +9845,7 @@ std::string DesignSketchTool::build_readout() const
         std::string out = b;
         // Tell the user how to end a polyline chain — there's no other affordance for it.
         if (m_mode == Mode::Polyline && m_points.size() >= 2)
-            out += "      right-click or double-click to finish, click start to close";
+            out += "      " + _u8L("right-click or double-click to finish, click start to close");
         return out;
     }
     if (!m_active) return std::string();

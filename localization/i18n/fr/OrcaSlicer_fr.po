@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 22:37-0300\n"
+"POT-Creation-Date: 2026-10-05 06:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -92,6 +92,7 @@ msgstr "Buse gauche"
 msgid "left nozzle"
 msgstr "buse gauche"
 
+#. TRN Nozzle counts: Std = standard flow, HF = high flow
 msgid "Right Nozzle"
 msgstr "Buse droite"
 
@@ -1653,6 +1654,22 @@ msgstr "Le trait de la forme (%1%) est trop fin (la largeur minimale est de %2% 
 msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr "Le trait de la forme (%1%) contient un élément non pris en charge : %2%."
 
+# AI Translated
+msgid "Not valid state please report reproduction steps on github"
+msgstr "État non valide, veuillez signaler les étapes de reproduction sur GitHub"
+
+# AI Translated
+msgid "No embossed file"
+msgstr "Aucun fichier en relief"
+
+# AI Translated
+msgid "Missing svg file in embossed shape"
+msgstr "Fichier SVG manquant dans la forme en relief"
+
+# AI Translated
+msgid "Missing data of svg file"
+msgstr "Données du fichier SVG manquantes"
+
 msgid "Face the camera"
 msgstr "Faire face à la caméra"
 
@@ -1738,6 +1755,10 @@ msgstr "Symétrie horizontale"
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
 msgstr "Changer le type de SVG"
+
+# AI Translated
+msgid "SVG shape"
+msgstr "Forme SVG"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
@@ -2437,6 +2458,10 @@ msgid ""
 msgstr ""
 "\n"
 "Vous devrez peut-être reconfigurer les paramètres régionaux manquants, probablement en exécutant les commandes « locale-gen » et « dpkg-reconfigure locales ».\n"
+
+# AI Translated
+msgid "Application will close."
+msgstr "L’application va se fermer."
 
 msgid "Orca Slicer - Switching language failed"
 msgstr "Orca Slicer — Échec du changement de langue"
@@ -3515,6 +3540,15 @@ msgstr "Vérifiez l'état des services système actuels"
 msgid "code"
 msgstr "code"
 
+# AI Translated
+#. TRN Short for "description" of a connection error
+msgid "desc"
+msgstr "desc"
+
+#. TRN Short for "additional information" about a connection error
+msgid "info"
+msgstr "info"
+
 msgid "Failed to connect to cloud service"
 msgstr "Impossible de se connecter au service cloud"
 
@@ -3699,6 +3733,12 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Changer de voie au Filament Track Switch"
 
 # AI Translated
+#. TRN AMS unit number, then slot number
+#, c-format, boost-format
+msgid "AMS-%d-%d Slot"
+msgstr "Emplacement AMS-%d-%d"
+
+# AI Translated
 #, c-format, boost-format
 msgid "The maximum temperature cannot exceed %d"
 msgstr "La température maximale ne peut pas dépasser %d"
@@ -3807,6 +3847,10 @@ msgstr "Votre imprimante est équipée de  différentes buses . Veuillez séle
 msgid "Ignore"
 msgstr "Ignorer"
 
+# AI Translated
+msgid "unknown"
+msgstr "inconnu"
+
 msgid "Done."
 msgstr "Terminé."
 
@@ -3829,6 +3873,11 @@ msgstr ""
 
 msgid "Arranging..."
 msgstr "Agencement…"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Object %s has zero size and can't be arranged."
+msgstr "L’objet %s a une taille nulle et ne peut pas être agencé."
 
 msgid "Arranging"
 msgstr "Agencement"
@@ -4010,8 +4059,16 @@ msgstr "Le stockage de l'imprimante est anormal. Veuillez le remplacer par un st
 msgid "The Storage in the printer is read-only. Please replace it with a normal Storage before sending to printer."
 msgstr "Le stockage de l'imprimante est en lecture seule. Veuillez le remplacer par un stockage normal avant d'envoyer à l'imprimante."
 
+# AI Translated
+msgid "Can't create empty volume."
+msgstr "Impossible de créer un volume vide."
+
 msgid "Bad input data for EmbossCreateObjectJob."
 msgstr "Données d'entrée incorrectes pour EmbossCreateObjectJob."
+
+# AI Translated
+msgid "Can't create empty object."
+msgstr "Impossible de créer un objet vide."
 
 msgid "Add Emboss text object"
 msgstr "Ajouter un objet texte en relief"
@@ -4028,10 +4085,22 @@ msgstr "Données d'entrée incorrectes pour CreateSurfaceVolumeJob."
 msgid "Bad input data for UseSurfaceJob."
 msgstr "Données d'entrée incorrectes pour UseSurfaceJob."
 
+# AI Translated
+msgid "It is used default volume for embossed text, try to change text or font to fix it."
+msgstr "Le volume par défaut est utilisé pour le texte en relief ; essayez de modifier le texte ou la police pour corriger cela."
+
+# AI Translated
+msgid "Empty mesh can't be created."
+msgstr "Impossible de créer un maillage vide."
+
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
 msgstr "Modification de l'attribut de relief"
+
+# AI Translated
+msgid "Bad object to create volume."
+msgstr "Objet incorrect pour créer un volume."
 
 msgid "Add Emboss text Volume"
 msgstr "Ajouter un volume de texte en relief"
@@ -4128,6 +4197,12 @@ msgstr "Ce logiciel utilise des composants open source dont les droits d'auteur 
 msgid "About %s"
 msgstr "À propos de %s"
 
+# AI Translated
+#. TRN %s is the commit the application was built from
+#, c-format, boost-format
+msgid "Build %s"
+msgstr "Compilation %s"
+
 msgid "Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."
 msgstr "Le découpage open-source repose sur une tradition de collaboration et d’attribution. Slic3r, créé par Alessandro Ranellucci et la communauté RepRap, en a posé les fondations. PrusaSlicer, de Prusa Research, s’est appuyé sur ce travail, Bambu Studio est un fork de PrusaSlicer, et SuperSlicer l’a étendu grâce à des améliorations portées par la communauté. Chaque projet a fait fructifier le travail de ses prédécesseurs, en créditant ceux qui l’ont précédé."
 
@@ -4136,6 +4211,10 @@ msgstr "OrcaSlicer est né dans ce même esprit, en s’inspirant de PrusaSlicer
 
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Aujourd’hui, OrcaSlicer est le slicer open-source le plus utilisé et le plus activement développé de la communauté de l’impression 3D. Beaucoup de ses innovations ont été adoptées par d’autres slicers, ce qui en fait une force motrice pour toute l’industrie."
+
+# AI Translated
+msgid "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"
+msgstr "Copyright(C) 2026 OrcaSlicer Pte Ltd Tous droits réservés"
 
 # AI Translated
 msgid "Script plugin skipped."
@@ -4290,6 +4369,7 @@ msgstr "Calibration terminée"
 msgid "%s does not support %s"
 msgstr "%s ne prend pas en charge %s"
 
+#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Étape"
 
@@ -4726,8 +4806,9 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "La température de buse recommandée pour ce type de filament est de [%d, %d] degrés Celsius."
 
+# AI Translated
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr "Échec de la validation du modèle d’avance de pression adaptative :\n"
+msgstr "Échec de la validation du modèle de Pressure Advance adaptatif :\n"
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -5367,6 +5448,12 @@ msgid "System agents"
 msgstr "Agents système"
 
 # AI Translated
+#. TRN %1% is the ID of a printer agent that is no longer available
+#, boost-format
+msgid "%1% (missing)"
+msgstr "%1% (manquant)"
+
+# AI Translated
 msgid "Add plugin"
 msgstr "Ajouter un plugin"
 
@@ -5426,8 +5513,9 @@ msgstr "Temps de couche"
 msgid "Layer Time (log)"
 msgstr "Temps de couche (journal)"
 
+# AI Translated
 msgid "Pressure Advance"
-msgstr "Avance de pression"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr "Aucune opération"
@@ -5456,8 +5544,9 @@ msgstr "Déplacement"
 msgid "Wipe"
 msgstr "Essuyage"
 
+# AI Translated
 msgid "Extrude"
-msgstr "Extruder"
+msgstr "Extrusion"
 
 msgid "Inner wall"
 msgstr "Paroi intérieure"
@@ -6572,8 +6661,9 @@ msgstr "Calibration de Température"
 msgid "Max flowrate"
 msgstr "Débit maximal"
 
+# AI Translated
 msgid "Pressure advance"
-msgstr "Avance de pression"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "Rapport de débit"
@@ -7132,6 +7222,10 @@ msgstr "(Le modèle a déjà été noté. Votre note écrasera la note précéde
 msgid "Rate"
 msgstr "Noter"
 
+# AI Translated
+msgid "Calculating..."
+msgstr "Calcul en cours…"
+
 msgid "Camera"
 msgstr "Caméra"
 
@@ -7318,9 +7412,6 @@ msgid ""
 msgstr ""
 "Les problèmes suivants se sont produits lors du processus d’envoi des images. Voulez-vous les ignorer ?\n"
 "\n"
-
-msgid "info"
-msgstr "info"
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "Synchronisation des résultats d’impression. Veuillez réessayer dans quelques secondes."
@@ -7807,6 +7898,10 @@ msgstr "Ouvrir le dossier."
 msgid "Safely remove hardware."
 msgstr "Retirez le matériel en toute sécurité."
 
+# AI Translated
+msgid "Ejecting."
+msgstr "Éjection en cours."
+
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
@@ -7836,6 +7931,11 @@ msgstr "ERREUR"
 
 msgid "COMPLETED"
 msgstr "Terminé"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d%% - %.2f of %.2fMB uploaded"
+msgstr "%d%% - %.2f sur %.2f Mo téléversés"
 
 msgid "CANCELED"
 msgstr "Annulé"
@@ -7888,11 +7988,30 @@ msgstr "Votre modèle a besoin de supports ! Veuillez activer le matériau de su
 msgid "G-code path overlap"
 msgstr "Chevauchement de chemin G-code"
 
+# AI Translated
+msgid "Click for more."
+msgstr "Cliquez pour en savoir plus."
+
 msgid "Cut connectors"
 msgstr "Connecteurs de découpe"
 
+# AI Translated
+msgid "Instances"
+msgstr "Instances"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Instance %d"
+msgstr "Instance %d"
+
 msgid "Layers"
 msgstr "Couches"
+
+# AI Translated
+#. TRN Object list item: plate number, then instance number
+#, c-format, boost-format
+msgid "[P%d]Instance %d"
+msgstr "[P%d]Instance %d"
 
 msgid "The application cannot run normally because OpenGL version is lower than 3.2.\n"
 msgstr "L'application ne peut pas fonctionner normalement car la version d'OpenGL est inférieure à 3.2.\n"
@@ -8825,6 +8944,10 @@ msgstr "Le téléchargement a échoué, exception de taille de fichier."
 msgid "Project downloaded %d%%"
 msgstr "Projet téléchargé à %d%%"
 
+# AI Translated
+msgid "Pressure Advance Test"
+msgstr "Test de Pressure Advance"
+
 msgid "INFO:"
 msgstr "INFO :"
 
@@ -8833,6 +8956,39 @@ msgstr "Aucune accélération n’est fournie pour l’étalonnage. Utiliser la 
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "Aucune vitesse n’est fournie pour l’étalonnage. Utiliser la vitesse optimale par défaut "
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration - Perfectionist version"
+msgstr "Calibration du débit Orca YOLO - version perfectionniste"
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration"
+msgstr "Calibration du débit Orca YOLO"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Flowrate Test - Pass%d"
+msgstr "Test de débit - Passe %d"
+
+# AI Translated
+msgid "Nozzle temperature test"
+msgstr "Test de température de buse"
+
+msgid "Max volumetric speed test"
+msgstr "Test de vitesse volumétrique max"
+
+msgid "VFA test"
+msgstr "Test VFA"
+
+msgid "Input shaping Frequency test"
+msgstr "Test de fréquence de mise en forme du signal"
+
+# AI Translated
+msgid "Input shaping Damping test"
+msgstr "Test d’amortissement de mise en forme du signal"
+
+msgid "Cornering test"
+msgstr "Test de virage"
 
 msgid "Import SLA archive"
 msgstr "Importer les archives SLA"
@@ -9307,7 +9463,7 @@ msgstr "Toujours demander"
 msgid "Load Geometry Only"
 msgstr "Charger uniquement la géométrie"
 
-msgid "Load behaviour"
+msgid "Load behavior"
 msgstr "Comportement du chargement"
 
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
@@ -9495,7 +9651,7 @@ msgstr "pages"
 msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
 msgstr "Nombre de pages de plugins affichées sous forme d’onglets fixes avant que les pages restantes ne soient regroupées dans un menu déroulant sur le dernier onglet."
 
-msgid "Behaviour"
+msgid "Behavior"
 msgstr "Comportement"
 
 msgid "Auto flush after changing..."
@@ -10879,6 +11035,14 @@ msgstr "La longueur du nom dépasse la limite."
 msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr "Coût de %dg de filament et %d changements de plus que le regroupement optimal."
 
+# AI Translated
+msgid "Right-Ext"
+msgstr "Ext-droite"
+
+# AI Translated
+msgid "Left-Ext"
+msgstr "Ext-gauche"
+
 msgid "nozzle"
 msgstr "buse"
 
@@ -11400,6 +11564,11 @@ msgstr "Informations complémentaires :"
 msgid "vendor"
 msgstr "fabricant"
 
+# AI Translated
+#. TRN Short for "version"
+msgid "ver"
+msgstr "version"
+
 msgid "printer model"
 msgstr "modèle d’imprimante"
 
@@ -11548,8 +11717,9 @@ msgstr "Température de buse recommandée"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Plage de température de buse recommandée pour ce filament. 0 signifie non défini."
 
+# AI Translated
 msgid "Flow ratio and Pressure Advance"
-msgstr "Rapport de débit et avance de pression"
+msgstr "Rapport de débit et Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "Température du caisson d’impression"
@@ -12438,6 +12608,14 @@ msgstr "[Action requise] "
 msgid "[Action Required]"
 msgstr "[Action requise]"
 
+# AI Translated
+msgid "Printer update service is unavailable."
+msgstr "Le service de mise à jour des imprimantes est indisponible."
+
+# AI Translated
+msgid "Failed to check for new printers."
+msgstr "Échec de la recherche de nouvelles imprimantes."
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Le paquet de configuration a été modifié dans le guide de configuration précédent"
 
@@ -12601,6 +12779,10 @@ msgid ""
 msgstr ""
 "Appuyez sur le nouveau raccourci pour\n"
 "« %s »"
+
+# AI Translated
+msgid "Unbind"
+msgstr "Dissocier"
 
 # AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
@@ -12769,6 +12951,14 @@ msgstr "Laser 40 W"
 
 msgid "Cutting Module"
 msgstr "Module de découpe"
+
+# AI Translated
+msgid "Active Cutting Module"
+msgstr "Module de découpe actif"
+
+# AI Translated
+msgid "Ultrasonic Cutting Module"
+msgstr "Module de découpe à ultrasons"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Système d'extinction automatique"
@@ -13274,8 +13464,9 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "L'option de paroi précise sera ignorée pour les séquences de parois extérieure-intérieure ou intérieure-extérieure-intérieure."
 
+# AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Le modèle d’avance de pression adaptative d’un ou plusieurs extrudeurs peut contenir des valeurs non valides."
+msgstr "Le modèle de Pressure Advance adaptatif d’un ou plusieurs extrudeurs peut contenir des valeurs non valides."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Le rétrécissement du filament ne sera pas utilisé car le rétrécissement des filaments utilisés ne correspond pas."
@@ -14737,7 +14928,7 @@ msgstr ""
 "Le rapport de débit de l’objet final est cette valeur multipliée par le rapport de débit du filament."
 
 msgid "Enable pressure advance"
-msgstr "Activer la Pressure Advance"
+msgstr "Activer le Pressure Advance"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
 msgstr "Activer le Pressure Advance, le résultat de l’auto calibration sera écrasé une fois activé."
@@ -14745,9 +14936,11 @@ msgstr "Activer le Pressure Advance, le résultat de l’auto calibration sera �
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
 msgstr "Pressure Advance (Klipper) AKA Linear Advance (Marlin)"
 
+# AI Translated
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Activer l’avance de pression adaptative (beta)"
+msgstr "Activer le Pressure Advance adaptatif (beta)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "With increasing print speeds (and hence increasing volumetric flow through the nozzle) and increasing accelerations, it has been observed that the effective PA value typically decreases. This means that a single PA value is not always 100% optimal for all features and a compromise value is usually used that does not cause too much bulging on features with lower flow speed and accelerations while also not causing gaps on faster features.\n"
@@ -14757,16 +14950,18 @@ msgid ""
 "When enabled, the pressure advance value above is overridden. However, a reasonable default value above is strongly recommended to act as a fallback and for when tool changing.\n"
 "\n"
 msgstr ""
-"Avec l’augmentation des vitesses d’impression (et donc du débit volumétrique à travers la buse) et des accélérations, il a été observé que la valeur effective de PA diminue généralement. Cela signifie qu’une valeur PA unique n’est pas toujours optimale à 100% pour toutes les caractéristiques et qu’une valeur de compromis est généralement utilisée pour éviter de trop bomber les caractéristiques avec une vitesse d’écoulement et des accélérations plus faibles, tout en évitant de créer des lacunes sur les caractéristiques plus rapides.\n"
+"Avec l’augmentation des vitesses d’impression (et donc du débit volumétrique à travers la buse) et des accélérations, il a été observé que la valeur effective de PA diminue généralement. Cela signifie qu’une valeur PA unique n’est pas toujours 100% optimale pour toutes les caractéristiques et qu’une valeur de compromis est généralement utilisée pour éviter de trop bomber les caractéristiques avec une vitesse d’écoulement et des accélérations plus faibles, tout en évitant de créer des lacunes sur les caractéristiques plus rapides.\n"
 "\n"
-"Cette fonction vise à remédier à cette limitation en modélisant la réponse du système d’extrusion de votre imprimante en fonction de la vitesse du flux volumétrique et de l’accélération de l’impression. En interne, elle génère un modèle ajusté qui peut extrapoler l’avance de pression nécessaire pour une vitesse de flux volumétrique et une accélération données, qui est ensuite transmise à l’imprimante en fonction des conditions d’impression actuelles.\n"
+"Cette fonction vise à remédier à cette limitation en modélisant la réponse du système d’extrusion de votre imprimante en fonction de la vitesse du flux volumétrique et de l’accélération de l’impression. En interne, elle génère un modèle ajusté qui peut extrapoler le Pressure Advance nécessaire pour une vitesse de flux volumétrique et une accélération données, qui est ensuite transmise à l’imprimante en fonction des conditions d’impression actuelles.\n"
 "\n"
-"Lorsqu’elle est activée, la valeur de l’avance de pression ci-dessus est remplacée. Cependant, une valeur par défaut raisonnable est fortement recommandée pour servir de solution de secours et en cas de changement d’outil.\n"
+"Lorsqu’elle est activée, la valeur de Pressure Advance ci-dessus est remplacée. Cependant, une valeur par défaut raisonnable est fortement recommandée pour servir de solution de secours et en cas de changement d’outil.\n"
 "\n"
 
+# AI Translated
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "Mesures adaptatives de l’avance de pression (beta)"
+msgstr "Mesures du Pressure Advance adaptatif (beta)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "Add sets of pressure advance (PA) values, the volumetric flow speeds and accelerations they were measured at, separated by a comma. One set of values per line. For example\n"
@@ -14780,19 +14975,20 @@ msgid ""
 "2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile."
 msgstr ""
-"Ajouter des séries de valeurs d'avance de pression (PA), les vitesses de débit volumétrique et les accélérations auxquelles elles ont été mesurées, séparées par une virgule. Un ensemble de valeurs par ligne. Par exemple\n"
+"Ajouter des séries de valeurs de Pressure Advance (PA), les vitesses de débit volumétrique et les accélérations auxquelles elles ont été mesurées, séparées par une virgule. Un ensemble de valeurs par ligne. Par exemple\n"
 "0.04,3.96,3000\n"
 "0.033,3.96,10000\n"
 "0.029,7.91,3000\n"
 "0.026,7.91,10000\n"
 "\n"
 "Comment calibrer :\n"
-"1. Effectuer le test d’avance de pression pour au moins 3 vitesses par valeur d’accélération. Il est recommandé d’effectuer le test pour au moins la vitesse des périmètres externes, la vitesse des périmètres internes et la vitesse d’impression de la caractéristique la plus rapide de votre profil (en général, il s’agit du remplissage clairsemé ou plein). Ensuite, il faut les exécuter aux mêmes vitesses pour les accélérations d’impression les plus lentes et les plus rapides, et pas plus vite que l’accélération maximale recommandée par le modeleur d’entrée de klipper.\n"
+"1. Effectuer le test de Pressure Advance pour au moins 3 vitesses par valeur d’accélération. Il est recommandé d’effectuer le test pour au moins la vitesse des périmètres externes, la vitesse des périmètres internes et la vitesse d’impression de la caractéristique la plus rapide de votre profil (en général, il s’agit du remplissage clairsemé ou plein). Ensuite, il faut les exécuter aux mêmes vitesses pour les accélérations d’impression les plus lentes et les plus rapides, et pas plus vite que l’accélération maximale recommandée par le modeleur d’entrée de klipper.\n"
 "2. Notez la valeur optimale de PA pour chaque vitesse de débit volumétrique et accélération. Vous pouvez trouver le numéro de débit en sélectionnant le débit dans le menu déroulant du schéma de couleurs et en déplaçant le curseur horizontal sur les lignes du schéma PA. Le chiffre doit être visible en bas de la page. La valeur idéale du PA devrait diminuer au fur et à mesure que le débit volumétrique augmente. Si ce n’est pas le cas, vérifiez que votre extrudeur fonctionne correctement. Plus vous imprimez lentement et avec peu d’accélération, plus la plage des valeurs PA acceptables est grande. Si aucune différence n’est visible, utilisez la valeur PA du test le plus rapide.\n"
 "3 Entrez les triplets de valeurs PA, de débit et d’accélérations dans la zone de texte ici et sauvegardez votre profil de filament."
 
+# AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "Activer l’avance de pression adaptative au sein des structures (bêta)"
+msgstr "Activer le Pressure Advance adaptatif au sein des structures (bêta)"
 
 msgid ""
 "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
@@ -14807,16 +15003,18 @@ msgstr ""
 "\n"
 "Il s’agit d’une option expérimentale : si le profil de PA n’est pas réglé avec précision, elle provoquera des problèmes d’uniformité."
 
+# AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "Avance de pression statique pour les ponts"
+msgstr "Pressure Advance statique pour les ponts"
 
+# AI Translated
 msgid ""
 "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
 "equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Valeur d’avance de pression statique pour les ponts. Réglez sur 0 pour appliquer la même avance de pression que \n"
+"Valeur de Pressure Advance statique pour les ponts. Réglez sur 0 pour appliquer le même Pressure Advance que \n"
 "pour les parois équivalentes (en utilisant les réglages adaptatifs si activés).\n"
 "\n"
 "Une valeur de PA plus faible lors de l’impression des ponts aide à réduire l’apparition d’une légère sous-extrusion juste après les ponts. Elle est causée par la chute de pression dans la buse lors de l’impression dans le vide, et un PA plus faible aide à la contrer."
@@ -16633,6 +16831,7 @@ msgstr "La hauteur de couche imprimable la plus élevée pour l'extrudeur. Utili
 msgid "Extrusion rate smoothing"
 msgstr "Lissage du taux d’extrusion"
 
+# AI Translated
 msgid ""
 "This parameter smooths out sudden extrusion rate changes that happen when the printer transitions from printing a high flow (high speed/larger width) extrusion to a lower flow (lower speed/smaller width) extrusion and vice versa.\n"
 "\n"
@@ -16654,9 +16853,9 @@ msgstr ""
 "\n"
 "Une valeur de 0 désactive la fonctionnalité.\n"
 "\n"
-"Pour une imprimante direct drive à grande vitesse et à haut débit (comme BambuLab ou Voron), cette valeur n’est généralement pas nécessaire. Cependant, cela peut apporter un avantage marginal dans certains cas où les vitesses varient considérablement. Par exemple, en cas de ralentissements agressifs dus à des surplombs. Dans ces cas, une valeur élevée d’environ 300-350 mm³/s² est recommandée car elle permet un lissage juste suffisant pour aider l’augmentation de la pression pour obtenir une transition de débit plus douce.\n"
+"Pour une imprimante direct drive à grande vitesse et à haut débit (comme BambuLab ou Voron), cette valeur n’est généralement pas nécessaire. Cependant, cela peut apporter un avantage marginal dans certains cas où les vitesses varient considérablement. Par exemple, en cas de ralentissements agressifs dus à des surplombs. Dans ces cas, une valeur élevée d’environ 300-350 mm³/s² est recommandée car elle permet un lissage juste suffisant pour aider le Pressure Advance à obtenir une transition de débit plus douce.\n"
 "\n"
-"Pour les imprimantes plus lentes sans fonction de pressure advance, la valeur doit être réglée beaucoup plus bas. Une valeur de 10-15 mm³/s² est un bon point de départ en direct drive et de 5-10 mm³/s² en Bowden.\n"
+"Pour les imprimantes plus lentes sans fonction de Pressure Advance, la valeur doit être réglée beaucoup plus bas. Une valeur de 10-15 mm³/s² est un bon point de départ en direct drive et de 5-10 mm³/s² en Bowden.\n"
 "\n"
 "Cette fonctionnalité est connue sous le nom de Pressure Equalizer dans Prusa Slicer.\n"
 "\n"
@@ -16668,6 +16867,7 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "Longueur du segment de lissage"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
@@ -16675,7 +16875,7 @@ msgid ""
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
-"Une valeur plus faible permet d’obtenir des transitions de taux d’extrusion plus douces. Cependant, cela se traduit par un fichier gcode beaucoup plus volumineux et plus d’instructions à traiter par l’imprimante.\n"
+"Une valeur plus faible permet d’obtenir des transitions de taux d’extrusion plus douces. Cependant, cela se traduit par un fichier G-code beaucoup plus volumineux et plus d’instructions à traiter par l’imprimante.\n"
 "\n"
 "La valeur par défaut de 3 fonctionne bien dans la plupart des cas. Si votre imprimante a des ratés, augmentez cette valeur pour réduire le nombre d’ajustements effectués.\n"
 "\n"
@@ -17146,8 +17346,9 @@ msgstr "Afficher les marques de calibration"
 msgid "Disable set remaining print time"
 msgstr "Désactiver le réglage du temps d’impression restant"
 
+# AI Translated
 msgid "Disable generating of the M73: Set remaining print time in the final G-code."
-msgstr "Désactiver la génération du M73 : Définir le temps d’impression restant dans le gcode final."
+msgstr "Désactiver la génération du M73 : Définir le temps d’impression restant dans le G-code final."
 
 msgid "Seam position"
 msgstr "Position de la couture"
@@ -18003,6 +18204,7 @@ msgstr ""
 "\n"
 "Cette option repose sur la prise en charge des commandes M191 et M141 par le micrologiciel, via des macros ou nativement, et est généralement utilisée lorsqu’un chauffage de caisson actif est installé."
 
+# AI Translated
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -18014,7 +18216,7 @@ msgstr ""
 "\n"
 "Pour le PLA, le PETG, le TPU, le PVA et d’autres matériaux à basse température, cette option doit être désactivée (réglée sur 0) car la température du caisson doit être basse pour éviter l’engorgement de l’extrudeuse causé par le ramollissement du matériau au niveau du heatbreak.\n"
 "\n"
-"S’il est activé, ce paramètre définit également une variable gcode nommée chamber_temperature, qui peut être utilisée pour transmettre la température de caisson souhaitée à votre macro de démarrage de l’impression, ou à une macro de trempe thermique comme celle-ci : PRINT_START (autres variables) CHAMBER_TEMP=[chamber_temperature]. Cela peut être utile si votre imprimante ne prend pas en charge les commandes M141/M191, ou si vous souhaitez gérer le préchauffage dans la macro de démarrage de l’impression si aucun chauffage de caisson actif n’est installé."
+"S’il est activé, ce paramètre définit également une variable G-code nommée chamber_temperature, qui peut être utilisée pour transmettre la température de caisson souhaitée à votre macro de démarrage de l’impression, ou à une macro de trempe thermique comme celle-ci : PRINT_START (autres variables) CHAMBER_TEMP=[chamber_temperature]. Cela peut être utile si votre imprimante ne prend pas en charge les commandes M141/M191, ou si vous souhaitez gérer le préchauffage dans la macro de démarrage de l’impression si aucun chauffage de caisson actif n’est installé."
 
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
@@ -19556,6 +19758,21 @@ msgstr "un matériau avec un retrait/dilatation thermique important, tel que…"
 msgid "materials with inaccurate filament diameter"
 msgstr "des matériaux avec un diamètre de filament imprécis"
 
+# AI Translated
+#, boost-format
+msgid "%1% Flow Rate Calibrated"
+msgstr "%1% débit calibré"
+
+# AI Translated
+#, boost-format
+msgid "%1% Temperature Calibrated"
+msgstr "%1% température calibrée"
+
+# AI Translated
+#, boost-format
+msgid "%1% Max Vol Speed Calibrated"
+msgstr "%1% vitesse vol. max calibrée"
+
 msgid "We found the best Flow Dynamics Calibration Factor"
 msgstr "Nous avons trouvé le meilleur facteur de calibration dynamique du débit"
 
@@ -19911,6 +20128,12 @@ msgstr "Temp. de fin: "
 msgid "Temp step: "
 msgstr "Intervalle de temp. : "
 
+# AI Translated
+#. TRN %s is the temperature unit
+#, c-format, boost-format
+msgid "Supported range: 170%s - 500%s"
+msgstr "Plage prise en charge : 170%s - 500%s"
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 500\n"
@@ -19921,9 +20144,6 @@ msgstr ""
 "Température de début : <= 500\n"
 "Température de fin : >= 155\n"
 "Température de début >= Température de fin + 5"
-
-msgid "Max volumetric speed test"
-msgstr "Test de vitesse volumétrique max"
 
 msgid "Start volumetric speed: "
 msgstr "Vitesse volumétrique de début: "
@@ -19941,9 +20161,6 @@ msgstr ""
 "Début > 0 \n"
 "Intervalle >= 0\n"
 "Fin > Début + Intervalle"
-
-msgid "VFA test"
-msgstr "Test VFA"
 
 msgid "Start speed: "
 msgstr "Vitesse de début: "
@@ -20026,9 +20243,6 @@ msgstr "Longueur de rétraction de début: "
 
 msgid "End retraction length: "
 msgstr "Longueur de rétraction de fin: "
-
-msgid "Input shaping Frequency test"
-msgstr "Test de fréquence de mise en forme du signal"
 
 msgid "Test model"
 msgstr "Modèle de test"
@@ -20118,9 +20332,6 @@ msgstr ""
 
 msgid "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr "Veuillez saisir un facteur d'amortissement valide (0 <= AmortissementDébut < AmortissementFin <= 1)"
-
-msgid "Cornering test"
-msgstr "Test de virage"
 
 msgid "SCV-V2"
 msgstr "SCV-V2"
@@ -20315,6 +20526,12 @@ msgstr "Calibrer avant l’impression"
 msgid "Filament Mapping:"
 msgstr "Correspondance des filaments :"
 
+# AI Translated
+#. TRN External spool slot, followed by its filament type
+#, c-format, boost-format
+msgid "Ext - %s"
+msgstr "Ext - %s"
+
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Impossible d’effectuer une opération booléenne sur les pièces sélectionnées"
 
@@ -20389,6 +20606,27 @@ msgstr "Test bing.com :"
 
 msgid "Log Info"
 msgstr "Journal de bord"
+
+# AI Translated
+#. TRN %s is the name of the tested website
+#, c-format, boost-format
+msgid "test %s start..."
+msgstr "début du test %s…"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ip resolved = %s"
+msgstr "test %s : IP résolue = %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s failed"
+msgstr "test %s échoué"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ok"
+msgstr "test %s OK"
 
 msgid "Select filament preset"
 msgstr "Sélectionner le préréglage du filament"
@@ -20934,6 +21172,14 @@ msgstr "Succès !"
 msgid "Generate API Key"
 msgstr "Générer une clé API"
 
+# AI Translated
+msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
+msgstr "Clé API créée. Rendez-vous sur l’imprimante physique et appuyez sur « authorize » à l’écran, puis relancez « Tester »."
+
+# AI Translated
+msgid "API Key created."
+msgstr "Clé API créée."
+
 msgid "Are you sure to log out?"
 msgstr "Voulez-vous vraiment vous déconnecter ?"
 
@@ -20962,11 +21208,19 @@ msgstr "Détecter une imprimante Creality série K"
 msgid "Click Scan to look for K-series printers on your network."
 msgstr "Cliquez sur Scan pour rechercher des imprimantes série K sur votre réseau."
 
+# AI Translated
+msgid "Scan"
+msgstr "Rechercher"
+
 msgid "Use Selected"
 msgstr "Utiliser la sélection"
 
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
 msgstr "Recherche d’imprimantes série K sur le réseau local… cela prend quelques secondes."
+
+# AI Translated
+msgid "(unknown K-series)"
+msgstr "(série K inconnue)"
 
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
 msgstr "Aucune imprimante série K trouvée. Assurez-vous que l’imprimante est sur le même réseau et qu’elle n’est pas bloquée par l’isolation des clients Wi-Fi, puis cliquez à nouveau sur Scan."
@@ -21067,6 +21321,10 @@ msgstr "journal(aux)"
 
 msgid "Choose where to save the exported JSON file"
 msgstr "Choisissez où enregistrer le fichier JSON exporté"
+
+# AI Translated
+msgid "JSON files (*.json)|*.json"
+msgstr "Fichiers JSON (*.json)|*.json"
 
 msgid ""
 "Export failed\n"
@@ -21494,6 +21752,11 @@ msgstr "Nom de la tâche"
 msgid "Actions"
 msgstr "Actions"
 
+# AI Translated
+#. TRN Button that jumps to the page number typed next to it
+msgid "Go"
+msgstr "Aller"
+
 msgid "Task Status"
 msgstr "État de la tâche"
 
@@ -21608,6 +21871,11 @@ msgstr " pour définir le nombre de buses"
 # AI Translated
 msgid "Set the physical nozzle count..."
 msgstr "Définir le nombre physique de buses..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "(Std: %d, HF: %d)"
+msgstr "(Std : %d, HD : %d)"
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
 msgstr "La méthode de regroupement des filaments pour la plaque actuelle est déterminée par l'option déroulante du bouton de la plaque de tranchage."
@@ -21886,6 +22154,9 @@ msgstr "Version à installer :"
 msgid "Download and Install"
 msgstr "Télécharger et installer"
 
+msgid "Skip for Now"
+msgstr "Ignorer pour le moment"
+
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Une nouvelle version du plug-in réseau Bambu est disponible."
 
@@ -21902,6 +22173,12 @@ msgstr "Ne plus demander"
 msgid "Update Now"
 msgstr "Mettre à jour maintenant"
 
+msgid "Remind Later"
+msgstr "Rappeler plus tard"
+
+msgid "Skip Version"
+msgstr "Ignorer la version"
+
 msgid "(Latest)"
 msgstr "(Dernière)"
 
@@ -21917,6 +22194,9 @@ msgstr "Un redémarrage est nécessaire pour charger le nouveau plug-in. Souhait
 
 msgid "Restart Now"
 msgstr "Redémarrer maintenant"
+
+msgid "Restart Later"
+msgstr "Redémarrer plus tard"
 
 msgid "NO RAMMING AT ALL"
 msgstr "AUCUN BOURRAGE"
@@ -21999,6 +22279,10 @@ msgstr "Exporter le paquet de préréglages"
 msgid "Save preset bundle"
 msgstr "Enregistrer le paquet de préréglages"
 
+# AI Translated
+msgid "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"
+msgstr "Paquet de préréglages Orca (*.orca_bundle)|*.orca_bundle"
+
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "Échec de l’intégration au bureau - boost::filesystem::canonical n’a pas renvoyé le chemin de l’AppImage."
 
@@ -22032,16 +22316,41 @@ msgstr ""
 "\n"
 "Appuyez sur « Appliquer » pour continuer."
 
+# AI Translated
+msgid "Press \"Undo\" to remove previous integration."
+msgstr "Appuyez sur « Annuler » pour supprimer l’intégration précédente."
+
+# AI Translated
+msgid "Could not start download due to malformed URL"
+msgstr "Impossible de démarrer le téléchargement : URL mal formée"
+
 msgid "The download has failed"
 msgstr "Le téléchargement a échoué"
+
+# AI Translated
+#, boost-format
+msgid "Failed to find suitable filename. Last name: %1%."
+msgstr "Impossible de trouver un nom de fichier approprié. Dernier nom : %1%."
 
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
 msgstr "Impossible de créer le fichier à l’emplacement %1%"
 
+# AI Translated
+msgid "Failed to write and move."
+msgstr "Échec de l’écriture et du déplacement."
+
 msgid "Archive preview"
 msgstr "Aperçu de l’archive"
+
+# AI Translated
+msgid "filename"
+msgstr "nom de fichier"
+
+# AI Translated
+msgid "All files (*.*)|*.*"
+msgstr "Tous les fichiers (*.*)|*.*"
 
 msgid "Open File"
 msgstr "Ouvrir un fichier"
@@ -23205,6 +23514,26 @@ msgstr "Esquisse : —"
 msgid "Extrude dist"
 msgstr "Dist. d’extrusion"
 
+# AI Translated
+msgid "Blind"
+msgstr "Borgne"
+
+# AI Translated
+msgid "Two-sided"
+msgstr "Deux directions"
+
+# AI Translated
+msgid "Through all"
+msgstr "À travers tout"
+
+# AI Translated
+msgid "Up to face"
+msgstr "Jusqu’à la face"
+
+# AI Translated
+msgid "Up to vertex"
+msgstr "Jusqu’au sommet"
+
 msgid "End"
 msgstr "Fin"
 
@@ -23252,7 +23581,7 @@ msgstr "Dessous"
 # AI Translated
 #. TRN Fillet/Chamfer edge group used when no edge is picked: the side edges, as opposed to the top and bottom ones.
 msgid "Lateral"
-msgstr "Latéral"
+msgstr "Côtés"
 
 # AI Translated
 msgid "Edges"
@@ -23595,6 +23924,11 @@ msgid "Face %d is already in the list"
 msgstr "La face %d est déjà dans la liste"
 
 # AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Face %d"
+
+# AI Translated
 msgid "Faces to delete"
 msgstr "Faces à supprimer"
 
@@ -23867,6 +24201,10 @@ msgid "Sketch created (%zu driving dims) — select it, then right-click to Extr
 msgstr "Esquisse créée (%zu cotes pilotantes) — sélectionnez-la, puis faites un clic droit pour l’extruder"
 
 # AI Translated
+msgid "(locked)"
+msgstr "(verrouillé)"
+
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
 msgstr "Impossible de résoudre l’esquisse à extruder"
 
@@ -23881,11 +24219,6 @@ msgstr "Région sélectionnée — clic droit pour l’extruder, ou double-clic 
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Esquisse sélectionnée — clic droit pour l’extruder, ou double-clic pour la modifier"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Face %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -23997,8 +24330,16 @@ msgid "Import SVG"
 msgstr "Importer un SVG"
 
 # AI Translated
+msgid "SVG files (*.svg)|*.svg|All files|*.*"
+msgstr "Fichiers SVG (*.svg)|*.svg|Tous les fichiers|*.*"
+
+# AI Translated
 msgid "Import STEP"
 msgstr "Importer un STEP"
+
+# AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"
+msgstr "Fichiers STEP (*.step;*.stp)|*.step;*.stp|Tous les fichiers|*.*"
 
 # AI Translated
 msgid "Reading STEP…"
@@ -24026,6 +24367,10 @@ msgstr[1] "%d solides importés — choisissez une face ou une arête, puis Cong
 # AI Translated
 msgid "Import mesh"
 msgstr "Importer un maillage"
+
+# AI Translated
+msgid "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"
+msgstr "Fichiers de maillage (*.stl;*.obj)|*.stl;*.obj|Tous les fichiers|*.*"
 
 # AI Translated
 msgid "Could not read the STL file"
@@ -24094,7 +24439,7 @@ msgid " — drag to place/size, then Confirm"
 msgstr " — faites glisser pour placer/dimensionner, puis confirmez"
 
 # AI Translated
-msgid "Insert cancelled"
+msgid "Insert canceled"
 msgstr "Insertion annulée"
 
 # AI Translated
@@ -24956,6 +25301,11 @@ msgid "Applied constraint"
 msgstr "Contrainte appliquée"
 
 # AI Translated
+#. TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+msgid "·Ctr"
+msgstr "·Ctr"
+
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
 msgstr "Fixer %s"
@@ -25200,6 +25550,10 @@ msgid "Export STEP"
 msgstr "Exporter en STEP"
 
 # AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp"
+msgstr "Fichiers STEP (*.step;*.stp)|*.step;*.stp"
+
+# AI Translated
 msgid "Exported STEP"
 msgstr "STEP exporté"
 
@@ -25275,7 +25629,7 @@ msgid "Face %d (push/pull)"
 msgstr "Face %d (pousser/tirer)"
 
 # AI Translated
-msgid "Move cancelled"
+msgid "Move canceled"
 msgstr "Déplacement annulé"
 
 # AI Translated
@@ -25367,12 +25721,205 @@ msgid "Empty mesh generated"
 msgstr "Maillage vide généré"
 
 # AI Translated
+#. TRN Default name of an object created from the box primitive shape.
+msgid "Box"
+msgstr "Boîte"
+
+# AI Translated
+#. TRN Primitive gizmo: label in front of the preset cube size buttons
+msgid "Quick:"
+msgstr "Rapide :"
+
+# AI Translated
+msgid "Width (X)"
+msgstr "Largeur (X)"
+
+# AI Translated
+msgid "Depth (Y)"
+msgstr "Profondeur (Y)"
+
+# AI Translated
+msgid "Height (Z)"
+msgstr "Hauteur (Z)"
+
+# AI Translated
+#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
+msgid "Bottom R"
+msgstr "R inférieur"
+
+# AI Translated
+msgid "Top R"
+msgstr "R supérieur"
+
+# AI Translated
+#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
+msgid "Major R"
+msgstr "Grand R"
+
+# AI Translated
+msgid "Minor R"
+msgstr "Petit R"
+
+# AI Translated
+msgid "All edges"
+msgstr "Toutes les arêtes"
+
+# AI Translated
+msgid "Top edges"
+msgstr "Arêtes supérieures"
+
+# AI Translated
+msgid "Bottom edges"
+msgstr "Arêtes inférieures"
+
+# AI Translated
+msgid "Lateral edges"
+msgstr "Arêtes latérales"
+
+# AI Translated
+msgid "Mesh resolution"
+msgstr "Résolution du maillage"
+
+# AI Translated
+msgid "Add Shape"
+msgstr "Ajouter la forme"
+
+# AI Translated
+msgid "No outer profile"
+msgstr "Aucun profil extérieur"
+
+# AI Translated
+msgid "Failed to make outer face"
+msgstr "Échec de la création de la face extérieure"
+
+# AI Translated
+msgid "Failed to build face with holes"
+msgstr "Échec de la création de la face avec trous"
+
+# AI Translated
+msgid "Revolve failed"
+msgstr "Échec de la révolution"
+
+# AI Translated
+msgid "Profile"
+msgstr "Profil"
+
+# AI Translated
+msgid "Start new profile (for holes)"
+msgstr "Commencer un nouveau profil (pour les trous)"
+
+# AI Translated
+#. TRN Sketch gizmo: number of segments a circle is built from
+msgid "Seg"
+msgstr "Seg."
+
+# AI Translated
+msgid "Sides"
+msgstr "Côtés"
+
+# AI Translated
+msgid "Click on canvas to draw"
+msgstr "Cliquez dans la vue pour dessiner"
+
+# AI Translated
+msgid "Snap to grid"
+msgstr "Aimanter à la grille"
+
+# AI Translated
+msgid "Outer"
+msgstr "Extérieur"
+
+# AI Translated
+msgid "CLOSED"
+msgstr "FERMÉ"
+
+# AI Translated
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#, boost-format
+msgid "%1% %2%: %3% pts %4%"
+msgstr "%1% %2% : %3% pts %4%"
+
+# AI Translated
+msgid "XY (Top)"
+msgstr "XY (Haut)"
+
+# AI Translated
+msgid "XZ (Front)"
+msgstr "XZ (Avant)"
+
+# AI Translated
+msgid "YZ (Side)"
+msgstr "YZ (Côté)"
+
+# AI Translated
+msgid "Revolve deg"
+msgstr "Révolution (°)"
+
+# AI Translated
+msgid "Set to 0 for extrude, >0 for revolve"
+msgstr "0 pour une extrusion, >0 pour une révolution"
+
+# AI Translated
+msgid "Pocket (cut)"
+msgstr "Poche (enlèvement)"
+
+# AI Translated
+#, c-format
+msgid "%zu closed profile"
+msgid_plural "%zu closed profiles"
+msgstr[0] "%zu profil fermé"
+msgstr[1] "%zu profils fermés"
+
+# AI Translated
+msgid "Draw a closed profile to enable"
+msgstr "Dessinez un profil fermé pour activer"
+
+# AI Translated
 msgid "Pocket (Cut)"
 msgstr "Poche (enlèvement)"
 
 # AI Translated
 msgid "Clear All"
 msgstr "Tout effacer"
+
+# AI Translated
+msgid "Empty result"
+msgstr "Résultat vide"
+
+# AI Translated
+#, boost-format
+msgid "Extrude: %1%"
+msgstr "Extrusion : %1%"
+
+# AI Translated
+#, boost-format
+msgid "Revolve: %1%"
+msgstr "Révolution : %1%"
+
+# AI Translated
+msgid "No object selected"
+msgstr "Aucun objet sélectionné"
+
+# AI Translated
+msgid "Face failed"
+msgstr "Échec de la face"
+
+# AI Translated
+msgid "Face with holes failed"
+msgstr "Échec de la face avec trous"
+
+# AI Translated
+msgid "Tool mesh empty"
+msgstr "Maillage de l’outil vide"
+
+# AI Translated
+msgid "Pocket added (negative volume)"
+msgstr "Poche ajoutée (volume négatif)"
+
+# AI Translated
+#, boost-format
+msgid "Pocket: %1%"
+msgstr "Poche : %1%"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -25607,6 +26154,541 @@ msgid "Speed Dial"
 msgstr "Lanceur rapide"
 
 # AI Translated
+msgid "helix radius must be > 0"
+msgstr "le rayon de l’hélice doit être > 0"
+
+# AI Translated
+msgid "helix pitch must be > 0"
+msgstr "le pas de l’hélice doit être > 0"
+
+# AI Translated
+msgid "helix height must be >= 0"
+msgstr "la hauteur de l’hélice doit être >= 0"
+
+# AI Translated
+msgid "helix height of 0 (flat spiral) is not supported"
+msgstr "une hauteur d’hélice de 0 (spirale plane) n’est pas prise en charge"
+
+# AI Translated
+msgid "helix turn count exceeds limit (10000)"
+msgstr "le nombre de tours de l’hélice dépasse la limite (10000)"
+
+# AI Translated
+msgid "helix taper drives radius negative before reaching height"
+msgstr "la conicité de l’hélice rend le rayon négatif avant d’atteindre la hauteur"
+
+# AI Translated
+msgid "bad character in expression"
+msgstr "caractère invalide dans l’expression"
+
+# AI Translated
+msgid "mismatched parentheses"
+msgstr "parenthèses non appariées"
+
+# AI Translated
+#, boost-format
+msgid "unknown identifier: %1%"
+msgstr "identifiant inconnu : %1%"
+
+# AI Translated
+msgid "missing operand for unary minus"
+msgstr "opérande manquant pour le moins unaire"
+
+# AI Translated
+#, boost-format
+msgid "not enough operands for '%1%'"
+msgstr "pas assez d’opérandes pour « %1% »"
+
+# AI Translated
+msgid "division by zero"
+msgstr "division par zéro"
+
+# AI Translated
+#, boost-format
+msgid "not enough arguments for %1%()"
+msgstr "pas assez d’arguments pour %1%()"
+
+# AI Translated
+#, boost-format
+msgid "unknown function: %1%"
+msgstr "fonction inconnue : %1%"
+
+# AI Translated
+msgid "invalid expression"
+msgstr "expression non valide"
+
+# AI Translated
+#, boost-format
+msgid "variable cycle: %1%"
+msgstr "cycle de variables : %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown parameter: %1%"
+msgstr "paramètre inconnu : %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown hole standard \"%1%\""
+msgstr "norme de trou inconnue « %1% »"
+
+# AI Translated
+#, boost-format
+msgid "connector %1% is not a coordinate system"
+msgstr "le connecteur %1% n’est pas un repère"
+
+# AI Translated
+msgid "a mate needs two different connectors"
+msgstr "une liaison nécessite deux connecteurs différents"
+
+# AI Translated
+msgid "connector B is not attached to a body — a mate moves B's body"
+msgstr "le connecteur B n’est rattaché à aucun corps — une liaison déplace le corps de B"
+
+# AI Translated
+msgid "connector B's body no longer exists"
+msgstr "le corps du connecteur B n’existe plus"
+
+# AI Translated
+msgid "needs a flat face at both ends — both connectors are on curved faces"
+msgstr "nécessite une face plane aux deux extrémités — les deux connecteurs sont sur des faces courbes"
+
+# AI Translated
+#, boost-format
+msgid "needs a flat face at both ends — connector %1% is on a curved face"
+msgstr "nécessite une face plane aux deux extrémités — le connecteur %1% est sur une face courbe"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on flat faces"
+msgstr "nécessite une face cylindrique aux deux extrémités — les deux connecteurs sont sur des faces planes"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces"
+msgstr "nécessite une face cylindrique aux deux extrémités — les deux connecteurs sont sur des faces non cylindriques"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a flat face"
+msgstr "nécessite une face cylindrique aux deux extrémités — le connecteur %1% est sur une face plane"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr "nécessite une face cylindrique aux deux extrémités — le connecteur %1% est sur une face courbe"
+
+# AI Translated
+msgid "two points are coincident"
+msgstr "deux points sont confondus"
+
+# AI Translated
+msgid "face not found"
+msgstr "face introuvable"
+
+# AI Translated
+msgid "face is not a cylinder"
+msgstr "la face n’est pas un cylindre"
+
+# AI Translated
+msgid "edge not found"
+msgstr "arête introuvable"
+
+# AI Translated
+msgid "plane ref not found"
+msgstr "référence de plan introuvable"
+
+# AI Translated
+msgid "planes are parallel (no intersection)"
+msgstr "les plans sont parallèles (aucune intersection)"
+
+# AI Translated
+msgid "zero-length direction"
+msgstr "direction de longueur nulle"
+
+# AI Translated
+msgid "feature is used by a later feature"
+msgstr "la fonction est utilisée par une fonction ultérieure"
+
+# AI Translated
+msgid "sketch entities do not form a closed loop"
+msgstr "les entités de l’esquisse ne forment pas une boucle fermée"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Open at (%.3f, %.3f)"
+msgstr "Ouvert en (%.3f, %.3f)"
+
+# AI Translated
+#, boost-format
+msgid "...and %1% more open end(s)"
+msgstr "…et %1% autre(s) extrémité(s) ouverte(s)"
+
+# AI Translated
+msgid "sketch has entities but they do not form a single closed wire — a closed entity (circle/ellipse) combined with other entities, or several closed entities, is not supported yet"
+msgstr "l’esquisse contient des entités, mais elles ne forment pas un contour fermé unique — une entité fermée (cercle/ellipse) combinée à d’autres entités, ou plusieurs entités fermées, n’est pas encore prise en charge"
+
+# AI Translated
+msgid "sketch profile wire failed"
+msgstr "échec du contour du profil d’esquisse"
+
+# AI Translated
+msgid "circle wire failed"
+msgstr "échec du contour du cercle"
+
+# AI Translated
+msgid "face-extrude needs a body"
+msgstr "l’extrusion de face nécessite un corps"
+
+# AI Translated
+msgid "tapered extrude of a sketch with holes is not supported yet"
+msgstr "l’extrusion avec dépouille d’une esquisse comportant des trous n’est pas encore prise en charge"
+
+# AI Translated
+msgid "fuse failed"
+msgstr "échec de la fusion"
+
+# AI Translated
+msgid "cut failed"
+msgstr "échec de la coupe"
+
+# AI Translated
+msgid "intersect failed"
+msgstr "échec de l’intersection"
+
+# AI Translated
+msgid "surface-extrude: empty profile"
+msgstr "extrusion de surface : profil vide"
+
+# AI Translated
+#, boost-format
+msgid "surface-extrude: %1%"
+msgstr "extrusion de surface : %1%"
+
+# AI Translated
+msgid "prism failed"
+msgstr "échec du prisme"
+
+# AI Translated
+msgid "surface-revolve: empty profile"
+msgstr "révolution de surface : profil vide"
+
+# AI Translated
+msgid "surface-revolve: revolve failed"
+msgstr "révolution de surface : échec de la révolution"
+
+# AI Translated
+msgid "surface-loft needs 2+ valid profile sketches"
+msgstr "le lissage de surface nécessite au moins 2 esquisses de profil valides"
+
+# AI Translated
+msgid "surface-loft: loft failed"
+msgstr "lissage de surface : échec du lissage"
+
+# AI Translated
+msgid "surface-fill: empty boundary"
+msgstr "remplissage de surface : contour vide"
+
+# AI Translated
+msgid "surface-fill: boundary has no edges"
+msgstr "remplissage de surface : le contour n’a aucune arête"
+
+# AI Translated
+msgid "surface-fill: fill failed"
+msgstr "remplissage de surface : échec du remplissage"
+
+# AI Translated
+msgid "surface-fill: produced no geometry"
+msgstr "remplissage de surface : aucune géométrie produite"
+
+# AI Translated
+msgid "sweep needs a valid path reference"
+msgstr "le balayage nécessite une référence de trajectoire valide"
+
+# AI Translated
+#, boost-format
+msgid "helix path: %1%"
+msgstr "trajectoire hélicoïdale : %1%"
+
+# AI Translated
+msgid "sweep path must be a sketch or helix"
+msgstr "la trajectoire de balayage doit être une esquisse ou une hélice"
+
+# AI Translated
+msgid "loft needs 2+ valid profile sketches"
+msgstr "le lissage nécessite au moins 2 esquisses de profil valides"
+
+# AI Translated
+msgid "pattern needs a body"
+msgstr "la répétition nécessite un corps"
+
+# AI Translated
+msgid "pattern fuse failed"
+msgstr "échec de la fusion de la répétition"
+
+# AI Translated
+msgid "rib needs a body"
+msgstr "la nervure nécessite un corps"
+
+# AI Translated
+msgid "rib: entity must be a line"
+msgstr "nervure : l’entité doit être une ligne"
+
+# AI Translated
+msgid "rib: degenerate line"
+msgstr "nervure : ligne dégénérée"
+
+# AI Translated
+msgid "rib: profile failed"
+msgstr "nervure : échec du profil"
+
+# AI Translated
+msgid "rib: extrude failed"
+msgstr "nervure : échec de l’extrusion"
+
+# AI Translated
+msgid "rib: fuse failed"
+msgstr "nervure : échec de la fusion"
+
+# AI Translated
+msgid "fillet needs a body"
+msgstr "le congé nécessite un corps"
+
+# AI Translated
+msgid "chamfer needs a body"
+msgstr "le chanfrein nécessite un corps"
+
+# AI Translated
+msgid "hole needs a body"
+msgstr "le trou nécessite un corps"
+
+# AI Translated
+msgid "hole wire failed"
+msgstr "échec du contour du trou"
+
+# AI Translated
+msgid "hole cut failed"
+msgstr "échec de l’enlèvement du trou"
+
+# AI Translated
+msgid "internal thread needs a body"
+msgstr "le filetage intérieur nécessite un corps"
+
+# AI Translated
+msgid "shell needs a body"
+msgstr "la coque nécessite un corps"
+
+# AI Translated
+msgid "shell failed"
+msgstr "échec de la coque"
+
+# AI Translated
+msgid "shell produced no geometry"
+msgstr "la coque n’a produit aucune géométrie"
+
+# AI Translated
+msgid "draft needs a body"
+msgstr "la dépouille nécessite un corps"
+
+# AI Translated
+msgid "draft needs a picked face"
+msgstr "la dépouille nécessite une face choisie"
+
+# AI Translated
+msgid "draft: face not found"
+msgstr "dépouille : face introuvable"
+
+# AI Translated
+msgid "draft: face cannot be drafted (is it parallel to the base?)"
+msgstr "dépouille : impossible d’appliquer une dépouille à la face (est-elle parallèle à la base ?)"
+
+# AI Translated
+msgid "draft failed"
+msgstr "échec de la dépouille"
+
+# AI Translated
+msgid "draft produced no geometry"
+msgstr "la dépouille n’a produit aucune géométrie"
+
+# AI Translated
+msgid "delete_face needs a body"
+msgstr "la suppression de face nécessite un corps"
+
+# AI Translated
+msgid "delete_face needs at least one face"
+msgstr "la suppression de face nécessite au moins une face"
+
+# AI Translated
+msgid "delete_face: face not found"
+msgstr "suppression de face : face introuvable"
+
+# AI Translated
+msgid "delete_face failed"
+msgstr "échec de la suppression de face"
+
+# AI Translated
+msgid "delete_face produced no geometry"
+msgstr "la suppression de face n’a produit aucune géométrie"
+
+# AI Translated
+msgid "boolean operation failed"
+msgstr "échec de l’opération booléenne"
+
+# AI Translated
+msgid "boolean produced an empty shape"
+msgstr "l’opération booléenne a produit une forme vide"
+
+# AI Translated
+msgid "cut: no target body"
+msgstr "coupe : aucun corps cible"
+
+# AI Translated
+msgid "cut keeps nothing"
+msgstr "la coupe ne conserve rien"
+
+# AI Translated
+msgid "cut: face body is empty"
+msgstr "coupe : le corps de la face est vide"
+
+# AI Translated
+msgid "cut: face not found"
+msgstr "coupe : face introuvable"
+
+# AI Translated
+msgid "cut: failed to build cut wire"
+msgstr "coupe : échec de la création du contour de coupe"
+
+# AI Translated
+msgid "cut operation failed"
+msgstr "échec de l’opération de coupe"
+
+# AI Translated
+msgid "mirror: no target body"
+msgstr "symétrie : aucun corps cible"
+
+# AI Translated
+msgid "mirror: transform failed"
+msgstr "symétrie : échec de la transformation"
+
+# AI Translated
+msgid "mirror: result has zero or negative volume"
+msgstr "symétrie : le résultat a un volume nul ou négatif"
+
+# AI Translated
+msgid "mirror fuse failed"
+msgstr "échec de la fusion de la symétrie"
+
+# AI Translated
+msgid "transform: no target body"
+msgstr "transformation : aucun corps cible"
+
+# AI Translated
+msgid "transform: rotation axis is degenerate"
+msgstr "transformation : l’axe de rotation est dégénéré"
+
+# AI Translated
+msgid "transform: failed"
+msgstr "transformation : échec"
+
+# AI Translated
+msgid "thicken: no target body"
+msgstr "épaississement : aucun corps cible"
+
+# AI Translated
+msgid "thicken: face not found"
+msgstr "épaississement : face introuvable"
+
+# AI Translated
+msgid "thicken: thickness is zero"
+msgstr "épaississement : l’épaisseur est nulle"
+
+# AI Translated
+msgid "thicken: failed"
+msgstr "épaississement : échec"
+
+# AI Translated
+msgid "thicken: produced no geometry"
+msgstr "épaississement : aucune géométrie produite"
+
+# AI Translated
+msgid "thicken-surface: no target body"
+msgstr "épaississement de surface : aucun corps cible"
+
+# AI Translated
+msgid "thicken-surface: target is not a sheet body"
+msgstr "épaississement de surface : la cible n’est pas un corps surfacique"
+
+# AI Translated
+msgid "thicken-surface: thickness is zero"
+msgstr "épaississement de surface : l’épaisseur est nulle"
+
+# AI Translated
+msgid "thicken-surface: cannot cap the sheet rim (is it planar?)"
+msgstr "épaississement de surface : impossible de boucher le bord de la surface (est-il plan ?)"
+
+# AI Translated
+msgid "thicken-surface: failed"
+msgstr "épaississement de surface : échec"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet split into more than one shell"
+msgstr "épaississement de surface : la surface bouchée s’est scindée en plusieurs coques"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet is not closed"
+msgstr "épaississement de surface : la surface bouchée n’est pas fermée"
+
+# AI Translated
+msgid "thicken-surface: produced no geometry"
+msgstr "épaississement de surface : aucune géométrie produite"
+
+# AI Translated
+msgid "thicken-surface: produced a shell, not a solid"
+msgstr "épaississement de surface : a produit une coque, pas un solide"
+
+# AI Translated
+msgid "surface-offset: no target body"
+msgstr "décalage de surface : aucun corps cible"
+
+# AI Translated
+msgid "surface-offset: target is not a sheet body"
+msgstr "décalage de surface : la cible n’est pas un corps surfacique"
+
+# AI Translated
+msgid "surface-offset: zero offset"
+msgstr "décalage de surface : décalage nul"
+
+# AI Translated
+msgid "surface-offset: failed"
+msgstr "décalage de surface : échec"
+
+# AI Translated
+msgid "surface-offset: produced no geometry"
+msgstr "décalage de surface : aucune géométrie produite"
+
+# AI Translated
+msgid "project: no source body"
+msgstr "projection : aucun corps source"
+
+# AI Translated
+msgid "project: source body is empty"
+msgstr "projection : le corps source est vide"
+
+# AI Translated
+msgid "project: edge not found"
+msgstr "projection : arête introuvable"
+
+# AI Translated
+msgid "project: face not found"
+msgstr "projection : face introuvable"
+
+# AI Translated
+msgid "project: no edges to project"
+msgstr "projection : aucune arête à projeter"
+
+# AI Translated
+msgid "project: produced no entities"
+msgstr "projection : aucune entité produite"
+
+# AI Translated
 #, boost-format
 msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
 msgstr "Le corps %1% est déjà positionné par « %2% » (fonction %3%), donc « %4% » remplace ce positionnement"
@@ -25623,8 +26705,106 @@ msgstr "La chaîne de liaisons est circulaire : le corps %1% dépend du corps %2
 
 # AI Translated
 #, boost-format
+msgid "mate: %1%"
+msgstr "liaison : %1%"
+
+# AI Translated
+msgid "mate: transform failed"
+msgstr "liaison : échec de la transformation"
+
+# AI Translated
+msgid "feature needs a body"
+msgstr "la fonction nécessite un corps"
+
+# AI Translated
+msgid "hole removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "le trou n’a enlevé aucune matière — l’outil ne coupe pas le corps cible (les coordonnées sont dans le repère du plan d’esquisse, pas dans le repère global)"
+
+# AI Translated
+msgid "thread removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "le filetage n’a enlevé aucune matière — l’outil ne coupe pas le corps cible (les coordonnées sont dans le repère du plan d’esquisse, pas dans le repère global)"
+
+# AI Translated
+msgid "cut removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "la coupe n’a enlevé aucune matière — l’outil ne coupe pas le corps cible (les coordonnées sont dans le repère du plan d’esquisse, pas dans le repère global)"
+
+# AI Translated
+msgid "OCCT operation failed"
+msgstr "échec de l’opération OCCT"
+
+# AI Translated
+msgid "unknown geometry error"
+msgstr "erreur de géométrie inconnue"
+
+# AI Translated
+msgid "no solid-producing features"
+msgstr "aucune fonction produisant un solide"
+
+# AI Translated
+msgid "an unidentified feature"
+msgstr "une fonction non identifiée"
+
+# AI Translated
+#, boost-format
+msgid "feature %1%"
+msgstr "la fonction %1%"
+
+# AI Translated
+#, boost-format
+msgid "body %1% was destroyed by %2% (the operation produced an empty shape)"
+msgstr "le corps %1% a été détruit par %2% (l’opération a produit une forme vide)"
+
+# AI Translated
+#, boost-format
 msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
 msgstr "Le connecteur « %1% » a peut-être été déplacé sur une autre face (une modification en amont a renuméroté les faces de ce corps)"
+
+# AI Translated
+msgid "tessellation produced an empty mesh"
+msgstr "la tessellation a produit un maillage vide"
+
+# AI Translated
+msgid "preview produced no geometry"
+msgstr "l’aperçu n’a produit aucune géométrie"
+
+# AI Translated
+msgid "preview produced an empty mesh"
+msgstr "l’aperçu a produit un maillage vide"
+
+# AI Translated
+#, boost-format
+msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
+msgstr "enregistré avec une version plus récente de l’onglet Conception (format v%1%, cette version lit jusqu’à v%2%)"
+
+# AI Translated
+#, boost-format
+msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
+msgstr "enregistré avec une version plus ancienne de l’onglet Conception (format v%1%) ; ce projet ne peut pas être ouvert par cette version"
+
+# AI Translated
+#, boost-format
+msgid "CAD data could not be read: %1%"
+msgstr "Impossible de lire les données CAO : %1%"
+
+# AI Translated
+msgid "CAD data could not be read"
+msgstr "Impossible de lire les données CAO"
+
+# AI Translated
+msgid "nothing to export"
+msgstr "rien à exporter"
+
+# AI Translated
+msgid "STEP transfer failed"
+msgstr "échec du transfert STEP"
+
+# AI Translated
+msgid "cannot write STEP file"
+msgstr "impossible d’écrire le fichier STEP"
+
+# AI Translated
+msgid "OCCT failed to write STEP"
+msgstr "OCCT n’a pas pu écrire le fichier STEP"
 
 # AI Translated
 msgid "Taking a configuration snapshot failed."
@@ -25637,6 +26817,15 @@ msgstr "OrcaSlicer a rencontré une erreur lors de la création d’un instantan
 # AI Translated
 msgid "OrcaSlicer error"
 msgstr "Erreur d’OrcaSlicer"
+
+# AI Translated
+#. TRN Short labels of the external spool of the right and left nozzle
+msgid "Ext-R"
+msgstr "Ext-D"
+
+# AI Translated
+msgid "Ext-L"
+msgstr "Ext-G"
 
 # AI Translated
 #, c-format, boost-format
@@ -25827,6 +27016,10 @@ msgid "Only the following installed printers are compatible with the selected SL
 msgstr "Seules les imprimantes installées suivantes sont compatibles avec les matériaux SLA sélectionnés"
 
 # AI Translated
+msgid "My Settings"
+msgstr "Mes réglages"
+
+# AI Translated
 msgid "Custom Printer Setup"
 msgstr "Configuration d’une imprimante personnalisée"
 
@@ -25921,6 +27114,10 @@ msgstr "En règle générale, 60℃ pour le PLA et 110℃ pour l’ABS. Laissez 
 # AI Translated
 msgid "Bed Temperature:"
 msgstr "Température du plateau :"
+
+# AI Translated
+msgid "(Unknown)"
+msgstr "(Inconnu)"
 
 # AI Translated
 msgid "SLA Materials"
@@ -26083,6 +27280,10 @@ msgstr "Résumé : c’est actuellement la position la plus adaptée."
 
 msgid "?"
 msgstr "?"
+
+# AI Translated
+msgid "Wiki->"
+msgstr "Wiki->"
 
 # AI Translated
 msgid "Note:"
@@ -26335,6 +27536,10 @@ msgstr "Impossible de charger la texture sélectionnée."
 # AI Translated
 msgid "Change texture displacement texture"
 msgstr "Changer la texture du déplacement de texture"
+
+# AI Translated
+msgid "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+msgstr "Fichiers image (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
 
 # AI Translated
 msgid "Choose a texture image (height map)"
@@ -26710,7 +27915,7 @@ msgstr "Niveau médian"
 
 # AI Translated
 msgid ""
-"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"Which gray stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones still push out - one image both embosses and engraves.\n"
 "\n"
 "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
 msgstr ""
@@ -26747,15 +27952,15 @@ msgid "Turns the relief inside out: what stood out is cut in, and the other way 
 msgstr "Inverse le relief : ce qui ressortait est creusé, et inversement. Équivaut à utiliser le négatif de l’image."
 
 # AI Translated
-msgid "Colours"
+msgid "Colors"
 msgstr "Couleurs"
 
 # AI Translated
-msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgid "Prints the painted area in the texture's colors as well as its relief. Each color is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
 msgstr "Imprime la zone peinte avec les couleurs de la texture en plus de son relief. Chaque couleur est associée au filament chargé le plus proche ; tout ce que vous n’avez pas peint garde la couleur de l’objet."
 
 # AI Translated
-msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgid "This texture is a grayscale height map, so it has no colors to apply. Import a color image to use this."
 msgstr "Cette texture est une carte de hauteur en niveaux de gris, elle n’a donc aucune couleur à appliquer. Importez une image en couleur pour utiliser cette option."
 
 # AI Translated
@@ -26763,7 +27968,7 @@ msgid "Mix filaments"
 msgstr "Mélanger les filaments"
 
 # AI Translated
-msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgid "Interleaves two filaments to fake the colors in between, so a handful of filaments can cover a photo or a gradient. An image of flat colors prints the same either way. Off uses one filament per area."
 msgstr "Entrelace deux filaments pour simuler les couleurs intermédiaires, afin qu’une poignée de filaments puisse reproduire une photo ou un dégradé. Une image en aplats de couleur s’imprime de la même façon dans les deux cas. Désactivé, un seul filament est utilisé par zone."
 
 # AI Translated
@@ -26787,7 +27992,7 @@ msgstr ""
 
 # AI Translated
 #, boost-format
-msgid "%1% printable colours from %2% filaments"
+msgid "%1% printable colors from %2% filaments"
 msgstr "%1% couleurs imprimables à partir de %2% filaments"
 
 # AI Translated
@@ -26795,7 +28000,7 @@ msgid "Denoise"
 msgstr "Débruitage"
 
 # AI Translated
-msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgid "Cleans up single stray triangles of the wrong color, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
 msgstr "Nettoie les triangles isolés de la mauvaise couleur, laissés par les détails plus fins que le maillage. Augmentez-le si le résultat semble moucheté, diminuez-le si de petits détails disparaissent."
 
 # AI Translated
@@ -26812,7 +28017,7 @@ msgid "Triplanar - projects the texture from all three axes at once and blends b
 msgstr "Triplanaire - projette la texture depuis les trois axes à la fois et fond les projections entre elles, de sorte qu’une zone qui enveloppe une arête vive n’a aucun raccord visible."
 
 # AI Translated
-msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgid "Cylindrical - wraps the texture around the painted area's own center, for round shapes."
 msgstr "Cylindrique - enroule la texture autour du centre propre de la zone peinte, pour les formes rondes."
 
 # AI Translated
@@ -26820,7 +28025,7 @@ msgid "Spherical"
 msgstr "Sphérique"
 
 # AI Translated
-msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgid "Spherical - wraps the texture around the painted area's own center in both directions."
 msgstr "Sphérique - enroule la texture autour du centre propre de la zone peinte, dans les deux directions."
 
 # AI Translated
@@ -27057,11 +28262,11 @@ msgid "Triangle size along the outline of the painted area, where the relief dro
 msgstr "Taille des triangles le long du contour de la zone peinte, là où le relief redescend vers la surface nue. Diminuez-la si ce bord semble dentelé ; cela ne coûte des triangles que le long du contour. 0 la désactive."
 
 # AI Translated
-msgid "Colour detail"
+msgid "Color detail"
 msgstr "Détail des couleurs"
 
 # AI Translated
-msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgid "Triangle size where two colors meet. Each triangle prints in one filament, so a color edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of color. 0 turns it off."
 msgstr "Taille des triangles là où deux couleurs se rencontrent. Chaque triangle s’imprime avec un seul filament, donc une limite de couleur ne peut être plus nette que les triangles qui la bordent - et rien d’autre n’affine à cet endroit, puisque la surface est plate au passage d’une couleur à l’autre. 0 la désactive."
 
 # AI Translated
@@ -27187,12 +28392,18 @@ msgid "Experimental: classic bake pipeline"
 msgstr "Expérimental : pipeline d’intégration classique"
 
 # AI Translated
-msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr "Intègre en déplaçant les sommets que le maillage possède déjà, après l’avoir préparé (remaillage, subdivision adaptative et découpe le long des marches nettes de la texture). Conserve la topologie, ce dont les couleurs ont besoin. Le pipeline par défaut, lui, affine, nettoie les triangles effilés, déplace et simplifie en une seule passe ; rien n’est à préparer au préalable, mais il ne produit pas encore de couleurs."
 
 # AI Translated
+#. TRN Slider value: %d is the triangle budget in thousands
 msgid "Budget"
 msgstr "Budget"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr "%d k (auto)"
 
 # AI Translated
 msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
@@ -27217,6 +28428,11 @@ msgstr "Fusionne les triangles fins que l’affinage hérite de la tessellation 
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
 msgstr "Activé : la résolution suit la taille du modèle et le budget garde sa valeur par défaut. Décochez pour régler les deux vous-même - utile pour une texture beaucoup plus fine ou beaucoup plus grossière que la pièce qui la porte."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.2f mm (auto)"
+msgstr "%.2f mm (auto)"
 
 # AI Translated
 #, boost-format
@@ -27526,6 +28742,18 @@ msgid "Overwrite Plugin"
 msgstr "Écraser le plugin"
 
 # AI Translated
+msgid "Show in folder"
+msgstr "Afficher dans le dossier"
+
+# AI Translated
+msgid "Reinstall"
+msgstr "Réinstaller"
+
+# AI Translated
+msgid "Delete cache and reload"
+msgstr "Supprimer le cache et recharger"
+
+# AI Translated
 msgid "Select a .py or .whl plugin package."
 msgstr "Sélectionnez un paquet de plugin .py ou .whl."
 
@@ -27598,6 +28826,10 @@ msgid "Deactivated \"%s\"."
 msgstr "« %s » désactivé."
 
 # AI Translated
+msgid "Unauthorized cloud plugins cannot be installed."
+msgstr "Les plugins cloud non autorisés ne peuvent pas être installés."
+
+# AI Translated
 msgid "Plugin manifest was not found."
 msgstr "Manifeste du plugin introuvable."
 
@@ -27642,6 +28874,10 @@ msgstr ""
 # AI Translated
 msgid "Default configuration restored."
 msgstr "Configuration par défaut restaurée."
+
+# AI Translated
+msgid "Script plugin failed."
+msgstr "Échec du plugin de script."
 
 # AI Translated
 msgid "Updating plugin"
@@ -27728,8 +28964,33 @@ msgid "Deleting local files and unsubscribing plugin..."
 msgstr "Suppression des fichiers locaux et désabonnement du plugin..."
 
 # AI Translated
+msgid "Plugin not found."
+msgstr "Plugin introuvable."
+
+# AI Translated
+msgid "Refusing to clear a plugin cache outside the local plugin directory."
+msgstr "Refus de vider un cache de plugin situé hors du répertoire local des plugins."
+
+# AI Translated
+#, boost-format
+msgid "Failed to clear plugin cache: %1%"
+msgstr "Échec du vidage du cache du plugin : %1%"
+
+# AI Translated
+msgid "Plugin failed to load."
+msgstr "Échec du chargement du plugin."
+
+# AI Translated
+msgid "Plugin reloaded, but failed to restore the inactive state."
+msgstr "Plugin rechargé, mais impossible de restaurer l’état inactif."
+
+# AI Translated
 msgid "Reloading plugin"
 msgstr "Rechargement du plugin"
+
+# AI Translated
+msgid "Unknown plugin reload error."
+msgstr "Erreur inconnue lors du rechargement du plugin."
 
 # AI Translated
 msgid "Failed to reload plugin."
@@ -27763,6 +29024,26 @@ msgstr "Réduit les déchets d’amorçage et imprime plus vite. Peut provoquer 
 # AI Translated
 msgid "Terminal"
 msgstr "Terminal"
+
+# AI Translated
+msgid "A command is already running."
+msgstr "Une commande est déjà en cours d’exécution."
+
+# AI Translated
+msgid "Bundled Python executable not found."
+msgstr "Exécutable Python intégré introuvable."
+
+# AI Translated
+msgid "uv executable not found."
+msgstr "Exécutable uv introuvable."
+
+# AI Translated
+msgid "Only 'python' and 'uv' commands are supported."
+msgstr "Seules les commandes « python » et « uv » sont prises en charge."
+
+# AI Translated
+msgid "Failed to start process."
+msgstr "Échec du démarrage du processus."
 
 # AI Translated
 msgid "One-click CMYW auto-mix"
@@ -28019,7 +29300,7 @@ msgid "Checker - a test grid; squares stay square where the unwrap does not stre
 msgstr "Damier - une grille de test ; les carrés restent carrés là où le dépliage n’étire pas"
 
 # AI Translated
-msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgid "Distortion - color each island by how much the unwrap stretches it"
 msgstr "Distorsion - colorer chaque îlot selon l’étirement causé par le dépliage"
 
 # AI Translated
@@ -28302,6 +29583,926 @@ msgstr "La configuration n’a pas pu être écrite sur le disque. Rien n’a é
 # AI Translated
 msgid "Plugin installation failed"
 msgstr "Échec de l’installation du plugin"
+
+# AI Translated
+msgid "Profile has fewer than 2 points"
+msgstr "Le profil comporte moins de 2 points"
+
+# AI Translated
+msgid "Failed to build wire from profile"
+msgstr "Échec de la création du contour à partir du profil"
+
+# AI Translated
+msgid "extrude depth is zero"
+msgstr "la profondeur d’extrusion est nulle"
+
+# AI Translated
+msgid "extrude failed"
+msgstr "échec de l’extrusion"
+
+# AI Translated
+msgid "Fuse failed"
+msgstr "Échec de la fusion"
+
+# AI Translated
+msgid "Failed to make face from wire"
+msgstr "Échec de la création de la face à partir du contour"
+
+# AI Translated
+msgid "two-sided extrude fuse failed"
+msgstr "échec de la fusion de l’extrusion dans deux directions"
+
+# AI Translated
+msgid "imported regions produced no extrudable geometry"
+msgstr "les régions importées n’ont produit aucune géométrie extrudable"
+
+# AI Translated
+msgid "Failed to revolve"
+msgstr "Échec de la révolution"
+
+# AI Translated
+msgid "Failed to make face from sweep profile"
+msgstr "Échec de la création de la face à partir du profil de balayage"
+
+# AI Translated
+msgid "Failed to sweep profile along path"
+msgstr "Échec du balayage du profil le long de la trajectoire"
+
+# AI Translated
+msgid "loft needs at least 2 profiles"
+msgstr "le lissage nécessite au moins 2 profils"
+
+# AI Translated
+msgid "loft failed"
+msgstr "échec du lissage"
+
+# AI Translated
+msgid "loft produced no solid"
+msgstr "le lissage n’a produit aucun solide"
+
+# AI Translated
+msgid "loft produced no shape"
+msgstr "le lissage n’a produit aucune forme"
+
+# AI Translated
+msgid "Pocket face failed"
+msgstr "Échec de la face de la poche"
+
+# AI Translated
+msgid "Pocket cut failed"
+msgstr "Échec de l’enlèvement de la poche"
+
+# AI Translated
+msgid "sketch has no closed loop"
+msgstr "l’esquisse ne comporte aucune boucle fermée"
+
+# AI Translated
+msgid "sketch loop does not bound a face"
+msgstr "la boucle de l’esquisse ne délimite pas de face"
+
+# AI Translated
+msgid "sketch has two disjoint regions; put each in its own sketch"
+msgstr "l’esquisse comporte deux régions disjointes ; placez chacune dans sa propre esquisse"
+
+# AI Translated
+msgid "cannot read STEP file"
+msgstr "impossible de lire le fichier STEP"
+
+# AI Translated
+msgid "STEP file has no geometry"
+msgstr "le fichier STEP ne contient aucune géométrie"
+
+# AI Translated
+msgid "OCCT failed to read STEP"
+msgstr "OCCT n’a pas pu lire le fichier STEP"
+
+# AI Translated
+msgid "mesh_to_brep: mesh has no triangles"
+msgstr "mesh_to_brep : le maillage ne comporte aucun triangle"
+
+# AI Translated
+msgid "mesh_to_brep: every triangle was rejected as degenerate (try a smaller tolerance)"
+msgstr "mesh_to_brep : tous les triangles ont été rejetés comme dégénérés (essayez une tolérance plus faible)"
+
+# AI Translated
+msgid "fillet radius too large for this geometry"
+msgstr "rayon de congé trop grand pour cette géométrie"
+
+# AI Translated
+msgid "chamfer distance too large for this geometry"
+msgstr "distance de chanfrein trop grande pour cette géométrie"
+
+# AI Translated
+msgid "apply_fillet: OCCT fillet failed"
+msgstr "apply_fillet : échec du congé OCCT"
+
+# AI Translated
+msgid "apply_chamfer: OCCT chamfer failed"
+msgstr "apply_chamfer : échec du chanfrein OCCT"
+
+# AI Translated
+msgid "Add material"
+msgstr "Ajouter de la matière"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Congé / chanfrein / dépouille"
+
+# AI Translated
+msgid "Reference"
+msgstr "Référence"
+
+# AI Translated
+msgid "Modify"
+msgstr "Modifier"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Esquisse"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Cliquez sur une face ou un plan de référence, puis choisissez un outil de dessin"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Révolution"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Balayage"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Lissage"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Épaissir"
+
+# AI Translated
+msgctxt "Design"
+msgid "Union"
+msgstr "Fusion"
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Fusionner le corps outil dans la cible — un seul solide, sans jointure"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Soustraction"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Retirer le corps outil de la cible"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Intersection"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Ne conserver que la zone où les deux corps se chevauchent"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Extrusion de surface"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Révolution de surface"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Lissage de surface"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Remplissage de surface"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Créez d’abord une esquisse fermée"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Épaissir la surface"
+
+# AI Translated
+msgid "target is not a sheet body"
+msgstr "la cible n’est pas un corps surfacique"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Trou"
+
+# AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Choisissez une face ou un plan à percer"
+
+# AI Translated
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr "Percer un trou, centré sur une face choisie ou placé sur un plan"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Filetage"
+
+# AI Translated
+msgid "Shell needs a solid body"
+msgstr "La coque nécessite un corps solide"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Couper le corps avec un plan — faites glisser la flèche de décalage ; conservez une moitié ou les deux"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Scinder"
+
+# AI Translated
+msgid "Split needs a solid body"
+msgstr "La scission nécessite un corps solide"
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Scinder le corps le long d’une face choisie en deux solides"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Congé"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Choisissez une arête à arrondir"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Choisissez une arête, puis faites glisser la flèche du rayon ou saisissez-le"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Chanfrein"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Choisissez une arête à chanfreiner"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Choisissez une arête, puis faites glisser la flèche de distance ou saisissez-la"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Dépouille"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Choisissez une face à incliner"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Décalage de surface"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Répétition linéaire"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Répéter le corps selon une direction — faites glisser l’espacement, définissez le nombre"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Répétition circulaire"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Répéter le corps autour d’un axe — définissez le nombre et l’angle"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Symétrie"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Répétition sur courbe"
+
+# AI Translated
+msgid "Pattern on curve needs a body and a curve"
+msgstr "La répétition sur courbe nécessite un corps et une courbe"
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Répéter le corps le long d’une courbe choisie"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Déplacer"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Liaison"
+
+# AI Translated
+msgid "A mate needs two coordinate systems"
+msgstr "Une liaison nécessite deux repères"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Aligner sur"
+
+# AI Translated
+msgid "Align needs a body"
+msgstr "L’alignement nécessite un corps"
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Aligner le corps sur une face ou un plan choisi"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Plan"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Axe"
+
+# AI Translated
+msgctxt "Design"
+msgid "Coord Sys"
+msgstr "Repère"
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Hélice"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Mesurer"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Mesurer entre les points, arêtes ou faces choisis"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mass"
+msgstr "Masse"
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Indiquer le volume et l’aire de la surface du corps sélectionné"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Interférence"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Vérifier si deux corps se chevauchent — signale uniquement, ne modifie rien"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Éditer"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "Rouvrir la fonction sélectionnée pour modifier ce à partir de quoi elle a été créée"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Renommer…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Sélectionnez une fonction ou un corps pour le renommer"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Donnez à cette fonction un nom que vous reconnaîtrez dans l’arbre (un corps prend le nom de la fonction qui le crée)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Supprimer la face"
+
+# AI Translated
+msgctxt "Design"
+msgid "Colour"
+msgstr "Couleur"
+
+# AI Translated
+msgid "Set the selected body's display colour"
+msgstr "Définir la couleur d’affichage du corps sélectionné"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Supprimer"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Supprimer la sélection"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Supprimer le corps"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Supprimer tout ce corps — retire la fonction à partir de laquelle il a été créé"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Ligne"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Polyligne"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Cliquez sur des points ; cliquez sur le premier point pour fermer la boucle, clic droit pour la laisser ouverte"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Rectangle par coins"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre rectangle"
+msgstr "Rectangle par le centre"
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Rectangle oblique"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Rectangle arrondi"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre circle"
+msgstr "Cercle par le centre"
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Cercle par 2 points"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Cercle par 3 points"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Arc par 3 points"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Arc tangent"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre-point arc"
+msgstr "Arc par le centre"
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Rainure"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Rainure en arc"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Ellipse"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Arc elliptique"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Triangle"
+
+# AI Translated
+msgid "Triangle — click centre, then a vertex"
+msgstr "Triangle — cliquez sur le centre, puis sur un sommet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Carré"
+
+# AI Translated
+msgid "Square — click centre, then a vertex"
+msgstr "Carré — cliquez sur le centre, puis sur un sommet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Pentagone"
+
+# AI Translated
+msgid "Pentagon — click centre, then a vertex"
+msgstr "Pentagone — cliquez sur le centre, puis sur un sommet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Hexagone"
+
+# AI Translated
+msgid "Hexagon — click centre, then a vertex"
+msgstr "Hexagone — cliquez sur le centre, puis sur un sommet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Octogone"
+
+# AI Translated
+msgid "Octagon — click centre, then a vertex"
+msgstr "Octogone — cliquez sur le centre, puis sur un sommet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Dodécagone"
+
+# AI Translated
+msgid "Dodecagon — click centre, then a vertex"
+msgstr "Dodécagone — cliquez sur le centre, puis sur un sommet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Inscrit"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "Mesurer le polygone jusqu’à ses sommets (inscrit)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Circonscrit"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "Mesurer le polygone jusqu’à ses côtés (circonscrit)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Point"
+
+# AI Translated
+msgid "Type text; its outline is added to this sketch as editable lines"
+msgstr "Saisissez du texte ; son contour est ajouté à cette esquisse sous forme de lignes modifiables"
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Importer un contour SVG dans cette esquisse sous forme de lignes modifiables"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Décaler"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Ajuster"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Répétition linéaire"
+
+# AI Translated
+msgid "Array"
+msgstr "Répétition"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Répétition circulaire"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Pivoter"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Mettre à l’échelle"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Cote"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Contraindre"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "Contraindre les entités d’esquisse sélectionnées entre elles"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Contraindre l’esquisse"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Sélectionnez une esquisse pour la contraindre"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Ajouter des cotes et des relations (coïncidente, tangente, parallèle…) à l’esquisse sélectionnée"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Construction"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Basculer en construction : géométrie qui guide mais n’est jamais construite"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Prolonger"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "Supprimer les entités d’esquisse sélectionnées"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Longueur…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Saisissez la longueur de cette ligne"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Rayon / diamètre…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Saisissez le rayon de cet arc ou le diamètre de ce cercle"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Angle / distance…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Saisissez l’angle entre deux lignes ou la distance entre les deux éléments choisis"
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Côté"
+
+# AI Translated
+#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
+msgid "Major"
+msgstr "Grand axe"
+
+# AI Translated
+msgid "Minor"
+msgstr "Petit axe"
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "clic droit ou double-clic pour terminer, cliquez sur le début pour fermer"
+
+# AI Translated
+msgid "Extend: click a line/arc that can reach another live entity"
+msgstr "Prolonger : cliquez sur une ligne ou un arc pouvant atteindre une autre entité active"
+
+# AI Translated
+msgid "Trim: click a segment where it crosses another live entity"
+msgstr "Ajuster : cliquez sur un segment là où il croise une autre entité active"
+
+# AI Translated
+msgid "Authentication complete"
+msgstr "Authentification terminée"
+
+# AI Translated
+msgid "Authentication failed"
+msgstr "Échec de l’authentification"
+
+# AI Translated
+msgid "You can return to OrcaSlicer. This window will close automatically."
+msgstr "Vous pouvez revenir à OrcaSlicer. Cette fenêtre se fermera automatiquement."
+
+# AI Translated
+msgid "Something went wrong. Please return to OrcaSlicer and try again."
+msgstr "Un problème est survenu. Veuillez revenir à OrcaSlicer et réessayer."
+
+# AI Translated
+msgid "You can return to OrcaSlicer. If your browser does not redirect automatically, use the button below."
+msgstr "Vous pouvez revenir à OrcaSlicer. Si votre navigateur ne vous redirige pas automatiquement, utilisez le bouton ci-dessous."
+
+# AI Translated
+#, boost-format
+msgid "Failed starting the script %1%, Win32 error: %2%"
+msgstr "Échec du démarrage du script %1%, erreur Win32 : %2%"
+
+# AI Translated
+#, boost-format
+msgid "Post processing script %1% on file %2% failed. CommandLineToArgvW() refused to parse the command line path."
+msgstr "Échec du script de post-traitement %1% sur le fichier %2%. CommandLineToArgvW() a refusé d’analyser le chemin de la ligne de commande."
+
+# AI Translated
+#, boost-format
+msgid "The configured post-processing script does not exist: %1%"
+msgstr "Le script de post-traitement configuré n’existe pas : %1%"
+
+# AI Translated
+#, boost-format
+msgid "Perl interpreter %1% does not exist."
+msgstr "L’interpréteur Perl %1% n’existe pas."
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% raised an exception.\n"
+"Error: %2%"
+msgstr ""
+"Le plugin de post-traitement %1% a déclenché une exception.\n"
+"Erreur : %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"Error: %2%"
+msgstr ""
+"Échec du plugin de post-traitement %1%.\n"
+"Erreur : %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"\n"
+"The post-processing plugin is expected to modify the G-code file %2% in place, but the G-code file was deleted.\n"
+"Please check the plugin implementation.\n"
+msgstr ""
+"Échec du plugin de post-traitement %1%.\n"
+"\n"
+"Le plugin de post-traitement doit modifier le fichier G-code %2% sur place, mais le fichier G-code a été supprimé.\n"
+"Veuillez vérifier l’implémentation du plugin.\n"
+
+# AI Translated
+#, boost-format
+msgid "Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%"
+msgstr "Échec de la création d’une copie temporaire du fichier G-code %1% avant l’exécution d’un script de post-traitement : %2%"
+
+# AI Translated
+msgid "Post-processor can't find exported gcode file"
+msgstr "Le post-processeur ne trouve pas le fichier G-code exporté"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%"
+msgstr ""
+"Échec du script de post-traitement %1% sur le fichier %2%.\n"
+"Code d’erreur : %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%\n"
+"Output:\n"
+"%4%"
+msgstr ""
+"Échec du script de post-traitement %1% sur le fichier %2%.\n"
+"Code d’erreur : %3%\n"
+"Sortie :\n"
+"%4%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% failed.\n"
+"\n"
+"The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
+"Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n"
+msgstr ""
+"Échec du script de post-traitement %1%.\n"
+"\n"
+"Le script de post-traitement doit modifier le fichier G-code %2% sur place, mais le fichier G-code a été supprimé et probablement enregistré sous un nouveau nom.\n"
+"Veuillez adapter le script de post-traitement pour qu’il modifie le G-code sur place et consultez le manuel pour savoir comment renommer éventuellement le fichier G-code post-traité.\n"
+
+# AI Translated
+msgid "Unable to parse desired new path from output name file"
+msgstr "Impossible d’analyser le nouveau chemin souhaité dans le fichier de nom de sortie"
+
+# AI Translated
+#, boost-format
+msgid "Output directory does not exist: %1%"
+msgstr "Le répertoire de sortie n’existe pas : %1%"
+
+# AI Translated
+#, boost-format
+msgid "Failed reading a file %1% carrying the final name / path of a G-code file: %2%"
+msgstr "Échec de la lecture du fichier %1% contenant le nom / chemin final d’un fichier G-code : %2%"
+
+# AI Translated
+msgid "The printing task exceeds the limit, supporting a maximum of 6 printers."
+msgstr "La tâche d’impression dépasse la limite : 6 imprimantes au maximum sont prises en charge."
+
+# AI Translated
+msgid "Elapsed time:"
+msgstr "Temps écoulé :"
+
+# AI Translated
+msgid "Estimated time:"
+msgstr "Temps estimé :"
+
+# AI Translated
+msgid "Remaining time:"
+msgstr "Temps restant :"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -28602,6 +30803,10 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+# AI Translated
+#~ msgid "closed profile(s)"
+#~ msgstr "profil(s) fermé(s)"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Échec de la génération du G-code de calibration"
@@ -29058,18 +31263,6 @@ msgstr ""
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"
-
-#~ msgid "Skip for Now"
-#~ msgstr "Ignorer pour le moment"
-
-#~ msgid "Remind Later"
-#~ msgstr "Rappeler plus tard"
-
-#~ msgid "Skip Version"
-#~ msgstr "Ignorer la version"
-
-#~ msgid "Restart Later"
-#~ msgstr "Redémarrer plus tard"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Sélectionner le filament installé sur la buse gauche"

@@ -1130,7 +1130,7 @@ void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool mat
     for (const auto& item : prusa_profiles)
         list->append(item, &const_cast<std::string&>(item.get()));
     for (const auto& item : other_profiles)
-        list->append(item, &const_cast<std::string&>(item.get()));
+        list->append(item.get() == Materials::UNKNOWN ? _L(item.get()) : from_u8(item.get()), &const_cast<std::string&>(item.get()));
 }     
 
 void PageMaterials::sort_list_data(PresetList* list, const std::vector<ProfilePrintData>& data)
@@ -1210,13 +1210,13 @@ void PageMaterials::on_activate()
 }
 
 
-const char *PageCustom::default_profile_name = "My Settings";
+const char *PageCustom::default_profile_name = L("My Settings");
 
 PageCustom::PageCustom(ConfigWizard *parent)
     : ConfigWizardPage(parent, _L("Custom Printer Setup"), _L("Custom Printer"))
 {
     cb_custom = new wxCheckBox(this, wxID_ANY, _L("Define a custom printer profile"));
-    tc_profile_name = new wxTextCtrl(this, wxID_ANY, default_profile_name);
+    tc_profile_name = new wxTextCtrl(this, wxID_ANY, _L(default_profile_name));
     auto *label = new wxStaticText(this, wxID_ANY, _L("Custom profile name:"));
 
     wxGetApp().UpdateDarkUI(tc_profile_name);
@@ -1224,7 +1224,7 @@ PageCustom::PageCustom(ConfigWizard *parent)
     tc_profile_name->Enable(false);
     tc_profile_name->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &evt) {
         if (tc_profile_name->GetValue().IsEmpty()) {
-            if (profile_name_prev.IsEmpty()) { tc_profile_name->SetValue(default_profile_name); }
+            if (profile_name_prev.IsEmpty()) { tc_profile_name->SetValue(_L(default_profile_name)); }
             else { tc_profile_name->SetValue(profile_name_prev); }
         } else {
             profile_name_prev = tc_profile_name->GetValue();
@@ -1720,7 +1720,7 @@ void ConfigWizardIndex::msw_rescale()
 
 // Materials
 
-const std::string Materials::UNKNOWN = "(Unknown)";
+const std::string Materials::UNKNOWN = L("(Unknown)");
 
 void Materials::push(const Preset *preset)
 {

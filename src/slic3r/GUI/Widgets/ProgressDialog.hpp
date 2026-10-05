@@ -5,6 +5,7 @@
 #include "wx/progdlg.h"
 #include "wx/weakref.h"
 #include "wx/simplebook.h"
+#include "../I18N.hpp"
 #include <wx/dlimpexp.h>
 #include <wx/string.h>
 #include <cstddef>
@@ -105,9 +106,9 @@ protected:
     void SetMaximum(int maximum);
     // Return the labels to use for showing the elapsed/estimated/remaining
     // times respectively.
-    static wxString GetElapsedLabel() { return wxGetTranslation("Elapsed time:"); }
-    static wxString GetEstimatedLabel() { return wxGetTranslation("Estimated time:"); }
-    static wxString GetRemainingLabel() { return wxGetTranslation("Remaining time:"); }
+    static wxString GetElapsedLabel() { return _L("Elapsed time:"); }
+    static wxString GetEstimatedLabel() { return _L("Estimated time:"); }
+    static wxString GetRemainingLabel() { return _L("Remaining time:"); }
 
     // Similar to wxWindow::HasFlag() but tests for a presence of a wxPD_XXX
     // flag in our (separate) flags instead of using m_windowStyle.

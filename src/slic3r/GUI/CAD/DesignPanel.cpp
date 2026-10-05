@@ -110,15 +110,6 @@
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
-// English-only pin for the Design tab (see design-ux-contract): one lever
-// de-translates this whole TU so our strings never half-translate against the host's
-// localized chrome. Host UI still follows the app locale; only this tab is pinned EN.
-// GOTCHA: every _L(...) in this file must take a STRING LITERAL (FromUTF8 wants const char*).
-#ifdef _L
-#undef _L
-#endif
-#define _L(s) wxString::FromUTF8(s)
-
 namespace Slic3r { namespace GUI {
 
 // Mesh -> B-rep import defaults (see GeometryEngine::mesh_to_brep).
@@ -1913,9 +1904,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // End condition (order MUST match ExtrudeEnd: Blind/Symmetric/TwoSided/ThroughAll/
         // UpToFace/UpToVertex). Up-to-face uses the currently click-selected solid face.
         m_extrude_end = make_combo(m_cards);
-        for (const char* s : { "Blind", "Symmetric", "Two-sided", "Through all",
-                               "Up to face", "Up to vertex" })
-            m_extrude_end->Append(s);
+        for (const char* s : { L("Blind"), L("Symmetric"), L("Two-sided"), L("Through all"),
+                               L("Up to face"), L("Up to vertex") })
+            m_extrude_end->Append(_L(s));
         m_extrude_end->SetSelection(0);
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("End")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_extrude_end, 0, wxEXPAND);
@@ -4792,7 +4783,7 @@ void DesignPanel::text_dialog_done(bool accepted)
 void DesignPanel::on_import_svg()
 {
     wxFileDialog dlg(this, _L("Import SVG"), wxEmptyString, wxEmptyString,
-                     "SVG files (*.svg)|*.svg|All files|*.*",
+                     _L("SVG files (*.svg)|*.svg|All files|*.*"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -4904,7 +4895,7 @@ bool DesignPanel::recompute_guarded(const wxString& message)
 void DesignPanel::on_import_step()
 {
     wxFileDialog dlg(this, _L("Import STEP"), wxEmptyString, wxEmptyString,
-                     "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*",
+                     _L("STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -4965,7 +4956,7 @@ void DesignPanel::on_import_step()
 void DesignPanel::on_import_mesh()
 {
     wxFileDialog dlg(this, _L("Import mesh"), wxEmptyString, wxEmptyString,
-                     "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*",
+                     _L("Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -5160,7 +5151,7 @@ void DesignPanel::cancel_insert()
     set_ui_mode(UiMode::Feature);
     sync_sketch_display();
     refresh_tree();
-    set_status(StatusKind::Info, _L("Insert cancelled"));
+    set_status(StatusKind::Info, _L("Insert canceled"));
 }
 
 void DesignPanel::on_transform_imported(int feat_idx)
@@ -6646,8 +6637,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         return (v.accepts & bit) && v.need_bodies <= bodies && v.need_sketches <= sketches
                && (!v.need_sheet || sheet);
     };
-    // Names and reasons live in the generated table as plain literals; they are the same strings
-    // the toolbar already ships, so the catalogue already carries their translations.
+    // Row names, verb names, refusals, families and hints are L()-marked in the generated table.
     // Scope the lookup to the APPLICATION catalog. A bare wxGetTranslation() searches every
     // loaded catalog, wxWidgets' own wxstd included — so on a non-English system the two row
     // names that happen to be wx standard strings came back translated while the other six,
@@ -6661,7 +6651,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY);
     };
     auto label = [&](const OfferVerb& v) {
-        wxString s = tr(v.name);
+        wxString s = I18N::translate(v.name, "Design");
         if (v.key && *v.key) s += "\t" + wxString::FromUTF8(v.key);
         return s;
     };
@@ -8419,7 +8409,8 @@ wxString DesignPanel::constraint_label(const SketchEntityConstraintDef& d) const
         // an empty string, or a NULL format string that crashes wxString::Format.
         wxString s; s << wxUniChar(c) << ei;   // avoid %c assert in Unicode build
         if (r == SketchPointRole::P1)     s += wxString::FromUTF8("·P1");
-        else if (r == SketchPointRole::Center) s += wxString::FromUTF8("·Ctr");
+        // TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+        else if (r == SketchPointRole::Center) s += _L("·Ctr");
         else if (r == SketchPointRole::P0)     s += wxString::FromUTF8("·P0");
         return s;
     };
@@ -9723,7 +9714,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
             wxString s;
             for (size_t i = 0; i < m_del_faces.size(); ++i) {
                 if (i > 0) s += ", ";
-                s += wxString::Format("Face %d", m_del_faces[i]);
+                s += wxString::Format(_L("Face %d"), m_del_faces[i]);
             }
             m_del_face_list->SetLabel(s.empty() ? _L("(none)") : s);
         }
@@ -9984,7 +9975,7 @@ void DesignPanel::on_export_step()
         return;
     }
     wxFileDialog dlg(this, _L("Export STEP"), wxEmptyString, "model.step",
-                     "STEP files (*.step;*.stp)|*.step;*.stp",
+                     _L("STEP files (*.step;*.stp)|*.step;*.stp"),
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -11764,7 +11755,7 @@ void DesignPanel::tool_cancel()
         show_move_card(false);
         feed_bodies();           // re-render the reverted placement
         update_action_bar();
-        set_status(StatusKind::Info, _L("Move cancelled"));
+        set_status(StatusKind::Info, _L("Move canceled"));
         return;
     }
     if (m_active == Tool::Insert) { cancel_insert(); return; }

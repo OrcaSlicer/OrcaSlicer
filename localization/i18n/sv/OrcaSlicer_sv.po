@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 22:37-0300\n"
+"POT-Creation-Date: 2026-10-05 06:46-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -94,6 +94,7 @@ msgid "left nozzle"
 msgstr "vänster nozzel"
 
 # AI Translated
+#. TRN Nozzle counts: Std = standard flow, HF = high flow
 msgid "Right Nozzle"
 msgstr "Höger nozzel"
 
@@ -1141,15 +1142,15 @@ msgstr "Ta bort koppling"
 
 # AI Translated
 msgid "Entering Cut gizmo"
-msgstr "Öppnar snittverktyget"
+msgstr "Öppnar snitt-gizmot"
 
 # AI Translated
 msgid "Leaving Cut gizmo"
-msgstr "Lämnar snittverktyget"
+msgstr "Lämnar snitt-gizmot"
 
 # AI Translated
 msgid "Cut gizmo editing"
-msgstr "Redigering med snittverktyget"
+msgstr "Redigering med snitt-gizmot"
 
 msgid "Mesh name"
 msgstr "Mesh namn"
@@ -1287,11 +1288,11 @@ msgstr "Präglad text"
 
 # AI Translated
 msgid "Enter emboss gizmo"
-msgstr "Öppna präglingsverktyget"
+msgstr "Öppna präglings-gizmot"
 
 # AI Translated
 msgid "Leave emboss gizmo"
-msgstr "Lämna präglingsverktyget"
+msgstr "Lämna präglings-gizmot"
 
 # AI Translated
 msgid "Embossing actions"
@@ -1790,11 +1791,11 @@ msgstr "Flytta SVG"
 
 # AI Translated
 msgid "Enter SVG gizmo"
-msgstr "Öppna SVG-verktyget"
+msgstr "Öppna SVG-gizmot"
 
 # AI Translated
 msgid "Leave SVG gizmo"
-msgstr "Lämna SVG-verktyget"
+msgstr "Lämna SVG-gizmot"
 
 # AI Translated
 msgid "SVG actions"
@@ -1861,6 +1862,22 @@ msgstr "Formens linje (%1%) är för tunn (minsta bredd är %2% mm)."
 #, boost-format
 msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr "Formens linje (%1%) innehåller något som inte stöds: %2%."
+
+# AI Translated
+msgid "Not valid state please report reproduction steps on github"
+msgstr "Ogiltigt tillstånd, rapportera stegen för att återskapa det på GitHub"
+
+# AI Translated
+msgid "No embossed file"
+msgstr "Ingen präglad fil"
+
+# AI Translated
+msgid "Missing svg file in embossed shape"
+msgstr "SVG-fil saknas i den präglade formen"
+
+# AI Translated
+msgid "Missing data of svg file"
+msgstr "Data för SVG-filen saknas"
 
 # AI Translated
 msgid "Face the camera"
@@ -1971,6 +1988,10 @@ msgstr "Spegla horisontellt"
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
 msgstr "Ändra SVG-typ"
+
+# AI Translated
+msgid "SVG shape"
+msgstr "SVG-form"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
@@ -2179,11 +2200,11 @@ msgstr "Vänd efter yta 2"
 
 # AI Translated
 msgid "Entering Measure gizmo"
-msgstr "Öppnar mätverktyget"
+msgstr "Öppnar mät-gizmot"
 
 # AI Translated
 msgid "Leaving Measure gizmo"
-msgstr "Lämnar mätverktyget"
+msgstr "Lämnar mät-gizmot"
 
 # AI Translated
 msgctxt "Assembly tool"
@@ -2234,11 +2255,11 @@ msgstr "Montering yta mot yta"
 
 # AI Translated
 msgid "Entering Assembly gizmo"
-msgstr "Öppnar monteringsverktyget"
+msgstr "Öppnar monterings-gizmot"
 
 # AI Translated
 msgid "Leaving Assembly gizmo"
-msgstr "Lämnar monteringsverktyget"
+msgstr "Lämnar monterings-gizmot"
 
 msgid "Ctrl+"
 msgstr "Ctrl +"
@@ -2794,6 +2815,10 @@ msgstr ""
 "Du kan behöva konfigurera om de lokaler som saknas, troligen genom att köra kommandona \"locale-gen\" och \"dpkg-reconfigure locales\".\n"
 
 # AI Translated
+msgid "Application will close."
+msgstr "Programmet kommer att stängas."
+
+# AI Translated
 msgid "Orca Slicer - Switching language failed"
 msgstr "Orca Slicer – språkbytet misslyckades"
 
@@ -2850,8 +2875,9 @@ msgstr "Stoppa dem och fortsätta ändå?"
 msgid "Ongoing uploads"
 msgstr "Pågående uppladdningar"
 
+# AI Translated
 msgid "Select a G-code file:"
-msgstr "Välj en G-kod fil:"
+msgstr "Välj en G-code-fil:"
 
 # AI Translated
 msgid "Could not start URL download. Destination folder is not set. Please choose destination folder in Configuration Wizard."
@@ -3891,14 +3917,17 @@ msgstr "Pausa:"
 msgid "Custom Template:"
 msgstr "Anpassad mall:"
 
+# AI Translated
 msgid "Custom G-code:"
-msgstr "Anpassad G-kod:"
+msgstr "Anpassad G-code:"
 
+# AI Translated
 msgid "Custom G-code"
-msgstr "Custom G-kod"
+msgstr "Anpassad G-code"
 
+# AI Translated
 msgid "Enter Custom G-code used on current layer:"
-msgstr "Ange anpassad G-kod som används på det aktuella lagret:"
+msgstr "Ange anpassad G-code som används på det aktuella lagret:"
 
 msgid "Jump to layer"
 msgstr "Hoppa till lager"
@@ -3912,17 +3941,20 @@ msgstr "Lägg till paus"
 msgid "Insert a pause command at the beginning of this layer."
 msgstr "Infoga ett paus kommando i början av detta lager."
 
+# AI Translated
 msgid "Add Custom G-code"
-msgstr "Lägg till anpassad G-kod"
+msgstr "Lägg till anpassad G-code"
 
+# AI Translated
 msgid "Insert custom G-code at the beginning of this layer."
-msgstr "Infoga anpassad G-kod i början av detta lager."
+msgstr "Infoga anpassad G-code i början av detta lager."
 
 msgid "Add Custom Template"
 msgstr "Lägg till anpassad mall"
 
+# AI Translated
 msgid "Insert template custom G-code at the beginning of this layer."
-msgstr "Infoga mall anpassad G-kod i början av detta lager."
+msgstr "Infoga mall för anpassad G-code i början av detta lager."
 
 # AI Translated
 msgid "Filament "
@@ -3937,11 +3969,13 @@ msgstr "Ta bort paus"
 msgid "Delete Custom Template"
 msgstr "Radera anpassad mall"
 
+# AI Translated
 msgid "Edit Custom G-code"
-msgstr "Redigera anpassad G-kod"
+msgstr "Redigera anpassad G-code"
 
+# AI Translated
 msgid "Delete Custom G-code"
-msgstr "Radera anpassad G-kod"
+msgstr "Radera anpassad G-code"
 
 msgid "Delete Filament Change"
 msgstr "Radera filament byte"
@@ -3960,6 +3994,16 @@ msgstr "Kontrollera status för aktuella systemtjänster"
 
 msgid "code"
 msgstr "kod"
+
+# AI Translated
+#. TRN Short for "description" of a connection error
+msgid "desc"
+msgstr "beskr."
+
+# AI Translated
+#. TRN Short for "additional information" about a connection error
+msgid "info"
+msgstr "info"
 
 msgid "Failed to connect to cloud service"
 msgstr "Det gick inte att ansluta till molntjänsten"
@@ -4167,6 +4211,12 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Byt spår vid Filament Track Switch"
 
 # AI Translated
+#. TRN AMS unit number, then slot number
+#, c-format, boost-format
+msgid "AMS-%d-%d Slot"
+msgstr "Fack AMS-%d-%d"
+
+# AI Translated
 #, c-format, boost-format
 msgid "The maximum temperature cannot exceed %d"
 msgstr "Maxtemperaturen får inte överstiga %d"
@@ -4291,6 +4341,10 @@ msgid "Ignore"
 msgstr "Ignorera"
 
 # AI Translated
+msgid "unknown"
+msgstr "okänd"
+
+# AI Translated
 msgid "Done."
 msgstr "Klart."
 
@@ -4313,6 +4367,11 @@ msgstr ""
 
 msgid "Arranging..."
 msgstr "Placerar..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Object %s has zero size and can't be arranged."
+msgstr "Objektet %s har storleken noll och kan inte arrangeras."
 
 msgid "Arranging"
 msgstr "Placerar"
@@ -4482,11 +4541,13 @@ msgstr "Lagringsmediet i skrivaren är skrivskyddat. Byt ut det mot ett fungeran
 msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr "Ett okänt fel uppstod med lagringsmediets status. Försök igen."
 
+# AI Translated
 msgid "Sending G-code file over LAN"
-msgstr "Skickar G-kod fil över LAN"
+msgstr "Skickar G-code-fil över LAN"
 
+# AI Translated
 msgid "Sending G-code file to SD card"
-msgstr "Skickar G-kod fil till SD-kort"
+msgstr "Skickar G-code-fil till SD-kort"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -4509,8 +4570,16 @@ msgid "The Storage in the printer is read-only. Please replace it with a normal 
 msgstr "Lagringsmediet i skrivaren är skrivskyddat. Byt ut det mot ett fungerande lagringsmedium innan du skickar till skrivaren."
 
 # AI Translated
+msgid "Can't create empty volume."
+msgstr "Kan inte skapa en tom volym."
+
+# AI Translated
 msgid "Bad input data for EmbossCreateObjectJob."
 msgstr "Felaktiga indata för EmbossCreateObjectJob."
+
+# AI Translated
+msgid "Can't create empty object."
+msgstr "Kan inte skapa ett tomt objekt."
 
 # AI Translated
 msgid "Add Emboss text object"
@@ -4533,10 +4602,22 @@ msgid "Bad input data for UseSurfaceJob."
 msgstr "Felaktiga indata för UseSurfaceJob."
 
 # AI Translated
+msgid "It is used default volume for embossed text, try to change text or font to fix it."
+msgstr "Standardvolymen används för den präglade texten; prova att ändra text eller typsnitt för att åtgärda det."
+
+# AI Translated
+msgid "Empty mesh can't be created."
+msgstr "En tom mesh kan inte skapas."
+
+# AI Translated
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
 msgstr "Ändring av präglingsattribut"
+
+# AI Translated
+msgid "Bad object to create volume."
+msgstr "Ogiltigt objekt för att skapa volym."
 
 # AI Translated
 msgid "Add Emboss text Volume"
@@ -4644,6 +4725,12 @@ msgid "About %s"
 msgstr "Om %s"
 
 # AI Translated
+#. TRN %s is the commit the application was built from
+#, c-format, boost-format
+msgid "Build %s"
+msgstr "Bygge %s"
+
+# AI Translated
 msgid "Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."
 msgstr "Beredningsprogram med öppen källkod vilar på en tradition av samarbete och erkännande. Slic3r, skapat av Alessandro Ranellucci och RepRap-communityn, lade grunden. PrusaSlicer från Prusa Research byggde vidare på det arbetet, Bambu Studio förgrenades från PrusaSlicer och SuperSlicer utökade det med förbättringar från communityn. Varje projekt förde sina föregångares arbete vidare och gav erkännande åt dem som kommit före."
 
@@ -4654,6 +4741,10 @@ msgstr "OrcaSlicer började i samma anda och hämtade från PrusaSlicer, BambuSt
 # AI Translated
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "I dag är OrcaSlicer det mest använda och mest aktivt utvecklade beredningsprogrammet med öppen källkod i 3D-utskriftscommunityn. Många av dess nyheter har tagits upp av andra program, vilket gör det till en drivkraft för hela branschen."
+
+# AI Translated
+msgid "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"
+msgstr "Copyright(C) 2026 OrcaSlicer Pte Ltd Alla rättigheter förbehållna"
 
 # AI Translated
 msgid "Script plugin skipped."
@@ -4814,6 +4905,7 @@ msgstr "Kalibreringen klar"
 msgid "%s does not support %s"
 msgstr "%s stöder inte %s"
 
+#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Steg"
 
@@ -5157,7 +5249,7 @@ msgid ""
 "Copying of the temporary G-code to the output G-code failed.\n"
 "Error message: %1%"
 msgstr ""
-"Kopieringen av den tillfälliga G-koden till utdata-G-koden misslyckades.\n"
+"Kopieringen av den tillfälliga G-code-filen till utdatafilen misslyckades.\n"
 "Felmeddelande: %1%"
 
 # AI Translated
@@ -5188,18 +5280,20 @@ msgstr "G-code-filen exporterades till %1%"
 msgid "Unknown error with G-code export"
 msgstr "Okänt fel vid exportering av G-code."
 
+# AI Translated
 #, boost-format
 msgid ""
 "Failed to save G-code file.\n"
 "Error message: %1%.\n"
 "Source file %2%."
 msgstr ""
-"Misslyckades att spara gcode fil.\n"
+"Det gick inte att spara G-code-filen.\n"
 "Felmeddelande: %1%.\n"
-"Source file %2%."
+"Källfil %2%."
 
+# AI Translated
 msgid "Copying of the temporary G-code to the output G-code failed."
-msgstr "Kopiering av den tillfälliga G-koden till utgången G-kod misslyckades."
+msgstr "Kopieringen av den tillfälliga G-code-filen till utdatafilen misslyckades."
 
 #, boost-format
 msgid "Scheduling upload to `%1%`. See Window -> Print Host Upload Queue"
@@ -6035,6 +6129,12 @@ msgid "System agents"
 msgstr "Systemagenter"
 
 # AI Translated
+#. TRN %1% is the ID of a printer agent that is no longer available
+#, boost-format
+msgid "%1% (missing)"
+msgstr "%1% (saknas)"
+
+# AI Translated
 msgid "Add plugin"
 msgstr "Lägg till insticksmodul"
 
@@ -6769,11 +6869,13 @@ msgstr "Konflikter mellan G-code-banor hittades på lager %d, Z = %.2lfmm. Place
 msgid "An object is laid over the plate boundaries."
 msgstr "Ett objekt är placerad över byggplattans begränsningar."
 
+# AI Translated
 msgid "A G-code path goes beyond the max print height."
-msgstr "En G-kod bana går utöver den maximala utskriftshöjden."
+msgstr "En G-code-bana går utöver den maximala utskriftshöjden."
 
+# AI Translated
 msgid "A G-code path goes beyond plate boundaries."
-msgstr "En G-kod väg passerar över byggplattans begränsningar."
+msgstr "En G-code-bana går utanför byggplattans gränser."
 
 # AI Translated
 msgid "Not support printing 2 or more TPU filaments."
@@ -6982,8 +7084,9 @@ msgstr "Exportera byggplattans beredda fil"
 msgid "Export all sliced file"
 msgstr "Exportera alla beredda filer"
 
+# AI Translated
 msgid "Export G-code file"
-msgstr "Exportera G-kod filen"
+msgstr "Exportera G-code-fil"
 
 msgctxt "Verb"
 msgid "Print"
@@ -7156,11 +7259,13 @@ msgstr "Exportera aktuell beredd fil"
 msgid "Export all plate sliced file"
 msgstr "Exportera alla beredda filer"
 
+# AI Translated
 msgid "Export G-code"
-msgstr "Exportera G-kod"
+msgstr "Exportera G-code"
 
+# AI Translated
 msgid "Export current plate as G-code"
-msgstr "Exportera aktuell byggplatta som G-kod"
+msgstr "Exportera aktuell byggplatta som G-code"
 
 msgid "Export toolpaths as OBJ"
 msgstr "Exportera toolpaths som OBJ"
@@ -7341,8 +7446,9 @@ msgstr "Kalibrering av temperatur"
 msgid "Max flowrate"
 msgstr "Max flödes hastighet"
 
+# AI Translated
 msgid "Pressure advance"
-msgstr "Pressure advance"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "Flödesförhållande"
@@ -7379,11 +7485,13 @@ msgstr "VFA"
 msgid "Calibration Guide"
 msgstr "Kalibreringsguide"
 
+# AI Translated
 msgid "&Open G-code"
-msgstr "&Öppna G-kod"
+msgstr "&Öppna G-code"
 
+# AI Translated
 msgid "Open a G-code file"
-msgstr "Öppna en G-kod fil"
+msgstr "Öppna en G-code-fil"
 
 msgid "Re&load from Disk"
 msgstr "Ladda om från disk"
@@ -7953,6 +8061,10 @@ msgstr "(Modellen har redan betygsatts. Ditt betyg kommer att skriva över det t
 msgid "Rate"
 msgstr "Betygsätt"
 
+# AI Translated
+msgid "Calculating..."
+msgstr "Beräknar..."
+
 msgid "Camera"
 msgstr "Kamera"
 
@@ -8161,10 +8273,6 @@ msgid ""
 msgstr ""
 "Följande problem uppstod under uppladdningen av bilder. Vill du ignorera dem?\n"
 "\n"
-
-# AI Translated
-msgid "info"
-msgstr "info"
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "Synkroniserar utskriftsresultaten. Försök igen om några sekunder."
@@ -8676,6 +8784,10 @@ msgstr "Öppna Mapp."
 msgid "Safely remove hardware."
 msgstr "Ta bort hårdvaran på ett säkert sätt."
 
+# AI Translated
+msgid "Ejecting."
+msgstr "Matar ut."
+
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
@@ -8705,6 +8817,11 @@ msgstr "FEL"
 
 msgid "COMPLETED"
 msgstr "Klar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d%% - %.2f of %.2fMB uploaded"
+msgstr "%d%% - %.2f av %.2fMB uppladdat"
 
 msgid "CANCELED"
 msgstr "Avbruten"
@@ -8758,14 +8875,34 @@ msgstr "VARNING:"
 msgid "Your model needs support! Please enable support material."
 msgstr "Modellen behöver support ! Aktivera support inställningarna."
 
+# AI Translated
 msgid "G-code path overlap"
-msgstr "G-kodens rutt överlappar"
+msgstr "Överlappande G-code-banor"
+
+# AI Translated
+msgid "Click for more."
+msgstr "Klicka för mer information."
 
 msgid "Cut connectors"
 msgstr "Klipp kontakter"
 
+# AI Translated
+msgid "Instances"
+msgstr "Instanser"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Instance %d"
+msgstr "Instans %d"
+
 msgid "Layers"
 msgstr "Lager"
+
+# AI Translated
+#. TRN Object list item: plate number, then instance number
+#, c-format, boost-format
+msgid "[P%d]Instance %d"
+msgstr "[P%d]Instans %d"
 
 # AI Translated
 msgid "The application cannot run normally because OpenGL version is lower than 3.2.\n"
@@ -9429,8 +9566,9 @@ msgstr "Vänligen korrigera dem i Parameter flikarna"
 msgid "The 3MF has the following modified G-code in filament or printer presets:"
 msgstr "3MF-filen innehåller följande ändrade G-code i filament- eller skrivarförinställningar:"
 
+# AI Translated
 msgid "Please confirm that all modified G-code is safe to prevent any damage to the machine!"
-msgstr "Bekräfta att dessa modifierade G-koder är säkra för att förhindra skador på maskinen!"
+msgstr "Bekräfta att all ändrad G-code är säker för att förhindra skador på maskinen!"
 
 # AI Translated
 msgid "Modified G-code"
@@ -9439,8 +9577,9 @@ msgstr "Ändrad G-code"
 msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3mf har följande anpassade filament eller inställningar för printern:"
 
+# AI Translated
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
-msgstr "Bekräfta att G-koderna i dessa inställningar är säkra för att förhindra skador på maskinen!"
+msgstr "Bekräfta att G-code:n i dessa förinställningar är säker för att förhindra skador på maskinen!"
 
 msgid "Customized Preset"
 msgstr "Anpassad inställning"
@@ -9703,12 +9842,13 @@ msgstr "Det gick inte att läsa in nätverkets insticksmodul. Starta om programm
 msgid "The network plug-in was not detected. Network related features are unavailable."
 msgstr "Nätverks plugin programmet detekteras inte. Nätverksrelaterade funktioner är inte tillgängliga."
 
+# AI Translated
 msgid ""
 "Preview only mode:\n"
 "The loaded file contains G-code only, cannot enter the Prepare page."
 msgstr ""
 "Endast förhandsgranskningsläge:\n"
-"Den inlästa filen innehåller endast G-kod, kan inte komma in på sidan Förbered"
+"Den inlästa filen innehåller endast G-code, kan inte komma in på sidan Förbered."
 
 # AI Translated
 msgid ""
@@ -9801,6 +9941,10 @@ msgid "Project downloaded %d%%"
 msgstr "Projektet har laddats ned %d%%"
 
 # AI Translated
+msgid "Pressure Advance Test"
+msgstr "Pressure Advance-test"
+
+# AI Translated
 msgid "INFO:"
 msgstr "INFO:"
 
@@ -9813,17 +9957,55 @@ msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "Inga hastigheter angavs för kalibreringen. Standardvärdet för optimal hastighet används "
 
 # AI Translated
+msgid "Orca YOLO Flow Calibration - Perfectionist version"
+msgstr "Orca YOLO flödeskalibrering - perfektionistversion"
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration"
+msgstr "Orca YOLO flödeskalibrering"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Flowrate Test - Pass%d"
+msgstr "Flödestest - omgång %d"
+
+# AI Translated
+msgid "Nozzle temperature test"
+msgstr "Test av nozzeltemperatur"
+
+msgid "Max volumetric speed test"
+msgstr "Max volymetrisk hastighets test"
+
+# AI Translated
+msgid "VFA test"
+msgstr "VFA-test"
+
+# AI Translated
+msgid "Input shaping Frequency test"
+msgstr "Frekvenstest för input shaping"
+
+# AI Translated
+msgid "Input shaping Damping test"
+msgstr "Dämpningstest för input shaping"
+
+# AI Translated
+msgid "Cornering test"
+msgstr "Hörntagningstest"
+
+# AI Translated
 msgid "Import SLA archive"
 msgstr "Importera SLA-arkiv"
 
 msgid "The selected file"
 msgstr "Den valda filen"
 
+# AI Translated
 msgid "Does not contain valid G-code."
-msgstr "Innehåller ingen giltlig G-kod."
+msgstr "Innehåller ingen giltig G-code."
 
+# AI Translated
 msgid "An Error has occurred while loading the G-code file."
-msgstr "Fel uppstod vid laddningen av G-kod"
+msgstr "Ett fel uppstod vid inläsningen av G-code-filen."
 
 # AI Translated
 #. TRN %1% is archive path
@@ -9854,14 +10036,17 @@ msgstr "Öppna som projekt"
 msgid "Import geometry only"
 msgstr "Importera endast geometrin"
 
+# AI Translated
 msgid "Only one G-code file can be opened at a time."
-msgstr "Endast en G-kod kan öppnas åt gången."
+msgstr "Endast en G-code-fil kan öppnas åt gången."
 
+# AI Translated
 msgid "G-code loading"
-msgstr "Laddar G-kod"
+msgstr "Laddar G-code"
 
+# AI Translated
 msgid "G-code files and models cannot be loaded together!"
-msgstr "G-kod filer och modeller kan inte laddas tillsammans!!"
+msgstr "G-code-filer och modeller kan inte laddas tillsammans!"
 
 msgid "Unable to add models in preview mode"
 msgstr "Det gick inte att lägga till modeller i förhandsvisningsläge"
@@ -9878,8 +10063,9 @@ msgstr "Antal kopior:"
 msgid "Copies of the selected object"
 msgstr "Kopior av det valda objektet"
 
+# AI Translated
 msgid "Save G-code file as:"
-msgstr "Spara G-kod som:"
+msgstr "Spara G-code-fil som:"
 
 msgid "Save SLA file as:"
 msgstr "Spara SLA fil som:"
@@ -9973,8 +10159,9 @@ msgstr ""
 "Skriv ut per Objekt:\n"
 "Rekommenderar att auto-placering för att undvika kollisioner under utskrift."
 
+# AI Translated
 msgid "Send G-code"
-msgstr "Skicka G-kod"
+msgstr "Skicka G-code"
 
 msgid "Send to printer"
 msgstr "Skicka till skrivare"
@@ -10347,7 +10534,7 @@ msgid "Load Geometry Only"
 msgstr "Läs endast in geometri"
 
 # AI Translated
-msgid "Load behaviour"
+msgid "Load behavior"
 msgstr "Inläsningsbeteende"
 
 # AI Translated
@@ -10567,7 +10754,7 @@ msgid "Number of plugin pages shown as fixed tabs before the remaining pages col
 msgstr "Antal insticksmodulsidor som visas som fasta flikar innan de återstående sidorna fälls ihop i en rullgardinsmeny på den sista fliken."
 
 # AI Translated
-msgid "Behaviour"
+msgid "Behavior"
 msgstr "Beteende"
 
 # AI Translated
@@ -11981,8 +12168,9 @@ msgstr "Fler än en filamenttyp har mappats till samma externa spole, vilket kan
 msgid "The filament type setting of external spool is different from the filament in the slicing file."
 msgstr "Filamenttypsinställningen för den externa spolen skiljer sig från filamentet i beredningsfilen."
 
+# AI Translated
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
-msgstr "Den skrivar typ som valdes vid generering av G-kod överensstämmer inte med den för tillfället valda skrivaren. Vi rekommenderar att du använder samma skrivartyp för beredning."
+msgstr "Den skrivartyp som valdes vid generering av G-code överensstämmer inte med den för tillfället valda skrivaren. Vi rekommenderar att du använder samma skrivartyp för beredning."
 
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Det finns några okända filament i AMS-mappningen. Kontrollera om det är de filament som krävs. Om de är okej, klicka du på \"Confirm\" för att börja skriva ut."
@@ -12063,6 +12251,14 @@ msgstr "Namnlängden överskrider gränsen."
 #, c-format, boost-format
 msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr "Kostar %d g filament och %d byten mer än optimal gruppering."
+
+# AI Translated
+msgid "Right-Ext"
+msgstr "Höger-Ext"
+
+# AI Translated
+msgid "Left-Ext"
+msgstr "Vänster-Ext"
 
 # AI Translated
 msgid "nozzle"
@@ -12660,6 +12856,11 @@ msgid "vendor"
 msgstr "tillverkare"
 
 # AI Translated
+#. TRN Short for "version"
+msgid "ver"
+msgstr "ver."
+
+# AI Translated
 msgid "printer model"
 msgstr "skrivarmodell"
 
@@ -12770,8 +12971,9 @@ msgstr "Droppförebyggande"
 msgid "Special mode"
 msgstr "Special läge"
 
+# AI Translated
 msgid "G-code output"
-msgstr "G-kod utgång"
+msgstr "G-code-utdata"
 
 # AI Translated
 msgid "Change extrusion role G-code"
@@ -12920,11 +13122,13 @@ msgstr "Under utskrift"
 msgid "Complete print"
 msgstr "Komplett utskrift"
 
+# AI Translated
 msgid "Filament start G-code"
-msgstr "Filament start G-kod"
+msgstr "Filamentets start-G-code"
 
+# AI Translated
 msgid "Filament end G-code"
-msgstr "Filament stop G-kod"
+msgstr "Filamentets slut-G-code"
 
 # AI Translated
 msgid "Wipe tower parameters"
@@ -12991,43 +13195,53 @@ msgstr "Adaptivt byggplattsnät"
 msgid "Accessory"
 msgstr "Tillbehör"
 
+# AI Translated
 msgid "Machine G-code"
-msgstr "Maskin G-kod"
+msgstr "Maskinens G-code"
 
 # AI Translated
 msgid "File header G-code"
 msgstr "G-code i filhuvudet"
 
+# AI Translated
 msgid "Machine start G-code"
-msgstr "Maskin start G-kod"
+msgstr "Maskinens start-G-code"
 
+# AI Translated
 msgid "Machine end G-code"
-msgstr "Maskin stop G-kod"
+msgstr "Maskinens slut-G-code"
 
+# AI Translated
 msgid "Printing by object G-code"
-msgstr "Utskrift efter objekt G kod"
+msgstr "G-code för utskrift objekt för objekt"
 
+# AI Translated
 msgid "Before layer change G-code"
-msgstr "Före lagerskifte G-kod"
+msgstr "G-code före lagerbyte"
 
+# AI Translated
 msgid "Layer change G-code"
-msgstr "Lagerskifte G-kod"
+msgstr "G-code vid lagerbyte"
 
+# AI Translated
 msgid "Timelapse G-code"
-msgstr "Timelapse G-kod"
+msgstr "Timelapse-G-code"
 
 # AI Translated
 msgid "Clumping Detection G-code"
 msgstr "G-code för klumpdetektering"
 
+# AI Translated
 msgid "Change filament G-code"
-msgstr "Byta filament G-kod"
+msgstr "G-code för filamentbyte"
 
+# AI Translated
 msgid "Pause G-code"
-msgstr "Paus G-kod"
+msgstr "Paus-G-code"
 
+# AI Translated
 msgid "Template Custom G-code"
-msgstr "Mall för anpassad G-kod"
+msgstr "Mall för anpassad G-code"
 
 msgid "Motion ability"
 msgstr "Rörelseförmåga"
@@ -13849,6 +14063,14 @@ msgstr "[Åtgärd krävs] "
 msgid "[Action Required]"
 msgstr "[Åtgärd krävs]"
 
+# AI Translated
+msgid "Printer update service is unavailable."
+msgstr "Tjänsten för skrivaruppdateringar är inte tillgänglig."
+
+# AI Translated
+msgid "Failed to check for new printers."
+msgstr "Det gick inte att söka efter nya skrivare."
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Konfigurations paketet är ändrat i föregående  Kofigurations Guide"
 
@@ -13935,7 +14157,7 @@ msgstr "Målning"
 
 # AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Tillgängligt när ett målningsverktyg är öppet: support, söm, ojämn yta eller färgläggning."
+msgstr "Tillgängligt när ett målnings-gizmo är öppet: support, söm, ojämn yta eller färgläggning."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Flytta: tryck för att låsa med 1mm"
@@ -14012,6 +14234,10 @@ msgid ""
 msgstr ""
 "Tryck på det nya kortkommandot för\n"
 "\"%s\""
+
+# AI Translated
+msgid "Unbind"
+msgstr "Ta bort kortkommando"
 
 # AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
@@ -14209,6 +14435,14 @@ msgid "Cutting Module"
 msgstr "Skärmodul"
 
 # AI Translated
+msgid "Active Cutting Module"
+msgstr "Aktiv skärmodul"
+
+# AI Translated
+msgid "Ultrasonic Cutting Module"
+msgstr "Ultraljudsskärmodul"
+
+# AI Translated
 msgid "Auto Fire Extinguishing System"
 msgstr "Automatiskt brandsläckningssystem"
 
@@ -14283,8 +14517,9 @@ msgstr "Det gick inte att ladda ner leverantörsprofiler: "
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Kontrollera ej sparade ändringar innan konfigureringen uppdateras."
 
+# AI Translated
 msgid "Open G-code file:"
-msgstr "Öppna G-kod fil:"
+msgstr "Öppna G-code-fil:"
 
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Ett objekt har ett tomt första lager och kan inte skrivas ut. Skär ut botten eller aktivera support."
@@ -14315,19 +14550,22 @@ msgstr "Inget objekt kan skrivas ut. Det kan vara för litet"
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
 msgstr "Din utskrift ligger mycket nära primingområdena. Kontrollera att det inte blir någon kollision."
 
+# AI Translated
 msgid ""
 "Failed to generate G-code for invalid custom G-code.\n"
 "\n"
 msgstr ""
-"Misslyckades att skapa G-kod för ogiltlig custom G-kod.\n"
+"Det gick inte att generera G-code på grund av ogiltig anpassad G-code.\n"
 "\n"
 
+# AI Translated
 msgid "Please check the custom G-code or use the default custom G-code."
-msgstr "Kontrollera custom G-kod elleranvänd standard custom G-kod."
+msgstr "Kontrollera den anpassade G-code:n eller använd standard-G-code:n."
 
+# AI Translated
 #, boost-format
 msgid "Generating G-code: layer %1%"
-msgstr "Skapar G-kod: lager %1%"
+msgstr "Skapar G-code: lager %1%"
 
 # AI Translated
 msgid "Flush volumes matrix do not match to the correct size!"
@@ -14605,8 +14843,9 @@ msgstr "Wipe Tower stöds för närvarande endast med relativ extruder adresseri
 msgid "Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off."
 msgstr "Droppförebyggande stöds endast med prime tornet när 'single_extruder_multi_material' är avstängt."
 
+# AI Translated
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "Prime Tower stöds för närvarande endast för G-kods varianterna Marlin, RepRap/Sprinter, RepRapFirmware och Repetier."
+msgstr "Prime Tower stöds för närvarande endast för G-code-varianterna Marlin, RepRap/Sprinter, RepRapFirmware och Repetier."
 
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Ett Prime Torn stöds inte i \"Per objekt\" utskrift."
@@ -14777,11 +15016,13 @@ msgstr ""
 "\n"
 "Flytta objekten längre ifrån varandra, minska storleken på brim/skirt, byt Skirt-typ till Kombinerad eller byt utskriftssekvens till Lager för lager."
 
+# AI Translated
 msgid "Exporting G-code"
-msgstr "Exporterar G-kod"
+msgstr "Exporterar G-code"
 
+# AI Translated
 msgid "Generating G-code"
-msgstr "Skapar G-kod"
+msgstr "Skapar G-code"
 
 # AI Translated
 msgid "Processing of the filename_format template failed."
@@ -14918,8 +15159,9 @@ msgstr "Välj vilken nätverksagentimplementation som ska användas för kommuni
 msgid "Hostname, IP or URL"
 msgstr "Värdnamn, IP eller URL"
 
+# AI Translated
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the hostname, IP address or URL of the printer host instance. Print host behind HAProxy with basic auth enabled can be accessed by putting the user name and password into the URL in the following format: https://username:password@your-octopi-address/"
-msgstr "Orca Slicer kan ladda upp G-kod filer till en printer värd. Det här fältet ska innehålla värdnamn, IP-adress eller URL för printer värd platsen. Du kan få tillgång till printer värd till HAProxy med grundläggande autentisering aktiverad genom att ange användarnamn och lösenord i URL:en i följande format: https://username:password@your-octopi-address/"
+msgstr "Orca Slicer kan ladda upp G-code-filer till en skrivarvärd. Det här fältet ska innehålla värdnamn, IP-adress eller URL för skrivarvärdens instans. Du kan komma åt en skrivarvärd bakom HAProxy med grundläggande autentisering aktiverad genom att ange användarnamn och lösenord i URL:en i följande format: https://username:password@your-octopi-address/"
 
 msgid "Device UI"
 msgstr "Enhetens gränssnitt"
@@ -14930,8 +15172,9 @@ msgstr "Ange webbadressen till enhetens användar gränssnitt om den inte är de
 msgid "API Key / Password"
 msgstr "API Nyckel/Lösenord"
 
+# AI Translated
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the API Key or the password required for authentication."
-msgstr "Orca Slicer kan ladda upp G-kod filer till en printer värd. Det här fältet ska innehålla API nyckeln eller lösenordet som krävs för autentisering."
+msgstr "Orca Slicer kan ladda upp G-code-filer till en skrivarvärd. Det här fältet ska innehålla API-nyckeln eller lösenordet som krävs för autentisering."
 
 # AI Translated
 msgid "Serial Number"
@@ -15063,8 +15306,9 @@ msgstr "Antalet lager i utskriftssekvensen för övriga lager"
 msgid "Other layers filament sequence"
 msgstr "Filamentsekvens för övriga lager"
 
+# AI Translated
 msgid "This G-code is inserted at every layer change before the Z lift."
-msgstr "Denna G-kod används för varje lager innan Z axis lyfts"
+msgstr "Denna G-code infogas vid varje lagerbyte före Z-lyftet."
 
 msgid "Bottom shell layers"
 msgstr "Botten skal lager"
@@ -15884,8 +16128,9 @@ msgstr "När utskriften är klar"
 msgid "Enable this to override the fan speed set in custom G-code after print completion."
 msgstr "Aktivera detta för att åsidosätta den fläkthastighet som anges i anpassad G-code efter att utskriften är klar."
 
+# AI Translated
 msgid "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code."
-msgstr "Hastighet för frånlufts fläkt under utskrift. Denna hastighet kommer att åsidosätta hastigheten i filament anpassad g-kod"
+msgstr "Hastighet för frånluftsfläkt under utskrift. Denna hastighet kommer att åsidosätta hastigheten i filamentets anpassade G-code."
 
 # AI Translated
 msgid "Speed of exhaust fan after printing completes."
@@ -16009,20 +16254,25 @@ msgstr "Max bridge/brygg längd"
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Maxlängd för bridge/brygga som inte behöver support. Ange 0 om du vill att alla bridges/bryggor ska få support, och ett mycket stort värde om du inte vill att några bridges/bryggor ska få support."
 
+# AI Translated
 msgid "End G-code"
-msgstr "Slut G-kod"
+msgstr "Slut-G-code"
 
+# AI Translated
 msgid "Add end G-Code when finishing the entire print."
-msgstr "Lägg till slut G-kod när utskriften har avslutas"
+msgstr "Lägg till slut-G-code när hela utskriften avslutas."
 
+# AI Translated
 msgid "Between Object G-code"
-msgstr "Mellan objekt G kod"
+msgstr "G-code mellan objekt"
 
+# AI Translated
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
-msgstr "Infoga G-kod mellan objekt. Denna parameter träder i kraft först när du skriver ut dina modeller objekt för objekt."
+msgstr "Infoga G-code mellan objekt. Denna parameter träder i kraft först när du skriver ut dina modeller objekt för objekt."
 
+# AI Translated
 msgid "Add end G-code when finishing the printing of this filament."
-msgstr "Lägg till slut G-kod när utskriften har avslutas med detta filament"
+msgstr "Lägg till slut-G-code när utskriften med detta filament avslutas."
 
 msgid "Ensure vertical shell thickness"
 msgstr "Säkerställ vertikal skaltjocklek"
@@ -16385,8 +16635,9 @@ msgstr "Används endast som visuell hjälp på UI"
 msgid "Extruder offset"
 msgstr "Extruderförskjutning"
 
+# AI Translated
 msgid "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
-msgstr "Materialets volym kan ha ändrats efter byte mellan smält och kristalliserat tillstånd. Denna inställning ändrar alla inställningar för extruderings flödet för detta filament proportionellt i G-koden. Det rekommenderade värdet är mellan 0.95 och 1.05. Du kan finjustera detta värde för att få en fin flat yta när visst överflöde eller underflöde finns"
+msgstr "Materialets volym kan ha ändrats efter byte mellan smält och kristalliserat tillstånd. Denna inställning ändrar alla inställningar för extruderings flödet för detta filament proportionellt i G-code:n. Det rekommenderade värdet är mellan 0.95 och 1.05. Du kan finjustera detta värde för att få en fin flat yta när visst överflöde eller underflöde finns"
 
 # AI Translated
 msgid ""
@@ -16398,20 +16649,21 @@ msgstr ""
 "\n"
 "Objektets slutliga flödesförhållande är detta värde multiplicerat med filamentets flödesförhållande."
 
+# AI Translated
 msgid "Enable pressure advance"
-msgstr "Aktivera pressure advance"
+msgstr "Aktivera Pressure Advance"
 
 # AI Translated
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "Aktivera pressure advance; det automatiska kalibreringsresultatet skrivs över när detta aktiveras."
+msgstr "Aktivera Pressure Advance; det automatiska kalibreringsresultatet skrivs över när detta aktiveras."
 
 # AI Translated
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "Pressure advance (Klipper), även kallat Linear advance-faktor (Marlin)."
+msgstr "Pressure Advance (Klipper), även kallat Linear Advance-faktor (Marlin)."
 
 # AI Translated
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Aktivera adaptiv pressure advance (beta)"
+msgstr "Aktivera adaptiv Pressure Advance (beta)"
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -16425,14 +16677,14 @@ msgid ""
 msgstr ""
 "Med ökande utskriftshastigheter (och därmed ökande volymetriskt flöde genom nozzeln) och ökande accelerationer har det observerats att det effektiva PA-värdet vanligtvis minskar. Det innebär att ett enda PA-värde inte alltid är 100 % optimalt för alla detaljer, och man använder oftast ett kompromissvärde som varken ger för mycket utbuktning på detaljer med lägre flödeshastighet och acceleration eller gap på snabbare detaljer.\n"
 "\n"
-"Den här funktionen försöker komma runt den begränsningen genom att modellera hur skrivarens extruderingssystem svarar beroende på det volymetriska flödet och den acceleration som används. Internt genereras en anpassad modell som kan extrapolera nödvändig pressure advance för varje given volymetrisk flödeshastighet och acceleration, vilket sedan skickas till skrivaren utifrån de aktuella utskriftsförhållandena.\n"
+"Den här funktionen försöker komma runt den begränsningen genom att modellera hur skrivarens extruderingssystem svarar beroende på det volymetriska flödet och den acceleration som används. Internt genereras en anpassad modell som kan extrapolera nödvändig Pressure Advance för varje given volymetrisk flödeshastighet och acceleration, vilket sedan skickas till skrivaren utifrån de aktuella utskriftsförhållandena.\n"
 "\n"
-"När detta är aktiverat åsidosätts pressure advance-värdet ovan. Ett rimligt standardvärde ovan rekommenderas dock starkt som reservvärde och vid verktygsbyten.\n"
+"När detta är aktiverat åsidosätts Pressure Advance-värdet ovan. Ett rimligt standardvärde ovan rekommenderas dock starkt som reservvärde och vid verktygsbyten.\n"
 "\n"
 
 # AI Translated
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "Mätvärden för adaptiv pressure advance (beta)"
+msgstr "Mätvärden för adaptiv Pressure Advance (beta)"
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -16448,20 +16700,20 @@ msgid ""
 "2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile."
 msgstr ""
-"Lägg till uppsättningar med värden för pressure advance (PA) samt de volymetriska flödeshastigheter och accelerationer de mättes vid, separerade med kommatecken. En uppsättning värden per rad. Till exempel\n"
+"Lägg till uppsättningar med värden för Pressure Advance (PA) samt de volymetriska flödeshastigheter och accelerationer de mättes vid, separerade med kommatecken. En uppsättning värden per rad. Till exempel\n"
 "0.04,3.96,3000\n"
 "0.033,3.96,10000\n"
 "0.029,7.91,3000\n"
 "0.026,7.91,10000\n"
 "\n"
 "Så kalibrerar du:\n"
-"1. Kör pressure advance-testet för minst 3 hastigheter per accelerationsvärde. Vi rekommenderar att testet körs för åtminstone ytterperimetrarnas hastighet, innerperimetrarnas hastighet och den snabbaste detaljhastigheten i din profil (oftast sparsam eller solid ifyllnad). Kör dem sedan för samma hastigheter vid den långsammaste och snabbaste utskriftsaccelerationen, och inte snabbare än den rekommenderade maximala accelerationen enligt Klippers input shaper\n"
+"1. Kör Pressure Advance-testet för minst 3 hastigheter per accelerationsvärde. Vi rekommenderar att testet körs för åtminstone ytterperimetrarnas hastighet, innerperimetrarnas hastighet och den snabbaste detaljhastigheten i din profil (oftast sparsam eller solid ifyllnad). Kör dem sedan för samma hastigheter vid den långsammaste och snabbaste utskriftsaccelerationen, och inte snabbare än den rekommenderade maximala accelerationen enligt Klippers input shaper\n"
 "2. Notera det optimala PA-värdet för varje volymetrisk flödeshastighet och acceleration. Du hittar flödessiffran genom att välja flöde i rullgardinsmenyn för färgschema och dra det horisontella reglaget över PA-mönstrets linjer. Siffran ska synas längst ner på sidan. Det ideala PA-värdet bör minska ju högre det volymetriska flödet är. Om det inte gör det, kontrollera att extrudern fungerar som den ska. Ju långsammare och med mindre acceleration du skriver ut, desto större är intervallet av godtagbara PA-värden. Om ingen skillnad syns, använd PA-värdet från det snabbare testet\n"
 "3. Ange trippletterna med PA-värden, flöde och accelerationer i textrutan här och spara din filamentprofil."
 
 # AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "Aktivera adaptiv pressure advance inom detaljer (beta)"
+msgstr "Aktivera adaptiv Pressure Advance inom detaljer (beta)"
 
 # AI Translated
 msgid ""
@@ -16479,7 +16731,7 @@ msgstr ""
 
 # AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "Statisk pressure advance för bridges"
+msgstr "Statisk Pressure Advance för bridges"
 
 # AI Translated
 msgid ""
@@ -16488,7 +16740,7 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statiskt pressure advance-värde för bridges. Sätt till 0 för att använda samma pressure advance som \n"
+"Statiskt Pressure Advance-värde för bridges. Sätt till 0 för att använda samma Pressure Advance som \n"
 "motsvarande väggar (med adaptiva inställningar om de är aktiverade).\n"
 "\n"
 "Ett lägre PA-värde vid utskrift av bridges minskar den lätta underextrudering som syns direkt efter bridges. Den orsakas av tryckfallet i nozzeln vid utskrift i luften, och ett lägre PA motverkar detta."
@@ -16635,8 +16887,9 @@ msgstr "Efter första filamentet"
 msgid "By Highest Temp"
 msgstr "Efter högsta temperaturen"
 
+# AI Translated
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
-msgstr "Filament diametern används för att beräkna extruderingen i G-kod, viktigt att detta är rätt"
+msgstr "Filamentdiametern används för att beräkna extruderingsvariabler i G-code, så det är viktigt att den är korrekt och exakt."
 
 # AI Translated
 msgid "Pellet flow coefficient"
@@ -17596,8 +17849,9 @@ msgstr ""
 msgid "Add line number"
 msgstr "Lägg till rad nummer"
 
+# AI Translated
 msgid "Enable this to add line number(Nx) at the beginning of each G-code line."
-msgstr "Aktivera detta för att lägga till rad nummer(Nx) i början av varje G-kod rad"
+msgstr "Aktivera detta för att lägga till radnummer (Nx) i början av varje G-code-rad."
 
 msgid "Scan first layer"
 msgstr "Skanna första lager"
@@ -17771,11 +18025,13 @@ msgstr "Använd kylfilter"
 msgid "Enable this if printer support cooling filter"
 msgstr "Aktivera detta om printern stöder kylfilter"
 
+# AI Translated
 msgid "G-code flavor"
-msgstr "G-kod smak"
+msgstr "G-code-variant"
 
+# AI Translated
 msgid "What kind of G-code the printer is compatible with."
-msgstr "Vilken typ av G-kod är skrivaren kompatibel med"
+msgstr "Vilken typ av G-code skrivaren är kompatibel med."
 
 msgid "Klipper"
 msgstr "Klipper"
@@ -18255,8 +18511,9 @@ msgstr ""
 "Minsta höjd för Z-lager.\n"
 "Styr även beredningsplanet."
 
+# AI Translated
 msgid "This G-code is inserted at every layer change after the Z lift."
-msgstr "Denna G-kod infogas vid varje lagerbyte efter lyft av Z axis"
+msgstr "Denna G-code infogas vid varje lagerbyte efter Z-lyftet."
 
 # AI Translated
 msgid "Clumping detection G-code"
@@ -18283,11 +18540,13 @@ msgstr ""
 "Om detta är aktiverat skrivs maskinens gränser till G-code-filen.\n"
 "Alternativet ignoreras om G-code-varianten är Klipper."
 
+# AI Translated
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
-msgstr "Denna G-kod kommer att användas som kod för att pausa utskriften. Användare kan infoga paus G-kod i G-kod visaren."
+msgstr "Denna G-code kommer att användas som kod för att pausa utskriften. Användare kan infoga paus-G-code i G-code-visaren."
 
+# AI Translated
 msgid "This G-code will be used as a custom code."
-msgstr "Denna G-kod kommer att användas som en anpassad kod."
+msgstr "Denna G-code kommer att användas som en anpassad kod."
 
 # AI Translated
 msgid "Small area flow compensation (beta)"
@@ -18621,9 +18880,9 @@ msgstr ""
 "\n"
 "Värdet 0 avaktiverar funktionen.\n"
 "\n"
-"För en snabb direct drive-skrivare med högt flöde (som Bambu Lab eller Voron) behövs värdet oftast inte. Det kan dock ge viss marginell nytta i vissa fall där hastigheterna för olika detaljer varierar mycket, till exempel vid kraftiga nedsaktningar på grund av överhäng. I sådana fall rekommenderas ett högt värde runt 300–350 mm³/s², eftersom det ger precis tillräcklig utjämning för att hjälpa pressure advance att åstadkomma en mjukare flödesövergång.\n"
+"För en snabb direct drive-skrivare med högt flöde (som Bambu Lab eller Voron) behövs värdet oftast inte. Det kan dock ge viss marginell nytta i vissa fall där hastigheterna för olika detaljer varierar mycket, till exempel vid kraftiga nedsaktningar på grund av överhäng. I sådana fall rekommenderas ett högt värde runt 300–350 mm³/s², eftersom det ger precis tillräcklig utjämning för att hjälpa Pressure Advance att åstadkomma en mjukare flödesövergång.\n"
 "\n"
-"För långsammare skrivare utan pressure advance bör värdet sättas mycket lägre. Ett värde på 10–15 mm³/s² är en bra utgångspunkt för direct drive-extrudrar och 5–10 mm³/s² för Bowden.\n"
+"För långsammare skrivare utan Pressure Advance bör värdet sättas mycket lägre. Ett värde på 10–15 mm³/s² är en bra utgångspunkt för direct drive-extrudrar och 5–10 mm³/s² för Bowden.\n"
 "\n"
 "Den här funktionen kallas Pressure Equalizer i Prusa Slicer.\n"
 "\n"
@@ -18712,8 +18971,9 @@ msgstr "Här kan du skriva dina personliga anteckningar. Texten läggs till i G-
 msgid "Host Type"
 msgstr "Värd typ"
 
+# AI Translated
 msgid "Orca Slicer can upload G-code files to a printer host. This field must contain the kind of the host."
-msgstr "Orca Slicer kan ladda upp G-kod filer till en skrivar värd. Det här fältet måste innehålla typ av värd."
+msgstr "Orca Slicer kan ladda upp G-code-filer till en skrivarvärd. Det här fältet måste innehålla typen av värd."
 
 msgid "Nozzle volume"
 msgstr "Nozzle volym"
@@ -18772,7 +19032,7 @@ msgstr "Minska ifyllnads retraktionen"
 
 # AI Translated
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-kod långsammare. Observera att Z-hop inte heller utförs i områden där retraktionen hoppas över."
+msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-code långsammare. Observera att Z-hop inte heller utförs i områden där retraktionen hoppas över."
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -18956,8 +19216,9 @@ msgstr "Raft lager"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Objekt kommer att höjas med detta antal support lager. Använd denna funktion för att undvika warping vid utskrift av ABS"
 
+# AI Translated
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "G-kods vägen genereras efter förenkling av modellens konturer för att undvika för många punkter och G-kod linjer. Mindre värden betyder högre upplösning och mer tid krävs för att bereda"
+msgstr "G-code-banan genereras efter förenkling av modellens konturer för att undvika för många punkter och G-code-rader. Mindre värden betyder högre upplösning och att mer tid krävs för att bereda."
 
 msgid "Travel distance threshold"
 msgstr "Förflyttningsavståndets gräns"
@@ -19494,8 +19755,9 @@ msgstr ""
 "Ett värde skilt från noll är användbart om skrivaren är inställd att skriva ut utan primlinje.\n"
 "Det slutliga antalet varv tas inte med i beräkningen när objektavstånd placeras eller valideras. Öka antalet varv i sådana fall."
 
+# AI Translated
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
-msgstr "Utskriftshastigheten i exporterad G-kod kommer att saktas ner när den beräknade lager tiden är kortare än detta värde för att få bättre kylning för dessa lager"
+msgstr "Utskriftshastigheten i exporterad G-code kommer att saktas ner när den beräknade lagertiden är kortare än detta värde för att få bättre kylning för dessa lager."
 
 msgid "Minimum sparse infill threshold"
 msgstr "Min sparsam ifyllnads gräns"
@@ -19621,14 +19883,17 @@ msgstr "Infoga flera förvärmningskommandon (t.ex. M104.1). Endast användbart 
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
 msgstr "G-code som skrivs allra först i utdatafilen, före allt annat innehåll. Användbart för att lägga till metadata som skrivarens fasta programvara läser från filens första rader (t.ex. beräknad utskriftstid, filamentförbrukning). Stöder platshållare som {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} och {used_filament_length}."
 
+# AI Translated
 msgid "Start G-code"
-msgstr "Starta G-kod"
+msgstr "Start-G-code"
 
+# AI Translated
 msgid "G-code added when starting a print."
-msgstr "Starta G-kod när utskrift startar"
+msgstr "G-code som läggs till när en utskrift startar."
 
+# AI Translated
 msgid "G-code added when the printer starts using this filament"
-msgstr "Starta G-kod när utskrift startar med detta filament"
+msgstr "G-code som läggs till när skrivaren börjar använda detta filament"
 
 # AI Translated
 msgid "Single Extruder Multi Material"
@@ -20209,8 +20474,9 @@ msgstr "Upptäck tunna väggar"
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Upptäck tunna väggar som inte kan ha två linjer och använder en linje för att skrivas ut. Utskrifts kvaliteten begränsas efter som det inte är en sluten slinga"
 
+# AI Translated
 msgid "This G-code is inserted when filament is changed, including T commands to trigger tool change."
-msgstr "G-koden sätts in vid filament byte, inklusive T kommando som aktiverar verktygs byte"
+msgstr "Denna G-code infogas vid filamentbyte, inklusive T-kommandon som utlöser verktygsbyte."
 
 # AI Translated
 msgid "This G-code is inserted when the extrusion role is changed."
@@ -20866,8 +21132,9 @@ msgstr "Max berednings tid per platta i sekunder"
 msgid "No check"
 msgstr "Ingen kontroll"
 
+# AI Translated
 msgid "Do not run any validity checks, such as G-code path conflicts check."
-msgstr "Utför inga giltighets kontroller, t.ex. kontroll av konflikter mellan G-kod och banor."
+msgstr "Utför inga giltighetskontroller, t.ex. kontroll av konflikter mellan G-code-banor."
 
 # AI Translated
 msgid "Strict mode"
@@ -20903,7 +21170,7 @@ msgstr "Inspektera målning (JSON till stdout)"
 
 # AI Translated
 msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
-msgstr "Skriver en strukturerad JSON-sammanfattning av varje målat lager (support, söm, MMU-färg, ojämn yta) som redan är sparat på den inlästa modellen — antal facetter, ytarea och begränsningsbox i meshens koordinater per tillstånd — och avslutar sedan. Maskinläsbart alternativ till att öppna målningsverktygen i gränssnittet."
+msgstr "Skriver en strukturerad JSON-sammanfattning av varje målat lager (support, söm, MMU-färg, ojämn yta) som redan är sparat på den inlästa modellen — antal facetter, ytarea och begränsningsbox i meshens koordinater per tillstånd — och avslutar sedan. Maskinläsbart alternativ till att öppna målnings-gizmona i gränssnittet."
 
 msgid "Export Settings"
 msgstr "Exportera inställningar"
@@ -21946,6 +22213,21 @@ msgstr "material med betydande termisk krympning/expansion, t.ex...."
 msgid "materials with inaccurate filament diameter"
 msgstr "material med felaktig filament diameter"
 
+# AI Translated
+#, boost-format
+msgid "%1% Flow Rate Calibrated"
+msgstr "%1% flödeskalibrerad"
+
+# AI Translated
+#, boost-format
+msgid "%1% Temperature Calibrated"
+msgstr "%1% temperaturkalibrerad"
+
+# AI Translated
+#, boost-format
+msgid "%1% Max Vol Speed Calibrated"
+msgstr "%1% kalibrerad för max vol. hastighet"
+
 msgid "We found the best Flow Dynamics Calibration Factor"
 msgstr "Vi hittade den bästa Flödes dynamiska kalibrerings faktorn"
 
@@ -22329,6 +22611,12 @@ msgid "Temp step: "
 msgstr "Temp steg: "
 
 # AI Translated
+#. TRN %s is the temperature unit
+#, c-format, boost-format
+msgid "Supported range: 170%s - 500%s"
+msgstr "Intervall som stöds: 170%s - 500%s"
+
+# AI Translated
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 500\n"
@@ -22339,9 +22627,6 @@ msgstr ""
 "Starttemp: <= 500\n"
 "Sluttemp: >= 155\n"
 "Starttemp >= Sluttemp + 5"
-
-msgid "Max volumetric speed test"
-msgstr "Max volymetrisk hastighets test"
 
 msgid "Start volumetric speed: "
 msgstr "Start volymetrisk hastighet: "
@@ -22360,10 +22645,6 @@ msgstr ""
 "start > 0\n"
 "steg >= 0\n"
 "slut > start + steg"
-
-# AI Translated
-msgid "VFA test"
-msgstr "VFA-test"
 
 msgid "Start speed: "
 msgstr "Start hastighet: "
@@ -22447,10 +22728,6 @@ msgstr "Starta retraktion längd: "
 
 msgid "End retraction length: "
 msgstr "Slutets indragnings längd: "
-
-# AI Translated
-msgid "Input shaping Frequency test"
-msgstr "Frekvenstest för input shaping"
 
 # AI Translated
 msgid "Test model"
@@ -22563,10 +22840,6 @@ msgstr ""
 # AI Translated
 msgid "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr "Ange en giltig dämpningsfaktor (0 <= DampingStart < DampingEnd <= 1)"
-
-# AI Translated
-msgid "Cornering test"
-msgstr "Hörntagningstest"
 
 msgid "SCV-V2"
 msgstr "SCV-V2"
@@ -22801,6 +23074,12 @@ msgstr "Kalibrera före utskrift"
 msgid "Filament Mapping:"
 msgstr "Filamentmappning:"
 
+# AI Translated
+#. TRN External spool slot, followed by its filament type
+#, c-format, boost-format
+msgid "Ext - %s"
+msgstr "Ext - %s"
+
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Kan inte utföra boolean operationer på valda delar"
 
@@ -22883,6 +23162,27 @@ msgstr "Testa bing.com:"
 
 msgid "Log Info"
 msgstr "Info om logg"
+
+# AI Translated
+#. TRN %s is the name of the tested website
+#, c-format, boost-format
+msgid "test %s start..."
+msgstr "test av %s startar..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ip resolved = %s"
+msgstr "test av %s: IP uppslagen = %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s failed"
+msgstr "test av %s misslyckades"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ok"
+msgstr "test av %s ok"
 
 msgid "Select filament preset"
 msgstr "Välj filament inställning"
@@ -23465,6 +23765,14 @@ msgid "Generate API Key"
 msgstr "Generera API-nyckel"
 
 # AI Translated
+msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
+msgstr "API-nyckel skapad. Gå till den fysiska skrivaren och tryck på \"authorize\" på skärmen, kör sedan \"Test\" igen."
+
+# AI Translated
+msgid "API Key created."
+msgstr "API-nyckel skapad."
+
+# AI Translated
 msgid "Are you sure to log out?"
 msgstr "Är du säker på att du vill logga ut?"
 
@@ -23499,12 +23807,20 @@ msgid "Click Scan to look for K-series printers on your network."
 msgstr "Klicka på Skanna för att leta efter K-seriens skrivare i ditt nätverk."
 
 # AI Translated
+msgid "Scan"
+msgstr "Skanna"
+
+# AI Translated
 msgid "Use Selected"
 msgstr "Använd vald"
 
 # AI Translated
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
 msgstr "Skannar nätverket efter K-seriens skrivare... det tar några sekunder."
+
+# AI Translated
+msgid "(unknown K-series)"
+msgstr "(okänd K-serie)"
 
 # AI Translated
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
@@ -23638,6 +23954,10 @@ msgstr "logg(ar)"
 # AI Translated
 msgid "Choose where to save the exported JSON file"
 msgstr "Välj var den exporterade JSON-filen ska sparas"
+
+# AI Translated
+msgid "JSON files (*.json)|*.json"
+msgstr "JSON-filer (*.json)|*.json"
 
 # AI Translated
 msgid ""
@@ -24178,6 +24498,11 @@ msgid "Actions"
 msgstr "Åtgärder"
 
 # AI Translated
+#. TRN Button that jumps to the page number typed next to it
+msgid "Go"
+msgstr "Gå"
+
+# AI Translated
 msgid "Task Status"
 msgstr "Uppgiftsstatus"
 
@@ -24315,6 +24640,11 @@ msgstr " för att ange antal nozzlar"
 # AI Translated
 msgid "Set the physical nozzle count..."
 msgstr "Ange det fysiska antalet nozzlar..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "(Std: %d, HF: %d)"
+msgstr "(Std: %d, HF: %d)"
 
 # AI Translated
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
@@ -24679,6 +25009,10 @@ msgid "Download and Install"
 msgstr "Ladda ner och installera"
 
 # AI Translated
+msgid "Skip for Now"
+msgstr "Hoppa över tills vidare"
+
+# AI Translated
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "En ny version av Bambu Network Plug-in är tillgänglig."
 
@@ -24700,6 +25034,14 @@ msgid "Update Now"
 msgstr "Uppdatera nu"
 
 # AI Translated
+msgid "Remind Later"
+msgstr "Påminn mig senare"
+
+# AI Translated
+msgid "Skip Version"
+msgstr "Hoppa över version"
+
+# AI Translated
 msgid "(Latest)"
 msgstr "(Senaste)"
 
@@ -24718,6 +25060,10 @@ msgstr "En omstart krävs för att läsa in den nya insticksmodulen. Vill du sta
 # AI Translated
 msgid "Restart Now"
 msgstr "Starta om nu"
+
+# AI Translated
+msgid "Restart Later"
+msgstr "Starta om senare"
 
 # AI Translated
 msgid "NO RAMMING AT ALL"
@@ -24827,6 +25173,10 @@ msgid "Save preset bundle"
 msgstr "Spara förinställningspaket"
 
 # AI Translated
+msgid "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"
+msgstr "Orca förinställningspaket (*.orca_bundle)|*.orca_bundle"
+
+# AI Translated
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "Skrivbordsintegrationen misslyckades – boost::filesystem::canonical returnerade ingen appimage-sökväg."
 
@@ -24869,8 +25219,21 @@ msgstr ""
 "Tryck på \"Utför\" för att fortsätta."
 
 # AI Translated
+msgid "Press \"Undo\" to remove previous integration."
+msgstr "Tryck på \"Ångra\" för att ta bort tidigare integration."
+
+# AI Translated
+msgid "Could not start download due to malformed URL"
+msgstr "Det gick inte att starta nedladdningen på grund av en felaktig URL"
+
+# AI Translated
 msgid "The download has failed"
 msgstr "Nedladdningen misslyckades"
+
+# AI Translated
+#, boost-format
+msgid "Failed to find suitable filename. Last name: %1%."
+msgstr "Det gick inte att hitta ett lämpligt filnamn. Senaste namn: %1%."
 
 # AI Translated
 #. TRN %1% = file path
@@ -24879,8 +25242,20 @@ msgid "Can't create file at %1%"
 msgstr "Det går inte att skapa filen på %1%"
 
 # AI Translated
+msgid "Failed to write and move."
+msgstr "Det gick inte att skriva och flytta."
+
+# AI Translated
 msgid "Archive preview"
 msgstr "Förhandsgranskning av arkiv"
+
+# AI Translated
+msgid "filename"
+msgstr "filnamn"
+
+# AI Translated
+msgid "All files (*.*)|*.*"
+msgstr "Alla filer (*.*)|*.*"
 
 # AI Translated
 msgid "Open File"
@@ -26050,6 +26425,26 @@ msgstr "Skiss: —"
 msgid "Extrude dist"
 msgstr "Extr.avstånd"
 
+# AI Translated
+msgid "Blind"
+msgstr "Fast djup"
+
+# AI Translated
+msgid "Two-sided"
+msgstr "Dubbelsidig"
+
+# AI Translated
+msgid "Through all"
+msgstr "Genom allt"
+
+# AI Translated
+msgid "Up to face"
+msgstr "Upp till yta"
+
+# AI Translated
+msgid "Up to vertex"
+msgstr "Upp till hörn"
+
 msgid "End"
 msgstr "Slut"
 
@@ -26440,6 +26835,11 @@ msgid "Face %d is already in the list"
 msgstr "Yta %d finns redan i listan"
 
 # AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Yta %d"
+
+# AI Translated
 msgid "Faces to delete"
 msgstr "Ytor att ta bort"
 
@@ -26712,6 +27112,10 @@ msgid "Sketch created (%zu driving dims) — select it, then right-click to Extr
 msgstr "Skiss skapad (%zu styrande mått) — välj den och högerklicka sedan för att extrudera"
 
 # AI Translated
+msgid "(locked)"
+msgstr "(låst)"
+
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
 msgstr "Kunde inte hitta skissen att extrudera"
 
@@ -26726,11 +27130,6 @@ msgstr "Område valt — högerklicka för att extrudera, eller dubbelklicka fö
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Skiss vald — högerklicka för att extrudera, eller dubbelklicka för att redigera"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Yta %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -26842,8 +27241,16 @@ msgid "Import SVG"
 msgstr "Importera SVG"
 
 # AI Translated
+msgid "SVG files (*.svg)|*.svg|All files|*.*"
+msgstr "SVG-filer (*.svg)|*.svg|Alla filer|*.*"
+
+# AI Translated
 msgid "Import STEP"
 msgstr "Importera STEP"
+
+# AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"
+msgstr "STEP-filer (*.step;*.stp)|*.step;*.stp|Alla filer|*.*"
 
 # AI Translated
 msgid "Reading STEP…"
@@ -26871,6 +27278,10 @@ msgstr[1] "Importerade %d solider — välj en yta eller kant och sedan Avrundni
 # AI Translated
 msgid "Import mesh"
 msgstr "Importera mesh"
+
+# AI Translated
+msgid "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"
+msgstr "Meshfiler (*.stl;*.obj)|*.stl;*.obj|Alla filer|*.*"
 
 # AI Translated
 msgid "Could not read the STL file"
@@ -26939,7 +27350,7 @@ msgid " — drag to place/size, then Confirm"
 msgstr " — dra för att placera/ändra storlek, sedan Bekräfta"
 
 # AI Translated
-msgid "Insert cancelled"
+msgid "Insert canceled"
 msgstr "Infogning avbruten"
 
 # AI Translated
@@ -27801,6 +28212,11 @@ msgid "Applied constraint"
 msgstr "Villkor tillämpat"
 
 # AI Translated
+#. TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+msgid "·Ctr"
+msgstr "·Mitt"
+
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
 msgstr "Fixera %s"
@@ -28045,6 +28461,10 @@ msgid "Export STEP"
 msgstr "Exportera STEP"
 
 # AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp"
+msgstr "STEP-filer (*.step;*.stp)|*.step;*.stp"
+
+# AI Translated
 msgid "Exported STEP"
 msgstr "STEP exporterad"
 
@@ -28120,7 +28540,7 @@ msgid "Face %d (push/pull)"
 msgstr "Yta %d (tryck/dra)"
 
 # AI Translated
-msgid "Move cancelled"
+msgid "Move canceled"
 msgstr "Flyttning avbruten"
 
 # AI Translated
@@ -28212,12 +28632,205 @@ msgid "Empty mesh generated"
 msgstr "Tom mesh genererades"
 
 # AI Translated
+#. TRN Default name of an object created from the box primitive shape.
+msgid "Box"
+msgstr "Låda"
+
+# AI Translated
+#. TRN Primitive gizmo: label in front of the preset cube size buttons
+msgid "Quick:"
+msgstr "Förval:"
+
+# AI Translated
+msgid "Width (X)"
+msgstr "Bredd (X)"
+
+# AI Translated
+msgid "Depth (Y)"
+msgstr "Djup (Y)"
+
+# AI Translated
+msgid "Height (Z)"
+msgstr "Höjd (Z)"
+
+# AI Translated
+#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
+msgid "Bottom R"
+msgstr "Nedre R"
+
+# AI Translated
+msgid "Top R"
+msgstr "Övre R"
+
+# AI Translated
+#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
+msgid "Major R"
+msgstr "Stor R"
+
+# AI Translated
+msgid "Minor R"
+msgstr "Liten R"
+
+# AI Translated
+msgid "All edges"
+msgstr "Alla kanter"
+
+# AI Translated
+msgid "Top edges"
+msgstr "Övre kanter"
+
+# AI Translated
+msgid "Bottom edges"
+msgstr "Nedre kanter"
+
+# AI Translated
+msgid "Lateral edges"
+msgstr "Sidokanter"
+
+# AI Translated
+msgid "Mesh resolution"
+msgstr "Meshupplösning"
+
+# AI Translated
+msgid "Add Shape"
+msgstr "Lägg till form"
+
+# AI Translated
+msgid "No outer profile"
+msgstr "Ingen yttre profil"
+
+# AI Translated
+msgid "Failed to make outer face"
+msgstr "Det gick inte att skapa den yttre ytan"
+
+# AI Translated
+msgid "Failed to build face with holes"
+msgstr "Det gick inte att skapa en yta med hål"
+
+# AI Translated
+msgid "Revolve failed"
+msgstr "Rotationen misslyckades"
+
+# AI Translated
+msgid "Profile"
+msgstr "Profil"
+
+# AI Translated
+msgid "Start new profile (for holes)"
+msgstr "Starta ny profil (för hål)"
+
+# AI Translated
+#. TRN Sketch gizmo: number of segments a circle is built from
+msgid "Seg"
+msgstr "Seg."
+
+# AI Translated
+msgid "Sides"
+msgstr "Sidor"
+
+# AI Translated
+msgid "Click on canvas to draw"
+msgstr "Klicka i vyn för att rita"
+
+# AI Translated
+msgid "Snap to grid"
+msgstr "Fäst mot rutnät"
+
+# AI Translated
+msgid "Outer"
+msgstr "Yttre"
+
+# AI Translated
+msgid "CLOSED"
+msgstr "SLUTEN"
+
+# AI Translated
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#, boost-format
+msgid "%1% %2%: %3% pts %4%"
+msgstr "%1% %2%: %3% pkt %4%"
+
+# AI Translated
+msgid "XY (Top)"
+msgstr "XY (Topp)"
+
+# AI Translated
+msgid "XZ (Front)"
+msgstr "XZ (Front)"
+
+# AI Translated
+msgid "YZ (Side)"
+msgstr "YZ (Sida)"
+
+# AI Translated
+msgid "Revolve deg"
+msgstr "Rotationsvinkel"
+
+# AI Translated
+msgid "Set to 0 for extrude, >0 for revolve"
+msgstr "Ange 0 för extrudering, >0 för rotation"
+
+# AI Translated
+msgid "Pocket (cut)"
+msgstr "Ficka (skär)"
+
+# AI Translated
+#, c-format
+msgid "%zu closed profile"
+msgid_plural "%zu closed profiles"
+msgstr[0] "%zu sluten profil"
+msgstr[1] "%zu slutna profiler"
+
+# AI Translated
+msgid "Draw a closed profile to enable"
+msgstr "Rita en sluten profil för att aktivera"
+
+# AI Translated
 msgid "Pocket (Cut)"
 msgstr "Ficka (skär)"
 
 # AI Translated
 msgid "Clear All"
 msgstr "Rensa alla"
+
+# AI Translated
+msgid "Empty result"
+msgstr "Tomt resultat"
+
+# AI Translated
+#, boost-format
+msgid "Extrude: %1%"
+msgstr "Extrudera: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Revolve: %1%"
+msgstr "Rotera: %1%"
+
+# AI Translated
+msgid "No object selected"
+msgstr "Inget objekt valt"
+
+# AI Translated
+msgid "Face failed"
+msgstr "Det gick inte att skapa ytan"
+
+# AI Translated
+msgid "Face with holes failed"
+msgstr "Det gick inte att skapa ytan med hål"
+
+# AI Translated
+msgid "Tool mesh empty"
+msgstr "Verktygets mesh är tom"
+
+# AI Translated
+msgid "Pocket added (negative volume)"
+msgstr "Ficka tillagd (negativ volym)"
+
+# AI Translated
+#, boost-format
+msgid "Pocket: %1%"
+msgstr "Ficka: %1%"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -28458,6 +29071,541 @@ msgid "Speed Dial"
 msgstr "Snabbval"
 
 # AI Translated
+msgid "helix radius must be > 0"
+msgstr "helixens radie måste vara > 0"
+
+# AI Translated
+msgid "helix pitch must be > 0"
+msgstr "helixens stigning måste vara > 0"
+
+# AI Translated
+msgid "helix height must be >= 0"
+msgstr "helixens höjd måste vara >= 0"
+
+# AI Translated
+msgid "helix height of 0 (flat spiral) is not supported"
+msgstr "helixhöjden 0 (platt spiral) stöds inte"
+
+# AI Translated
+msgid "helix turn count exceeds limit (10000)"
+msgstr "helixens antal varv överskrider gränsen (10000)"
+
+# AI Translated
+msgid "helix taper drives radius negative before reaching height"
+msgstr "helixens avsmalning gör radien negativ innan höjden har nåtts"
+
+# AI Translated
+msgid "bad character in expression"
+msgstr "ogiltigt tecken i uttrycket"
+
+# AI Translated
+msgid "mismatched parentheses"
+msgstr "parenteserna matchar inte"
+
+# AI Translated
+#, boost-format
+msgid "unknown identifier: %1%"
+msgstr "okänd identifierare: %1%"
+
+# AI Translated
+msgid "missing operand for unary minus"
+msgstr "operand saknas för unärt minus"
+
+# AI Translated
+#, boost-format
+msgid "not enough operands for '%1%'"
+msgstr "för få operander för '%1%'"
+
+# AI Translated
+msgid "division by zero"
+msgstr "division med noll"
+
+# AI Translated
+#, boost-format
+msgid "not enough arguments for %1%()"
+msgstr "för få argument för %1%()"
+
+# AI Translated
+#, boost-format
+msgid "unknown function: %1%"
+msgstr "okänd funktion: %1%"
+
+# AI Translated
+msgid "invalid expression"
+msgstr "ogiltigt uttryck"
+
+# AI Translated
+#, boost-format
+msgid "variable cycle: %1%"
+msgstr "cirkulärt variabelberoende: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown parameter: %1%"
+msgstr "okänd parameter: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown hole standard \"%1%\""
+msgstr "okänd hålstandard \"%1%\""
+
+# AI Translated
+#, boost-format
+msgid "connector %1% is not a coordinate system"
+msgstr "kopplingen %1% är inte ett koordinatsystem"
+
+# AI Translated
+msgid "a mate needs two different connectors"
+msgstr "en parning kräver två olika kopplingar"
+
+# AI Translated
+msgid "connector B is not attached to a body — a mate moves B's body"
+msgstr "koppling B är inte fäst vid någon kropp — en parning flyttar B:s kropp"
+
+# AI Translated
+msgid "connector B's body no longer exists"
+msgstr "koppling B:s kropp finns inte längre"
+
+# AI Translated
+msgid "needs a flat face at both ends — both connectors are on curved faces"
+msgstr "kräver en plan yta i båda ändar — båda kopplingarna sitter på krökta ytor"
+
+# AI Translated
+#, boost-format
+msgid "needs a flat face at both ends — connector %1% is on a curved face"
+msgstr "kräver en plan yta i båda ändar — kopplingen %1% sitter på en krökt yta"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on flat faces"
+msgstr "kräver en cylindrisk yta i båda ändar — båda kopplingarna sitter på plana ytor"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces"
+msgstr "kräver en cylindrisk yta i båda ändar — båda kopplingarna sitter på icke-cylindriska ytor"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a flat face"
+msgstr "kräver en cylindrisk yta i båda ändar — kopplingen %1% sitter på en plan yta"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr "kräver en cylindrisk yta i båda ändar — kopplingen %1% sitter på en krökt yta"
+
+# AI Translated
+msgid "two points are coincident"
+msgstr "de två punkterna sammanfaller"
+
+# AI Translated
+msgid "face not found"
+msgstr "ytan hittades inte"
+
+# AI Translated
+msgid "face is not a cylinder"
+msgstr "ytan är inte en cylinder"
+
+# AI Translated
+msgid "edge not found"
+msgstr "kanten hittades inte"
+
+# AI Translated
+msgid "plane ref not found"
+msgstr "planreferensen hittades inte"
+
+# AI Translated
+msgid "planes are parallel (no intersection)"
+msgstr "planen är parallella (ingen skärning)"
+
+# AI Translated
+msgid "zero-length direction"
+msgstr "riktning med längden noll"
+
+# AI Translated
+msgid "feature is used by a later feature"
+msgstr "operationen används av en senare operation"
+
+# AI Translated
+msgid "sketch entities do not form a closed loop"
+msgstr "skisselementen bildar inte en sluten slinga"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Open at (%.3f, %.3f)"
+msgstr "Öppen vid (%.3f, %.3f)"
+
+# AI Translated
+#, boost-format
+msgid "...and %1% more open end(s)"
+msgstr "...och %1% öppna ände(r) till"
+
+# AI Translated
+msgid "sketch has entities but they do not form a single closed wire — a closed entity (circle/ellipse) combined with other entities, or several closed entities, is not supported yet"
+msgstr "skissen har element men de bildar inte en enda sluten kantkedja — ett slutet element (cirkel/ellips) kombinerat med andra element, eller flera slutna element, stöds inte ännu"
+
+# AI Translated
+msgid "sketch profile wire failed"
+msgstr "det gick inte att skapa skissprofilens kantkedja"
+
+# AI Translated
+msgid "circle wire failed"
+msgstr "det gick inte att skapa cirkelns kantkedja"
+
+# AI Translated
+msgid "face-extrude needs a body"
+msgstr "extrudering av yta kräver en kropp"
+
+# AI Translated
+msgid "tapered extrude of a sketch with holes is not supported yet"
+msgstr "avsmalnande extrudering av en skiss med hål stöds inte ännu"
+
+# AI Translated
+msgid "fuse failed"
+msgstr "sammanfogningen misslyckades"
+
+# AI Translated
+msgid "cut failed"
+msgstr "urskärningen misslyckades"
+
+# AI Translated
+msgid "intersect failed"
+msgstr "skärningen misslyckades"
+
+# AI Translated
+msgid "surface-extrude: empty profile"
+msgstr "ytextrudering: tom profil"
+
+# AI Translated
+#, boost-format
+msgid "surface-extrude: %1%"
+msgstr "ytextrudering: %1%"
+
+# AI Translated
+msgid "prism failed"
+msgstr "det gick inte att skapa prismat"
+
+# AI Translated
+msgid "surface-revolve: empty profile"
+msgstr "ytrotation: tom profil"
+
+# AI Translated
+msgid "surface-revolve: revolve failed"
+msgstr "ytrotation: rotationen misslyckades"
+
+# AI Translated
+msgid "surface-loft needs 2+ valid profile sketches"
+msgstr "ytloft kräver 2+ giltiga profilskisser"
+
+# AI Translated
+msgid "surface-loft: loft failed"
+msgstr "ytloft: loften misslyckades"
+
+# AI Translated
+msgid "surface-fill: empty boundary"
+msgstr "ytfyllning: tom gräns"
+
+# AI Translated
+msgid "surface-fill: boundary has no edges"
+msgstr "ytfyllning: gränsen har inga kanter"
+
+# AI Translated
+msgid "surface-fill: fill failed"
+msgstr "ytfyllning: fyllningen misslyckades"
+
+# AI Translated
+msgid "surface-fill: produced no geometry"
+msgstr "ytfyllning: gav ingen geometri"
+
+# AI Translated
+msgid "sweep needs a valid path reference"
+msgstr "svep kräver en giltig referens till en bana"
+
+# AI Translated
+#, boost-format
+msgid "helix path: %1%"
+msgstr "helixbana: %1%"
+
+# AI Translated
+msgid "sweep path must be a sketch or helix"
+msgstr "svepbanan måste vara en skiss eller en helix"
+
+# AI Translated
+msgid "loft needs 2+ valid profile sketches"
+msgstr "loft kräver 2+ giltiga profilskisser"
+
+# AI Translated
+msgid "pattern needs a body"
+msgstr "mönster kräver en kropp"
+
+# AI Translated
+msgid "pattern fuse failed"
+msgstr "sammanfogningen av mönstret misslyckades"
+
+# AI Translated
+msgid "rib needs a body"
+msgstr "ribba kräver en kropp"
+
+# AI Translated
+msgid "rib: entity must be a line"
+msgstr "ribba: elementet måste vara en linje"
+
+# AI Translated
+msgid "rib: degenerate line"
+msgstr "ribba: degenererad linje"
+
+# AI Translated
+msgid "rib: profile failed"
+msgstr "ribba: profilen misslyckades"
+
+# AI Translated
+msgid "rib: extrude failed"
+msgstr "ribba: extruderingen misslyckades"
+
+# AI Translated
+msgid "rib: fuse failed"
+msgstr "ribba: sammanfogningen misslyckades"
+
+# AI Translated
+msgid "fillet needs a body"
+msgstr "avrundning kräver en kropp"
+
+# AI Translated
+msgid "chamfer needs a body"
+msgstr "fasning kräver en kropp"
+
+# AI Translated
+msgid "hole needs a body"
+msgstr "hål kräver en kropp"
+
+# AI Translated
+msgid "hole wire failed"
+msgstr "det gick inte att skapa hålets kantkedja"
+
+# AI Translated
+msgid "hole cut failed"
+msgstr "urskärningen av hålet misslyckades"
+
+# AI Translated
+msgid "internal thread needs a body"
+msgstr "invändig gänga kräver en kropp"
+
+# AI Translated
+msgid "shell needs a body"
+msgstr "skal kräver en kropp"
+
+# AI Translated
+msgid "shell failed"
+msgstr "skalet misslyckades"
+
+# AI Translated
+msgid "shell produced no geometry"
+msgstr "skalet gav ingen geometri"
+
+# AI Translated
+msgid "draft needs a body"
+msgstr "släppvinkel kräver en kropp"
+
+# AI Translated
+msgid "draft needs a picked face"
+msgstr "släppvinkel kräver en vald yta"
+
+# AI Translated
+msgid "draft: face not found"
+msgstr "släppvinkel: ytan hittades inte"
+
+# AI Translated
+msgid "draft: face cannot be drafted (is it parallel to the base?)"
+msgstr "släppvinkel: ytan kan inte ges släppvinkel (är den parallell med basen?)"
+
+# AI Translated
+msgid "draft failed"
+msgstr "släppvinkeln misslyckades"
+
+# AI Translated
+msgid "draft produced no geometry"
+msgstr "släppvinkeln gav ingen geometri"
+
+# AI Translated
+msgid "delete_face needs a body"
+msgstr "ta bort yta kräver en kropp"
+
+# AI Translated
+msgid "delete_face needs at least one face"
+msgstr "ta bort yta kräver minst en yta"
+
+# AI Translated
+msgid "delete_face: face not found"
+msgstr "ta bort yta: ytan hittades inte"
+
+# AI Translated
+msgid "delete_face failed"
+msgstr "ta bort yta misslyckades"
+
+# AI Translated
+msgid "delete_face produced no geometry"
+msgstr "ta bort yta gav ingen geometri"
+
+# AI Translated
+msgid "boolean operation failed"
+msgstr "den booleska operationen misslyckades"
+
+# AI Translated
+msgid "boolean produced an empty shape"
+msgstr "den booleska operationen gav en tom form"
+
+# AI Translated
+msgid "cut: no target body"
+msgstr "snitt: ingen målkropp"
+
+# AI Translated
+msgid "cut keeps nothing"
+msgstr "snittet behåller ingenting"
+
+# AI Translated
+msgid "cut: face body is empty"
+msgstr "snitt: ytans kropp är tom"
+
+# AI Translated
+msgid "cut: face not found"
+msgstr "snitt: ytan hittades inte"
+
+# AI Translated
+msgid "cut: failed to build cut wire"
+msgstr "snitt: det gick inte att skapa snittets kantkedja"
+
+# AI Translated
+msgid "cut operation failed"
+msgstr "snittoperationen misslyckades"
+
+# AI Translated
+msgid "mirror: no target body"
+msgstr "spegling: ingen målkropp"
+
+# AI Translated
+msgid "mirror: transform failed"
+msgstr "spegling: transformeringen misslyckades"
+
+# AI Translated
+msgid "mirror: result has zero or negative volume"
+msgstr "spegling: resultatet har noll eller negativ volym"
+
+# AI Translated
+msgid "mirror fuse failed"
+msgstr "sammanfogningen av speglingen misslyckades"
+
+# AI Translated
+msgid "transform: no target body"
+msgstr "transformering: ingen målkropp"
+
+# AI Translated
+msgid "transform: rotation axis is degenerate"
+msgstr "transformering: rotationsaxeln är degenererad"
+
+# AI Translated
+msgid "transform: failed"
+msgstr "transformering: misslyckades"
+
+# AI Translated
+msgid "thicken: no target body"
+msgstr "förtjockning: ingen målkropp"
+
+# AI Translated
+msgid "thicken: face not found"
+msgstr "förtjockning: ytan hittades inte"
+
+# AI Translated
+msgid "thicken: thickness is zero"
+msgstr "förtjockning: tjockleken är noll"
+
+# AI Translated
+msgid "thicken: failed"
+msgstr "förtjockning: misslyckades"
+
+# AI Translated
+msgid "thicken: produced no geometry"
+msgstr "förtjockning: gav ingen geometri"
+
+# AI Translated
+msgid "thicken-surface: no target body"
+msgstr "ytförtjockning: ingen målkropp"
+
+# AI Translated
+msgid "thicken-surface: target is not a sheet body"
+msgstr "ytförtjockning: målet är inte en ytkropp"
+
+# AI Translated
+msgid "thicken-surface: thickness is zero"
+msgstr "ytförtjockning: tjockleken är noll"
+
+# AI Translated
+msgid "thicken-surface: cannot cap the sheet rim (is it planar?)"
+msgstr "ytförtjockning: kan inte stänga ytkroppens kant (är den plan?)"
+
+# AI Translated
+msgid "thicken-surface: failed"
+msgstr "ytförtjockning: misslyckades"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet split into more than one shell"
+msgstr "ytförtjockning: den stängda ytkroppen delades upp i mer än ett skal"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet is not closed"
+msgstr "ytförtjockning: den stängda ytkroppen är inte sluten"
+
+# AI Translated
+msgid "thicken-surface: produced no geometry"
+msgstr "ytförtjockning: gav ingen geometri"
+
+# AI Translated
+msgid "thicken-surface: produced a shell, not a solid"
+msgstr "ytförtjockning: gav ett skal, inte en solid"
+
+# AI Translated
+msgid "surface-offset: no target body"
+msgstr "ytförskjutning: ingen målkropp"
+
+# AI Translated
+msgid "surface-offset: target is not a sheet body"
+msgstr "ytförskjutning: målet är inte en ytkropp"
+
+# AI Translated
+msgid "surface-offset: zero offset"
+msgstr "ytförskjutning: förskjutningen är noll"
+
+# AI Translated
+msgid "surface-offset: failed"
+msgstr "ytförskjutning: misslyckades"
+
+# AI Translated
+msgid "surface-offset: produced no geometry"
+msgstr "ytförskjutning: gav ingen geometri"
+
+# AI Translated
+msgid "project: no source body"
+msgstr "projicering: ingen källkropp"
+
+# AI Translated
+msgid "project: source body is empty"
+msgstr "projicering: källkroppen är tom"
+
+# AI Translated
+msgid "project: edge not found"
+msgstr "projicering: kanten hittades inte"
+
+# AI Translated
+msgid "project: face not found"
+msgstr "projicering: ytan hittades inte"
+
+# AI Translated
+msgid "project: no edges to project"
+msgstr "projicering: inga kanter att projicera"
+
+# AI Translated
+msgid "project: produced no entities"
+msgstr "projicering: gav inga element"
+
+# AI Translated
 #, boost-format
 msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
 msgstr "Kropp %1% är redan positionerad av \"%2%\" (operation %3%), så \"%4%\" åsidosätter den"
@@ -28474,8 +29622,106 @@ msgstr "Parningskedjan är cirkulär: Kropp %1% beror på Kropp %2%, som leder t
 
 # AI Translated
 #, boost-format
+msgid "mate: %1%"
+msgstr "parning: %1%"
+
+# AI Translated
+msgid "mate: transform failed"
+msgstr "parning: transformeringen misslyckades"
+
+# AI Translated
+msgid "feature needs a body"
+msgstr "operationen kräver en kropp"
+
+# AI Translated
+msgid "hole removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "hålet tog inte bort något material — verktyget skär inte målkroppen (koordinaterna anges i skissplanets koordinatsystem, inte i världskoordinater)"
+
+# AI Translated
+msgid "thread removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "gängan tog inte bort något material — verktyget skär inte målkroppen (koordinaterna anges i skissplanets koordinatsystem, inte i världskoordinater)"
+
+# AI Translated
+msgid "cut removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "snittet tog inte bort något material — verktyget skär inte målkroppen (koordinaterna anges i skissplanets koordinatsystem, inte i världskoordinater)"
+
+# AI Translated
+msgid "OCCT operation failed"
+msgstr "OCCT-operationen misslyckades"
+
+# AI Translated
+msgid "unknown geometry error"
+msgstr "okänt geometrifel"
+
+# AI Translated
+msgid "no solid-producing features"
+msgstr "inga operationer som skapar solider"
+
+# AI Translated
+msgid "an unidentified feature"
+msgstr "en oidentifierad operation"
+
+# AI Translated
+#, boost-format
+msgid "feature %1%"
+msgstr "operation %1%"
+
+# AI Translated
+#, boost-format
+msgid "body %1% was destroyed by %2% (the operation produced an empty shape)"
+msgstr "kropp %1% förstördes av %2% (operationen gav en tom form)"
+
+# AI Translated
+#, boost-format
 msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
 msgstr "Kopplingen \"%1%\" kan ha flyttats till en annan yta (en tidigare redigering numrerade om kroppens ytor)"
+
+# AI Translated
+msgid "tessellation produced an empty mesh"
+msgstr "tesselleringen gav en tom mesh"
+
+# AI Translated
+msgid "preview produced no geometry"
+msgstr "förhandsgranskningen gav ingen geometri"
+
+# AI Translated
+msgid "preview produced an empty mesh"
+msgstr "förhandsgranskningen gav en tom mesh"
+
+# AI Translated
+#, boost-format
+msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
+msgstr "sparad med en nyare version av fliken Design (format v%1%, den här versionen läser upp till v%2%)"
+
+# AI Translated
+#, boost-format
+msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
+msgstr "sparad med en äldre version av fliken Design (format v%1%); projektet kan inte öppnas av den här versionen"
+
+# AI Translated
+#, boost-format
+msgid "CAD data could not be read: %1%"
+msgstr "CAD-data kunde inte läsas: %1%"
+
+# AI Translated
+msgid "CAD data could not be read"
+msgstr "CAD-data kunde inte läsas"
+
+# AI Translated
+msgid "nothing to export"
+msgstr "inget att exportera"
+
+# AI Translated
+msgid "STEP transfer failed"
+msgstr "STEP-överföringen misslyckades"
+
+# AI Translated
+msgid "cannot write STEP file"
+msgstr "kan inte skriva STEP-filen"
+
+# AI Translated
+msgid "OCCT failed to write STEP"
+msgstr "OCCT kunde inte skriva STEP"
 
 # AI Translated
 msgid "Taking a configuration snapshot failed."
@@ -28488,6 +29734,15 @@ msgstr "OrcaSlicer stötte på ett fel när en ögonblicksbild av konfiguratione
 # AI Translated
 msgid "OrcaSlicer error"
 msgstr "OrcaSlicer-fel"
+
+# AI Translated
+#. TRN Short labels of the external spool of the right and left nozzle
+msgid "Ext-R"
+msgstr "Ext-H"
+
+# AI Translated
+msgid "Ext-L"
+msgstr "Ext-V"
 
 # AI Translated
 #, c-format, boost-format
@@ -28678,6 +29933,10 @@ msgid "Only the following installed printers are compatible with the selected SL
 msgstr "Endast följande installerade skrivare är kompatibla med de valda SLA-materialen"
 
 # AI Translated
+msgid "My Settings"
+msgstr "Mina inställningar"
+
+# AI Translated
 msgid "Custom Printer Setup"
 msgstr "Konfiguration av anpassad skrivare"
 
@@ -28772,6 +30031,10 @@ msgstr "En tumregel är 60℃ för PLA och 110℃ för ABS. Lämna noll om du in
 # AI Translated
 msgid "Bed Temperature:"
 msgstr "Byggplattans temperatur:"
+
+# AI Translated
+msgid "(Unknown)"
+msgstr "(Okänd)"
 
 # AI Translated
 msgid "SLA Materials"
@@ -28934,6 +30197,10 @@ msgstr "Sammanfattning: Detta är för närvarande den lämpligaste placeringen.
 
 msgid "?"
 msgstr " ?"
+
+# AI Translated
+msgid "Wiki->"
+msgstr "Wiki->"
 
 # AI Translated
 msgid "Note:"
@@ -29187,6 +30454,10 @@ msgstr "Det gick inte att läsa in den valda texturen."
 # AI Translated
 msgid "Change texture displacement texture"
 msgstr "Byt textur för texturförskjutning"
+
+# AI Translated
+msgid "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+msgstr "Bilder (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
 
 # AI Translated
 msgid "Choose a texture image (height map)"
@@ -29562,7 +30833,7 @@ msgstr "Mellannivå"
 
 # AI Translated
 msgid ""
-"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"Which gray stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones still push out - one image both embosses and engraves.\n"
 "\n"
 "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
 msgstr ""
@@ -29599,15 +30870,15 @@ msgid "Turns the relief inside out: what stood out is cut in, and the other way 
 msgstr "Vänder reliefen ut och in: det som stack ut skärs in, och tvärtom. Samma sak som att använda ett negativ av bilden."
 
 # AI Translated
-msgid "Colours"
+msgid "Colors"
 msgstr "Färger"
 
 # AI Translated
-msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgid "Prints the painted area in the texture's colors as well as its relief. Each color is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
 msgstr "Skriver ut det målade området i texturens färger utöver dess relief. Varje färg matchas mot det närmaste av dina inlästa filament; allt du inte målat behåller objektets egen färg."
 
 # AI Translated
-msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgid "This texture is a grayscale height map, so it has no colors to apply. Import a color image to use this."
 msgstr "Den här texturen är en höjdkarta i gråskala, så den har inga färger att tillämpa. Importera en färgbild för att använda detta."
 
 # AI Translated
@@ -29615,7 +30886,7 @@ msgid "Mix filaments"
 msgstr "Blanda filament"
 
 # AI Translated
-msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgid "Interleaves two filaments to fake the colors in between, so a handful of filaments can cover a photo or a gradient. An image of flat colors prints the same either way. Off uses one filament per area."
 msgstr "Varvar två filament för att efterlikna färgerna däremellan, så att en handfull filament kan återge ett foto eller en gradient. En bild med enhetliga färger skrivs ut likadant i båda fallen. Av använder ett filament per område."
 
 # AI Translated
@@ -29639,7 +30910,7 @@ msgstr ""
 
 # AI Translated
 #, boost-format
-msgid "%1% printable colours from %2% filaments"
+msgid "%1% printable colors from %2% filaments"
 msgstr "%1% utskrivbara färger från %2% filament"
 
 # AI Translated
@@ -29647,7 +30918,7 @@ msgid "Denoise"
 msgstr "Brusreducering"
 
 # AI Translated
-msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgid "Cleans up single stray triangles of the wrong color, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
 msgstr "Rensar bort enstaka triangelfläckar i fel färg, som detaljer finare än meshen lämnar efter sig. Höj värdet om resultatet ser prickigt ut, sänk det om små detaljer försvinner."
 
 # AI Translated
@@ -29664,7 +30935,7 @@ msgid "Triplanar - projects the texture from all three axes at once and blends b
 msgstr "Triplanar - projicerar texturen från alla tre axlarna samtidigt och blandar mellan dem, så att ett område som löper runt en skarp kant inte får någon synlig skarv."
 
 # AI Translated
-msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgid "Cylindrical - wraps the texture around the painted area's own center, for round shapes."
 msgstr "Cylindrisk - lindar texturen runt det målade områdets egen mittpunkt, för runda former."
 
 # AI Translated
@@ -29672,7 +30943,7 @@ msgid "Spherical"
 msgstr "Sfärisk"
 
 # AI Translated
-msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgid "Spherical - wraps the texture around the painted area's own center in both directions."
 msgstr "Sfärisk - lindar texturen runt det målade områdets egen mittpunkt i båda riktningarna."
 
 # AI Translated
@@ -29909,11 +31180,11 @@ msgid "Triangle size along the outline of the painted area, where the relief dro
 msgstr "Triangelstorlek längs konturen av det målade området, där reliefen faller tillbaka till den bara ytan. Sänk den om kanten ser taggig ut; det kostar bara trianglar längs konturen. 0 stänger av den."
 
 # AI Translated
-msgid "Colour detail"
+msgid "Color detail"
 msgstr "Färgdetalj"
 
 # AI Translated
-msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgid "Triangle size where two colors meet. Each triangle prints in one filament, so a color edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of color. 0 turns it off."
 msgstr "Triangelstorlek där två färger möts. Varje triangel skrivs ut i ett filament, så en färgkant kan bara bli så skarp som trianglarna längs den - och inget annat förfinar där, eftersom ytan är plan över ett färgbyte. 0 stänger av den."
 
 # AI Translated
@@ -30039,12 +31310,18 @@ msgid "Experimental: classic bake pipeline"
 msgstr "Experimentellt: klassisk inbakningsprocess"
 
 # AI Translated
-msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr "Baka in genom att flytta de hörn som meshen redan har, efter att ha förberett den (ombyggnad av mesh, adaptiv underindelning och ett snitt längs skarpa steg i texturen). Behåller topologin, vilket är vad färger kräver. Standardprocessen förfinar i stället, rensar bort smala trianglar, förskjuter och förenklar i en körning; inget behöver förberedas först, men den ger inga färger ännu."
 
 # AI Translated
+#. TRN Slider value: %d is the triangle budget in thousands
 msgid "Budget"
 msgstr "Budget"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr "%d k (auto)"
 
 # AI Translated
 msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
@@ -30069,6 +31346,11 @@ msgstr "Slår ihop de tunna trianglar som förfiningen ärver från modellens eg
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
 msgstr "På: upplösningen följer modellens storlek och budgeten lämnas på sitt standardvärde. Avmarkera för att ange båda själv - värt att göra för en textur som är mycket finare eller mycket grövre än delen den sitter på."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.2f mm (auto)"
+msgstr "%.2f mm (auto)"
 
 # AI Translated
 #, boost-format
@@ -30148,7 +31430,7 @@ msgstr "%1% lager inte målade, hoppades över"
 # AI Translated
 #, boost-format
 msgid "%1% not painted, skipped"
-msgstr "%1% inte målat, hoppades över"
+msgstr "%1% saknar målning, hoppades över"
 
 # AI Translated
 msgid "Entering Texture displacement painting"
@@ -30378,6 +31660,18 @@ msgid "Overwrite Plugin"
 msgstr "Skriv över insticksmodul"
 
 # AI Translated
+msgid "Show in folder"
+msgstr "Visa i mapp"
+
+# AI Translated
+msgid "Reinstall"
+msgstr "Installera om"
+
+# AI Translated
+msgid "Delete cache and reload"
+msgstr "Rensa cache och läs in igen"
+
+# AI Translated
 msgid "Select a .py or .whl plugin package."
 msgstr "Välj ett insticksmodulpaket i .py- eller .whl-format."
 
@@ -30450,6 +31744,10 @@ msgid "Deactivated \"%s\"."
 msgstr "\"%s\" har avaktiverats."
 
 # AI Translated
+msgid "Unauthorized cloud plugins cannot be installed."
+msgstr "Obehöriga molninsticksmoduler kan inte installeras."
+
+# AI Translated
 msgid "Plugin manifest was not found."
 msgstr "Insticksmodulens manifest hittades inte."
 
@@ -30494,6 +31792,10 @@ msgstr ""
 # AI Translated
 msgid "Default configuration restored."
 msgstr "Standardkonfigurationen har återställts."
+
+# AI Translated
+msgid "Script plugin failed."
+msgstr "Skriptinsticksmodulen misslyckades."
 
 # AI Translated
 msgid "Updating plugin"
@@ -30580,8 +31882,33 @@ msgid "Deleting local files and unsubscribing plugin..."
 msgstr "Raderar lokala filer och avprenumererar på insticksmodul..."
 
 # AI Translated
+msgid "Plugin not found."
+msgstr "Insticksmodulen hittades inte."
+
+# AI Translated
+msgid "Refusing to clear a plugin cache outside the local plugin directory."
+msgstr "Vägrar rensa en insticksmoduls cache utanför den lokala mappen för insticksmoduler."
+
+# AI Translated
+#, boost-format
+msgid "Failed to clear plugin cache: %1%"
+msgstr "Det gick inte att rensa insticksmodulens cache: %1%"
+
+# AI Translated
+msgid "Plugin failed to load."
+msgstr "Insticksmodulen kunde inte läsas in."
+
+# AI Translated
+msgid "Plugin reloaded, but failed to restore the inactive state."
+msgstr "Insticksmodulen lästes in igen, men det inaktiva tillståndet kunde inte återställas."
+
+# AI Translated
 msgid "Reloading plugin"
 msgstr "Läser in insticksmodul igen"
+
+# AI Translated
+msgid "Unknown plugin reload error."
+msgstr "Okänt fel när insticksmodulen skulle läsas in igen."
 
 # AI Translated
 msgid "Failed to reload plugin."
@@ -30606,7 +31933,7 @@ msgstr "Använder optimerad rensningstemperatur, multiplikator och kraftigare ex
 
 # AI Translated
 msgid "Prime Saving"
-msgstr "Prime-besparing"
+msgstr "Sparsam priming"
 
 # AI Translated
 msgid "Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."
@@ -30615,6 +31942,26 @@ msgstr "Minskar spillet från priming och skriver ut snabbare. Kan orsaka lätt 
 # AI Translated
 msgid "Terminal"
 msgstr "Terminal"
+
+# AI Translated
+msgid "A command is already running."
+msgstr "Ett kommando körs redan."
+
+# AI Translated
+msgid "Bundled Python executable not found."
+msgstr "Den medföljande Python-programfilen hittades inte."
+
+# AI Translated
+msgid "uv executable not found."
+msgstr "Programfilen för uv hittades inte."
+
+# AI Translated
+msgid "Only 'python' and 'uv' commands are supported."
+msgstr "Endast kommandona 'python' och 'uv' stöds."
+
+# AI Translated
+msgid "Failed to start process."
+msgstr "Det gick inte att starta processen."
 
 # AI Translated
 msgid "One-click CMYW auto-mix"
@@ -30871,7 +32218,7 @@ msgid "Checker - a test grid; squares stay square where the unwrap does not stre
 msgstr "Schackmönster - ett testrutnät; rutorna förblir kvadratiska där utvecklingen inte sträcker ut"
 
 # AI Translated
-msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgid "Distortion - color each island by how much the unwrap stretches it"
 msgstr "Förvrängning - färga varje ö efter hur mycket utvecklingen sträcker ut den"
 
 # AI Translated
@@ -31154,6 +32501,926 @@ msgstr "Konfigurationen kunde inte skrivas till disken. Inget ändrades."
 # AI Translated
 msgid "Plugin installation failed"
 msgstr "Installationen av insticksmodulen misslyckades"
+
+# AI Translated
+msgid "Profile has fewer than 2 points"
+msgstr "Profilen har färre än 2 punkter"
+
+# AI Translated
+msgid "Failed to build wire from profile"
+msgstr "Det gick inte att skapa en kantkedja från profilen"
+
+# AI Translated
+msgid "extrude depth is zero"
+msgstr "extruderingsdjupet är noll"
+
+# AI Translated
+msgid "extrude failed"
+msgstr "extruderingen misslyckades"
+
+# AI Translated
+msgid "Fuse failed"
+msgstr "Sammanfogningen misslyckades"
+
+# AI Translated
+msgid "Failed to make face from wire"
+msgstr "Det gick inte att skapa en yta från kantkedjan"
+
+# AI Translated
+msgid "two-sided extrude fuse failed"
+msgstr "sammanfogningen av den dubbelsidiga extruderingen misslyckades"
+
+# AI Translated
+msgid "imported regions produced no extrudable geometry"
+msgstr "de importerade områdena gav ingen geometri som kan extruderas"
+
+# AI Translated
+msgid "Failed to revolve"
+msgstr "Det gick inte att rotera"
+
+# AI Translated
+msgid "Failed to make face from sweep profile"
+msgstr "Det gick inte att skapa en yta från svepprofilen"
+
+# AI Translated
+msgid "Failed to sweep profile along path"
+msgstr "Det gick inte att svepa profilen längs banan"
+
+# AI Translated
+msgid "loft needs at least 2 profiles"
+msgstr "loft kräver minst 2 profiler"
+
+# AI Translated
+msgid "loft failed"
+msgstr "loften misslyckades"
+
+# AI Translated
+msgid "loft produced no solid"
+msgstr "loften gav ingen solid"
+
+# AI Translated
+msgid "loft produced no shape"
+msgstr "loften gav ingen form"
+
+# AI Translated
+msgid "Pocket face failed"
+msgstr "Det gick inte att skapa fickans yta"
+
+# AI Translated
+msgid "Pocket cut failed"
+msgstr "Urskärningen av fickan misslyckades"
+
+# AI Translated
+msgid "sketch has no closed loop"
+msgstr "skissen har ingen sluten slinga"
+
+# AI Translated
+msgid "sketch loop does not bound a face"
+msgstr "skissens slinga avgränsar ingen yta"
+
+# AI Translated
+msgid "sketch has two disjoint regions; put each in its own sketch"
+msgstr "skissen har två åtskilda områden; lägg vart och ett i en egen skiss"
+
+# AI Translated
+msgid "cannot read STEP file"
+msgstr "kan inte läsa STEP-filen"
+
+# AI Translated
+msgid "STEP file has no geometry"
+msgstr "STEP-filen innehåller ingen geometri"
+
+# AI Translated
+msgid "OCCT failed to read STEP"
+msgstr "OCCT kunde inte läsa STEP"
+
+# AI Translated
+msgid "mesh_to_brep: mesh has no triangles"
+msgstr "mesh_to_brep: meshen har inga trianglar"
+
+# AI Translated
+msgid "mesh_to_brep: every triangle was rejected as degenerate (try a smaller tolerance)"
+msgstr "mesh_to_brep: alla trianglar avvisades som degenererade (prova en mindre tolerans)"
+
+# AI Translated
+msgid "fillet radius too large for this geometry"
+msgstr "avrundningsradien är för stor för den här geometrin"
+
+# AI Translated
+msgid "chamfer distance too large for this geometry"
+msgstr "fasningsavståndet är för stort för den här geometrin"
+
+# AI Translated
+msgid "apply_fillet: OCCT fillet failed"
+msgstr "apply_fillet: OCCT-avrundningen misslyckades"
+
+# AI Translated
+msgid "apply_chamfer: OCCT chamfer failed"
+msgstr "apply_chamfer: OCCT-fasningen misslyckades"
+
+# AI Translated
+msgid "Add material"
+msgstr "Lägg till material"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Avrundning / fasning / släppvinkel"
+
+# AI Translated
+msgid "Reference"
+msgstr "Referens"
+
+# AI Translated
+msgid "Modify"
+msgstr "Ändra"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Skiss"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Klicka på en yta eller ett referensplan och välj sedan ett ritverktyg"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Rotera"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Svep"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Loft"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Förtjocka"
+
+# AI Translated
+msgctxt "Design"
+msgid "Union"
+msgstr "Union"
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Sammanfoga verktygskroppen med målet — en solid, utan skarv"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Subtrahera"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Skär ut verktygskroppen ur målet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Skärning"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Behåll bara det område där de två kropparna överlappar"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Ytextrudering"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Ytrotation"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Ytloft"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Ytfyllning"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Skapa en sluten skiss först"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Förtjocka yta"
+
+# AI Translated
+msgid "target is not a sheet body"
+msgstr "målet är inte en ytkropp"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Hål"
+
+# AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Välj en yta eller ett plan att borra i"
+
+# AI Translated
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr "Borra ett hål, centrerat på en vald yta eller placerat på ett plan"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Gänga"
+
+# AI Translated
+msgid "Shell needs a solid body"
+msgstr "Skal kräver en solid kropp"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Trimma kroppen med ett plan — dra förskjutningspilen; behåll ena halvan eller båda"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Dela"
+
+# AI Translated
+msgid "Split needs a solid body"
+msgstr "Dela kräver en solid kropp"
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Dela kroppen längs en vald yta i två solider"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Avrundning"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Välj en kant att runda av"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Välj en kant, dra sedan radiepilen eller skriv in radien"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Fasning"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Välj en kant att fasa"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Välj en kant, dra sedan avståndspilen eller skriv in avståndet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Släppvinkel"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Välj en yta att luta"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Ytförskjutning"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Linjärt mönster"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Upprepa kroppen längs en riktning — dra avståndet, ange antalet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Cirkulärt mönster"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Upprepa kroppen runt en axel — ange antal och vinkel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Spegelvänd"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Mönster längs kurva"
+
+# AI Translated
+msgid "Pattern on curve needs a body and a curve"
+msgstr "Mönster längs kurva kräver en kropp och en kurva"
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Upprepa kroppen längs en vald kurva"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Flytta"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Parning"
+
+# AI Translated
+msgid "A mate needs two coordinate systems"
+msgstr "En parning kräver två koordinatsystem"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Rikta in mot"
+
+# AI Translated
+msgid "Align needs a body"
+msgstr "Rikta in kräver en kropp"
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Rikta in kroppen mot en vald yta eller ett valt plan"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Plan"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Axel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Coord Sys"
+msgstr "Koord.system"
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Helix"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Mät"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Mät mellan de valda punkterna, kanterna eller ytorna"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mass"
+msgstr "Massa"
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Visa volym och ytarea för den valda kroppen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Interferens"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Kontrollera om två kroppar överlappar — rapporterar, ändrar ingenting"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Redigera"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "Öppna den valda operationen igen för att ändra vad den skapades från"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Byt namn…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Välj en operation eller en kropp för att byta namn på den"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Ge operationen ett namn som du känner igen i trädet (en kropp får sitt namn från operationen som skapar den)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Ta bort yta"
+
+# AI Translated
+msgctxt "Design"
+msgid "Colour"
+msgstr "Färg"
+
+# AI Translated
+msgid "Set the selected body's display colour"
+msgstr "Ange visningsfärg för den valda kroppen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Ta bort"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Ta bort det som är markerat"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Ta bort kropp"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Ta bort hela kroppen — tar bort operationen som den skapades från"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Linje"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Polylinje"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Klicka på punkter; klicka på den första punkten för att stänga slingan, högerklicka för att avsluta den öppen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Hörnrektangel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre rectangle"
+msgstr "Mittpunktsrektangel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Sned rektangel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Rundad rektangel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre circle"
+msgstr "Mittpunktscirkel"
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Tvåpunktscirkel"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Trepunktscirkel"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Trepunktsbåge"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Tangentbåge"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre-point arc"
+msgstr "Mittpunktsbåge"
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Spår"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Bågspår"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Ellips"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Elliptisk båge"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Triangel"
+
+# AI Translated
+msgid "Triangle — click centre, then a vertex"
+msgstr "Triangel — klicka på mittpunkten, sedan ett hörn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Kvadrat"
+
+# AI Translated
+msgid "Square — click centre, then a vertex"
+msgstr "Kvadrat — klicka på mittpunkten, sedan ett hörn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Pentagon"
+
+# AI Translated
+msgid "Pentagon — click centre, then a vertex"
+msgstr "Pentagon — klicka på mittpunkten, sedan ett hörn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Hexagon"
+
+# AI Translated
+msgid "Hexagon — click centre, then a vertex"
+msgstr "Hexagon — klicka på mittpunkten, sedan ett hörn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Oktagon"
+
+# AI Translated
+msgid "Octagon — click centre, then a vertex"
+msgstr "Oktagon — klicka på mittpunkten, sedan ett hörn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Dodekagon"
+
+# AI Translated
+msgid "Dodecagon — click centre, then a vertex"
+msgstr "Dodekagon — klicka på mittpunkten, sedan ett hörn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Inskriven"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "Mät polygonen till dess hörn (inskriven)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Omskriven"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "Mät polygonen till dess sidor (omskriven)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Punkt"
+
+# AI Translated
+msgid "Type text; its outline is added to this sketch as editable lines"
+msgstr "Skriv text; dess kontur läggs till i skissen som redigerbara linjer"
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Importera en SVG-kontur till skissen som redigerbara linjer"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Förskjut"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Trimma"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Linjärt mönster"
+
+# AI Translated
+msgid "Array"
+msgstr "Mönster"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Polärt mönster"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Rotera"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Skala"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Mått"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Villkor"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "Lägg till villkor mellan de valda skisselementen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Lägg till villkor i skiss"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Välj en skiss för att lägga till villkor i den"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Lägg till mått och relationer (sammanfallande, tangerande, parallell...) i den valda skissen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Konstruktion"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Växla konstruktion: geometri som vägleder men aldrig byggs"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Förläng"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "Ta bort de valda skisselementen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Längd…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Skriv in längden på den här linjen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Radie / diameter…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Skriv in radien för den här bågen eller diametern för den här cirkeln"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Vinkel / avstånd…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Skriv in vinkeln mellan två linjer eller avståndet mellan de två valda objekten"
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Sida"
+
+# AI Translated
+#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
+msgid "Major"
+msgstr "Storaxel"
+
+# AI Translated
+msgid "Minor"
+msgstr "Lillaxel"
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "högerklicka eller dubbelklicka för att avsluta, klicka på startpunkten för att stänga"
+
+# AI Translated
+msgid "Extend: click a line/arc that can reach another live entity"
+msgstr "Förläng: klicka på en linje/båge som kan nå ett annat befintligt element"
+
+# AI Translated
+msgid "Trim: click a segment where it crosses another live entity"
+msgstr "Trimma: klicka på ett segment där det korsar ett annat befintligt element"
+
+# AI Translated
+msgid "Authentication complete"
+msgstr "Autentiseringen är klar"
+
+# AI Translated
+msgid "Authentication failed"
+msgstr "Autentiseringen misslyckades"
+
+# AI Translated
+msgid "You can return to OrcaSlicer. This window will close automatically."
+msgstr "Du kan återgå till OrcaSlicer. Det här fönstret stängs automatiskt."
+
+# AI Translated
+msgid "Something went wrong. Please return to OrcaSlicer and try again."
+msgstr "Något gick fel. Gå tillbaka till OrcaSlicer och försök igen."
+
+# AI Translated
+msgid "You can return to OrcaSlicer. If your browser does not redirect automatically, use the button below."
+msgstr "Du kan återgå till OrcaSlicer. Om webbläsaren inte omdirigerar automatiskt kan du använda knappen nedan."
+
+# AI Translated
+#, boost-format
+msgid "Failed starting the script %1%, Win32 error: %2%"
+msgstr "Det gick inte att starta skriptet %1%, Win32-fel: %2%"
+
+# AI Translated
+#, boost-format
+msgid "Post processing script %1% on file %2% failed. CommandLineToArgvW() refused to parse the command line path."
+msgstr "Efterbearbetningsskriptet %1% för filen %2% misslyckades. CommandLineToArgvW() vägrade tolka kommandoradens sökväg."
+
+# AI Translated
+#, boost-format
+msgid "The configured post-processing script does not exist: %1%"
+msgstr "Det konfigurerade efterbearbetningsskriptet finns inte: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Perl interpreter %1% does not exist."
+msgstr "Perl-tolken %1% finns inte."
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% raised an exception.\n"
+"Error: %2%"
+msgstr ""
+"Insticksmodulen för efterbearbetning %1% utlöste ett undantag.\n"
+"Fel: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"Error: %2%"
+msgstr ""
+"Insticksmodulen för efterbearbetning %1% misslyckades.\n"
+"Fel: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"\n"
+"The post-processing plugin is expected to modify the G-code file %2% in place, but the G-code file was deleted.\n"
+"Please check the plugin implementation.\n"
+msgstr ""
+"Insticksmodulen för efterbearbetning %1% misslyckades.\n"
+"\n"
+"Insticksmodulen för efterbearbetning förväntas ändra G-code-filen %2% på plats, men G-code-filen togs bort.\n"
+"Kontrollera insticksmodulens implementering.\n"
+
+# AI Translated
+#, boost-format
+msgid "Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%"
+msgstr "Det gick inte att skapa en tillfällig kopia av G-code-filen %1% innan ett efterbearbetningsskript kördes: %2%"
+
+# AI Translated
+msgid "Post-processor can't find exported gcode file"
+msgstr "Efterbearbetningen hittar inte den exporterade G-code-filen"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%"
+msgstr ""
+"Efterbearbetningsskriptet %1% för filen %2% misslyckades.\n"
+"Felkod: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%\n"
+"Output:\n"
+"%4%"
+msgstr ""
+"Efterbearbetningsskriptet %1% för filen %2% misslyckades.\n"
+"Felkod: %3%\n"
+"Utdata:\n"
+"%4%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% failed.\n"
+"\n"
+"The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
+"Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n"
+msgstr ""
+"Efterbearbetningsskriptet %1% misslyckades.\n"
+"\n"
+"Efterbearbetningsskriptet förväntas ändra G-code-filen %2% på plats, men G-code-filen togs bort och sparades troligen under ett nytt namn.\n"
+"Anpassa efterbearbetningsskriptet så att det ändrar G-code:n på plats och läs i manualen hur du kan byta namn på den efterbearbetade G-code-filen.\n"
+
+# AI Translated
+msgid "Unable to parse desired new path from output name file"
+msgstr "Det gick inte att tolka den önskade nya sökvägen från filen med utdatanamnet"
+
+# AI Translated
+#, boost-format
+msgid "Output directory does not exist: %1%"
+msgstr "Utdatamappen finns inte: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Failed reading a file %1% carrying the final name / path of a G-code file: %2%"
+msgstr "Det gick inte att läsa filen %1% som innehåller det slutliga namnet / sökvägen för en G-code-fil: %2%"
+
+# AI Translated
+msgid "The printing task exceeds the limit, supporting a maximum of 6 printers."
+msgstr "Utskriftsuppgiften överskrider gränsen; högst 6 skrivare stöds."
+
+# AI Translated
+msgid "Elapsed time:"
+msgstr "Förfluten tid:"
+
+# AI Translated
+msgid "Estimated time:"
+msgstr "Uppskattad tid:"
+
+# AI Translated
+msgid "Remaining time:"
+msgstr "Återstående tid:"
 
 # AI Translated
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -31469,6 +33736,10 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "closed profile(s)"
+#~ msgstr "slutna profil(er)"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Misslyckades med att generera cali G kod"

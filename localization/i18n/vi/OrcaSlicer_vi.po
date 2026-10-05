@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 22:37-0300\n"
+"POT-Creation-Date: 2026-10-05 06:46-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -98,6 +98,7 @@ msgid "left nozzle"
 msgstr "đầu phun trái"
 
 # AI Translated
+#. TRN Nozzle counts: Std = standard flow, HF = high flow
 msgid "Right Nozzle"
 msgstr "Đầu phun phải"
 
@@ -1739,6 +1740,22 @@ msgstr "Nét của hình (%1%) quá mỏng (độ rộng tối thiểu là %2% m
 msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr "Nét của hình (%1%) chứa không hỗ trợ: %2%."
 
+# AI Translated
+msgid "Not valid state please report reproduction steps on github"
+msgstr "Trạng thái không hợp lệ, vui lòng báo cáo các bước tái hiện lỗi trên GitHub"
+
+# AI Translated
+msgid "No embossed file"
+msgstr "Không có file emboss"
+
+# AI Translated
+msgid "Missing svg file in embossed shape"
+msgstr "Thiếu file SVG trong hình emboss"
+
+# AI Translated
+msgid "Missing data of svg file"
+msgstr "Thiếu dữ liệu của file SVG"
+
 msgid "Face the camera"
 msgstr "Hướng về camera"
 
@@ -1824,6 +1841,10 @@ msgstr "Lật ngang"
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
 msgstr "Đổi loại SVG"
+
+# AI Translated
+msgid "SVG shape"
+msgstr "Hình SVG"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
@@ -2595,6 +2616,10 @@ msgstr ""
 "Bạn có thể cần cấu hình lại các locale bị thiếu, thường là bằng cách chạy lệnh \"locale-gen\" và \"dpkg-reconfigure locales\".\n"
 
 # AI Translated
+msgid "Application will close."
+msgstr "Ứng dụng sẽ đóng."
+
+# AI Translated
 msgid "Orca Slicer - Switching language failed"
 msgstr "Orca Slicer - Chuyển ngôn ngữ thất bại"
 
@@ -2741,8 +2766,9 @@ msgstr "Độ rộng đùn"
 msgid "Wipe options"
 msgstr "Tùy chọn wipe"
 
+# AI Translated
 msgid "Bed adhesion"
-msgstr "Bám dính đế"
+msgstr "Bám dính bàn in"
 
 msgid "Add Part"
 msgstr "Thêm phần"
@@ -2905,11 +2931,13 @@ msgstr "Đặt làm vật thể riêng lẻ"
 msgid "Set as Individual Objects"
 msgstr "Đặt làm các vật thể riêng lẻ"
 
+# AI Translated
 msgid "Fill bed with copies"
-msgstr "Lấp đầy đế bằng bản sao"
+msgstr "Lấp đầy bàn in bằng bản sao"
 
+# AI Translated
 msgid "Fill the remaining area of bed with copies of the selected object"
-msgstr "Lấp đầy vùng còn lại của đế bằng bản sao của vật thể đã chọn"
+msgstr "Lấp đầy vùng còn lại của bàn in bằng bản sao của vật thể đã chọn"
 
 msgid "Printable"
 msgstr "Có thể in"
@@ -3321,8 +3349,9 @@ msgstr "Nhấn biểu tượng để chỉnh sửa vẽ support của vật th�
 msgid "Click the icon to edit color painting for the object"
 msgstr "Nhấn biểu tượng để chỉnh sửa vẽ màu của vật thể"
 
+# AI Translated
 msgid "Click the icon to shift this object to the bed"
-msgstr "Nhấn biểu tượng để đưa vật thể này xuống đế"
+msgstr "Nhấn biểu tượng để đưa vật thể này xuống bàn in"
 
 # AI Translated
 msgid "Rename Object"
@@ -3735,6 +3764,15 @@ msgstr "Kiểm tra trạng thái của các dịch vụ hệ thống hiện tạ
 msgid "code"
 msgstr "mã"
 
+# AI Translated
+#. TRN Short for "description" of a connection error
+msgid "desc"
+msgstr "mô tả"
+
+#. TRN Short for "additional information" about a connection error
+msgid "info"
+msgstr "thông tin"
+
 msgid "Failed to connect to cloud service"
 msgstr "Không thể kết nối đến dịch vụ cloud"
 
@@ -3941,6 +3979,12 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Chuyển đường dẫn tại Filament Track Switch"
 
 # AI Translated
+#. TRN AMS unit number, then slot number
+#, c-format, boost-format
+msgid "AMS-%d-%d Slot"
+msgstr "Khe AMS-%d-%d"
+
+# AI Translated
 #, c-format, boost-format
 msgid "The maximum temperature cannot exceed %d"
 msgstr "Nhiệt độ tối đa không được vượt quá %d"
@@ -4076,6 +4120,10 @@ msgid "Ignore"
 msgstr "Bỏ qua"
 
 # AI Translated
+msgid "unknown"
+msgstr "không rõ"
+
+# AI Translated
 msgid "Done."
 msgstr "Hoàn thành."
 
@@ -4099,6 +4147,11 @@ msgstr ""
 msgid "Arranging..."
 msgstr "Đang sắp xếp..."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Object %s has zero size and can't be arranged."
+msgstr "Vật thể %s có kích thước bằng không và không thể sắp xếp."
+
 msgid "Arranging"
 msgstr "Đang sắp xếp"
 
@@ -4118,12 +4171,13 @@ msgstr "Sắp xếp hoàn tất."
 msgid "Arrange failed. Found some exceptions when processing object geometries."
 msgstr "Sắp xếp thất bại. Tìm thấy một số ngoại lệ khi xử lý hình học vật thể."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Arrangement ignored the following objects which can't fit into a single bed:\n"
 "%s"
 msgstr ""
-"Sắp xếp bỏ qua các vật thể sau không vừa một đế in:\n"
+"Sắp xếp bỏ qua các vật thể sau không vừa một bàn in:\n"
 "%s"
 
 msgid ""
@@ -4152,11 +4206,13 @@ msgstr "Hủy xoay."
 msgid "Filling"
 msgstr "Đang lấp đầy"
 
+# AI Translated
 msgid "Bed filling canceled."
-msgstr "Hủy lấp đầy đế."
+msgstr "Hủy lấp đầy bàn in."
 
+# AI Translated
 msgid "Bed filling done."
-msgstr "Lấp đầy đế hoàn tất."
+msgstr "Lấp đầy bàn in hoàn tất."
 
 msgid "Searching for optimal orientation"
 msgstr "Đang tìm định hướng tối ưu"
@@ -4289,8 +4345,16 @@ msgid "The Storage in the printer is read-only. Please replace it with a normal 
 msgstr "Bộ nhớ trong máy in ở chế độ chỉ đọc. Vui lòng thay bằng Bộ nhớ bình thường trước khi gửi đến máy in."
 
 # AI Translated
+msgid "Can't create empty volume."
+msgstr "Không thể tạo thể tích rỗng."
+
+# AI Translated
 msgid "Bad input data for EmbossCreateObjectJob."
 msgstr "Dữ liệu đầu vào không hợp lệ cho EmbossCreateObjectJob."
+
+# AI Translated
+msgid "Can't create empty object."
+msgstr "Không thể tạo vật thể rỗng."
 
 # AI Translated
 msgid "Add Emboss text object"
@@ -4313,10 +4377,22 @@ msgid "Bad input data for UseSurfaceJob."
 msgstr "Dữ liệu đầu vào không hợp lệ cho UseSurfaceJob."
 
 # AI Translated
+msgid "It is used default volume for embossed text, try to change text or font to fix it."
+msgstr "Đang dùng thể tích mặc định cho chữ emboss, hãy thử thay đổi chữ hoặc phông chữ để khắc phục."
+
+# AI Translated
+msgid "Empty mesh can't be created."
+msgstr "Không thể tạo lưới rỗng."
+
+# AI Translated
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
 msgstr "Thay đổi thuộc tính emboss"
+
+# AI Translated
+msgid "Bad object to create volume."
+msgstr "Vật thể không hợp lệ để tạo thể tích."
 
 # AI Translated
 msgid "Add Emboss text Volume"
@@ -4344,7 +4420,7 @@ msgstr "Thời gian còn lại: Đang tính..."
 
 # AI Translated
 msgid "The heated bed's thermal preconditioning helps optimize the first layer print quality. Printing will start once preconditioning is complete."
-msgstr "Việc điều hòa nhiệt sơ bộ của đế nóng giúp tối ưu chất lượng in lớp đầu tiên. Quá trình in sẽ bắt đầu khi điều hòa nhiệt hoàn tất."
+msgstr "Việc điều hòa nhiệt sơ bộ của bàn in nóng giúp tối ưu chất lượng in lớp đầu tiên. Quá trình in sẽ bắt đầu khi điều hòa nhiệt hoàn tất."
 
 # AI Translated
 #, c-format, boost-format
@@ -4366,8 +4442,9 @@ msgstr "Nhập hoàn tất."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Lưu trữ SLA đã nhập không chứa preset nào. Preset SLA hiện tại được dùng làm dự phòng."
 
+# AI Translated
 msgid "You cannot load an SLA project with a multi-part object on the bed"
-msgstr "Bạn không thể tải dự án SLA với vật thể nhiều phần trên đế"
+msgstr "Bạn không thể tải dự án SLA với vật thể nhiều phần trên bàn in"
 
 msgid "Please check your object list before preset changing."
 msgstr "Vui lòng kiểm tra danh sách vật thể trước khi đổi preset."
@@ -4423,6 +4500,12 @@ msgid "About %s"
 msgstr "Giới thiệu %s"
 
 # AI Translated
+#. TRN %s is the commit the application was built from
+#, c-format, boost-format
+msgid "Build %s"
+msgstr "Bản dựng %s"
+
+# AI Translated
 msgid "Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."
 msgstr "Phần mềm slice mã nguồn mở dựa trên truyền thống hợp tác và ghi nhận công lao. Slic3r, do Alessandro Ranellucci và cộng đồng RepRap tạo ra, đã đặt nền móng. PrusaSlicer của Prusa Research phát triển tiếp công trình đó, Bambu Studio tách nhánh từ PrusaSlicer, còn SuperSlicer mở rộng nó bằng các cải tiến do cộng đồng đóng góp. Mỗi dự án đều kế thừa và phát triển thành quả của những người đi trước, đồng thời ghi nhận công lao của họ."
 
@@ -4433,6 +4516,10 @@ msgstr "OrcaSlicer khởi đầu với cùng tinh thần đó, kế thừa từ 
 # AI Translated
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Ngày nay, OrcaSlicer là phần mềm slice mã nguồn mở được sử dụng rộng rãi nhất và phát triển tích cực nhất trong cộng đồng in 3D. Nhiều đổi mới của nó đã được các phần mềm slice khác áp dụng, khiến nó trở thành động lực thúc đẩy cả ngành."
+
+# AI Translated
+msgid "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"
+msgstr "Bản quyền (C) 2026 OrcaSlicer Pte Ltd. Bảo lưu mọi quyền."
 
 # AI Translated
 msgid "Script plugin skipped."
@@ -4545,8 +4632,9 @@ msgstr "Loại bàn"
 msgid "Nozzle temperature"
 msgstr "Nhiệt độ vòi phun"
 
+# AI Translated
 msgid "Bed Temperature"
-msgstr "Nhiệt độ đế"
+msgstr "Nhiệt độ bàn in"
 
 msgid "Max volumetric speed"
 msgstr "Tốc độ thể tích tối đa"
@@ -4554,8 +4642,9 @@ msgstr "Tốc độ thể tích tối đa"
 msgid "℃"
 msgstr "℃"
 
+# AI Translated
 msgid "Bed temperature"
-msgstr "Nhiệt độ đế"
+msgstr "Nhiệt độ bàn in"
 
 msgid "mm³"
 msgstr "mm³"
@@ -4567,8 +4656,9 @@ msgstr "Bắt đầu"
 msgid "Next"
 msgstr "Tiếp theo"
 
+# AI Translated
 msgid "Calibration completed. Please find the most uniform extrusion line on your hot bed like the picture below, and fill the value on its left side into the factor K input box."
-msgstr "Hiệu chỉnh hoàn tất. Vui lòng tìm đường đùn đồng đều nhất trên đế nóng của bạn như hình bên dưới, và điền giá trị ở bên trái của nó vào hộp nhập hệ số K."
+msgstr "Hiệu chỉnh hoàn tất. Vui lòng tìm đường đùn đồng đều nhất trên bàn in nóng của bạn như hình bên dưới, và điền giá trị ở bên trái của nó vào hộp nhập hệ số K."
 
 msgid "Save"
 msgstr "Lưu"
@@ -4591,6 +4681,7 @@ msgstr "Hiệu chỉnh hoàn tất"
 msgid "%s does not support %s"
 msgstr "%s không hỗ trợ %s"
 
+#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Bước"
 
@@ -4976,8 +5067,9 @@ msgstr "Kích thước theo X và Y của plate chữ nhật."
 msgid "Distance of the 0,0 G-code coordinate from the front left corner of the rectangle."
 msgstr "Khoảng cách của tọa độ G-code 0,0 từ góc trái phía trước của hình chữ nhật."
 
+# AI Translated
 msgid "Diameter of the print bed. It is assumed that origin (0,0) is located in the center."
-msgstr "Đường kính của đế in. Giả định rằng gốc (0,0) nằm ở tâm."
+msgstr "Đường kính của bàn in. Giả định rằng gốc (0,0) nằm ở tâm."
 
 msgid "Rectangular"
 msgstr "Hình chữ nhật"
@@ -5001,8 +5093,9 @@ msgstr "Không tìm thấy:"
 msgid "Model"
 msgstr "Mô hình"
 
+# AI Translated
 msgid "Choose an STL file to import bed shape from:"
-msgstr "Chọn file STL để nhập hình dạng đế từ:"
+msgstr "Chọn file STL để nhập hình dạng bàn in từ:"
 
 msgid "Invalid file format."
 msgstr "Định dạng file không hợp lệ."
@@ -5016,14 +5109,17 @@ msgstr "File đã chọn không chứa hình học."
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "File đã chọn chứa nhiều vùng rời nhau. Điều này không được hỗ trợ."
 
+# AI Translated
 msgid "Choose a file to import bed texture from (PNG/SVG):"
-msgstr "Chọn file để nhập kết cấu đế từ (PNG/SVG):"
+msgstr "Chọn file để nhập kết cấu bàn in từ (PNG/SVG):"
 
+# AI Translated
 msgid "Choose an STL file to import bed model from:"
-msgstr "Chọn file STL để nhập model đế từ:"
+msgstr "Chọn file STL để nhập model bàn in từ:"
 
+# AI Translated
 msgid "Bed Shape"
-msgstr "Hình dạng đế"
+msgstr "Hình dạng bàn in"
 
 # AI Translated
 #, c-format, boost-format
@@ -5126,6 +5222,7 @@ msgstr ""
 "\n"
 "Giá trị sẽ được đặt lại về 0."
 
+# AI Translated
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -5135,7 +5232,7 @@ msgid ""
 msgstr ""
 "Bù chân voi quá lớn là không hợp lý.\n"
 "Nếu thực sự có hiệu ứng chân voi nghiêm trọng, vui lòng kiểm tra các cài đặt khác.\n"
-"Ví dụ, nhiệt độ đế có quá cao không.\n"
+"Ví dụ, nhiệt độ bàn in có quá cao không.\n"
 "\n"
 "Giá trị sẽ được đặt lại về 0."
 
@@ -5241,8 +5338,9 @@ msgstr "N/A"
 msgid "Printing"
 msgstr "Đang in"
 
+# AI Translated
 msgid "Auto bed leveling"
-msgstr "Tự động san bằng đế"
+msgstr "Cân bằng bàn in tự động"
 
 msgid "Heatbed preheating"
 msgstr "Làm nóng trước đế nóng"
@@ -5268,8 +5366,9 @@ msgstr "Đang gia nhiệt đầu phun"
 msgid "Calibrating dynamic flow"
 msgstr "Đang hiệu chỉnh flow động"
 
+# AI Translated
 msgid "Scanning bed surface"
-msgstr "Đang quét bề mặt đế"
+msgstr "Đang quét bề mặt bàn in"
 
 msgid "Inspecting first layer"
 msgstr "Đang kiểm tra lớp đầu tiên"
@@ -5757,6 +5856,12 @@ msgstr "Định dạng không hợp lệ. Mong đợi định dạng vector: \"%
 # AI Translated
 msgid "System agents"
 msgstr "Tác nhân hệ thống"
+
+# AI Translated
+#. TRN %1% is the ID of a printer agent that is no longer available
+#, boost-format
+msgid "%1% (missing)"
+msgstr "%1% (bị thiếu)"
 
 # AI Translated
 msgid "Add plugin"
@@ -6566,8 +6671,9 @@ msgstr "Chọn bước hiệu chỉnh"
 msgid "Micro lidar calibration"
 msgstr "Hiệu chỉnh micro lidar"
 
+# AI Translated
 msgid "Bed leveling"
-msgstr "San bằng đế"
+msgstr "Cân bằng bàn in"
 
 # AI Translated
 msgid "High-temperature Heatbed Calibration"
@@ -7044,8 +7150,9 @@ msgstr "Hiệu chỉnh nhiệt độ"
 msgid "Max flowrate"
 msgstr "Flowrate tối đa"
 
+# AI Translated
 msgid "Pressure advance"
-msgstr "Pressure advance"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "Tỷ lệ lưu lượng"
@@ -7636,6 +7743,10 @@ msgid "Rate"
 msgstr "Đánh giá"
 
 # AI Translated
+msgid "Calculating..."
+msgstr "Đang tính..."
+
+# AI Translated
 msgid "Camera"
 msgstr "Camera"
 
@@ -7838,9 +7949,6 @@ msgid ""
 msgstr ""
 "Các vấn đề sau đã xảy ra trong quá trình tải ảnh lên. Bạn có muốn bỏ qua chúng?\n"
 "\n"
-
-msgid "info"
-msgstr "thông tin"
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "Đang đồng bộ kết quả in. Vui lòng thử lại sau vài giây."
@@ -8338,6 +8446,10 @@ msgstr "Mở thư mục."
 msgid "Safely remove hardware."
 msgstr "Tháo phần cứng an toàn."
 
+# AI Translated
+msgid "Ejecting."
+msgstr "Đang tháo thiết bị."
+
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
@@ -8363,6 +8475,11 @@ msgstr "LỖI"
 
 msgid "COMPLETED"
 msgstr "ĐÃ HOÀN THÀNH"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d%% - %.2f of %.2fMB uploaded"
+msgstr "%d%% - đã tải lên %.2f / %.2fMB"
 
 msgid "CANCELED"
 msgstr "ĐÃ HỦY"
@@ -8419,11 +8536,30 @@ msgstr "Model của bạn cần support! Vui lòng bật vật liệu support."
 msgid "G-code path overlap"
 msgstr "Đường dẫn G-code chồng lấp"
 
+# AI Translated
+msgid "Click for more."
+msgstr "Nhấn để xem thêm."
+
 msgid "Cut connectors"
 msgstr "Cắt connector"
 
+# AI Translated
+msgid "Instances"
+msgstr "Các instance"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Instance %d"
+msgstr "Instance %d"
+
 msgid "Layers"
 msgstr "Lớp"
+
+# AI Translated
+#. TRN Object list item: plate number, then instance number
+#, c-format, boost-format
+msgid "[P%d]Instance %d"
+msgstr "[P%d]Instance %d"
 
 # AI Translated
 msgid "The application cannot run normally because OpenGL version is lower than 3.2.\n"
@@ -9433,6 +9569,10 @@ msgstr "Tải xuống thất bại, kích thước file bất thường."
 msgid "Project downloaded %d%%"
 msgstr "Dự án đã tải xuống %d%%"
 
+# AI Translated
+msgid "Pressure Advance Test"
+msgstr "Kiểm tra Pressure Advance"
+
 msgid "INFO:"
 msgstr "THÔNG TIN:"
 
@@ -9441,6 +9581,40 @@ msgstr "Không có gia tốc được cung cấp để hiệu chỉnh. Sử dụ
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "Không có tốc độ được cung cấp để hiệu chỉnh. Sử dụng tốc độ tối ưu mặc định "
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration - Perfectionist version"
+msgstr "Hiệu chỉnh lưu lượng Orca YOLO - phiên bản Cầu toàn"
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration"
+msgstr "Hiệu chỉnh lưu lượng Orca YOLO"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Flowrate Test - Pass%d"
+msgstr "Kiểm tra lưu lượng - Lượt %d"
+
+# AI Translated
+msgid "Nozzle temperature test"
+msgstr "Kiểm tra nhiệt độ đầu phun"
+
+msgid "Max volumetric speed test"
+msgstr "Kiểm tra tốc độ thể tích tối đa"
+
+msgid "VFA test"
+msgstr "Kiểm tra VFA"
+
+msgid "Input shaping Frequency test"
+msgstr "Kiểm tra tần số input shaping"
+
+# AI Translated
+msgid "Input shaping Damping test"
+msgstr "Kiểm tra giảm chấn input shaping"
+
+# AI Translated
+msgid "Cornering test"
+msgstr "Kiểm tra vào cua"
 
 msgid "Import SLA archive"
 msgstr "Nhập lưu trữ SLA"
@@ -9953,7 +10127,7 @@ msgid "Load Geometry Only"
 msgstr "Chỉ tải hình học"
 
 # AI Translated
-msgid "Load behaviour"
+msgid "Load behavior"
 msgstr "Hành vi khi tải"
 
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
@@ -10168,7 +10342,7 @@ msgid "Number of plugin pages shown as fixed tabs before the remaining pages col
 msgstr "Số trang plugin được hiển thị dưới dạng tab cố định trước khi các trang còn lại được gom vào danh sách thả xuống ở tab cuối cùng."
 
 # AI Translated
-msgid "Behaviour"
+msgid "Behavior"
 msgstr "Hành vi"
 
 # AI Translated
@@ -11646,6 +11820,14 @@ msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr "Tốn thêm %dg filament và %d lần đổi so với cách nhóm tối ưu."
 
 # AI Translated
+msgid "Right-Ext"
+msgstr "Ext phải"
+
+# AI Translated
+msgid "Left-Ext"
+msgstr "Ext trái"
+
+# AI Translated
 msgid "nozzle"
 msgstr "đầu phun"
 
@@ -12212,6 +12394,11 @@ msgstr "Thông tin bổ sung:"
 msgid "vendor"
 msgstr "nhà cung cấp"
 
+# AI Translated
+#. TRN Short for "version"
+msgid "ver"
+msgstr "phiên bản"
+
 msgid "printer model"
 msgstr "model máy in"
 
@@ -12358,8 +12545,9 @@ msgstr "Nhiệt độ đầu phun khuyến nghị"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Phạm vi nhiệt độ đầu phun khuyến nghị của filament này. 0 có nghĩa là không đặt"
 
+# AI Translated
 msgid "Flow ratio and Pressure Advance"
-msgstr "Tỷ lệ lưu lượng và áp suất nâng cao"
+msgstr "Tỷ lệ lưu lượng và Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "Nhiệt độ buồng in"
@@ -13334,6 +13522,14 @@ msgstr "[Cần thao tác] "
 msgid "[Action Required]"
 msgstr "[Cần thao tác]"
 
+# AI Translated
+msgid "Printer update service is unavailable."
+msgstr "Dịch vụ cập nhật máy in không khả dụng."
+
+# AI Translated
+msgid "Failed to check for new printers."
+msgstr "Kiểm tra máy in mới thất bại."
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Gói cấu hình đã được thay đổi trong hướng dẫn cấu hình trước"
 
@@ -13500,6 +13696,10 @@ msgid ""
 msgstr ""
 "Nhấn phím tắt mới cho\n"
 "\"%s\""
+
+# AI Translated
+msgid "Unbind"
+msgstr "Bỏ gán"
 
 # AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
@@ -13684,6 +13884,14 @@ msgstr "Laser 40W"
 
 msgid "Cutting Module"
 msgstr "Module cắt"
+
+# AI Translated
+msgid "Active Cutting Module"
+msgstr "Module cắt chủ động"
+
+# AI Translated
+msgid "Ultrasonic Cutting Module"
+msgstr "Module cắt siêu âm"
 
 # AI Translated
 msgid "Auto Fire Extinguishing System"
@@ -15745,18 +15953,23 @@ msgstr ""
 "\n"
 "Tỷ lệ lưu lượng đối tượng cuối cùng là giá trị này nhân với tỷ lệ lưu lượng filament."
 
+# AI Translated
 msgid "Enable pressure advance"
-msgstr "Bật áp suất nâng cao"
+msgstr "Bật Pressure Advance"
 
+# AI Translated
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "Bật áp suất nâng cao, kết quả hiệu chỉnh tự động sẽ bị ghi đè khi được bật."
+msgstr "Bật Pressure Advance, kết quả hiệu chỉnh tự động sẽ bị ghi đè khi được bật."
 
+# AI Translated
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "Áp suất nâng cao (Klipper) hay Hệ số linear advance (Marlin)."
+msgstr "Pressure Advance (Klipper) hay hệ số Linear Advance (Marlin)."
 
+# AI Translated
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Bật áp suất nâng cao thích ứng (beta)"
+msgstr "Bật Pressure Advance thích ứng (beta)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "With increasing print speeds (and hence increasing volumetric flow through the nozzle) and increasing accelerations, it has been observed that the effective PA value typically decreases. This means that a single PA value is not always 100% optimal for all features and a compromise value is usually used that does not cause too much bulging on features with lower flow speed and accelerations while also not causing gaps on faster features.\n"
@@ -15766,16 +15979,18 @@ msgid ""
 "When enabled, the pressure advance value above is overridden. However, a reasonable default value above is strongly recommended to act as a fallback and for when tool changing.\n"
 "\n"
 msgstr ""
-"Với tốc độ in tăng lên (và do đó lưu lượng thể tích qua đầu phun tăng lên) và gia tốc tăng lên, đã quan sát thấy rằng giá trị PA hiệu quả thường giảm xuống. Điều này có nghĩa là một giá trị PA duy nhất không phải lúc nào cũng tối ưu 100% cho tất cả tính năng và giá trị thỏa hiệp thường được sử dụng không gây ra quá nhiều phồng trên tính năng với tốc độ lưu lượng thấp hơn và gia tốc trong khi cũng không gây ra khe hở trên tính năng nhanh hơn.\n"
+"Với tốc độ in tăng lên (và do đó lưu lượng thể tích qua đầu phun tăng lên) và gia tốc tăng lên, đã quan sát thấy rằng giá trị PA hiệu quả thường giảm xuống. Điều này có nghĩa là một giá trị PA duy nhất không phải lúc nào cũng tối ưu 100% ở tất cả tính năng và giá trị thỏa hiệp thường được sử dụng không gây ra quá nhiều phồng trên tính năng với tốc độ lưu lượng thấp hơn và gia tốc trong khi cũng không gây ra khe hở trên tính năng nhanh hơn.\n"
 "\n"
-"Tính năng này nhằm giải quyết hạn chế này bằng cách mô hình hóa phản ứng của hệ thống đùn của máy in tùy thuộc vào tốc độ lưu lượng thể tích và gia tốc mà nó đang in. Bên trong, nó tạo ra một model phù hợp có thể  ngoại suy áp suất nâng cao cần thiết cho bất kỳ tốc độ lưu lượng thể tích và gia tốc nào, sau đó được phát ra máy in tùy thuộc vào điều kiện in hiện tại.\n"
+"Tính năng này nhằm giải quyết hạn chế này bằng cách mô hình hóa phản ứng của hệ thống đùn của máy in tùy thuộc vào tốc độ lưu lượng thể tích và gia tốc mà nó đang in. Bên trong, nó tạo ra một model phù hợp có thể ngoại suy Pressure Advance cần thiết cho bất kỳ tốc độ lưu lượng thể tích và gia tốc nào, sau đó được phát ra máy in tùy thuộc vào điều kiện in hiện tại.\n"
 "\n"
-"Khi được bật, giá trị áp suất nâng cao ở trên bị ghi đè. Tuy nhiên, giá trị mặc định hợp lý ở trên được khuyến nghị mạnh để hoạt động như dự phòng và khi thay đổi công cụ.\n"
+"Khi được bật, giá trị Pressure Advance ở trên bị ghi đè. Tuy nhiên, giá trị mặc định hợp lý ở trên được khuyến nghị mạnh để hoạt động như dự phòng và khi thay đổi công cụ.\n"
 "\n"
 
+# AI Translated
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "Đo áp suất nâng cao thích ứng (beta)"
+msgstr "Đo Pressure Advance thích ứng (beta)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "Add sets of pressure advance (PA) values, the volumetric flow speeds and accelerations they were measured at, separated by a comma. One set of values per line. For example\n"
@@ -15789,20 +16004,20 @@ msgid ""
 "2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile."
 msgstr ""
-"Thêm bộ giá trị áp suất nâng cao (PA), tốc độ lưu lượng thể tích và gia tốc chúng được đo, ngăn cách bằng dấu phẩy. Một bộ giá trị trên mỗi dòng. Ví dụ\n"
+"Thêm bộ giá trị Pressure Advance (PA), tốc độ lưu lượng thể tích và gia tốc chúng được đo, ngăn cách bằng dấu phẩy. Một bộ giá trị trên mỗi dòng. Ví dụ\n"
 "0.04,3.96,3000\n"
 "0.033,3.96,10000\n"
 "0.029,7.91,3000\n"
 "0.026,7.91,10000\n"
 "\n"
 "Cách hiệu chỉnh:\n"
-"1. Chạy kiểm tra áp suất nâng cao cho ít nhất 3 tốc độ cho mỗi giá trị gia tốc. Khuyến nghị kiểm tra được chạy ít nhất cho tốc độ của chu vi bên ngoài, tốc độ của chu vi bên trong và tốc độ in tính năng nhanh nhất trong hồ sơ của bạn (thường là infill thưa hoặc đặc ). Sau đó chạy chúng cho cùng tốc độ cho gia tốc in chậm nhất và nhanh nhất , và không nhanh hơn gia tốc tối đa được khuyến nghị như được đưa ra bởi input shaper Klipper\n"
+"1. Chạy kiểm tra Pressure Advance cho ít nhất 3 tốc độ cho mỗi giá trị gia tốc. Khuyến nghị kiểm tra được chạy ít nhất cho tốc độ của chu vi bên ngoài, tốc độ của chu vi bên trong và tốc độ in tính năng nhanh nhất trong hồ sơ của bạn (thường là infill thưa hoặc đặc ). Sau đó chạy chúng cho cùng tốc độ cho gia tốc in chậm nhất và nhanh nhất , và không nhanh hơn gia tốc tối đa được khuyến nghị như được đưa ra bởi input shaper Klipper\n"
 "2. Ghi chú giá trị PA tối ưu cho mỗi tốc độ lưu lượng thể tích và gia tốc. Bạn có thể tìm số lưu lượng bằng cách chọn lưu lượng từ menu thả xuống sơ đồ màu và di chuyển thanh trượt ngang qua các đường mẫu PA. Số nên hiển thị ở cuối trang. Giá trị PA lý tưởng nên giảm xuống khi lưu lượng thể tích càng cao. Nếu không, hãy xác nhận rằng extruder của bạn đang hoạt động chính xác. Càng chậm và với gia tốc ít hơn bạn in, phạm vi giá trị PA chấp nhận được càng lớn. Nếu không thấy sự khác biệt, hãy sử dụng giá trị PA từ kiểm tra nhanh hơn\n"
 "3. Nhập bộ ba giá trị PA, Lưu lượng và Gia tốc vào hộp văn bản ở đây và lưu hồ sơ filament của bạn."
 
 # AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "Bật pressure advance thích ứng trong từng chi tiết (beta)"
+msgstr "Bật Pressure Advance thích ứng trong từng chi tiết (beta)"
 
 # AI Translated
 msgid ""
@@ -15820,7 +16035,7 @@ msgstr ""
 
 # AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "Pressure advance tĩnh cho cầu"
+msgstr "Pressure Advance tĩnh cho cầu"
 
 # AI Translated
 msgid ""
@@ -15829,7 +16044,7 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Giá trị pressure advance tĩnh cho cầu. Đặt 0 để áp dụng cùng pressure advance như \n"
+"Giá trị Pressure Advance tĩnh cho cầu. Đặt 0 để áp dụng cùng Pressure Advance như \n"
 "các thành tương đương (dùng cài đặt thích ứng nếu được bật).\n"
 "\n"
 "Giá trị PA thấp hơn khi in cầu giúp giảm hiện tượng thiếu đùn nhẹ ngay sau cầu. Hiện tượng này do áp suất trong đầu phun giảm khi in trong không khí, và PA thấp hơn giúp bù lại điều đó."
@@ -17758,6 +17973,7 @@ msgstr "Chiều cao lớp có thể in cao nhất cho extruder. Được sử d�
 msgid "Extrusion rate smoothing"
 msgstr "Làm mịn tốc độ đùn"
 
+# AI Translated
 msgid ""
 "This parameter smooths out sudden extrusion rate changes that happen when the printer transitions from printing a high flow (high speed/larger width) extrusion to a lower flow (lower speed/smaller width) extrusion and vice versa.\n"
 "\n"
@@ -17779,9 +17995,9 @@ msgstr ""
 "\n"
 "Giá trị 0 vô hiệu hóa tính năng.\n"
 "\n"
-"Đối với máy in direct drive tốc độ cao, lưu lượng cao (như Bambu lab hoặc Voron) giá trị này thường không cần thiết. Tuy nhiên nó có thể cung cấp một số lợi ích nhỏ trong một số trường hợp nhất định khi tốc độ tính năng thay đổi nhiều. Ví dụ, khi có giảm tốc mạnh do phần nhô. Trong các trường hợp này giá trị cao khoảng 300-350 mm³/s² được khuyến nghị vì điều này cho phép làm mịn vừa đủ để hỗ trợ áp suất nâng cao đạt được chuyển đổi lưu lượng mịn hơn.\n"
+"Đối với máy in direct drive tốc độ cao, lưu lượng cao (như Bambu lab hoặc Voron) giá trị này thường không cần thiết. Tuy nhiên nó có thể cung cấp một số lợi ích nhỏ trong một số trường hợp nhất định khi tốc độ tính năng thay đổi nhiều. Ví dụ, khi có giảm tốc mạnh do phần nhô. Trong các trường hợp này giá trị cao khoảng 300-350 mm³/s² được khuyến nghị vì điều này cho phép làm mịn vừa đủ để hỗ trợ Pressure Advance đạt được chuyển đổi lưu lượng mịn hơn.\n"
 "\n"
-"Đối với máy in chậm hơn không có áp suất nâng cao, giá trị nên được đặt thấp hơn nhiều. Giá trị 10-15 mm³/s² là điểm khởi đầu tốt cho extruder direct drive và 5-10 mm³/s² cho kiểu Bowden.\n"
+"Đối với máy in chậm hơn không có Pressure Advance, giá trị nên được đặt thấp hơn nhiều. Giá trị 10-15 mm³/s² là điểm khởi đầu tốt cho extruder direct drive và 5-10 mm³/s² cho kiểu Bowden.\n"
 "\n"
 "Tính năng này được gọi là Pressure Equalizer trong slicer Prusa.\n"
 "\n"
@@ -18789,7 +19005,7 @@ msgid ""
 "Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
 msgstr ""
 "Áp dụng thứ tự đổi công cụ theo vòng lặp cho cả lớp đầu tiên.\n"
-"Mặc định tùy chọn này tắt, vì lớp đầu tiên được sắp xếp theo hướng bám dính đế tốt nhất: những filament in các chi tiết nhỏ, mỏng manh của lớp đầu tiên sẽ được in sau cùng, nhờ đó các lần đổi công cụ và di chuyển tiếp theo ít có khả năng làm bong những phần bám yếu đó. Thứ tự lớp đầu tiên này cũng tôn trọng trình tự filament tùy chỉnh cho lớp đầu tiên nếu có thiết lập. Lợi ích của thứ tự vòng lặp (thêm lần đổi công cụ giúp mỗi lớp có nhiều thời gian nguội hơn) không áp dụng cho lớp đầu tiên, vốn được in chậm và nóng để bám dính.\n"
+"Mặc định tùy chọn này tắt, vì lớp đầu tiên được sắp xếp theo hướng bám dính bàn in tốt nhất: những filament in các chi tiết nhỏ, mỏng manh của lớp đầu tiên sẽ được in sau cùng, nhờ đó các lần đổi công cụ và di chuyển tiếp theo ít có khả năng làm bong những phần bám yếu đó. Thứ tự lớp đầu tiên này cũng tôn trọng trình tự filament tùy chỉnh cho lớp đầu tiên nếu có thiết lập. Lợi ích của thứ tự vòng lặp (thêm lần đổi công cụ giúp mỗi lớp có nhiều thời gian nguội hơn) không áp dụng cho lớp đầu tiên, vốn được in chậm và nóng để bám dính.\n"
 "Chỉ bật tùy chọn này nếu bạn cần đúng cùng một trình tự công cụ ở mọi lớp, kể cả lớp đầu, đánh đổi bằng việc mất tối ưu bám dính nói trên."
 
 msgid "Slice gap closing radius"
@@ -20773,6 +20989,21 @@ msgstr "vật liệu có co ngót/giãn nở nhiệt đáng kể, chẳng hạn 
 msgid "materials with inaccurate filament diameter"
 msgstr "vật liệu có đường kính filament không chính xác"
 
+# AI Translated
+#, boost-format
+msgid "%1% Flow Rate Calibrated"
+msgstr "%1% đã hiệu chỉnh lưu lượng"
+
+# AI Translated
+#, boost-format
+msgid "%1% Temperature Calibrated"
+msgstr "%1% đã hiệu chỉnh nhiệt độ"
+
+# AI Translated
+#, boost-format
+msgid "%1% Max Vol Speed Calibrated"
+msgstr "%1% đã hiệu chỉnh tốc độ thể tích tối đa"
+
 msgid "We found the best Flow Dynamics Calibration Factor"
 msgstr "Chúng tôi đã tìm thấy hệ số hiệu chỉnh động lực lưu lượng tốt nhất"
 
@@ -21144,6 +21375,12 @@ msgid "Temp step: "
 msgstr "Bước nhiệt độ: "
 
 # AI Translated
+#. TRN %s is the temperature unit
+#, c-format, boost-format
+msgid "Supported range: 170%s - 500%s"
+msgstr "Phạm vi hỗ trợ: 170%s - 500%s"
+
+# AI Translated
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 500\n"
@@ -21154,9 +21391,6 @@ msgstr ""
 "Nhiệt độ bắt đầu: <= 500\n"
 "Nhiệt độ kết thúc: >= 155\n"
 "Nhiệt độ bắt đầu >= Nhiệt độ kết thúc + 5"
-
-msgid "Max volumetric speed test"
-msgstr "Kiểm tra tốc độ thể tích tối đa"
 
 msgid "Start volumetric speed: "
 msgstr "Tốc độ thể tích bắt đầu: "
@@ -21174,9 +21408,6 @@ msgstr ""
 "bắt đầu > 0\n"
 "bước >= 0\n"
 "kết thúc > bắt đầu + bước"
-
-msgid "VFA test"
-msgstr "Kiểm tra VFA"
 
 msgid "Start speed: "
 msgstr "Tốc độ bắt đầu: "
@@ -21259,9 +21490,6 @@ msgstr "Độ dài rút bắt đầu: "
 
 msgid "End retraction length: "
 msgstr "Độ dài rút kết thúc: "
-
-msgid "Input shaping Frequency test"
-msgstr "Kiểm tra tần số input shaping"
 
 msgid "Test model"
 msgstr "Model kiểm tra"
@@ -21361,10 +21589,6 @@ msgstr ""
 
 msgid "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr "Vui lòng nhập hệ số giảm chấn hợp lệ (0 <= Giảm chấn bắt đầu < Giảm chấn kết thúc <= 1)"
-
-# AI Translated
-msgid "Cornering test"
-msgstr "Kiểm tra vào cua"
 
 msgid "SCV-V2"
 msgstr "SCV-V2"
@@ -21590,6 +21814,12 @@ msgstr "Hiệu chỉnh trước khi in"
 msgid "Filament Mapping:"
 msgstr "Ánh xạ filament:"
 
+# AI Translated
+#. TRN External spool slot, followed by its filament type
+#, c-format, boost-format
+msgid "Ext - %s"
+msgstr "Cuộn ngoài - %s"
+
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Không thể thực hiện thao tác boolean trên các phần đã chọn"
 
@@ -21665,6 +21895,27 @@ msgstr "Kiểm tra bing.com:"
 
 msgid "Log Info"
 msgstr "Thông tin log"
+
+# AI Translated
+#. TRN %s is the name of the tested website
+#, c-format, boost-format
+msgid "test %s start..."
+msgstr "bắt đầu kiểm tra %s..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ip resolved = %s"
+msgstr "kiểm tra %s: đã phân giải IP = %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s failed"
+msgstr "kiểm tra %s thất bại"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ok"
+msgstr "kiểm tra %s OK"
 
 msgid "Select filament preset"
 msgstr "Chọn cài đặt sẵn filament"
@@ -22229,6 +22480,14 @@ msgstr "Thành công!"
 msgid "Generate API Key"
 msgstr "Tạo khóa API"
 
+# AI Translated
+msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
+msgstr "Đã tạo khóa API. Hãy đến máy in thực và nhấn \"authorize\" trên màn hình, rồi chạy \"Kiểm tra\" lại."
+
+# AI Translated
+msgid "API Key created."
+msgstr "Đã tạo khóa API."
+
 msgid "Are you sure to log out?"
 msgstr "Bạn có chắc chắn đăng xuất không?"
 
@@ -22260,12 +22519,20 @@ msgid "Click Scan to look for K-series printers on your network."
 msgstr "Nhấn Quét để tìm các máy in dòng K trên mạng của bạn."
 
 # AI Translated
+msgid "Scan"
+msgstr "Quét"
+
+# AI Translated
 msgid "Use Selected"
 msgstr "Dùng máy đã chọn"
 
 # AI Translated
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
 msgstr "Đang quét mạng LAN để tìm máy in dòng K... việc này mất vài giây."
+
+# AI Translated
+msgid "(unknown K-series)"
+msgstr "(dòng K không xác định)"
 
 # AI Translated
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
@@ -22399,6 +22666,10 @@ msgstr "nhật ký"
 # AI Translated
 msgid "Choose where to save the exported JSON file"
 msgstr "Chọn nơi lưu file JSON được xuất"
+
+# AI Translated
+msgid "JSON files (*.json)|*.json"
+msgstr "File JSON (*.json)|*.json"
 
 # AI Translated
 msgid ""
@@ -22869,6 +23140,11 @@ msgstr "Tên tác vụ"
 msgid "Actions"
 msgstr "Thao tác"
 
+# AI Translated
+#. TRN Button that jumps to the page number typed next to it
+msgid "Go"
+msgstr "Đi"
+
 msgid "Task Status"
 msgstr "Trạng thái tác vụ"
 
@@ -22996,6 +23272,11 @@ msgstr " để đặt số lượng đầu phun"
 # AI Translated
 msgid "Set the physical nozzle count..."
 msgstr "Đặt số lượng đầu phun vật lý..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "(Std: %d, HF: %d)"
+msgstr "(Tiêu chuẩn: %d, Lưu lượng cao: %d)"
 
 # AI Translated
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
@@ -23342,6 +23623,10 @@ msgid "Download and Install"
 msgstr "Tải xuống và cài đặt"
 
 # AI Translated
+msgid "Skip for Now"
+msgstr "Bỏ qua lúc này"
+
+# AI Translated
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Đã có phiên bản mới của Bambu Network Plug-in."
 
@@ -23363,6 +23648,14 @@ msgid "Update Now"
 msgstr "Cập nhật ngay"
 
 # AI Translated
+msgid "Remind Later"
+msgstr "Nhắc sau"
+
+# AI Translated
+msgid "Skip Version"
+msgstr "Bỏ qua phiên bản"
+
+# AI Translated
 msgid "(Latest)"
 msgstr "(Mới nhất)"
 
@@ -23381,6 +23674,10 @@ msgstr "Cần khởi động lại để tải plug-in mới. Bạn có muốn k
 # AI Translated
 msgid "Restart Now"
 msgstr "Khởi động lại ngay"
+
+# AI Translated
+msgid "Restart Later"
+msgstr "Khởi động lại sau"
 
 # AI Translated
 msgid "NO RAMMING AT ALL"
@@ -23490,6 +23787,10 @@ msgid "Save preset bundle"
 msgstr "Lưu gói cài đặt sẵn"
 
 # AI Translated
+msgid "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"
+msgstr "Gói cài đặt sẵn Orca (*.orca_bundle)|*.orca_bundle"
+
+# AI Translated
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "Tích hợp desktop thất bại - boost::filesystem::canonical không trả về đường dẫn appimage."
 
@@ -23532,8 +23833,21 @@ msgstr ""
 "Nhấn \"Thực hiện\" để tiếp tục."
 
 # AI Translated
+msgid "Press \"Undo\" to remove previous integration."
+msgstr "Nhấn \"Hoàn tác\" để gỡ bỏ tích hợp trước đó."
+
+# AI Translated
+msgid "Could not start download due to malformed URL"
+msgstr "Không thể bắt đầu tải xuống do URL không hợp lệ"
+
+# AI Translated
 msgid "The download has failed"
 msgstr "Tải xuống đã thất bại"
+
+# AI Translated
+#, boost-format
+msgid "Failed to find suitable filename. Last name: %1%."
+msgstr "Không tìm được tên file phù hợp. Tên cuối cùng: %1%."
 
 # AI Translated
 #. TRN %1% = file path
@@ -23542,8 +23856,20 @@ msgid "Can't create file at %1%"
 msgstr "Không thể tạo file tại %1%"
 
 # AI Translated
+msgid "Failed to write and move."
+msgstr "Ghi và di chuyển file thất bại."
+
+# AI Translated
 msgid "Archive preview"
 msgstr "Xem trước kho lưu trữ"
+
+# AI Translated
+msgid "filename"
+msgstr "tên file"
+
+# AI Translated
+msgid "All files (*.*)|*.*"
+msgstr "Tất cả file (*.*)|*.*"
 
 # AI Translated
 msgid "Open File"
@@ -24712,6 +25038,26 @@ msgstr "Phác thảo: —"
 msgid "Extrude dist"
 msgstr "Khoảng cách đùn"
 
+# AI Translated
+msgid "Blind"
+msgstr "Theo khoảng cách"
+
+# AI Translated
+msgid "Two-sided"
+msgstr "Hai phía"
+
+# AI Translated
+msgid "Through all"
+msgstr "Xuyên qua tất cả"
+
+# AI Translated
+msgid "Up to face"
+msgstr "Đến mặt"
+
+# AI Translated
+msgid "Up to vertex"
+msgstr "Đến đỉnh"
+
 msgid "End"
 msgstr "Kết thúc"
 
@@ -25102,6 +25448,11 @@ msgid "Face %d is already in the list"
 msgstr "Mặt %d đã có trong danh sách"
 
 # AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Mặt %d"
+
+# AI Translated
 msgid "Faces to delete"
 msgstr "Các mặt cần xóa"
 
@@ -25374,6 +25725,10 @@ msgid "Sketch created (%zu driving dims) — select it, then right-click to Extr
 msgstr "Đã tạo phác thảo (%zu kích thước điều khiển) — chọn nó, rồi nhấn chuột phải để Đùn"
 
 # AI Translated
+msgid "(locked)"
+msgstr "(đã khóa)"
+
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
 msgstr "Không thể xác định phác thảo cần đùn"
 
@@ -25388,11 +25743,6 @@ msgstr "Đã chọn vùng — nhấn chuột phải để Đùn, hoặc nhấp �
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Đã chọn phác thảo — nhấn chuột phải để Đùn, hoặc nhấp đúp để chỉnh sửa"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Mặt %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -25503,8 +25853,16 @@ msgid "Import SVG"
 msgstr "Nhập SVG"
 
 # AI Translated
+msgid "SVG files (*.svg)|*.svg|All files|*.*"
+msgstr "File SVG (*.svg)|*.svg|Tất cả file|*.*"
+
+# AI Translated
 msgid "Import STEP"
 msgstr "Nhập STEP"
+
+# AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"
+msgstr "File STEP (*.step;*.stp)|*.step;*.stp|Tất cả file|*.*"
 
 # AI Translated
 msgid "Reading STEP…"
@@ -25531,6 +25889,10 @@ msgstr[0] "Đã nhập %d khối đặc — chọn một mặt hoặc cạnh, r�
 # AI Translated
 msgid "Import mesh"
 msgstr "Nhập lưới"
+
+# AI Translated
+msgid "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"
+msgstr "File lưới (*.stl;*.obj)|*.stl;*.obj|Tất cả file|*.*"
 
 # AI Translated
 msgid "Could not read the STL file"
@@ -25599,7 +25961,7 @@ msgid " — drag to place/size, then Confirm"
 msgstr " — kéo để đặt vị trí/kích thước, rồi Xác nhận"
 
 # AI Translated
-msgid "Insert cancelled"
+msgid "Insert canceled"
 msgstr "Đã hủy chèn"
 
 # AI Translated
@@ -26458,6 +26820,11 @@ msgid "Applied constraint"
 msgstr "Đã áp dụng ràng buộc"
 
 # AI Translated
+#. TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+msgid "·Ctr"
+msgstr "·Tâm"
+
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
 msgstr "Cố định %s"
@@ -26702,6 +27069,10 @@ msgid "Export STEP"
 msgstr "Xuất STEP"
 
 # AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp"
+msgstr "File STEP (*.step;*.stp)|*.step;*.stp"
+
+# AI Translated
 msgid "Exported STEP"
 msgstr "Đã xuất STEP"
 
@@ -26777,7 +27148,7 @@ msgid "Face %d (push/pull)"
 msgstr "Mặt %d (đẩy/kéo)"
 
 # AI Translated
-msgid "Move cancelled"
+msgid "Move canceled"
 msgstr "Đã hủy di chuyển"
 
 # AI Translated
@@ -26867,12 +27238,204 @@ msgid "Empty mesh generated"
 msgstr "Đã tạo lưới rỗng"
 
 # AI Translated
+#. TRN Default name of an object created from the box primitive shape.
+msgid "Box"
+msgstr "Hộp"
+
+# AI Translated
+#. TRN Primitive gizmo: label in front of the preset cube size buttons
+msgid "Quick:"
+msgstr "Nhanh:"
+
+# AI Translated
+msgid "Width (X)"
+msgstr "Độ rộng (X)"
+
+# AI Translated
+msgid "Depth (Y)"
+msgstr "Độ sâu (Y)"
+
+# AI Translated
+msgid "Height (Z)"
+msgstr "Chiều cao (Z)"
+
+# AI Translated
+#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
+msgid "Bottom R"
+msgstr "R đáy"
+
+# AI Translated
+msgid "Top R"
+msgstr "R đỉnh"
+
+# AI Translated
+#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
+msgid "Major R"
+msgstr "R lớn"
+
+# AI Translated
+msgid "Minor R"
+msgstr "R nhỏ"
+
+# AI Translated
+msgid "All edges"
+msgstr "Tất cả cạnh"
+
+# AI Translated
+msgid "Top edges"
+msgstr "Cạnh trên"
+
+# AI Translated
+msgid "Bottom edges"
+msgstr "Cạnh dưới"
+
+# AI Translated
+msgid "Lateral edges"
+msgstr "Cạnh bên"
+
+# AI Translated
+msgid "Mesh resolution"
+msgstr "Độ phân giải lưới"
+
+# AI Translated
+msgid "Add Shape"
+msgstr "Thêm hình"
+
+# AI Translated
+msgid "No outer profile"
+msgstr "Không có biên dạng ngoài"
+
+# AI Translated
+msgid "Failed to make outer face"
+msgstr "Không thể tạo mặt ngoài"
+
+# AI Translated
+msgid "Failed to build face with holes"
+msgstr "Không thể tạo mặt có lỗ"
+
+# AI Translated
+msgid "Revolve failed"
+msgstr "Tròn xoay thất bại"
+
+# AI Translated
+msgid "Profile"
+msgstr "Biên dạng"
+
+# AI Translated
+msgid "Start new profile (for holes)"
+msgstr "Bắt đầu biên dạng mới (cho lỗ)"
+
+# AI Translated
+#. TRN Sketch gizmo: number of segments a circle is built from
+msgid "Seg"
+msgstr "Đoạn"
+
+# AI Translated
+msgid "Sides"
+msgstr "Số cạnh"
+
+# AI Translated
+msgid "Click on canvas to draw"
+msgstr "Nhấn vào khung vẽ để vẽ"
+
+# AI Translated
+msgid "Snap to grid"
+msgstr "Bám theo lưới"
+
+# AI Translated
+msgid "Outer"
+msgstr "Ngoài"
+
+# AI Translated
+msgid "CLOSED"
+msgstr "KHÉP KÍN"
+
+# AI Translated
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#, boost-format
+msgid "%1% %2%: %3% pts %4%"
+msgstr "%1% %2%: %3% điểm %4%"
+
+# AI Translated
+msgid "XY (Top)"
+msgstr "XY (Trên)"
+
+# AI Translated
+msgid "XZ (Front)"
+msgstr "XZ (Trước)"
+
+# AI Translated
+msgid "YZ (Side)"
+msgstr "YZ (Bên)"
+
+# AI Translated
+msgid "Revolve deg"
+msgstr "Góc tròn xoay"
+
+# AI Translated
+msgid "Set to 0 for extrude, >0 for revolve"
+msgstr "Đặt 0 để đùn, >0 để tạo khối tròn xoay"
+
+# AI Translated
+msgid "Pocket (cut)"
+msgstr "Khoét hốc (cắt)"
+
+# AI Translated
+#, c-format
+msgid "%zu closed profile"
+msgid_plural "%zu closed profiles"
+msgstr[0] "%zu biên dạng khép kín"
+
+# AI Translated
+msgid "Draw a closed profile to enable"
+msgstr "Vẽ một biên dạng khép kín để bật"
+
+# AI Translated
 msgid "Pocket (Cut)"
 msgstr "Khoét hốc (Cắt)"
 
 # AI Translated
 msgid "Clear All"
 msgstr "Xóa tất cả"
+
+# AI Translated
+msgid "Empty result"
+msgstr "Kết quả rỗng"
+
+# AI Translated
+#, boost-format
+msgid "Extrude: %1%"
+msgstr "Đùn: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Revolve: %1%"
+msgstr "Tròn xoay: %1%"
+
+# AI Translated
+msgid "No object selected"
+msgstr "Chưa chọn vật thể nào"
+
+# AI Translated
+msgid "Face failed"
+msgstr "Tạo mặt thất bại"
+
+# AI Translated
+msgid "Face with holes failed"
+msgstr "Tạo mặt có lỗ thất bại"
+
+# AI Translated
+msgid "Tool mesh empty"
+msgstr "Lưới công cụ rỗng"
+
+# AI Translated
+msgid "Pocket added (negative volume)"
+msgstr "Đã thêm hốc (thể tích âm)"
+
+# AI Translated
+#, boost-format
+msgid "Pocket: %1%"
+msgstr "Khoét hốc: %1%"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -27109,6 +27672,541 @@ msgid "Speed Dial"
 msgstr "Speed Dial"
 
 # AI Translated
+msgid "helix radius must be > 0"
+msgstr "bán kính đường xoắn ốc phải > 0"
+
+# AI Translated
+msgid "helix pitch must be > 0"
+msgstr "bước xoắn của đường xoắn ốc phải > 0"
+
+# AI Translated
+msgid "helix height must be >= 0"
+msgstr "chiều cao đường xoắn ốc phải >= 0"
+
+# AI Translated
+msgid "helix height of 0 (flat spiral) is not supported"
+msgstr "không hỗ trợ đường xoắn ốc có chiều cao 0 (xoắn ốc phẳng)"
+
+# AI Translated
+msgid "helix turn count exceeds limit (10000)"
+msgstr "số vòng xoắn vượt quá giới hạn (10000)"
+
+# AI Translated
+msgid "helix taper drives radius negative before reaching height"
+msgstr "độ côn của đường xoắn ốc làm bán kính thành âm trước khi đạt đủ chiều cao"
+
+# AI Translated
+msgid "bad character in expression"
+msgstr "ký tự không hợp lệ trong biểu thức"
+
+# AI Translated
+msgid "mismatched parentheses"
+msgstr "dấu ngoặc không khớp"
+
+# AI Translated
+#, boost-format
+msgid "unknown identifier: %1%"
+msgstr "định danh không xác định: %1%"
+
+# AI Translated
+msgid "missing operand for unary minus"
+msgstr "thiếu toán hạng cho dấu trừ một ngôi"
+
+# AI Translated
+#, boost-format
+msgid "not enough operands for '%1%'"
+msgstr "không đủ toán hạng cho '%1%'"
+
+# AI Translated
+msgid "division by zero"
+msgstr "chia cho không"
+
+# AI Translated
+#, boost-format
+msgid "not enough arguments for %1%()"
+msgstr "không đủ đối số cho %1%()"
+
+# AI Translated
+#, boost-format
+msgid "unknown function: %1%"
+msgstr "hàm không xác định: %1%"
+
+# AI Translated
+msgid "invalid expression"
+msgstr "biểu thức không hợp lệ"
+
+# AI Translated
+#, boost-format
+msgid "variable cycle: %1%"
+msgstr "biến phụ thuộc vòng: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown parameter: %1%"
+msgstr "tham số không xác định: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown hole standard \"%1%\""
+msgstr "tiêu chuẩn lỗ \"%1%\" không xác định"
+
+# AI Translated
+#, boost-format
+msgid "connector %1% is not a coordinate system"
+msgstr "đầu nối %1% không phải là hệ tọa độ"
+
+# AI Translated
+msgid "a mate needs two different connectors"
+msgstr "lắp ghép cần hai đầu nối khác nhau"
+
+# AI Translated
+msgid "connector B is not attached to a body — a mate moves B's body"
+msgstr "đầu nối B không gắn với khối nào — lắp ghép sẽ di chuyển khối của B"
+
+# AI Translated
+msgid "connector B's body no longer exists"
+msgstr "khối của đầu nối B không còn tồn tại"
+
+# AI Translated
+msgid "needs a flat face at both ends — both connectors are on curved faces"
+msgstr "cần một mặt phẳng ở cả hai đầu — cả hai đầu nối đều nằm trên mặt cong"
+
+# AI Translated
+#, boost-format
+msgid "needs a flat face at both ends — connector %1% is on a curved face"
+msgstr "cần một mặt phẳng ở cả hai đầu — đầu nối %1% nằm trên mặt cong"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on flat faces"
+msgstr "cần một mặt trụ ở cả hai đầu — cả hai đầu nối đều nằm trên mặt phẳng"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces"
+msgstr "cần một mặt trụ ở cả hai đầu — cả hai đầu nối đều nằm trên mặt không phải mặt trụ"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a flat face"
+msgstr "cần một mặt trụ ở cả hai đầu — đầu nối %1% nằm trên mặt phẳng"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr "cần một mặt trụ ở cả hai đầu — đầu nối %1% nằm trên mặt cong"
+
+# AI Translated
+msgid "two points are coincident"
+msgstr "hai điểm trùng nhau"
+
+# AI Translated
+msgid "face not found"
+msgstr "không tìm thấy mặt"
+
+# AI Translated
+msgid "face is not a cylinder"
+msgstr "mặt không phải là mặt trụ"
+
+# AI Translated
+msgid "edge not found"
+msgstr "không tìm thấy cạnh"
+
+# AI Translated
+msgid "plane ref not found"
+msgstr "không tìm thấy mặt phẳng tham chiếu"
+
+# AI Translated
+msgid "planes are parallel (no intersection)"
+msgstr "các mặt phẳng song song (không có giao tuyến)"
+
+# AI Translated
+msgid "zero-length direction"
+msgstr "hướng có độ dài bằng không"
+
+# AI Translated
+msgid "feature is used by a later feature"
+msgstr "đặc trưng đang được một đặc trưng phía sau sử dụng"
+
+# AI Translated
+msgid "sketch entities do not form a closed loop"
+msgstr "các thực thể phác thảo không tạo thành vòng khép kín"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Open at (%.3f, %.3f)"
+msgstr "Hở tại (%.3f, %.3f)"
+
+# AI Translated
+#, boost-format
+msgid "...and %1% more open end(s)"
+msgstr "...và thêm %1% đầu hở khác"
+
+# AI Translated
+msgid "sketch has entities but they do not form a single closed wire — a closed entity (circle/ellipse) combined with other entities, or several closed entities, is not supported yet"
+msgstr "phác thảo có thực thể nhưng chúng không tạo thành một đường bao khép kín duy nhất — chưa hỗ trợ một thực thể khép kín (đường tròn/elip) kết hợp với các thực thể khác, hoặc nhiều thực thể khép kín"
+
+# AI Translated
+msgid "sketch profile wire failed"
+msgstr "tạo đường bao biên dạng phác thảo thất bại"
+
+# AI Translated
+msgid "circle wire failed"
+msgstr "tạo đường bao đường tròn thất bại"
+
+# AI Translated
+msgid "face-extrude needs a body"
+msgstr "đùn mặt cần một khối"
+
+# AI Translated
+msgid "tapered extrude of a sketch with holes is not supported yet"
+msgstr "chưa hỗ trợ đùn côn cho phác thảo có lỗ"
+
+# AI Translated
+msgid "fuse failed"
+msgstr "hợp nhất thất bại"
+
+# AI Translated
+msgid "cut failed"
+msgstr "cắt thất bại"
+
+# AI Translated
+msgid "intersect failed"
+msgstr "giao thất bại"
+
+# AI Translated
+msgid "surface-extrude: empty profile"
+msgstr "đùn bề mặt: biên dạng rỗng"
+
+# AI Translated
+#, boost-format
+msgid "surface-extrude: %1%"
+msgstr "đùn bề mặt: %1%"
+
+# AI Translated
+msgid "prism failed"
+msgstr "tạo lăng trụ thất bại"
+
+# AI Translated
+msgid "surface-revolve: empty profile"
+msgstr "tròn xoay bề mặt: biên dạng rỗng"
+
+# AI Translated
+msgid "surface-revolve: revolve failed"
+msgstr "tròn xoay bề mặt: tạo khối tròn xoay thất bại"
+
+# AI Translated
+msgid "surface-loft needs 2+ valid profile sketches"
+msgstr "nối biên dạng bề mặt cần 2+ phác thảo biên dạng hợp lệ"
+
+# AI Translated
+msgid "surface-loft: loft failed"
+msgstr "nối biên dạng bề mặt: nối biên dạng thất bại"
+
+# AI Translated
+msgid "surface-fill: empty boundary"
+msgstr "lấp đầy bề mặt: đường biên rỗng"
+
+# AI Translated
+msgid "surface-fill: boundary has no edges"
+msgstr "lấp đầy bề mặt: đường biên không có cạnh nào"
+
+# AI Translated
+msgid "surface-fill: fill failed"
+msgstr "lấp đầy bề mặt: lấp đầy thất bại"
+
+# AI Translated
+msgid "surface-fill: produced no geometry"
+msgstr "lấp đầy bề mặt: không tạo ra hình học nào"
+
+# AI Translated
+msgid "sweep needs a valid path reference"
+msgstr "quét cần một tham chiếu đường dẫn hợp lệ"
+
+# AI Translated
+#, boost-format
+msgid "helix path: %1%"
+msgstr "đường dẫn xoắn ốc: %1%"
+
+# AI Translated
+msgid "sweep path must be a sketch or helix"
+msgstr "đường dẫn quét phải là một phác thảo hoặc đường xoắn ốc"
+
+# AI Translated
+msgid "loft needs 2+ valid profile sketches"
+msgstr "nối biên dạng cần 2+ phác thảo biên dạng hợp lệ"
+
+# AI Translated
+msgid "pattern needs a body"
+msgstr "mảng cần một khối"
+
+# AI Translated
+msgid "pattern fuse failed"
+msgstr "hợp nhất mảng thất bại"
+
+# AI Translated
+msgid "rib needs a body"
+msgstr "gân cần một khối"
+
+# AI Translated
+msgid "rib: entity must be a line"
+msgstr "gân: thực thể phải là một đường thẳng"
+
+# AI Translated
+msgid "rib: degenerate line"
+msgstr "gân: đường thẳng suy biến"
+
+# AI Translated
+msgid "rib: profile failed"
+msgstr "gân: tạo biên dạng thất bại"
+
+# AI Translated
+msgid "rib: extrude failed"
+msgstr "gân: đùn thất bại"
+
+# AI Translated
+msgid "rib: fuse failed"
+msgstr "gân: hợp nhất thất bại"
+
+# AI Translated
+msgid "fillet needs a body"
+msgstr "bo tròn cần một khối"
+
+# AI Translated
+msgid "chamfer needs a body"
+msgstr "vát cạnh cần một khối"
+
+# AI Translated
+msgid "hole needs a body"
+msgstr "lỗ cần một khối"
+
+# AI Translated
+msgid "hole wire failed"
+msgstr "tạo đường bao lỗ thất bại"
+
+# AI Translated
+msgid "hole cut failed"
+msgstr "cắt lỗ thất bại"
+
+# AI Translated
+msgid "internal thread needs a body"
+msgstr "ren trong cần một khối"
+
+# AI Translated
+msgid "shell needs a body"
+msgstr "vỏ mỏng cần một khối"
+
+# AI Translated
+msgid "shell failed"
+msgstr "tạo vỏ mỏng thất bại"
+
+# AI Translated
+msgid "shell produced no geometry"
+msgstr "vỏ mỏng không tạo ra hình học nào"
+
+# AI Translated
+msgid "draft needs a body"
+msgstr "thoát khuôn cần một khối"
+
+# AI Translated
+msgid "draft needs a picked face"
+msgstr "thoát khuôn cần một mặt đã chọn"
+
+# AI Translated
+msgid "draft: face not found"
+msgstr "thoát khuôn: không tìm thấy mặt"
+
+# AI Translated
+msgid "draft: face cannot be drafted (is it parallel to the base?)"
+msgstr "thoát khuôn: không thể tạo góc thoát khuôn cho mặt này (mặt có song song với đáy không?)"
+
+# AI Translated
+msgid "draft failed"
+msgstr "thoát khuôn thất bại"
+
+# AI Translated
+msgid "draft produced no geometry"
+msgstr "thoát khuôn không tạo ra hình học nào"
+
+# AI Translated
+msgid "delete_face needs a body"
+msgstr "xóa mặt cần một khối"
+
+# AI Translated
+msgid "delete_face needs at least one face"
+msgstr "xóa mặt cần ít nhất một mặt"
+
+# AI Translated
+msgid "delete_face: face not found"
+msgstr "xóa mặt: không tìm thấy mặt"
+
+# AI Translated
+msgid "delete_face failed"
+msgstr "xóa mặt thất bại"
+
+# AI Translated
+msgid "delete_face produced no geometry"
+msgstr "xóa mặt không tạo ra hình học nào"
+
+# AI Translated
+msgid "boolean operation failed"
+msgstr "thao tác Boolean thất bại"
+
+# AI Translated
+msgid "boolean produced an empty shape"
+msgstr "Boolean tạo ra hình rỗng"
+
+# AI Translated
+msgid "cut: no target body"
+msgstr "cắt: không có khối đích"
+
+# AI Translated
+msgid "cut keeps nothing"
+msgstr "cắt không giữ lại gì"
+
+# AI Translated
+msgid "cut: face body is empty"
+msgstr "cắt: khối chứa mặt bị rỗng"
+
+# AI Translated
+msgid "cut: face not found"
+msgstr "cắt: không tìm thấy mặt"
+
+# AI Translated
+msgid "cut: failed to build cut wire"
+msgstr "cắt: không thể tạo đường bao cắt"
+
+# AI Translated
+msgid "cut operation failed"
+msgstr "thao tác cắt thất bại"
+
+# AI Translated
+msgid "mirror: no target body"
+msgstr "lấy đối xứng: không có khối đích"
+
+# AI Translated
+msgid "mirror: transform failed"
+msgstr "lấy đối xứng: biến đổi thất bại"
+
+# AI Translated
+msgid "mirror: result has zero or negative volume"
+msgstr "lấy đối xứng: kết quả có thể tích bằng không hoặc âm"
+
+# AI Translated
+msgid "mirror fuse failed"
+msgstr "hợp nhất sau khi lấy đối xứng thất bại"
+
+# AI Translated
+msgid "transform: no target body"
+msgstr "biến đổi: không có khối đích"
+
+# AI Translated
+msgid "transform: rotation axis is degenerate"
+msgstr "biến đổi: trục xoay bị suy biến"
+
+# AI Translated
+msgid "transform: failed"
+msgstr "biến đổi: thất bại"
+
+# AI Translated
+msgid "thicken: no target body"
+msgstr "làm dày: không có khối đích"
+
+# AI Translated
+msgid "thicken: face not found"
+msgstr "làm dày: không tìm thấy mặt"
+
+# AI Translated
+msgid "thicken: thickness is zero"
+msgstr "làm dày: độ dày bằng không"
+
+# AI Translated
+msgid "thicken: failed"
+msgstr "làm dày: thất bại"
+
+# AI Translated
+msgid "thicken: produced no geometry"
+msgstr "làm dày: không tạo ra hình học nào"
+
+# AI Translated
+msgid "thicken-surface: no target body"
+msgstr "làm dày bề mặt: không có khối đích"
+
+# AI Translated
+msgid "thicken-surface: target is not a sheet body"
+msgstr "làm dày bề mặt: khối đích không phải là khối bề mặt"
+
+# AI Translated
+msgid "thicken-surface: thickness is zero"
+msgstr "làm dày bề mặt: độ dày bằng không"
+
+# AI Translated
+msgid "thicken-surface: cannot cap the sheet rim (is it planar?)"
+msgstr "làm dày bề mặt: không thể đậy kín mép của bề mặt (mép có phẳng không?)"
+
+# AI Translated
+msgid "thicken-surface: failed"
+msgstr "làm dày bề mặt: thất bại"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet split into more than one shell"
+msgstr "làm dày bề mặt: bề mặt sau khi đậy bị tách thành nhiều hơn một lớp vỏ"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet is not closed"
+msgstr "làm dày bề mặt: bề mặt sau khi đậy không khép kín"
+
+# AI Translated
+msgid "thicken-surface: produced no geometry"
+msgstr "làm dày bề mặt: không tạo ra hình học nào"
+
+# AI Translated
+msgid "thicken-surface: produced a shell, not a solid"
+msgstr "làm dày bề mặt: tạo ra lớp vỏ, không phải khối đặc"
+
+# AI Translated
+msgid "surface-offset: no target body"
+msgstr "dời bề mặt: không có khối đích"
+
+# AI Translated
+msgid "surface-offset: target is not a sheet body"
+msgstr "dời bề mặt: khối đích không phải là khối bề mặt"
+
+# AI Translated
+msgid "surface-offset: zero offset"
+msgstr "dời bề mặt: khoảng dời bằng không"
+
+# AI Translated
+msgid "surface-offset: failed"
+msgstr "dời bề mặt: thất bại"
+
+# AI Translated
+msgid "surface-offset: produced no geometry"
+msgstr "dời bề mặt: không tạo ra hình học nào"
+
+# AI Translated
+msgid "project: no source body"
+msgstr "chiếu: không có khối nguồn"
+
+# AI Translated
+msgid "project: source body is empty"
+msgstr "chiếu: khối nguồn rỗng"
+
+# AI Translated
+msgid "project: edge not found"
+msgstr "chiếu: không tìm thấy cạnh"
+
+# AI Translated
+msgid "project: face not found"
+msgstr "chiếu: không tìm thấy mặt"
+
+# AI Translated
+msgid "project: no edges to project"
+msgstr "chiếu: không có cạnh nào để chiếu"
+
+# AI Translated
+msgid "project: produced no entities"
+msgstr "chiếu: không tạo ra thực thể nào"
+
+# AI Translated
 #, boost-format
 msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
 msgstr "Khối %1% đã được định vị bởi \"%2%\" (đặc trưng %3%), nên \"%4%\" sẽ ghi đè lên"
@@ -27125,8 +28223,106 @@ msgstr "Chuỗi lắp ghép bị vòng lặp: Khối %1% phụ thuộc vào Kh�
 
 # AI Translated
 #, boost-format
+msgid "mate: %1%"
+msgstr "lắp ghép: %1%"
+
+# AI Translated
+msgid "mate: transform failed"
+msgstr "lắp ghép: biến đổi thất bại"
+
+# AI Translated
+msgid "feature needs a body"
+msgstr "đặc trưng cần một khối"
+
+# AI Translated
+msgid "hole removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "lỗ không loại bỏ vật liệu nào — công cụ không giao với khối đích (tọa độ nằm trong hệ trục của mặt phẳng phác thảo, không phải hệ toàn cục)"
+
+# AI Translated
+msgid "thread removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "ren không loại bỏ vật liệu nào — công cụ không giao với khối đích (tọa độ nằm trong hệ trục của mặt phẳng phác thảo, không phải hệ toàn cục)"
+
+# AI Translated
+msgid "cut removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "cắt không loại bỏ vật liệu nào — công cụ không giao với khối đích (tọa độ nằm trong hệ trục của mặt phẳng phác thảo, không phải hệ toàn cục)"
+
+# AI Translated
+msgid "OCCT operation failed"
+msgstr "thao tác OCCT thất bại"
+
+# AI Translated
+msgid "unknown geometry error"
+msgstr "lỗi hình học không xác định"
+
+# AI Translated
+msgid "no solid-producing features"
+msgstr "không có đặc trưng nào tạo ra khối đặc"
+
+# AI Translated
+msgid "an unidentified feature"
+msgstr "một đặc trưng không xác định"
+
+# AI Translated
+#, boost-format
+msgid "feature %1%"
+msgstr "đặc trưng %1%"
+
+# AI Translated
+#, boost-format
+msgid "body %1% was destroyed by %2% (the operation produced an empty shape)"
+msgstr "khối %1% đã bị %2% phá hủy (thao tác tạo ra hình rỗng)"
+
+# AI Translated
+#, boost-format
 msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
 msgstr "Đầu nối \"%1%\" có thể đã chuyển sang một mặt khác (một chỉnh sửa ở bước trước đã đánh số lại các mặt của khối này)"
+
+# AI Translated
+msgid "tessellation produced an empty mesh"
+msgstr "quá trình lưới hóa tạo ra lưới rỗng"
+
+# AI Translated
+msgid "preview produced no geometry"
+msgstr "bản xem trước không tạo ra hình học nào"
+
+# AI Translated
+msgid "preview produced an empty mesh"
+msgstr "bản xem trước tạo ra lưới rỗng"
+
+# AI Translated
+#, boost-format
+msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
+msgstr "được lưu bằng phiên bản mới hơn của tab Thiết kế (định dạng v%1%, bản dựng này chỉ đọc được đến v%2%)"
+
+# AI Translated
+#, boost-format
+msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
+msgstr "được lưu bằng phiên bản cũ hơn của tab Thiết kế (định dạng v%1%); bản dựng này không thể mở dự án này"
+
+# AI Translated
+#, boost-format
+msgid "CAD data could not be read: %1%"
+msgstr "Không thể đọc dữ liệu CAD: %1%"
+
+# AI Translated
+msgid "CAD data could not be read"
+msgstr "Không thể đọc dữ liệu CAD"
+
+# AI Translated
+msgid "nothing to export"
+msgstr "không có gì để xuất"
+
+# AI Translated
+msgid "STEP transfer failed"
+msgstr "chuyển dữ liệu STEP thất bại"
+
+# AI Translated
+msgid "cannot write STEP file"
+msgstr "không thể ghi file STEP"
+
+# AI Translated
+msgid "OCCT failed to write STEP"
+msgstr "OCCT không ghi được STEP"
 
 # AI Translated
 msgid "Taking a configuration snapshot failed."
@@ -27139,6 +28335,15 @@ msgstr "OrcaSlicer đã gặp lỗi khi tạo bản chụp nhanh cấu hình."
 # AI Translated
 msgid "OrcaSlicer error"
 msgstr "Lỗi OrcaSlicer"
+
+# AI Translated
+#. TRN Short labels of the external spool of the right and left nozzle
+msgid "Ext-R"
+msgstr "Ext-P"
+
+# AI Translated
+msgid "Ext-L"
+msgstr "Ext-T"
 
 # AI Translated
 #, c-format, boost-format
@@ -27330,6 +28535,10 @@ msgid "Only the following installed printers are compatible with the selected SL
 msgstr "Chỉ những máy in đã cài đặt sau đây tương thích với các vật liệu SLA đã chọn"
 
 # AI Translated
+msgid "My Settings"
+msgstr "Cài đặt của tôi"
+
+# AI Translated
 msgid "Custom Printer Setup"
 msgstr "Thiết lập máy in tùy chỉnh"
 
@@ -27424,6 +28633,10 @@ msgstr "Theo kinh nghiệm, 60℃ cho PLA và 110℃ cho ABS. Để 0 nếu bạ
 # AI Translated
 msgid "Bed Temperature:"
 msgstr "Nhiệt độ bàn in:"
+
+# AI Translated
+msgid "(Unknown)"
+msgstr "(Không rõ)"
 
 # AI Translated
 msgid "SLA Materials"
@@ -27586,6 +28799,10 @@ msgstr "Tóm tắt: Đây hiện là vị trí đặt phù hợp nhất."
 # AI Translated
 msgid "?"
 msgstr "?"
+
+# AI Translated
+msgid "Wiki->"
+msgstr "Wiki->"
 
 # AI Translated
 msgid "Note:"
@@ -27838,6 +29055,10 @@ msgstr "Không thể tải kết cấu đã chọn."
 # AI Translated
 msgid "Change texture displacement texture"
 msgstr "Đổi kết cấu của lớp dịch chuyển kết cấu"
+
+# AI Translated
+msgid "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+msgstr "Hình ảnh (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
 
 # AI Translated
 msgid "Choose a texture image (height map)"
@@ -28213,7 +29434,7 @@ msgstr "Mức giữa"
 
 # AI Translated
 msgid ""
-"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"Which gray stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones still push out - one image both embosses and engraves.\n"
 "\n"
 "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
 msgstr ""
@@ -28250,15 +29471,15 @@ msgid "Turns the relief inside out: what stood out is cut in, and the other way 
 msgstr "Đảo ngược phần nổi: những gì nhô ra sẽ bị khắc vào, và ngược lại. Tương đương với việc dùng ảnh âm bản."
 
 # AI Translated
-msgid "Colours"
+msgid "Colors"
 msgstr "Màu sắc"
 
 # AI Translated
-msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgid "Prints the painted area in the texture's colors as well as its relief. Each color is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
 msgstr "In vùng đã vẽ bằng màu của kết cấu cùng với phần nổi của nó. Mỗi màu được khớp với filament gần nhất trong số filament đã nạp; những phần bạn không vẽ giữ màu riêng của đối tượng."
 
 # AI Translated
-msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgid "This texture is a grayscale height map, so it has no colors to apply. Import a color image to use this."
 msgstr "Kết cấu này là bản đồ độ cao thang độ xám, nên không có màu để áp dụng. Hãy nhập một ảnh màu để dùng tính năng này."
 
 # AI Translated
@@ -28266,7 +29487,7 @@ msgid "Mix filaments"
 msgstr "Trộn filament"
 
 # AI Translated
-msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgid "Interleaves two filaments to fake the colors in between, so a handful of filaments can cover a photo or a gradient. An image of flat colors prints the same either way. Off uses one filament per area."
 msgstr "Đan xen hai filament để mô phỏng các màu trung gian, nhờ đó chỉ vài filament cũng có thể thể hiện một bức ảnh hoặc dải chuyển màu. Ảnh có màu phẳng sẽ in ra giống nhau dù bật hay tắt. Tắt thì mỗi vùng dùng một filament."
 
 # AI Translated
@@ -28290,7 +29511,7 @@ msgstr ""
 
 # AI Translated
 #, boost-format
-msgid "%1% printable colours from %2% filaments"
+msgid "%1% printable colors from %2% filaments"
 msgstr "%1% màu có thể in từ %2% filament"
 
 # AI Translated
@@ -28298,7 +29519,7 @@ msgid "Denoise"
 msgstr "Khử nhiễu"
 
 # AI Translated
-msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgid "Cleans up single stray triangles of the wrong color, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
 msgstr "Dọn các tam giác lẻ bị sai màu, do chi tiết mịn hơn lưới để lại. Tăng giá trị nếu kết quả trông lốm đốm, giảm nếu các chi tiết nhỏ bị nuốt mất."
 
 # AI Translated
@@ -28315,7 +29536,7 @@ msgid "Triplanar - projects the texture from all three axes at once and blends b
 msgstr "Chiếu ba mặt - chiếu kết cấu từ cả ba trục cùng lúc và hòa trộn giữa chúng, nên một vùng bao quanh cạnh sắc không có vết nối."
 
 # AI Translated
-msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgid "Cylindrical - wraps the texture around the painted area's own center, for round shapes."
 msgstr "Hình trụ - quấn kết cấu quanh tâm riêng của vùng đã vẽ, dành cho các hình tròn."
 
 # AI Translated
@@ -28323,7 +29544,7 @@ msgid "Spherical"
 msgstr "Hình cầu"
 
 # AI Translated
-msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgid "Spherical - wraps the texture around the painted area's own center in both directions."
 msgstr "Hình cầu - quấn kết cấu quanh tâm riêng của vùng đã vẽ theo cả hai hướng."
 
 # AI Translated
@@ -28560,11 +29781,11 @@ msgid "Triangle size along the outline of the painted area, where the relief dro
 msgstr "Kích thước tam giác dọc theo đường viền của vùng đã vẽ, nơi phần nổi hạ về bề mặt trơn. Giảm nếu viền đó trông răng cưa; chỉ tốn thêm tam giác dọc theo đường viền. 0 để tắt."
 
 # AI Translated
-msgid "Colour detail"
+msgid "Color detail"
 msgstr "Chi tiết màu"
 
 # AI Translated
-msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgid "Triangle size where two colors meet. Each triangle prints in one filament, so a color edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of color. 0 turns it off."
 msgstr "Kích thước tam giác tại nơi hai màu gặp nhau. Mỗi tam giác in bằng một filament, nên ranh giới màu chỉ sắc nét được bằng các tam giác dọc theo nó - và không có gì khác tinh chỉnh ở đó, vì bề mặt phẳng tại chỗ chuyển màu. 0 để tắt."
 
 # AI Translated
@@ -28690,12 +29911,18 @@ msgid "Experimental: classic bake pipeline"
 msgstr "Thử nghiệm: quy trình nướng cổ điển"
 
 # AI Translated
-msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr "Nướng bằng cách di chuyển các đỉnh sẵn có của lưới, sau khi chuẩn bị lưới (tạo lại lưới, chia nhỏ thích ứng và cắt dọc các bậc sắc trong kết cấu). Giữ nguyên cấu trúc liên kết, điều mà màu sắc cần. Quy trình mặc định thì tinh chỉnh, dọn các tam giác dẹt, dịch chuyển và đơn giản hóa trong một lần chạy; không cần chuẩn bị gì trước, nhưng chưa tạo được màu."
 
 # AI Translated
+#. TRN Slider value: %d is the triangle budget in thousands
 msgid "Budget"
 msgstr "Hạn mức"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr "%d k (tự động)"
 
 # AI Translated
 msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
@@ -28720,6 +29947,11 @@ msgstr "Gộp các tam giác mỏng mà quá trình tinh chỉnh thừa hưởng
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
 msgstr "Bật: độ phân giải theo kích thước của mô hình và hạn mức được để ở mặc định. Bỏ chọn để tự đặt cả hai - nên làm khi kết cấu mịn hơn hoặc thô hơn nhiều so với chi tiết mà nó nằm trên."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.2f mm (auto)"
+msgstr "%.2f mm (tự động)"
 
 # AI Translated
 #, boost-format
@@ -29036,6 +30268,18 @@ msgid "Overwrite Plugin"
 msgstr "Ghi đè plugin"
 
 # AI Translated
+msgid "Show in folder"
+msgstr "Hiện trong thư mục"
+
+# AI Translated
+msgid "Reinstall"
+msgstr "Cài đặt lại"
+
+# AI Translated
+msgid "Delete cache and reload"
+msgstr "Xóa bộ nhớ đệm và tải lại"
+
+# AI Translated
 msgid "Select a .py or .whl plugin package."
 msgstr "Chọn một gói plugin .py hoặc .whl."
 
@@ -29108,6 +30352,10 @@ msgid "Deactivated \"%s\"."
 msgstr "Đã hủy kích hoạt \"%s\"."
 
 # AI Translated
+msgid "Unauthorized cloud plugins cannot be installed."
+msgstr "Không thể cài đặt plugin đám mây chưa được cấp phép."
+
+# AI Translated
 msgid "Plugin manifest was not found."
 msgstr "Không tìm thấy tệp kê khai (manifest) của plugin."
 
@@ -29152,6 +30400,10 @@ msgstr ""
 # AI Translated
 msgid "Default configuration restored."
 msgstr "Đã khôi phục cấu hình mặc định."
+
+# AI Translated
+msgid "Script plugin failed."
+msgstr "Plugin script thất bại."
 
 # AI Translated
 msgid "Updating plugin"
@@ -29238,8 +30490,33 @@ msgid "Deleting local files and unsubscribing plugin..."
 msgstr "Đang xóa file cục bộ và hủy đăng ký plugin..."
 
 # AI Translated
+msgid "Plugin not found."
+msgstr "Không tìm thấy plugin."
+
+# AI Translated
+msgid "Refusing to clear a plugin cache outside the local plugin directory."
+msgstr "Từ chối xóa bộ nhớ đệm plugin nằm ngoài thư mục plugin cục bộ."
+
+# AI Translated
+#, boost-format
+msgid "Failed to clear plugin cache: %1%"
+msgstr "Xóa bộ nhớ đệm plugin thất bại: %1%"
+
+# AI Translated
+msgid "Plugin failed to load."
+msgstr "Tải plugin thất bại."
+
+# AI Translated
+msgid "Plugin reloaded, but failed to restore the inactive state."
+msgstr "Đã tải lại plugin, nhưng không thể khôi phục trạng thái không hoạt động."
+
+# AI Translated
 msgid "Reloading plugin"
 msgstr "Đang tải lại plugin"
+
+# AI Translated
+msgid "Unknown plugin reload error."
+msgstr "Lỗi tải lại plugin không xác định."
 
 # AI Translated
 msgid "Failed to reload plugin."
@@ -29273,6 +30550,26 @@ msgstr "Giảm lượng nhựa xả bỏ và in nhanh hơn. Có thể gây lẫn
 # AI Translated
 msgid "Terminal"
 msgstr "Terminal"
+
+# AI Translated
+msgid "A command is already running."
+msgstr "Một lệnh khác đang chạy."
+
+# AI Translated
+msgid "Bundled Python executable not found."
+msgstr "Không tìm thấy tệp thực thi Python đi kèm."
+
+# AI Translated
+msgid "uv executable not found."
+msgstr "Không tìm thấy tệp thực thi uv."
+
+# AI Translated
+msgid "Only 'python' and 'uv' commands are supported."
+msgstr "Chỉ hỗ trợ các lệnh 'python' và 'uv'."
+
+# AI Translated
+msgid "Failed to start process."
+msgstr "Khởi động tiến trình thất bại."
 
 # AI Translated
 msgid "One-click CMYW auto-mix"
@@ -29529,7 +30826,7 @@ msgid "Checker - a test grid; squares stay square where the unwrap does not stre
 msgstr "Ô bàn cờ - một lưới kiểm tra; các ô vẫn vuông ở nơi phần trải phẳng không bị kéo giãn"
 
 # AI Translated
-msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgid "Distortion - color each island by how much the unwrap stretches it"
 msgstr "Độ méo - tô màu mỗi mảnh theo mức độ phần trải phẳng kéo giãn nó"
 
 # AI Translated
@@ -29812,6 +31109,926 @@ msgstr "Không thể ghi cấu hình vào ổ đĩa. Không có gì thay đổi.
 # AI Translated
 msgid "Plugin installation failed"
 msgstr "Cài đặt plugin thất bại"
+
+# AI Translated
+msgid "Profile has fewer than 2 points"
+msgstr "Biên dạng có ít hơn 2 điểm"
+
+# AI Translated
+msgid "Failed to build wire from profile"
+msgstr "Không thể tạo đường bao từ biên dạng"
+
+# AI Translated
+msgid "extrude depth is zero"
+msgstr "độ sâu đùn bằng không"
+
+# AI Translated
+msgid "extrude failed"
+msgstr "đùn thất bại"
+
+# AI Translated
+msgid "Fuse failed"
+msgstr "Hợp nhất thất bại"
+
+# AI Translated
+msgid "Failed to make face from wire"
+msgstr "Không thể tạo mặt từ đường bao"
+
+# AI Translated
+msgid "two-sided extrude fuse failed"
+msgstr "hợp nhất khi đùn hai phía thất bại"
+
+# AI Translated
+msgid "imported regions produced no extrudable geometry"
+msgstr "các vùng được nhập không tạo ra hình học nào có thể đùn"
+
+# AI Translated
+msgid "Failed to revolve"
+msgstr "Tạo khối tròn xoay thất bại"
+
+# AI Translated
+msgid "Failed to make face from sweep profile"
+msgstr "Không thể tạo mặt từ biên dạng quét"
+
+# AI Translated
+msgid "Failed to sweep profile along path"
+msgstr "Không thể quét biên dạng dọc theo đường dẫn"
+
+# AI Translated
+msgid "loft needs at least 2 profiles"
+msgstr "nối biên dạng cần ít nhất 2 biên dạng"
+
+# AI Translated
+msgid "loft failed"
+msgstr "nối biên dạng thất bại"
+
+# AI Translated
+msgid "loft produced no solid"
+msgstr "nối biên dạng không tạo ra khối đặc"
+
+# AI Translated
+msgid "loft produced no shape"
+msgstr "nối biên dạng không tạo ra hình nào"
+
+# AI Translated
+msgid "Pocket face failed"
+msgstr "Tạo mặt khoét hốc thất bại"
+
+# AI Translated
+msgid "Pocket cut failed"
+msgstr "Cắt khoét hốc thất bại"
+
+# AI Translated
+msgid "sketch has no closed loop"
+msgstr "phác thảo không có vòng khép kín"
+
+# AI Translated
+msgid "sketch loop does not bound a face"
+msgstr "vòng phác thảo không bao quanh một mặt"
+
+# AI Translated
+msgid "sketch has two disjoint regions; put each in its own sketch"
+msgstr "phác thảo có hai vùng tách rời; hãy đặt mỗi vùng vào một phác thảo riêng"
+
+# AI Translated
+msgid "cannot read STEP file"
+msgstr "không thể đọc file STEP"
+
+# AI Translated
+msgid "STEP file has no geometry"
+msgstr "file STEP không có hình học"
+
+# AI Translated
+msgid "OCCT failed to read STEP"
+msgstr "OCCT không đọc được STEP"
+
+# AI Translated
+msgid "mesh_to_brep: mesh has no triangles"
+msgstr "mesh_to_brep: lưới không có tam giác nào"
+
+# AI Translated
+msgid "mesh_to_brep: every triangle was rejected as degenerate (try a smaller tolerance)"
+msgstr "mesh_to_brep: mọi tam giác đều bị loại do suy biến (hãy thử dung sai nhỏ hơn)"
+
+# AI Translated
+msgid "fillet radius too large for this geometry"
+msgstr "bán kính bo tròn quá lớn đối với hình học này"
+
+# AI Translated
+msgid "chamfer distance too large for this geometry"
+msgstr "khoảng cách vát cạnh quá lớn đối với hình học này"
+
+# AI Translated
+msgid "apply_fillet: OCCT fillet failed"
+msgstr "apply_fillet: OCCT bo tròn thất bại"
+
+# AI Translated
+msgid "apply_chamfer: OCCT chamfer failed"
+msgstr "apply_chamfer: OCCT vát cạnh thất bại"
+
+# AI Translated
+msgid "Add material"
+msgstr "Thêm vật liệu"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Bo tròn / vát cạnh / thoát khuôn"
+
+# AI Translated
+msgid "Reference"
+msgstr "Tham chiếu"
+
+# AI Translated
+msgid "Modify"
+msgstr "Sửa đổi"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Phác thảo"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ vẽ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Tròn xoay"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Quét"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Nối biên dạng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Làm dày"
+
+# AI Translated
+msgctxt "Design"
+msgid "Union"
+msgstr "Hợp"
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Hợp nhất khối công cụ vào khối đích — thành một khối đặc, không có đường nối"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Trừ"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Cắt khối công cụ ra khỏi khối đích"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Giao"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Chỉ giữ lại phần hai khối chồng lấn nhau"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Đùn bề mặt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Tròn xoay bề mặt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Nối biên dạng bề mặt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Lấp đầy bề mặt"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Hãy tạo một phác thảo khép kín trước"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Làm dày bề mặt"
+
+# AI Translated
+msgid "target is not a sheet body"
+msgstr "khối đích không phải là khối bề mặt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Lỗ"
+
+# AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Hãy chọn một mặt hoặc một mặt phẳng để khoan vào"
+
+# AI Translated
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr "Khoan một lỗ, căn tâm trên một mặt đã chọn hoặc đặt trên một mặt phẳng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Ren"
+
+# AI Translated
+msgid "Shell needs a solid body"
+msgstr "Vỏ mỏng cần một khối đặc"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Cắt khối bằng một mặt phẳng — kéo mũi tên dời; giữ một nửa hoặc cả hai"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Tách"
+
+# AI Translated
+msgid "Split needs a solid body"
+msgstr "Tách cần một khối đặc"
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Tách khối dọc theo một mặt đã chọn thành hai khối đặc"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Bo tròn"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Hãy chọn một cạnh để bo tròn"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Chọn một cạnh, rồi kéo mũi tên bán kính hoặc nhập giá trị"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Vát cạnh"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Hãy chọn một cạnh để vát"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Chọn một cạnh, rồi kéo mũi tên khoảng cách hoặc nhập giá trị"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Thoát khuôn"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Hãy chọn một mặt để làm nghiêng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Dời bề mặt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Mảng tuyến tính"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Lặp lại khối theo một hướng — kéo khoảng cách, đặt số lượng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Mảng tròn"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Lặp lại khối quanh một trục — đặt số lượng và góc quét"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Lấy đối xứng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Mảng theo đường cong"
+
+# AI Translated
+msgid "Pattern on curve needs a body and a curve"
+msgstr "Mảng theo đường cong cần một khối và một đường cong"
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Lặp lại khối dọc theo một đường cong đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Di chuyển"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Lắp ghép"
+
+# AI Translated
+msgid "A mate needs two coordinate systems"
+msgstr "Lắp ghép cần hai hệ tọa độ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Căn theo"
+
+# AI Translated
+msgid "Align needs a body"
+msgstr "Căn chỉnh cần một khối"
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Căn khối theo một mặt hoặc mặt phẳng đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Mặt phẳng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Trục"
+
+# AI Translated
+msgctxt "Design"
+msgid "Coord Sys"
+msgstr "Hệ tọa độ"
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Đường xoắn ốc"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Đo"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Đo giữa các điểm, cạnh hoặc mặt đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mass"
+msgstr "Khối lượng"
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Báo cáo thể tích và diện tích bề mặt của khối đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Giao thoa"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Kiểm tra xem hai khối có chồng lấn không — chỉ báo cáo, không thay đổi gì"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Chỉnh sửa"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "Mở lại đặc trưng đã chọn để thay đổi các thành phần tạo nên nó"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Đổi tên…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Hãy chọn một đặc trưng hoặc một khối để đổi tên"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Đặt cho đặc trưng này một cái tên mà bạn sẽ nhận ra trong cây (một khối lấy tên từ đặc trưng tạo ra nó)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Xóa mặt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Colour"
+msgstr "Màu"
+
+# AI Translated
+msgid "Set the selected body's display colour"
+msgstr "Đặt màu hiển thị của khối đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Xóa"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Xóa mục đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Xóa khối"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Xóa toàn bộ khối này — xóa cả đặc trưng tạo ra nó"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Đường thẳng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Đa tuyến"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Nhấn các điểm; nhấn điểm đầu tiên để khép vòng, nhấn chuột phải để kết thúc ở dạng hở"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Hình chữ nhật theo góc"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre rectangle"
+msgstr "Hình chữ nhật theo tâm"
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Hình chữ nhật xiên"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Hình chữ nhật bo góc"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre circle"
+msgstr "Đường tròn theo tâm"
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Đường tròn 2 điểm"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Đường tròn 3 điểm"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Cung 3 điểm"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Cung tiếp tuyến"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre-point arc"
+msgstr "Cung theo tâm"
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Rãnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Rãnh cung"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Elip"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Cung elip"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Tam giác"
+
+# AI Translated
+msgid "Triangle — click centre, then a vertex"
+msgstr "Tam giác — nhấn tâm, rồi một đỉnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Hình vuông"
+
+# AI Translated
+msgid "Square — click centre, then a vertex"
+msgstr "Hình vuông — nhấn tâm, rồi một đỉnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Ngũ giác"
+
+# AI Translated
+msgid "Pentagon — click centre, then a vertex"
+msgstr "Ngũ giác — nhấn tâm, rồi một đỉnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Lục giác"
+
+# AI Translated
+msgid "Hexagon — click centre, then a vertex"
+msgstr "Lục giác — nhấn tâm, rồi một đỉnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Bát giác"
+
+# AI Translated
+msgid "Octagon — click centre, then a vertex"
+msgstr "Bát giác — nhấn tâm, rồi một đỉnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Thập nhị giác"
+
+# AI Translated
+msgid "Dodecagon — click centre, then a vertex"
+msgstr "Thập nhị giác — nhấn tâm, rồi một đỉnh"
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Nội tiếp"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "Đo đa giác tới các đỉnh (nội tiếp)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Ngoại tiếp"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "Đo đa giác tới các cạnh (ngoại tiếp)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Điểm"
+
+# AI Translated
+msgid "Type text; its outline is added to this sketch as editable lines"
+msgstr "Nhập chữ; đường viền của chữ được thêm vào phác thảo này dưới dạng các đường có thể chỉnh sửa"
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Nhập đường viền SVG vào phác thảo này dưới dạng các đường có thể chỉnh sửa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Dời song song"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Cắt tỉa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Mảng tuyến tính"
+
+# AI Translated
+msgid "Array"
+msgstr "Mảng"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Mảng tròn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Xoay"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Co giãn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Kích thước"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Ràng buộc"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "Ràng buộc các thực thể phác thảo đã chọn với nhau"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Ràng buộc phác thảo"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Hãy chọn một phác thảo để ràng buộc"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Thêm kích thước và quan hệ (trùng nhau, tiếp tuyến, song song...) vào phác thảo đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Dựng hình"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Bật/tắt dựng hình: hình học dùng để dẫn hướng nhưng không bao giờ được dựng thành khối"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Kéo dài"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "Xóa các thực thể phác thảo đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Độ dài…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Nhập độ dài của đường thẳng này"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Bán kính / đường kính…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Nhập bán kính của cung này, hoặc đường kính của đường tròn này"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Góc / khoảng cách…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Nhập góc giữa hai đường thẳng, hoặc khoảng cách giữa hai đối tượng đã chọn"
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Cạnh"
+
+# AI Translated
+#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
+msgid "Major"
+msgstr "Trục lớn"
+
+# AI Translated
+msgid "Minor"
+msgstr "Trục nhỏ"
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "nhấn chuột phải hoặc nhấp đúp để kết thúc, nhấn điểm đầu để khép kín"
+
+# AI Translated
+msgid "Extend: click a line/arc that can reach another live entity"
+msgstr "Kéo dài: nhấn một đường thẳng/cung có thể chạm tới một thực thể khác trong phác thảo đang vẽ"
+
+# AI Translated
+msgid "Trim: click a segment where it crosses another live entity"
+msgstr "Cắt tỉa: nhấn một đoạn tại chỗ nó cắt qua một thực thể khác trong phác thảo đang vẽ"
+
+# AI Translated
+msgid "Authentication complete"
+msgstr "Xác thực hoàn tất"
+
+# AI Translated
+msgid "Authentication failed"
+msgstr "Xác thực thất bại"
+
+# AI Translated
+msgid "You can return to OrcaSlicer. This window will close automatically."
+msgstr "Bạn có thể quay lại OrcaSlicer. Cửa sổ này sẽ tự động đóng."
+
+# AI Translated
+msgid "Something went wrong. Please return to OrcaSlicer and try again."
+msgstr "Đã xảy ra lỗi. Vui lòng quay lại OrcaSlicer và thử lại."
+
+# AI Translated
+msgid "You can return to OrcaSlicer. If your browser does not redirect automatically, use the button below."
+msgstr "Bạn có thể quay lại OrcaSlicer. Nếu trình duyệt không tự động chuyển hướng, hãy dùng nút bên dưới."
+
+# AI Translated
+#, boost-format
+msgid "Failed starting the script %1%, Win32 error: %2%"
+msgstr "Khởi chạy script %1% thất bại, lỗi Win32: %2%"
+
+# AI Translated
+#, boost-format
+msgid "Post processing script %1% on file %2% failed. CommandLineToArgvW() refused to parse the command line path."
+msgstr "Script hậu xử lý %1% trên file %2% thất bại. CommandLineToArgvW() từ chối phân tích đường dẫn dòng lệnh."
+
+# AI Translated
+#, boost-format
+msgid "The configured post-processing script does not exist: %1%"
+msgstr "Script hậu xử lý đã cấu hình không tồn tại: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Perl interpreter %1% does not exist."
+msgstr "Trình thông dịch Perl %1% không tồn tại."
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% raised an exception.\n"
+"Error: %2%"
+msgstr ""
+"Plugin hậu xử lý %1% gặp ngoại lệ.\n"
+"Lỗi: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"Error: %2%"
+msgstr ""
+"Plugin hậu xử lý %1% thất bại.\n"
+"Lỗi: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"\n"
+"The post-processing plugin is expected to modify the G-code file %2% in place, but the G-code file was deleted.\n"
+"Please check the plugin implementation.\n"
+msgstr ""
+"Plugin hậu xử lý %1% thất bại.\n"
+"\n"
+"Plugin hậu xử lý được kỳ vọng sẽ sửa file G-code %2% tại chỗ, nhưng file G-code đã bị xóa.\n"
+"Vui lòng kiểm tra lại cách triển khai plugin.\n"
+
+# AI Translated
+#, boost-format
+msgid "Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%"
+msgstr "Không thể tạo bản sao tạm của file G-code %1% trước khi chạy script hậu xử lý: %2%"
+
+# AI Translated
+msgid "Post-processor can't find exported gcode file"
+msgstr "Trình hậu xử lý không tìm thấy file G-code đã xuất"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%"
+msgstr ""
+"Script hậu xử lý %1% trên file %2% thất bại.\n"
+"Mã lỗi: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%\n"
+"Output:\n"
+"%4%"
+msgstr ""
+"Script hậu xử lý %1% trên file %2% thất bại.\n"
+"Mã lỗi: %3%\n"
+"Đầu ra:\n"
+"%4%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% failed.\n"
+"\n"
+"The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
+"Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n"
+msgstr ""
+"Script hậu xử lý %1% thất bại.\n"
+"\n"
+"Script hậu xử lý được kỳ vọng sẽ thay đổi file G-code %2% tại chỗ, nhưng file G-code đã bị xóa và có thể đã được lưu dưới tên mới.\n"
+"Vui lòng điều chỉnh script hậu xử lý để thay đổi G-code tại chỗ và tham khảo hướng dẫn về cách tùy chọn đổi tên file G-code đã hậu xử lý.\n"
+
+# AI Translated
+msgid "Unable to parse desired new path from output name file"
+msgstr "Không thể phân tích đường dẫn mới mong muốn từ file tên đầu ra"
+
+# AI Translated
+#, boost-format
+msgid "Output directory does not exist: %1%"
+msgstr "Thư mục đầu ra không tồn tại: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Failed reading a file %1% carrying the final name / path of a G-code file: %2%"
+msgstr "Không thể đọc file %1% chứa tên / đường dẫn cuối cùng của file G-code: %2%"
+
+# AI Translated
+msgid "The printing task exceeds the limit, supporting a maximum of 6 printers."
+msgstr "Tác vụ in vượt quá giới hạn, chỉ hỗ trợ tối đa 6 máy in."
+
+# AI Translated
+msgid "Elapsed time:"
+msgstr "Thời gian đã trôi qua:"
+
+# AI Translated
+msgid "Estimated time:"
+msgstr "Thời gian ước tính:"
+
+# AI Translated
+msgid "Remaining time:"
+msgstr "Thời gian còn lại:"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -30113,6 +32330,10 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "closed profile(s)"
+#~ msgstr "biên dạng khép kín"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Không thể tạo G-code hiệu chỉnh"

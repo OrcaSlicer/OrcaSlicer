@@ -2176,7 +2176,8 @@ void PrinterAgentChoice::set_value(const std::string& value, bool change_event)
     if (match == wxNOT_FOUND)
     {
         field->SetSelection(wxNOT_FOUND); // nothing shows as selected in the dropdown
-        field->SetValue(from_u8(value + " (missing)")); // set a value not in the selection (upper display field)
+        // TRN %1% is the ID of a printer agent that is no longer available
+        field->SetValue(format_wxstr(_L("%1% (missing)"), value)); // set a value not in the selection (upper display field)
     }
     else
     {

@@ -165,7 +165,7 @@ void Downloader::start_download(const std::string& full_url)
         // Orca: show error
         NotificationManager* ntf_mngr = wxGetApp().notification_manager();
         ntf_mngr->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel,
-                                    "Could not start download due to malformed URL");
+                                    _u8L("Could not start download due to malformed URL"));
 		return;
 	}
     size_t id = get_next_id();

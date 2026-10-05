@@ -454,7 +454,8 @@ void FilamentMapManualPanel::UpdateNozzleCountDisplay()
     if (m_right_panel->IsUseSeparation()) {
         int      standard_count = getExtruderNozzleCount(preset_bundle, 1, NozzleVolumeType::nvtStandard);
         int      highflow_count = getExtruderNozzleCount(preset_bundle, 1, NozzleVolumeType::nvtHighFlow);
-        wxString right_title    = _L("Right Nozzle") + wxString::Format("(Std: %d, HF: %d)", standard_count, highflow_count);
+        // TRN Nozzle counts: Std = standard flow, HF = high flow
+        wxString right_title    = _L("Right Nozzle") + wxString::Format(_L("(Std: %d, HF: %d)"), standard_count, highflow_count);
         m_right_panel->UpdateLabel(right_title);
     } else {
         int      right_count = getExtruderNozzleCountTotal(preset_bundle, 1);

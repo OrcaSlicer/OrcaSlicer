@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 22:37-0300\n"
+"POT-Creation-Date: 2026-10-05 06:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -91,6 +91,7 @@ msgstr "Levá tryska"
 msgid "left nozzle"
 msgstr "levá tryska"
 
+#. TRN Nozzle counts: Std = standard flow, HF = high flow
 msgid "Right Nozzle"
 msgstr "Pravá tryska"
 
@@ -1691,6 +1692,22 @@ msgstr "Obrys tvaru (%1%) je příliš tenký (minimální šířka je %2% mm)."
 msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr "Obrys tvaru (%1%) obsahuje nepodporované: %2%."
 
+# AI Translated
+msgid "Not valid state please report reproduction steps on github"
+msgstr "Neplatný stav, nahlaste prosím postup reprodukce na GitHubu"
+
+# AI Translated
+msgid "No embossed file"
+msgstr "Chybí soubor pro reliéf"
+
+# AI Translated
+msgid "Missing svg file in embossed shape"
+msgstr "V reliéfním tvaru chybí soubor SVG"
+
+# AI Translated
+msgid "Missing data of svg file"
+msgstr "Chybí data souboru SVG"
+
 msgid "Face the camera"
 msgstr "Natočit ke kameře"
 
@@ -1776,6 +1793,10 @@ msgstr "Zrcadlit vodorovně"
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
 msgstr "Změnit typ SVG"
+
+# AI Translated
+msgid "SVG shape"
+msgstr "Tvar SVG"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
@@ -2507,6 +2528,10 @@ msgid ""
 msgstr ""
 "\n"
 "Možná bude nutné znovu nakonfigurovat chybějící lokalizace, pravděpodobně spuštěním příkazů „locale-gen“ a „dpkg-reconfigure locales“.\n"
+
+# AI Translated
+msgid "Application will close."
+msgstr "Aplikace bude ukončena."
 
 # AI Translated
 msgid "Orca Slicer - Switching language failed"
@@ -3624,6 +3649,16 @@ msgstr "Zkontrolujte stav aktuálních systémových služeb"
 msgid "code"
 msgstr "kód"
 
+# AI Translated
+#. TRN Short for "description" of a connection error
+msgid "desc"
+msgstr "popis"
+
+# AI Translated
+#. TRN Short for "additional information" about a connection error
+msgid "info"
+msgstr "informace"
+
 msgid "Failed to connect to cloud service"
 msgstr "Nepodařilo se připojit ke cloudové službě."
 
@@ -3813,6 +3848,12 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Přepnout dráhu na Filament Track Switch"
 
 # AI Translated
+#. TRN AMS unit number, then slot number
+#, c-format, boost-format
+msgid "AMS-%d-%d Slot"
+msgstr "Slot AMS-%d-%d"
+
+# AI Translated
 #, c-format, boost-format
 msgid "The maximum temperature cannot exceed %d"
 msgstr "Maximální teplota nesmí překročit %d"
@@ -3935,6 +3976,10 @@ msgid "Ignore"
 msgstr "Ignorovat"
 
 # AI Translated
+msgid "unknown"
+msgstr "neznámé"
+
+# AI Translated
 msgid "Done."
 msgstr "Hotovo."
 
@@ -3957,6 +4002,11 @@ msgstr ""
 
 msgid "Arranging..."
 msgstr "Uspořádání..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Object %s has zero size and can't be arranged."
+msgstr "Objekt %s má nulovou velikost a nelze jej rozložit."
 
 msgid "Arranging"
 msgstr "Uspořádání"
@@ -4140,8 +4190,16 @@ msgstr "Úložiště v tiskárně není v pořádku. Před odesláním do tiská
 msgid "The Storage in the printer is read-only. Please replace it with a normal Storage before sending to printer."
 msgstr "Úložiště v tiskárně je pouze pro čtení. Před odesláním do tiskárny jej nahraďte funkčním úložištěm."
 
+# AI Translated
+msgid "Can't create empty volume."
+msgstr "Nelze vytvořit prázdný objem."
+
 msgid "Bad input data for EmbossCreateObjectJob."
 msgstr "Neplatná vstupní data pro EmbossCreateObjectJob."
+
+# AI Translated
+msgid "Can't create empty object."
+msgstr "Nelze vytvořit prázdný objekt."
 
 msgid "Add Emboss text object"
 msgstr "Přidat textový objekt reliéfu"
@@ -4158,10 +4216,22 @@ msgstr "Neplatná vstupní data pro CreateSurfaceVolumeJob."
 msgid "Bad input data for UseSurfaceJob."
 msgstr "Neplatná vstupní data pro UseSurfaceJob."
 
+# AI Translated
+msgid "It is used default volume for embossed text, try to change text or font to fix it."
+msgstr "Pro reliéfní text je použit výchozí objem, zkuste to opravit změnou textu nebo písma."
+
+# AI Translated
+msgid "Empty mesh can't be created."
+msgstr "Prázdnou síť nelze vytvořit."
+
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
 msgstr "Změna atributů reliéfu"
+
+# AI Translated
+msgid "Bad object to create volume."
+msgstr "Nevhodný objekt pro vytvoření objemu."
 
 msgid "Add Emboss text Volume"
 msgstr "Přidat objem reliéfního textu"
@@ -4260,6 +4330,12 @@ msgstr "Tento software využívá open source komponenty, jejichž autorská a d
 msgid "About %s"
 msgstr "O aplikaci %s"
 
+# AI Translated
+#. TRN %s is the commit the application was built from
+#, c-format, boost-format
+msgid "Build %s"
+msgstr "Sestavení %s"
+
 msgid "Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."
 msgstr "Open-source slicery stojí na tradici spolupráce a uznání autorství. Slic3r, vytvořený Alessandrem Ranelluccim a komunitou RepRap, položil základy. PrusaSlicer od Prusa Research na této práci dále stavěl, Bambu Studio vzniklo jako fork PrusaSliceru a SuperSlicer jej rozšířil o komunitně vyvíjená vylepšení. Každý projekt navázal na práci svých předchůdců a přiznal zásluhy těm, kteří přišli před ním."
 
@@ -4268,6 +4344,10 @@ msgstr "OrcaSlicer vznikl ve stejném duchu a vycházel z projektů PrusaSlicer,
 
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Dnes je OrcaSlicer nejpoužívanějším a nejaktivněji vyvíjeným open-source slicerem v komunitě 3D tisku. Mnoho jeho inovací převzaly i další slicery, díky čemuž se stal hnací silou celého odvětví."
+
+# AI Translated
+msgid "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"
+msgstr "Copyright(C) 2026 OrcaSlicer Pte Ltd Všechna práva vyhrazena"
 
 # AI Translated
 msgid "Script plugin skipped."
@@ -4423,6 +4503,7 @@ msgstr "Kalibrace byla dokončena"
 msgid "%s does not support %s"
 msgstr "%s nepodporuje %s"
 
+#. TRN Sketch gizmo: grid spacing
 msgid "Step"
 msgstr "Krok"
 
@@ -4722,15 +4803,17 @@ msgstr "Spouštění post-processing skriptů"
 msgid "Successfully executed post-processing script"
 msgstr "Post-processing skript byl úspěšně proveden"
 
+# AI Translated
 msgid "Unknown error occurred during exporting G-code."
-msgstr "Došlo k neznámé chybě při exportu G-kódu."
+msgstr "Došlo k neznámé chybě při exportu G-code."
 
+# AI Translated
 #, boost-format
 msgid ""
 "Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\n"
 "Error message: %1%"
 msgstr ""
-"Kopírování dočasného G-kódu do výstupního G-kódu selhalo. Možná je SD karta uzamčená pro zápis?\n"
+"Kopírování dočasného G-code do výstupního G-code selhalo. Možná je SD karta uzamčená pro zápis?\n"
 "Chybová zpráva: %1%"
 
 # AI Translated
@@ -4739,31 +4822,35 @@ msgid ""
 "Copying of the temporary G-code to the output G-code failed.\n"
 "Error message: %1%"
 msgstr ""
-"Kopírování dočasného G-kódu do výstupního G-kódu selhalo.\n"
+"Kopírování dočasného G-code do výstupního G-code selhalo.\n"
 "Chybová zpráva: %1%"
 
+# AI Translated
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
-msgstr "Kopírování dočasného G-kódu do výstupního G-kódu selhalo. Může být problém s cílovým zařízením, zkuste prosím exportovat znovu nebo použijte jiné zařízení. Poškozený výstupní G-kód je na %1%.tmp."
+msgstr "Kopírování dočasného G-code do výstupního G-code selhalo. Může být problém s cílovým zařízením, zkuste prosím exportovat znovu nebo použijte jiné zařízení. Poškozený výstupní G-code je na %1%.tmp."
 
 #, boost-format
 msgid "Renaming of the G-code after copying to the selected destination folder has failed. Current path is %1%.tmp. Please try exporting again."
 msgstr "Přejmenování G-code po zkopírování do vybrané cílové složky se nezdařilo. Aktuální cesta je %1%.tmp. Zkuste exportovat znovu."
 
+# AI Translated
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the original code at %1% couldn't be opened during copy check. The output G-code is at %2%.tmp."
-msgstr "Kopírování dočasného G-kódu bylo dokončeno, ale původní kód na %1% se nepodařilo otevřít při kontrole kopie. Výstupní G-kód je na %2%.tmp."
+msgstr "Kopírování dočasného G-code bylo dokončeno, ale původní kód na %1% se nepodařilo otevřít při kontrole kopie. Výstupní G-code je na %2%.tmp."
 
+# AI Translated
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the exported code couldn't be opened during copy check. The output G-code is at %1%.tmp."
-msgstr "Kopírování dočasného G-kódu bylo dokončeno, ale exportovaný kód se nepodařilo otevřít při kontrole kopie. Výstupní G-kód je na %1%.tmp."
+msgstr "Kopírování dočasného G-code bylo dokončeno, ale exportovaný kód se nepodařilo otevřít při kontrole kopie. Výstupní G-code je na %1%.tmp."
 
 #, boost-format
 msgid "G-code file exported to %1%"
 msgstr "G-code soubor exportován do %1%"
 
+# AI Translated
 msgid "Unknown error with G-code export"
-msgstr "Neznámá chyba při exportu G-kódu."
+msgstr "Neznámá chyba při exportu G-code"
 
 #, boost-format
 msgid ""
@@ -4775,8 +4862,9 @@ msgstr ""
 "Chybová zpráva: %1%.\n"
 "Zdrojový soubor: %2%."
 
+# AI Translated
 msgid "Copying of the temporary G-code to the output G-code failed."
-msgstr "Kopírování dočasného G-kódu do výstupního G-kódu selhalo"
+msgstr "Kopírování dočasného G-code do výstupního G-code selhalo."
 
 #, boost-format
 msgid "Scheduling upload to `%1%`. See Window -> Print Host Upload Queue"
@@ -5512,6 +5600,12 @@ msgid "System agents"
 msgstr "Systémoví agenti"
 
 # AI Translated
+#. TRN %1% is the ID of a printer agent that is no longer available
+#, boost-format
+msgid "%1% (missing)"
+msgstr "%1% (chybí)"
+
+# AI Translated
 msgid "Add plugin"
 msgstr "Přidat plugin"
 
@@ -6196,18 +6290,21 @@ msgstr "Objem:"
 msgid "Size:"
 msgstr "Velikost:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr "Byly nalezeny konflikty drah G-kódu ve vrstvě %d, Z = %.2lf mm. Oddělte prosím konfliktní objekty více od sebe (%s <-> %s)."
+msgstr "Byly nalezeny konflikty drah G-code ve vrstvě %d, Z = %.2lf mm. Oddělte prosím konfliktní objekty více od sebe (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
 msgstr "Objekt přesahuje hranice podložky."
 
+# AI Translated
 msgid "A G-code path goes beyond the max print height."
-msgstr "Dráha G-kódu přesahuje maximální výšku tisku."
+msgstr "Dráha G-code přesahuje maximální výšku tisku."
 
+# AI Translated
 msgid "A G-code path goes beyond plate boundaries."
-msgstr "Dráha G-kódu přesahuje hranice podložky."
+msgstr "Dráha G-code přesahuje hranice podložky."
 
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "Tisk 2 nebo více TPU filamentů není podporován."
@@ -6216,21 +6313,25 @@ msgstr "Tisk 2 nebo více TPU filamentů není podporován."
 msgid "Tool %d"
 msgstr "Nástroj %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "Filament %s je umístěn v %s, ale vygenerovaná dráha G-kódu přesahuje tisknutelnou oblast %s."
+msgstr "Filament %s je umístěn v %s, ale vygenerovaná dráha G-code přesahuje tisknutelnou oblast %s."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "Filamenty %s jsou umístěny v %s, ale vygenerovaná dráha G-kódu přesahuje tisknutelnou oblast %s."
+msgstr "Filamenty %s jsou umístěny v %s, ale vygenerovaná dráha G-code přesahuje tisknutelnou oblast %s."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "Filament %s je umístěn v %s, ale vygenerovaná dráha G-kódu přesahuje tisknutelnou výšku %s."
+msgstr "Filament %s je umístěn v %s, ale vygenerovaná dráha G-code přesahuje tisknutelnou výšku %s."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "Filamenty %s jsou umístěny v %s, ale vygenerovaná dráha G-kódu přesahuje tisknutelnou výšku %s."
+msgstr "Filamenty %s jsou umístěny v %s, ale vygenerovaná dráha G-code přesahuje tisknutelnou výšku %s."
 
 msgid "Open wiki for more information."
 msgstr "Otevřít wiki pro více informací."
@@ -6738,8 +6839,9 @@ msgstr "Kalibrace teploty"
 msgid "Max flowrate"
 msgstr "Maximální průtok"
 
+# AI Translated
 msgid "Pressure advance"
-msgstr "Pressure advance"
+msgstr "Pressure Advance"
 
 msgid "Flow ratio"
 msgstr "Poměr průtoku"
@@ -6771,8 +6873,9 @@ msgstr "VFA"
 msgid "Calibration Guide"
 msgstr "Průvodce kalibrací"
 
+# AI Translated
 msgid "&Open G-code"
-msgstr "&Otevřít G-kód"
+msgstr "&Otevřít G-code"
 
 msgid "Open a G-code file"
 msgstr "Otevřít G-code soubor"
@@ -7307,6 +7410,10 @@ msgstr "(Model již byl hodnocen. Vaše hodnocení přepíše předchozí.)"
 msgid "Rate"
 msgstr "Rychlost"
 
+# AI Translated
+msgid "Calculating..."
+msgstr "Výpočet..."
+
 msgid "Camera"
 msgstr "Kamera"
 
@@ -7496,10 +7603,6 @@ msgid ""
 msgstr ""
 "Během nahrávání obrázků došlo k následujícím problémům. Chcete je ignorovat?\n"
 "\n"
-
-# AI Translated
-msgid "info"
-msgstr "informace"
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "Synchronizují se výsledky tisku. Zkuste to prosím znovu za několik sekund."
@@ -7989,6 +8092,10 @@ msgstr "Otevřít složku."
 msgid "Safely remove hardware."
 msgstr "Bezpečně odeberte hardware."
 
+# AI Translated
+msgid "Ejecting."
+msgstr "Vysouvání."
+
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
@@ -8022,6 +8129,11 @@ msgstr "CHYBA"
 
 msgid "COMPLETED"
 msgstr "DOKONČENO"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d%% - %.2f of %.2fMB uploaded"
+msgstr "%d%% - nahráno %.2f z %.2f MB"
 
 msgid "CANCELED"
 msgstr "ZRUŠENO"
@@ -8076,11 +8188,30 @@ msgstr "Váš model potřebuje podporu! Povolit materiál podpory."
 msgid "G-code path overlap"
 msgstr "Překrytí cest G-code"
 
+# AI Translated
+msgid "Click for more."
+msgstr "Klikněte pro více informací."
+
 msgid "Cut connectors"
 msgstr "Řezací spoje"
 
+# AI Translated
+msgid "Instances"
+msgstr "Instance"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Instance %d"
+msgstr "Instance %d"
+
 msgid "Layers"
 msgstr "Vrstvy"
+
+# AI Translated
+#. TRN Object list item: plate number, then instance number
+#, c-format, boost-format
+msgid "[P%d]Instance %d"
+msgstr "[D%d]Instance %d"
 
 msgid "The application cannot run normally because OpenGL version is lower than 3.2.\n"
 msgstr "Aplikace nemůže běžet správně, protože verze OpenGL je nižší než 3.2.\n"
@@ -9025,6 +9156,10 @@ msgid "Project downloaded %d%%"
 msgstr "Projekt stažen z %d %%"
 
 # AI Translated
+msgid "Pressure Advance Test"
+msgstr "Test Pressure Advance"
+
+# AI Translated
 msgid "INFO:"
 msgstr "INFO:"
 
@@ -9033,6 +9168,40 @@ msgstr "Pro kalibraci nejsou zadány hodnoty zrychlení. Použije se výchozí h
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "Pro kalibraci nejsou zadány rychlosti. Použije se výchozí optimální rychlost "
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration - Perfectionist version"
+msgstr "Orca YOLO kalibrace průtoku - verze pro perfekcionisty"
+
+# AI Translated
+msgid "Orca YOLO Flow Calibration"
+msgstr "Orca YOLO kalibrace průtoku"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Flowrate Test - Pass%d"
+msgstr "Test průtoku - průchod %d"
+
+# AI Translated
+msgid "Nozzle temperature test"
+msgstr "Test teploty trysky"
+
+msgid "Max volumetric speed test"
+msgstr "Test maximální objemové rychlosti"
+
+# AI Translated
+msgid "VFA test"
+msgstr "Test VFA"
+
+msgid "Input shaping Frequency test"
+msgstr "Test frekvence Input Shaping"
+
+# AI Translated
+msgid "Input shaping Damping test"
+msgstr "Test tlumení Input Shaping"
+
+msgid "Cornering test"
+msgstr "Test corneringu"
 
 msgid "Import SLA archive"
 msgstr "Importovat SLA archiv"
@@ -9510,7 +9679,7 @@ msgstr "Vždy se zeptat"
 msgid "Load Geometry Only"
 msgstr "Načíst pouze geometrii"
 
-msgid "Load behaviour"
+msgid "Load behavior"
 msgstr "Chování při načítání"
 
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
@@ -9706,7 +9875,7 @@ msgstr "stránek"
 msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
 msgstr "Počet stránek pluginů zobrazených jako pevné karty, než se zbývající stránky sbalí do rozbalovací nabídky na poslední kartě."
 
-msgid "Behaviour"
+msgid "Behavior"
 msgstr "Chování"
 
 msgid "Auto flush after changing..."
@@ -11134,6 +11303,14 @@ msgstr "Délka názvu překračuje limit."
 msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr "Spotřebuje o %dg filamentu a o %d změn více než optimální seskupení."
 
+# AI Translated
+msgid "Right-Ext"
+msgstr "Pravá-Ext"
+
+# AI Translated
+msgid "Left-Ext"
+msgstr "Levá-Ext"
+
 msgid "nozzle"
 msgstr "tryska"
 
@@ -11656,6 +11833,11 @@ msgstr "Další informace:"
 msgid "vendor"
 msgstr "dodavatel"
 
+# AI Translated
+#. TRN Short for "version"
+msgid "ver"
+msgstr "verze"
+
 msgid "printer model"
 msgstr "model tiskárny"
 
@@ -11964,8 +12146,9 @@ msgstr "G-code zařízení"
 msgid "File header G-code"
 msgstr "G-code hlavičky souboru"
 
+# AI Translated
 msgid "Machine start G-code"
-msgstr "Startovací G-kód stroje"
+msgstr "Startovací G-code stroje"
 
 msgid "Machine end G-code"
 msgstr "Závěrečný G-code zařízení"
@@ -12769,6 +12952,14 @@ msgstr "[Vyžadována akce] "
 msgid "[Action Required]"
 msgstr "[Vyžadována akce]"
 
+# AI Translated
+msgid "Printer update service is unavailable."
+msgstr "Služba aktualizace tiskáren není dostupná."
+
+# AI Translated
+msgid "Failed to check for new printers."
+msgstr "Nepodařilo se zkontrolovat nové tiskárny."
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Konfigurační balíček byl změněn v předchozím průvodci nastavením."
 
@@ -12932,6 +13123,10 @@ msgid ""
 msgstr ""
 "Stiskněte novou zkratku pro\n"
 "„%s“"
+
+# AI Translated
+msgid "Unbind"
+msgstr "Zrušit přiřazení"
 
 # AI Translated
 msgid "The system uses this shortcut, so it cannot be assigned."
@@ -13108,6 +13303,14 @@ msgid "Cutting Module"
 msgstr "Řezací modul"
 
 # AI Translated
+msgid "Active Cutting Module"
+msgstr "Aktivní řezací modul"
+
+# AI Translated
+msgid "Ultrasonic Cutting Module"
+msgstr "Ultrazvukový řezací modul"
+
+# AI Translated
 msgid "Auto Fire Extinguishing System"
 msgstr "Automatický hasicí systém"
 
@@ -13220,9 +13423,10 @@ msgstr ""
 msgid "Please check the custom G-code or use the default custom G-code."
 msgstr "Zkontrolujte prosím vlastní G-code nebo použijte výchozí vlastní G-code."
 
+# AI Translated
 #, boost-format
 msgid "Generating G-code: layer %1%"
-msgstr "Generování G-kódu: vrstva %1%"
+msgstr "Generování G-code: vrstva %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
 msgstr "Matice čisticích objemů nemá správnou velikost!"
@@ -13641,8 +13845,9 @@ msgstr ""
 msgid "Exporting G-code"
 msgstr "Exportuji G-code"
 
+# AI Translated
 msgid "Generating G-code"
-msgstr "Generování G-kódu"
+msgstr "Generování G-code"
 
 msgid "Processing of the filename_format template failed."
 msgstr "Nepodařilo se zpracovat šablonu filename_format."
@@ -15128,9 +15333,11 @@ msgstr "Povolením Pressure Advance bude přepsán výsledek automatické kalibr
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
 msgstr "Pressure Advance (Klipper), známý také jako Linear Advance factor (Marlin)."
 
+# AI Translated
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Povolit adaptivní pressure advance (beta)"
+msgstr "Povolit adaptivní Pressure Advance (beta)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "With increasing print speeds (and hence increasing volumetric flow through the nozzle) and increasing accelerations, it has been observed that the effective PA value typically decreases. This means that a single PA value is not always 100% optimal for all features and a compromise value is usually used that does not cause too much bulging on features with lower flow speed and accelerations while also not causing gaps on faster features.\n"
@@ -15142,13 +15349,14 @@ msgid ""
 msgstr ""
 "Se zvyšujícími se rychlostmi tisku (a tedy i objemovým průtokem tryskou) a zvyšujícími se akceleracemi bylo pozorováno, že efektivní hodnota PA obvykle klesá. To znamená, že jedna hodnota PA není vždy 100% optimální pro všechny vlastnosti a obvykle se používá kompromisní hodnota, která nezpůsobuje přílišné vyboulování u částí s nižším průtokem a akcelerací, ani mezery u rychlejších prvků.\n"
 "\n"
-"Tato funkce se snaží toto omezení řešit modelováním odezvy extruzního systému vaší tiskárny v závislosti na objemové rychlosti průtoku a akceleraci při tisku. Vnitřně vytváří upravený model, který dokáže předpovědět potřebnou hodnotu pressure advance pro zadanou objemovou rychlost průtoku a akceleraci. Tato hodnota je pak odesílána tiskárně v závislosti na aktuálních tiskových podmínkách.\n"
+"Tato funkce se snaží toto omezení řešit modelováním odezvy extruzního systému vaší tiskárny v závislosti na objemové rychlosti průtoku a akceleraci při tisku. Vnitřně vytváří upravený model, který dokáže předpovědět potřebnou hodnotu Pressure Advance pro zadanou objemovou rychlost průtoku a akceleraci. Tato hodnota je pak odesílána tiskárně v závislosti na aktuálních tiskových podmínkách.\n"
 "\n"
-"Když je tato funkce povolena, výše uvedená hodnota pressure advance je přepsána. Důrazně se doporučuje nastavit výše rozumnou výchozí hodnotu jako zálohu a pro výměnu nástroje.\n"
+"Když je tato funkce povolena, výše uvedená hodnota Pressure Advance je přepsána. Důrazně se doporučuje nastavit výše rozumnou výchozí hodnotu jako zálohu a pro výměnu nástroje.\n"
 "\n"
 
+# AI Translated
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "Adaptivní měření posunu tlaku (beta)"
+msgstr "Měření pro adaptivní Pressure Advance (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -15176,7 +15384,7 @@ msgstr ""
 
 # AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr "Povolit adaptivní pressure advance uvnitř prvků (beta)"
+msgstr "Povolit adaptivní Pressure Advance uvnitř prvků (beta)"
 
 # AI Translated
 msgid ""
@@ -15194,7 +15402,7 @@ msgstr ""
 
 # AI Translated
 msgid "Static pressure advance for bridges"
-msgstr "Statický pressure advance pro můstky"
+msgstr "Statický Pressure Advance pro můstky"
 
 # AI Translated
 msgid ""
@@ -15203,7 +15411,7 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statická hodnota pressure advance pro můstky. Nastavte 0, chcete-li použít stejný pressure advance jako u \n"
+"Statická hodnota Pressure Advance pro můstky. Nastavte 0, chcete-li použít stejný Pressure Advance jako u \n"
 "odpovídajících stěn (včetně adaptivního nastavení, je-li zapnuto).\n"
 "\n"
 "Nižší hodnota PA při tisku můstků pomáhá omezit projevy mírné podextruze ihned za můstkem. Ta je způsobena poklesem tlaku v trysce při tisku do vzduchu a nižší PA jej pomáhá vyrovnat."
@@ -16745,8 +16953,9 @@ msgstr "Tichý režim"
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Zda stroj podporuje tichý režim, ve kterém používá nižší zrychlení při tisku."
 
+# AI Translated
 msgid "Emit limits to G-code"
-msgstr "Odeslat limity do G-kódu"
+msgstr "Odeslat limity do G-code"
 
 msgid "Machine limits"
 msgstr "Limity stroje"
@@ -17059,6 +17268,7 @@ msgstr "Největší tisknutelná výška vrstvy pro extruder. Slouží k omezen�
 msgid "Extrusion rate smoothing"
 msgstr "Vyhlazování rychlosti extruze"
 
+# AI Translated
 msgid ""
 "This parameter smooths out sudden extrusion rate changes that happen when the printer transitions from printing a high flow (high speed/larger width) extrusion to a lower flow (lower speed/smaller width) extrusion and vice versa.\n"
 "\n"
@@ -17080,9 +17290,9 @@ msgstr ""
 "\n"
 "Hodnota 0 tuto funkci vypne.\n"
 "\n"
-"U rychlých tiskáren s vysokým průtokem a direct drive extruderem (například Bambu Lab nebo Voron) tato hodnota obvykle není potřeba. V některých případech však může přinést mírné zlepšení, zejména pokud se rychlosti jednotlivých prvků výrazně liší. Například při výrazném zpomalování kvůli převisům. V takových případech se doporučuje vyšší hodnota kolem 300–350 mm³/s², protože poskytuje dostatečné vyhlazení pro plynulejší přechody průtoku při použití pressure advance.\n"
+"U rychlých tiskáren s vysokým průtokem a direct drive extruderem (například Bambu Lab nebo Voron) tato hodnota obvykle není potřeba. V některých případech však může přinést mírné zlepšení, zejména pokud se rychlosti jednotlivých prvků výrazně liší. Například při výrazném zpomalování kvůli převisům. V takových případech se doporučuje vyšší hodnota kolem 300–350 mm³/s², protože poskytuje dostatečné vyhlazení pro plynulejší přechody průtoku při použití Pressure Advance.\n"
 "\n"
-"U pomalejších tiskáren bez pressure advance by měla být hodnota nastavena výrazně níže. Pro direct drive extrudery je vhodný výchozí rozsah 10–15 mm³/s² a pro Bowden systémy 5–10 mm³/s².\n"
+"U pomalejších tiskáren bez Pressure Advance by měla být hodnota nastavena výrazně níže. Pro direct drive extrudery je vhodný výchozí rozsah 10–15 mm³/s² a pro Bowden systémy 5–10 mm³/s².\n"
 "\n"
 "Tato funkce je v PrusaSliceru známá jako Pressure Equalizer.\n"
 "\n"
@@ -17094,6 +17304,7 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "Délka segmentu vyhlazování"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
@@ -17101,7 +17312,7 @@ msgid ""
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
-"Nižší hodnota vede k hladším přechodům rychlosti výtlače. To však vede k výrazně většímu souboru G-kódu a více instrukcím pro tiskárnu.\n"
+"Nižší hodnota vede k hladším přechodům rychlosti výtlače. To však vede k výrazně většímu souboru G-code a více instrukcím pro tiskárnu.\n"
 "\n"
 "Výchozí hodnota 3 funguje ve většině případů dobře. Pokud tiskárna cuká, zvyšte tuto hodnotu pro omezení počtu provedených úprav.\n"
 "\n"
@@ -17374,8 +17585,9 @@ msgstr "Vrstvy raftu"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Objekt bude zvednut o tento počet podporových vrstev. Použijte tuto funkci k zabránění deformacím při tisku ABS."
 
+# AI Translated
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "Cesta G-kódu je generována po zjednodušení obrysu modelů, aby se předešlo příliš velkému počtu bodů a řádků G-kódu. Menší hodnota znamená vyšší rozlišení a delší dobu řezání."
+msgstr "Dráha G-code je generována po zjednodušení obrysu modelů, aby se předešlo příliš velkému počtu bodů a řádků G-code. Menší hodnota znamená vyšší rozlišení a delší dobu řezání."
 
 msgid "Travel distance threshold"
 msgstr "Prahová hodnota přejezdové vzdálenosti"
@@ -18849,11 +19061,13 @@ msgstr "Náhledy G-code"
 msgid "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the following format: \"XxY, XxY, ...\""
 msgstr "Velikosti obrázků, které budou uloženy do souborů .gcode a .sl1 / .sl1s, ve formátu: „XxY, XxY, ...“"
 
+# AI Translated
 msgid "Format of G-code thumbnails"
-msgstr "Formát miniatur G-kódu"
+msgstr "Formát miniatur G-code"
 
+# AI Translated
 msgid "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI for low memory firmware."
-msgstr "Formát miniatur G-kódu: PNG pro nejlepší kvalitu, JPG pro nejmenší velikost, QOI pro firmware s nízkou paměťovou náročností."
+msgstr "Formát miniatur G-code: PNG pro nejlepší kvalitu, JPG pro nejmenší velikost, QOI pro firmware s nízkou paměťovou náročností."
 
 msgid "Use relative E distances"
 msgstr "Použít relativní vzdálenosti E"
@@ -19081,8 +19295,9 @@ msgstr "Maximální čas slicování na desku v sekundách."
 msgid "No check"
 msgstr "Bez kontroly"
 
+# AI Translated
 msgid "Do not run any validity checks, such as G-code path conflicts check."
-msgstr "Nespouštějte žádné kontroly platnosti, například kontrolu konfliktů dráhy G-kódu."
+msgstr "Nespouštějte žádné kontroly platnosti, například kontrolu konfliktů dráhy G-code."
 
 # AI Translated
 msgid "Strict mode"
@@ -20011,6 +20226,21 @@ msgstr "Materiál s výrazným tepelným smršťováním/roztahováním, napří
 msgid "materials with inaccurate filament diameter"
 msgstr "Materiály s nepřesným průměrem filamentu"
 
+# AI Translated
+#, boost-format
+msgid "%1% Flow Rate Calibrated"
+msgstr "%1% – zkalibrovaný průtok"
+
+# AI Translated
+#, boost-format
+msgid "%1% Temperature Calibrated"
+msgstr "%1% – zkalibrovaná teplota"
+
+# AI Translated
+#, boost-format
+msgid "%1% Max Vol Speed Calibrated"
+msgstr "%1% – zkalibrovaná max. objemová rychlost"
+
 msgid "We found the best Flow Dynamics Calibration Factor"
 msgstr "Našli jsme nejlepší faktor kalibrace dynamiky průtoku"
 
@@ -20367,6 +20597,12 @@ msgstr "Koncová teplota: "
 msgid "Temp step: "
 msgstr "Krok teploty: "
 
+# AI Translated
+#. TRN %s is the temperature unit
+#, c-format, boost-format
+msgid "Supported range: 170%s - 500%s"
+msgstr "Podporovaný rozsah: 170%s - 500%s"
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 500\n"
@@ -20377,9 +20613,6 @@ msgstr ""
 "Počáteční teplota: <= 500\n"
 "Koncová teplota: >= 155\n"
 "Počáteční teplota >= koncová teplota + 5"
-
-msgid "Max volumetric speed test"
-msgstr "Test maximální objemové rychlosti"
 
 msgid "Start volumetric speed: "
 msgstr "Počáteční objemová rychlost: "
@@ -20397,10 +20630,6 @@ msgstr ""
 "start > 0\n"
 "krok >= 0\n"
 "konec > start + krok"
-
-# AI Translated
-msgid "VFA test"
-msgstr "Test VFA"
 
 msgid "Start speed: "
 msgstr "Počáteční rychlost: "
@@ -20483,9 +20712,6 @@ msgstr "Počáteční délka retrakce: "
 
 msgid "End retraction length: "
 msgstr "Koncová délka retrakce: "
-
-msgid "Input shaping Frequency test"
-msgstr "Test frekvence Input Shaping"
 
 msgid "Test model"
 msgstr "Testovací model"
@@ -20575,9 +20801,6 @@ msgstr ""
 
 msgid "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr "Zadejte platný faktor tlumení (0 <= DampingStart < DampingEnd <= 1)"
-
-msgid "Cornering test"
-msgstr "Test corneringu"
 
 msgid "SCV-V2"
 msgstr "SCV-V2"
@@ -20790,6 +21013,12 @@ msgstr "Kalibrovat před tiskem"
 msgid "Filament Mapping:"
 msgstr "Mapování filamentů:"
 
+# AI Translated
+#. TRN External spool slot, followed by its filament type
+#, c-format, boost-format
+msgid "Ext - %s"
+msgstr "Ext - %s"
+
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Nelze provést booleovskou operaci na vybraných částech."
 
@@ -20870,6 +21099,27 @@ msgstr "Test bing.com:"
 
 msgid "Log Info"
 msgstr "Informace logu"
+
+# AI Translated
+#. TRN %s is the name of the tested website
+#, c-format, boost-format
+msgid "test %s start..."
+msgstr "test %s spuštěn..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ip resolved = %s"
+msgstr "test %s: IP adresa přeložena = %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s failed"
+msgstr "test %s selhal"
+
+# AI Translated
+#, c-format, boost-format
+msgid "test %s ok"
+msgstr "test %s v pořádku"
 
 msgid "Select filament preset"
 msgstr "Vyberte filamentový přednastavený profil"
@@ -21424,6 +21674,14 @@ msgstr "Úspěch!"
 msgid "Generate API Key"
 msgstr "Vygenerovat API klíč"
 
+# AI Translated
+msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
+msgstr "API klíč byl vytvořen. Přejděte k fyzické tiskárně, na displeji stiskněte „authorize“ a poté znovu spusťte „Test“."
+
+# AI Translated
+msgid "API Key created."
+msgstr "API klíč byl vytvořen."
+
 msgid "Are you sure to log out?"
 msgstr "Opravdu se chcete odhlásit?"
 
@@ -21455,12 +21713,20 @@ msgid "Click Scan to look for K-series printers on your network."
 msgstr "Klikněte na Skenovat pro vyhledání tiskáren řady K ve vaší síti."
 
 # AI Translated
+msgid "Scan"
+msgstr "Vyhledat"
+
+# AI Translated
 msgid "Use Selected"
 msgstr "Použít vybranou"
 
 # AI Translated
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
 msgstr "Prohledávání sítě LAN kvůli tiskárnám řady K... zabere to několik sekund."
+
+# AI Translated
+msgid "(unknown K-series)"
+msgstr "(neznámá řada K)"
 
 # AI Translated
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
@@ -21594,6 +21860,10 @@ msgstr "protokol(y)"
 # AI Translated
 msgid "Choose where to save the exported JSON file"
 msgstr "Vyberte, kam uložit exportovaný soubor JSON"
+
+# AI Translated
+msgid "JSON files (*.json)|*.json"
+msgstr "Soubory JSON (*.json)|*.json"
 
 # AI Translated
 msgid ""
@@ -22040,6 +22310,11 @@ msgstr "Název úlohy"
 msgid "Actions"
 msgstr "Akce"
 
+# AI Translated
+#. TRN Button that jumps to the page number typed next to it
+msgid "Go"
+msgstr "Přejít"
+
 msgid "Task Status"
 msgstr "Stav úlohy"
 
@@ -22167,6 +22442,11 @@ msgstr " pro nastavení počtu trysek"
 # AI Translated
 msgid "Set the physical nozzle count..."
 msgstr "Nastavte fyzický počet trysek..."
+
+# AI Translated
+#, c-format, boost-format
+msgid "(Std: %d, HF: %d)"
+msgstr "(Stand.: %d, HF: %d)"
 
 # AI Translated
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
@@ -22515,6 +22795,10 @@ msgid "Download and Install"
 msgstr "Stáhnout a nainstalovat"
 
 # AI Translated
+msgid "Skip for Now"
+msgstr "Prozatím přeskočit"
+
+# AI Translated
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Je k dispozici nová verze síťového plug-inu Bambu."
 
@@ -22535,6 +22819,14 @@ msgstr "Znovu se neptat"
 msgid "Update Now"
 msgstr "Aktualizovat nyní"
 
+# AI Translated
+msgid "Remind Later"
+msgstr "Připomenout později"
+
+# AI Translated
+msgid "Skip Version"
+msgstr "Přeskočit verzi"
+
 msgid "(Latest)"
 msgstr "(Nejnovější)"
 
@@ -22553,6 +22845,10 @@ msgstr "K načtení nového plug-inu je nutný restart. Chcete restartovat nyní
 # AI Translated
 msgid "Restart Now"
 msgstr "Restartovat nyní"
+
+# AI Translated
+msgid "Restart Later"
+msgstr "Restartovat později"
 
 # AI Translated
 msgid "NO RAMMING AT ALL"
@@ -22662,6 +22958,10 @@ msgid "Save preset bundle"
 msgstr "Uložit balíček předvoleb"
 
 # AI Translated
+msgid "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"
+msgstr "Balíček předvoleb Orca (*.orca_bundle)|*.orca_bundle"
+
+# AI Translated
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "Provedení integrace do desktopu se nezdařilo – boost::filesystem::canonical nevrátil cestu k appimage."
 
@@ -22704,8 +23004,21 @@ msgstr ""
 "Pokračujte stisknutím „Provést“."
 
 # AI Translated
+msgid "Press \"Undo\" to remove previous integration."
+msgstr "Stisknutím „Zpět“ odstraníte předchozí integraci."
+
+# AI Translated
+msgid "Could not start download due to malformed URL"
+msgstr "Stahování nelze zahájit kvůli chybné URL adrese"
+
+# AI Translated
 msgid "The download has failed"
 msgstr "Stahování se nezdařilo"
+
+# AI Translated
+#, boost-format
+msgid "Failed to find suitable filename. Last name: %1%."
+msgstr "Nepodařilo se najít vhodný název souboru. Poslední název: %1%."
 
 # AI Translated
 #. TRN %1% = file path
@@ -22714,8 +23027,20 @@ msgid "Can't create file at %1%"
 msgstr "Nelze vytvořit soubor v %1%"
 
 # AI Translated
+msgid "Failed to write and move."
+msgstr "Zápis a přesun se nezdařil."
+
+# AI Translated
 msgid "Archive preview"
 msgstr "Náhled archivu"
+
+# AI Translated
+msgid "filename"
+msgstr "název souboru"
+
+# AI Translated
+msgid "All files (*.*)|*.*"
+msgstr "Všechny soubory (*.*)|*.*"
 
 # AI Translated
 msgid "Open File"
@@ -23886,6 +24211,26 @@ msgstr "Náčrt: —"
 msgid "Extrude dist"
 msgstr "Vzdál. vysunutí"
 
+# AI Translated
+msgid "Blind"
+msgstr "Naslepo"
+
+# AI Translated
+msgid "Two-sided"
+msgstr "Oboustranně"
+
+# AI Translated
+msgid "Through all"
+msgstr "Skrz vše"
+
+# AI Translated
+msgid "Up to face"
+msgstr "K ploše"
+
+# AI Translated
+msgid "Up to vertex"
+msgstr "K vrcholu"
+
 msgid "End"
 msgstr "Konec"
 
@@ -24276,6 +24621,11 @@ msgid "Face %d is already in the list"
 msgstr "Plocha %d už je v seznamu"
 
 # AI Translated
+#, c-format, boost-format
+msgid "Face %d"
+msgstr "Plocha %d"
+
+# AI Translated
 msgid "Faces to delete"
 msgstr "Plochy k odstranění"
 
@@ -24548,6 +24898,10 @@ msgid "Sketch created (%zu driving dims) — select it, then right-click to Extr
 msgstr "Náčrt vytvořen (řídicí kóty: %zu) — vyberte ho a pravým tlačítkem zvolte Vysunutí"
 
 # AI Translated
+msgid "(locked)"
+msgstr "(zamčeno)"
+
+# AI Translated
 msgid "Could not resolve the sketch to extrude"
 msgstr "Náčrt k vysunutí se nepodařilo určit"
 
@@ -24562,11 +24916,6 @@ msgstr "Oblast vybrána — pravým tlačítkem zvolte Vysunutí, nebo dvojklike
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Náčrt vybrán — pravým tlačítkem zvolte Vysunutí, nebo dvojklikem upravte"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Plocha %d"
 
 # AI Translated
 #, c-format, boost-format
@@ -24679,8 +25028,16 @@ msgid "Import SVG"
 msgstr "Importovat SVG"
 
 # AI Translated
+msgid "SVG files (*.svg)|*.svg|All files|*.*"
+msgstr "Soubory SVG (*.svg)|*.svg|Všechny soubory|*.*"
+
+# AI Translated
 msgid "Import STEP"
 msgstr "Importovat STEP"
+
+# AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"
+msgstr "Soubory STEP (*.step;*.stp)|*.step;*.stp|Všechny soubory|*.*"
 
 # AI Translated
 msgid "Reading STEP…"
@@ -24709,6 +25066,10 @@ msgstr[2] "Importováno %d těles — vyberte plochu nebo hranu, pak k úpravě 
 # AI Translated
 msgid "Import mesh"
 msgstr "Importovat síť"
+
+# AI Translated
+msgid "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"
+msgstr "Soubory sítí (*.stl;*.obj)|*.stl;*.obj|Všechny soubory|*.*"
 
 # AI Translated
 msgid "Could not read the STL file"
@@ -24777,7 +25138,7 @@ msgid " — drag to place/size, then Confirm"
 msgstr " — tažením umístěte/změňte velikost, pak Potvrdit"
 
 # AI Translated
-msgid "Insert cancelled"
+msgid "Insert canceled"
 msgstr "Vložení zrušeno"
 
 # AI Translated
@@ -25642,6 +26003,11 @@ msgid "Applied constraint"
 msgstr "Vazba použita"
 
 # AI Translated
+#. TRN Design sketch: abbreviation of "center", appended to a point tag such as "L3·Ctr"
+msgid "·Ctr"
+msgstr "·Stř"
+
+# AI Translated
 #, c-format, boost-format
 msgid "Fix %s"
 msgstr "Fixace %s"
@@ -25886,6 +26252,10 @@ msgid "Export STEP"
 msgstr "Exportovat STEP"
 
 # AI Translated
+msgid "STEP files (*.step;*.stp)|*.step;*.stp"
+msgstr "Soubory STEP (*.step;*.stp)|*.step;*.stp"
+
+# AI Translated
 msgid "Exported STEP"
 msgstr "STEP exportován"
 
@@ -25961,7 +26331,7 @@ msgid "Face %d (push/pull)"
 msgstr "Plocha %d (tlačit/táhnout)"
 
 # AI Translated
-msgid "Move cancelled"
+msgid "Move canceled"
 msgstr "Posun zrušen"
 
 # AI Translated
@@ -26055,12 +26425,206 @@ msgid "Empty mesh generated"
 msgstr "Byla vygenerována prázdná síť"
 
 # AI Translated
+#. TRN Default name of an object created from the box primitive shape.
+msgid "Box"
+msgstr "Kvádr"
+
+# AI Translated
+#. TRN Primitive gizmo: label in front of the preset cube size buttons
+msgid "Quick:"
+msgstr "Rychle:"
+
+# AI Translated
+msgid "Width (X)"
+msgstr "Šířka (X)"
+
+# AI Translated
+msgid "Depth (Y)"
+msgstr "Hloubka (Y)"
+
+# AI Translated
+msgid "Height (Z)"
+msgstr "Výška (Z)"
+
+# AI Translated
+#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
+msgid "Bottom R"
+msgstr "Spodní R"
+
+# AI Translated
+msgid "Top R"
+msgstr "Horní R"
+
+# AI Translated
+#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
+msgid "Major R"
+msgstr "Hlavní R"
+
+# AI Translated
+msgid "Minor R"
+msgstr "Vedlejší R"
+
+# AI Translated
+msgid "All edges"
+msgstr "Všechny hrany"
+
+# AI Translated
+msgid "Top edges"
+msgstr "Horní hrany"
+
+# AI Translated
+msgid "Bottom edges"
+msgstr "Spodní hrany"
+
+# AI Translated
+msgid "Lateral edges"
+msgstr "Boční hrany"
+
+# AI Translated
+msgid "Mesh resolution"
+msgstr "Rozlišení sítě"
+
+# AI Translated
+msgid "Add Shape"
+msgstr "Přidat tvar"
+
+# AI Translated
+msgid "No outer profile"
+msgstr "Chybí vnější profil"
+
+# AI Translated
+msgid "Failed to make outer face"
+msgstr "Nepodařilo se vytvořit vnější plochu"
+
+# AI Translated
+msgid "Failed to build face with holes"
+msgstr "Nepodařilo se vytvořit plochu s otvory"
+
+# AI Translated
+msgid "Revolve failed"
+msgstr "Rotace selhala"
+
+# AI Translated
+msgid "Profile"
+msgstr "Profil"
+
+# AI Translated
+msgid "Start new profile (for holes)"
+msgstr "Začít nový profil (pro otvory)"
+
+# AI Translated
+#. TRN Sketch gizmo: number of segments a circle is built from
+msgid "Seg"
+msgstr "Úseky"
+
+# AI Translated
+msgid "Sides"
+msgstr "Strany"
+
+# AI Translated
+msgid "Click on canvas to draw"
+msgstr "Kreslete kliknutím na plátno"
+
+# AI Translated
+msgid "Snap to grid"
+msgstr "Přichytit k mřížce"
+
+# AI Translated
+msgid "Outer"
+msgstr "Vnější"
+
+# AI Translated
+msgid "CLOSED"
+msgstr "UZAVŘENÝ"
+
+# AI Translated
+#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "CLOSED" or nothing
+#, boost-format
+msgid "%1% %2%: %3% pts %4%"
+msgstr "%1% %2%: %3% b. %4%"
+
+# AI Translated
+msgid "XY (Top)"
+msgstr "XY (horní)"
+
+# AI Translated
+msgid "XZ (Front)"
+msgstr "XZ (přední)"
+
+# AI Translated
+msgid "YZ (Side)"
+msgstr "YZ (boční)"
+
+# AI Translated
+msgid "Revolve deg"
+msgstr "Rotace (°)"
+
+# AI Translated
+msgid "Set to 0 for extrude, >0 for revolve"
+msgstr "0 = vysunutí, >0 = rotace"
+
+# AI Translated
+msgid "Pocket (cut)"
+msgstr "Kapsa (řez)"
+
+# AI Translated
+#, c-format
+msgid "%zu closed profile"
+msgid_plural "%zu closed profiles"
+msgstr[0] "%zu uzavřený profil"
+msgstr[1] "%zu uzavřené profily"
+msgstr[2] "%zu uzavřených profilů"
+
+# AI Translated
+msgid "Draw a closed profile to enable"
+msgstr "Pro aktivaci nakreslete uzavřený profil"
+
+# AI Translated
 msgid "Pocket (Cut)"
 msgstr "Kapsa (řez)"
 
 # AI Translated
 msgid "Clear All"
 msgstr "Vymazat vše"
+
+# AI Translated
+msgid "Empty result"
+msgstr "Prázdný výsledek"
+
+# AI Translated
+#, boost-format
+msgid "Extrude: %1%"
+msgstr "Vysunutí: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Revolve: %1%"
+msgstr "Rotace: %1%"
+
+# AI Translated
+msgid "No object selected"
+msgstr "Není vybrán žádný objekt"
+
+# AI Translated
+msgid "Face failed"
+msgstr "Vytvoření plochy selhalo"
+
+# AI Translated
+msgid "Face with holes failed"
+msgstr "Vytvoření plochy s otvory selhalo"
+
+# AI Translated
+msgid "Tool mesh empty"
+msgstr "Síť nástroje je prázdná"
+
+# AI Translated
+msgid "Pocket added (negative volume)"
+msgstr "Kapsa přidána (záporný objem)"
+
+# AI Translated
+#, boost-format
+msgid "Pocket: %1%"
+msgstr "Kapsa: %1%"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -26296,6 +26860,541 @@ msgid "Speed Dial"
 msgstr "Rychlá volba"
 
 # AI Translated
+msgid "helix radius must be > 0"
+msgstr "poloměr šroubovice musí být > 0"
+
+# AI Translated
+msgid "helix pitch must be > 0"
+msgstr "stoupání šroubovice musí být > 0"
+
+# AI Translated
+msgid "helix height must be >= 0"
+msgstr "výška šroubovice musí být >= 0"
+
+# AI Translated
+msgid "helix height of 0 (flat spiral) is not supported"
+msgstr "nulová výška šroubovice (plochá spirála) není podporována"
+
+# AI Translated
+msgid "helix turn count exceeds limit (10000)"
+msgstr "počet otáček šroubovice překračuje limit (10000)"
+
+# AI Translated
+msgid "helix taper drives radius negative before reaching height"
+msgstr "zúžení šroubovice zmenší poloměr do záporu dříve, než je dosaženo výšky"
+
+# AI Translated
+msgid "bad character in expression"
+msgstr "neplatný znak ve výrazu"
+
+# AI Translated
+msgid "mismatched parentheses"
+msgstr "nespárované závorky"
+
+# AI Translated
+#, boost-format
+msgid "unknown identifier: %1%"
+msgstr "neznámý identifikátor: %1%"
+
+# AI Translated
+msgid "missing operand for unary minus"
+msgstr "chybí operand pro unární minus"
+
+# AI Translated
+#, boost-format
+msgid "not enough operands for '%1%'"
+msgstr "nedostatek operandů pro '%1%'"
+
+# AI Translated
+msgid "division by zero"
+msgstr "dělení nulou"
+
+# AI Translated
+#, boost-format
+msgid "not enough arguments for %1%()"
+msgstr "nedostatek argumentů pro %1%()"
+
+# AI Translated
+#, boost-format
+msgid "unknown function: %1%"
+msgstr "neznámá funkce: %1%"
+
+# AI Translated
+msgid "invalid expression"
+msgstr "neplatný výraz"
+
+# AI Translated
+#, boost-format
+msgid "variable cycle: %1%"
+msgstr "cyklická závislost proměnných: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown parameter: %1%"
+msgstr "neznámý parametr: %1%"
+
+# AI Translated
+#, boost-format
+msgid "unknown hole standard \"%1%\""
+msgstr "neznámá norma otvoru „%1%“"
+
+# AI Translated
+#, boost-format
+msgid "connector %1% is not a coordinate system"
+msgstr "konektor %1% není souřadnicový systém"
+
+# AI Translated
+msgid "a mate needs two different connectors"
+msgstr "spoj vyžaduje dva různé konektory"
+
+# AI Translated
+msgid "connector B is not attached to a body — a mate moves B's body"
+msgstr "konektor B není připojen k tělesu — spoj pohybuje tělesem konektoru B"
+
+# AI Translated
+msgid "connector B's body no longer exists"
+msgstr "těleso konektoru B již neexistuje"
+
+# AI Translated
+msgid "needs a flat face at both ends — both connectors are on curved faces"
+msgstr "vyžaduje rovinnou plochu na obou koncích — oba konektory jsou na zakřivených plochách"
+
+# AI Translated
+#, boost-format
+msgid "needs a flat face at both ends — connector %1% is on a curved face"
+msgstr "vyžaduje rovinnou plochu na obou koncích — konektor %1% je na zakřivené ploše"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on flat faces"
+msgstr "vyžaduje válcovou plochu na obou koncích — oba konektory jsou na rovinných plochách"
+
+# AI Translated
+msgid "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces"
+msgstr "vyžaduje válcovou plochu na obou koncích — oba konektory jsou na plochách, které nejsou válcové"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a flat face"
+msgstr "vyžaduje válcovou plochu na obou koncích — konektor %1% je na rovinné ploše"
+
+# AI Translated
+#, boost-format
+msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr "vyžaduje válcovou plochu na obou koncích — konektor %1% je na zakřivené ploše"
+
+# AI Translated
+msgid "two points are coincident"
+msgstr "dva body jsou totožné"
+
+# AI Translated
+msgid "face not found"
+msgstr "plocha nenalezena"
+
+# AI Translated
+msgid "face is not a cylinder"
+msgstr "plocha není válcová"
+
+# AI Translated
+msgid "edge not found"
+msgstr "hrana nenalezena"
+
+# AI Translated
+msgid "plane ref not found"
+msgstr "referenční rovina nenalezena"
+
+# AI Translated
+msgid "planes are parallel (no intersection)"
+msgstr "roviny jsou rovnoběžné (bez průsečnice)"
+
+# AI Translated
+msgid "zero-length direction"
+msgstr "směr nulové délky"
+
+# AI Translated
+msgid "feature is used by a later feature"
+msgstr "prvek je použit pozdějším prvkem"
+
+# AI Translated
+msgid "sketch entities do not form a closed loop"
+msgstr "entity náčrtu netvoří uzavřenou smyčku"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Open at (%.3f, %.3f)"
+msgstr "Otevřeno v (%.3f, %.3f)"
+
+# AI Translated
+#, boost-format
+msgid "...and %1% more open end(s)"
+msgstr "...a další otevřené konce: %1%"
+
+# AI Translated
+msgid "sketch has entities but they do not form a single closed wire — a closed entity (circle/ellipse) combined with other entities, or several closed entities, is not supported yet"
+msgstr "náčrt obsahuje entity, ale ty netvoří jediný uzavřený obrys — uzavřená entita (kružnice/elipsa) v kombinaci s dalšími entitami ani více uzavřených entit zatím nejsou podporovány"
+
+# AI Translated
+msgid "sketch profile wire failed"
+msgstr "vytvoření obrysu profilu náčrtu selhalo"
+
+# AI Translated
+msgid "circle wire failed"
+msgstr "vytvoření obrysu kružnice selhalo"
+
+# AI Translated
+msgid "face-extrude needs a body"
+msgstr "vysunutí plochy vyžaduje těleso"
+
+# AI Translated
+msgid "tapered extrude of a sketch with holes is not supported yet"
+msgstr "vysunutí se zúžením u náčrtu s otvory zatím není podporováno"
+
+# AI Translated
+msgid "fuse failed"
+msgstr "sloučení selhalo"
+
+# AI Translated
+msgid "cut failed"
+msgstr "odečtení selhalo"
+
+# AI Translated
+msgid "intersect failed"
+msgstr "průnik selhal"
+
+# AI Translated
+msgid "surface-extrude: empty profile"
+msgstr "vysunutí povrchu: prázdný profil"
+
+# AI Translated
+#, boost-format
+msgid "surface-extrude: %1%"
+msgstr "vysunutí povrchu: %1%"
+
+# AI Translated
+msgid "prism failed"
+msgstr "vytvoření hranolu selhalo"
+
+# AI Translated
+msgid "surface-revolve: empty profile"
+msgstr "rotace povrchu: prázdný profil"
+
+# AI Translated
+msgid "surface-revolve: revolve failed"
+msgstr "rotace povrchu: rotace selhala"
+
+# AI Translated
+msgid "surface-loft needs 2+ valid profile sketches"
+msgstr "šablonování povrchu vyžaduje 2+ platné náčrty profilů"
+
+# AI Translated
+msgid "surface-loft: loft failed"
+msgstr "šablonování povrchu: šablonování selhalo"
+
+# AI Translated
+msgid "surface-fill: empty boundary"
+msgstr "výplňový povrch: prázdná hranice"
+
+# AI Translated
+msgid "surface-fill: boundary has no edges"
+msgstr "výplňový povrch: hranice nemá žádné hrany"
+
+# AI Translated
+msgid "surface-fill: fill failed"
+msgstr "výplňový povrch: vyplnění selhalo"
+
+# AI Translated
+msgid "surface-fill: produced no geometry"
+msgstr "výplňový povrch: nevznikla žádná geometrie"
+
+# AI Translated
+msgid "sweep needs a valid path reference"
+msgstr "tažení vyžaduje platný odkaz na trajektorii"
+
+# AI Translated
+#, boost-format
+msgid "helix path: %1%"
+msgstr "trajektorie šroubovice: %1%"
+
+# AI Translated
+msgid "sweep path must be a sketch or helix"
+msgstr "trajektorie tažení musí být náčrt nebo šroubovice"
+
+# AI Translated
+msgid "loft needs 2+ valid profile sketches"
+msgstr "šablonování vyžaduje 2+ platné náčrty profilů"
+
+# AI Translated
+msgid "pattern needs a body"
+msgstr "pole vyžaduje těleso"
+
+# AI Translated
+msgid "pattern fuse failed"
+msgstr "sloučení pole selhalo"
+
+# AI Translated
+msgid "rib needs a body"
+msgstr "žebro vyžaduje těleso"
+
+# AI Translated
+msgid "rib: entity must be a line"
+msgstr "žebro: entita musí být čára"
+
+# AI Translated
+msgid "rib: degenerate line"
+msgstr "žebro: degenerovaná čára"
+
+# AI Translated
+msgid "rib: profile failed"
+msgstr "žebro: vytvoření profilu selhalo"
+
+# AI Translated
+msgid "rib: extrude failed"
+msgstr "žebro: vysunutí selhalo"
+
+# AI Translated
+msgid "rib: fuse failed"
+msgstr "žebro: sloučení selhalo"
+
+# AI Translated
+msgid "fillet needs a body"
+msgstr "zaoblení vyžaduje těleso"
+
+# AI Translated
+msgid "chamfer needs a body"
+msgstr "zkosení vyžaduje těleso"
+
+# AI Translated
+msgid "hole needs a body"
+msgstr "otvor vyžaduje těleso"
+
+# AI Translated
+msgid "hole wire failed"
+msgstr "vytvoření obrysu otvoru selhalo"
+
+# AI Translated
+msgid "hole cut failed"
+msgstr "vyříznutí otvoru selhalo"
+
+# AI Translated
+msgid "internal thread needs a body"
+msgstr "vnitřní závit vyžaduje těleso"
+
+# AI Translated
+msgid "shell needs a body"
+msgstr "skořepina vyžaduje těleso"
+
+# AI Translated
+msgid "shell failed"
+msgstr "vytvoření skořepiny selhalo"
+
+# AI Translated
+msgid "shell produced no geometry"
+msgstr "skořepina nevytvořila žádnou geometrii"
+
+# AI Translated
+msgid "draft needs a body"
+msgstr "úkos vyžaduje těleso"
+
+# AI Translated
+msgid "draft needs a picked face"
+msgstr "úkos vyžaduje vybranou plochu"
+
+# AI Translated
+msgid "draft: face not found"
+msgstr "úkos: plocha nenalezena"
+
+# AI Translated
+msgid "draft: face cannot be drafted (is it parallel to the base?)"
+msgstr "úkos: na plochu nelze použít úkos (není rovnoběžná se základnou?)"
+
+# AI Translated
+msgid "draft failed"
+msgstr "úkos selhal"
+
+# AI Translated
+msgid "draft produced no geometry"
+msgstr "úkos nevytvořil žádnou geometrii"
+
+# AI Translated
+msgid "delete_face needs a body"
+msgstr "odstranění plochy vyžaduje těleso"
+
+# AI Translated
+msgid "delete_face needs at least one face"
+msgstr "odstranění plochy vyžaduje alespoň jednu plochu"
+
+# AI Translated
+msgid "delete_face: face not found"
+msgstr "odstranění plochy: plocha nenalezena"
+
+# AI Translated
+msgid "delete_face failed"
+msgstr "odstranění plochy selhalo"
+
+# AI Translated
+msgid "delete_face produced no geometry"
+msgstr "odstranění plochy nevytvořilo žádnou geometrii"
+
+# AI Translated
+msgid "boolean operation failed"
+msgstr "booleovská operace selhala"
+
+# AI Translated
+msgid "boolean produced an empty shape"
+msgstr "booleovská operace vytvořila prázdný tvar"
+
+# AI Translated
+msgid "cut: no target body"
+msgstr "řez: žádné cílové těleso"
+
+# AI Translated
+msgid "cut keeps nothing"
+msgstr "řez nic neponechá"
+
+# AI Translated
+msgid "cut: face body is empty"
+msgstr "řez: těleso plochy je prázdné"
+
+# AI Translated
+msgid "cut: face not found"
+msgstr "řez: plocha nenalezena"
+
+# AI Translated
+msgid "cut: failed to build cut wire"
+msgstr "řez: nepodařilo se vytvořit obrys řezu"
+
+# AI Translated
+msgid "cut operation failed"
+msgstr "operace řezu selhala"
+
+# AI Translated
+msgid "mirror: no target body"
+msgstr "zrcadlení: žádné cílové těleso"
+
+# AI Translated
+msgid "mirror: transform failed"
+msgstr "zrcadlení: transformace selhala"
+
+# AI Translated
+msgid "mirror: result has zero or negative volume"
+msgstr "zrcadlení: výsledek má nulový nebo záporný objem"
+
+# AI Translated
+msgid "mirror fuse failed"
+msgstr "sloučení zrcadlení selhalo"
+
+# AI Translated
+msgid "transform: no target body"
+msgstr "transformace: žádné cílové těleso"
+
+# AI Translated
+msgid "transform: rotation axis is degenerate"
+msgstr "transformace: osa rotace je degenerovaná"
+
+# AI Translated
+msgid "transform: failed"
+msgstr "transformace: selhala"
+
+# AI Translated
+msgid "thicken: no target body"
+msgstr "zesílení: žádné cílové těleso"
+
+# AI Translated
+msgid "thicken: face not found"
+msgstr "zesílení: plocha nenalezena"
+
+# AI Translated
+msgid "thicken: thickness is zero"
+msgstr "zesílení: tloušťka je nulová"
+
+# AI Translated
+msgid "thicken: failed"
+msgstr "zesílení: selhalo"
+
+# AI Translated
+msgid "thicken: produced no geometry"
+msgstr "zesílení: nevznikla žádná geometrie"
+
+# AI Translated
+msgid "thicken-surface: no target body"
+msgstr "zesílení povrchu: žádné cílové těleso"
+
+# AI Translated
+msgid "thicken-surface: target is not a sheet body"
+msgstr "zesílení povrchu: cíl není plošné těleso"
+
+# AI Translated
+msgid "thicken-surface: thickness is zero"
+msgstr "zesílení povrchu: tloušťka je nulová"
+
+# AI Translated
+msgid "thicken-surface: cannot cap the sheet rim (is it planar?)"
+msgstr "zesílení povrchu: okraj plochy nelze uzavřít (je rovinný?)"
+
+# AI Translated
+msgid "thicken-surface: failed"
+msgstr "zesílení povrchu: selhalo"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet split into more than one shell"
+msgstr "zesílení povrchu: plocha se po uzavření rozdělila na více než jednu skořepinu"
+
+# AI Translated
+msgid "thicken-surface: the capped sheet is not closed"
+msgstr "zesílení povrchu: plocha není ani po uzavření okraje uzavřená"
+
+# AI Translated
+msgid "thicken-surface: produced no geometry"
+msgstr "zesílení povrchu: nevznikla žádná geometrie"
+
+# AI Translated
+msgid "thicken-surface: produced a shell, not a solid"
+msgstr "zesílení povrchu: vznikla skořepina, nikoli objemové těleso"
+
+# AI Translated
+msgid "surface-offset: no target body"
+msgstr "odsazení povrchu: žádné cílové těleso"
+
+# AI Translated
+msgid "surface-offset: target is not a sheet body"
+msgstr "odsazení povrchu: cíl není plošné těleso"
+
+# AI Translated
+msgid "surface-offset: zero offset"
+msgstr "odsazení povrchu: nulové odsazení"
+
+# AI Translated
+msgid "surface-offset: failed"
+msgstr "odsazení povrchu: selhalo"
+
+# AI Translated
+msgid "surface-offset: produced no geometry"
+msgstr "odsazení povrchu: nevznikla žádná geometrie"
+
+# AI Translated
+msgid "project: no source body"
+msgstr "promítnutí: žádné zdrojové těleso"
+
+# AI Translated
+msgid "project: source body is empty"
+msgstr "promítnutí: zdrojové těleso je prázdné"
+
+# AI Translated
+msgid "project: edge not found"
+msgstr "promítnutí: hrana nenalezena"
+
+# AI Translated
+msgid "project: face not found"
+msgstr "promítnutí: plocha nenalezena"
+
+# AI Translated
+msgid "project: no edges to project"
+msgstr "promítnutí: žádné hrany k promítnutí"
+
+# AI Translated
+msgid "project: produced no entities"
+msgstr "promítnutí: nevznikly žádné entity"
+
+# AI Translated
 #, boost-format
 msgid "Body %1% is already positioned by \"%2%\" (feature %3%), so \"%4%\" overrides it"
 msgstr "Těleso %1% je již umístěno pomocí „%2%“ (prvek %3%), takže „%4%“ jeho polohu přepíše"
@@ -26312,8 +27411,106 @@ msgstr "Řetězec spojů je cyklický: Těleso %1% závisí na tělese %2%, kter
 
 # AI Translated
 #, boost-format
+msgid "mate: %1%"
+msgstr "spoj: %1%"
+
+# AI Translated
+msgid "mate: transform failed"
+msgstr "spoj: transformace selhala"
+
+# AI Translated
+msgid "feature needs a body"
+msgstr "prvek vyžaduje těleso"
+
+# AI Translated
+msgid "hole removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "otvor neodebral žádný materiál — nástroj neprotíná cílové těleso (souřadnice jsou v soustavě roviny náčrtu, ne v globální)"
+
+# AI Translated
+msgid "thread removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "závit neodebral žádný materiál — nástroj neprotíná cílové těleso (souřadnice jsou v soustavě roviny náčrtu, ne v globální)"
+
+# AI Translated
+msgid "cut removed no material — the tool does not intersect the target body (coordinates are in the sketch plane's frame, not world)"
+msgstr "řez neodebral žádný materiál — nástroj neprotíná cílové těleso (souřadnice jsou v soustavě roviny náčrtu, ne v globální)"
+
+# AI Translated
+msgid "OCCT operation failed"
+msgstr "operace OCCT selhala"
+
+# AI Translated
+msgid "unknown geometry error"
+msgstr "neznámá chyba geometrie"
+
+# AI Translated
+msgid "no solid-producing features"
+msgstr "žádné prvky vytvářející objemové těleso"
+
+# AI Translated
+msgid "an unidentified feature"
+msgstr "neidentifikovaný prvek"
+
+# AI Translated
+#, boost-format
+msgid "feature %1%"
+msgstr "prvek %1%"
+
+# AI Translated
+#, boost-format
+msgid "body %1% was destroyed by %2% (the operation produced an empty shape)"
+msgstr "těleso %1% zaniklo vlivem: %2% (operace vytvořila prázdný tvar)"
+
+# AI Translated
+#, boost-format
 msgid "Connector \"%1%\" may have moved to a different face (an upstream edit renumbered this body's faces)"
 msgstr "Konektor „%1%“ se mohl přesunout na jinou plochu (úprava v předchozím kroku přečíslovala plochy tohoto tělesa)"
+
+# AI Translated
+msgid "tessellation produced an empty mesh"
+msgstr "teselace vytvořila prázdnou síť"
+
+# AI Translated
+msgid "preview produced no geometry"
+msgstr "náhled nevytvořil žádnou geometrii"
+
+# AI Translated
+msgid "preview produced an empty mesh"
+msgstr "náhled vytvořil prázdnou síť"
+
+# AI Translated
+#, boost-format
+msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
+msgstr "uloženo novější verzí karty Návrh (formát v%1%, tato verze čte nejvýše v%2%)"
+
+# AI Translated
+#, boost-format
+msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
+msgstr "uloženo starší verzí karty Návrh (formát v%1%); tento projekt nelze v této verzi otevřít"
+
+# AI Translated
+#, boost-format
+msgid "CAD data could not be read: %1%"
+msgstr "Data CAD nelze načíst: %1%"
+
+# AI Translated
+msgid "CAD data could not be read"
+msgstr "Data CAD nelze načíst"
+
+# AI Translated
+msgid "nothing to export"
+msgstr "nic k exportu"
+
+# AI Translated
+msgid "STEP transfer failed"
+msgstr "převod do STEP selhal"
+
+# AI Translated
+msgid "cannot write STEP file"
+msgstr "nelze zapsat soubor STEP"
+
+# AI Translated
+msgid "OCCT failed to write STEP"
+msgstr "OCCT nedokázalo zapsat STEP"
 
 # AI Translated
 msgid "Taking a configuration snapshot failed."
@@ -26326,6 +27523,15 @@ msgstr "Při pořizování snímku konfigurace došlo v OrcaSlicer k chybě."
 # AI Translated
 msgid "OrcaSlicer error"
 msgstr "Chyba OrcaSlicer"
+
+# AI Translated
+#. TRN Short labels of the external spool of the right and left nozzle
+msgid "Ext-R"
+msgstr "Ext-P"
+
+# AI Translated
+msgid "Ext-L"
+msgstr "Ext-L"
 
 # AI Translated
 #, c-format, boost-format
@@ -26516,6 +27722,10 @@ msgid "Only the following installed printers are compatible with the selected SL
 msgstr "S vybranými SLA materiály jsou kompatibilní pouze následující nainstalované tiskárny"
 
 # AI Translated
+msgid "My Settings"
+msgstr "Moje nastavení"
+
+# AI Translated
 msgid "Custom Printer Setup"
 msgstr "Nastavení vlastní tiskárny"
 
@@ -26610,6 +27820,10 @@ msgstr "Orientačně 60℃ pro PLA a 110℃ pro ABS. Pokud nemáte vyhřívanou 
 # AI Translated
 msgid "Bed Temperature:"
 msgstr "Teplota podložky:"
+
+# AI Translated
+msgid "(Unknown)"
+msgstr "(Neznámý)"
 
 # AI Translated
 msgid "SLA Materials"
@@ -26774,6 +27988,10 @@ msgstr "Souhrn: Toto je aktuálně nejvhodnější umístění."
 # AI Translated
 msgid "?"
 msgstr "?"
+
+# AI Translated
+msgid "Wiki->"
+msgstr "Wiki->"
 
 # AI Translated
 msgid "Note:"
@@ -27030,6 +28248,10 @@ msgstr "Vybranou texturu se nepodařilo načíst."
 # AI Translated
 msgid "Change texture displacement texture"
 msgstr "Změnit texturu texturového reliéfu"
+
+# AI Translated
+msgid "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+msgstr "Obrázky (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
 
 # AI Translated
 msgid "Choose a texture image (height map)"
@@ -27405,7 +28627,7 @@ msgstr "Střední úroveň"
 
 # AI Translated
 msgid ""
-"Which grey stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-grey stays put, so darker greys cut in and lighter ones still push out - one image both embosses and engraves.\n"
+"Which gray stays where the surface already is. At 0 the texture only pushes outwards; at 0.5 mid-gray stays put, so darker grays cut in and lighter ones still push out - one image both embosses and engraves.\n"
 "\n"
 "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep cut can pass through the other side."
 msgstr ""
@@ -27442,15 +28664,15 @@ msgid "Turns the relief inside out: what stood out is cut in, and the other way 
 msgstr "Obrátí reliéf naruby: co vystupovalo, se zařízne dovnitř, a naopak. Totéž jako použití negativu obrázku."
 
 # AI Translated
-msgid "Colours"
+msgid "Colors"
 msgstr "Barvy"
 
 # AI Translated
-msgid "Prints the painted area in the texture's colours as well as its relief. Each colour is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
+msgid "Prints the painted area in the texture's colors as well as its relief. Each color is matched to the nearest of your loaded filaments; anything you did not paint keeps the object's own."
 msgstr "Vytiskne namalovanou oblast nejen s reliéfem, ale i v barvách textury. Každá barva se přiřadí nejbližšímu z vašich filamentů; vše, co jste nenamalovali, si ponechá vlastní barvu objektu."
 
 # AI Translated
-msgid "This texture is a grayscale height map, so it has no colours to apply. Import a colour image to use this."
+msgid "This texture is a grayscale height map, so it has no colors to apply. Import a color image to use this."
 msgstr "Tato textura je výšková mapa ve stupních šedi, takže nemá žádné barvy k použití. Chcete-li tuto funkci použít, importujte barevný obrázek."
 
 # AI Translated
@@ -27458,7 +28680,7 @@ msgid "Mix filaments"
 msgstr "Míchat filamenty"
 
 # AI Translated
-msgid "Interleaves two filaments to fake the colours in between, so a handful of filaments can cover a photo or a gradient. An image of flat colours prints the same either way. Off uses one filament per area."
+msgid "Interleaves two filaments to fake the colors in between, so a handful of filaments can cover a photo or a gradient. An image of flat colors prints the same either way. Off uses one filament per area."
 msgstr "Prokládá dva filamenty, aby napodobil barvy mezi nimi, takže hrstka filamentů pokryje fotografii nebo barevný přechod. Obrázek z plochých barev se vytiskne stejně v obou případech. Vypnuto použije pro každou oblast jeden filament."
 
 # AI Translated
@@ -27482,7 +28704,7 @@ msgstr ""
 
 # AI Translated
 #, boost-format
-msgid "%1% printable colours from %2% filaments"
+msgid "%1% printable colors from %2% filaments"
 msgstr "Tisknutelné barvy: %1% (z %2% filamentů)"
 
 # AI Translated
@@ -27490,7 +28712,7 @@ msgid "Denoise"
 msgstr "Odšumění"
 
 # AI Translated
-msgid "Cleans up single stray triangles of the wrong colour, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
+msgid "Cleans up single stray triangles of the wrong color, which detail finer than the mesh leaves behind. Raise it if the result looks speckled, lower it if small features are being swallowed."
 msgstr "Vyčistí osamocené trojúhelníky nesprávné barvy, které zanechávají detaily jemnější než síť. Zvyšte, pokud výsledek vypadá skvrnitě, snižte, pokud mizí malé prvky."
 
 # AI Translated
@@ -27507,7 +28729,7 @@ msgid "Triplanar - projects the texture from all three axes at once and blends b
 msgstr "Triplanární - promítá texturu ze všech tří os najednou a prolíná mezi nimi, takže oblast obtáčející ostrou hranu nemá šev."
 
 # AI Translated
-msgid "Cylindrical - wraps the texture around the painted area's own centre, for round shapes."
+msgid "Cylindrical - wraps the texture around the painted area's own center, for round shapes."
 msgstr "Válcový - obtočí texturu kolem vlastního středu namalované oblasti, pro kulaté tvary."
 
 # AI Translated
@@ -27515,7 +28737,7 @@ msgid "Spherical"
 msgstr "Sférický"
 
 # AI Translated
-msgid "Spherical - wraps the texture around the painted area's own centre in both directions."
+msgid "Spherical - wraps the texture around the painted area's own center in both directions."
 msgstr "Sférický - obtočí texturu kolem vlastního středu namalované oblasti v obou směrech."
 
 # AI Translated
@@ -27752,11 +28974,11 @@ msgid "Triangle size along the outline of the painted area, where the relief dro
 msgstr "Velikost trojúhelníků podél obrysu namalované oblasti, kde reliéf klesá zpět na holý povrch. Snižte, pokud tento lem vypadá zubatě; stojí to trojúhelníky jen podél obrysu. 0 tuto funkci vypne."
 
 # AI Translated
-msgid "Colour detail"
+msgid "Color detail"
 msgstr "Detail barev"
 
 # AI Translated
-msgid "Triangle size where two colours meet. Each triangle prints in one filament, so a colour edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of colour. 0 turns it off."
+msgid "Triangle size where two colors meet. Each triangle prints in one filament, so a color edge can only be as sharp as the triangles along it - and nothing else refines there, since the surface is flat across a change of color. 0 turns it off."
 msgstr "Velikost trojúhelníků tam, kde se setkávají dvě barvy. Každý trojúhelník se tiskne jedním filamentem, takže barevný přechod může být jen tak ostrý jako trojúhelníky podél něj - a nic jiného se tam nezjemňuje, protože povrch je přes změnu barvy plochý. 0 tuto funkci vypne."
 
 # AI Translated
@@ -27882,12 +29104,18 @@ msgid "Experimental: classic bake pipeline"
 msgstr "Experimentální: klasický postup zapečení"
 
 # AI Translated
-msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colours need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colours yet."
+msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr "Zapéká posunem vrcholů, které síť již má, po její přípravě (přesíťování, adaptivní zjemnění a řez podél ostrých skoků v textuře). Zachovává topologii, kterou potřebují barvy. Výchozí postup místo toho v jednom běhu zjemňuje, čistí úzké trojúhelníky, posouvá a zjednodušuje; nic není třeba předem připravovat, ale zatím nevytváří barvy."
 
 # AI Translated
+#. TRN Slider value: %d is the triangle budget in thousands
 msgid "Budget"
 msgstr "Rozpočet"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr "%d k (automaticky)"
 
 # AI Translated
 msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
@@ -27912,6 +29140,11 @@ msgstr "Sloučí tenké trojúhelníky, které zjemnění zdědí z vlastní tes
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
 msgstr "Zapnuto: rozlišení odpovídá velikosti modelu a rozpočet zůstává na výchozí hodnotě. Zrušte zaškrtnutí a nastavte obojí sami - vyplatí se to u textury mnohem jemnější nebo hrubší, než je díl, na kterém leží."
+
+# AI Translated
+#, c-format, boost-format
+msgid "%.2f mm (auto)"
+msgstr "%.2f mm (automaticky)"
 
 # AI Translated
 #, boost-format
@@ -28228,6 +29461,18 @@ msgid "Overwrite Plugin"
 msgstr "Přepsat plugin"
 
 # AI Translated
+msgid "Show in folder"
+msgstr "Zobrazit ve složce"
+
+# AI Translated
+msgid "Reinstall"
+msgstr "Přeinstalovat"
+
+# AI Translated
+msgid "Delete cache and reload"
+msgstr "Smazat mezipaměť a znovu načíst"
+
+# AI Translated
 msgid "Select a .py or .whl plugin package."
 msgstr "Vyberte balíček pluginu .py nebo .whl."
 
@@ -28300,6 +29545,10 @@ msgid "Deactivated \"%s\"."
 msgstr "Deaktivováno: „%s“."
 
 # AI Translated
+msgid "Unauthorized cloud plugins cannot be installed."
+msgstr "Neautorizované cloudové pluginy nelze nainstalovat."
+
+# AI Translated
 msgid "Plugin manifest was not found."
 msgstr "Manifest pluginu nebyl nalezen."
 
@@ -28344,6 +29593,10 @@ msgstr ""
 # AI Translated
 msgid "Default configuration restored."
 msgstr "Výchozí konfigurace obnovena."
+
+# AI Translated
+msgid "Script plugin failed."
+msgstr "Skriptový plugin selhal."
 
 # AI Translated
 msgid "Updating plugin"
@@ -28430,8 +29683,33 @@ msgid "Deleting local files and unsubscribing plugin..."
 msgstr "Odstraňování místních souborů a rušení odběru pluginu..."
 
 # AI Translated
+msgid "Plugin not found."
+msgstr "Plugin nebyl nalezen."
+
+# AI Translated
+msgid "Refusing to clear a plugin cache outside the local plugin directory."
+msgstr "Mezipaměť pluginu mimo místní adresář pluginů nebude vymazána."
+
+# AI Translated
+#, boost-format
+msgid "Failed to clear plugin cache: %1%"
+msgstr "Nepodařilo se vymazat mezipaměť pluginu: %1%"
+
+# AI Translated
+msgid "Plugin failed to load."
+msgstr "Plugin se nepodařilo načíst."
+
+# AI Translated
+msgid "Plugin reloaded, but failed to restore the inactive state."
+msgstr "Plugin byl znovu načten, ale nepodařilo se obnovit jeho neaktivní stav."
+
+# AI Translated
 msgid "Reloading plugin"
 msgstr "Opětovné načítání pluginu"
+
+# AI Translated
+msgid "Unknown plugin reload error."
+msgstr "Neznámá chyba při opětovném načtení pluginu."
 
 # AI Translated
 msgid "Failed to reload plugin."
@@ -28465,6 +29743,26 @@ msgstr "Snižuje odpad při čištění a tiskne rychleji. Může způsobit mír
 # AI Translated
 msgid "Terminal"
 msgstr "Terminál"
+
+# AI Translated
+msgid "A command is already running."
+msgstr "Příkaz již běží."
+
+# AI Translated
+msgid "Bundled Python executable not found."
+msgstr "Přibalený spustitelný soubor Pythonu nebyl nalezen."
+
+# AI Translated
+msgid "uv executable not found."
+msgstr "Spustitelný soubor uv nebyl nalezen."
+
+# AI Translated
+msgid "Only 'python' and 'uv' commands are supported."
+msgstr "Podporovány jsou pouze příkazy 'python' a 'uv'."
+
+# AI Translated
+msgid "Failed to start process."
+msgstr "Nepodařilo se spustit proces."
 
 # AI Translated
 msgid "One-click CMYW auto-mix"
@@ -28721,7 +30019,7 @@ msgid "Checker - a test grid; squares stay square where the unwrap does not stre
 msgstr "Šachovnice - testovací mřížka; čtverce zůstávají čtvercové tam, kde rozbalení neprotahuje"
 
 # AI Translated
-msgid "Distortion - colour each island by how much the unwrap stretches it"
+msgid "Distortion - color each island by how much the unwrap stretches it"
 msgstr "Zkreslení - obarví každý ostrov podle toho, jak moc jej rozbalení protahuje"
 
 # AI Translated
@@ -29004,6 +30302,926 @@ msgstr "Konfiguraci se nepodařilo zapsat na disk. Nic nebylo změněno."
 # AI Translated
 msgid "Plugin installation failed"
 msgstr "Instalace pluginu se nezdařila"
+
+# AI Translated
+msgid "Profile has fewer than 2 points"
+msgstr "Profil má méně než 2 body"
+
+# AI Translated
+msgid "Failed to build wire from profile"
+msgstr "Z profilu se nepodařilo vytvořit obrys"
+
+# AI Translated
+msgid "extrude depth is zero"
+msgstr "hloubka vysunutí je nulová"
+
+# AI Translated
+msgid "extrude failed"
+msgstr "vysunutí selhalo"
+
+# AI Translated
+msgid "Fuse failed"
+msgstr "Sloučení selhalo"
+
+# AI Translated
+msgid "Failed to make face from wire"
+msgstr "Z obrysu se nepodařilo vytvořit plochu"
+
+# AI Translated
+msgid "two-sided extrude fuse failed"
+msgstr "sloučení oboustranného vysunutí selhalo"
+
+# AI Translated
+msgid "imported regions produced no extrudable geometry"
+msgstr "importované oblasti nevytvořily žádnou geometrii k vysunutí"
+
+# AI Translated
+msgid "Failed to revolve"
+msgstr "Rotace se nezdařila"
+
+# AI Translated
+msgid "Failed to make face from sweep profile"
+msgstr "Z profilu tažení se nepodařilo vytvořit plochu"
+
+# AI Translated
+msgid "Failed to sweep profile along path"
+msgstr "Profil se nepodařilo táhnout po trajektorii"
+
+# AI Translated
+msgid "loft needs at least 2 profiles"
+msgstr "šablonování vyžaduje alespoň 2 profily"
+
+# AI Translated
+msgid "loft failed"
+msgstr "šablonování selhalo"
+
+# AI Translated
+msgid "loft produced no solid"
+msgstr "šablonování nevytvořilo objemové těleso"
+
+# AI Translated
+msgid "loft produced no shape"
+msgstr "šablonování nevytvořilo žádný tvar"
+
+# AI Translated
+msgid "Pocket face failed"
+msgstr "Vytvoření plochy kapsy selhalo"
+
+# AI Translated
+msgid "Pocket cut failed"
+msgstr "Vyříznutí kapsy selhalo"
+
+# AI Translated
+msgid "sketch has no closed loop"
+msgstr "náčrt nemá žádnou uzavřenou smyčku"
+
+# AI Translated
+msgid "sketch loop does not bound a face"
+msgstr "smyčka náčrtu neohraničuje plochu"
+
+# AI Translated
+msgid "sketch has two disjoint regions; put each in its own sketch"
+msgstr "náčrt má dvě oddělené oblasti; umístěte každou do vlastního náčrtu"
+
+# AI Translated
+msgid "cannot read STEP file"
+msgstr "nelze načíst soubor STEP"
+
+# AI Translated
+msgid "STEP file has no geometry"
+msgstr "soubor STEP neobsahuje žádnou geometrii"
+
+# AI Translated
+msgid "OCCT failed to read STEP"
+msgstr "OCCT nedokázalo načíst STEP"
+
+# AI Translated
+msgid "mesh_to_brep: mesh has no triangles"
+msgstr "mesh_to_brep: síť nemá žádné trojúhelníky"
+
+# AI Translated
+msgid "mesh_to_brep: every triangle was rejected as degenerate (try a smaller tolerance)"
+msgstr "mesh_to_brep: všechny trojúhelníky byly odmítnuty jako degenerované (zkuste menší toleranci)"
+
+# AI Translated
+msgid "fillet radius too large for this geometry"
+msgstr "poloměr zaoblení je pro tuto geometrii příliš velký"
+
+# AI Translated
+msgid "chamfer distance too large for this geometry"
+msgstr "vzdálenost zkosení je pro tuto geometrii příliš velká"
+
+# AI Translated
+msgid "apply_fillet: OCCT fillet failed"
+msgstr "apply_fillet: zaoblení OCCT selhalo"
+
+# AI Translated
+msgid "apply_chamfer: OCCT chamfer failed"
+msgstr "apply_chamfer: zkosení OCCT selhalo"
+
+# AI Translated
+msgid "Add material"
+msgstr "Přidat materiál"
+
+# AI Translated
+msgid "Fillet / chamfer / draft"
+msgstr "Zaoblení / zkosení / úkos"
+
+# AI Translated
+msgid "Reference"
+msgstr "Referenční geometrie"
+
+# AI Translated
+msgid "Modify"
+msgstr "Upravit"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sketch"
+msgstr "Náčrt"
+
+# AI Translated
+msgid "Click a face or a reference plane, then pick a drawing tool"
+msgstr "Klikněte na plochu nebo referenční rovinu a pak vyberte kreslicí nástroj"
+
+# AI Translated
+msgctxt "Design"
+msgid "Revolve"
+msgstr "Rotace"
+
+# AI Translated
+msgctxt "Design"
+msgid "Sweep"
+msgstr "Tažení"
+
+# AI Translated
+msgctxt "Design"
+msgid "Loft"
+msgstr "Šablonování"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken"
+msgstr "Zesílení"
+
+# AI Translated
+msgctxt "Design"
+msgid "Union"
+msgstr "Sjednocení"
+
+# AI Translated
+msgid "Fuse the tool body into the target — one solid, no seam"
+msgstr "Sloučit těleso nástroje s cílem — jedno těleso bez švu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Subtract"
+msgstr "Odečtení"
+
+# AI Translated
+msgid "Cut the tool body out of the target"
+msgstr "Vyříznout těleso nástroje z cíle"
+
+# AI Translated
+msgctxt "Design"
+msgid "Intersect"
+msgstr "Průnik"
+
+# AI Translated
+msgid "Keep only where the two bodies overlap"
+msgstr "Ponechat jen místa, kde se obě tělesa překrývají"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Extrude"
+msgstr "Vysunutí povrchu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Revolve"
+msgstr "Rotace povrchu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Loft"
+msgstr "Šablonování povrchu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Fill"
+msgstr "Výplňový povrch"
+
+# AI Translated
+msgid "Create a closed sketch first"
+msgstr "Nejprve vytvořte uzavřený náčrt"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thicken Surface"
+msgstr "Zesílení povrchu"
+
+# AI Translated
+msgid "target is not a sheet body"
+msgstr "cíl není plošné těleso"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hole"
+msgstr "Otvor"
+
+# AI Translated
+msgid "Pick a face or a plane to drill into"
+msgstr "Vyberte plochu nebo rovinu, do které se bude vrtat"
+
+# AI Translated
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr "Vyvrtat díru se středem na vybrané ploše nebo umístěnou na rovině"
+
+# AI Translated
+msgctxt "Design"
+msgid "Thread"
+msgstr "Závit"
+
+# AI Translated
+msgid "Shell needs a solid body"
+msgstr "Skořepina vyžaduje objemové těleso"
+
+# AI Translated
+msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
+msgstr "Oříznout těleso rovinou — táhněte šipkou odsazení; ponechte jednu polovinu nebo obě"
+
+# AI Translated
+msgctxt "Design"
+msgid "Split"
+msgstr "Rozdělit"
+
+# AI Translated
+msgid "Split needs a solid body"
+msgstr "Rozdělení vyžaduje objemové těleso"
+
+# AI Translated
+msgid "Split the body along a picked face into two solids"
+msgstr "Rozdělit těleso podél vybrané plochy na dvě tělesa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Fillet"
+msgstr "Zaoblení"
+
+# AI Translated
+msgid "Pick an edge to round"
+msgstr "Vyberte hranu k zaoblení"
+
+# AI Translated
+msgid "Pick an edge, then drag the radius arrow or type it"
+msgstr "Vyberte hranu, pak táhněte šipkou poloměru nebo jej zadejte"
+
+# AI Translated
+msgctxt "Design"
+msgid "Chamfer"
+msgstr "Zkosení"
+
+# AI Translated
+msgid "Pick an edge to bevel"
+msgstr "Vyberte hranu ke zkosení"
+
+# AI Translated
+msgid "Pick an edge, then drag the distance arrow or type it"
+msgstr "Vyberte hranu, pak táhněte šipkou vzdálenosti nebo ji zadejte"
+
+# AI Translated
+msgctxt "Design"
+msgid "Draft"
+msgstr "Úkos"
+
+# AI Translated
+msgid "Pick a face to taper"
+msgstr "Vyberte plochu pro úkos"
+
+# AI Translated
+msgctxt "Design"
+msgid "Surface Offset"
+msgstr "Odsazení povrchu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear pattern"
+msgstr "Lineární pole"
+
+# AI Translated
+msgid "Repeat the body along a direction — drag the spacing, set the count"
+msgstr "Opakovat těleso ve směru — tažením nastavte rozestup, zadejte počet"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circular pattern"
+msgstr "Kruhové pole"
+
+# AI Translated
+msgid "Repeat the body around an axis — set the count and sweep"
+msgstr "Opakovat těleso kolem osy — nastavte počet a úhlový rozsah"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mirror"
+msgstr "Zrcadlit"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pattern on Curve"
+msgstr "Pole podél křivky"
+
+# AI Translated
+msgid "Pattern on curve needs a body and a curve"
+msgstr "Pole podél křivky vyžaduje těleso a křivku"
+
+# AI Translated
+msgid "Repeat the body along a picked curve"
+msgstr "Opakovat těleso podél vybrané křivky"
+
+# AI Translated
+msgctxt "Design"
+msgid "Move"
+msgstr "Přesunout"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mate"
+msgstr "Spoj"
+
+# AI Translated
+msgid "A mate needs two coordinate systems"
+msgstr "Spoj vyžaduje dva souřadnicové systémy"
+
+# AI Translated
+msgctxt "Design"
+msgid "Align to"
+msgstr "Zarovnat k"
+
+# AI Translated
+msgid "Align needs a body"
+msgstr "Zarovnání vyžaduje těleso"
+
+# AI Translated
+msgid "Align the body to a picked face or plane"
+msgstr "Zarovnat těleso k vybrané ploše nebo rovině"
+
+# AI Translated
+msgctxt "Design"
+msgid "Plane"
+msgstr "Rovina"
+
+# AI Translated
+msgctxt "Design"
+msgid "Axis"
+msgstr "Osa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Coord Sys"
+msgstr "Souř. systém"
+
+# AI Translated
+msgctxt "Design"
+msgid "Helix"
+msgstr "Šroubovice"
+
+# AI Translated
+msgctxt "Design"
+msgid "Measure"
+msgstr "Měření"
+
+# AI Translated
+msgid "Measure between the picked points, edges or faces"
+msgstr "Měřit mezi vybranými body, hranami nebo plochami"
+
+# AI Translated
+msgctxt "Design"
+msgid "Mass"
+msgstr "Hmotnost"
+
+# AI Translated
+msgid "Report the volume and surface area of the selected body"
+msgstr "Zobrazit objem a plochu povrchu vybraného tělesa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Interference"
+msgstr "Kolize"
+
+# AI Translated
+msgid "Check whether two bodies overlap — reports, changes nothing"
+msgstr "Zkontrolovat, zda se dvě tělesa překrývají — pouze hlásí, nic nemění"
+
+# AI Translated
+msgctxt "Design"
+msgid "Edit"
+msgstr "Upravit"
+
+# AI Translated
+msgid "Reopen the selected feature to change what it was made from"
+msgstr "Znovu otevřít vybraný prvek a změnit, z čeho byl vytvořen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rename…"
+msgstr "Přejmenovat…"
+
+# AI Translated
+msgid "Select a feature, or a body, to rename it"
+msgstr "Vyberte prvek nebo těleso, které chcete přejmenovat"
+
+# AI Translated
+msgid "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+msgstr "Pojmenujte tento prvek tak, abyste jej ve stromu poznali (těleso přebírá název od prvku, který jej vytváří)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Face"
+msgstr "Odstranit plochu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Colour"
+msgstr "Barva"
+
+# AI Translated
+msgid "Set the selected body's display colour"
+msgstr "Nastavit barvu zobrazení vybraného tělesa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete"
+msgstr "Smazat"
+
+# AI Translated
+msgid "Delete what is selected"
+msgstr "Smazat vybrané"
+
+# AI Translated
+msgctxt "Design"
+msgid "Delete Body"
+msgstr "Smazat těleso"
+
+# AI Translated
+msgid "Delete this whole body — removes the feature it was made from"
+msgstr "Smazat celé toto těleso — odstraní prvek, ze kterého bylo vytvořeno"
+
+# AI Translated
+msgctxt "Design"
+msgid "Line"
+msgstr "Čára"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polyline"
+msgstr "Lomená čára"
+
+# AI Translated
+msgid "Click points; click the first point to close the loop, right-click to end it open"
+msgstr "Klikejte na body; kliknutím na první bod smyčku uzavřete, pravým tlačítkem ji ukončíte otevřenou"
+
+# AI Translated
+msgctxt "Design"
+msgid "Corner rectangle"
+msgstr "Obdélník dvěma rohy"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre rectangle"
+msgstr "Obdélník ze středu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Oblique rectangle"
+msgstr "Šikmý obdélník"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rounded rectangle"
+msgstr "Zaoblený obdélník"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre circle"
+msgstr "Kružnice středem"
+
+# AI Translated
+msgctxt "Design"
+msgid "2-point circle"
+msgstr "Kružnice dvěma body"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point circle"
+msgstr "Kružnice třemi body"
+
+# AI Translated
+msgctxt "Design"
+msgid "3-point arc"
+msgstr "Oblouk třemi body"
+
+# AI Translated
+msgctxt "Design"
+msgid "Tangent arc"
+msgstr "Tečný oblouk"
+
+# AI Translated
+msgctxt "Design"
+msgid "Centre-point arc"
+msgstr "Oblouk středem"
+
+# AI Translated
+msgctxt "Design"
+msgid "Slot"
+msgstr "Drážka"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc slot"
+msgstr "Oblouková drážka"
+
+# AI Translated
+msgctxt "Design"
+msgid "Ellipse"
+msgstr "Elipsa"
+
+# AI Translated
+msgctxt "Design"
+msgid "Elliptical arc"
+msgstr "Eliptický oblouk"
+
+# AI Translated
+msgctxt "Design"
+msgid "Spline"
+msgstr "Spline"
+
+# AI Translated
+msgctxt "Design"
+msgid "Triangle"
+msgstr "Trojúhelník"
+
+# AI Translated
+msgid "Triangle — click centre, then a vertex"
+msgstr "Trojúhelník — klikněte na střed, pak na vrchol"
+
+# AI Translated
+msgctxt "Design"
+msgid "Square"
+msgstr "Čtverec"
+
+# AI Translated
+msgid "Square — click centre, then a vertex"
+msgstr "Čtverec — klikněte na střed, pak na vrchol"
+
+# AI Translated
+msgctxt "Design"
+msgid "Pentagon"
+msgstr "Pětiúhelník"
+
+# AI Translated
+msgid "Pentagon — click centre, then a vertex"
+msgstr "Pětiúhelník — klikněte na střed, pak na vrchol"
+
+# AI Translated
+msgctxt "Design"
+msgid "Hexagon"
+msgstr "Šestiúhelník"
+
+# AI Translated
+msgid "Hexagon — click centre, then a vertex"
+msgstr "Šestiúhelník — klikněte na střed, pak na vrchol"
+
+# AI Translated
+msgctxt "Design"
+msgid "Octagon"
+msgstr "Osmiúhelník"
+
+# AI Translated
+msgid "Octagon — click centre, then a vertex"
+msgstr "Osmiúhelník — klikněte na střed, pak na vrchol"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dodecagon"
+msgstr "Dvanáctiúhelník"
+
+# AI Translated
+msgid "Dodecagon — click centre, then a vertex"
+msgstr "Dvanáctiúhelník — klikněte na střed, pak na vrchol"
+
+# AI Translated
+msgctxt "Design"
+msgid "Inscribed"
+msgstr "Vepsaný"
+
+# AI Translated
+msgid "Measure the polygon to its corners (inscribed)"
+msgstr "Rozměr mnohoúhelníku měřit k rohům (vepsaný)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Circumscribed"
+msgstr "Opsaný"
+
+# AI Translated
+msgid "Measure the polygon to its flats (circumscribed)"
+msgstr "Rozměr mnohoúhelníku měřit ke stranám (opsaný)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Point"
+msgstr "Bod"
+
+# AI Translated
+msgid "Type text; its outline is added to this sketch as editable lines"
+msgstr "Napište text; jeho obrys se přidá do tohoto náčrtu jako upravitelné čáry"
+
+# AI Translated
+msgctxt "Design"
+msgid "SVG"
+msgstr "SVG"
+
+# AI Translated
+msgid "Import an SVG outline into this sketch as editable lines"
+msgstr "Importovat obrys SVG do tohoto náčrtu jako upravitelné čáry"
+
+# AI Translated
+msgctxt "Design"
+msgid "Offset"
+msgstr "Odsazení"
+
+# AI Translated
+msgctxt "Design"
+msgid "Trim"
+msgstr "Oříznout"
+
+# AI Translated
+msgctxt "Design"
+msgid "Linear array"
+msgstr "Lineární pole"
+
+# AI Translated
+msgid "Array"
+msgstr "Pole"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polar array"
+msgstr "Kruhové pole"
+
+# AI Translated
+msgctxt "Design"
+msgid "Rotate"
+msgstr "Otočit"
+
+# AI Translated
+msgctxt "Design"
+msgid "Scale"
+msgstr "Měřítko"
+
+# AI Translated
+msgctxt "Design"
+msgid "Dimension"
+msgstr "Kóta"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain"
+msgstr "Vazby"
+
+# AI Translated
+msgid "Constrain the selected sketch entities to each other"
+msgstr "Přidat vazby mezi vybrané entity náčrtu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Constrain sketch"
+msgstr "Vazby náčrtu"
+
+# AI Translated
+msgid "Select a sketch to constrain it"
+msgstr "Vyberte náčrt, ke kterému chcete přidat vazby"
+
+# AI Translated
+msgid "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"
+msgstr "Přidat k vybranému náčrtu kóty a vazby (totožnost, tečnost, rovnoběžnost...)"
+
+# AI Translated
+msgctxt "Design"
+msgid "Construction"
+msgstr "Konstrukční"
+
+# AI Translated
+msgid "Toggle construction: geometry that guides but is never built"
+msgstr "Přepnout konstrukční geometrii: slouží jako vodítko, ale nikdy se nevytváří"
+
+# AI Translated
+msgctxt "Design"
+msgid "Extend"
+msgstr "Prodloužit"
+
+# AI Translated
+msgid "Delete the selected sketch entities"
+msgstr "Smazat vybrané entity náčrtu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Length…"
+msgstr "Délka…"
+
+# AI Translated
+msgid "Type the length of this line"
+msgstr "Zadejte délku této čáry"
+
+# AI Translated
+msgctxt "Design"
+msgid "Radius / diameter…"
+msgstr "Poloměr / průměr…"
+
+# AI Translated
+msgid "Type the radius of this arc, or the diameter of this circle"
+msgstr "Zadejte poloměr tohoto oblouku nebo průměr této kružnice"
+
+# AI Translated
+msgctxt "Design"
+msgid "Angle / distance…"
+msgstr "Úhel / vzdálenost…"
+
+# AI Translated
+msgid "Type the angle between two lines, or the distance between the two picks"
+msgstr "Zadejte úhel mezi dvěma čarami nebo vzdálenost mezi dvěma vybranými prvky"
+
+# AI Translated
+#. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
+msgid "Side"
+msgstr "Strana"
+
+# AI Translated
+#. TRN Design sketch: major / minor axis of an ellipse (inline value editor title)
+msgid "Major"
+msgstr "Hlavní"
+
+# AI Translated
+msgid "Minor"
+msgstr "Vedlejší"
+
+# AI Translated
+msgid "right-click or double-click to finish, click start to close"
+msgstr "dokončete pravým tlačítkem nebo dvojklikem, kliknutím na začátek uzavřete"
+
+# AI Translated
+msgid "Extend: click a line/arc that can reach another live entity"
+msgstr "Prodloužit: klikněte na čáru/oblouk, který může dosáhnout jiné aktivní entity"
+
+# AI Translated
+msgid "Trim: click a segment where it crosses another live entity"
+msgstr "Oříznout: klikněte na úsek v místě, kde kříží jinou aktivní entitu"
+
+# AI Translated
+msgid "Authentication complete"
+msgstr "Ověření dokončeno"
+
+# AI Translated
+msgid "Authentication failed"
+msgstr "Ověření se nezdařilo"
+
+# AI Translated
+msgid "You can return to OrcaSlicer. This window will close automatically."
+msgstr "Můžete se vrátit do aplikace OrcaSlicer. Toto okno se automaticky zavře."
+
+# AI Translated
+msgid "Something went wrong. Please return to OrcaSlicer and try again."
+msgstr "Něco se pokazilo. Vraťte se prosím do aplikace OrcaSlicer a zkuste to znovu."
+
+# AI Translated
+msgid "You can return to OrcaSlicer. If your browser does not redirect automatically, use the button below."
+msgstr "Můžete se vrátit do aplikace OrcaSlicer. Pokud vás prohlížeč nepřesměruje automaticky, použijte tlačítko níže."
+
+# AI Translated
+#, boost-format
+msgid "Failed starting the script %1%, Win32 error: %2%"
+msgstr "Nepodařilo se spustit skript %1%, chyba Win32: %2%"
+
+# AI Translated
+#, boost-format
+msgid "Post processing script %1% on file %2% failed. CommandLineToArgvW() refused to parse the command line path."
+msgstr "Post-processing skript %1% pro soubor %2% selhal. CommandLineToArgvW() odmítla zpracovat cestu příkazového řádku."
+
+# AI Translated
+#, boost-format
+msgid "The configured post-processing script does not exist: %1%"
+msgstr "Nastavený post-processing skript neexistuje: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Perl interpreter %1% does not exist."
+msgstr "Interpret Perlu %1% neexistuje."
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% raised an exception.\n"
+"Error: %2%"
+msgstr ""
+"Post-processing plugin %1% vyvolal výjimku.\n"
+"Chyba: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"Error: %2%"
+msgstr ""
+"Post-processing plugin %1% selhal.\n"
+"Chyba: %2%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing plugin %1% failed.\n"
+"\n"
+"The post-processing plugin is expected to modify the G-code file %2% in place, but the G-code file was deleted.\n"
+"Please check the plugin implementation.\n"
+msgstr ""
+"Post-processing plugin %1% selhal.\n"
+"\n"
+"Od post-processing pluginu se očekává, že upraví G-code soubor %2% na místě, ale G-code soubor byl smazán.\n"
+"Zkontrolujte prosím implementaci pluginu.\n"
+
+# AI Translated
+#, boost-format
+msgid "Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%"
+msgstr "Před spuštěním post-processing skriptu se nepodařilo vytvořit dočasnou kopii G-code souboru %1%: %2%"
+
+# AI Translated
+msgid "Post-processor can't find exported gcode file"
+msgstr "Post-processor nemůže najít exportovaný G-code soubor"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%"
+msgstr ""
+"Post-processing skript %1% pro soubor %2% selhal.\n"
+"Kód chyby: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% on file %2% failed.\n"
+"Error code: %3%\n"
+"Output:\n"
+"%4%"
+msgstr ""
+"Post-processing skript %1% pro soubor %2% selhal.\n"
+"Kód chyby: %3%\n"
+"Výstup:\n"
+"%4%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Post-processing script %1% failed.\n"
+"\n"
+"The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
+"Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n"
+msgstr ""
+"Post-processing skript %1% selhal.\n"
+"\n"
+"Od post-processing skriptu se očekává, že změní G-code soubor %2% na místě, ale G-code soubor byl smazán a pravděpodobně uložen pod novým názvem.\n"
+"Upravte prosím post-processing skript tak, aby měnil G-code na místě, a v příručce si přečtěte, jak volitelně přejmenovat zpracovaný G-code soubor.\n"
+
+# AI Translated
+msgid "Unable to parse desired new path from output name file"
+msgstr "Ze souboru s výstupním názvem nelze zpracovat požadovanou novou cestu"
+
+# AI Translated
+#, boost-format
+msgid "Output directory does not exist: %1%"
+msgstr "Výstupní adresář neexistuje: %1%"
+
+# AI Translated
+#, boost-format
+msgid "Failed reading a file %1% carrying the final name / path of a G-code file: %2%"
+msgstr "Nepodařilo se načíst soubor %1% s konečným názvem / cestou G-code souboru: %2%"
+
+# AI Translated
+msgid "The printing task exceeds the limit, supporting a maximum of 6 printers."
+msgstr "Tisková úloha překračuje limit, podporováno je maximálně 6 tiskáren."
+
+# AI Translated
+msgid "Elapsed time:"
+msgstr "Uplynulý čas:"
+
+# AI Translated
+msgid "Estimated time:"
+msgstr "Odhadovaný čas:"
+
+# AI Translated
+msgid "Remaining time:"
+msgstr "Zbývající čas:"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -29306,6 +31524,10 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "closed profile(s)"
+#~ msgstr "uzavř. profil(ů)"
 
 #~ msgid "Failed to generate cali G-code"
 #~ msgstr "Nepodařilo se vygenerovat kalibrační G-code."

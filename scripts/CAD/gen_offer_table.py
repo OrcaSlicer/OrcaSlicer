@@ -43,6 +43,11 @@ def tstr(s):
     return "nullptr" if s is None else "L(" + cstr(s) + ")"
 
 
+def tstr_design(s):
+    # Verb name: same msgctxt as the Design panel's own tool labels.
+    return "L_CONTEXT(" + cstr(s) + ', "Design")'
+
+
 def validate(A):
     """Refuse an atlas the header cannot represent, naming every fault at once.
 
@@ -90,6 +95,9 @@ def main():
         "#ifndef L",
         "#define L(s) s   // gettext marker, as in slic3r/GUI/I18N.hpp",
         "#endif",
+        "#ifndef L_CONTEXT",
+        "#define L_CONTEXT(s, context) s",
+        "#endif",
         "",
         "namespace Slic3r { namespace GUI {",
         "",
@@ -113,7 +121,7 @@ def main():
         "//   nullptr          -> kernel support exists, no GUI path yet (row shows disabled)",
         "struct OfferVerb {",
         "    const char* id;",
-        "    const char* name;        // drawing-office word (L10); marked L(); translated at use",
+        "    const char* name;        // drawing-office word (L10); msgctxt \"Design\", translated at use",
         "    int         row;         // index into kOfferRowNames, the ratified address — NEVER reorder",
         "    const char* key;         // shortcut shown in the row, or nullptr",
         "    const char* action;",
@@ -170,7 +178,7 @@ def main():
         n = v.get("needs") or {}
         lines.append(
             "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s}," % (
-                cstr(v["id"]), tstr(v["name"]), slots.index(v["slot"]),
+                cstr(v["id"]), tstr_design(v["name"]), slots.index(v["slot"]),
                 cstr(v.get("key")), cstr(v.get("action")), tstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
                 "true" if n.get("sheet") else "false",

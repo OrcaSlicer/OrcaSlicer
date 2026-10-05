@@ -351,3 +351,14 @@ src/slic3r/Utils/NetworkAgentFactory.cpp
 src/slic3r/plugin/PluginAuditManager.cpp
 src/slic3r/plugin/PluginConfig.cpp
 src/slic3r/plugin/PluginResolver.cpp
+src/libslic3r/CAD/SketchEngine.cpp
+src/libslic3r/CAD/GeometryEngine.cpp
+src/slic3r/GUI/CAD/DesignOffer.hpp
+src/slic3r/GUI/CAD/DesignSketchTool.cpp
+src/slic3r/GUI/EncodedFilament.cpp
+src/slic3r/GUI/HttpServer.cpp
+src/slic3r/GUI/Plater.hpp
+src/slic3r/GUI/PostProcessor.cpp
+src/slic3r/GUI/TaskManager.cpp
+src/slic3r/GUI/Widgets/ProgressDialog.hpp
+src/slic3r/GUI/Widgets/StepCtrl.cpp
