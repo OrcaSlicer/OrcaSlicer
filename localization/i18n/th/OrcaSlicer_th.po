@@ -6025,7 +6025,7 @@ msgstr "ขนาด:"
 
 #, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
+msgstr "พบความขัดแย้งของเส้นทาง G-code ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
 msgid "An object is laid over the plate boundaries."
 msgstr "มีวัตถุวางอยู่เหนือขอบเขตของแผ่น"
@@ -6344,7 +6344,7 @@ msgstr "เผยแพร่ 3MF"
 
 # AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr "ส่งออกไฟล์ 3MF ที่ฝังการตั้งค่าที่เลือกไว้"
+msgstr "ส่งออกไฟล์ 3MF โดยฝังการตั้งค่าที่เลือกไว้"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7832,11 +7832,11 @@ msgstr "ล่าง"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
-msgstr "การตั้งค่านี้ไม่ได้ระบุชนิดความสามารถของปลั๊กอิน"
+msgstr "การตั้งค่านี้ไม่ได้ระบุประเภทความสามารถของปลั๊กอิน"
 
 # AI Translated
 msgid "This setting specifies an unrecognized plugin capability type: "
-msgstr "การตั้งค่านี้ระบุชนิดความสามารถของปลั๊กอินที่ไม่รู้จัก: "
+msgstr "การตั้งค่านี้ระบุประเภทความสามารถของปลั๊กอินที่ไม่รู้จัก: "
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8397,11 +8397,11 @@ msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่
 
 # AI Translated
 msgid "Some published settings could not be applied:"
-msgstr "ไม่สามารถใช้การตั้งค่าที่เผยแพร่บางรายการได้:"
+msgstr "การตั้งค่าที่เผยแพร่บางส่วนไม่สามารถนำไปใช้ได้:"
 
 # AI Translated
 msgid "Some filament slots were changed:"
-msgstr "ช่องเส้นพลาสติกบางช่องถูกเปลี่ยนแปลง:"
+msgstr "ช่องเส้นพลาสติกบางช่องมีการเปลี่ยนแปลง:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF-8!"
@@ -8811,8 +8811,8 @@ msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
-"ส่งออกไฟล์ 3MF ที่เผยแพร่ล้มเหลว\n"
-"โปรดตรวจสอบว่าโฟลเดอร์นั้นมีอยู่บนออนไลน์หรือมีโปรแกรมอื่นเปิดไฟล์นี้ค้างไว้หรือไม่"
+"ไม่สามารถส่งออกไฟล์ 3MF ที่เผยแพร่ได้\n"
+"โปรดตรวจสอบว่ามีโฟลเดอร์นี้ออนไลน์อยู่หรือไม่ หรือมีโปรแกรมอื่นเปิดไฟล์นี้อยู่หรือไม่"
 
 msgid "Publish"
 msgstr "เผยแพร่"
@@ -10051,7 +10051,7 @@ msgstr "เส้นพลาสติกผสม"
 
 # AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr "เส้นพลาสติกผสมบางรายการต้องอาศัยเส้นพลาสติกที่จะไม่ถูกเผยแพร่:"
+msgstr "เส้นพลาสติกผสมบางส่วนขึ้นอยู่กับเส้นพลาสติกที่จะไม่ได้รับการเผยแพร่:"
 
 # AI Translated
 #, c-format, boost-format
@@ -10070,7 +10070,7 @@ msgstr "%1% ต้องใช้ %2% แต่วัสดุของมัน
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เปิดใช้เส้นพลาสติกทุกเส้นที่ใช้ แล้วเลือกการเผยแพร่แบบเต็ม หรือทำตามข้อกำหนดชนิดของมัน"
+msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เลือก \"เปิดใช้\" สำหรับเส้นพลาสติกทุกเส้นที่เป็นส่วนประกอบ แล้วเลือก \"เผยแพร่ทั้งหมด (Full Publish)\" หรือทำเครื่องหมายที่ข้อกำหนด \"ชนิด\" ของแต่ละเส้น"
 
 # AI Translated
 msgid "Publish anyway"
@@ -10082,18 +10082,18 @@ msgstr "เผยแพร่ 3MF..."
 
 # AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr "เลือกว่าจะเผยแพร่การตั้งค่าใดในไฟล์ 3MF"
+msgstr "เลือกการตั้งค่าที่จะเผยแพร่ในไฟล์ 3MF"
 
 msgid "Video Guide"
 msgstr ""
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr "เส้นพลาสติกผสม - เผยแพร่ทั้งชุดเมื่อเลือก \"เปิดใช้\" ด้านบน"
+msgstr "เส้นพลาสติกผสม - จะได้รับการเผยแพร่ทั้งชุดเมื่อเลือก \"เปิดใช้\" ด้านบน"
 
 # AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr "เผยแพร่เส้นพลาสติกผสมนี้ และเปิดใช้ + เผยแพร่แบบเต็มสำหรับเส้นพลาสติกที่เป็นส่วนประกอบ"
+msgstr "เผยแพร่เส้นพลาสติกผสมนี้ พร้อมเลือก \"เปิดใช้\" และ \"เผยแพร่ทั้งหมด (Full Publish)\" ให้เส้นพลาสติกที่เป็นส่วนประกอบ"
 
 # AI Translated
 msgid "Publish this filament slot in the 3MF file"
@@ -10101,11 +10101,11 @@ msgstr "เผยแพร่ช่องเส้นพลาสติกนี
 
 # AI Translated
 msgid "Full Publish"
-msgstr "การเผยแพร่แบบเต็ม"
+msgstr "เผยแพร่ทั้งหมด (Full Publish)"
 
 # AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr "ฝังเส้นพลาสติกทั้งหมดของช่องนี้ลงในไฟล์ 3MF"
+msgstr "ฝังการตั้งค่าเส้นพลาสติกทั้งหมดของช่องนี้ลงในไฟล์ 3MF"
 
 # AI Translated
 msgid "Filter non-selected"
@@ -14059,7 +14059,7 @@ msgstr "ศูนย์กลาง"
 
 # AI Translated
 msgid "Spiral Inset"
-msgstr "เกลียวเข้าใน"
+msgstr "เกลียวร่นเข้า (Spiral Inset)"
 
 msgid "Hilbert Curve"
 msgstr "ฮิลเบิร์ต เคิร์ฟ"
@@ -14156,9 +14156,9 @@ msgid ""
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางการเติมผิวด้านบนเมื่อใช้รูปแบบที่เริ่มจากศูนย์กลาง (ศูนย์กลาง, เกลียวเข้าใน, คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
-"ออกด้านนอกจะเริ่มที่กึ่งกลางของผิว วัสดุส่วนเกินจึงถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในจะเริ่มที่ขอบและจบด้วยเส้นโค้งแคบตรงกึ่งกลาง\n"
-"ค่าเริ่มต้นใช้การเรียงตามเส้นทางที่สั้นที่สุด ซึ่งอาจเดินไปทางใดก็ได้"
+"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้รูปแบบที่อิงจุดศูนย์กลาง (ศูนย์กลาง, เกลียวร่นเข้า (Spiral Inset), คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
+"ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
+"ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -14170,9 +14170,9 @@ msgid ""
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางการเติมผิวด้านล่างเมื่อใช้รูปแบบที่เริ่มจากศูนย์กลาง (ศูนย์กลาง, เกลียวเข้าใน, คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
-"เข้าด้านในจะเริ่มแต่ละผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยให้ชั้นแรกยึดเกาะดีขึ้นบนฐานพิมพ์ที่เส้นโค้งแคบตรงกึ่งกลางอาจไม่ติด ออกด้านนอกจะเริ่มที่กึ่งกลางและดันวัสดุส่วนเกินไปทางขอบ\n"
-"ค่าเริ่มต้นใช้การเรียงตามเส้นทางที่สั้นที่สุด ซึ่งอาจเดินไปทางใดก็ได้"
+"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้รูปแบบที่อิงจุดศูนย์กลาง (ศูนย์กลาง, เกลียวร่นเข้า (Spiral Inset), คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
+"เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
+"ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
 msgid "Internal solid infill pattern"
 msgstr "รูปแบบไส้ในของแข็งภายใน"
@@ -21499,7 +21499,7 @@ msgstr "ข้ามวัตถุ"
 
 # AI Translated
 msgid "Material Ratio"
-msgstr "สัดส่วนวัสดุ"
+msgstr "อัตราส่วนวัสดุ"
 
 # AI Translated
 msgid "Model Height"
@@ -21507,7 +21507,7 @@ msgstr "ความสูงโมเดล"
 
 # AI Translated
 msgid "Ratio"
-msgstr "สัดส่วน"
+msgstr "อัตราส่วน"
 
 msgid "Select Filament"
 msgstr "เลือกเส้นพลาสติก"

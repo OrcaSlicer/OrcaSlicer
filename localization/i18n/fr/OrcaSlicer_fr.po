@@ -2449,17 +2449,17 @@ msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Échec de l'ouverture de la boîte de dialogue des plugins (erreur inconnue)."
 
 msgid "Plugins refreshed."
-msgstr ""
+msgstr "Plugins actualisés."
 
 #, c-format, boost-format
 msgid "Failed to refresh plugins: %s"
-msgstr ""
+msgstr "Échec de l'actualisation des plugins : %s"
 
 msgid "Select plugin package"
-msgstr ""
+msgstr "Sélectionner le paquet du plugin"
 
 msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
-msgstr ""
+msgstr "Fichiers de plugin (*.py;*.whl)|*.py;*.whl"
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4081,19 +4081,19 @@ msgid "Today, OrcaSlicer is the most widely used and actively developed open-sou
 msgstr "Aujourd’hui, OrcaSlicer est le slicer open-source le plus utilisé et le plus activement développé de la communauté de l’impression 3D. Beaucoup de ses innovations ont été adoptées par d’autres slicers, ce qui en fait une force motrice pour toute l’industrie."
 
 msgid "Script plugin skipped."
-msgstr ""
+msgstr "Script du plugin ignoré."
 
 msgid "Script plugin finished."
-msgstr ""
+msgstr "Script du plugin terminé."
 
 msgid "Printer"
 msgstr "Imprimante"
 
 msgid "Recent Projects"
-msgstr ""
+msgstr "Projets récents"
 
 msgid "Go to Plate"
-msgstr ""
+msgstr "Aller à la plaque"
 
 msgid "AMS Materials Setting"
 msgstr "Réglage des matériaux AMS"
@@ -5898,7 +5898,7 @@ msgid "Wireframe"
 msgstr "Fil de fer"
 
 msgid "X-Ray"
-msgstr ""
+msgstr "Rayons X"
 
 msgid "Realistic View"
 msgstr "Vue réaliste"
@@ -6109,7 +6109,7 @@ msgid "Logging"
 msgstr "Enregistrement"
 
 msgid "Design"
-msgstr ""
+msgstr "Conception"
 
 msgid "Prepare"
 msgstr "Préparer"
@@ -6448,7 +6448,7 @@ msgid "View"
 msgstr "Affichage"
 
 msgid "Open Speed Dial"
-msgstr ""
+msgstr "Ouvrir l'accès rapide"
 
 msgid "Preset Bundle"
 msgstr "Paquet de préréglages"
@@ -7373,52 +7373,52 @@ msgid "Please refer to Wiki before use->"
 msgstr "Veuillez consulter le Wiki avant utilisation ->"
 
 msgid "Plates are a filament (FFF) feature."
-msgstr ""
+msgstr "Les plaques sont une fonctionnalité du filament (FFF)."
 
 msgid "Open the 3D view first."
-msgstr ""
+msgstr "Ouvrez d'abord la vue 3D."
 
 msgid "Select an object first."
-msgstr ""
+msgstr "Sélectionnez d'abord un objet."
 
 msgid "Slice and Preview"
-msgstr ""
+msgstr "Découper et prévisualiser"
 
 msgid "Slice & Export"
-msgstr ""
+msgstr "Découper et exporter"
 
 msgid "Go to layer (percent)"
-msgstr ""
+msgstr "Aller à la couche (pourcentage)"
 
 msgid "Commands"
-msgstr ""
+msgstr "Commandes"
 
 msgid "Go to tab..."
-msgstr ""
+msgstr "Aller à l'onglet..."
 
 msgid "Load Project"
-msgstr ""
+msgstr "Charger le projet"
 
 msgid "Save Project As"
-msgstr ""
+msgstr "Enregistrer le projet sous"
 
 msgid "Mode: Simple"
-msgstr ""
+msgstr "Mode : Simple"
 
 msgid "Mode: Advanced"
-msgstr ""
+msgstr "Mode : Avancé"
 
 msgid "Mode: Expert"
-msgstr ""
+msgstr "Mode : Expert"
 
 msgid "Toggle Developer Mode"
-msgstr ""
+msgstr "Basculer le mode développeur"
 
 msgid "Developer mode enabled."
-msgstr ""
+msgstr "Mode développeur activé."
 
 msgid "Developer mode disabled."
-msgstr ""
+msgstr "Mode développeur désactivé."
 
 msgid "Export STL"
 msgstr "Exporter STL"
@@ -7427,175 +7427,175 @@ msgid "Export 3MF"
 msgstr "Exporter 3MF"
 
 msgid "Export Sliced File"
-msgstr ""
+msgstr "Exporter le fichier découpé"
 
 msgid "Export All Sliced Files"
-msgstr ""
+msgstr "Exporter tous les fichiers découpés"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "Calibration de la vitesse volumétrique maximale"
 
 msgid "Pressure Advance Calibration"
-msgstr ""
+msgstr "Calibration du Pressure Advance"
 
 msgid "Flow Ratio Calibration"
 msgstr "Calibration du rapport de débit"
 
 msgid "Retraction Calibration"
-msgstr ""
+msgstr "Calibration de la rétraction"
 
 msgid "Cornering Calibration"
-msgstr ""
+msgstr "Calibration des angles"
 
 msgid "Input Shaping Frequency Calibration"
-msgstr ""
+msgstr "Calibration de la fréquence d'Input Shaping"
 
 msgid "Input Shaping Damping Calibration"
-msgstr ""
+msgstr "Calibration de l'amortissement d'Input Shaping"
 
 msgid "VFA Calibration"
-msgstr ""
+msgstr "Calibration VFA"
 
 msgid "View: Top"
-msgstr ""
+msgstr "Vue : Haut"
 
 msgid "View: Bottom"
-msgstr ""
+msgstr "Vue : Dessous"
 
 msgid "View: Front"
-msgstr ""
+msgstr "Vue : Avant"
 
 msgid "View: Rear"
-msgstr ""
+msgstr "Vue : Arrière"
 
 msgid "View: Left"
-msgstr ""
+msgstr "Vue : Gauche"
 
 msgid "View: Right"
-msgstr ""
+msgstr "Vue : Droite"
 
 msgid "View: Isometric"
-msgstr ""
+msgstr "Vue : Isométrique"
 
 msgid "View: Default"
-msgstr ""
+msgstr "Vue : Par défaut"
 
 msgid "Fit Bed to View"
-msgstr ""
+msgstr "Ajuster le plateau à la vue"
 
 msgid "Toggle Perspective"
-msgstr ""
+msgstr "Basculer la perspective"
 
 msgid "Delete All Objects"
 msgstr "Supprimer tous les objets"
 
 msgid "Mirror X"
-msgstr ""
+msgstr "Symétrie X"
 
 msgid "Mirror Y"
-msgstr ""
+msgstr "Symétrie Y"
 
 msgid "Mirror Z"
-msgstr ""
+msgstr "Symétrie Z"
 
 msgid "Split to Objects"
 msgstr "Scinder en objets"
 
 msgid "Split to Parts"
-msgstr ""
+msgstr "Diviser en pièces"
 
 msgid "Center Selected on Plate"
-msgstr ""
+msgstr "Centrer la sélection sur la plaque"
 
 msgid "Drop to Bed"
-msgstr ""
+msgstr "Poser sur le plateau"
 
 msgid "Scale to Fit Print Volume"
-msgstr ""
+msgstr "Mettre à l'échelle pour tenir dans le volume d'impression"
 
 msgid "Increase Instances"
-msgstr ""
+msgstr "Augmenter les instances"
 
 msgid "Decrease Instances"
-msgstr ""
+msgstr "Diminuer les instances"
 
 msgid "Auto-Arrange"
-msgstr ""
+msgstr "Disposition automatique"
 
 msgid "Auto-Orient"
-msgstr ""
+msgstr "Orientation automatique"
 
 msgid "Add Plate"
-msgstr ""
+msgstr "Ajouter une plaque"
 
 msgid "Cannot add another plate (maximum reached)."
-msgstr ""
+msgstr "Impossible d'ajouter une autre plaque (maximum atteint)."
 
 msgid "Duplicate Plate"
-msgstr ""
+msgstr "Dupliquer la plaque"
 
 msgid "Cannot duplicate a plate (maximum reached)."
-msgstr ""
+msgstr "Impossible de dupliquer une plaque (maximum atteint)."
 
 msgid "Cannot delete the only plate."
-msgstr ""
+msgstr "Impossible de supprimer la seule plaque."
 
 msgid "Rename Plate"
-msgstr ""
+msgstr "Renommer la plaque"
 
 msgid "Toggle Plate Lock"
-msgstr ""
+msgstr "Verrouiller/déverrouiller la plaque"
 
 msgid "No plates available."
-msgstr ""
+msgstr "Aucune plaque disponible."
 
 msgid "Synchronize Filament List from AMS"
-msgstr ""
+msgstr "Synchroniser la liste des filaments depuis l'AMS"
 
 msgid "Connect a printer to synchronize the AMS filament list."
-msgstr ""
+msgstr "Connectez une imprimante pour synchroniser la liste des filaments de l'AMS."
 
 msgid "Open Preset Bundle"
-msgstr ""
+msgstr "Ouvrir un lot de préréglages"
 
 msgid "Sign in to sync presets."
-msgstr ""
+msgstr "Connectez-vous pour synchroniser les préréglages."
 
 msgid "Export All Objects as STLs"
-msgstr ""
+msgstr "Exporter tous les objets en STL"
 
 msgid "Export All Objects as DRC (one file)"
-msgstr ""
+msgstr "Exporter tous les objets en DRC (un seul fichier)"
 
 msgid "Export All Objects as DRCs"
-msgstr ""
+msgstr "Exporter tous les objets en DRC"
 
 msgid "Export Toolpaths as OBJ"
-msgstr ""
+msgstr "Exporter les trajectoires en OBJ"
 
 msgid "About OrcaSlicer"
-msgstr ""
+msgstr "À propos d'OrcaSlicer"
 
 msgid "Open Wiki"
-msgstr ""
+msgstr "Ouvrir le wiki"
 
 msgid "Open YouTube Channel"
-msgstr ""
+msgstr "Ouvrir la chaîne YouTube"
 
 msgid "Open Plugins"
-msgstr ""
+msgstr "Ouvrir les plugins"
 
 msgid "Refresh Plugins"
-msgstr ""
+msgstr "Actualiser les plugins"
 
 msgid "Install Plugin"
-msgstr ""
+msgstr "Installer un plugin"
 
 msgid "Install Local Plugin"
-msgstr ""
+msgstr "Installer un plugin local"
 
 msgid "Unknown command."
-msgstr ""
+msgstr "Commande inconnue."
 
 msgid "3D Mouse disconnected."
 msgstr "Souris 3D déconnectée."
@@ -9251,31 +9251,31 @@ msgid "With this option enabled, you can send a task to multiple devices at the 
 msgstr "Si cette option est activée, vous pouvez envoyer une tâche à plusieurs appareils en même temps et gérer plusieurs appareils."
 
 msgid "Open the Speed Dial from the keyboard"
-msgstr ""
+msgstr "Ouvrir l'accès rapide depuis le clavier"
 
 msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
-msgstr ""
+msgstr "Si activé, le raccourci clavier de l'accès rapide (Espace par défaut) ouvre la recherche d'actions depuis n'importe quelle page."
 
 msgid "Recent actions"
-msgstr ""
+msgstr "Actions récentes"
 
 msgid "actions"
-msgstr ""
+msgstr "actions"
 
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
-msgstr ""
+msgstr "Nombre d'actions lancées récemment à afficher en haut de l'accès rapide. Mettez 0 pour masquer les actions récentes."
 
 msgid "CAD feature (experimental)"
-msgstr ""
+msgstr "Fonctionnalité CAO (expérimentale)"
 
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr ""
+msgstr "Avec cette option activée, l'onglet Conception s'affiche et permet de construire et modifier des modèles de façon paramétrique. Cette fonctionnalité est expérimentale et encore en cours de développement."
 
 msgid "Auto-close sketch loops"
-msgstr ""
+msgstr "Fermer automatiquement les boucles d'esquisse"
 
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-msgstr ""
+msgstr "Considère les extrémités d'esquisse distantes de moins de 0,001 mm comme un seul point de jonction et referme la boucle. Désactivé : seules les extrémités exactement coïncidentes sont jointes ; une boucle avec un minuscule espace est alors affichée comme ouverte au lieu d'être fermée automatiquement."
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Fenêtre contextuelle pour sélectionner le mode de regroupement des filaments"
@@ -9359,10 +9359,10 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Si cette option est activée, elle inverse le sens du zoom avec la molette de la souris."
 
 msgid "Draw mate connectors as a face"
-msgstr ""
+msgstr "Dessiner les connecteurs d'assemblage sous forme de face"
 
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-msgstr ""
+msgstr "Dans l'onglet Conception, dessine un connecteur d'assemblage sous forme de petite face plutôt que le disque conventionnel avec un quadrant de roulis. L'orientation d'une face se lit sans apprentissage. Désactivez cette option pour la représentation CAO conventionnelle."
 
 msgid "Pan"
 msgstr "Panoramique"
@@ -9386,13 +9386,13 @@ msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Définit l’action effectuée en faisant glisser le bouton droit de la souris."
 
 msgid "Keyboard"
-msgstr ""
+msgstr "Clavier"
 
 msgid "Keyboard shortcuts"
-msgstr ""
+msgstr "Raccourcis clavier"
 
 msgid "Choose the key for each action."
-msgstr ""
+msgstr "Choisissez la touche de chaque action."
 
 msgid "Clear my choice on..."
 msgstr "Effacer mon choix sur…"
@@ -9505,7 +9505,7 @@ msgstr ""
 "Réglez sur 0 pour une fréquence d’images illimitée."
 
 msgid "Reuse the 3D scene while idle"
-msgstr ""
+msgstr "Réutiliser la scène 3D au repos"
 
 msgid ""
 "Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
@@ -9513,10 +9513,10 @@ msgid ""
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
-msgstr ""
+msgstr "Évite de redessiner la scène 3D lorsque seul le curseur de la souris se déplace sur la vue,\net réutilise à la place la scène de l'image précédente. Réduit la charge du GPU.\nDésactivez cette option si la vue affiche un contenu obsolète ou manquant.\n\nPrend effet immédiatement."
 
 msgid "Skip unchanged frames"
-msgstr ""
+msgstr "Ignorer les images inchangées"
 
 msgid ""
 "Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
@@ -9524,19 +9524,19 @@ msgid ""
 "Disable it if a hover highlight, tooltip or animation stops updating.\n"
 "\n"
 "Takes effect immediately."
-msgstr ""
+msgstr "Évite complètement de dessiner une image lorsqu'elle serait identique à celle déjà à l'écran.\nNe s'applique qu'aux images qui réutilisent la scène 3D ; nécessite donc l'option Réutiliser la scène 3D au repos.\nDésactivez cette option si une surbrillance au survol, une info-bulle ou une animation cesse de se mettre à jour.\n\nPrend effet immédiatement."
 
 msgid "Show FPS overlay"
 msgstr "Afficher la superposition des FPS"
 
 msgid "Displays rendering counts in the top-right corner of the viewport."
-msgstr ""
+msgstr "Affiche les compteurs de rendu dans le coin supérieur droit de la vue."
 
 msgid "FPS: frames presented to the screen per second."
-msgstr ""
+msgstr "FPS : images affichées à l'écran par seconde."
 
 msgid "3D: frames per second that redrew the 3D scene."
-msgstr ""
+msgstr "3D : images par seconde ayant redessiné la scène 3D."
 
 # AI Translated
 msgid "G-code Preview"
@@ -9994,7 +9994,7 @@ msgid "Select which settings to be published in the 3MF file"
 msgstr "Sélectionnez les réglages à publier dans le fichier 3MF"
 
 msgid "Video Guide"
-msgstr ""
+msgstr "Guide vidéo"
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10101,100 +10101,100 @@ msgid "Simply switch to \"%1%\""
 msgstr "Passez simplement à \"%1%\""
 
 msgid "Expert"
-msgstr ""
+msgstr "Expert"
 
 msgid "Simple"
-msgstr ""
+msgstr "Simple"
 
 msgid "Search actions"
-msgstr ""
+msgstr "Rechercher des actions"
 
 #, c-format, boost-format
 msgid "Search %s actions"
-msgstr ""
+msgstr "Rechercher parmi %s actions"
 
 msgid "Recent"
-msgstr ""
+msgstr "Récent"
 
 msgid "Other"
 msgstr "Autre"
 
 #, c-format, boost-format
 msgid "No actions match (Total: %s)"
-msgstr ""
+msgstr "Aucune action ne correspond (Total : %s)"
 
 msgid "No actions yet"
-msgstr ""
+msgstr "Aucune action pour le moment"
 
 msgid "No tabs match"
-msgstr ""
+msgstr "Aucun onglet ne correspond"
 
 msgid "No tabs"
-msgstr ""
+msgstr "Aucun onglet"
 
 #, c-format, boost-format
 msgid "Showing %s of %s actions"
-msgstr ""
+msgstr "Affichage de %s sur %s actions"
 
 #, c-format, boost-format
 msgid "%s actions"
-msgstr ""
+msgstr "%s actions"
 
 #, c-format, boost-format
 msgid "%s tabs"
-msgstr ""
+msgstr "%s onglets"
 
 #, c-format, boost-format
 msgid "%s matches"
-msgstr ""
+msgstr "%s correspondances"
 
 #, c-format, boost-format
 msgid "Favourites are full (%s max)"
-msgstr ""
+msgstr "Les favoris sont pleins (%s max)"
 
 #, c-format, boost-format
 msgid "Go to %s%% of the layer range"
-msgstr ""
+msgstr "Aller à %s%% de la plage de couches"
 
 msgid "Enter a layer percentage (0-100)"
-msgstr ""
+msgstr "Saisissez un pourcentage de couche (0-100)"
 
 #, c-format, boost-format
 msgid "Go to layer %% (0-100)"
-msgstr ""
+msgstr "Aller à la couche %% (0-100)"
 
 msgid "Go to tab"
-msgstr ""
+msgstr "Aller à l'onglet"
 
 #, c-format, boost-format
 msgid "Favourite %s (%s)"
-msgstr ""
+msgstr "Favori %s (%s)"
 
 #, c-format, boost-format
 msgid "Pin to favourites (%s)"
-msgstr ""
+msgstr "Épingler aux favoris (%s)"
 
 #, c-format, boost-format
 msgid "Unpin from favourites (%s)"
-msgstr ""
+msgstr "Désépingler des favoris (%s)"
 
 msgid "Remove from favourites"
-msgstr ""
+msgstr "Retirer des favoris"
 
 msgid "Move left"
-msgstr ""
+msgstr "Déplacer à gauche"
 
 msgid "Move right"
-msgstr ""
+msgstr "Déplacer à droite"
 
 msgid "Unpin"
-msgstr ""
+msgstr "Désépingler"
 
 msgid "Wiki (F1)"
-msgstr ""
+msgstr "Wiki (F1)"
 
 msgid "No wiki page for this action"
-msgstr ""
+msgstr "Aucune page wiki pour cette action"
 
 msgid "Show details"
 msgstr "Afficher les détails"
@@ -10205,27 +10205,27 @@ msgstr "Masquer les détails"
 
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
-msgstr ""
+msgstr "\"%s\" est un paramètre Développeur. Activer le mode développeur pour le modifier ?"
 
 msgid "Developer setting"
-msgstr ""
+msgstr "Paramètre développeur"
 
 #, c-format, boost-format
 msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
-msgstr ""
+msgstr "\"%s\" est un paramètre %s. Passer du mode %s au mode %s pour le modifier ?"
 
 msgid "Switch settings mode"
-msgstr ""
+msgstr "Changer le mode des paramètres"
 
 #, c-format, boost-format
 msgid "Run \"%s\"?"
-msgstr ""
+msgstr "Exécuter \"%s\" ?"
 
 msgid "Run plugin"
-msgstr ""
+msgstr "Exécuter le plugin"
 
 msgid "Don't ask again for this action"
-msgstr ""
+msgstr "Ne plus demander pour cette action"
 
 msgid "Task canceled"
 msgstr "Tâche annulée"
@@ -12035,20 +12035,20 @@ msgstr "Rotation de la vue"
 
 #, c-format, boost-format
 msgid "Use %s or %s, or a key that does not type a character."
-msgstr ""
+msgstr "Utilisez %s ou %s, ou une touche qui ne saisit pas de caractère."
 
 msgctxt "Keyboard Shortcut"
 msgid "Key"
-msgstr ""
+msgstr "Touche"
 
 msgid "Left mouse"
-msgstr ""
+msgstr "Clic gauche"
 
 msgid "Available anywhere in the window, even while typing in a text field."
-msgstr ""
+msgstr "Disponible partout dans la fenêtre, même pendant la saisie dans un champ de texte."
 
 msgid "Run a speed dial favorite while the dial is open"
-msgstr ""
+msgstr "Lancer un favori de l'accès rapide lorsqu'il est ouvert"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -12056,10 +12056,10 @@ msgid "Tab"
 msgstr "Tab"
 
 msgid "Switch to the next main tab"
-msgstr ""
+msgstr "Passer à l'onglet principal suivant"
 
 msgid "Available while the 3D view on the Prepare tab has focus."
-msgstr ""
+msgstr "Disponible lorsque la vue 3D de l'onglet Préparer a le focus."
 
 msgid "Select a part"
 msgstr "Sélectionner une pièce"
@@ -12080,19 +12080,19 @@ msgid "Movement in camera space"
 msgstr "Mouvement dans l'espace de la caméra"
 
 msgid "Middle mouse"
-msgstr ""
+msgstr "Clic central"
 
 msgid "Right mouse"
-msgstr ""
+msgstr "Clic droit"
 
 msgid "Zoom View"
 msgstr "Zoom de la vue"
 
 msgid "Painting"
-msgstr ""
+msgstr "Peinture"
 
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr ""
+msgstr "Disponible lorsqu'un gizmo de peinture est ouvert : supports, couture, surface irrégulière ou peinture couleur."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Déplacer : appuyez pour aligner de 1 mm"
@@ -12107,7 +12107,7 @@ msgid "Objects list"
 msgstr "Liste des objets"
 
 msgid "Available while the object list has focus."
-msgstr ""
+msgstr "Disponible lorsque la liste des objets a le focus."
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Définir le numéro d'extrudeur pour les objets et les pièces"
@@ -12127,47 +12127,47 @@ msgid "Select the object/part and mouse click to change the name"
 msgstr "Sélectionnez l'objet/la pièce et cliquez avec la souris pour changer le nom"
 
 msgid "Available while the 3D view on the Preview tab has focus."
-msgstr ""
+msgstr "Disponible lorsque la vue 3D de l'onglet Aperçu a le focus."
 
 msgid "Move slider 5x faster"
 msgstr "Déplacez le curseur 5 fois plus vite"
 
 msgid "Scroll slider 5x faster"
-msgstr ""
+msgstr "Faire défiler le curseur 5 fois plus vite"
 
 msgid "Not customizable"
-msgstr ""
+msgstr "Non personnalisable"
 
 #, c-format, boost-format
 msgid "%s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "%s est attribué à %s. Le réattribuer à %s ?"
 
 #, c-format, boost-format
 msgid "The default %s is assigned to %s. Reassign it to %s?"
-msgstr ""
+msgstr "La valeur par défaut %s est attribuée à %s. La réattribuer à %s ?"
 
 msgid "Global shortcuts also apply while typing."
-msgstr ""
+msgstr "Les raccourcis globaux s'appliquent aussi pendant la saisie."
 
 msgid "A key that types a character cannot be a global shortcut."
-msgstr ""
+msgstr "Une touche qui saisit un caractère ne peut pas être un raccourci global."
 
 msgid "Esc cancels, Enter confirms."
-msgstr ""
+msgstr "Échap annule, Entrée confirme."
 
 #, c-format, boost-format
 msgid ""
 "Press the new shortcut for\n"
 "\"%s\""
-msgstr ""
+msgstr "Appuyez sur le nouveau raccourci pour\n\"%s\""
 
 #, c-format, boost-format
 msgid "Already used as a step of %s."
-msgstr ""
+msgstr "Déjà utilisé comme étape de %s."
 
 #, c-format, boost-format
 msgid "Already assigned to %s. Press OK to reassign it."
-msgstr ""
+msgstr "Déjà attribué à %s. Appuyez sur OK pour le réattribuer."
 
 msgid "Release Note"
 msgstr "Note de version"
@@ -17013,7 +17013,7 @@ msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL.
 msgstr "Insérer plusieurs commandes de préchauffage (par exemple M104.1). Uniquement utile pour la Prusa XL. Pour les autres imprimantes, veuillez le régler sur 1."
 
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
-msgstr ""
+msgstr "G-code écrit tout en haut du fichier de sortie, avant tout autre contenu. Utile pour ajouter des métadonnées que le firmware de l'imprimante lit dans les premières lignes du fichier (par ex. temps d'impression estimé, consommation de filament). Prend en charge des variables comme {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} et {used_filament_length}."
 
 msgid "Start G-code"
 msgstr "G-code de démarrage"
@@ -18538,34 +18538,34 @@ msgid "Total length of filament used in the print."
 msgstr "Longueur totale de filament utilisé dans l'impression."
 
 msgid "Print time (total seconds)"
-msgstr ""
+msgstr "Temps d'impression (secondes totales)"
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Temps d'impression total estimé en secondes. Remplacé par la valeur réelle lors du post-traitement."
 
 msgid "Print time (days component)"
-msgstr ""
+msgstr "Temps d'impression (composante jours)"
 
 msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Composante jours du temps d'impression estimé (mode normal). Remplacée par la valeur réelle lors du post-traitement."
 
 msgid "Print time (hours component)"
-msgstr ""
+msgstr "Temps d'impression (composante heures)"
 
 msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Composante heures du temps d'impression estimé (mode normal). Remplacée par la valeur réelle lors du post-traitement."
 
 msgid "Print time (minutes component)"
-msgstr ""
+msgstr "Temps d'impression (composante minutes)"
 
 msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Composante minutes du temps d'impression estimé (mode normal). Remplacée par la valeur réelle lors du post-traitement."
 
 msgid "Print time (seconds component)"
-msgstr ""
+msgstr "Temps d'impression (composante secondes)"
 
 msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
-msgstr ""
+msgstr "Composante secondes du temps d'impression estimé (mode normal). Remplacée par la valeur réelle lors du post-traitement."
 
 msgid "Filament length (meters)"
 msgstr "Longueur de filament (mètres)"
@@ -20402,7 +20402,7 @@ msgid "Success!"
 msgstr "Succès !"
 
 msgid "Generate API Key"
-msgstr ""
+msgstr "Générer une clé API"
 
 msgid "Are you sure to log out?"
 msgstr "Voulez-vous vraiment vous déconnecter ?"
@@ -21728,1431 +21728,1431 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Le modèle de filament est inconnu. Un préréglage de filament aléatoire sera utilisé."
 
 msgid "Construction"
-msgstr ""
+msgstr "Construction"
 
 #, c-format, boost-format
 msgid "%s  ·  on %s"
-msgstr ""
+msgstr "%s  ·  sur %s"
 
 msgid "Line — click start, then end"
-msgstr ""
+msgstr "Ligne — cliquez sur le début, puis sur la fin"
 
 msgid "Rectangle — click two opposite corners"
-msgstr ""
+msgstr "Rectangle — cliquez sur deux coins opposés"
 
 msgid "Circle — click center, then radius"
-msgstr ""
+msgstr "Cercle — cliquez sur le centre, puis sur le rayon"
 
 msgid "Arc — click start, end, then a point"
-msgstr ""
+msgstr "Arc — cliquez sur le début, la fin, puis sur un point"
 
 msgid "Slot — two centerline ends, then end radius"
-msgstr ""
+msgstr "Rainure — deux extrémités de l'axe, puis le rayon d'extrémité"
 
 msgid "Ellipse — center, major end, minor point"
-msgstr ""
+msgstr "Ellipse — centre, extrémité du grand axe, point du petit axe"
 
 msgid "Spline — click control points"
-msgstr ""
+msgstr "Spline — cliquez sur les points de contrôle"
 
 msgid "Point — click to place"
-msgstr ""
+msgstr "Point — cliquez pour le placer"
 
 msgid "Dimension — click 2 points or an entity"
-msgstr ""
+msgstr "Cote — cliquez sur 2 points ou sur une entité"
 
 msgid "Trim — click a segment to trim it"
-msgstr ""
+msgstr "Ajuster — cliquez sur un segment pour le couper"
 
 msgid "Extend — click a line/arc to extend it"
-msgstr ""
+msgstr "Prolonger — cliquez sur une ligne/un arc pour le prolonger"
 
 msgid "Offset — pick an entity, drag the distance"
-msgstr ""
+msgstr "Décalage — choisissez une entité, faites glisser la distance"
 
 msgid "Mirror — pick axis, then entities"
-msgstr ""
+msgstr "Symétrie — choisissez l'axe, puis les entités"
 
 msgid "Fillet — pick two lines, set the radius"
-msgstr ""
+msgstr "Congé — choisissez deux lignes, définissez le rayon"
 
 msgid "Chamfer — pick two lines, set the distance"
-msgstr ""
+msgstr "Chanfrein — choisissez deux lignes, définissez la distance"
 
 msgid "Polygon — click center, then a vertex"
-msgstr ""
+msgstr "Polygone — cliquez sur le centre, puis sur un sommet"
 
 msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
-msgstr ""
+msgstr "Rien ici n'a de valeur à saisir — choisissez une ligne, un arc, un cercle ou deux entités"
 
 msgid "Normal to the sketch plane"
-msgstr ""
+msgstr "Normale au plan d'esquisse"
 
 msgid "Converted the selection between construction and real geometry"
-msgstr ""
+msgstr "Sélection convertie entre géométrie de construction et géométrie réelle"
 
 msgid "Origin planes shown"
-msgstr ""
+msgstr "Plans d'origine affichés"
 
 msgid "Origin planes hidden"
-msgstr ""
+msgstr "Plans d'origine masqués"
 
 msgid "World axes shown"
-msgstr ""
+msgstr "Axes du monde affichés"
 
 msgid "World axes hidden"
-msgstr ""
+msgstr "Axes du monde masqués"
 
 msgid "Isometric view, fitted"
-msgstr ""
+msgstr "Vue isométrique, ajustée"
 
 msgid "Bed shown"
-msgstr ""
+msgstr "Plateau affiché"
 
 msgid "Bed hidden"
-msgstr ""
+msgstr "Plateau masqué"
 
 msgid "FEATURES"
-msgstr ""
+msgstr "FONCTIONNALITÉS"
 
 msgid "Sketch"
-msgstr ""
+msgstr "Esquisse"
 
 #, c-format, boost-format
 msgid "Sketching on %s — pick a tool"
-msgstr ""
+msgstr "Esquisse sur %s — choisissez un outil"
 
 msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr ""
+msgstr "Cliquez sur une face ou un plan de référence dans la vue, puis sur un outil d'esquisse"
 
 #, c-format, boost-format
 msgid ""
 "Drawing on %s.\n"
 "Pick a tool, or press Menu for the list."
-msgstr ""
+msgstr "Dessin sur %s.\nChoisissez un outil, ou appuyez sur Menu pour la liste."
 
 msgid "Click a face or a reference plane, then a sketch tool."
-msgstr ""
+msgstr "Cliquez sur une face ou un plan de référence, puis sur un outil d'esquisse."
 
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
-msgstr ""
+msgstr "Ajouter de la matière (extrusion / révolution / balayage / lissage / épaississement / nervure)"
 
 msgid "Extrude a sketch profile, or push/pull a picked face"
-msgstr ""
+msgstr "Extruder un profil d'esquisse, ou pousser/tirer une face choisie"
 
 msgid "Create a sketch, or pick a solid face, first"
-msgstr ""
+msgstr "Créez d'abord une esquisse, ou choisissez une face de solide"
 
 msgid "Revolve"
-msgstr ""
+msgstr "Révolution"
 
 msgid "Revolve a profile about an axis"
-msgstr ""
+msgstr "Révolution d'un profil autour d'un axe"
 
 msgid "Create a sketch profile to revolve first"
-msgstr ""
+msgstr "Créez d'abord un profil d'esquisse à révolutionner"
 
 msgid "Sweep"
-msgstr ""
+msgstr "Balayage"
 
 msgid "Sweep a profile along a path"
-msgstr ""
+msgstr "Balayage d'un profil le long d'un chemin"
 
 msgid "Create a profile sketch to sweep first"
-msgstr ""
+msgstr "Créez d'abord une esquisse de profil à balayer"
 
 msgid "Loft"
-msgstr ""
+msgstr "Lissage"
 
 msgid "Loft (skin) between two or more profiles"
-msgstr ""
+msgstr "Lissage (peau) entre au moins deux profils"
 
 msgid "Create at least two profile sketches to loft"
-msgstr ""
+msgstr "Créez au moins deux esquisses de profil à lisser"
 
 msgid "Thicken"
-msgstr ""
+msgstr "Épaissir"
 
 msgid "Offset a solid face into a thin plate (new body)"
-msgstr ""
+msgstr "Décaler une face de solide en une plaque mince (nouveau corps)"
 
 msgid "Thicken needs a solid body — add or import one first"
-msgstr ""
+msgstr "Épaissir nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 #, c-format
 msgid "Body %zu"
-msgstr ""
+msgstr "Corps %zu"
 
 msgid "Grow a thin wall from an open sketch line, fused to a body"
-msgstr ""
+msgstr "Faire croître une paroi mince à partir d'une ligne d'esquisse ouverte, fusionnée à un corps"
 
 msgid "Rib needs a solid body — add or import one first"
-msgstr ""
+msgstr "Nervure nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Create a sketch with an open line first"
-msgstr ""
+msgstr "Créez d'abord une esquisse avec une ligne ouverte"
 
 msgid "Create a solid body to pattern first"
-msgstr ""
+msgstr "Créez d'abord un corps solide à répéter"
 
 msgid "Pattern — needs a solid body to replicate"
-msgstr ""
+msgstr "Motif — nécessite un corps solide à reproduire"
 
 msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
-msgstr ""
+msgstr "Surface (extrusion / révolution / lissage / remplissage / décalage / épaississement)"
 
 msgid "Surface Extrude"
-msgstr ""
+msgstr "Extrusion de surface"
 
 msgid "Extrude a sketch into a sheet body (no end caps)"
-msgstr ""
+msgstr "Extruder une esquisse en un corps surfacique (sans faces d'extrémité)"
 
 msgid "Create a sketch first"
-msgstr ""
+msgstr "Créez d'abord une esquisse"
 
 msgid "Surface Revolve"
-msgstr ""
+msgstr "Révolution de surface"
 
 msgid "Revolve a sketch profile into a sheet body"
-msgstr ""
+msgstr "Révolution d'un profil d'esquisse en un corps surfacique"
 
 msgid "Surface Loft"
-msgstr ""
+msgstr "Lissage de surface"
 
 msgid "Loft (skin) between 2+ profiles, open (no end caps)"
-msgstr ""
+msgstr "Lissage (peau) entre 2 profils ou plus, ouvert (sans faces d'extrémité)"
 
 msgid "Surface Fill"
-msgstr ""
+msgstr "Remplissage de surface"
 
 msgid "Fill a sketch boundary with a smooth face"
-msgstr ""
+msgstr "Remplir un contour d'esquisse avec une face lisse"
 
 msgid "Create a sketch profile to fill first"
-msgstr ""
+msgstr "Créez d'abord un profil d'esquisse à remplir"
 
 msgid "Surface Offset"
-msgstr ""
+msgstr "Décalage de surface"
 
 msgid "Offset a sheet body's shell by a signed distance"
-msgstr ""
+msgstr "Décaler la coque d'un corps surfacique d'une distance signée"
 
 msgid "No sheet body to offset — create a surface feature first"
-msgstr ""
+msgstr "Aucun corps surfacique à décaler — créez d'abord une fonctionnalité de surface"
 
 msgid "Thicken Surface"
-msgstr ""
+msgstr "Épaissir la surface"
 
 msgid "Thicken a sheet body into a solid"
-msgstr ""
+msgstr "Épaissir un corps surfacique en solide"
 
 msgid "No sheet body to thicken — create a surface feature first"
-msgstr ""
+msgstr "Aucun corps surfacique à épaissir — créez d'abord une fonctionnalité de surface"
 
 msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
-msgstr ""
+msgstr "Référence / Courbe (plan / axe / repère / hélice / projection)"
 
 msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
-msgstr ""
+msgstr "Plan de référence (décalage / inclinaison / plan médian / tangent / deux arêtes / coïncident)"
 
 msgid "Axis"
-msgstr ""
+msgstr "Axe"
 
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
-msgstr ""
+msgstr "Axe de référence (deux points, normale de face, axe de cylindre, deux plans, le long d'une arête)"
 
 msgid "Coord Sys"
-msgstr ""
+msgstr "Repère"
 
 msgid "Datum coordinate system (world point, or face + direction edge)"
-msgstr ""
+msgstr "Repère de référence (point du monde, ou face + arête directrice)"
 
 msgid "Helix"
-msgstr ""
+msgstr "Hélice"
 
 msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
-msgstr ""
+msgstr "Courbe hélicoïdale (chemin de ressort) — à utiliser comme chemin de balayage pour des bobines / ressorts / vis sans fin"
 
 msgid "Project body edges onto a plane as sketch entities"
-msgstr ""
+msgstr "Projeter les arêtes d'un corps sur un plan sous forme d'entités d'esquisse"
 
 msgid "Project needs a body — add or import one first"
-msgstr ""
+msgstr "Projeter nécessite un corps — ajoutez-en ou importez-en un d'abord"
 
 msgid "(all edges)"
-msgstr ""
+msgstr "(toutes les arêtes)"
 
 msgid "Placement (transform / mirror / mate)"
-msgstr ""
+msgstr "Placement (transformation / symétrie / assemblage)"
 
 msgid "Transform"
-msgstr ""
+msgstr "Transformer"
 
 msgid "Move and/or rotate an existing body"
-msgstr ""
+msgstr "Déplacer et/ou faire pivoter un corps existant"
 
 msgid "Transform needs a body — add or import one first"
-msgstr ""
+msgstr "Transformer nécessite un corps — ajoutez-en ou importez-en un d'abord"
 
 msgid "Reflect a body about a plane"
-msgstr ""
+msgstr "Refléter un corps par rapport à un plan"
 
 msgid "Mirror needs a body — add or import one first"
-msgstr ""
+msgstr "Symétrie nécessite un corps — ajoutez-en ou importez-en un d'abord"
 
 msgid "Mate"
-msgstr ""
+msgstr "Assemblage"
 
 msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Assemblage : aligner deux repères (fixe, plan, pivot, glissière, cylindrique)"
 
 msgid "Boolean (combine bodies)"
-msgstr ""
+msgstr "Booléen (combiner des corps)"
 
 msgid "Boolean — needs two solid bodies to combine"
-msgstr ""
+msgstr "Booléen — nécessite deux corps solides à combiner"
 
 msgid "Cut (split a body with a plane)"
-msgstr ""
+msgstr "Coupe (diviser un corps avec un plan)"
 
 msgid "Create a solid body to cut first"
-msgstr ""
+msgstr "Créez d'abord un corps solide à couper"
 
 msgid "Cut — needs a solid body to slice"
-msgstr ""
+msgstr "Coupe — nécessite un corps solide à trancher"
 
 msgid "Color — set the selected body's display colour"
-msgstr ""
+msgstr "Couleur — définir la couleur d'affichage du corps sélectionné"
 
 msgid "Select a feature, or a body, first — then rename it"
-msgstr ""
+msgstr "Sélectionnez d'abord une fonctionnalité ou un corps — puis renommez-le"
 
 msgid "Fillet / chamfer / draft / shell / delete face"
-msgstr ""
+msgstr "Congé / chanfrein / dépouille / coque / suppression de face"
 
 msgid "Fillet / Chamfer"
-msgstr ""
+msgstr "Congé / Chanfrein"
 
 msgid "Round or bevel a picked edge"
-msgstr ""
+msgstr "Arrondir ou biseauter une arête choisie"
 
 msgid "Draft (taper a face)"
-msgstr ""
+msgstr "Dépouille (incliner une face)"
 
 msgid "Tilt a picked face by a draft angle"
-msgstr ""
+msgstr "Incliner une face choisie selon un angle de dépouille"
 
 msgid "Hollow the body to a wall thickness, opening a picked face"
-msgstr ""
+msgstr "Évider le corps à une épaisseur de paroi, en ouvrant une face choisie"
 
 msgid "Delete Face"
-msgstr ""
+msgstr "Supprimer la face"
 
 msgid "Remove faces from a body and heal the solid"
-msgstr ""
+msgstr "Retirer des faces d'un corps et réparer le solide"
 
 msgid "Delete Face needs a body — add or import one first"
-msgstr ""
+msgstr "Supprimer la face nécessite un corps — ajoutez-en ou importez-en un d'abord"
 
 msgid "(none)"
-msgstr ""
+msgstr "(aucun)"
 
 msgid "Hole / thread"
-msgstr ""
+msgstr "Trou / filetage"
 
 msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr ""
+msgstr "Percer un trou, centré sur une face choisie ou placé sur un plan"
 
 msgid "Thread"
-msgstr ""
+msgstr "Filetage"
 
 msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
-msgstr ""
+msgstr "Fileter une surface cylindrique (alésage / extérieur) ou une arête circulaire"
 
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr ""
+msgstr "Choisissez une surface cylindrique (alésage / extérieur) ou une arête circulaire pour un filetage"
 
 msgid "Import STEP (editable B-rep solid)"
-msgstr ""
+msgstr "Importer un STEP (solide B-rep modifiable)"
 
 msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr ""
+msgstr "Importer un maillage (STL/OBJ) en solide B-rep modifiable"
 
 msgid "Constrain selected sketch"
-msgstr ""
+msgstr "Contraindre l'esquisse sélectionnée"
 
 msgid "SKETCH"
-msgstr ""
+msgstr "ESQUISSE"
 
 msgid "Click to select; Shift to add; double-click for a whole loop"
-msgstr ""
+msgstr "Cliquez pour sélectionner ; Maj pour ajouter ; double-clic pour toute la boucle"
 
 msgid "Dimension"
-msgstr ""
+msgstr "Cote"
 
 msgid "Click 2 points or a line / circle / arc to place a dimension"
-msgstr ""
+msgstr "Cliquez sur 2 points ou sur une ligne / un cercle / un arc pour placer une cote"
 
 msgid "Line / polyline"
-msgstr ""
+msgstr "Ligne / polyligne"
 
 msgid "Click start, then end — then set the exact length"
-msgstr ""
+msgstr "Cliquez sur le début, puis sur la fin — puis définissez la longueur exacte"
 
 msgid "Polyline"
-msgstr ""
+msgstr "Polyligne"
 
 msgid "Click points; click first / right-click to close the loop"
-msgstr ""
+msgstr "Cliquez sur des points ; cliquez sur le premier / clic droit pour fermer la boucle"
 
 msgid "Corner rectangle"
-msgstr ""
+msgstr "Rectangle par coins"
 
 msgid "Click two opposite corners"
-msgstr ""
+msgstr "Cliquez sur deux coins opposés"
 
 msgid "Center rectangle"
-msgstr ""
+msgstr "Rectangle centré"
 
 msgid "Click center, then a corner"
-msgstr ""
+msgstr "Cliquez sur le centre, puis sur un coin"
 
 msgid "Oblique rectangle"
-msgstr ""
+msgstr "Rectangle oblique"
 
 msgid "Click two corners of one edge, then a point for the width"
-msgstr ""
+msgstr "Cliquez sur deux coins d'une arête, puis sur un point pour la largeur"
 
 msgid "Rounded rectangle"
-msgstr ""
+msgstr "Rectangle arrondi"
 
 msgid "Click two opposite corners, then a point for the corner radius"
-msgstr ""
+msgstr "Cliquez sur deux coins opposés, puis sur un point pour le rayon d'angle"
 
 msgid "Center circle"
-msgstr ""
+msgstr "Cercle par centre"
 
 msgid "Click center, then radius"
-msgstr ""
+msgstr "Cliquez sur le centre, puis sur le rayon"
 
 msgid "2-point circle"
-msgstr ""
+msgstr "Cercle par 2 points"
 
 msgid "Click two ends of the diameter"
-msgstr ""
+msgstr "Cliquez sur les deux extrémités du diamètre"
 
 msgid "3-point circle"
-msgstr ""
+msgstr "Cercle par 3 points"
 
 msgid "Click three points on the circle"
-msgstr ""
+msgstr "Cliquez sur trois points du cercle"
 
 msgid "Arc"
-msgstr ""
+msgstr "Arc"
 
 msgid "3-point arc"
-msgstr ""
+msgstr "Arc par 3 points"
 
 msgid "Click start, end, then a point on the arc"
-msgstr ""
+msgstr "Cliquez sur le début, la fin, puis sur un point de l'arc"
 
 msgid "Tangent arc"
-msgstr ""
+msgstr "Arc tangent"
 
 msgid "Click start (on the last entity) then end"
-msgstr ""
+msgstr "Cliquez sur le début (sur la dernière entité), puis sur la fin"
 
 msgid "Center-point arc"
-msgstr ""
+msgstr "Arc par centre"
 
 msgid "Click center, then start, then a point for the end angle"
-msgstr ""
+msgstr "Cliquez sur le centre, puis sur le début, puis sur un point pour l'angle de fin"
 
 msgid "Slot"
-msgstr ""
+msgstr "Rainure"
 
 msgid "Click two centerline ends, then a point for the end radius"
-msgstr ""
+msgstr "Cliquez sur les deux extrémités de l'axe, puis sur un point pour le rayon d'extrémité"
 
 msgid "Arc slot"
-msgstr ""
+msgstr "Rainure en arc"
 
 msgid "Click center, start, end, then a point for the width"
-msgstr ""
+msgstr "Cliquez sur le centre, le début, la fin, puis sur un point pour la largeur"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Ellipse"
 
 msgid "Click center, a major-axis end, then a point for the minor axis"
-msgstr ""
+msgstr "Cliquez sur le centre, l'extrémité du grand axe, puis sur un point pour le petit axe"
 
 msgid "Elliptical arc"
-msgstr ""
+msgstr "Arc elliptique"
 
 msgid "Click center, major-axis end, minor point, then arc start and end"
-msgstr ""
+msgstr "Cliquez sur le centre, l'extrémité du grand axe, le point du petit axe, puis le début et la fin de l'arc"
 
 msgid "Spline"
-msgstr ""
+msgstr "Spline"
 
 msgid "Click control points; double-click or right-click to finish"
-msgstr ""
+msgstr "Cliquez sur les points de contrôle ; double-clic ou clic droit pour terminer"
 
 msgid "Click to place a point"
-msgstr ""
+msgstr "Cliquez pour placer un point"
 
 msgid "Select — click to select; Shift to add"
-msgstr ""
+msgstr "Sélection — cliquez pour sélectionner ; Maj pour ajouter"
 
 msgid "Text — emboss text as a profile"
-msgstr ""
+msgstr "Texte — graver du texte comme profil"
 
 msgid "SVG — import an outline as a profile"
-msgstr ""
+msgstr "SVG — importer un contour comme profil"
 
 msgid "Fillet / chamfer"
-msgstr ""
+msgstr "Congé / chanfrein"
 
 msgid "Fillet"
-msgstr ""
+msgstr "Congé"
 
 msgid "Pick two lines, then drag the arrow or click the radius to set it"
-msgstr ""
+msgstr "Choisissez deux lignes, puis faites glisser la flèche ou cliquez sur le rayon pour le définir"
 
 msgid "Chamfer"
-msgstr ""
+msgstr "Chanfrein"
 
 msgid "Pick two lines, then drag the arrow or click the distance to set it"
-msgstr ""
+msgstr "Choisissez deux lignes, puis faites glisser la flèche ou cliquez sur la distance pour la définir"
 
 msgid "Offset"
-msgstr ""
+msgstr "Décalage"
 
 msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
-msgstr ""
+msgstr "Choisissez une entité, puis faites glisser la flèche ou cliquez sur la distance ; cliquez dans le vide pour appliquer"
 
 msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
-msgstr ""
+msgstr "Choisissez une ligne d'axe de symétrie, puis les entités à refléter ; cliquez dans le vide pour appliquer"
 
 msgid "Trim"
-msgstr ""
+msgstr "Ajuster"
 
 msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr ""
+msgstr "Cliquez sur un segment pour le raccourcir jusqu'à l'intersection la plus proche ; clic droit pour quitter"
 
 msgid "Extend"
-msgstr ""
+msgstr "Prolonger"
 
 msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr ""
+msgstr "Cliquez sur une ligne ou un arc pour le prolonger jusqu'à l'entité la plus proche ; clic droit pour quitter"
 
 msgid "Constrain — add geometric/dimensional relations"
-msgstr ""
+msgstr "Contrainte — ajouter des relations géométriques/dimensionnelles"
 
 msgid "Move / rotate / scale"
-msgstr ""
+msgstr "Déplacer / pivoter / mettre à l'échelle"
 
 msgid "Move (translate)"
-msgstr ""
+msgstr "Déplacer (translation)"
 
 msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
-msgstr ""
+msgstr "Choisissez des entités, puis faites glisser la poignée ou cliquez sur la distance ; cliquez dans le vide pour appliquer"
 
 msgid "Rotate (about centroid)"
-msgstr ""
+msgstr "Pivoter (autour du centroïde)"
 
 msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
-msgstr ""
+msgstr "Choisissez des entités, puis faites glisser autour du pivot ou cliquez sur l'angle ; cliquez dans le vide pour appliquer"
 
 msgid "Scale (about centroid)"
-msgstr ""
+msgstr "Mettre à l'échelle (autour du centroïde)"
 
 msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
-msgstr ""
+msgstr "Choisissez des entités, puis faites glisser la poignée ou cliquez sur le facteur ; cliquez dans le vide pour appliquer"
 
 msgid "Linear / polar array"
-msgstr ""
+msgstr "Réseau linéaire / polaire"
 
 msgid "Linear array"
-msgstr ""
+msgstr "Réseau linéaire"
 
 msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
-msgstr ""
+msgstr "Choisissez des entités, faites glisser la poignée d'espacement, cliquez sur le nombre ; cliquez dans le vide pour appliquer"
 
 msgid "Polar array (about centroid)"
-msgstr ""
+msgstr "Réseau polaire (autour du centroïde)"
 
 msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
-msgstr ""
+msgstr "Choisissez des entités, faites glisser la poignée de balayage, cliquez sur le nombre ; cliquez dans le vide pour appliquer"
 
 #, c-format, boost-format
 msgid "Click center then a vertex — %d sides, %s"
-msgstr ""
+msgstr "Cliquez sur le centre puis sur un sommet — %d côtés, %s"
 
 msgid "circumscribed"
-msgstr ""
+msgstr "circonscrit"
 
 msgid "inscribed"
-msgstr ""
+msgstr "inscrit"
 
 msgid "Polygon"
-msgstr ""
+msgstr "Polygone"
 
 #, c-format, boost-format
 msgid "Converted %d entit%s between construction and real geometry"
 msgstr ""
 
 msgid "CONSTRAIN"
-msgstr ""
+msgstr "CONTRAINTES"
 
 msgid "Perpendicular"
-msgstr ""
+msgstr "Perpendiculaire"
 
 msgid "Coincident"
-msgstr ""
+msgstr "Coïncident"
 
 msgid "Equal length"
-msgstr ""
+msgstr "Longueur égale"
 
 msgid "Equal radius"
-msgstr ""
+msgstr "Rayon égal"
 
 msgid "Collinear"
-msgstr ""
+msgstr "Colinéaire"
 
 msgid "Tangent"
-msgstr ""
+msgstr "Tangent"
 
 msgid "Midpoint"
-msgstr ""
+msgstr "Milieu"
 
 msgid "Symmetric"
-msgstr ""
+msgstr "Symétrique"
 
 msgid "Symmetric about the vertical axis"
-msgstr ""
+msgstr "Symétrique par rapport à l'axe vertical"
 
 msgid "Symmetric about the horizontal axis"
-msgstr ""
+msgstr "Symétrique par rapport à l'axe horizontal"
 
 msgid "Fix point (anchor in place)"
-msgstr ""
+msgstr "Point fixe (ancré en place)"
 
 msgid "Horizontal distance"
-msgstr ""
+msgstr "Distance horizontale"
 
 msgid "Vertical distance"
-msgstr ""
+msgstr "Distance verticale"
 
 msgid "✓ Confirm"
-msgstr ""
+msgstr "✓ Confirmer"
 
 msgid "✗ Cancel"
-msgstr ""
+msgstr "✗ Annuler"
 
 msgid "Undo (Ctrl+Z)"
-msgstr ""
+msgstr "Annuler (Ctrl+Z)"
 
 msgid "Redo (Ctrl+Shift+Z)"
-msgstr ""
+msgstr "Rétablir (Ctrl+Maj+Z)"
 
 msgid "New Design — clear the feature tree"
-msgstr ""
+msgstr "Nouvelle conception — vider l'arbre des fonctionnalités"
 
 msgid "Export STEP…"
-msgstr ""
+msgstr "Exporter en STEP…"
 
 msgid "Show the printer bed and its plate grid"
-msgstr ""
+msgstr "Afficher le plateau d'impression et sa grille de plaque"
 
 msgid "Place on Face (F) — lay the picked face on the bed"
-msgstr ""
+msgstr "Poser sur la face (F) — poser la face choisie sur le plateau"
 
 msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
-msgstr ""
+msgstr "Vue en coupe — masquer une partie du modèle pour voir l'intérieur. PgPréc/PgSuiv déplacent le plan ; Suppr le retire."
 
 msgid "Flip Section — show the opposite half"
-msgstr ""
+msgstr "Inverser la coupe — afficher l'autre moitié"
 
 msgid "Commit to Plate — send the solid to Prepare"
-msgstr ""
+msgstr "Valider sur la plaque — envoyer le solide vers Préparer"
 
 msgid "Width / X"
-msgstr ""
+msgstr "Largeur / X"
 
 msgid "Height / Y"
-msgstr ""
+msgstr "Hauteur / Y"
 
 msgid "Distance X"
-msgstr ""
+msgstr "Distance X"
 
 msgid "Distance Y"
-msgstr ""
+msgstr "Distance Y"
 
 msgid "Distance Z"
-msgstr ""
+msgstr "Distance Z"
 
 msgid "Z"
-msgstr ""
+msgstr "Z"
 
 msgid "Rotation axis"
-msgstr ""
+msgstr "Axe de rotation"
 
 msgid "Angle °"
-msgstr ""
+msgstr "Angle °"
 
 msgid "Move / Rotate"
-msgstr ""
+msgstr "Déplacer / Pivoter"
 
 msgid "Sketch: —"
-msgstr ""
+msgstr "Esquisse : —"
 
 msgid "Extrude dist"
-msgstr ""
+msgstr "Dist. d'extrusion"
 
 msgid "End"
 msgstr "Fin"
 
 msgid "2nd dist"
-msgstr ""
+msgstr "2e dist."
 
 msgid "Taper °"
-msgstr ""
+msgstr "Dépouille °"
 
 msgid "New body"
-msgstr ""
+msgstr "Nouveau corps"
 
 msgid "Intersect"
-msgstr ""
+msgstr "Intersection"
 
 msgid "Result"
-msgstr ""
+msgstr "Résultat"
 
 msgid "Flip direction"
-msgstr ""
+msgstr "Inverser la direction"
 
 msgid "(no edge picked — group below)"
-msgstr ""
+msgstr "(aucune arête choisie — groupe ci-dessous)"
 
 msgid "Bottom"
 msgstr "Dessous"
 
 msgid "Lateral"
-msgstr ""
+msgstr "Latéral"
 
 msgid "Edges"
-msgstr ""
+msgstr "Arêtes"
 
 msgid "Size (r/dist)"
-msgstr ""
+msgstr "Taille (r/dist)"
 
 msgid "XY"
-msgstr ""
+msgstr "XY"
 
 msgid "XZ"
-msgstr ""
+msgstr "XZ"
 
 msgid "YZ"
-msgstr ""
+msgstr "YZ"
 
 msgid "Hole plane"
-msgstr ""
+msgstr "Plan du trou"
 
 msgid "Depth (blind)"
-msgstr ""
+msgstr "Profondeur (borgne)"
 
 msgid "Pos X"
-msgstr ""
+msgstr "Pos. X"
 
 msgid "Pos Y"
-msgstr ""
+msgstr "Pos. Y"
 
 msgid "Through"
-msgstr ""
+msgstr "Traversant"
 
 msgid "(none — uses Hole plane)"
-msgstr ""
+msgstr "(aucun — utilise le plan du trou)"
 
 msgid "On face"
-msgstr ""
+msgstr "Sur la face"
 
 msgid "Thread plane"
-msgstr ""
+msgstr "Plan du filetage"
 
 msgid "Pitch"
-msgstr ""
+msgstr "Pas"
 
 msgid "Thread depth"
-msgstr ""
+msgstr "Profondeur du filetage"
 
 msgid "(none — uses Thread plane)"
-msgstr ""
+msgstr "(aucun — utilise le plan du filetage)"
 
 msgid "Plane X"
-msgstr ""
+msgstr "Plan X"
 
 msgid "Plane Y"
-msgstr ""
+msgstr "Plan Y"
 
 msgid "Profile: —"
-msgstr ""
+msgstr "Profil : —"
 
 msgid "Path"
-msgstr ""
+msgstr "Chemin"
 
 msgid "Linear"
-msgstr ""
+msgstr "Linéaire"
 
 msgid "Direction"
-msgstr ""
+msgstr "Direction"
 
 msgid "Total angle°"
-msgstr ""
+msgstr "Angle total °"
 
 msgid "Boolean"
-msgstr ""
+msgstr "Booléen"
 
 msgid "Union (join)"
-msgstr ""
+msgstr "Union (joindre)"
 
 msgid "Subtract (cut)"
-msgstr ""
+msgstr "Soustraction (couper)"
 
 msgid "Target (kept)"
-msgstr ""
+msgstr "Cible (conservée)"
 
 msgid "Keep tool body"
-msgstr ""
+msgstr "Conserver le corps outil"
 
 msgid "Body"
-msgstr ""
+msgstr "Corps"
 
 msgid "Insert"
-msgstr ""
+msgstr "Insérer"
 
 msgid ""
 "Drag a corner to size, the centre to move.\n"
 "Confirm or Cancel in the toolbar above."
-msgstr ""
+msgstr "Faites glisser un coin pour redimensionner, le centre pour déplacer.\nConfirmez ou annulez dans la barre d'outils ci-dessus."
 
 msgid "Midplane"
-msgstr ""
+msgstr "Plan médian"
 
 msgid "Two edges"
-msgstr ""
+msgstr "Deux arêtes"
 
 msgid "Plane type"
-msgstr ""
+msgstr "Type de plan"
 
 msgid "Base"
-msgstr ""
+msgstr "Base"
 
 msgid "Angle°"
-msgstr ""
+msgstr "Angle °"
 
 msgid "Base X"
-msgstr ""
+msgstr "Base X"
 
 msgid "Base Y"
-msgstr ""
+msgstr "Base Y"
 
 msgid "Tilt axis"
-msgstr ""
+msgstr "Axe d'inclinaison"
 
 msgid "Pick Face A"
-msgstr ""
+msgstr "Choisir la face A"
 
 msgid "Pick Face B"
-msgstr ""
+msgstr "Choisir la face B"
 
 msgid "Pick Edge A"
-msgstr ""
+msgstr "Choisir l'arête A"
 
 msgid "Pick Edge B"
-msgstr ""
+msgstr "Choisir l'arête B"
 
 msgid "Size U"
-msgstr ""
+msgstr "Taille U"
 
 msgid "Size V"
-msgstr ""
+msgstr "Taille V"
 
 msgid "Profiles (check 2+, in order):"
-msgstr ""
+msgstr "Profils (cochez 2+, dans l'ordre) :"
 
 msgid "Ruled (straight) sections"
-msgstr ""
+msgstr "Sections réglées (droites)"
 
 msgid "Fills the sketch's closed boundary with a smooth face."
-msgstr ""
+msgstr "Remplit le contour fermé de l'esquisse avec une face lisse."
 
 msgid "Sheet body"
-msgstr ""
+msgstr "Corps surfacique"
 
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
-msgstr ""
+msgstr "Décale la coque d'un corps surfacique. Positif = vers l'extérieur, négatif = vers l'intérieur."
 
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
-msgstr ""
+msgstr "Épaissit un corps surfacique en solide. Inverser change la direction."
 
 msgid "(all faces — closed hollow)"
-msgstr ""
+msgstr "(toutes les faces — creux fermé)"
 
 msgid "Open face"
-msgstr ""
+msgstr "Face ouverte"
 
 msgid "Pick a solid face to open it, then set the wall thickness."
-msgstr ""
+msgstr "Choisissez une face de solide à ouvrir, puis définissez l'épaisseur de paroi."
 
 msgid "Angle (°)"
-msgstr ""
+msgstr "Angle (°)"
 
 msgid "(pick a side face)"
-msgstr ""
+msgstr "(choisir une face latérale)"
 
 msgid "Draft"
-msgstr ""
+msgstr "Dépouille"
 
 msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
-msgstr ""
+msgstr "Choisissez une face latérale, puis définissez l'angle de dépouille. La face pivote autour de la base du corps."
 
 msgid "Translate X"
-msgstr ""
+msgstr "Translation X"
 
 msgid "Translate Y"
-msgstr ""
+msgstr "Translation Y"
 
 msgid "Translate Z"
-msgstr ""
+msgstr "Translation Z"
 
 msgid "Rotate axis"
-msgstr ""
+msgstr "Axe de rotation"
 
 msgid "Pivot X"
-msgstr ""
+msgstr "Pivot X"
 
 msgid "Pivot Y"
-msgstr ""
+msgstr "Pivot Y"
 
 msgid "Pivot Z"
-msgstr ""
+msgstr "Pivot Z"
 
 msgid "Keep original (make a copy)"
-msgstr ""
+msgstr "Conserver l'original (faire une copie)"
 
 msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
-msgstr ""
+msgstr "Translater et/ou faire pivoter le corps sélectionné. La rotation est appliquée autour du pivot, puis la translation suit."
 
 msgid "Mirror plane"
-msgstr ""
+msgstr "Plan de symétrie"
 
 msgid "Keep original"
-msgstr ""
+msgstr "Conserver l'original"
 
 msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
-msgstr ""
+msgstr "Refléter le corps sélectionné par rapport à un plan. Le miroir est toujours un nouveau corps ; conserver l'original vous donne les deux."
 
 msgid "(pick a solid face)"
-msgstr ""
+msgstr "(choisir une face de solide)"
 
 msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
-msgstr ""
+msgstr "Choisissez une face de solide et décalez-la en un nouveau corps mince. Pas pour les corps surfaciques — utilisez Épaissir la surface pour ceux-ci."
 
 msgid "Target body"
-msgstr ""
+msgstr "Corps cible"
 
 msgid "Entity index"
-msgstr ""
+msgstr "Index de l'entité"
 
 msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
-msgstr ""
+msgstr "Faire croître une paroi mince à partir d'une entité Ligne ouverte de l'esquisse, fusionnée au corps cible. L'index de l'entité est la position de la ligne ouverte dans l'esquisse."
 
 msgid "Source body"
-msgstr ""
+msgstr "Corps source"
 
 msgid "Target plane"
-msgstr ""
+msgstr "Plan cible"
 
 msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
-msgstr ""
+msgstr "Projeter les arêtes d'un corps sur un plan sous forme d'entités d'esquisse. Choisissez une face pour ne projeter que ses arêtes, ou laissez la face vide pour projeter tout le corps."
 
 msgid "Add picked face"
-msgstr ""
+msgstr "Ajouter la face choisie"
 
 msgid "Click a face on the body first, then Add picked face"
-msgstr ""
+msgstr "Cliquez d'abord sur une face du corps, puis sur Ajouter la face choisie"
 
 #, c-format, boost-format
 msgid "Face %d is already in the list"
-msgstr ""
+msgstr "La face %d est déjà dans la liste"
 
 msgid "Faces to delete"
-msgstr ""
+msgstr "Faces à supprimer"
 
 msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
-msgstr ""
+msgstr "Choisissez une face de solide, puis cliquez sur « Ajouter la face choisie » pour accumuler des faces. Confirmez pour retirer toutes les faces listées et réparer le solide."
 
 msgid "Left-handed"
-msgstr ""
+msgstr "Pas à gauche"
 
 msgid "Taper (°)"
-msgstr ""
+msgstr "Dépouille (°)"
 
 msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
-msgstr ""
+msgstr "Une courbe hélicoïdale (chemin de ressort). À utiliser comme chemin de balayage pour construire des ressorts, des bobines ou des vis sans fin."
 
 msgid "Two points"
-msgstr ""
+msgstr "Deux points"
 
 msgid "Face normal"
-msgstr ""
+msgstr "Normale de face"
 
 msgid "Cylinder centerline"
-msgstr ""
+msgstr "Axe de cylindre"
 
 msgid "Plane intersection"
-msgstr ""
+msgstr "Intersection de plans"
 
 msgid "Along edge"
-msgstr ""
+msgstr "Le long d'une arête"
 
 msgid "Axis type"
-msgstr ""
+msgstr "Type d'axe"
 
 msgid "Pick Face"
-msgstr ""
+msgstr "Choisir la face"
 
 msgid "Pick Edge"
-msgstr ""
+msgstr "Choisir l'arête"
 
 msgid "Plane A"
-msgstr ""
+msgstr "Plan A"
 
 msgid "Plane B"
-msgstr ""
+msgstr "Plan B"
 
 msgid "Point 1 X"
-msgstr ""
+msgstr "Point 1 X"
 
 msgid "Point 1 Y"
-msgstr ""
+msgstr "Point 1 Y"
 
 msgid "Point 1 Z"
-msgstr ""
+msgstr "Point 1 Z"
 
 msgid "Point 2 X"
-msgstr ""
+msgstr "Point 2 X"
 
 msgid "Point 2 Y"
-msgstr ""
+msgstr "Point 2 Y"
 
 msgid "Point 2 Z"
-msgstr ""
+msgstr "Point 2 Z"
 
 msgid "Point (world)"
-msgstr ""
+msgstr "Point (monde)"
 
 msgid "Face + direction"
-msgstr ""
+msgstr "Face + direction"
 
 msgid "(all)"
-msgstr ""
+msgstr "(tout)"
 
 msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
-msgstr ""
+msgstr "Limiter la sélection à un corps — les autres deviennent transparents et n'interceptent plus les clics"
 
 msgid "Edge (sets in-plane direction)"
-msgstr ""
+msgstr "Arête (définit la direction dans le plan)"
 
 msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
-msgstr ""
+msgstr "Sans arête, le repère prend X à partir de la première arête de la face — choisissez-en une pour la définir vous-même"
 
 msgid "X hint X"
-msgstr ""
+msgstr "Indication X en X"
 
 msgid "X hint Y"
-msgstr ""
+msgstr "Indication X en Y"
 
 msgid "X hint Z"
-msgstr ""
+msgstr "Indication X en Z"
 
 msgid "Fastened — 6 DOF locked, B driven onto A exactly"
-msgstr ""
+msgstr "Fixe — 6 DDL verrouillés, B amené exactement sur A"
 
 msgid "Planar — z aligned, offset distance; free in-plane slide"
-msgstr ""
+msgstr "Plan — z aligné, distance de décalage ; glissement libre dans le plan"
 
 msgid "Revolute — axes collinear; free rotation about z"
-msgstr ""
+msgstr "Pivot — axes colinéaires ; rotation libre autour de z"
 
 msgid "Slider — orientation locked; free axial slide"
-msgstr ""
+msgstr "Glissière — orientation verrouillée ; glissement axial libre"
 
 msgid "Cylindrical — axes collinear; free spin + axial slide"
-msgstr ""
+msgstr "Cylindrique — axes colinéaires ; rotation libre + glissement axial"
 
 msgid "Kind"
-msgstr ""
+msgstr "Type"
 
 msgid "CS A (fixed)"
-msgstr ""
+msgstr "CS A (fixe)"
 
 msgid "CS B (moves)"
-msgstr ""
+msgstr "CS B (mobile)"
 
 msgid "Flip (oppose z axes)"
-msgstr ""
+msgstr "Inverser (opposer les axes z)"
 
 msgid "Plane distance"
-msgstr ""
+msgstr "Distance au plan"
 
 msgid "Axial position"
-msgstr ""
+msgstr "Position axiale"
 
 msgid "Expression"
-msgstr ""
+msgstr "Expression"
 
 msgid "Field"
-msgstr ""
+msgstr "Champ"
 
 msgid "Expr"
-msgstr ""
+msgstr "Expr."
 
 msgid "(no bindings)"
-msgstr ""
+msgstr "(aucune liaison)"
 
 msgid "Value"
-msgstr ""
+msgstr "Valeur"
 
 msgid "Constraints"
-msgstr ""
+msgstr "Contraintes"
 
 msgid "Feature tree"
-msgstr ""
+msgstr "Arbre des fonctionnalités"
 
 msgid " — the eye suppresses this mate"
-msgstr ""
+msgstr " — l'œil supprime cet assemblage"
 
 #, c-format, boost-format
 msgid "%s selected — F2 or right-click renames it, double-click edits it"
-msgstr ""
+msgstr "%s sélectionné — F2 ou clic droit pour le renommer, double-clic pour le modifier"
 
 msgid "Rename\tF2"
-msgstr ""
+msgstr "Renommer\tF2"
 
 msgid "Scale artwork"
-msgstr ""
+msgstr "Mettre à l'échelle l'illustration"
 
 msgid "Move up"
-msgstr ""
+msgstr "Monter"
 
 msgid "Move down"
-msgstr ""
+msgstr "Descendre"
 
 msgid "Show / hide"
-msgstr ""
+msgstr "Afficher / masquer"
 
 msgid "Check interference — find overlapping bodies"
-msgstr ""
+msgstr "Vérifier les interférences — trouver les corps qui se chevauchent"
 
 msgid "Bodies"
-msgstr ""
+msgstr "Corps"
 
 msgid "Move body"
-msgstr ""
+msgstr "Déplacer le corps"
 
 msgid "Select a body row first, then move it"
-msgstr ""
+msgstr "Sélectionnez d'abord une ligne de corps, puis déplacez-la"
 
 msgid "Boolean — join, subtract or intersect with another body"
-msgstr ""
+msgstr "Booléen — joindre, soustraire ou intersecter avec un autre corps"
 
 msgid "Colour"
-msgstr ""
+msgstr "Couleur"
 
 #, c-format, boost-format
 msgid "Body %d selected — right-click for what applies to it"
-msgstr ""
+msgstr "Corps %d sélectionné — clic droit pour ce qui s'y applique"
 
 msgid "Variables"
-msgstr ""
+msgstr "Variables"
 
 msgid "+"
-msgstr ""
+msgstr "+"
 
 msgid "Del"
 msgstr "Eff"
 
 msgid "Sketch created — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Esquisse créée — sélectionnez-la, puis clic droit pour Extruder"
 
 msgid "Sketch empty — nothing committed"
-msgstr ""
+msgstr "Esquisse vide — rien de validé"
 
 msgid "Sketch updated"
-msgstr ""
+msgstr "Esquisse mise à jour"
 
 #, c-format
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Esquisse créée (%zu cotes pilotantes) — sélectionnez-la, puis clic droit pour Extruder"
 
 msgid "Could not resolve the sketch to extrude"
-msgstr ""
+msgstr "Impossible de résoudre l'esquisse à extruder"
 
 msgid "Face selected — set the depth and Confirm"
-msgstr ""
+msgstr "Face sélectionnée — définissez la profondeur et confirmez"
 
 msgid "Region selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "Région sélectionnée — clic droit pour Extruder, ou double-clic pour modifier"
 
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
-msgstr ""
+msgstr "Esquisse sélectionnée — clic droit pour Extruder, ou double-clic pour modifier"
 
 #, c-format, boost-format
 msgid "Face %d"
-msgstr ""
+msgstr "Face %d"
 
 #, c-format, boost-format
 msgid "Body %d "
-msgstr ""
+msgstr "Corps %d "
 
 msgid "vertex selected — click again for the whole body"
-msgstr ""
+msgstr "sommet sélectionné — cliquez à nouveau pour tout le corps"
 
 msgid "selected (whole body) — right-click for what applies to it"
-msgstr ""
+msgstr "sélectionné (tout le corps) — clic droit pour ce qui s'y applique"
 
 #, c-format, boost-format
 msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-msgstr ""
+msgstr "face %d sélectionnée — clic droit pour la pousser/tirer, ou cliquez à nouveau pour tout le corps"
 
 #, c-format, boost-format
 msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-msgstr ""
+msgstr "arête %d sélectionnée — Congé/Chanfrein pour la traiter, ou cliquez à nouveau pour tout le corps"
 
 #, c-format, boost-format
 msgid "%s plane selected — right-click for the drawing tools"
-msgstr ""
+msgstr "Plan %s sélectionné — clic droit pour les outils de dessin"
 
 #, c-format, boost-format
 msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
-msgstr ""
+msgstr "Plan %s sélectionné — clic droit pour y esquisser, ou cliquez sur un objet pour le sélectionner"
 
 #, c-format, boost-format
 msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr ""
+msgstr "placé (%.1f, %.1f, %.1f) mm — faites glisser les flèches pour déplacer, les anneaux pour pivoter"
 
 msgid "Tool exited"
-msgstr ""
+msgstr "Outil quitté"
 
 msgid "Sketch kept — Finish to commit it, Cancel to discard"
-msgstr ""
+msgstr "Esquisse conservée — Terminer pour la valider, Annuler pour l'abandonner"
 
 msgid "✗ Conflicting constraints"
-msgstr ""
+msgstr "✗ Contraintes en conflit"
 
 msgid "✓ Fully constrained"
-msgstr ""
+msgstr "✓ Entièrement contrainte"
 
 #, c-format, boost-format
 msgid "%d degrees of freedom"
-msgstr ""
+msgstr "%d degrés de liberté"
 
 #, c-format, boost-format
 msgid "Sketch %d"
-msgstr ""
+msgstr "Esquisse %d"
 
 #, c-format, boost-format
 msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-msgstr ""
+msgstr "Édition : Esquisse %d   ·   N = regarder normalement au plan   ·   Terminer ou Annuler dans la barre d'outils"
 
 #, c-format
 msgid "OK — %zu triangles"
-msgstr ""
+msgstr "OK — %zu triangles"
 
 msgid "Text to insert:"
-msgstr ""
+msgstr "Texte à insérer :"
 
 msgid "Import SVG"
-msgstr ""
+msgstr "Importer un SVG"
 
 msgid "Import STEP"
-msgstr ""
+msgstr "Importer un STEP"
 
 msgid "Reading STEP…"
-msgstr ""
+msgstr "Lecture du STEP…"
 
 msgid "No solids found in STEP"
-msgstr ""
+msgstr "Aucun solide trouvé dans le STEP"
 
 msgid "STEP import failed: "
-msgstr ""
+msgstr "Échec de l'import STEP : "
 
 msgid "Rebuilding model…"
-msgstr ""
+msgstr "Reconstruction du modèle…"
 
 #, c-format, boost-format
 msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "%d solide(s) importé(s) — choisissez une face ou une arête, puis Congé / Coupe / Coque pour modifier"
 
 msgid "Import mesh"
-msgstr ""
+msgstr "Importer un maillage"
 
 msgid "Could not read the STL file"
-msgstr ""
+msgstr "Impossible de lire le fichier STL"
 
 msgid "Could not read the OBJ file: "
-msgstr ""
+msgstr "Impossible de lire le fichier OBJ : "
 
 msgid "Unsupported mesh format (STL and OBJ are supported)"
-msgstr ""
+msgstr "Format de maillage non pris en charge (STL et OBJ sont pris en charge)"
 
 msgid "The mesh contains no triangles"
-msgstr ""
+msgstr "Le maillage ne contient aucun triangle"
 
 #, c-format, boost-format
 msgid ""
 "This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
 "\n"
 "Import anyway?"
-msgstr ""
+msgstr "Ce maillage compte %d triangles. Chaque triangle devient une face B-rep avant la fusion des faces coplanaires ; l'import peut donc être très long et produire un corps lent à modifier. Il vaut généralement mieux décimer d'abord le maillage.\n\nImporter quand même ?"
 
 msgid "Large mesh"
-msgstr ""
+msgstr "Maillage volumineux"
 
 msgid "Mesh conversion failed: "
-msgstr ""
+msgstr "Échec de la conversion du maillage : "
 
 msgid "Mesh conversion produced no geometry"
-msgstr ""
+msgstr "La conversion du maillage n'a produit aucune géométrie"
 
 msgid "Mesh import failed: "
-msgstr ""
+msgstr "Échec de l'import du maillage : "
 
 #, c-format, boost-format
 msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr ""
+msgstr "Solide importé — %d triangles → %d faces, volume %.2f mm³. Choisissez une face ou une arête, puis Congé / Coupe / Coque pour modifier"
 
 #, c-format, boost-format
 msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr ""
+msgstr "Importé comme coque ouverte (non étanche) : %d arête(s) de bord, %d arête(s) non variétale(s) — %d triangles → %d faces. Le maillage source a des trous ou une géométrie dupliquée ; les fonctionnalités booléennes peuvent échouer"
 
 msgid "No importable geometry found"
-msgstr ""
+msgstr "Aucune géométrie importable trouvée"
 
 #, c-format, boost-format
 msgid "%s added to the sketch — Confirm to commit it"
-msgstr ""
+msgstr "%s ajouté à l'esquisse — Confirmer pour le valider"
 
 msgid " — drag to place/size, then Confirm"
-msgstr ""
+msgstr " — faites glisser pour placer/dimensionner, puis Confirmer"
 
 msgid "Insert cancelled"
-msgstr ""
+msgstr "Insertion annulée"
 
 msgid "Drag a corner to scale, the centre to move — right-click when done"
-msgstr ""
+msgstr "Faites glisser un coin pour mettre à l'échelle, le centre pour déplacer — clic droit une fois terminé"
 
 #, c-format, boost-format
 msgid "Sketch added on %s — select it, then right-click to Extrude"
-msgstr ""
+msgstr "Esquisse ajoutée sur %s — sélectionnez-la, puis clic droit pour Extruder"
 
 msgid "Recompute error: "
-msgstr ""
+msgstr "Erreur de recalcul : "
 
 msgid "Add a solid (sketch + extrude) first"
-msgstr ""
+msgstr "Ajoutez d'abord un solide (esquisse + extrusion)"
 
 #, c-format, boost-format
 msgid "Edge %d"
-msgstr ""
+msgstr "Arête %d"
 
 #, c-format, boost-format
 msgid "Thread standard: %s  (pitch %.3g mm)"
-msgstr ""
+msgstr "Norme de filetage : %s  (pas %.3g mm)"
 
 msgid "Thread needs a solid body — add or import one first"
-msgstr ""
+msgstr "Filetage nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Pick a sketch profile to revolve first"
-msgstr ""
+msgstr "Choisissez d'abord un profil d'esquisse à révolutionner"
 
 msgid "Revolve needs a solid body — add or import one first"
-msgstr ""
+msgstr "Révolution nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Pick a profile sketch to sweep first"
-msgstr ""
+msgstr "Choisissez d'abord une esquisse de profil à balayer"
 
 msgid "Pick a path sketch for the sweep"
-msgstr ""
+msgstr "Choisissez une esquisse de chemin pour le balayage"
 
 msgid "Sweep needs a solid body — add or import one first"
-msgstr ""
+msgstr "Balayage nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Check at least two profile sketches to loft"
-msgstr ""
+msgstr "Cochez au moins deux esquisses de profil à lisser"
 
 msgid "Loft needs a solid body — add or import one first"
-msgstr ""
+msgstr "Lissage nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Pick a sketch profile to extrude first"
-msgstr ""
+msgstr "Choisissez d'abord un profil d'esquisse à extruder"
 
 msgid "Pick a sketch to fill first"
-msgstr ""
+msgstr "Choisissez d'abord une esquisse à remplir"
 
 msgid "Select a sheet body first"
-msgstr ""
+msgstr "Sélectionnez d'abord un corps surfacique"
 
 msgid "Pick a solid face to thicken first"
-msgstr ""
+msgstr "Choisissez d'abord une face de solide à épaissir"
 
 msgid "Pick a sketch with an open line first"
-msgstr ""
+msgstr "Choisissez d'abord une esquisse avec une ligne ouverte"
 
 msgid "Add at least one face to delete first"
-msgstr ""
+msgstr "Ajoutez d'abord au moins une face à supprimer"
 
 msgid "Mate needs two CoordSys features — create them first"
-msgstr ""
+msgstr "Assemblage nécessite deux repères — créez-les d'abord"
 
 msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr ""
+msgstr "Assemblage : CS A et CS B doivent être des repères différents"
 
 msgid "Mate rejected"
-msgstr ""
+msgstr "Assemblage rejeté"
 
 msgid "No interference — need at least two solid bodies to check"
-msgstr ""
+msgstr "Aucune interférence — il faut au moins deux corps solides à vérifier"
 
 msgid "No interference found"
-msgstr ""
+msgstr "Aucune interférence trouvée"
 
 #, c-format
 msgid "%zu interference pairs, worst %.2f mm³"
-msgstr ""
+msgstr "%zu paires en interférence, pire cas %.2f mm³"
 
 msgid ""
 "Interference pairs:\n"
 "\n"
-msgstr ""
+msgstr "Paires en interférence :\n\n"
 
 #, c-format, boost-format
 msgid "Body %d"
-msgstr ""
+msgstr "Corps %d"
 
 msgid "Interference"
-msgstr ""
+msgstr "Interférence"
 
 msgid "Select a solid body first — its mass properties are what is reported"
-msgstr ""
+msgstr "Sélectionnez d'abord un corps solide — ce sont ses propriétés de masse qui sont indiquées"
 
 msgid "Mass properties could not be computed for this body"
-msgstr ""
+msgstr "Impossible de calculer les propriétés de masse de ce corps"
 
 #, c-format, boost-format
 msgid "%s: sheet body — %.2f cm² of surface, no volume"
-msgstr ""
+msgstr "%s : corps surfacique — %.2f cm² de surface, pas de volume"
 
 #, c-format, boost-format
 msgid ""
@@ -23162,14 +23162,14 @@ msgid ""
 "Surface area: %.2f cm²\n"
 "\n"
 "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
-msgstr ""
+msgstr "%s\n\nCorps surfacique (coque ouverte)\nAire de surface : %.2f cm²\n\nUne surface n'enferme aucune matière, elle n'a donc pas de volume. Épaississez-la en solide pour en obtenir un."
 
 msgid "Mass properties"
-msgstr ""
+msgstr "Propriétés de masse"
 
 #, c-format, boost-format
 msgid "%s: %.3f cm³, %.2f cm²"
-msgstr ""
+msgstr "%s : %.3f cm³, %.2f cm²"
 
 #, c-format, boost-format
 msgid ""
@@ -23177,837 +23177,837 @@ msgid ""
 "\n"
 "Volume: %.3f cm³\n"
 "Surface area: %.2f cm²"
-msgstr ""
+msgstr "%s\n\nVolume : %.3f cm³\nAire de surface : %.2f cm²"
 
 msgid "Pattern needs a solid body — add or import one first"
-msgstr ""
+msgstr "Motif nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr ""
+msgstr "Booléen nécessite deux corps solides — ajoutez-en ou importez-en un second"
 
 msgid "Cut needs a solid body — add or import one first"
-msgstr ""
+msgstr "Coupe nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 #, c-format, boost-format
 msgid "the picked face of Body %d"
-msgstr ""
+msgstr "la face choisie du corps %d"
 
 msgid "the picked face"
-msgstr ""
+msgstr "la face choisie"
 
 #, c-format, boost-format
 msgid "  ·  %d picked"
-msgstr ""
+msgstr "  ·  %d choisi(s)"
 
 #, c-format, boost-format
 msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-msgstr ""
+msgstr "%d sélectionné(s)  ·  Suppr les retire  ·  Maj+clic ajoute  ·  double-clic prend toute la boucle"
 
 msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
-msgstr ""
+msgstr "Sélection — cliquez sur une entité pour la choisir  ·  faites glisser une extrémité ou le centre pour la déplacer  ·  Maj+clic ajoute  ·  Suppr retire"
 
 #, c-format, boost-format
 msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
-msgstr ""
+msgstr "%d choisi(s)  ·  choisissez maintenant une contrainte (Horizontale, Parallèle, Tangente, Égale…)"
 
 msgid "Constrain — click one or two entities, then choose a constraint"
-msgstr ""
+msgstr "Contrainte — cliquez sur une ou deux entités, puis choisissez une contrainte"
 
 msgid "Dimension — click an entity, or the first of two points"
-msgstr ""
+msgstr "Cote — cliquez sur une entité, ou sur le premier de deux points"
 
 msgid "Dimension — click the second point"
-msgstr ""
+msgstr "Cote — cliquez sur le second point"
 
 msgid "Line — click the start point"
-msgstr ""
+msgstr "Ligne — cliquez sur le point de départ"
 
 msgid "Line — click the end point, or type the length"
-msgstr ""
+msgstr "Ligne — cliquez sur le point d'arrivée, ou saisissez la longueur"
 
 msgid "Polyline — click the first point"
-msgstr ""
+msgstr "Polyligne — cliquez sur le premier point"
 
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-msgstr ""
+msgstr "Polyligne — cliquez sur le point suivant  ·  cliquez sur le point de départ pour fermer  ·  clic droit pour terminer la chaîne"
 
 msgid "Rectangle — click one corner"
-msgstr ""
+msgstr "Rectangle — cliquez sur un coin"
 
 msgid "Rectangle — click the opposite corner"
-msgstr ""
+msgstr "Rectangle — cliquez sur le coin opposé"
 
 msgid "Centre rectangle — click the centre"
-msgstr ""
+msgstr "Rectangle centré — cliquez sur le centre"
 
 msgid "Centre rectangle — click a corner"
-msgstr ""
+msgstr "Rectangle centré — cliquez sur un coin"
 
 msgid "Oblique rectangle — click the start of the base edge"
-msgstr ""
+msgstr "Rectangle oblique — cliquez sur le début de l'arête de base"
 
 msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
-msgstr ""
+msgstr "Rectangle oblique — cliquez sur la fin de l'arête de base (définit l'angle)"
 
 msgid "Oblique rectangle — click to set the width"
-msgstr ""
+msgstr "Rectangle oblique — cliquez pour définir la largeur"
 
 msgid "Rounded rectangle — click one corner"
-msgstr ""
+msgstr "Rectangle arrondi — cliquez sur un coin"
 
 msgid "Rounded rectangle — click the opposite corner"
-msgstr ""
+msgstr "Rectangle arrondi — cliquez sur le coin opposé"
 
 msgid "Rounded rectangle — click to set the corner radius"
-msgstr ""
+msgstr "Rectangle arrondi — cliquez pour définir le rayon d'angle"
 
 msgid "Circle — click the centre"
-msgstr ""
+msgstr "Cercle — cliquez sur le centre"
 
 msgid "Circle — click to set the radius, or type it"
-msgstr ""
+msgstr "Cercle — cliquez pour définir le rayon, ou saisissez-le"
 
 msgid "Circle (2 points) — click one end of the diameter"
-msgstr ""
+msgstr "Cercle (2 points) — cliquez sur une extrémité du diamètre"
 
 msgid "Circle (2 points) — click the other end of the diameter"
-msgstr ""
+msgstr "Cercle (2 points) — cliquez sur l'autre extrémité du diamètre"
 
 msgid "Circle (3 points) — click the first point on the circle"
-msgstr ""
+msgstr "Cercle (3 points) — cliquez sur le premier point du cercle"
 
 msgid "Circle (3 points) — click the second point"
-msgstr ""
+msgstr "Cercle (3 points) — cliquez sur le deuxième point"
 
 msgid "Circle (3 points) — click the third point"
-msgstr ""
+msgstr "Cercle (3 points) — cliquez sur le troisième point"
 
 msgid "Arc — click the start point"
-msgstr ""
+msgstr "Arc — cliquez sur le point de départ"
 
 msgid "Arc — click the end point"
-msgstr ""
+msgstr "Arc — cliquez sur le point d'arrivée"
 
 msgid "Arc — click a point the arc passes through"
-msgstr ""
+msgstr "Arc — cliquez sur un point par lequel passe l'arc"
 
 msgid "Tangent arc — click the endpoint it leaves from"
-msgstr ""
+msgstr "Arc tangent — cliquez sur l'extrémité d'où il part"
 
 msgid "Tangent arc — click its far end"
-msgstr ""
+msgstr "Arc tangent — cliquez sur son extrémité opposée"
 
 msgid "Centre arc — click the centre"
-msgstr ""
+msgstr "Arc par centre — cliquez sur le centre"
 
 msgid "Centre arc — click the start point (this sets the radius)"
-msgstr ""
+msgstr "Arc par centre — cliquez sur le point de départ (définit le rayon)"
 
 msgid "Centre arc — click the end point"
-msgstr ""
+msgstr "Arc par centre — cliquez sur le point d'arrivée"
 
 msgid "Slot — click one end of the centreline"
-msgstr ""
+msgstr "Rainure — cliquez sur une extrémité de l'axe"
 
 msgid "Slot — click the other end of the centreline"
-msgstr ""
+msgstr "Rainure — cliquez sur l'autre extrémité de l'axe"
 
 msgid "Slot — click to set the width"
-msgstr ""
+msgstr "Rainure — cliquez pour définir la largeur"
 
 msgid "Arc slot — click the centre the slot curves about"
-msgstr ""
+msgstr "Rainure en arc — cliquez sur le centre autour duquel elle s'incurve"
 
 msgid "Arc slot — click the start of the centreline (this sets the radius)"
-msgstr ""
+msgstr "Rainure en arc — cliquez sur le début de l'axe (définit le rayon)"
 
 msgid "Arc slot — click the end of the centreline"
-msgstr ""
+msgstr "Rainure en arc — cliquez sur la fin de l'axe"
 
 msgid "Arc slot — click to set the width"
-msgstr ""
+msgstr "Rainure en arc — cliquez pour définir la largeur"
 
 msgid "Polygon — click the centre"
-msgstr ""
+msgstr "Polygone — cliquez sur le centre"
 
 msgid "Polygon — click a vertex (this sets size and orientation)"
-msgstr ""
+msgstr "Polygone — cliquez sur un sommet (définit la taille et l'orientation)"
 
 msgid "Ellipse — click the centre"
-msgstr ""
+msgstr "Ellipse — cliquez sur le centre"
 
 msgid "Ellipse — click the end of the major axis"
-msgstr ""
+msgstr "Ellipse — cliquez sur l'extrémité du grand axe"
 
 msgid "Ellipse — click a point on the minor axis"
-msgstr ""
+msgstr "Ellipse — cliquez sur un point du petit axe"
 
 msgid "Elliptical arc — click the centre"
-msgstr ""
+msgstr "Arc elliptique — cliquez sur le centre"
 
 msgid "Elliptical arc — click the end of the major axis"
-msgstr ""
+msgstr "Arc elliptique — cliquez sur l'extrémité du grand axe"
 
 msgid "Elliptical arc — click a point on the minor axis"
-msgstr ""
+msgstr "Arc elliptique — cliquez sur un point du petit axe"
 
 msgid "Elliptical arc — click where the arc starts"
-msgstr ""
+msgstr "Arc elliptique — cliquez là où l'arc commence"
 
 msgid "Elliptical arc — click where the arc ends"
-msgstr ""
+msgstr "Arc elliptique — cliquez là où l'arc se termine"
 
 msgid "Spline — click the first control point"
-msgstr ""
+msgstr "Spline — cliquez sur le premier point de contrôle"
 
 msgid "Spline — click the next control point  ·  right-click to finish the curve"
-msgstr ""
+msgstr "Spline — cliquez sur le point de contrôle suivant  ·  clic droit pour terminer la courbe"
 
 msgid "Point — click to place one; the tool stays armed for more"
-msgstr ""
+msgstr "Point — cliquez pour en placer un ; l'outil reste actif pour en ajouter d'autres"
 
 msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-msgstr ""
+msgstr "Ajuster — cliquez sur un segment à l'endroit où il croise une autre entité  ·  clic droit pour quitter"
 
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-msgstr ""
+msgstr "Prolonger — cliquez sur une ligne ou un arc pour le prolonger jusqu'à l'entité la plus proche  ·  clic droit pour quitter"
 
 msgid "Fillet — click the first of two lines that meet"
-msgstr ""
+msgstr "Congé — cliquez sur la première de deux lignes sécantes"
 
 msgid "Fillet — click the second line"
-msgstr ""
+msgstr "Congé — cliquez sur la deuxième ligne"
 
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Congé — faites glisser la flèche, ou cliquez sur le nombre pour saisir le rayon  ·  cliquez dans le vide pour appliquer  ·  clic droit annule"
 
 msgid "Chamfer — click the first of two lines that meet"
-msgstr ""
+msgstr "Chanfrein — cliquez sur la première de deux lignes sécantes"
 
 msgid "Chamfer — click the second line"
-msgstr ""
+msgstr "Chanfrein — cliquez sur la deuxième ligne"
 
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Chanfrein — faites glisser la flèche, ou cliquez sur le nombre pour saisir le retrait  ·  cliquez dans le vide pour appliquer  ·  clic droit annule"
 
 msgid "Offset — click the entity to offset"
-msgstr ""
+msgstr "Décalage — cliquez sur l'entité à décaler"
 
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-msgstr ""
+msgstr "Décalage — faites glisser la flèche d'un côté ou de l'autre, ou cliquez sur le nombre pour saisir la distance  ·  cliquez dans le vide pour appliquer  ·  clic droit annule"
 
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
-msgstr ""
+msgstr "Symétrie — cliquez d'abord sur la LIGNE servant d'axe (une ligne de construction convient)"
 
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-msgstr ""
+msgstr "Symétrie — axe défini  ·  cliquez maintenant sur les entités à refléter  ·  clic droit annule"
 
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-msgstr ""
+msgstr "Symétrie — axe défini  ·  %d à refléter  ·  cliquez sur une autre pour l'ajouter ou la retirer  ·  cliquez dans le vide pour appliquer"
 
 msgid "Move — click the entities to move"
-msgstr ""
+msgstr "Déplacer — cliquez sur les entités à déplacer"
 
 msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-msgstr ""
+msgstr "Déplacer — faites glisser la poignée, ou cliquez sur le nombre pour saisir la distance  ·  cliquez dans le vide pour appliquer"
 
 msgid "Rotate — click the entities to rotate"
-msgstr ""
+msgstr "Pivoter — cliquez sur les entités à faire pivoter"
 
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-msgstr ""
+msgstr "Pivoter — faites glisser la poignée, ou cliquez sur le nombre pour saisir l'angle  ·  cliquez dans le vide pour appliquer"
 
 msgid "Scale — click the entities to scale"
-msgstr ""
+msgstr "Mise à l'échelle — cliquez sur les entités à mettre à l'échelle"
 
 msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-msgstr ""
+msgstr "Mise à l'échelle — faites glisser la poignée, ou cliquez sur le nombre pour saisir le facteur  ·  cliquez dans le vide pour appliquer"
 
 msgid "Array — click the entities to repeat"
-msgstr ""
+msgstr "Réseau — cliquez sur les entités à répéter"
 
 msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "Réseau — faites glisser la poignée pour définir le pas, cliquez sur le nombre pour le saisir  ·  cliquez dans le vide pour appliquer"
 
 msgid "Polar array — click the entities to repeat"
-msgstr ""
+msgstr "Réseau polaire — cliquez sur les entités à répéter"
 
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-msgstr ""
+msgstr "Réseau polaire — faites glisser la poignée pour définir le balayage, cliquez sur le nombre pour le saisir  ·  cliquez dans le vide pour appliquer"
 
 msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
-msgstr ""
+msgstr "Faites glisser un coin pour mettre à l'échelle, le centre pour déplacer  ·  clic droit une fois terminé"
 
 msgid "  ·  Esc goes back to Select"
-msgstr ""
+msgstr "  ·  Échap revient à Sélection"
 
 msgid "  ·  click a constraint badge to remove it"
-msgstr ""
+msgstr "  ·  cliquez sur un badge de contrainte pour la retirer"
 
 msgid "select something first"
-msgstr ""
+msgstr "sélectionnez d'abord quelque chose"
 
 #, c-format, boost-format
 msgid "Mate: %s  →  %s"
-msgstr ""
+msgstr "Assemblage : %s  →  %s"
 
 msgid "Fastened"
-msgstr ""
+msgstr "Fixe"
 
 msgid "Revolute"
-msgstr ""
+msgstr "Pivot"
 
 msgid "Slider"
-msgstr ""
+msgstr "Glissière"
 
 msgid "Cylindrical"
-msgstr ""
+msgstr "Cylindrique"
 
 msgid "Click a solid FACE in the viewport"
-msgstr ""
+msgstr "Cliquez sur une FACE de solide dans la vue"
 
 msgid "Click a solid EDGE in the viewport"
-msgstr ""
+msgstr "Cliquez sur une ARÊTE de solide dans la vue"
 
 msgid "An angled plane needs an edge to tilt about — pick Edge A"
-msgstr ""
+msgstr "Un plan incliné nécessite une arête autour de laquelle pivoter — choisissez l'arête A"
 
 msgid "A midplane needs two faces — pick Face A and Face B"
-msgstr ""
+msgstr "Un plan médian nécessite deux faces — choisissez la face A et la face B"
 
 msgid "Face A and Face B are the same face — a midplane needs two different faces"
-msgstr ""
+msgstr "La face A et la face B sont la même face — un plan médian nécessite deux faces différentes"
 
 msgid "A tangent plane needs a cylindrical face — pick Face A"
-msgstr ""
+msgstr "Un plan tangent nécessite une face cylindrique — choisissez la face A"
 
 msgid "This plane needs two edges — pick Edge A and Edge B"
-msgstr ""
+msgstr "Ce plan nécessite deux arêtes — choisissez l'arête A et l'arête B"
 
 msgid "Plane added — pick it as a sketch plane"
-msgstr ""
+msgstr "Plan ajouté — choisissez-le comme plan d'esquisse"
 
 msgid "Axis added"
-msgstr ""
+msgstr "Axe ajouté"
 
 msgid "Coord Sys added"
-msgstr ""
+msgstr "Repère ajouté"
 
 msgid "Shell needs a solid body — add or import one first"
-msgstr ""
+msgstr "Coque nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Draft needs a solid body — add or import one first"
-msgstr ""
+msgstr "Dépouille nécessite un corps solide — ajoutez-en ou importez-en un d'abord"
 
 msgid "Draft needs a picked face — click a side face first"
-msgstr ""
+msgstr "Dépouille nécessite une face choisie — cliquez d'abord sur une face latérale"
 
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
 "or click a reference plane and right-click it to start a sketch."
-msgstr ""
+msgstr "Rien pour l'instant — importez un STEP ou un maillage depuis la barre d'outils,\nou cliquez sur un plan de référence puis clic droit pour démarrer une esquisse."
 
 msgid "No solid yet — select a sketch and right-click it to Extrude."
-msgstr ""
+msgstr "Aucun solide pour l'instant — sélectionnez une esquisse puis clic droit pour Extruder."
 
 msgid "Could not restore the CAD model from this project"
-msgstr ""
+msgstr "Impossible de restaurer le modèle CAO de ce projet"
 
 msgid "Could not restore the CAD model: "
-msgstr ""
+msgstr "Impossible de restaurer le modèle CAO : "
 
 #, c-format
 msgid "Body %zu — %s"
-msgstr ""
+msgstr "Corps %zu — %s"
 
 msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
-msgstr ""
+msgstr "Vue en coupe activée — masque la moitié du modèle pour voir l'intérieur ; PgPréc / PgSuiv déplacent le plan, Inverser affiche l'autre moitié"
 
 msgid "Section view off"
-msgstr ""
+msgstr "Vue en coupe désactivée"
 
 #, c-format, boost-format
 msgid "Section view — showing the %s half"
-msgstr ""
+msgstr "Vue en coupe — affichage de la moitié %s"
 
 msgid "upper"
-msgstr ""
+msgstr "supérieure"
 
 msgid "lower"
-msgstr ""
+msgstr "inférieure"
 
 msgid "Boolean needs two bodies — create or import a second solid"
-msgstr ""
+msgstr "Booléen nécessite deux corps — créez ou importez un second solide"
 
 msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr ""
+msgstr "Sélectionnez d'abord un corps — cliquez dessus dans la vue ou dans la liste des corps"
 
 msgid "That body has no display mesh yet — recompute first"
-msgstr ""
+msgstr "Ce corps n'a pas encore de maillage d'affichage — recalculez d'abord"
 
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
-msgstr ""
+msgstr "Faites glisser les flèches pour déplacer, les anneaux pour pivoter — puis Confirmer (Échap annule)"
 
 msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
-msgstr ""
+msgstr "Faites glisser les flèches pour déplacer, les anneaux pour pivoter — les nombres suivent"
 
 msgid "Select a body first"
-msgstr ""
+msgstr "Sélectionnez d'abord un corps"
 
 #, c-format, boost-format
 msgid "Body %d colour set"
-msgstr ""
+msgstr "Couleur du corps %d définie"
 
 msgid "Click a face on the solid, then press F"
-msgstr ""
+msgstr "Cliquez sur une face du solide, puis appuyez sur F"
 
 msgid "Placed on face — body laid flat on the bed"
-msgstr ""
+msgstr "Posé sur la face — corps posé à plat sur le plateau"
 
 msgid "Edit rejected: "
-msgstr ""
+msgstr "Modification rejetée : "
 
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
-msgstr ""
+msgstr "Effacer toutes les fonctionnalités et tous les corps et démarrer une nouvelle conception ? Cette action est irréversible."
 
 msgid "New Design"
-msgstr ""
+msgstr "Nouvelle conception"
 
 msgid "This body has no feature to delete — use New Design to start over"
-msgstr ""
+msgstr "Ce corps n'a aucune fonctionnalité à supprimer — utilisez Nouvelle conception pour repartir de zéro"
 
 #, c-format, boost-format
 msgid "feature %d"
-msgstr ""
+msgstr "fonctionnalité %d"
 
 #, c-format, boost-format
 msgid ""
 "Delete %s?\n"
 "\n"
 "That is the feature this body was made from. Features built on it may be removed or stop working."
-msgstr ""
+msgstr "Supprimer %s ?\n\nC'est la fonctionnalité dont ce corps est issu. Les fonctionnalités construites dessus peuvent être supprimées ou cesser de fonctionner."
 
 msgid "Delete body"
-msgstr ""
+msgstr "Supprimer le corps"
 
 msgid "Select the FEATURE that created this body (or use New Design)"
-msgstr ""
+msgstr "Sélectionnez la FONCTIONNALITÉ qui a créé ce corps (ou utilisez Nouvelle conception)"
 
 msgid "Select a feature in the tree first"
-msgstr ""
+msgstr "Sélectionnez d'abord une fonctionnalité dans l'arbre"
 
 #, c-format, boost-format
 msgid "Body %d shown"
-msgstr ""
+msgstr "Corps %d affiché"
 
 #, c-format, boost-format
 msgid "Body %d hidden"
-msgstr ""
+msgstr "Corps %d masqué"
 
 msgid "Feature shown"
-msgstr ""
+msgstr "Fonctionnalité affichée"
 
 msgid "Feature hidden"
-msgstr ""
+msgstr "Fonctionnalité masquée"
 
 msgid "Draw a sketch first, then Constrain"
-msgstr ""
+msgstr "Dessinez d'abord une esquisse, puis Contrainte"
 
 msgid "Select a sketch in the tree first"
-msgstr ""
+msgstr "Sélectionnez d'abord une esquisse dans l'arbre"
 
 msgid "Selected feature is not a sketch"
-msgstr ""
+msgstr "La fonctionnalité sélectionnée n'est pas une esquisse"
 
 msgid "Pick 1-2 lines, then a constraint; right-click exits"
-msgstr ""
+msgstr "Choisissez 1-2 lignes, puis une contrainte ; clic droit pour quitter"
 
 msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
-msgstr ""
+msgstr "Choisissez 1-2 entités, puis une contrainte ou une cote ; clic droit pour quitter"
 
 msgid "Pick an entity first"
-msgstr ""
+msgstr "Choisissez d'abord une entité"
 
 msgid "Pick two entities first"
-msgstr ""
+msgstr "Choisissez d'abord deux entités"
 
 msgid "Horizontal and Vertical apply to a line"
-msgstr ""
+msgstr "Horizontale et Verticale s'appliquent à une ligne"
 
 msgid "Angle applies between two lines"
-msgstr ""
+msgstr "Angle s'applique entre deux lignes"
 
 msgid "Collinear needs two lines"
-msgstr ""
+msgstr "Colinéaire nécessite deux lignes"
 
 msgid "Parallel, perpendicular and equal length apply to two lines"
-msgstr ""
+msgstr "Parallèle, perpendiculaire et longueur égale s'appliquent à deux lignes"
 
 msgid "Equal radius needs two circles or arcs"
-msgstr ""
+msgstr "Rayon égal nécessite deux cercles ou arcs"
 
 msgid "Concentric needs two circles or arcs"
-msgstr ""
+msgstr "Concentrique nécessite deux cercles ou arcs"
 
 msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
-msgstr ""
+msgstr "Tangent nécessite une ligne et un cercle/arc, ou deux cercles/arcs"
 
 msgid "This constraint needs two entities with a point to join"
-msgstr ""
+msgstr "Cette contrainte nécessite deux entités avec un point à joindre"
 
 msgid "This dimension needs two entities with a point to measure between"
-msgstr ""
+msgstr "Cette cote nécessite deux entités avec un point entre lesquels mesurer"
 
 msgid "Midpoint needs a point and a line"
-msgstr ""
+msgstr "Milieu nécessite un point et une ligne"
 
 msgid "Symmetric needs two points or two lines + an axis"
-msgstr ""
+msgstr "Symétrique nécessite deux points ou deux lignes + un axe"
 
 msgid "Symmetric needs two points or two lines"
-msgstr ""
+msgstr "Symétrique nécessite deux points ou deux lignes"
 
 msgid "Symmetric: pick two entities, then an axis line"
-msgstr ""
+msgstr "Symétrique : choisissez deux entités, puis une ligne d'axe"
 
 msgid "Radius/Diameter needs a circle or arc"
-msgstr ""
+msgstr "Rayon/Diamètre nécessite un cercle ou un arc"
 
 msgid "Unsupported constraint"
-msgstr ""
+msgstr "Contrainte non prise en charge"
 
 msgid "Constraint rejected (over-constrained)"
-msgstr ""
+msgstr "Contrainte rejetée (sur-contrainte)"
 
 msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
-msgstr ""
+msgstr "Contrainte appliquée  ·  son badge est sur l'esquisse — cliquez sur le badge pour la retirer"
 
 #, c-format, boost-format
 msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
-msgstr ""
+msgstr "%s  —  %d sélectionné(s). Appuyez sur Échap pour l'outil Sélection, cliquez sur une ligne, puis Maj+clic ou Ctrl+clic sur l'autre."
 
 msgid "Applied constraint"
-msgstr ""
+msgstr "Contrainte appliquée"
 
 #, c-format, boost-format
 msgid "Fix %s"
-msgstr ""
+msgstr "Fixer %s"
 
 #, c-format, boost-format
 msgid "Lock X %s"
-msgstr ""
+msgstr "Verrouiller X %s"
 
 #, c-format, boost-format
 msgid "Lock Y %s"
-msgstr ""
+msgstr "Verrouiller Y %s"
 
 msgid "Equal"
-msgstr ""
+msgstr "Égal"
 
 #, c-format, boost-format
 msgid "Symmetric %s — %s / %s"
-msgstr ""
+msgstr "Symétrique %s — %s / %s"
 
 #, c-format, boost-format
 msgid "Symmetric about Y axis %s — %s"
-msgstr ""
+msgstr "Symétrique par rapport à l'axe Y %s — %s"
 
 #, c-format, boost-format
 msgid "Symmetric about X axis %s — %s"
-msgstr ""
+msgstr "Symétrique par rapport à l'axe X %s — %s"
 
 msgid "On line"
-msgstr ""
+msgstr "Sur la ligne"
 
 msgid "On edge"
-msgstr ""
+msgstr "Sur l'arête"
 
 msgid "Constraint"
-msgstr ""
+msgstr "Contrainte"
 
 #, c-format, boost-format
 msgid "Constraints (%d)"
-msgstr ""
+msgstr "Contraintes (%d)"
 
 msgid "No constraints yet"
-msgstr ""
+msgstr "Aucune contrainte pour l'instant"
 
 msgid "Delete constraint"
-msgstr ""
+msgstr "Supprimer la contrainte"
 
 msgid "Constraint deleted"
-msgstr ""
+msgstr "Contrainte supprimée"
 
 msgid "Press Constrain on a sketch first"
-msgstr ""
+msgstr "Appuyez d'abord sur Contrainte sur une esquisse"
 
 msgid "Pick the entity, then a mirror-axis line"
-msgstr ""
+msgstr "Choisissez l'entité, puis une ligne d'axe de symétrie"
 
 msgid "Mirror axis must be a line"
-msgstr ""
+msgstr "L'axe de symétrie doit être une ligne"
 
 msgid "Mirror produced nothing"
-msgstr ""
+msgstr "La symétrie n'a rien produit"
 
 msgid "Offset distance (+left / -right of direction)"
-msgstr ""
+msgstr "Distance de décalage (+gauche / -droite de la direction)"
 
 msgid "Offset collapsed the entity"
-msgstr ""
+msgstr "Le décalage a fait s'effondrer l'entité"
 
 msgid "Pick two lines to fillet"
-msgstr ""
+msgstr "Choisissez deux lignes pour le congé"
 
 msgid "Fillet needs two lines"
-msgstr ""
+msgstr "Congé nécessite deux lignes"
 
 msgid "Fillet radius"
-msgstr ""
+msgstr "Rayon du congé"
 
 msgid "Fillet failed (parallel lines or radius too large)"
-msgstr ""
+msgstr "Échec du congé (lignes parallèles ou rayon trop grand)"
 
 msgid "Pick two lines to chamfer"
-msgstr ""
+msgstr "Choisissez deux lignes pour le chanfrein"
 
 msgid "Chamfer needs two lines"
-msgstr ""
+msgstr "Chanfrein nécessite deux lignes"
 
 msgid "Chamfer distance"
-msgstr ""
+msgstr "Distance du chanfrein"
 
 msgid "Chamfer failed (parallel lines or distance too large)"
-msgstr ""
+msgstr "Échec du chanfrein (lignes parallèles ou distance trop grande)"
 
 msgid "Trim works on lines, arcs and circles"
-msgstr ""
+msgstr "Ajuster fonctionne sur les lignes, arcs et cercles"
 
 msgid "Extend works on lines and arcs"
-msgstr ""
+msgstr "Prolonger fonctionne sur les lignes et arcs"
 
 msgid "Pick the edge to trim/extend"
-msgstr ""
+msgstr "Choisissez l'arête à ajuster/prolonger"
 
 msgid "Nothing to trim at the pick"
-msgstr ""
+msgstr "Rien à ajuster à l'endroit choisi"
 
 msgid "No edge to extend to"
-msgstr ""
+msgstr "Aucune arête jusqu'à laquelle prolonger"
 
 msgid "Array count (incl. original)"
-msgstr ""
+msgstr "Nombre d'éléments du réseau (original inclus)"
 
 msgid "Spacing (mm)"
-msgstr ""
+msgstr "Espacement (mm)"
 
 msgid "Array produced nothing"
-msgstr ""
+msgstr "Le réseau n'a rien produit"
 
 msgid "Move dX (mm)"
-msgstr ""
+msgstr "Déplacement dX (mm)"
 
 msgid "Move dY (mm)"
-msgstr ""
+msgstr "Déplacement dY (mm)"
 
 msgid "Move produced nothing"
-msgstr ""
+msgstr "Le déplacement n'a rien produit"
 
 msgid "Rotate angle (deg)"
-msgstr ""
+msgstr "Angle de rotation (deg)"
 
 msgid "Rotate produced nothing"
-msgstr ""
+msgstr "La rotation n'a rien produit"
 
 msgid "Scale factor"
-msgstr ""
+msgstr "Facteur d'échelle"
 
 msgid "Scale produced nothing"
-msgstr ""
+msgstr "La mise à l'échelle n'a rien produit"
 
 msgid "Polar count (incl. original)"
-msgstr ""
+msgstr "Nombre polaire (original inclus)"
 
 msgid "Total sweep (deg)"
-msgstr ""
+msgstr "Balayage total (deg)"
 
 msgid "Polar array produced nothing"
-msgstr ""
+msgstr "Le réseau polaire n'a rien produit"
 
 msgid "Applied edit"
-msgstr ""
+msgstr "Modification appliquée"
 
 msgid " — type a value, press Enter (or Confirm)"
-msgstr ""
+msgstr " — saisissez une valeur, appuyez sur Entrée (ou Confirmer)"
 
 msgid "Pick a segment in the viewport first"
-msgstr ""
+msgstr "Choisissez d'abord un segment dans la vue"
 
 msgid "Applied Horizontal"
-msgstr ""
+msgstr "Horizontale appliquée"
 
 msgid "Applied Vertical"
-msgstr ""
+msgstr "Verticale appliquée"
 
 msgid "Sketch: "
-msgstr ""
+msgstr "Esquisse : "
 
 #, c-format, boost-format
 msgid "On a face of Body %d"
-msgstr ""
+msgstr "Sur une face du corps %d"
 
 msgid "On a stored face"
-msgstr ""
+msgstr "Sur une face mémorisée"
 
 msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr ""
+msgstr "Édition de l'esquisse — faites glisser une poignée ou cliquez sur une cote pour la modifier"
 
 msgid "An imported solid has no parameters — use Transform to move or rotate it"
-msgstr ""
+msgstr "Un solide importé n'a pas de paramètres — utilisez Transformer pour le déplacer ou le faire pivoter"
 
 msgid "This feature type can't be edited yet"
-msgstr ""
+msgstr "Ce type de fonctionnalité n'est pas encore modifiable"
 
 msgid "Nothing to export — add a feature first"
-msgstr ""
+msgstr "Rien à exporter — ajoutez d'abord une fonctionnalité"
 
 msgid "Export STEP"
-msgstr ""
+msgstr "Exporter en STEP"
 
 msgid "Exported STEP"
-msgstr ""
+msgstr "STEP exporté"
 
 msgid "STEP export failed: "
-msgstr ""
+msgstr "Échec de l'export STEP : "
 
 msgid "Nothing to commit — add a feature first"
-msgstr ""
+msgstr "Rien à valider — ajoutez d'abord une fonctionnalité"
 
 msgid "All bodies hidden — show one before committing"
-msgstr ""
+msgstr "Tous les corps sont masqués — affichez-en un avant de valider"
 
 msgid "Plane ready"
-msgstr ""
+msgstr "Plan prêt"
 
 msgid "Axis ready"
-msgstr ""
+msgstr "Axe prêt"
 
 msgid "Coord Sys ready"
-msgstr ""
+msgstr "Repère prêt"
 
 msgid "Helix ready"
-msgstr ""
+msgstr "Hélice prête"
 
 msgid "Project ready"
-msgstr ""
+msgstr "Projection prête"
 
 msgid "Sketch ready"
-msgstr ""
+msgstr "Esquisse prête"
 
 msgid "Mate needs at least two CoordSys features"
-msgstr ""
+msgstr "Assemblage nécessite au moins deux repères"
 
 msgid "Mate: CS A and CS B must be different"
-msgstr ""
+msgstr "Assemblage : CS A et CS B doivent être différents"
 
 msgid "Mate ready"
-msgstr ""
+msgstr "Assemblage prêt"
 
 msgid "Invalid: "
-msgstr ""
+msgstr "Invalide : "
 
 #, c-format
 msgid "Preview — %zu triangles"
-msgstr ""
+msgstr "Aperçu — %zu triangles"
 
 #, c-format, boost-format
 msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
-msgstr ""
+msgstr "Corps %d — déplacé (%.1f, %.1f, %.1f) mm, pivoté de %.1f°"
 
 msgid "Profile: "
-msgstr ""
+msgstr "Profil : "
 
 #, c-format, boost-format
 msgid "Face %d (push/pull)"
-msgstr ""
+msgstr "Face %d (pousser/tirer)"
 
 msgid "Move cancelled"
-msgstr ""
+msgstr "Déplacement annulé"
 
 msgid "Discard this sketch and everything drawn in it?"
-msgstr ""
+msgstr "Abandonner cette esquisse et tout ce qui y a été dessiné ?"
 
 msgid "Discard sketch"
-msgstr ""
+msgstr "Abandonner l'esquisse"
 
 msgid "Keep drawing"
-msgstr ""
+msgstr "Continuer à dessiner"
 
 msgid "Finish or cancel the current tool first (Esc)"
-msgstr ""
+msgstr "Terminez ou annulez d'abord l'outil en cours (Échap)"
 
 msgid "Nothing to redo"
-msgstr ""
+msgstr "Rien à rétablir"
 
 msgid "Nothing to undo"
-msgstr ""
+msgstr "Rien à annuler"
 
 #, c-format
 msgid "Redo  (%zu more)"
-msgstr ""
+msgstr "Rétablir  (%zu de plus)"
 
 #, c-format
 msgid "Undo  (%zu more)"
-msgstr ""
+msgstr "Annuler  (%zu de plus)"
 
 msgid "Variable name:"
-msgstr ""
+msgstr "Nom de la variable :"
 
 msgid "Add Variable"
-msgstr ""
+msgstr "Ajouter une variable"
 
 msgid "Variable name must not contain spaces"
-msgstr ""
+msgstr "Le nom de la variable ne doit pas contenir d'espaces"
 
 #, c-format, boost-format
 msgid "Expression for '%s':"
-msgstr ""
+msgstr "Expression pour '%s' :"
 
 msgid "Select a variable first"
-msgstr ""
+msgstr "Sélectionnez d'abord une variable"
 
 msgid "Edit Variable"
-msgstr ""
+msgstr "Modifier la variable"
 
 #, c-format, boost-format
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
-msgstr ""
+msgstr "La variable '%s' n'a pas pu être supprimée (probablement encore référencée par une expression de fonctionnalité) : %s"
 
 msgid "No binding for that field"
-msgstr ""
+msgstr "Aucune liaison pour ce champ"
 
 msgid "Enter a number"
-msgstr ""
+msgstr "Saisissez un nombre"
 
 msgid "Not a number"
-msgstr ""
+msgstr "Pas un nombre"
 
 msgid "Primitive"
-msgstr ""
+msgstr "Primitive"
 
 msgid "Empty mesh generated"
-msgstr ""
+msgstr "Maillage vide généré"
 
 msgid "Pocket (Cut)"
-msgstr ""
+msgstr "Poche (Coupe)"
 
 msgid "Clear All"
-msgstr ""
+msgstr "Tout effacer"
 
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
-msgstr ""
+msgstr "Inser"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24021,11 +24021,11 @@ msgstr "Fin"
 
 msgctxt "Keyboard Shortcut"
 msgid "PgUp"
-msgstr ""
+msgstr "Pg. préc."
 
 msgctxt "Keyboard Shortcut"
 msgid "PgDn"
-msgstr ""
+msgstr "Pg. suiv."
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
@@ -24072,10 +24072,10 @@ msgid "Move selection 10mm in negative Y direction"
 msgstr "Déplacer la sélection de 10 mm dans la direction négative Y"
 
 msgid "Rotate selection 45 degrees counterclockwise"
-msgstr ""
+msgstr "Faire pivoter la sélection de 45 degrés dans le sens antihoraire"
 
 msgid "Rotate selection 45 degrees clockwise"
-msgstr ""
+msgstr "Faire pivoter la sélection de 45 degrés dans le sens horaire"
 
 msgid "Gizmo move"
 msgstr "Gizmo déplacer"
@@ -24096,7 +24096,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Gizmo booléennes"
 
 msgid "Gizmo FDM paint-on supports"
-msgstr ""
+msgstr "Gizmo de supports peints FDM"
 
 msgid "Gizmo FDM paint-on seam"
 msgstr "Gizmo Peinture de la couture FDM"
@@ -24105,7 +24105,7 @@ msgid "Gizmo FDM paint-on fuzzy skin"
 msgstr "Outil FDM de surface irrégulière peinte"
 
 msgid "Gizmo multi-material painting"
-msgstr ""
+msgstr "Gizmo de peinture multi-matériaux"
 
 msgid "Gizmo text emboss/engrave"
 msgstr "Gizmo embosser/graver du texte"
@@ -24159,7 +24159,7 @@ msgid "Camera Angle - Right side"
 msgstr "Angle de caméra - Côté droit"
 
 msgid "Camera view - Current plate"
-msgstr ""
+msgstr "Vue de la caméra - Plaque actuelle"
 
 msgid "Zoom in"
 msgstr "Zoom avant"
@@ -24171,7 +24171,7 @@ msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "Afficher/Masquer la boîte de dialogue des paramètres des périphériques 3Dconnexion"
 
 msgid "Show/Hide wireframe"
-msgstr ""
+msgstr "Afficher/masquer le fil de fer"
 
 msgid "On/Off G-code window"
 msgstr "On/Off Fenêtre G-code"
@@ -24186,34 +24186,34 @@ msgid "Collapse/Expand the sidebar"
 msgstr "Réduire/développer la barre latérale"
 
 msgid "Open the speed dial"
-msgstr ""
+msgstr "Ouvrir l'accès rapide"
 
 msgid "Reload the device page"
-msgstr ""
+msgstr "Recharger la page de l'appareil"
 
 msgid "Show keyboard shortcuts list"
 msgstr "Afficher la liste des raccourcis clavier"
 
 msgid "Slicing and printing"
-msgstr ""
+msgstr "Découpe et impression"
 
 msgid "Editing"
-msgstr ""
+msgstr "Édition"
 
 msgid "Placement"
-msgstr ""
+msgstr "Placement"
 
 msgid "Gizmos"
-msgstr ""
+msgstr "Gizmos"
 
 msgid "Sliders"
-msgstr ""
+msgstr "Curseurs"
 
 msgid "Painting tools"
-msgstr ""
+msgstr "Outils de peinture"
 
 msgid "Application"
-msgstr ""
+msgstr "Application"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

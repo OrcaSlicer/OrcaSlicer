@@ -3387,7 +3387,7 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
     if (obj->is_core_xy()) {
         m_staticText_z_tip->SetLabel(_L("Bed"));
     } else {
-        m_staticText_z_tip->SetLabel("Z");
+        m_staticText_z_tip->SetLabel(_L_CONTEXT("Z", "Axis"));
     }
 
     // update extruder icon

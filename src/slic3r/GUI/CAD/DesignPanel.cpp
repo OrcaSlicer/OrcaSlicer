@@ -1860,9 +1860,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         mform->Add(spin_frame(m_move_dz), 0, wxEXPAND);
 
         m_move_axis = make_combo(m_cards);
-        m_move_axis->Append(_L("X"));
-        m_move_axis->Append(_L("Y"));
-        m_move_axis->Append(_L("Z"));
+        m_move_axis->Append(_L_CONTEXT("X", "Axis"));
+        m_move_axis->Append(_L_CONTEXT("Y", "Axis"));
+        m_move_axis->Append(_L_CONTEXT("Z", "Axis"));
         m_move_axis->SetSelection(2);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Rotation axis")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_move_axis, 0, wxEXPAND);
@@ -1988,9 +1988,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto* hform = two_col_form();
 
     m_hole_plane = make_combo(m_cards);
-    m_hole_plane->Append(_L("XY"));
-    m_hole_plane->Append(_L("XZ"));
-    m_hole_plane->Append(_L("YZ"));
+    m_hole_plane->Append(_L_CONTEXT("XY", "Axis"));
+    m_hole_plane->Append(_L_CONTEXT("XZ", "Axis"));
+    m_hole_plane->Append(_L_CONTEXT("YZ", "Axis"));
     m_hole_plane->SetSelection(0);
     // Picking a plane here is an explicit choice: drop any on-face hijack (a stale face pick
     // could keep m_hole_on_face true, so the dropdown was ignored and the hole drilled on the
@@ -2041,9 +2041,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto* tform = two_col_form();
 
     m_thread_plane = make_combo(m_cards);
-    m_thread_plane->Append(_L("XY"));
-    m_thread_plane->Append(_L("XZ"));
-    m_thread_plane->Append(_L("YZ"));
+    m_thread_plane->Append(_L_CONTEXT("XY", "Axis"));
+    m_thread_plane->Append(_L_CONTEXT("XZ", "Axis"));
+    m_thread_plane->Append(_L_CONTEXT("YZ", "Axis"));
     m_thread_plane->SetSelection(0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thread plane")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_plane, 0, wxEXPAND);
@@ -2564,9 +2564,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate Z")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_dz), 0, wxEXPAND);
         m_xf_axis = make_combo(m_cards);
-        m_xf_axis->Append(_L("X"));
-        m_xf_axis->Append(_L("Y"));
-        m_xf_axis->Append(_L("Z"));
+        m_xf_axis->Append(_L_CONTEXT("X", "Axis"));
+        m_xf_axis->Append(_L_CONTEXT("Y", "Axis"));
+        m_xf_axis->Append(_L_CONTEXT("Z", "Axis"));
         m_xf_axis->SetSelection(2);  // default Z
         m_xf_axis->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Rotate axis")), 0, wxALIGN_CENTER_VERTICAL);
@@ -2904,11 +2904,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_cs_x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_cs_y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_cs_z = make_spin(m_cards, 0.0, -100000.0, 100000.0);
-        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("X", "Axis")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_x), 0, wxEXPAND);
-        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Y")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Y", "Axis")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_y), 0, wxEXPAND);
-        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Z")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Z", "Axis")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_z), 0, wxEXPAND);
 
         auto cs_pick = [&](const wxString& label, ::Button*& btn, wxStaticText*& lbl, CoordSysPick target) {
@@ -6082,7 +6082,7 @@ void DesignPanel::populate_plane_choices(ComboBox* c) const
     if (!c) return;
     const int keep = c->GetSelection();
     c->Clear();
-    c->Append(_L("XY")); c->Append(_L("XZ")); c->Append(_L("YZ"));
+    c->Append(_L_CONTEXT("XY", "Axis")); c->Append(_L_CONTEXT("XZ", "Axis")); c->Append(_L_CONTEXT("YZ", "Axis"));
     for (const auto& dp : m_doc.resolve_datum_planes())
         c->Append(wxString::FromUTF8(dp.first));
     c->SetSelection((keep >= 0 && keep < int(c->GetCount())) ? keep : 0);
