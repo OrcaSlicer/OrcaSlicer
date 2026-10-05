@@ -7,6 +7,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include "libslic3r/AABBTreeLines.hpp"
+#include "libslic3r/Circle.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCode/ExtrusionProcessor.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -20,10 +22,13 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <functional>
+#include <iterator>
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
 #include <cstddef>
@@ -37,6 +42,7 @@
 #include <cstdlib>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include <catch2/interfaces/catch_interfaces_capture.hpp>
 
