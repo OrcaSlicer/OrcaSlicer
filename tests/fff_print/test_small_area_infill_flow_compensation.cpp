@@ -1,8 +1,20 @@
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <string>
+#include <vector>
 
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensator.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "test_helpers.hpp"
 
 using namespace Slic3r;

@@ -3,7 +3,9 @@
 #include <functional>
 #include <optional>
 #include <vector>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
+#include <wx/string.h>
 #include "libslic3r/CurveModel.hpp"
 
 namespace Slic3r::GUI {
