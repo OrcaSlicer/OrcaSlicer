@@ -3618,6 +3618,9 @@ int CLI::run(int argc, char **argv)
                 {
                     if (opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "model_id" || opt_key == "dev_model_name" || opt_key == "filament_settings_id")
                         continue;
+                    // rebuilt from every filament after this loop
+                    if (filament_dev_options.find(opt_key) != filament_dev_options.end())
+                        continue;
                     ConfigOption *opt = m_print_config.option(opt_key, true);
                     if (opt == nullptr) {
                         // opt_key does not exist in this ConfigBase and it cannot be created, because it is not defined by this->def().
@@ -3680,6 +3683,14 @@ int CLI::run(int argc, char **argv)
                 BOOST_LOG_TRIVIAL(info) << boost::format("filament %1% new different key size %2%, different_settings %3%")%filament_index %different_keys_set.size() %different_settings[filament_index];
             }
         }
+
+        // The stored values cannot be told apart per filament, so they are kept as they are unless every slot has a config.
+        std::vector<const DynamicPrintConfig *> filament_configs(filament_count, nullptr);
+        for (size_t index = 0; index < load_filaments_config.size(); index++)
+            if (load_filaments_index[index] >= 1 && load_filaments_index[index] <= filament_count)
+                filament_configs[load_filaments_index[index] - 1] = &load_filaments_config[index];
+        if (std::find(filament_configs.begin(), filament_configs.end(), nullptr) == filament_configs.end())
+            set_filament_dev_options(m_print_config, filament_configs);
 
         if (m_print_config.option<ConfigOptionStrings>("filament_extruder_variant")) {
             std::vector<int>& filament_self_indice = m_print_config.option<ConfigOptionInts>("filament_self_index", true)->values;

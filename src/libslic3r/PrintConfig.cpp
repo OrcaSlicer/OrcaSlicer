@@ -10815,6 +10815,22 @@ void normalize_filament_values_to_variants(DynamicPrintConfig &config)
     }
 }
 
+void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs)
+{
+    for (const std::string &key : filament_dev_options) {
+        if (std::none_of(filament_configs.begin(), filament_configs.end(), [&key](const DynamicPrintConfig *filament) { return filament->has(key); }))
+            continue;
+        const ConfigOption *default_value = print_config_def.get(key)->default_value.get();
+        auto *dst = static_cast<ConfigOptionVectorBase *>(config.option(key, true));
+        dst->clear();
+        for (const DynamicPrintConfig *filament : filament_configs) {
+            const auto *src = static_cast<const ConfigOptionVectorBase *>(filament->has(key) ? filament->option(key) : default_value);
+            if (!src->empty())
+                dst->append(src);
+        }
+    }
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single
