@@ -491,6 +491,9 @@ class Print;
         static const std::string VFlush_End_Tag;
         static const std::string External_Purge_Tag;
     public:
+        // Size of the blocks the post-processing passes write the G-code in
+        static constexpr size_t Output_Block_Size = 65536;
+
         // Orca: SKIPPABLE region tags, stored as static strings (the FLUSH idiom above) rather than
         // a CustomETags/CustomTags array. Public so the emission sites (WipeTower / change_filament
         // path) can reference them single-sourced.
