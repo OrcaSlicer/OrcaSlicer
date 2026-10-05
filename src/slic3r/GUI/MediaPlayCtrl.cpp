@@ -34,6 +34,7 @@
 #include <boost/nowide/utf8_codecvt.hpp>
 #include <map>
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Thread.hpp"
 #include <cstring>
 #include <boost/thread/lock_types.hpp>
 #include <memory>
