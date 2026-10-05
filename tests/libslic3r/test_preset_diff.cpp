@@ -56,3 +56,56 @@ TEST_CASE("deep_diff distinguishes absolute and percentage speeds for each varia
     transferred.apply_only(edited.config, diff);
     REQUIRE(*transferred.option("small_perimeter_speed") == *edited.config.option("small_perimeter_speed"));
 }
+
+TEST_CASE("multi-extruder mixed nozzle preset compatibility", "[Preset][Compatibility]")
+{
+    Preset printer(Preset::TYPE_PRINTER, "Snapmaker U1 (0.4 nozzle)");
+    printer.config.set_key_value("printer_model", new ConfigOptionString("Snapmaker U1"));
+    printer.config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4, 0.4, 0.4, 0.8});
+
+    PresetWithVendorProfile active_printer(printer, nullptr);
+
+    // 0.4 nozzle process preset: should be compatible
+    Preset process_04(Preset::TYPE_PRINT, "0.20 Standard @Snapmaker U1 (0.4 nozzle)");
+    process_04.config.set_key_value("compatible_printers", new ConfigOptionStrings{"Snapmaker U1 (0.4 nozzle)"});
+    CHECK(is_compatible_with_printer(PresetWithVendorProfile(process_04, nullptr), active_printer));
+
+    // 0.8 nozzle process preset: should be compatible because extruder 3 has 0.8mm nozzle
+    Preset process_08(Preset::TYPE_PRINT, "0.24 Standard @Snapmaker U1 (0.8 nozzle)");
+    process_08.config.set_key_value("compatible_printers", new ConfigOptionStrings{"Snapmaker U1 (0.8 nozzle)"});
+    CHECK(is_compatible_with_printer(PresetWithVendorProfile(process_08, nullptr), active_printer));
+
+    // 0.2 nozzle process preset: should NOT be compatible (no 0.2 nozzle installed)
+    Preset process_02(Preset::TYPE_PRINT, "0.06 Standard @Snapmaker U1 (0.2 nozzle)");
+    process_02.config.set_key_value("compatible_printers", new ConfigOptionStrings{"Snapmaker U1 (0.2 nozzle)"});
+    CHECK_FALSE(is_compatible_with_printer(PresetWithVendorProfile(process_02, nullptr), active_printer));
+
+    // 0.6 nozzle process preset: should NOT be compatible (no 0.6 nozzle installed)
+    Preset process_06(Preset::TYPE_PRINT, "0.18 Standard @Snapmaker U1 (0.6 nozzle)");
+    process_06.config.set_key_value("compatible_printers", new ConfigOptionStrings{"Snapmaker U1 (0.6 nozzle)"});
+    CHECK_FALSE(is_compatible_with_printer(PresetWithVendorProfile(process_06, nullptr), active_printer));
+
+    // Single-extruder printer with 0.4 nozzle only: 0.8 preset should NOT be compatible
+    Preset single_printer(Preset::TYPE_PRINTER, "Snapmaker U1 (0.4 nozzle)");
+    single_printer.config.set_key_value("printer_model", new ConfigOptionString("Snapmaker U1"));
+    single_printer.config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4});
+    PresetWithVendorProfile active_single_printer(single_printer, nullptr);
+    CHECK(is_compatible_with_printer(PresetWithVendorProfile(process_04, nullptr), active_single_printer));
+    CHECK_FALSE(is_compatible_with_printer(PresetWithVendorProfile(process_08, nullptr), active_single_printer));
+
+    // Filament preset with 0.8 nozzle compatibility
+    Preset filament_08(Preset::TYPE_FILAMENT, "Snapmaker PLA SnapSpeed @U1 0.8 nozzle");
+    filament_08.config.set_key_value("compatible_printers", new ConfigOptionStrings{"Snapmaker U1 (0.8 nozzle)"});
+    CHECK(is_compatible_with_printer(PresetWithVendorProfile(filament_08, nullptr), active_printer));
+
+    // Longer model prefix collision: printer model "Ender-3" must NOT match "Ender-3 V2 (0.8 nozzle)"
+    Preset ender3(Preset::TYPE_PRINTER, "Creality Ender-3 (0.4 nozzle)");
+    ender3.config.set_key_value("printer_model", new ConfigOptionString("Creality Ender-3"));
+    ender3.config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4, 0.8});
+    PresetWithVendorProfile active_ender3(ender3, nullptr);
+
+    Preset ender3_v2_preset(Preset::TYPE_PRINT, "0.20 Standard @Creality Ender-3 V2 (0.8 nozzle)");
+    ender3_v2_preset.config.set_key_value("compatible_printers", new ConfigOptionStrings{"Creality Ender-3 V2 (0.8 nozzle)"});
+    CHECK_FALSE(is_compatible_with_printer(PresetWithVendorProfile(ender3_v2_preset, nullptr), active_ender3));
+}
+

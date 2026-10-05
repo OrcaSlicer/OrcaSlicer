@@ -3722,12 +3722,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 file.write(full_config);
 
             // SoftFever: write compatiple image
-            int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
+            int first_layer_bed_temperature = (m_config.bed_temperature_formula.value == BedTempFormula::btfHighestTemp) ?
+                                              get_highest_bed_temperature(true, print) :
+                                              get_bed_temperature(initial_extruder_id, true, print.config().curr_bed_type);
             file.write_format("; first_layer_bed_temperature = %d\n",
                                 first_layer_bed_temperature);
             file.write_format(
                 "; first_layer_temperature = %d\n",
-                print.config().nozzle_temperature_initial_layer.get_at(0));
+                print.config().nozzle_temperature_initial_layer.get_at(initial_extruder_id));
             file.write("; CONFIG_BLOCK_END\n\n");
         } else if (thumbnail_cb != nullptr) {
             // generate the thumbnails
@@ -4239,17 +4241,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // after the config block.
     if (!is_bbl_printers && !skip_config_block) {
         file.write("; CONFIG_BLOCK_START\n");
+
+        // SoftFever: write compatiple info
+        int first_layer_bed_temperature = (m_config.bed_temperature_formula.value == BedTempFormula::btfHighestTemp) ?
+                                          get_highest_bed_temperature(true, print) :
+                                          get_bed_temperature(initial_extruder_id, true, print.config().curr_bed_type);
+        file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
+        file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
+        file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(initial_extruder_id));
+        file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
+        file.write_format("; nozzle_diameter = %g\n", print.config().nozzle_diameter.get_at(initial_extruder_id));
+
         std::string full_config;
         append_full_config(print, full_config);
         if (!full_config.empty())
           file.write(full_config);
-
-        // SoftFever: write compatiple info
-        int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
-        file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
-        file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
-        file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
-        file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
 
           //SF TODO
 //        file.write_format("; variable_layer_height = %d\n", print.ad.adaptive_layer_height ? 1 : 0);
@@ -7313,7 +7319,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
             if (key == "wipe_tower_x" || key == "wipe_tower_y") {
                 ss << std::fixed << std::setprecision(3) << "; " << key << " = " << dynamic_cast<const ConfigOptionFloats*>(cfg.option(key))->get_at(print.get_plate_index()) << "\n";
             }
-            if(key == "extruder_colour")
+            else if(key == "extruder_colour")
                 ss << "; " << key << " = " << cfg.opt_serialize("filament_colour") << "\n";
             else
                 ss << "; " << key << " = " << cfg.opt_serialize(key) << "\n";

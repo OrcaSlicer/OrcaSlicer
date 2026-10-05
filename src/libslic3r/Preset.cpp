@@ -8,6 +8,7 @@
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <cassert>
+#include <cctype>
 #include <string>
 #include <cstddef>
 #include <iterator>
@@ -931,10 +932,75 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
             return true;
         }
     }
-    return preset.preset.is_default || active_printer.preset.name.empty() || !has_compatible_printers ||
-           std::find(compatible_printers->values.begin(), compatible_printers->values.end(), active_printer.preset.name) !=
-               compatible_printers->values.end() ||
-           (!active_printer.preset.is_system && is_compatible_with_parent_printer(preset, active_printer));
+    if (preset.preset.is_default || active_printer.preset.name.empty() || !has_compatible_printers ||
+        std::find(compatible_printers->values.begin(), compatible_printers->values.end(), active_printer.preset.name) !=
+            compatible_printers->values.end() ||
+        (!active_printer.preset.is_system && is_compatible_with_parent_printer(preset, active_printer)))
+        return true;
+
+    // Orca: for multi-extruder printers with mixed nozzle sizes, check if the preset is compatible
+    // with any of the installed nozzle diameters for the matching printer model.
+    const auto *nozzle_opt = active_printer.preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_opt && nozzle_opt->values.size() > 1) {
+        std::string active_model = active_printer.preset.config.opt_string("printer_model");
+        if (active_model.empty()) {
+            if (const auto *pm = PresetUtils::system_printer_model(active_printer.preset))
+                active_model = pm->name.empty() ? pm->id : pm->name;
+        }
+        if (!active_model.empty()) {
+            std::set<std::string> installed_dia_strs;
+            for (double d : nozzle_opt->values) {
+                installed_dia_strs.insert((boost::format("%g") % d).str());
+                installed_dia_strs.insert((boost::format("%.1f") % d).str());
+                installed_dia_strs.insert((boost::format("%.2f") % d).str());
+            }
+            for (const std::string &compat_name : compatible_printers->values) {
+                if (compat_name.rfind(active_model, 0) == 0) {
+                    if (active_printer.preset.vendor) {
+                        bool longer_model_match = false;
+                        for (const auto &vm : active_printer.preset.vendor->models) {
+                            const std::string &vm_name = vm.name.empty() ? vm.id : vm.name;
+                            if (vm_name.length() > active_model.length() && compat_name.rfind(vm_name, 0) == 0) {
+                                longer_model_match = true;
+                                break;
+                            }
+                        }
+                        if (longer_model_match)
+                            continue;
+                    }
+
+                    std::string rest = compat_name.substr(active_model.length());
+                    boost::trim(rest);
+                    if (!rest.empty() && (rest.front() == '(' || rest.front() == '-')) {
+                        rest = rest.substr(1);
+                        boost::trim(rest);
+                    }
+                    std::string rest_lower = rest;
+                    boost::algorithm::to_lower(rest_lower);
+                    if (rest.empty() || (!std::isdigit(static_cast<unsigned char>(rest.front())) && rest.front() != '.' &&
+                        !boost::starts_with(rest_lower, "hf") && !boost::starts_with(rest_lower, "hs") &&
+                        !boost::starts_with(rest_lower, "copy") && !boost::starts_with(rest_lower, "mirror"))) {
+                        continue;
+                    }
+                    if (rest_lower.find("nozzle") != std::string::npos) {
+                        for (const std::string &dia_str : installed_dia_strs) {
+                            size_t pos = rest.find(dia_str);
+                            while (pos != std::string::npos) {
+                                bool valid_prefix = (pos == 0 || (!std::isdigit(static_cast<unsigned char>(rest[pos - 1])) && rest[pos - 1] != '.'));
+                                size_t next_idx = pos + dia_str.length();
+                                bool valid_suffix = (next_idx >= rest.length() || (!std::isdigit(static_cast<unsigned char>(rest[next_idx])) && rest[next_idx] != '.'));
+                                if (valid_prefix && valid_suffix)
+                                    return true;
+                                pos = rest.find(dia_str, pos + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer)

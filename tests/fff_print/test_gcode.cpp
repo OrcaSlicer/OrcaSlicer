@@ -41,3 +41,36 @@ TEST_CASE("Klipper object labels name each copy without the characters Klipper c
         CHECK(gcode.find("EXCLUDE_OBJECT_START NAME=" + instance_label + "\n") != std::string::npos);
     }
 }
+
+TEST_CASE("CONFIG_BLOCK tags initial extruder temperature and nozzle diameter for multi-extruder printers", "[GCode]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"gcode_flavor", "klipper"},
+        {"nozzle_diameter", "0.4,0.4,0.4,0.8"},
+        {"nozzle_temperature_initial_layer", "200,205,210,240"},
+        {"bed_temperature_initial_layer", "50,55,60,70"}
+    });
+
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{Test::cube(20.)}, print, model, config, nullptr, false, 1);
+    // Assign object to extruder 4 (index 3, 0.8mm nozzle, 240C)
+    model.objects.front()->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(4));
+    print.apply(model, config);
+
+    const std::string gcode = Test::gcode(print);
+
+    // Verify CONFIG_BLOCK tags extruder 4 (index 3) values
+    CHECK(gcode.find("; nozzle_diameter = 0.8\n") != std::string::npos);
+    CHECK(gcode.find("; first_layer_temperature = 240\n") != std::string::npos);
+    CHECK(gcode.find("; first_layer_bed_temperature = 70\n") != std::string::npos);
+
+    // Verify the initial tag comes before the serialized vector
+    size_t initial_tag = gcode.find("; nozzle_diameter = 0.8\n");
+    size_t vector_tag  = gcode.find("; nozzle_diameter = 0.4,0.4,0.4,0.8\n");
+    REQUIRE(initial_tag != std::string::npos);
+    REQUIRE(vector_tag != std::string::npos);
+    CHECK(initial_tag < vector_tag);
+}
+
