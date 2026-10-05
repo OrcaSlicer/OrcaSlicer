@@ -276,7 +276,7 @@ private:
         if (params.is_discarded())
             params = json::object();
 
-        const std::string filter = json_string(params, "filter").empty() ? "All files (*.*)|*.*" : json_string(params, "filter");
+        const std::string filter = json_string(params, "filter").empty() ? _u8L("All files (*.*)|*.*") : json_string(params, "filter");
 
         wxWindow* parent = owner().GetParent();
         if (parent == nullptr)

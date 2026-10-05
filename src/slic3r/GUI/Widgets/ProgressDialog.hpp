@@ -5,6 +5,7 @@
 #include "wx/progdlg.h"
 #include "wx/weakref.h"
 #include "wx/simplebook.h"
+#include "../I18N.hpp"
 #include <wx/dlimpexp.h>
 #include <wx/string.h>
 #include <cstddef>
@@ -30,7 +31,7 @@ class WXDLLIMPEXP_FWD_CORE wxStaticText;
 class WXDLLIMPEXP_FWD_CORE wxWindowDisabler;
 
 #define PROGRESSDIALOG_SIMPLEBOOK_SIZE wxSize(FromDIP(320),FromDIP(38))
-#define PROGRESSDIALOG_GAUGE_SIZE wxSize(FromDIP(320), FromDIP(6))
+#define PROGRESSDIALOG_GAUGE_SIZE wxSize(FromDIP(320), FromDIP(8))
 #define PROGRESSDIALOG_CANCEL_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
 #define PROGRESSDIALOG_DEF_BK wxColour(255,255,255)
 #define PROGRESSDIALOG_GREY_700 wxColour(54,54,54) // #363636 label color
@@ -105,9 +106,9 @@ protected:
     void SetMaximum(int maximum);
     // Return the labels to use for showing the elapsed/estimated/remaining
     // times respectively.
-    static wxString GetElapsedLabel() { return wxGetTranslation("Elapsed time:"); }
-    static wxString GetEstimatedLabel() { return wxGetTranslation("Estimated time:"); }
-    static wxString GetRemainingLabel() { return wxGetTranslation("Remaining time:"); }
+    static wxString GetElapsedLabel() { return _L("Elapsed time:"); }
+    static wxString GetEstimatedLabel() { return _L("Estimated time:"); }
+    static wxString GetRemainingLabel() { return _L("Remaining time:"); }
 
     // Similar to wxWindow::HasFlag() but tests for a presence of a wxPD_XXX
     // flag in our (separate) flags instead of using m_windowStyle.

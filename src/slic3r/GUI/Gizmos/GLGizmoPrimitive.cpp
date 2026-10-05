@@ -102,6 +102,7 @@ void GLGizmoPrimitive::on_render_input_window(float x, float y, float bottom_lim
             m_params.type = (PrimitiveType)cur;
             m_preview_dirty = true;
         }
+        // TRN Primitive gizmo: label in front of the preset cube size buttons
         ImGui::TextUnformatted(_u8L("Quick:").c_str());
         ImGui::SameLine();
         if (ImGui::SmallButton("10mm")) apply_preset("10mm cube", 10, 10, 10);
@@ -133,11 +134,13 @@ void GLGizmoPrimitive::on_render_input_window(float x, float y, float bottom_lim
             dim(_u8L("Radius").c_str(), m_params.sph_radius);
             break;
         case PrimitiveType::Cone:
+            // TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
             dim(_u8L("Bottom R").c_str(), m_params.cone_r1);
             dim(_u8L("Top R").c_str(),    m_params.cone_r2);
             dim(_u8L("Height").c_str(),   m_params.cone_height);
             break;
         case PrimitiveType::Torus:
+            // TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
             dim(_u8L("Major R").c_str(), m_params.torus_r1);
             dim(_u8L("Minor R").c_str(), m_params.torus_r2, 0.1, 1.0);
             break;

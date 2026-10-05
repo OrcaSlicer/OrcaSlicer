@@ -617,7 +617,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 response["sequence_id"] = "";
 
             if (!m_MainPtr->preset_updater) {
-                response["error"] = "Printer update service is unavailable.";
+                response["error"] = _u8L("Printer update service is unavailable.");
                 wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                 wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
             } else {
@@ -671,7 +671,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                         });
                 } catch (const std::exception &e) {
                     BOOST_LOG_TRIVIAL(warning) << "Failed to check for new printers: " << e.what();
-                    response["error"] = "Failed to check for new printers.";
+                    response["error"] = _u8L("Failed to check for new printers.");
                     wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                     wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
                 }

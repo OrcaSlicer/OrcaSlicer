@@ -5,10 +5,13 @@ external deps).
 Run from the repo root:  python -m unittest discover -s scripts/tests -v
 """
 
+import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -61,6 +64,10 @@ class TestParseChangedLines(unittest.TestCase):
 
     def test_pure_rename_has_no_changed_lines(self):
         self.assertNotIn("src/libslic3r/Renamed.cpp", self.changed)
+
+    def test_path_with_a_space_drops_the_tab_git_appends(self):
+        changed = clang_tidy_diff.parse_diff("+++ b/src/libslic3r/Foo Bar.cpp\t\n@@ -1,0 +2 @@\n+int x;\n")
+        self.assertEqual(changed["src/libslic3r/Foo Bar.cpp"].lines, [[2, 2]])
 
 
 class TestNamesRemovedInclude(unittest.TestCase):
@@ -126,6 +133,38 @@ class TestParseSuggestedIncludes(unittest.TestCase):
 
     def test_missing_file_means_no_suggestions(self):
         self.assertEqual(clang_tidy_diff.parse_suggested_includes("/nonexistent/fixes.yaml"), {})
+
+
+class TestSubprocessCalls(unittest.TestCase):
+    def run_patched(self, function, *args, returncode=0, stdout=""):
+        done = subprocess.CompletedProcess([], returncode, stdout, "")
+        with mock.patch.object(clang_tidy_diff.subprocess, "run", return_value=done) as run, \
+             mock.patch.object(clang_tidy_diff.os.path, "normpath", wraps=os.path.normpath) as normpath:
+            result = function(*args)
+        return result, run.call_args, normpath
+
+    def test_line_filter_names_the_file_with_native_separators(self):
+        _, call, normpath = self.run_patched(clang_tidy_diff.run_clang_tidy, "clang-tidy", "build",
+                                             "src/libslic3r/Color.cpp", [[4, 4]], [])
+        line_filter = next(arg for arg in call.args[0] if arg.startswith("--line-filter="))
+        self.assertEqual(json.loads(line_filter.split("=", 1)[1]),
+                         [{"name": os.path.join("src", "libslic3r", "Color.cpp"), "lines": [[4, 4]]}])
+        normpath.assert_any_call("src/libslic3r/Color.cpp")
+
+    def test_changed_files_reads_non_ascii_paths_and_text_as_utf8(self):
+        diff = "+++ b/src/libslic3r/Über.cpp\n@@ -1,0 +2 @@\n+// 打印\n"
+        files, call, _ = self.run_patched(clang_tidy_diff.changed_files, "base", stdout=diff)
+        self.assertIn("core.quotePath=false", call.args[0])
+        self.assertEqual(call.kwargs["encoding"], "utf-8")
+        self.assertEqual(files["src/libslic3r/Über.cpp"].lines, [[2, 2]])
+
+    def test_clang_tidy_and_git_show_output_is_decoded_as_utf8(self):
+        _, call, _ = self.run_patched(clang_tidy_diff.run_clang_tidy, "clang-tidy", "build",
+                                      "src/libslic3r/Color.cpp", None, [])
+        self.assertEqual(call.kwargs["encoding"], "utf-8")
+        _, call, _ = self.run_patched(clang_tidy_diff.errors_alone_at, "base", "clang-tidy", "build",
+                                      "src/libslic3r/Color.hpp", returncode=128)
+        self.assertEqual(call.kwargs["encoding"], "utf-8")
 
 
 if __name__ == "__main__":

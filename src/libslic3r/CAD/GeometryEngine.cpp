@@ -1,6 +1,7 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/I18N.hpp"
 
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRep_Tool.hxx>
@@ -73,19 +74,19 @@ std::vector<TopoDS_Shape> GeometryEngine::read_step_solids(const std::string& pa
     try {
         STEPControl_Reader reader;
         if (reader.ReadFile(path.c_str()) != IFSelect_RetDone) {
-            err = "cannot read STEP file";
+            err = _u8L("cannot read STEP file");
             return out;
         }
         reader.TransferRoots();
         const TopoDS_Shape shape = reader.OneShape();
-        if (shape.IsNull()) { err = "STEP file has no geometry"; return out; }
+        if (shape.IsNull()) { err = _u8L("STEP file has no geometry"); return out; }
         // One body per top-level solid; fall back to the whole shape (shells/faces) if none.
         for (TopExp_Explorer ex(shape, TopAbs_SOLID); ex.More(); ex.Next())
             out.push_back(ex.Current());
         if (out.empty())
             out.push_back(shape);
     } catch (const Standard_Failure& e) {
-        err = *e.what() ? e.what() : "OCCT failed to read STEP";
+        err = *e.what() ? e.what() : _u8L("OCCT failed to read STEP");
         out.clear();
     }
     return out;
@@ -115,7 +116,7 @@ TopoDS_Shape GeometryEngine::mesh_to_brep(const indexed_triangle_set& its,
     if (tolerance <= 0.0)
         throw std::runtime_error("mesh_to_brep: tolerance must be > 0");
     if (its.indices.empty())
-        throw std::runtime_error("mesh_to_brep: mesh has no triangles");
+        throw std::runtime_error(_u8L("mesh_to_brep: mesh has no triangles"));
 
     // 1. Tolerance-quantized vertex dedup. A merged vertex keeps the exact coordinates of the
     //    first input occurrence — vertices are grouped by a cell, never snapped onto its grid.
@@ -150,8 +151,8 @@ TopoDS_Shape GeometryEngine::mesh_to_brep(const indexed_triangle_set& its,
     }
     stats.kept_tris = int(tris.size());
     if (tris.empty())
-        throw std::runtime_error("mesh_to_brep: every triangle was rejected as degenerate "
-                                 "(try a smaller tolerance)");
+        throw std::runtime_error(_u8L("mesh_to_brep: every triangle was rejected as degenerate "
+                                      "(try a smaller tolerance)"));
 
     // 3. One face per triangle, sharing vertices and edges through the caches.
     std::vector<TopoDS_Vertex> vertex_cache(verts.size());
@@ -361,7 +362,7 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
     // A too-large radius (e.g. >= half the smallest spanned dimension) makes the
     // operation degenerate; OCCT leaves IsDone() false. Report it instead of
     // silently returning the unfilleted solid (which reads as a false success).
-    if (!fillet.IsDone()) throw std::runtime_error("fillet radius too large for this geometry");
+    if (!fillet.IsDone()) throw std::runtime_error(_u8L("fillet radius too large for this geometry"));
     return fillet.Shape();
 }
 
@@ -377,7 +378,7 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
         chamfer.Add(distance, edge); // symmetric chamfer
     chamfer.Build();
 
-    if (!chamfer.IsDone()) throw std::runtime_error("chamfer distance too large for this geometry");
+    if (!chamfer.IsDone()) throw std::runtime_error(_u8L("chamfer distance too large for this geometry"));
     return chamfer.Shape();
 }
 
@@ -404,7 +405,7 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
     }
     mk.Build();
 
-    if (!mk.IsDone()) throw std::runtime_error("apply_fillet: OCCT fillet failed");
+    if (!mk.IsDone()) throw std::runtime_error(_u8L("apply_fillet: OCCT fillet failed"));
     return mk.Shape();
 }
 
@@ -421,7 +422,7 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
     }
     mk.Build();
 
-    if (!mk.IsDone()) throw std::runtime_error("apply_chamfer: OCCT chamfer failed");
+    if (!mk.IsDone()) throw std::runtime_error(_u8L("apply_chamfer: OCCT chamfer failed"));
     return mk.Shape();
 }
 
@@ -547,12 +548,13 @@ GeometryEngine::MassProps GeometryEngine::mass_properties(const TopoDS_Shape& sh
 std::string GeometryEngine::primitive_name(PrimitiveType type)
 {
     switch (type) {
-    case PrimitiveType::Box:      return "Box";
-    case PrimitiveType::Cylinder: return "Cylinder";
-    case PrimitiveType::Sphere:   return "Sphere";
-    case PrimitiveType::Cone:     return "Cone";
-    case PrimitiveType::Torus:    return "Torus";
-    default:                      return "Unknown";
+    // TRN Default name of an object created from the box primitive shape.
+    case PrimitiveType::Box:      return _u8L("Box");
+    case PrimitiveType::Cylinder: return _u8L("Cylinder");
+    case PrimitiveType::Sphere:   return _u8L("Sphere");
+    case PrimitiveType::Cone:     return _u8L("Cone");
+    case PrimitiveType::Torus:    return _u8L("Torus");
+    default:                      return _u8L("Unknown");
     }
 }
 

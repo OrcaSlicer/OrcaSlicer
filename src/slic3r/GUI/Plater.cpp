@@ -936,7 +936,7 @@ struct Sidebar::priv
     // that Orca's sidebar has no counterpart for, so these are parented to p->scrolled.
     wxPanel*          m_btn_add_mixed_filament{nullptr};  // "+ Add Mixed Filament" full-width button
     wxPanel*          m_panel_mixed_title{nullptr};       // title row: "Mixed Filament" + add/del buttons
-    wxStaticText*     m_text_mixed_title{nullptr};
+    StaticLine*       m_text_mixed_title{nullptr};
     ScalableButton*   m_btn_mixed_add{nullptr};
     ScalableButton*   m_btn_mixed_del{nullptr};
     wxScrolledWindow* m_mixed_scroll_area{nullptr};       // independent scrollbar for mixed rows
@@ -3000,6 +3000,7 @@ Sidebar::Sidebar(Plater *parent)
         });
 
         // "Variant", not "Nozzle": picking one switches the printer preset (see panel_nozzle_dia).
+        // TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
         p->label_nozzle_title = new Label(p->panel_nozzle_dia, _L("Variant"), LB_PROPAGATE_MOUSE_EVENT);
         p->label_nozzle_title->SetFont(Label::Body_10);
 
@@ -3032,7 +3033,7 @@ Sidebar::Sidebar(Plater *parent)
         p->combo_nozzle_dia->Bind(wxEVT_SET_FOCUS,  [nozzle_focus_bg](auto& e) {nozzle_focus_bg(true ); e.Skip();});
         p->combo_nozzle_dia->Bind(wxEVT_KILL_FOCUS, [nozzle_focus_bg](auto& e) {nozzle_focus_bg(false); e.Skip();});
 
-        p->label_nozzle_type = new Label(p->panel_nozzle_dia, "Brass", LB_PROPAGATE_MOUSE_EVENT | wxST_ELLIPSIZE_END | wxALIGN_CENTRE_HORIZONTAL);
+        p->label_nozzle_type = new Label(p->panel_nozzle_dia, _L("Brass"), LB_PROPAGATE_MOUSE_EVENT | wxST_ELLIPSIZE_END | wxALIGN_CENTRE_HORIZONTAL);
         p->label_nozzle_type->SetFont(Label::Body_10);
         p->label_nozzle_type->SetMinSize(FromDIP(wxSize(56, -1)));
         p->label_nozzle_type->SetMaxSize(FromDIP(wxSize(56, -1)));
@@ -3436,10 +3437,10 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_mixed_title->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     {
         auto* title_sizer = new wxBoxSizer(wxHORIZONTAL);
-        p->m_text_mixed_title = new wxStaticText(p->m_panel_mixed_title, wxID_ANY, _L("Mixed Filament"));
+        p->m_text_mixed_title = new StaticLine(p->m_panel_mixed_title, false, _L("Mixed Filament"));
         p->m_text_mixed_title->SetFont(::Label::Head_14);
-        title_sizer->Add(p->m_text_mixed_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
-        title_sizer->AddStretchSpacer();
+        p->m_text_mixed_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
 
         p->m_btn_mixed_del = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_filament");
         p->m_btn_mixed_del->SetToolTip(_L("Remove last mixed filament"));
@@ -3579,6 +3580,7 @@ Sidebar::Sidebar(Plater *parent)
     search_sizer->Fit(p->m_search_bar);
 
     p->m_object_list = new ObjectList(p->scrolled);
+    p->m_object_list->SetBackgroundColour(*wxWHITE);
     p->m_object_list->Bind(wxCUSTOMEVT_EXIT_SEARCH, [this](wxCommandEvent&) {
 #ifdef __WXGTK__
         this->p->m_search_item->Enable(true);
@@ -4306,7 +4308,7 @@ void Sidebar::update_mixed_filament_list()
     wxWindowUpdateLocker noUpdates(this);
 
     const wxColour mc_bg     = StateColor::darkModeColorFor(*wxWHITE);
-    const wxColour mc_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
+    const wxColour mc_border = StateColor::darkModeColorFor(wxColour("#DBDBDB")); // same color with filament combo box border
     const wxColour mc_text   = StateColor::darkModeColorFor(wxColour("#262E30"));
     const wxColour mc_dim    = StateColor::darkModeColorFor(wxColour("#ACACAC"));
 
@@ -4420,8 +4422,9 @@ void Sidebar::update_mixed_filament_list()
         for (size_t i = 0; i < mixed_indices.size(); ++i) {
             size_t cfg_idx = mixed_indices[i];
             auto* combo_and_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-            combo_and_btn_sizer->Add(FromDIP(10), 0, 0, 0, 0);
+            
+            if (i == 0 || i % 2 == 0) // dont add left margin for right column items so all horizontal margins will be equal like on filaments section
+                combo_and_btn_sizer->AddSpacer(FromDIP(SidebarProps::ContentMargin()));
 
             // Parse components and ratios from config strings (supports 2-N components)
             std::vector<unsigned int> comp_ids;
@@ -4511,10 +4514,12 @@ void Sidebar::update_mixed_filament_list()
                     dc.DrawText(txt, (sz.GetWidth() - txt_sz.GetWidth()) / 2,
                                      (sz.GetHeight() - txt_sz.GetHeight()) / 2);
                 });
-                combo_and_btn_sizer->Add(grad_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+                grad_panel->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { edit_mixed_filament(i); }); // ORCA also open edit color dialog with clicking swatch
+                combo_and_btn_sizer->Add(grad_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
             } else {
-                combo_and_btn_sizer->Add(make_swatch_panel(p->m_panel_mixed_content, mix_col, mix_num),
-                                         0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+                auto swatch_panel = make_swatch_panel(p->m_panel_mixed_content, mix_col, mix_num);
+                swatch_panel->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { edit_mixed_filament(i); }); // ORCA also open edit color dialog with clicking swatch
+                combo_and_btn_sizer->Add(swatch_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
             }
 
             auto* content_panel = new wxPanel(p->m_panel_mixed_content, wxID_ANY);
@@ -4738,9 +4743,9 @@ void Sidebar::update_mixed_filament_list()
 
                 PopupMenu(&menu);
             });
-            combo_and_btn_sizer->Add(menu_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+            combo_and_btn_sizer->Add(menu_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
 
-            combo_and_btn_sizer->Add(FromDIP(16), 0, 0, 0, 0);
+            combo_and_btn_sizer->Add(FromDIP(SidebarProps::ContentMargin()), 0, 0, 0, 0);
 
             int side = i % 2;
             auto* col = (side == 0) ? left_col : right_col;
@@ -16318,7 +16323,7 @@ bool Plater::add_model(bool imperial_units, std::string fname)
 
 void Plater::calib_pa(const Calib_Params& params)
 {
-    const auto calib_pa_name = wxString::Format(L"Pressure Advance Test");
+    const auto calib_pa_name = _L("Pressure Advance Test");
     new_project(false, false, calib_pa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
@@ -16795,11 +16800,9 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
         return;
     wxString calib_name;
     if (is_linear) {
-        calib_name = L"Orca YOLO Flow Calibration";
-        if (pass == 2)
-            calib_name += L" - Perfectionist version";
+        calib_name = pass == 2 ? _L("Orca YOLO Flow Calibration - Perfectionist version") : _L("Orca YOLO Flow Calibration");
     } else
-        calib_name = wxString::Format(L"Flowrate Test - Pass%d", pass);
+        calib_name = wxString::Format(_L("Flowrate Test - Pass%d"), pass);
 
     if (new_project(false, false, calib_name) == wxID_CANCEL)
         return;
@@ -16839,7 +16842,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     constexpr double base_temp_tower_block_height = 10.0;
     constexpr int base_temp_tower_temp_step = 5;
 
-    const auto calib_temp_name = wxString::Format(L"Nozzle temperature test");
+    const auto calib_temp_name = _L("Nozzle temperature test");
     new_project(false, false, calib_temp_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Temp_Tower) return;
@@ -16919,7 +16922,7 @@ void Plater::calib_temp(const Calib_Params& params) {
 
 void Plater::calib_max_vol_speed(const Calib_Params& params)
 {
-    const auto calib_vol_speed_name = wxString::Format(L"Max volumetric speed test");
+    const auto calib_vol_speed_name = _L("Max volumetric speed test");
     new_project(false, false, calib_vol_speed_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
@@ -16998,7 +17001,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
 
 void Plater::calib_retraction(const Calib_Params& params)
 {
-    const auto calib_retraction_name = wxString::Format(L"Retraction");
+    const auto calib_retraction_name = _L("Retraction");
     new_project(false, false, calib_retraction_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Retraction_tower)
@@ -17060,7 +17063,7 @@ void Plater::calib_retraction(const Calib_Params& params)
 
 void Plater::calib_VFA(const Calib_Params& params)
 {
-    const auto calib_vfa_name = wxString::Format(L"VFA test");
+    const auto calib_vfa_name = _L("VFA test");
     new_project(false, false, calib_vfa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_VFA_Tower)
@@ -17143,7 +17146,7 @@ void Plater::calib_VFA(const Calib_Params& params)
 
 void Plater::calib_input_shaping_freq(const Calib_Params& params)
 {
-    const auto calib_input_shaping_name = wxString::Format(L"Input shaping Frequency test");
+    const auto calib_input_shaping_name = _L("Input shaping Frequency test");
     new_project(false, false, calib_input_shaping_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Input_shaping_freq)
@@ -17205,7 +17208,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
 
 void Plater::calib_input_shaping_damp(const Calib_Params& params)
 {
-    const auto calib_input_shaping_name = wxString::Format(L"Input shaping Damping test");
+    const auto calib_input_shaping_name = _L("Input shaping Damping test");
     new_project(false, false, calib_input_shaping_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Input_shaping_damp)
@@ -17266,7 +17269,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
 
 void Plater::Calib_Cornering(const Calib_Params& params)
 {
-    const auto Calib_Cornering = wxString::Format(L"Cornering test");
+    const auto Calib_Cornering = _L("Cornering test");
     new_project(false, false, Calib_Cornering);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Cornering)
@@ -17454,7 +17457,7 @@ void Plater::load_gcode(const wxString& filename)
     if (p->preview->get_canvas3d()->get_gcode_layers_zs().empty()) {
         MessageDialog(this, _L("The selected file") + ":\n" + filename + "\n" + _L("Does not contain valid G-code."),
             wxString(GCODEVIEWER_APP_NAME) + " - " + _L("An Error has occurred while loading the G-code file."), wxCLOSE | wxICON_WARNING | wxCENTRE).ShowModal();
-        set_project_filename(DEFAULT_PROJECT_NAME);
+        set_project_filename(_L(DEFAULT_PROJECT_NAME));
     } else {
         set_project_filename(filename);
     }
@@ -17805,7 +17808,7 @@ ProjectDropDialog::ProjectDropDialog(const std::string &filename)
     // Orca: hide the "Don't show again" checkbox, people keeps accidentally checked this then forgot
     // wxBoxSizer *m_sizer_left = new wxBoxSizer(wxHORIZONTAL);
     //
-    // auto dont_show_again = create_remember_checkbox(_L("Remember my choice."), this, _L("This option can be changed later in preferences, under 'Load Behaviour'."));
+    // auto dont_show_again = create_remember_checkbox(_L("Remember my choice."), this, _L("This option can be changed later in preferences, under 'Load Behavior'."));
     // m_sizer_left->Add(dont_show_again, 0, wxALL, 5);
     //
     // m_sizer_bottom->Add(m_sizer_left, 0, wxEXPAND, 5);

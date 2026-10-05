@@ -1,6 +1,7 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/I18N.hpp"
 
 #include <Standard_Handle.hxx>
 #include <GeomAbs_SurfaceType.hxx>
@@ -138,7 +139,7 @@ Vec3d SketchPlane::to_world(const Vec2d& pt) const
 TopoDS_Wire SketchProfile::to_occt_wire(const SketchPlane& plane) const
 {
     if (points.size() < 2)
-        throw std::runtime_error("Profile has fewer than 2 points");
+        throw std::runtime_error(_u8L("Profile has fewer than 2 points"));
 
     BRepBuilderAPI_MakeWire builder;
     for (size_t i = 0; i < points.size(); ++i) {
@@ -150,7 +151,7 @@ TopoDS_Wire SketchProfile::to_occt_wire(const SketchPlane& plane) const
     }
     builder.Build();
     if (!builder.IsDone())
-        throw std::runtime_error("Failed to build wire from profile");
+        throw std::runtime_error(_u8L("Failed to build wire from profile"));
     return builder.Wire();
 }
 
@@ -158,9 +159,9 @@ TopoDS_Wire SketchProfile::to_occt_wire(const SketchPlane& plane) const
 
 TopoDS_Shape SketchEngine::make_prism(const TopoDS_Shape& base, const gp_Vec& vec)
 {
-    if (vec.Magnitude() < 1e-9) throw std::runtime_error("extrude depth is zero");
+    if (vec.Magnitude() < 1e-9) throw std::runtime_error(_u8L("extrude depth is zero"));
     BRepPrimAPI_MakePrism prism(base, vec);
-    if (!prism.IsDone()) throw std::runtime_error("extrude failed");
+    if (!prism.IsDone()) throw std::runtime_error(_u8L("extrude failed"));
     return prism.Shape();
 }
 
@@ -169,7 +170,7 @@ static TopoDS_Shape extrude_face_internal(const TopoDS_Face& face, const gp_Dir&
     if (symmetric) {
         gp_Vec halfVec = gp_Vec(dir) * (length / 2.0);
         BRepAlgoAPI_Fuse fuse(SketchEngine::make_prism(face, halfVec), SketchEngine::make_prism(face, -halfVec));
-        if (!fuse.IsDone()) throw std::runtime_error("Fuse failed");
+        if (!fuse.IsDone()) throw std::runtime_error(_u8L("Fuse failed"));
         return fuse.Shape();
     }
     return SketchEngine::make_prism(face, gp_Vec(dir) * length);
@@ -179,7 +180,7 @@ TopoDS_Shape SketchEngine::make_extrude(const TopoDS_Wire& wire, const SketchPla
                                         double length, bool symmetric, double taper_deg)
 {
     BRepBuilderAPI_MakeFace fm(wire);
-    if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+    if (!fm.IsDone()) throw std::runtime_error(_u8L("Failed to make face from wire"));
     return make_extrude(fm.Face(), plane, length, symmetric, taper_deg);
 }
 
@@ -194,7 +195,7 @@ TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Wire& wire, const
                                                   double up, double down)
 {
     BRepBuilderAPI_MakeFace fm(wire);
-    if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+    if (!fm.IsDone()) throw std::runtime_error(_u8L("Failed to make face from wire"));
     return make_extrude_two_sided(fm.Face(), plane, up, down);
 }
 
@@ -206,7 +207,7 @@ TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Face& face, const
     if (d < 1e-9) return make_prism(face, gp_Vec(dir) *  u);
     if (u < 1e-9) return make_prism(face, gp_Vec(dir) * -d);
     BRepAlgoAPI_Fuse fuse(make_prism(face, gp_Vec(dir) * u), make_prism(face, gp_Vec(dir) * -d));
-    if (!fuse.IsDone()) throw std::runtime_error("two-sided extrude fuse failed");
+    if (!fuse.IsDone()) throw std::runtime_error(_u8L("two-sided extrude fuse failed"));
     return fuse.Shape();
 }
 
@@ -216,7 +217,7 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
     auto straight = [&]() -> TopoDS_Shape {
         BRepBuilderAPI_MakeFace fm(wire);
-        if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("Failed to make face from wire"));
         return make_prism(fm.Face(), gp_Vec(dir) * length);
     };
     if (std::abs(taper_deg) >= 89.0 || std::abs(length) < 1e-9) return straight();
@@ -262,7 +263,7 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
     const SketchPlane& plane, double length, bool symmetric)
 {
     // The loop below skips regions that fail, so a zero depth is rejected before it.
-    if (std::abs(length) < 1e-9) throw std::runtime_error("extrude depth is zero");
+    if (std::abs(length) < 1e-9) throw std::runtime_error(_u8L("extrude depth is zero"));
 
     // Drop consecutive coincident points and the closing duplicate. FreeType /
     // SVG flattening routinely emits repeated points which would build a
@@ -348,7 +349,7 @@ TopoDS_Shape SketchEngine::make_extrude_regions(
         }
     }
 
-    if (count == 0) throw std::runtime_error("imported regions produced no extrudable geometry");
+    if (count == 0) throw std::runtime_error(_u8L("imported regions produced no extrudable geometry"));
     return count == 1 ? last : TopoDS_Shape(comp);   // avoid a compound-of-one
 }
 
@@ -356,7 +357,7 @@ TopoDS_Shape SketchEngine::make_revolve(const TopoDS_Wire& wire, const gp_Ax1& a
 {
     BRepBuilderAPI_MakeFace faceMaker(wire);
     if (!faceMaker.IsDone())
-        throw std::runtime_error("Failed to make face from wire");
+        throw std::runtime_error(_u8L("Failed to make face from wire"));
     TopoDS_Face face = faceMaker.Face();
 
     // A profile on both sides of the axis sweeps through itself; MakeRevol then fails with no
@@ -387,7 +388,7 @@ TopoDS_Shape SketchEngine::make_revolve(const TopoDS_Wire& wire, const gp_Ax1& a
     if (angle_rad < 0) { axis.Reverse(); angle_rad = -angle_rad; }
     BRepPrimAPI_MakeRevol rev(face, axis, angle_rad);
     if (!rev.IsDone())
-        throw std::runtime_error("Failed to revolve");
+        throw std::runtime_error(_u8L("Failed to revolve"));
     if (!BRepCheck_Analyzer(rev.Shape()).IsValid())
         throw std::runtime_error("the profile crosses the revolve axis — it must lie on one side of it");
     return rev.Shape();
@@ -397,29 +398,29 @@ TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_W
 {
     BRepBuilderAPI_MakeFace faceMaker(profile);
     if (!faceMaker.IsDone())
-        throw std::runtime_error("Failed to make face from sweep profile");
+        throw std::runtime_error(_u8L("Failed to make face from sweep profile"));
     TopoDS_Face face = faceMaker.Face();
 
     BRepOffsetAPI_MakePipe pipe(path, face);
     pipe.Build();
     if (!pipe.IsDone())
-        throw std::runtime_error("Failed to sweep profile along path");
+        throw std::runtime_error(_u8L("Failed to sweep profile along path"));
     return pipe.Shape();
 }
 
 TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled)
 {
     if (profiles.size() < 2)
-        throw std::runtime_error("loft needs at least 2 profiles");
+        throw std::runtime_error(_u8L("loft needs at least 2 profiles"));
     BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
     }
     loft.Build();
-    if (!loft.IsDone()) throw std::runtime_error("loft failed");
+    if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
     TopoDS_Shape s = loft.Shape();
-    if (s.IsNull()) throw std::runtime_error("loft produced no solid");
+    if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no solid"));
     return s;
 }
 
@@ -427,16 +428,16 @@ TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, b
 TopoDS_Shape SketchEngine::make_loft_surface(const std::vector<TopoDS_Wire>& profiles, bool ruled)
 {
     if (profiles.size() < 2)
-        throw std::runtime_error("loft needs at least 2 profiles");
+        throw std::runtime_error(_u8L("loft needs at least 2 profiles"));
     BRepOffsetAPI_ThruSections loft(false /*shell, no end caps*/, ruled);
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
     }
     loft.Build();
-    if (!loft.IsDone()) throw std::runtime_error("loft failed");
+    if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
     TopoDS_Shape s = loft.Shape();
-    if (s.IsNull()) throw std::runtime_error("loft produced no shape");
+    if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no shape"));
     return s;
 }
 
@@ -444,11 +445,11 @@ TopoDS_Shape SketchEngine::make_pocket(const TopoDS_Wire& wire, const SketchPlan
                                         const TopoDS_Shape& target, double depth)
 {
     BRepBuilderAPI_MakeFace fm(wire);
-    if (!fm.IsDone()) throw std::runtime_error("Pocket face failed");
+    if (!fm.IsDone()) throw std::runtime_error(_u8L("Pocket face failed"));
     TopoDS_Shape tool = extrude_face_internal(fm.Face(),
         gp_Dir(plane.normal.x(), plane.normal.y(), plane.normal.z()), depth + 1.0, false);
     BRepAlgoAPI_Cut cut(target, tool);
-    if (!cut.IsDone()) throw std::runtime_error("Pocket cut failed");
+    if (!cut.IsDone()) throw std::runtime_error(_u8L("Pocket cut failed"));
     return cut.Shape();
 }
 
@@ -929,7 +930,7 @@ static TopoDS_Face checked_profile_face(const TopoDS_Face& f)
 TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
                                         const SketchPlane& plane)
 {
-    if (wires.empty()) throw std::runtime_error("sketch has no closed loop");
+    if (wires.empty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
 
     // The ASSEMBLED face below is built on the SKETCH's own plane rather than on a surface OCCT
     // infers from the outer wire. The inferred plane has no reason to share the sketch's normal,
@@ -944,7 +945,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
 
     if (wires.size() == 1) {
         BRepBuilderAPI_MakeFace fm(wires[0]);
-        if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
         return checked_profile_face(fm.Face());
     }
 
@@ -956,7 +957,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     areas.reserve(wires.size());
     for (const TopoDS_Wire& w : wires) {
         BRepBuilderAPI_MakeFace fm(w);
-        if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
         faces.push_back(fm.Face());
         GProp_GProps props;
         BRepGProp::SurfaceProperties(faces.back(), props);
@@ -982,10 +983,10 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
             got = true;
             break;
         }
-        if (!got) throw std::runtime_error("sketch loop does not bound a face");
+        if (!got) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
         BRepClass_FaceClassifier fc(faces[outer], p, 1e-7);
         if (fc.State() != TopAbs_IN)
-            throw std::runtime_error("sketch has two disjoint regions; put each in its own sketch");
+            throw std::runtime_error(_u8L("sketch has two disjoint regions; put each in its own sketch"));
         // Add the hole loop AS-IS and let ShapeFix_Face sort the orientations out below.
         // Reversing it here only works when the sketch happened to wind both loops the same
         // way: a circle drawn clockwise inside a counter-clockwise rectangle comes out matching
@@ -995,7 +996,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
         // 147520 — a body larger than its own bounding box, which is the signature of it.
         fm.Add(wires[i]);
     }
-    if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
+    if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
     // Winding-independent classification of outer vs holes — the same idiom make_extrude_regions
     // already uses for imported glyphs, which is why holed TEXT extruded correctly all along
     // while a holed SKETCH did not.
