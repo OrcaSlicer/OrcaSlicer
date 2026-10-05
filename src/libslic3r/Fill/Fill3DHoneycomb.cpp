@@ -126,6 +126,9 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t lengthX, coo
   // adjust spacing so that it starts and ends on exactly the right place
   // and increase fill density slightly to reduce gaps
   coordf_t region_count = floor((gridEndP - gridStartP) / (spacing / sqrt(2)));
+  if(region_count <= 0){
+    return lines;
+  }
   spacing = (gridEndP - gridStartP) / region_count;
   for (x = offsetX, xm = 0; x <= (lengthX); x+= gridSize, xm = xm ^ 1) {
     for (y = offsetY, ym = 0; y <= (lengthY); y += gridSize, ym = ym ^ 1) {
