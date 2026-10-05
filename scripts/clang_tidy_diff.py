@@ -36,6 +36,9 @@ EXCLUDED_DIRS = ("src/glad/", "tests/catch2/")
 # Per file. A deleted include can leave hundreds of follow-on errors.
 MAX_REPORTED = 30
 
+# Subprocess output is UTF-8 whatever the locale, which is cp1252 on Windows.
+UTF8 = {"encoding": "utf-8", "errors": "replace"}
+
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 DIAGNOSTIC_RE = re.compile(r"^(.+?):(\d+):(\d+): (error|warning): (.*)$")
 FIX_MESSAGE_RE = re.compile(r"^\s+Message:\s+(['\"])(.*)\1$")
@@ -72,7 +75,8 @@ def parse_diff(diff):
     change = None
     for line in diff.splitlines():
         if line.startswith("+++ "):
-            target = line[4:]
+            # git appends a tab to the header of a path that contains a space.
+            target = line[4:].removesuffix("\t")
             change = changes.setdefault(target[2:], FileChange()) if target.startswith("b/") else None
             continue
         if change is None:
@@ -98,8 +102,10 @@ def is_checked(path):
 
 def changed_files(merge_base):
     # Against the working tree, so a local run covers uncommitted edits too.
-    diff = subprocess.run(["git", "diff", "-U0", "--no-color", "--no-ext-diff", "--diff-filter=AMR", merge_base],
-                          check=True, capture_output=True, text=True).stdout
+    # core.quotePath=false keeps a non-ASCII path unquoted, so parse_diff sees its b/ prefix.
+    diff = subprocess.run(["git", "-c", "core.quotePath=false", "diff", "-U0", "--no-color", "--no-ext-diff",
+                           "--diff-filter=AMR", merge_base],
+                          check=True, capture_output=True, **UTF8).stdout
     return {path: change for path, change in parse_diff(diff).items() if is_checked(path)}
 
 
@@ -117,8 +123,9 @@ def run_clang_tidy(clang_tidy, build_dir, path, lines, extra_args):
         cmd = [clang_tidy, "-p", build_dir, "--quiet", "--export-fixes=" + fixes,
                "--extra-arg=-Wno-unknown-warning-option", "--extra-arg=-ferror-limit=0", *extra_args, path]
         if lines is not None:
-            cmd.insert(1, "--line-filter=" + json.dumps([{"name": path, "lines": lines}]))
-        result = subprocess.run(cmd, capture_output=True, text=True)
+            # clang-tidy matches the name against the end of the file's native path.
+            cmd.insert(1, "--line-filter=" + json.dumps([{"name": os.path.normpath(path), "lines": lines}]))
+        result = subprocess.run(cmd, capture_output=True, **UTF8)
         suggestions = parse_suggested_includes(fixes)
     output = result.stdout + result.stderr
     return result.returncode, output, parse_diagnostics(output, suggestions)
@@ -178,7 +185,7 @@ def error_sites(errors, text):
 
 def errors_alone_at(revision, clang_tidy, build_dir, path):
     """The error sites a header had when compiled on its own at `revision`."""
-    shown = subprocess.run(["git", "show", f"{revision}:{path}"], capture_output=True, text=True)
+    shown = subprocess.run(["git", "show", f"{revision}:{path}"], capture_output=True, **UTF8)
     if shown.returncode != 0:
         return Counter()
     # Beside the original, so its quoted includes resolve the same way.
@@ -234,6 +241,8 @@ def main():
     parser.add_argument("-j", "--jobs", type=int, default=os.cpu_count())
     parser.add_argument("extra_args", nargs="*", help="passed to clang-tidy after --, e.g. -- --fix")
     args = parser.parse_args()
+    # A piped stdout on Windows is cp1252, which cannot encode every character clang-tidy prints.
+    sys.stdout.reconfigure(errors="replace")
 
     merge_base = subprocess.run(["git", "merge-base", args.base, "HEAD"], check=True,
                                 capture_output=True, text=True).stdout.strip()

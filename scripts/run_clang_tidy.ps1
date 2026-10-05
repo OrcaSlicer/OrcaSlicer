@@ -54,6 +54,21 @@ function Has([string]$Command) {
     return [bool](Get-Command $Command -ErrorAction SilentlyContinue)
 }
 
+# Runs a native command with its output, stderr included, streamed to $Log or dropped.
+function Invoke-Quiet([scriptblock]$Command, [string]$Log) {
+    # Under "Stop", 2>&1 turns every stderr line of a native command into a terminating error.
+    $ErrorActionPreference = "Continue"
+    $lines = {
+        & $Command 2>&1 | ForEach-Object {
+            # "$_" turns a blank stderr line into the text System.Management.Automation.RemoteException.
+            if ($_ -isnot [System.Management.Automation.ErrorRecord]) { $_ }
+            elseif ($null -ne $_.TargetObject) { $_.TargetObject }
+            else { $_.Exception.Message }
+        }
+    }
+    if ($Log) { & $lines | Out-File -Encoding utf8 -LiteralPath $Log } else { & $lines | Out-Null }
+}
+
 function Request-Install([string]$What, [string]$Command) {
     Write-Host "Missing: $What"
     if (Ask "Install it now with: $Command ?") {
@@ -78,11 +93,11 @@ if (-not (Has "git")) { Request-Install "Git" "build_win.bat --install-deps" }
 # Python: the py launcher, else a python.exe that is not the Microsoft Store stub.
 $Python = $null
 if (Has "py") {
-    & py -3 --version *> $null
+    Invoke-Quiet { & py -3 --version }
     if ($LASTEXITCODE -eq 0) { $Python = @("py", "-3") }
 }
 if (-not $Python -and (Has "python")) {
-    & python --version *> $null
+    Invoke-Quiet { & python --version }
     if ($LASTEXITCODE -eq 0) { $Python = @("python") }
 }
 if (-not $Python) { Request-Install "Python 3" "winget install -e --id Python.Python.3.12" }
@@ -100,7 +115,12 @@ if (-not $VsPath) { Request-Install "Visual Studio with the C++ tools" "build_wi
 # Load the developer environment, as build_win.bat does.
 $HostArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
 $VsDevCmd = Join-Path $VsPath "Common7\Tools\VsDevCmd.bat"
-$envLines = & cmd /c "`"$VsDevCmd`" -arch=$Arch -host_arch=$HostArch -no_logo >nul && set"
+# Ignores VsDevCmd's exit code, as build_win.bat does, and checks the variables it sets
+# before applying any, cleared in cmd so values inherited from a developer shell do not count.
+$envLines = & cmd /c "set VCToolsInstallDir=& set WindowsSdkDir=& `"$VsDevCmd`" -arch=$Arch -host_arch=$HostArch -no_logo >nul 2>nul & set"
+if (-not ($envLines -match '^VCToolsInstallDir=.') -or -not ($envLines -match '^WindowsSdkDir=.')) {
+    throw "Loading the Visual Studio $Arch environment failed. Run `"$VsDevCmd`" -arch=$Arch -host_arch=$HostArch in cmd to see why."
+}
 foreach ($line in $envLines) {
     $i = $line.IndexOf("=")
     if ($i -gt 0) { Set-Item -Path ("env:" + $line.Substring(0, $i)) -Value $line.Substring($i + 1) }
@@ -190,13 +210,17 @@ $cmakeArgs = @("-S", ".", "-B", $BuildDir, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Re
 Write-Host "Configuring $BuildDir with $Compiler"
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
 $Log = Join-Path $BuildDir "configure.log"
-& cmake @cmakeArgs *> $Log
+Invoke-Quiet { & cmake @cmakeArgs } $Log
 if ($LASTEXITCODE -ne 0) {
-    Get-Content $Log -Tail 20
+    Get-Content -LiteralPath $Log -Tail 20
     throw "Configuring failed; the full log is in $Log."
 }
-& cmake --build $BuildDir --target git_commit_hash_header *> $null
-if ($LASTEXITCODE -ne 0) { throw "Generating git_commit_hash.h failed." }
+$HashLog = Join-Path $BuildDir "git_commit_hash.log"
+Invoke-Quiet { & cmake --build $BuildDir --target git_commit_hash_header } $HashLog
+if ($LASTEXITCODE -ne 0) {
+    Get-Content -LiteralPath $HashLog -Tail 20
+    throw "Generating git_commit_hash.h failed; the full log is in $HashLog."
+}
 
 # --- Base revision ------------------------------------------------------------
 
