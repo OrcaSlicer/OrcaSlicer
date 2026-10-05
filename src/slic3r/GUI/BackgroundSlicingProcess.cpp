@@ -56,6 +56,10 @@
 
 #include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
 
 namespace Slic3r {
 

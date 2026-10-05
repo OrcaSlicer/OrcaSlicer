@@ -36,7 +36,6 @@
 #include "I18N.hpp"
 #include "GUI_Utils.hpp"
 #include "Plater.hpp"
-#include "../Utils/MacDarkMode.hpp"
 #include "BitmapComboBox.hpp"
 #include "Widgets/StaticBox.hpp"
 #include "Widgets/Label.hpp"
@@ -641,7 +640,7 @@ wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_da
     }
 
     wxColourDialog dialog(parent, &data);
-    dialog.SetTitle(_L("Please choose the filament colour"));
+    dialog.SetTitle(_L("Please choose the filament color"));
 
     if (dialog.ShowModal() == wxID_OK) {
         data = dialog.GetColourData();

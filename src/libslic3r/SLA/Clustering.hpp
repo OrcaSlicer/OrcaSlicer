@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <vector>
 
-#include <libslic3r/Point.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
 
 namespace Slic3r { namespace sla {

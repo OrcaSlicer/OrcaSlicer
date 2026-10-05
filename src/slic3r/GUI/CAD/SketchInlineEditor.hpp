@@ -48,11 +48,17 @@ public:
     void close();                        // drop it with neither callback
     void cancel();                       // if open, run the registered cancel (keep-as-drawn)
     void commit();                       // if open, run the registered commit (accept the typed value)
+    // Called from inside a commit callback that cannot accept the value (a negative length, a
+    // count of 1): the field comes back with the typed text and `why` in its title line, instead
+    // of closing as if the value had been taken.
+    bool refuse(const std::string& why);   // true if the field came back
     bool is_open() const { return m_open; }
 
     // Draw it, and let ImGui do the editing. Called from DesignSketchTool::render() inside the
     // frame's ImGui pass; `scale` is the tool's m_render_scale. Returns true if it drew.
     bool render(ImGuiWrapper& imgui, float scale);
+    // Lift the field above every other overlay. Call it after the frame's last overlay is drawn.
+    void bring_to_front();
 
     // Ask for another frame. THE FIELD DOES NOT WORK WITHOUT THIS, and the reason is a deadlock
     // that only a per-frame trace shows:
@@ -69,11 +75,10 @@ public:
     // breaks the circle.
     std::function<void()> request_frame;
 
-    // Kept because callers ask them, but there is no longer any difference to report: with no
-    // window there is no state where the field is on screen but logically closed, and no state
-    // where it is open but somebody else holds the keyboard.
     bool is_mapped() const { return m_open; }
-    bool has_focus() const { return m_open; }
+    // Does the ImGui text widget own the keyboard? False once a click elsewhere deactivated it;
+    // the panel then forwards Enter/Tab to commit() itself, since ImGui no longer sees them.
+    bool has_focus() const { return m_open && (m_active || m_focus_pending); }
     void dismiss() { close(); }
 
 private:
@@ -88,6 +93,17 @@ private:
     std::string m_title;
     std::string m_err;                   // why the last value was refused, shown in the title line
     char        m_buf[64]{};             // the edited text; ImGui::InputText writes into it
+    double      m_prefill_value{0.0};    // the exact value the field opened with...
+    std::string m_prefill_text;          // ...and how it was shown: an untouched field commits the former
+    bool        m_active{false};         // the InputText was the active item last frame
+    // What the last commit closed, so refuse() can bring the same field back.
+    struct Closed {
+        wxPoint anchor; std::string title; std::string buf;
+        std::function<void(double)> commit; std::function<void()> cancel;
+        double prefill_value{0.0}; std::string prefill_text;
+    };
+    Closed      m_last;
+    bool        m_in_commit{false};
 };
 
 }} // namespace Slic3r::GUI

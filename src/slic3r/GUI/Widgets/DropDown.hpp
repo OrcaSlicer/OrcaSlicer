@@ -15,6 +15,9 @@
 #include "StateHandler.hpp"
 #include "PopupWindow.hpp"
 
+class wxDC;
+class wxWindow;
+
 #define DD_NO_CHECK_ICON    0x0001
 #define DD_NO_TEXT          0x0002
 #define DD_STYLE_MASK       0x0003

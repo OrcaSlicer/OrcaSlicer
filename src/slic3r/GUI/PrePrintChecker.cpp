@@ -1,5 +1,4 @@
 #include "PrePrintChecker.hpp"
-#include "GUI_Utils.hpp"
 #include "I18N.hpp"
 #include <algorithm>
 #include <functional>
@@ -15,6 +14,8 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/utils.h>
+
+class wxWindow;
 
 
 namespace Slic3r { namespace GUI {

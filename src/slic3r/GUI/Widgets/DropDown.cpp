@@ -25,6 +25,9 @@
 #endif
 
 #include <set>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 

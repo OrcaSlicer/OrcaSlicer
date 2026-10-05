@@ -103,13 +103,11 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include "Widgets/ComboBox.hpp"
-#include "MarkdownTip.hpp"
 #include "Search.hpp"
 #include "BedShapeDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "WipeTowerDialog.hpp"
 
-#include "DeviceCore/DevManager.h"
 
 #ifdef WIN32
 	#include <commctrl.h>
@@ -2665,7 +2663,8 @@ void Tab::update_preset_description_line()
     {
         description_line += "\n\n" + _(L("Additional information:")) + "\n";
         description_line += "\t" + _(L("vendor")) + ": " + (m_type == Slic3r::Preset::TYPE_PRINTER ? "\n\t\t" : "") + parent->vendor->name +
-                            ", ver: " + parent->vendor->config_version.to_string();
+                            // TRN Short for "version"
+                            ", " + _L("ver") + ": " + parent->vendor->config_version.to_string();
         if (m_type == Slic3r::Preset::TYPE_PRINTER) {
             const std::string &printer_model = preset.config.opt_string("printer_model");
             if (! printer_model.empty())
@@ -5179,7 +5178,7 @@ void TabPrinter::build_fff()
             {
                 option = optgroup->get_option("printer_agent");
                 option.opt.gui_type = ConfigOptionDef::GUIType::printer_agent_select;
-                option.opt.width = 3 * Field::def_width_wider() / 2;
+                option.opt.width = Field::def_width_wider();
                 option.opt.tooltip = L("Select the network agent implementation for printer communication. "
                     "Available agents are registered at startup.");
                 optgroup->append_single_option_line(option);

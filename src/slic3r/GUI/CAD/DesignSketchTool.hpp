@@ -5,10 +5,10 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/CadDocument.hpp"   // CadBody for per-body solid picking
 #include "libslic3r/CAD/SketchInference.hpp"
-#include "libslic3r/CAD/SketchSolver.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"   // left-drag rubber band over the committed bodies
 #include <Eigen/Core>
+#include <cstddef>
 #include <functional>
 #include "libslic3r/Color.hpp"
 #include <math.h>
@@ -70,6 +70,17 @@ public:
     // row off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
     Mode mode() const { return m_mode; }
     int  pending_points() const { return int(m_points.size()); }
+    // Picks the armed tool is holding that are not yet an entity or a constraint: the Dimension
+    // tool's first anchor, an edit-op's or a transform's subjects, Constrain's picks. Together
+    // with pending_points() they are CadLevel::Gesture, so Esc drops them and keeps the tool.
+    bool has_pending_picks() const {
+        return m_dim_has0 || m_op_a >= 0 || !m_tf_targets.empty() || m_pick0 >= 0 || m_sel_a >= 0;
+    }
+    bool gesture_pending() const { return !m_points.empty() || has_pending_picks(); }
+    // Enter while an edit-op or a transform is ready: apply it, the same as its value field's
+    // Enter. False when nothing is pending, so the key can fall through to the tab's ✓.
+    bool confirm_pending();
+    bool end_chain();            // Polyline / Spline: finish the open chain as drawn
     void emit_step_hint();   // fires on_step_changed when the step actually moved
     // Is an in-canvas value field open? While one is, the canvas is frozen and every letter is
     // swallowed — the single most common reason a driven gesture "does nothing".
@@ -146,6 +157,8 @@ public:
     // The in-canvas value field, drawn by render() before any early return. Owned by
     // DesignCanvas; null until it sets it. Not a window — see SketchInlineEditor.hpp.
     class SketchInlineEditor* inline_editor{nullptr};
+    // The canvas's own overlays (its status and readout chips), drawn in this tool's ImGui pass.
+    std::function<void()> render_overlays;
 
     // Persistent committed sketches to draw even when no session is active (e.g. an
     // un-consumed sketch left visible after its extrude is removed). Each carries its
@@ -190,11 +203,24 @@ public:
     // another solid is reachable without hiding anything. -1 = no restriction.
     // Survives set_solid_pick() — it is owned by the panel, not by the mesh feed.
     void set_pick_only_body(int b) { m_pick_only_body = b; }
+    // Off while the bodies themselves are hidden (a dress-up previewing its result alone), so
+    // their edges do not float over the preview.
+    void set_body_edges_hidden(bool h) { m_body_edges_hidden = h; }
     void clear_solid_selection();
     bool has_solid_selection() const { return m_solid_sel != SolidSel::None; }
+    // Every picked edge when the selection is an edge set (Shift/Ctrl+click adds and removes
+    // edges of the same body): the earlier picks first, the last-clicked edge at the end.
+    // Empty unless the selection is at edge level.
+    std::vector<int> selected_edges() const;
     // Select a whole body by index (from the Parts list) — Whole-level highlight, no face/edge.
     // body < 0 or out of range clears the selection.
     void select_body(int body);
+    // Outline these (body, face id) faces as selected: the faces the Feature tree's selected
+    // feature made. A body whose shape changes later drops out, its face ids being stale. The
+    // canvas fills them (DesignCanvas::rebuild_bodies).
+    void set_highlight_faces(const std::vector<std::pair<int, int>>& faces);
+    // Every face drawn as selected, sorted: the committed pick's and the still-valid ones above.
+    std::vector<std::pair<int, int>> selected_faces() const;
 
     // Move-body gizmo (M5): translate a whole body with three world-axis drag arrows
     // (X red / Y green / Z blue) anchored at the body centroid. Display-only — the host
@@ -206,12 +232,12 @@ public:
     void clear_move_gizmo();
     bool moving_body() const { return m_mv_active; }
     int  move_body_index() const { return m_mv_body; }
-    // F key forwarded from the canvas (Prepare's Place on Face): returns true if it acted.
-    bool request_place_on_face() { return on_place_on_face ? on_place_on_face() : false; }
-    std::function<bool()> on_place_on_face;
     std::function<void(int body, const Transform3d& xform)> on_body_move_changed;
     // Fired on each cycle change: (level 0=None/1=Whole/2=Face/3=Edge, body index, face id, edge id).
     std::function<void(int level, int body, int face, int edge)> on_solid_selection_changed;
+    // A click or rubber band (no live session) that took nothing, so the host can drop the
+    // selections the tool does not hold, such as the panel's list rows.
+    std::function<void()> on_empty_pick;
     // Click a committed sketch overlay (no live session) -> select that loop: the Sketch
     // feature index + the clicked closed-region index within it (-1 = no specific loop).
     // entity = the sketch entity index under the cursor when the click landed on a loop
@@ -237,6 +263,8 @@ public:
     // sketch there is nothing left that would set this — and selected_loop_entities(), which is
     // what Extrude consumes, reads exactly these two fields.
     void set_display_pick(int feature, int region) { m_display_pick = feature; m_display_pick_region = region; }
+    int  display_pick() const { return m_display_pick; }
+    int  display_pick_region() const { return m_display_pick_region; }
 
     // Visual Extrude gizmo (C5b). The Extrude tool is a DesignPanel docked card, so the
     // sketch tool is NOT active during it; the panel feeds the profile plane + a 2D centroid
@@ -362,12 +390,12 @@ public:
     void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l) { m_mate_links = std::move(l); }
     void clear_mate_connectors() { m_mate_connectors.clear(); m_mate_links.clear(); }
 
-    // Visual Revolve gizmo. The panel feeds the sketch plane + profile centroid + axis (0=plane X,
-    // 1=plane Y) + angle + flip while its Revolve card is open; an angle-arc is drawn in the
-    // revolve plane at the profile radius. Dragging the tip sweeps the angle, a stationary click
+    // Visual Revolve gizmo. The panel feeds the sketch plane + profile centroid + the world axis
+    // (a point on it and its direction) + angle + flip while its Revolve card is open; an
+    // angle-arc is drawn in the revolve plane at the profile radius, and the axis dashed. Dragging the tip sweeps the angle, a stationary click
     // edits it; both fire on_revolve_angle_changed.
     void set_revolve_gizmo(const SketchPlane& plane, const Vec2d& centroid,
-                           int axis_sel, double angle, bool flip);
+                           const Vec3d& axis_origin, const Vec3d& axis_dir, double angle, bool flip);
     void clear_revolve_gizmo();
     bool revolving() const { return m_rv_active; }
     std::function<void(double angle)> on_revolve_angle_changed;
@@ -514,6 +542,8 @@ public:
         std::vector<int>   holes;        // indices into LoopReport::loops that this loop encloses
         bool               closed{false};
         double             area{0.0};    // signed shoelace area of the loop polyline
+        bool               defect{false};      // crosses or folds back on itself (see RegionLoop)
+        Vec2d              defect_at{0, 0};
     };
     struct LoopReport {
         std::vector<LoopInfo> loops;
@@ -553,25 +583,15 @@ public:
         reset_autoedit();
         if (on_readout) on_readout(std::string());    // the HUD is not redrawn once the tool stops
     }
-    // Ctrl+Z while sketching: drop the last drawn entity (reuses delete_selected's remap).
-    bool undo_last_entity() {
-        if (!m_active || m_entities.empty()) return false;
-        m_selection.assign(1, int(m_entities.size()) - 1);
-        delete_selected();
-        reset_autoedit();
-        return true;
-    }
-    // Delete while sketching: the selected entities, or the last drawn one if none is selected.
-    bool delete_selected_or_last() {
-        if (!m_active) return false;
-        if (m_selection.empty()) {
-            if (m_entities.empty()) return false;
-            m_selection.assign(1, int(m_entities.size()) - 1);
-        }
-        delete_selected();
-        reset_autoedit();
-        return true;
-    }
+    // Ctrl+Z while sketching: drop the last thing DRAWN — a whole rectangle, slot or polygon
+    // when the last entity belongs to one, since that was one gesture. Undoing one side of a
+    // rectangle left three lines and dissolved the shape.
+    bool undo_last_entity();
+    // Ctrl+Y / Ctrl+Shift+Z while sketching: bring back what undo_last_entity removed, as long
+    // as nothing was drawn or deleted since (then the old state is no longer "the next step").
+    bool redo_last_entity();
+    bool can_undo_entity() const { return m_active && !m_entities.empty(); }
+    bool can_redo_entity() const;
     std::function<void(int count)> on_selection_changed;
 
     // Dimension tool: infer a driving dimension from the current selection and set
@@ -615,6 +635,14 @@ public:
     // characteristic dimensions). Empty string -> hide the HUD. The owner (DesignCanvas)
     // shows it as a floating corner label over the GL canvas.
     std::function<void(const std::string&)> on_readout;
+    // Why something did not happen, or what a gesture did as a side effect. NOT on_readout:
+    // that one is rewritten every frame from build_readout(), so a message sent through it was
+    // gone before anyone could read it. The host shows this on its persistent status line.
+    std::function<void(const std::string& msg, bool error)> on_notice;
+    void notify(const std::string& msg, bool error = true) { if (on_notice) on_notice(msg, error); }
+    // A typed value the tool cannot take: the open value field comes back with the reason, or,
+    // when no field is committing, the reason goes to the status line.
+    void show_refusal(const std::string& why);
 
     // Driving dimension constraints accumulated during the session (the Dimension
     // tool records a SketchEntityConstraintDef per applied dimension); committed
@@ -636,17 +664,11 @@ public:
     // request_exit() declined to leave because the session holds geometry. The panel owns the
     // status line, so the tool reports through this instead of writing text itself.
     std::function<void()> on_exit_refused;
-    std::function<void()> on_move_exit;   // right-click finished the move-body gizmo
     // The two inner Esc levels, callable on their own so the panel can route one press to one
     // level (see DesignInteraction.hpp). Each returns whether it had anything to unwind.
     bool abort_gesture();   // CadLevel::Gesture — drop the entity being drawn
     bool disarm_tool();     // CadLevel::Tool    — armed draw/edit tool falls back to Select
     void request_exit();
-    // Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) while the Design canvas is focused: undo/redo the
-    // committed feature history. The tool just forwards to the host, which owns the
-    // CadDocument (the tool has no document of its own). redo == true requests redo.
-    std::function<void(bool /*redo*/)> on_undo_redo;
-    void request_undo_redo(bool redo);
 
 private:
     bool screen_to_plane(GLCanvas3D& canvas, const wxMouseEvent& evt, Vec2d& out) const;
@@ -663,10 +685,17 @@ private:
     // chains join across entities (a line + an arc can close into one loop). Shift
     // disables it. `snapped` reports whether a vertex was hit.
     Vec2d snap_vertex(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& raw, bool& snapped) const;
+    bool  click_snaps() const;   // does the NEXT click of the armed draw tool land on a snap target?
 
     // --- P1 inference / auto-constraint engine ---------------------------------
     // Plane-units tolerance equivalent to ~`px` screen pixels at the cursor.
-    double screen_tol(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& at, double px = 8.0) const;
+    // The sketcher's pick budgets, in screen pixels, converted to plane units by screen_tol().
+    // One set for every tool, so the same thing is equally easy to hit whichever tool is armed.
+    static constexpr double kPickPx     = 8.0;    // grab a point, a handle or an edge; hover uses the same
+    static constexpr double kToolPickPx = 24.0;   // pick an entity for a tool to act on (trim, edit-ops,
+                                                  // transforms, constrain)
+    static constexpr double kLabelPx    = 24.0;   // click or double-click a value label
+    double screen_tol(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& at, double px = kPickPx) const;
     // Run kernel inference at the cursor, cache the target for the hint renderer.
     InferenceSnap infer_at(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& raw) const;
     // True if m_constraints already holds an equivalent Coincident between the two refs.
@@ -693,6 +722,8 @@ private:
     bool selection_valid() const;                         // all selection indices in range
     void record_dimension_constraint(double v);           // append the driving def for the selection
     void resolve_live();                                  // solve accumulated constraints on m_entities now
+    void announce_loop_defects();                         // status line, once, when a loop starts crossing itself
+    bool m_loop_defect_shown{false};
     // Drag-aware re-solve: pins the dragged point at its current coord and lets the
     // solver move the rest (Slvs dragged[]). Used live while a point grab is active.
     void resolve_live_drag(int dragged_ei, SketchPointRole dragged_role);
@@ -811,12 +842,19 @@ private:
     // EllipseArc endpoint drag: Center translates; P0/P1 move the sweep start/end to the
     // parametric angle of the cursor on the ellipse frame (radius/shape preserved).
     void drag_ellipsearc_handle(int ei, SketchPointRole role, const Vec2d& target);
+    // The ONE way to remove constraints. m_dimensions[i].con caches a POSITIONAL index into
+    // m_constraints, so an erase that does not repair those links leaves a dimension pointing
+    // at whatever slid into the hole — and set_dimension_value then writes a def into that
+    // slot, silently overwriting an unrelated constraint. `drop(idx, def)` returns true to
+    // remove. Every removal in this file routes through here.
+    // Returns how many were removed.
+    int  erase_constraints(const std::function<bool(int, const SketchEntityConstraintDef&)>& drop);
     // Drop orientation constraints (H/V/Parallel/Perp/Angle/LockX/LockY) on entities in
     // [begin,end). A ROTATION makes inferred per-edge H/V inconsistent, so re-solving
-    // against them collapses the shape — drop them first (fixes up DimAnnot.con indices).
+    // against them collapses the shape — drop them first.
     void drop_orientation_constraints(int begin, int end);
     // Drop every live constraint that references entity `ei` (Trim/Extend slide an endpoint,
-    // invalidating its constraints) and fix the dimensions' cached constraint indices.
+    // invalidating its constraints).
     void drop_constraints_referencing(int ei);
     // Standalone Trim/Extend scissors on the LIVE sketch: pick the entity nearest `p` (within
     // `tol` plane units) and cut it back to / out to its nearest intersection with the others.
@@ -839,6 +877,9 @@ private:
     // UPDATE it, not append a rival asking for something else. Both return the index.
     int upsert_constraint(const SketchEntityConstraintDef& c);
     int upsert_dimension(const DimAnnot& a);
+    // The same slot rule for the DRIVING constraint: a Distance and its zero case (recorded as
+    // a Coincident) are one dimension, so they replace each other instead of stacking.
+    int upsert_dimension_constraint(const SketchEntityConstraintDef& c);
     int  place_dimension(DimAnnot a);                                       // create+drive+notify
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
     void render_dimensions(double unit_per_px);                            // quote lines + labels
@@ -947,6 +988,10 @@ private:
         std::vector<Vec2d> poly;
         std::vector<int>   ents;
         std::vector<int>   holes;   // indices into the same vector; one nesting level
+        // Closed, but crossing itself or turning straight back somewhere (sketch_loop_defect):
+        // it does not bound one region, whatever the chainer says. defect_at names the place.
+        bool               defect{false};
+        Vec2d              defect_at{0, 0};
     };
     std::vector<RegionLoop> region_loops(const std::vector<SketchEntity>& ents) const;
     // Index of the closed region containing plane-point p (point-in-polygon), or -1.
@@ -991,6 +1036,12 @@ private:
     };
     std::vector<AutoEditStep> m_autoedit_dims;    // queued steps to edit in sequence
     int                 m_autoedit_dim_idx{-1};   // index into m_autoedit_dims (-1 = idle)
+    // Plane coords of the label the OPEN value field sits on. The field is anchored OVER its
+    // label (open_next_autoedit_dim) and the label is drawn after it, on top — the same number
+    // twice at the same spot. draw_text skips exactly this position while a step is open; the
+    // shape's other values stay legible as the chain walks them. Far-off sentinel = suppress
+    // nothing.
+    Vec2d               m_autoedit_label_pos{1e18, 1e18};
     std::vector<int>    m_selection;              // selected entity indices (Mode::Select)
     std::vector<std::pair<int, SketchPointRole>> m_point_sel;  // selected individual points
     int                 m_last_mouse_x{0};        // last cursor pos (canvas client px), for
@@ -1037,6 +1088,16 @@ private:
     Vec2d                 m_live_slot_angle_label{0,0}; // straight-slot centreline angle label
     int                   m_live_slot_fi{-1};           // the straight-slot Feature (rebuild edits)
     std::vector<Feature>  m_features;              // parametric groups over m_entities
+    // Sketch-local redo: the state each undo_last_entity() replaced, and the entity/constraint
+    // counts it left behind (a mismatch means the sketch moved on and the redo is stale).
+    struct SketchSnap {
+        std::vector<SketchEntity> entities; std::vector<SketchEntityConstraintDef> constraints;
+        std::vector<Feature> features;      std::vector<DimAnnot> dimensions;
+        size_t after_entities{0};           size_t after_constraints{0};
+    };
+    std::vector<SketchSnap> m_sketch_redo;
+    int    m_skipped_last{0};       // constraints the last solve could not apply (reported on change)
+    double m_chain_dup_tol{1e-9};   // plane units ~3 px at the last chain click (double-click repeat)
     int                   m_open_feature{-1};      // index of the Feature being built, or -1
 
     // In-canvas edit-op gizmo state (Fillet/Chamfer/Offset/Mirror). GUI-only, reset by
@@ -1055,6 +1116,10 @@ private:
     std::vector<SketchEntity> m_op_ghost;   // live result preview (recomputed on value change)
     bool   m_op_dragging_arrow{false};      // arrowhead drag in progress
     std::vector<int> m_mirror_targets;      // Mirror: entities to be mirrored (axis = m_op_a)
+    // Offset: the whole chain the picked entity belongs to (connected by shared endpoints), so
+    // an outline offsets as one outline. A single entity when it is not part of a chain.
+    std::vector<int> m_op_chain;
+    std::vector<SketchEntity> op_chain_entities() const;
 
     // In-canvas imported-art transform gizmo (Mode::TransformArt). GUI-only. The art's
     // untransformed contours + its bbox in base coords; the live offset/scale; the grabbed
@@ -1110,6 +1175,7 @@ private:
     bool              m_solve_ok{true};   // solver consistent (no conflicting constraints)
     std::vector<char> m_entity_conflict;  // per-entity flag: touched by a conflicting constraint
     std::vector<DimAnnot> m_dimensions;           // placed dimension quotes (Mode::Dimension)
+    std::vector<int>      m_bad_dims;             // dims whose driving constraint the solver rejected
     int                 m_dim_e0{-1};             // first picked point's entity (Dimension)
     SketchPointRole     m_dim_r0{SketchPointRole::P0};
     bool                m_dim_has0{false};        // a first point is pending
@@ -1133,6 +1199,13 @@ private:
     GLModel             m_vertex_model;
     GLModel             m_highlight_model;
     int                 m_dim_label_seq{0};
+    // Screen rects of the labels already drawn this frame (cleared with m_dim_label_seq). Two
+    // labels on a SMALL feature collide: every anchor offset in this file is a multiple of the
+    // text height, so once the feature's on-screen size drops below one, a line's Length and
+    // Angle labels land on the same spot. Each label is its own centred window and nothing
+    // detects proximity, so the later one is pushed clear before it is drawn.
+    struct LabelRect { double x{0}, y{0}, w{0}, h{0}; };
+    std::vector<LabelRect> m_label_rects;
     float               m_render_scale{1.0f};   // canvas scale for Measure-style dim labels
     GLModel             m_fill_model;       // translucent face fill for closed regions
     std::vector<DisplaySketch> m_display_sketches;  // committed sketches drawn persistently
@@ -1150,12 +1223,29 @@ private:
     int m_pick_only_body{-1};        // >=0: only this body catches clicks (body-focus x-ray for CoordSys picking)
     const std::vector<Transform3d>* m_solid_xform{nullptr};  // per-body display transform (for edge sampling)
     Vec3d body_xform_pt(int body, const Vec3d& p) const;     // map an OCCT-shape point through the body xform
+    // The bodies' B-rep edges, drawn as dark lines over the solids so faces and features read
+    // apart. One polyline set per body in its own shape coordinates, resampled only for a body
+    // whose shape changed (keyed by the TShape), since set_solid_pick runs on every recompute.
+    std::vector<std::vector<std::vector<Vec3d>>> m_body_edges;
+    std::vector<const void*>                     m_body_edges_key;
+    std::vector<double>                          m_body_edges_tol;   // the chord tolerance they were sampled at
+    bool                                         m_body_edges_hidden{false};
+    void refresh_body_edges();
+    void render_body_edges();
+    const void* body_key(int body) const;   // the body's TShape, nullptr when there is none
+    void append_ribbons(GLModel::Geometry& g, int body, const std::vector<std::vector<Vec3d>>& polylines,
+                        const Vec3d& vd, const Vec3d& pull, double hw) const;
     bool body_pickable(int b) const;                    // false when the body is explicitly hidden
     SolidSel                m_solid_sel{SolidSel::None};
     int                     m_sel_body{-1};   // which body the face/edge selection is on
     int                     m_sel_face{-1};
     int                     m_sel_edge{-1};
     std::vector<Vec3d>      m_sel_edge_pts;
+    // Edges picked BEFORE m_sel_edge in a Shift/Ctrl+click set, same body, with their world
+    // polylines for the highlight. m_sel_edge stays the last-clicked one, so everything that
+    // reads a single edge (the radius gizmo, the offer header) keeps working unchanged.
+    std::vector<int>                m_sel_edges_more;
+    std::vector<std::vector<Vec3d>> m_sel_edges_more_pts;
     Vec3d                   m_sel_vertex_pt{Vec3d::Zero()};   // world point of a picked vertex
     bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // pick + notify
     // What a click at (mx,my) WOULD take, resolved without touching the selection. One
@@ -1174,9 +1264,8 @@ private:
     // change) read honestly — the change has to be predictable before the click, not only after.
     SolidPick m_pre;                       // what the pointer is currently over (kind None = nothing)
     bool update_solid_hover(GLCanvas3D& canvas, const wxMouseEvent& evt);  // true when it changed
-    // Left-drag rubber band: sweep a rectangle over the plate to take a whole body. Orbit
-    // moves to middle-drag in this canvas (DesignCanvas::set_cad_navigation) so the left
-    // button is free for it, which is the CAD convention (Onshape/SolidWorks).
+    // Left-drag rubber band: sweep a rectangle over the plate to take a whole body. While
+    // Preferences give left-drag to the camera it takes Shift+left-drag, as in Prepare.
     GLSelectionRectangle m_rubber;
     void pick_bodies_in_rectangle();       // resolve the swept rectangle -> whole-body selection
     bool on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas);   // the body; on_mouse wraps it
@@ -1188,10 +1277,28 @@ private:
     bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
     bool m_escalate_repick{true};          // re-picking the same sub-element takes the whole body
     void render_solid_highlight();
-    // The shared body of the above: one highlight from explicit arguments, so the committed
-    // selection and the hover pre-highlight cannot drift apart in how they look.
-    void render_solid_sel(SolidSel kind, int body, int face, const std::vector<Vec3d>& edge_pts,
-                          const Vec3d& vertex_pt, const ColorRGBA& rgb, float alpha_mul);
+    // The above's edge and vertex highlight, from explicit arguments, so the committed selection
+    // and the hover pre-highlight cannot drift apart in how they look.
+    void render_solid_sel(SolidSel kind, const std::vector<Vec3d>& edge_pts, const Vec3d& vertex_pt,
+                          const ColorRGBA& rgb);
+    // A set of selected faces of one body, with their edges sampled once, keyed by the body's
+    // TShape so a recompute that rebuilt the body retires it.
+    struct FaceHighlight {
+        int                             body{-1};
+        std::vector<int>                faces;   // sorted
+        const void*                     key{nullptr};
+        std::vector<std::vector<Vec3d>> edges;   // in the body's shape coordinates
+    };
+    FaceHighlight make_face_highlight(int body, std::vector<int> faces) const;
+    // The faces the committed pick names: the one face of a face pick, every face of a picked
+    // body. Empty for an edge or vertex pick.
+    std::vector<std::pair<int, int>> picked_faces() const;
+    // `cache`, rebuilt only when it no longer holds these faces of this body's current shape.
+    const FaceHighlight& cached_face_highlight(FaceHighlight& cache, int body, std::vector<int> faces) const;
+    void          render_face_outline(const FaceHighlight& h, bool quiet);
+    std::vector<FaceHighlight> m_hl_faces;   // set_highlight_faces, one entry per body
+    FaceHighlight              m_sel_hl;     // the committed Face/Whole pick
+    FaceHighlight              m_pre_hl;     // the face under the pointer
     void render_datum_planes();           // translucent rectangles for datum/reference planes
     void render_view_helpers();           // world origin planes + axis triad (P / A toggles)
     bool m_show_planes{false};
@@ -1208,8 +1315,8 @@ private:
     std::vector<std::pair<Vec3d, Vec3d>> m_mate_links;
     GLModel m_mc_stroke_model;
     GLModel m_mc_fill_model;      // the face treatment's shaded facets
-    GLModel m_solid_face_model;
     GLModel m_solid_edge_model;
+    GLModel m_body_edges_model;
     GLModel m_solid_vertex_model;
     int m_display_pick_region{-1}; // selected closed-region index within that feature (-1 none)
 

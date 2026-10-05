@@ -40,7 +40,7 @@ jobs:
           # Anything that changes how the tree is built belongs in the key, or a job
           # restores one it cannot use. Linux amd64 passes no arch deliberately, so
           # 'linux-clang' keeps the cache it already has.
-          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
+          cache-os: ${{ runner.os == 'macOS' && format('{0}-{1}', inputs.os, inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
           # The Windows ARM64 deps build in build-arm64, all others under build;
           # build_deps.yml and build_orca.yml pass the Windows directory to build_win.bat.
           dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}

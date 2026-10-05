@@ -8,6 +8,7 @@
 #include <vector>
 #include "libslic3r/CAD/SketchConstraints.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
 

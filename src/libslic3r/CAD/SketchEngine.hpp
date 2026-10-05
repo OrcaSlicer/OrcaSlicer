@@ -6,6 +6,7 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"
 
 #include <gp_Pln.hxx>
+#include <gp_Ax1.hxx>
 #include <gp_Ax3.hxx>
 #include <gp_Vec.hxx>
 #include <TopoDS_Wire.hxx>
@@ -53,9 +54,11 @@ struct SketchPlane {
     Vec3d x_axis{1,0,0};
     Vec3d y_axis{0,1,0};
 
-    gp_Pln to_occt() const;
     static SketchPlane from_face(const TopoDS_Face& face);
     static SketchPlane XY() { return {}; }
+    // NOTE: XZ's stored normal (+Y) is the OPPOSITE of x_axis x y_axis (-Y). Kept as it is —
+    // extrude directions and saved recipes depend on it — so anything that needs the frame's
+    // own handedness takes x_axis.cross(y_axis) instead of `normal` (see make_elips).
     static SketchPlane XZ() { return {{0,0,0}, {0,1,0}, {1,0,0}, {0,0,1}}; }
     static SketchPlane YZ() { return {{0,0,0}, {1,0,0}, {0,1,0}, {0,0,1}}; }
 
@@ -70,8 +73,6 @@ struct SketchProfile {
     std::vector<Vec2d> points;
     bool closed{false};
 
-    bool is_closed(double tolerance = 0.5) const;
-    bool try_close(double tolerance = 0.5);
     void clear() { points.clear(); closed = false; }
     TopoDS_Wire to_occt_wire(const SketchPlane& plane) const;
 
@@ -91,9 +92,9 @@ inline constexpr double kSketchJoinTol = 1e-3;   // mm
 // Effective sketch joint tolerance. ONE value for the viewport (region_loops /
 // loop_report / connected_loop) and the kernel (entities_to_wires): if these ever
 // disagree again, the viewport shades a region closed that the kernel refuses to
-// build, which is how a sketch got extruded into the wrong solid. The GUI pushes
-// the "auto_close_sketch_loops" preference in via set_sketch_auto_close(); the
-// kernel defaults to ON so headless/kernel-only callers keep welding.
+// build, which is how a sketch got extruded into the wrong solid. The document's
+// own setting (CadDocument::auto_close_loops) is pushed in via set_sketch_auto_close();
+// the kernel defaults to ON so headless/kernel-only callers keep welding.
 double sketch_join_tol();
 void   set_sketch_auto_close(bool on);
 
@@ -109,8 +110,8 @@ enum class SketchConstraintType {
     // inserting anywhere but the end reinterprets every constraint in every saved recipe.
     EqualRadius,
     Collinear,
-    DistanceX,     // |dx| between two points, projected onto the sketch X axis
-    DistanceY,     // |dy| between two points, projected onto the sketch Y axis
+    DistanceX,     // signed dx between two points (eb - ea), projected onto the sketch X axis
+    DistanceY,     // signed dy between two points (eb - ea), projected onto the sketch Y axis
     SymmetricAboutY, // mirror across the sketch's vertical axis (x = 0); axis is implicit
     SymmetricAboutX  // mirror across the sketch's horizontal axis (y = 0); axis is implicit
 };
@@ -164,6 +165,15 @@ inline bool is_sketch_ref(int ei) { return ei <= kSketchRefOrigin; }
 int  sketch_entity_ends(const SketchEntity& e, std::pair<SketchPointRole, Vec2d> out[2]);
 bool sketch_closest_ends(const SketchEntity& A, const SketchEntity& B,
                          SketchPointRole& ra, SketchPointRole& rb, Vec2d& pa, Vec2d& pb);
+
+// Where a CLOSED loop fails to bound one region, although every joint meets: two of its
+// entities touch somewhere other than a joint they share (the loop crosses itself), or a joint
+// where the curve turns straight back along itself (a cusp: an arc leaving a line tangent to it
+// but heading the other way). Either makes a face OCCT accepts and then builds an invalid solid
+// from. `order` lists the loop's entity indices in traversal order, as the chainer found them.
+// Lines and arcs are judged exactly; a loop holding any other kind is not judged (false).
+// On true, `at` is the offending point in sketch coordinates.
+bool sketch_loop_defect(const std::vector<SketchEntity>& ents, const std::vector<int>& order, Vec2d& at);
 
 // Why an entity-constraint pick is refused. The caller maps a reason to a localized string;
 // the planner itself stays translation-free.
@@ -256,12 +266,10 @@ public:
         const std::vector<std::vector<std::vector<Vec2d>>>& regions,
         const SketchPlane& plane, double length, bool symmetric = false);
 
-    // Revolve a planar profile wire about an axis lying in the sketch plane and
-    // passing through the plane origin: axis_sel 0 = plane X axis, 1 = plane Y axis.
-    // A negative angle_deg sweeps the opposite direction (Flip). The profile must
-    // lie to one side of the axis (Onshape rule); a straddling profile self-intersects.
-    static TopoDS_Shape make_revolve(const TopoDS_Wire& wire, const SketchPlane& plane,
-                                     double angle_deg = 360.0, int axis_sel = 0);
+    // Revolve the closed profile wire about `axis` (world) by angle_deg; a negative angle sweeps
+    // the other way (Flip). The profile must lie to one side of the axis (Onshape rule): one that
+    // straddles it sweeps through itself, and that is refused rather than returned broken.
+    static TopoDS_Shape make_revolve(const TopoDS_Wire& wire, const gp_Ax1& axis, double angle_deg = 360.0);
 
     // Sweep a planar profile wire along a path (spine) wire. The profile is turned
     // into a face and swept with BRepOffsetAPI_MakePipe, which keeps the profile
@@ -317,7 +325,7 @@ public:
     // offset together and their seams repaired (miter join), so a closed profile comes back
     // closed and can still be extruded; per-entity offsetting cannot do that. Sign convention:
     // +d moves each curve to the LEFT of its direction of travel, which for a CCW closed loop
-    // is inward. Ellipses and splines are not offset (a parallel of either is not the same
+    // is inward; a full circle counts as CCW, so +d shrinks it. Ellipses and splines are not offset (a parallel of either is not the same
     // kind of curve) and are dropped from the result.
     static std::vector<SketchEntity> offset_entities(
         const std::vector<SketchEntity>& src, double d);

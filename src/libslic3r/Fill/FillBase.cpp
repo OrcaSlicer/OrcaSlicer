@@ -48,6 +48,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Flow.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
@@ -264,10 +265,7 @@ void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, Ex
                 return p.length() < scale_(params.config->filter_out_gap_fill.value);
             }), polylines.end());
 
-            ExtrusionEntityCollection gap_fill;
-            variable_width(polylines, erGapFill, params.flow, gap_fill.entities);
-            auto gap = std::move(gap_fill.entities);
-            out->append(gap);
+            variable_width(polylines, erGapFill, params.flow, out->entities);
         }
     }
 }

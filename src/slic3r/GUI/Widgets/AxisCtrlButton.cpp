@@ -16,6 +16,7 @@
 #include <wx/gdicmn.h>
 #include <wx/event.h>
 #include <wx/graphics.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
 
 StateColor blank_bg(StateColor(std::make_pair(wxColour("#FFFFFF"), (int)StateColor::Normal)));
 static const wxColour BUTTON_BG_COL = wxColour("#EEEEEE");

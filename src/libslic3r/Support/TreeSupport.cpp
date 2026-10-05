@@ -35,7 +35,6 @@
 #include "Print.hpp"
 #include "ShortestPath.hpp"
 #include "SupportCommon.hpp"
-#include "SVG.hpp"
 #include "TreeSupportCommon.hpp"
 #include "TreeSupport.hpp"
 #include "TreeSupport3D.hpp"
@@ -63,6 +62,13 @@
 #include <utility>
 #include <tuple>
 #include <unordered_map>
+#include <tbb/concurrent_unordered_map.h>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Fill/Lightning/Layer.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795

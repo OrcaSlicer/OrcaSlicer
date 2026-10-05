@@ -58,13 +58,21 @@
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/TriangleMeshSlicer.hpp"
 #include "GLGizmoUtils.hpp"
 
 #include "imgui/imgui_internal.h"
-#include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "FixModelByCgal.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include <wx/defs.h>
 
 namespace Slic3r {
 namespace GUI {

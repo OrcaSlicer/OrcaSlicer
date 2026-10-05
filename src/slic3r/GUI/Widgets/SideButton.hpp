@@ -14,6 +14,8 @@
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 
+class wxDC;
+
 
 class SideButton : public wxWindow
 {

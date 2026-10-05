@@ -4,7 +4,6 @@
 #include "format.hpp"
 #include "I18N.hpp"
 
-#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Config.hpp"
 #include <memory>
 #include <vector>

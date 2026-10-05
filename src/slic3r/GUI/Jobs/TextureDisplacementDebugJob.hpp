@@ -10,7 +10,6 @@
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureBake/TextureBakeDebug.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 
 #include "Job.hpp"
 

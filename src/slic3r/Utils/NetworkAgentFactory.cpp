@@ -26,6 +26,7 @@
 #include <wx/app.h>
 #include <wx/msgdlg.h>
 #include <wx/string.h>
+#include "libslic3r/AppConfig.hpp"
 
 namespace Slic3r {
 namespace {

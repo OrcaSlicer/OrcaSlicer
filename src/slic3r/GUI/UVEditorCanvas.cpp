@@ -45,7 +45,6 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/Utils.hpp"
 
 namespace Slic3r::GUI {
 
@@ -1929,7 +1928,7 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
                                       "texture_displacement_distortion" };
     const wxString    bg_tips[3]  = { _L("Height map - show the layer's texture under the islands"),
                                       _L("Checker - a test grid; squares stay square where the unwrap does not stretch"),
-                                      _L("Distortion - colour each island by how much the unwrap stretches it") };
+                                      _L("Distortion - color each island by how much the unwrap stretches it") };
     for (int i = 0; i < 3; ++i) {
         m_background[i] = new UVToolButton(this, ID_UV_BG_HEIGHT + i, bg_icons[i], wxEmptyString, bg_tips[i], true, false, 22);
         header->Add(m_background[i], 0, wxALIGN_CENTER_VERTICAL | wxLEFT, i == 0 ? gap : FromDIP(3));

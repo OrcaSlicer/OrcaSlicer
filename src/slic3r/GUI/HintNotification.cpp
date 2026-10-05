@@ -2,7 +2,6 @@
 #include "ImGuiWrapper.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
-#include "GUI_ObjectList.hpp"
 #include "GLCanvas3D.hpp"
 #include "MainFrame.hpp"
 #include "Preferences.hpp"

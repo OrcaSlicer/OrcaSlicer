@@ -8,7 +8,6 @@
 #include <cstddef>
 
 #include <catch2/catch_test_macros.hpp>
-#include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
 #include "plugin_test_utils.hpp"
