@@ -27,6 +27,7 @@ struct FileGridCard {
     bool        downloading = false;
     int         download_progress = 0; // -1 waiting, <0 failed, 0..100 progress
     bool        selected = false;
+    bool        printable = true;
     wxBitmap    thumbnail;
 };
 
@@ -47,9 +48,6 @@ public:
 
     // When true, the thumbnail is fitted inside the tile instead of stretched to fill it.
     virtual bool preserve_thumbnail_aspect() const { return false; }
-
-    // When false, a Model tile omits the Print action. Default keeps Bambu behavior.
-    virtual bool supports_print_action() const { return true; }
 
     virtual size_t GetIndexAtTime(time_t time) const = 0;
     virtual size_t EnterSubGroup(size_t index) = 0;

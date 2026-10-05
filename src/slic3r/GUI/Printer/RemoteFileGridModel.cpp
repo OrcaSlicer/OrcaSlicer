@@ -34,18 +34,27 @@ std::string durationString(long duration)
     return boost::regex_replace(time.str(), rx, "");
 }
 
+// Case-insensitive suffix test shared by the file filters below.
+bool ends_with_ci(const std::string& name, const std::string& suffix)
+{
+    return name.size() >= suffix.size() &&
+           std::equal(suffix.rbegin(), suffix.rend(), name.rbegin(),
+                      [](char a, char b) {
+                          return std::tolower(static_cast<unsigned char>(a)) ==
+                                 std::tolower(static_cast<unsigned char>(b));
+                      });
+}
+
 // .gcode / .3mf only, case-insensitive; a .gcode.3mf name matches via the .3mf suffix.
 bool is_displayable_file(const std::string& name)
 {
-    auto ends_with_ci = [&name](const std::string& suffix) {
-        return name.size() >= suffix.size() &&
-               std::equal(suffix.rbegin(), suffix.rend(), name.rbegin(),
-                          [](char a, char b) {
-                              return std::tolower(static_cast<unsigned char>(a)) ==
-                                     std::tolower(static_cast<unsigned char>(b));
-                          });
-    };
-    return ends_with_ci(".gcode") || ends_with_ci(".3mf");
+    return ends_with_ci(name, ".gcode") || ends_with_ci(name, ".3mf");
+}
+
+// Only .gcode is printable today; .gcode.3mf support to be added later.
+bool is_printable_gcode(const std::string& name)
+{
+    return ends_with_ci(name, ".gcode");
 }
 
 }
@@ -127,6 +136,7 @@ void RemoteFileGridModel::onFilesLoaded(std::uint64_t request, const std::string
             card.id = file.path;
             card.name = file.name;
             card.time = static_cast<time_t>(file.modified);
+            card.printable = is_printable_gcode(file.name);
             m_cards.emplace_back(std::move(card));
         }
         buildGroups();
