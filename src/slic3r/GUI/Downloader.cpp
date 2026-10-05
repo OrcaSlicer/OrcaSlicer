@@ -19,6 +19,7 @@
 #include "libslic3r/Utils.hpp"
 #include <functional>
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <wx/arrstr.h>
 
