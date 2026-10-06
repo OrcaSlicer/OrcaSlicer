@@ -1944,7 +1944,7 @@ Polygons TreeSupport::get_trim_support_regions(
     static const double no_overlap_xy_gap = 0.2f;
     double gap_xy_scaled = scale_(gap_xy);
     SupportLayer& support_layer = *support_layer_ptr;
-    auto m_print_config = object.print()->config();
+    const PrintConfig& print_config = object.print()->config();
 
     size_t idx_object_layer_overlapping = size_t(-1);
 
@@ -1991,7 +1991,7 @@ Polygons TreeSupport::get_trim_support_regions(
             const Layer& object_layer = *object.layers()[i];
             bool some_region_overlaps = false;
             for (LayerRegion* region : object_layer.regions()) {
-                coordf_t bridging_height = region->region().bridging_height_avg(m_print_config);
+                coordf_t bridging_height = region->region().bridging_height_avg(print_config);
                 if (object_layer.print_z - bridging_height > support_layer.print_z + gap_extra_above - EPSILON)
                     break;
                 some_region_overlaps = true;

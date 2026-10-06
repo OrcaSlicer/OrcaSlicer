@@ -81,6 +81,7 @@
 
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "../Utils/NetworkAgentFactory.hpp"
+#include <wx/sizer.h>
 #ifdef __WXOSX__
 #define wxOSX true
 #else

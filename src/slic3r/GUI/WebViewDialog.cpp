@@ -41,6 +41,7 @@
 #include <wx/webview.h>
 #include <wx/utils.h>
 #include <wx/window.h>
+#include <wx/infobar.h>
 
 namespace pt = boost::property_tree;
 

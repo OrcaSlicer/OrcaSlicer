@@ -73,6 +73,7 @@
 
 #include <wx/clipbrd.h>
 #include "wx/evtloop.h"
+#include <boost/nowide/convert.hpp>
 
 class wxImage;
 

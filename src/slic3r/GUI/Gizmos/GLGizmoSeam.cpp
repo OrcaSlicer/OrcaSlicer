@@ -28,6 +28,7 @@
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 
 namespace Slic3r::GUI {
