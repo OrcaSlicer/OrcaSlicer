@@ -25,11 +25,12 @@
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 #include <algorithm>
 

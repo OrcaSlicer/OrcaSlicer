@@ -15,7 +15,7 @@
 #include <catch2/catch_approx.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
-#include "libslic3r/SVG.hpp"
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
 

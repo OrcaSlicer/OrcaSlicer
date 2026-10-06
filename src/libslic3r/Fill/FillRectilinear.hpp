@@ -12,9 +12,10 @@
 #include <cstddef>
 #include <vector>
 #include <utility>
-#include "libslic3r/Flow.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+
+namespace Slic3r { class Flow; }
 
 namespace Slic3r {
 

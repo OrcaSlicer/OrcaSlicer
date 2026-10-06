@@ -29,6 +29,12 @@
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_Colors.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 // TODO: Display tooltips quicker on Linux
 

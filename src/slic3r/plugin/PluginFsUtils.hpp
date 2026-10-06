@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <pybind11/cast.h>
 
 #define PLUGIN_SUBSCRIBED_DIR "_subscribed"
 #define PLUGIN_DATA_DIR "plugin_data"

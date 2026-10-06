@@ -9,6 +9,9 @@
 #include <vector>
 #include <wx/event.h>
 
+class wxEvtHandler;
+namespace Slic3r::GUI { class ImGuiWrapper; }
+
 namespace Slic3r {namespace GUI {
 
 // Database of hints updatable

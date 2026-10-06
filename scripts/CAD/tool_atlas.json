@@ -67,6 +67,12 @@
       "angle": 225,
       "label": "Modify",
       "why": "edits or removes what is already there"
+    },
+    {
+      "id": "top",
+      "label": "Top",
+      "flat": true,
+      "why": "the verbs a selection is opened for most. A flat slot is not a family: its verbs sit first, at the top level of the offer, each an item of its own, and its label is never shown. Appended last, so no ratified index moved."
     }
   ],
   "selections": [
@@ -326,7 +332,7 @@
       "id": "rib",
       "name": "Rib",
       "slot": "add",
-      "key": null,
+      "key": "R",
       "feature": "Rib",
       "mcp": "rib",
       "accepts": [
@@ -343,7 +349,7 @@
     },
     {
       "id": "boolean",
-      "name": "Union",
+      "name": "Join",
       "slot": "add",
       "key": "Shift+B",
       "feature": "Boolean",
@@ -354,7 +360,7 @@
       "needs": {
         "bodies": 2
       },
-      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "refusal": "Boolean needs two bodies — add or import a second one",
       "gui": true,
       "action": "btn:bool#0",
       "icon": "design_boolean",
@@ -373,7 +379,7 @@
       "needs": {
         "bodies": 2
       },
-      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "refusal": "Boolean needs two bodies — add or import a second one",
       "gui": true,
       "action": "btn:bool#1",
       "mode": null,
@@ -393,7 +399,7 @@
       "needs": {
         "bodies": 2
       },
-      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "refusal": "Boolean needs two bodies — add or import a second one",
       "gui": true,
       "action": "btn:bool#2",
       "mode": null,
@@ -483,7 +489,7 @@
       "needs": {
         "sheet": true
       },
-      "refusal": "target is not a sheet body",
+      "refusal": "Thicken Surface needs a surface body — make one with a Surface tool first",
       "gui": true,
       "action": "fly:surface#5",
       "icon": "design_thicken",
@@ -507,7 +513,7 @@
       "gui": true,
       "action": "key:S+H",
       "icon": "design_hole",
-      "hint": "Drill a hole, centred on a picked face or placed on a plane"
+      "hint": "Drill a hole, centerd on a picked face or placed on a plane"
     },
     {
       "id": "thread",
@@ -543,7 +549,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Shell needs a solid body",
+      "refusal": "Shell needs a solid body — add or import one first",
       "gui": true,
       "action": "key:S+K",
       "icon": "design_shell",
@@ -569,7 +575,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Create a solid body to cut first",
+      "refusal": "Cut needs a solid body — add or import one first",
       "gui": true,
       "action": "key:S+X",
       "icon": "design_cut",
@@ -594,7 +600,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Split needs a solid body",
+      "refusal": "Split needs a solid body — add or import one first",
       "gui": false,
       "action": null,
       "icon": null,
@@ -677,7 +683,7 @@
       "needs": {
         "sheet": true
       },
-      "refusal": "target is not a sheet body",
+      "refusal": "Surface Offset needs a surface body — make one with a Surface tool first",
       "gui": true,
       "action": "fly:surface#4",
       "icon": "design_offset",
@@ -699,7 +705,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Create a solid body to pattern first",
+      "refusal": "Pattern needs a solid body — add or import one first",
       "gui": true,
       "action": "btn:pat#0",
       "icon": "design_array",
@@ -721,7 +727,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Create a solid body to pattern first",
+      "refusal": "Pattern needs a solid body — add or import one first",
       "gui": true,
       "action": "btn:pat#1",
       "mode": null,
@@ -768,7 +774,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Pattern on curve needs a body and a curve",
+      "refusal": "Pattern on Curve needs a body and a curve",
       "gui": false,
       "action": null,
       "icon": null,
@@ -816,11 +822,11 @@
       "needs": {
         "bodies": 2
       },
-      "refusal": "A mate needs two coordinate systems",
+      "refusal": "Mate needs two coordinate systems — create them first",
       "gui": true,
       "action": "fly:placement#2",
       "icon": "design_c_coincident",
-      "hint": "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+      "hint": "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
     },
     {
       "id": "align",
@@ -835,7 +841,7 @@
       "needs": {
         "bodies": 1
       },
-      "refusal": "Align needs a body",
+      "refusal": "Align needs a body — add or import one first",
       "gui": false,
       "action": null,
       "icon": null,
@@ -885,7 +891,7 @@
     },
     {
       "id": "coordsys_v",
-      "name": "Coord Sys",
+      "name": "Coordinate system",
       "slot": "reference",
       "key": "Shift+C",
       "feature": "CoordSys",
@@ -972,7 +978,7 @@
     },
     {
       "id": "mass_props",
-      "name": "Mass",
+      "name": "Volume and area",
       "slot": "reference",
       "key": null,
       "feature": null,
@@ -1003,14 +1009,15 @@
       "feature": null,
       "mcp": "check_interference",
       "accepts": [
+        "body_solid",
         "bodies_2"
       ],
       "needs": {
         "bodies": 2
       },
-      "refusal": null,
-      "gui": false,
-      "action": null,
+      "refusal": "Interference needs at least two bodies",
+      "gui": true,
+      "action": "btn:interference",
       "icon": null,
       "hint": "Check whether two bodies overlap — reports, changes nothing"
     },
@@ -1043,7 +1050,7 @@
     {
       "id": "rename",
       "name": "Rename…",
-      "slot": "modify",
+      "slot": "top",
       "key": "F2",
       "feature": "Tree",
       "mcp": null,
@@ -1082,8 +1089,8 @@
     },
     {
       "id": "colour",
-      "name": "Colour",
-      "slot": "modify",
+      "name": "Color",
+      "slot": "top",
       "key": null,
       "feature": null,
       "mcp": null,
@@ -1104,7 +1111,7 @@
       "gui": true,
       "action": "btn:colour",
       "icon": "color_palette",
-      "hint": "Set the selected body's display colour"
+      "hint": "Set the selected body's display color"
     },
     {
       "id": "delete",
@@ -1227,7 +1234,7 @@
     },
     {
       "id": "sk_rect_center",
-      "name": "Centre rectangle",
+      "name": "Center rectangle",
       "slot": "create",
       "key": null,
       "feature": "Sketch",
@@ -1296,7 +1303,7 @@
     },
     {
       "id": "sk_circle",
-      "name": "Centre circle",
+      "name": "Center circle",
       "slot": "create",
       "key": "C",
       "feature": "Sketch",
@@ -1411,7 +1418,7 @@
     },
     {
       "id": "sk_arc_center",
-      "name": "Centre-point arc",
+      "name": "Center-point arc",
       "slot": "create",
       "key": null,
       "feature": "Sketch",
@@ -1453,7 +1460,7 @@
       "action": "key:S",
       "family": "Slot",
       "icon": "design_slot",
-      "hint": "Slot — two centerline ends, then end radius"
+      "hint": "Slot — two centerline ends, then the width"
     },
     {
       "id": "sk_slot_arc",
@@ -1567,7 +1574,7 @@
       "mode": "sketch",
       "family": "Polygon",
       "icon": "design_polygon",
-      "hint": "Triangle — click centre, then a vertex"
+      "hint": "Triangle — click center, then a vertex"
     },
     {
       "id": "sk_poly_4",
@@ -1590,7 +1597,7 @@
       "mode": "sketch",
       "family": "Polygon",
       "icon": "design_polygon",
-      "hint": "Square — click centre, then a vertex"
+      "hint": "Square — click center, then a vertex"
     },
     {
       "id": "sk_poly_5",
@@ -1613,7 +1620,7 @@
       "mode": "sketch",
       "family": "Polygon",
       "icon": "design_polygon",
-      "hint": "Pentagon — click centre, then a vertex"
+      "hint": "Pentagon — click center, then a vertex"
     },
     {
       "id": "sk_polygon",
@@ -1636,7 +1643,7 @@
       "action": "btn:poly#6",
       "family": "Polygon",
       "icon": "design_polygon",
-      "hint": "Hexagon — click centre, then a vertex"
+      "hint": "Hexagon — click center, then a vertex"
     },
     {
       "id": "sk_poly_8",
@@ -1659,7 +1666,7 @@
       "mode": "sketch",
       "family": "Polygon",
       "icon": "design_polygon",
-      "hint": "Octagon — click centre, then a vertex"
+      "hint": "Octagon — click center, then a vertex"
     },
     {
       "id": "sk_poly_12",
@@ -1682,7 +1689,7 @@
       "mode": "sketch",
       "family": "Polygon",
       "icon": "design_polygon",
-      "hint": "Dodecagon — click centre, then a vertex"
+      "hint": "Dodecagon — click center, then a vertex"
     },
     {
       "id": "sk_poly_inscribed",
@@ -1772,7 +1779,7 @@
       "action": "btn:text",
       "mode": "sketch",
       "icon": "design_text",
-      "hint": "Type text; its outline is added to this sketch as editable lines"
+      "hint": "Type text; it becomes a Text feature on this sketch's plane, editable later"
     },
     {
       "id": "sk_svg",
@@ -2048,7 +2055,7 @@
     {
       "id": "constrain",
       "name": "Constrain sketch",
-      "slot": "modify",
+      "slot": "reference",
       "key": null,
       "feature": "Sketch",
       "mcp": null,
@@ -2067,7 +2074,8 @@
       "note": [
         "Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the",
         "state a user is in right after finishing one. Without this row the only way in was the",
-        "toolbar icon, and constraints read as absent — see the Onshape-comparison report."
+        "toolbar icon, and constraints read as absent — see the Onshape-comparison report.",
+        "It sits in the Reference row, the address the sketch-mode Constrain has: one verb, one row."
       ]
     },
     {

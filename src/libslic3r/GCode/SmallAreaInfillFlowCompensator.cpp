@@ -16,7 +16,6 @@
 #include <memory>
 #include <regex>
 
-#include "../libslic3r.h"
 #include "../PrintConfig.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/GCode/PchipInterpolatorHelper.hpp"
@@ -26,6 +25,7 @@
 #include <boost/log/trivial.hpp>
 #include <sstream>
 #include <string>
+#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 

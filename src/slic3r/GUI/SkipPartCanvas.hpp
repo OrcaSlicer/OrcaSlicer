@@ -18,6 +18,10 @@
 #include <boost/thread/mutex.hpp>
 #include "PartSkipCommon.hpp"
 
+class wxGLContext;
+class wxTextCtrl;
+class wxWindow;
+
 wxDECLARE_EVENT(EVT_ZOOM_PERCENT, wxCommandEvent);
 wxDECLARE_EVENT(EVT_CANVAS_PART, wxCommandEvent);
 

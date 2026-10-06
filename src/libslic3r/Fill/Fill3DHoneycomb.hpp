@@ -11,6 +11,8 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polyline.hpp"
 
+namespace Slic3r { class Point; }
+
 namespace Slic3r {
 
 class Fill3DHoneycomb : public Fill

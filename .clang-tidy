@@ -1,7 +1,11 @@
-# clang-tidy configuration. Only missing includes are reported for now: a file
-# should include the header for every symbol it uses, not rely on the
-# precompiled header or another header's includes. Run with --fix to add them.
+# clang-tidy configuration, enforced by the clang-tidy CI job on the lines a pull
+# request changes (scripts/clang_tidy_diff.py). Only missing includes are reported
+# for now: a file should include the header for every symbol it uses, not rely on
+# the precompiled header or another header's includes. Run with --fix to add them.
+# Every check listed here gates pull requests, so enable a new one only once the
+# code it flags on touched lines is reasonable to fix in passing.
 Checks: '-*,misc-include-cleaner'
+WarningsAsErrors: '*'
 CheckOptions:
   # Missing includes only. Builds without the precompiled header break on these.
   misc-include-cleaner.UnusedIncludes: false
@@ -57,6 +61,7 @@ CheckOptions:
     termios\.h;
     [/\\](um|shared)[/\\].*;
     sal\.h;
+    tchar\.h;
     clipper[/\\]clipper\.hpp;
     png(lib)?conf\.h;
     mcut[/\\]platform\.h;

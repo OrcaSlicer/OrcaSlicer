@@ -141,6 +141,20 @@ using namespace nlohmann;
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GuiColor.hpp"
 #include <GLFW/glfw3.h>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BuildVolume.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include <boost/nowide/convert.hpp>
+#include <stdio.h>
 
 namespace fs = boost::filesystem;
 

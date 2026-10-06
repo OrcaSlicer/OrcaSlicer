@@ -2,7 +2,6 @@
 #include "BBLNetworkPlugin.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
-#include "NetworkAgent.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -24,6 +23,8 @@ using json = nlohmann::json;
 #include <type_traits>
 #include <unordered_map>
 #include <memory>
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 

@@ -34,6 +34,8 @@
 #include "libslic3r/AppConfig.hpp"
 #include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
+#include <boost/asio/ip/address.hpp>
+#include <cstddef>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

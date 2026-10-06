@@ -14,6 +14,9 @@
 #include <math.h>
 #include <string>
 #include <utility>
+#include "Config.hpp"
+#include "Polyline.hpp"
+#include "PrintConfig.hpp"
 
 namespace Slic3r {
 

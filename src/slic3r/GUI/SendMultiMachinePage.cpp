@@ -63,7 +63,20 @@
 #include "DeviceCore/DevStorage.h"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "FilamentMappingUtils.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <boost/filesystem.hpp>
+#include <wx/dcgraph.h>
 
 namespace fs = boost::filesystem;
 
@@ -1036,7 +1049,7 @@ void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
                 while (iter != m_material_list.end()) {
                     Material *    item = iter->second;
                     MaterialItem *m    = item->item;
-                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>()); }
+                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), _L("Ext"), 0, std::vector<wxColour>()); }
                     iter++;
                 }
             } else if (rs->m_param_name == "use_ams") {
@@ -1088,7 +1101,7 @@ bool SendMultiMachinePage::get_value_radio(std::string param)
 void SendMultiMachinePage::on_set_finish_mapping(wxCommandEvent& evt)
 {
     auto selection_data = evt.GetString();
-    auto selection_data_arr = wxSplit(selection_data.ToStdString(), '|');
+    auto selection_data_arr = wxSplit(selection_data, '|');
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 
@@ -1548,7 +1561,7 @@ void SendMultiMachinePage::sync_ams_list()
 
         MaterialItem* item = new MaterialItem(m_main_page, colour_rgb, _L(display_materials[extruder]));
         //item->set_ams_info(wxColour("#CECECE"), "A1", 0, std::vector<wxColour>());
-        item->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>());
+        item->set_ams_info(wxColour("#CECECE"), _L("Ext"), 0, std::vector<wxColour>());
         m_ams_list_sizer->Add(item, 0, wxALL, FromDIP(4));
 
         item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent& e) {});

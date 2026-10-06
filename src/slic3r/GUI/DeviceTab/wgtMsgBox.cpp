@@ -1,14 +1,15 @@
 #include "wgtMsgBox.h"
 
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/gdicmn.h>
 #include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/wx.h>
+
+class wxCommandEvent;
+class wxWindow;
 
 namespace Slic3r::GUI
 {

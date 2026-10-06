@@ -13,6 +13,10 @@
 #include <wx/valtext.h>
 #include "StaticBox.hpp"
 
+class wxDC;
+class wxTextCtrl;
+class wxWindow;
+
 class Button;
 
 // Fired on every keystroke that leaves a parseable integer in the field, so callers can

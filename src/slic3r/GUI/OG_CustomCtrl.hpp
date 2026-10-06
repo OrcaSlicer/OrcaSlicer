@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <vector>
 #include <wx/event.h>
-#include "slic3r/GUI/Field.hpp"
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/settings.h>
@@ -20,10 +19,16 @@
 #include <wx/validate.h>
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
 
 #include "OptionsGroup.hpp"
-#include "I18N.hpp"
+
+class wxColour;
+class wxDC;
+class wxMouseEvent;
+class wxPaintEvent;
+class wxSizer;
+class wxWindow;
+namespace Slic3r::GUI { class Field; }
 
 // Translate the ifdef 
 #ifdef __WXOSX__

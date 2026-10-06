@@ -24,10 +24,11 @@
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
-#include "../ExtrusionEntityCollection.hpp"
-#include "../ShortestPath.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+
+namespace Slic3r { class ExtrusionEntityCollection; }
 
 namespace Slic3r {
 
@@ -117,6 +118,7 @@ struct FillParams
 
     float           horiz_move{0.0}; //move infill to get cross zag pattern
     bool            symmetric_infill_y_axis{false};
+    bool            infill_complete_top{false};
     coord_t         symmetric_y_axis{0};
     bool            locked_zag{false};
     float           infill_lock_depth{0.0};

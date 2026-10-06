@@ -2,11 +2,7 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "PluginSource.hpp"
-#include "PluginStatus.hpp"
 #include "PluginSort.hpp"
-#include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include <atomic>
 #include <boost/filesystem/path.hpp>
@@ -32,7 +28,9 @@
 #include <boost/filesystem.hpp>
 #include <wx/toplevel.h>
 
-class wxTimer;
+class wxWindow;
+namespace Slic3r { struct PluginDescriptor; }
+
 
 namespace Slic3r {
 

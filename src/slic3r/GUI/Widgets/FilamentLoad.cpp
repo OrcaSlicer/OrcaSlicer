@@ -1,8 +1,5 @@
 #include "FilamentLoad.hpp"
-#include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
-#include "../GUI_App.hpp"
 #include "../DeviceCore/DevFilaSystem.h"
 
 #include <wx/anybutton.h>
@@ -18,8 +15,10 @@
 
 #include <boost/log/trivial.hpp>
 #include <wx/string.h>
+#include "slic3r/GUI/DeviceManager.hpp"
 
-#include "CalibUtils.hpp"
+class wxWindow;
+
 
 namespace Slic3r {
     namespace GUI {
@@ -148,11 +147,8 @@ void FilamentLoad::SetFilamentStep(FilamentStep item_idx, FilamentStepType f_typ
         }
     }
 
-    wxString slot_info = L"AMS-";
-    slot_info = slot_info + std::to_string(m_ams_id);
-    slot_info = slot_info + L'-';
-    slot_info = slot_info + std::to_string(m_slot_id);
-    slot_info = slot_info + L" Slot";
+    // TRN AMS unit number, then slot number
+    wxString slot_info = wxString::Format(_L("AMS-%d-%d Slot"), m_ams_id, m_slot_id);
     step_control->SetSlotInformation(slot_info);
 }
 

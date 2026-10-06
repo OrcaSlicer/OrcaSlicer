@@ -35,6 +35,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

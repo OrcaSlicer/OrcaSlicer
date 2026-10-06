@@ -2,11 +2,9 @@
 
 #include "CloudProvider.hpp"
 #include "I18N.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "libslic3r_version.h"
-#include "../Utils/Http.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
@@ -43,6 +41,7 @@
 #include <wx/webview.h>
 #include <wx/utils.h>
 #include <wx/window.h>
+#include <wx/infobar.h>
 
 namespace pt = boost::property_tree;
 
@@ -976,7 +975,7 @@ void WebViewPanel::OnError(wxWebViewEvent& evt)
         wxLogMessage("%s", "Error; url='" + evt.GetURL() + "', error='" + category + " (" + evt.GetString() + ")'");
 
         // Show the info bar with an error
-        m_info->ShowMessage(_L("An error occurred loading ") + evt.GetURL() + "\n" + "'" + category + "'", wxICON_ERROR);
+        m_info->ShowMessage(wxString::Format(_L("An error occurred loading %s"), evt.GetURL()) + "\n" + "'" + category + "'", wxICON_ERROR);
     }
 
     UpdateState();

@@ -30,6 +30,7 @@
 #include <sstream>
 #include <vector>
 #include <utility>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 
 namespace fs = boost::filesystem;
 

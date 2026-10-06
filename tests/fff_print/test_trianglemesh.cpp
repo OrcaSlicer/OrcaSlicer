@@ -4,8 +4,6 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/Point.hpp"
-#include "libslic3r/Config.hpp"
-#include "libslic3r/Model.hpp"
 #include "libslic3r/libslic3r.h"
 
 #include <algorithm>
@@ -17,9 +15,10 @@
 #include <vector>
 #include <math.h>
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 //#include "test_options.hpp"
-#include "test_helpers.hpp"
 
 using namespace Slic3r;
 using namespace std;

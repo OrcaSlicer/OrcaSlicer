@@ -16,6 +16,8 @@
 #include <cstddef>
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include <memory>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r::GUI {
 
