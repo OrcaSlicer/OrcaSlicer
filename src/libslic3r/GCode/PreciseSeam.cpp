@@ -773,6 +773,7 @@ static EnforcedBlockedSeamPoint convert_weak_modifier_type(ModelVolumeType type)
         case ModelVolumeType::PRECISE_SEAM_CENTER:
         case ModelVolumeType::PRECISE_SEAM_LEFT:
         case ModelVolumeType::PRECISE_SEAM_RIGHT:
+        case ModelVolumeType::PAINTED_MODIFIER:
             break;
     }
     assert(false && "convert_weak_modifier_type called with non-weak type");

@@ -69,6 +69,12 @@ static const Slic3r::ColorRGBA TRANSPARENT_PLANE_COLOR = { 0.8f, 0.8f, 0.8f, 0.5
 namespace Slic3r {
 namespace GUI {
 
+// Volumes that have a GLVolume in the scene: painted modifiers have none.
+static unsigned int scene_volumes_count(const ModelObject &model_object)
+{
+    return (unsigned int)std::count_if(model_object.volumes.begin(), model_object.volumes.end(), [](const ModelVolume *v) { return ! v->is_painted_modifier(); });
+}
+
 Selection::VolumeCache::TransformCache::TransformCache()
     : position(Vec3d::Zero())
     , rotation_matrix(Transform3d::Identity())
@@ -885,7 +891,7 @@ bool Selection::is_single_full_instance() const
             volumes_idxs.insert(volume_idx);
     }
 
-    return m_model->objects[object_idx]->volumes.size() == volumes_idxs.size();
+    return scene_volumes_count(*m_model->objects[object_idx]) == volumes_idxs.size();
 }
 
 bool Selection::is_from_single_object() const
@@ -2350,7 +2356,7 @@ void Selection::update_type()
             else
             {
                 const ModelObject* model_object = m_model->objects[first->object_idx()];
-                unsigned int volumes_count = (unsigned int)model_object->volumes.size();
+                unsigned int volumes_count = scene_volumes_count(*model_object);
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 if (volumes_count * instances_count == 1)
                 {
@@ -2383,7 +2389,7 @@ void Selection::update_type()
             if (m_cache.content.size() == 1) // single object
             {
                 const ModelObject* model_object = m_model->objects[m_cache.content.begin()->first];
-                unsigned int model_volumes_count = (unsigned int)model_object->volumes.size();
+                unsigned int model_volumes_count = scene_volumes_count(*model_object);
 
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 unsigned int selected_instances_count = (unsigned int)m_cache.content.begin()->second.size();
@@ -2433,7 +2439,7 @@ void Selection::update_type()
                     bool               is_wipe_tower   = it->first >= 1000;
                     int                actual_obj_id   = is_wipe_tower ? it->first - 1000 : it->first;
                     const ModelObject *model_object    = m_model->objects[actual_obj_id];
-                    unsigned int volumes_count = (unsigned int)model_object->volumes.size();
+                    unsigned int volumes_count = scene_volumes_count(*model_object);
                     unsigned int instances_count = (unsigned int)model_object->instances.size();
                     sels_cntr += volumes_count * instances_count;
                 }
@@ -3225,7 +3231,7 @@ bool Selection::is_from_fully_selected_instance(unsigned int volume_idx) const
         return false;
 
     unsigned int count = (unsigned int)std::count_if(m_list.begin(), m_list.end(), SameInstance(object_idx, volume->instance_idx(), *m_volumes));
-    return count == (unsigned int)m_model->objects[object_idx]->volumes.size();
+    return count == scene_volumes_count(*m_model->objects[object_idx]);
 }
 
 void Selection::paste_volumes_from_clipboard()
