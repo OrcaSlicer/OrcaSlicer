@@ -1576,7 +1576,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
         }
     }
 
-    vector<int> map_extruders = {1, 0};
+    std::vector<int> map_extruders = {1, 0};
 
     // The default two extruders are left, right, but the order of the extruders on the machine is right, left.
     std::vector<std::string> flow_type_of_machine;
@@ -1676,7 +1676,7 @@ void SyncAmsInfoDialog::stripWhiteSpace(std::string &str)
 {
     if (str == "") { return; }
 
-    string::iterator cur_it;
+    std::string::iterator cur_it;
     cur_it = str.begin();
 
     while (cur_it != str.end()) {

@@ -378,7 +378,7 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
 
     auto current_setting = app_config->get(param);
     if (!current_setting.empty()) {
-        auto compare  = [current_setting](string possible_setting) { return current_setting == possible_setting; };
+        auto compare  = [current_setting](std::string possible_setting) { return current_setting == possible_setting; };
         auto iterator = find_if(config_name_index.begin(), config_name_index.end(), compare);
         if (iterator != config_name_index.end())
             current_index = static_cast<unsigned int>(iterator - config_name_index.begin());
@@ -1714,7 +1714,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(create_item_title(_L("Project")), 1, wxEXPAND);
 
     std::vector<wxString> projectLoadSettingsBehaviourOptions = {_L("Load All"), _L("Ask When Relevant"), _L("Always Ask"), _L("Load Geometry Only")};
-    std::vector<string>   projectLoadSettingsConfigOptions    = { OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_ALL, OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT, OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK, OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY };
+    std::vector<std::string> projectLoadSettingsConfigOptions    = { OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_ALL, OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT, OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK, OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY };
     auto item_project_load     = create_item_combobox(_L("Load behavior"), _L("Should printer/filament/process settings be loaded when opening a 3MF file?"), SETTING_PROJECT_LOAD_BEHAVIOUR, projectLoadSettingsBehaviourOptions, projectLoadSettingsConfigOptions);
     g_sizer->Add(item_project_load);
 

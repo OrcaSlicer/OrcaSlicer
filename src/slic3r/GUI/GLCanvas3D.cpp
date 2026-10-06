@@ -177,6 +177,8 @@ extern wxPopupWindow* wxCurrentPopupWindow;
 #endif
 #endif
 
+using namespace std::string_view_literals;
+
 static constexpr const float TRACKBALLSIZE = 0.8f;
 
 static Slic3r::ColorRGBA DEFAULT_BG_LIGHT_COLOR      = { 0.906f, 0.906f, 0.906f, 1.0f };

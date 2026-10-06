@@ -2257,7 +2257,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             wxGetApp().plater()->update();
     }
 
-    string opt_key_without_idx = opt_key.substr(0, opt_key.find('#'));
+    std::string opt_key_without_idx = opt_key.substr(0, opt_key.find('#'));
 
     if (opt_key_without_idx == "long_retractions_when_cut") {
         unsigned char activate = boost::any_cast<unsigned char>(value);

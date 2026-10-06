@@ -9040,7 +9040,7 @@ std::map<std::string, std::string> GUI_App::get_delete_cache_presets_lock()
 
 void GUI_App::process_delete_presets()
 {
-    std::map<string, string> delete_cache_presets = get_delete_cache_presets_lock();
+    std::map<std::string, std::string> delete_cache_presets = get_delete_cache_presets_lock();
     for (auto it = delete_cache_presets.begin(); it != delete_cache_presets.end();) {
         if (it->first.empty()) continue;
         std::string del_setting_id = it->first;
@@ -10068,7 +10068,7 @@ bool is_soluble_filament(int extruder_id)
     return support_option->get_at(0);
 };
 
-bool has_filaments(const std::vector<string>& model_filaments) {
+bool has_filaments(const std::vector<std::string>& model_filaments) {
     auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
     if (!Slic3r::GUI::wxGetApp().plater()) return false;
     auto model_objects = Slic3r::GUI::wxGetApp().plater()->model().objects;
@@ -10103,7 +10103,7 @@ bool is_support_filament(int extruder_id, bool strict_check)
     Slic3r::ConfigOptionBools *support_option = dynamic_cast<Slic3r::ConfigOptionBools *>(filament->config.option("filament_is_support"));
 
     if(!strict_check &&(filament_type == "PETG" || filament_type == "PLA")) {
-        std::vector<string> model_filaments;
+        std::vector<std::string> model_filaments;
         if (filament_type == "PETG")
             model_filaments.emplace_back("PLA");
         else {

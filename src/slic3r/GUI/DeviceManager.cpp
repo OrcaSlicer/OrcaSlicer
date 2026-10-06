@@ -110,6 +110,7 @@ using json = nlohmann::json;
 class wxWindow;
 
 namespace fs = boost::filesystem;
+using namespace std::chrono_literals;
 
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms
@@ -3103,7 +3104,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         DevFirmwareVersionInfo ver_info;
                         ver_info.name = (*it)["name"].get<std::string>();
                         if ((*it).contains("product_name"))
-                            ver_info.product_name = wxString::FromUTF8((*it)["product_name"].get<string>());
+                            ver_info.product_name = wxString::FromUTF8((*it)["product_name"].get<std::string>());
                         if ((*it).contains("sw_ver"))
                             ver_info.sw_ver = (*it)["sw_ver"].get<std::string>();
                         if ((*it).contains("sw_new_ver"))

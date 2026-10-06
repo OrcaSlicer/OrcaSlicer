@@ -94,6 +94,8 @@
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 
+using namespace std::string_view_literals;
+
 namespace Slic3r { class PrintBase; }
 
 
@@ -3184,7 +3186,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
     float ams_item_height = 0;
     float filament_group_item_align_width = 0;
     {
-        float three_words_width    = imgui.calc_text_size(std::string_view("ABC")).x;
+        float three_words_width    = imgui.calc_text_size("ABC"sv).x;
         const int line_capacity = 4;
 
         for (const auto& extruder_filaments : {m_left_extruder_filament,m_right_extruder_filament })

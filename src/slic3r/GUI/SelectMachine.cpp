@@ -182,7 +182,7 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
 static int s_nozzle_mapping_last_request_time = 0;
 
 std::vector<wxString> SelectMachineDialog::MACHINE_BED_TYPE_STRING;
-std::vector<string> SelectMachineDialog::MachineBedTypeString;
+std::vector<std::string> SelectMachineDialog::MachineBedTypeString;
 void                SelectMachineDialog::init_machine_bed_types()
 {
     if (MACHINE_BED_TYPE_STRING.size() == 0) {
@@ -2748,8 +2748,8 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
     std::vector<ConfirmBeforeSendInfo> confirm_text;
 
     // check more than one using in same external spool
-    std::unordered_set<string> main_external_spool_filas;
-    std::unordered_set<string> deputy_external_spool_filas;
+    std::unordered_set<std::string> main_external_spool_filas;
+    std::unordered_set<std::string> deputy_external_spool_filas;
     for (const auto& mapping_info : m_ams_mapping_result) {
         if (mapping_info.ams_id == VIRTUAL_AMS_MAIN_ID_STR){
             main_external_spool_filas.insert(mapping_info.filament_id);
@@ -5239,7 +5239,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
     /*Check high temperture slicing*/
     if (m_print_type == PrintFromType::FROM_NORMAL) {
-        std::set<string>  high_temp_filaments;
+        std::set<std::string> high_temp_filaments;
         std::unordered_set<int> known_fila_soften_extruders;
         std::unordered_set<int> unknown_fila_soften_extruders;
         auto preset_full_config = wxGetApp().preset_bundle->full_config();

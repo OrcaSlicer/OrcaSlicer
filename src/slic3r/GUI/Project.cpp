@@ -239,7 +239,7 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
         }
 
         bool has_content = false;
-        for (const string& v : {
+        for (const std::string& v : {
                  update_type,
                  license,
                  model_name,

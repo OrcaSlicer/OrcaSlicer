@@ -44,6 +44,8 @@
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}
 
+using namespace std::string_view_literals;
+
 namespace Slic3r
 {
 namespace GUI
