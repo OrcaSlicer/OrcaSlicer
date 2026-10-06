@@ -1,6 +1,8 @@
 #ifndef slic3r_StatusPanel_hpp_
 #define slic3r_StatusPanel_hpp_
 
+#include <vector>
+
 #include "libslic3r/ProjectTask.hpp"
 #include "DeviceManager.hpp"
 #include "MonitorPage.hpp"
@@ -66,6 +68,7 @@
 #include "StagedBuild.hpp"
 
 class StepIndicator;
+class wxChoice;
 
 #define COMMAND_TIMEOUT         5
 
@@ -140,28 +143,35 @@ class ExtruderImage : public wxWindow
     ScalableBitmap *m_left_extruder_active_empty;
     ScalableBitmap *m_left_extruder_unactive_filled;
     ScalableBitmap *m_left_extruder_unactive_empty;
+
     ScalableBitmap *m_right_extruder_active_filled;
     ScalableBitmap *m_right_extruder_active_empty;
     ScalableBitmap *m_right_extruder_unactive_filled;
     ScalableBitmap *m_right_extruder_unactive_empty;
-
+    
     ScalableBitmap *m_extruder_single_nozzle_empty_load;
     ScalableBitmap *m_extruder_single_nozzle_empty_unload;
     ScalableBitmap *m_extruder_single_nozzle_filled_load;
     ScalableBitmap *m_extruder_single_nozzle_filled_unload;
-
+    
     ExtruderState m_left_ext_state   = {ExtruderState::EMPTY_LOAD};
     ExtruderState m_right_ext_state  = {ExtruderState::EMPTY_LOAD};
     ExtruderState m_single_ext_state = {ExtruderState::EMPTY_LOAD};
+    std::vector<ExtruderState> m_multi_extruder_states;
+    bool m_generic_nozzle_display{false};
 
 public:
     void update(int nozzle_num, int nozzle_id);
     void update(ExtruderState single_state);
     void update(ExtruderState right_state, ExtruderState left_state);
 
+    void update(ExtruderState state, int idx);
+
     void msw_rescale();
     void setExtruderCount(int nozzle_num);
+    void setGenericNozzleDisplay(bool enabled);
     void setExtruderUsed(std::string loc);
+    void setExtruderUsed(int nozzle_idx);
     void paintEvent(wxPaintEvent &evt);
 
     void     render(wxDC &dc);
@@ -495,6 +505,8 @@ protected:
     std::vector<ExtruderImage *> m_extruderImage;
 
     SwitchBoard *   m_nozzle_btn_panel;
+    wxChoice*       m_generic_nozzle_selector{nullptr};
+    int             m_generic_nozzle_selector_count{0};
 
     wxStaticText *  m_text_tasklist_caption;
 
@@ -507,10 +519,18 @@ protected:
     wxBoxSizer *    m_misc_ctrl_sizer;
     StaticBox*      m_fan_panel;
     StaticLine *    m_line_nozzle;
-    TempInput*      m_tempCtrl_nozzle;
+    wxWindowID      m_nozzle_temp_control_id{wxID_ANY};
+    wxWindow*       m_temp_nozzle_parent{nullptr};
+    wxBoxSizer*     m_temp_nozzle_sizer{nullptr};
+    size_t          m_temp_nozzle_active_count{0};
+    TempInput*      m_tempCtrl_nozzle{nullptr};
     int             m_temp_nozzle_timeout{ 0 };
-    TempInput*      m_tempCtrl_nozzle_deputy;
+    TempInput*      m_tempCtrl_nozzle_deputy{nullptr};
     int             m_temp_nozzle_deputy_timeout{ 0 };
+
+    std::vector<TempInput*> m_tempCtrl_nozzles;
+    std::vector<int> m_temp_nozzle_timeouts;
+
     TempInput *     m_tempCtrl_bed;
     int             m_temp_bed_timeout {0};
     TempInput *     m_tempCtrl_chamber;
@@ -550,6 +570,7 @@ protected:
 
     /* AMS control box <-> live nozzle-rack panel toggle (rack printers only) */
     SwitchBoard*    m_ams_rack_switch{ nullptr };
+    MultiSwitchButton* m_ams_nozzle_switch{ nullptr };
 
     AMSControl*     m_ams_control;
     StaticBox*      m_ams_control_box;
@@ -624,6 +645,9 @@ public:
 
     wxBoxSizer *create_temp_axis_group(wxWindow *parent);
     wxBoxSizer *create_temp_control(wxWindow *parent);
+    TempInput* create_nozzle_temp_control(wxWindow *parent, wxWindowID id);
+    void set_temp_input_colors(TempInput* temp_ctrl);
+    void ensure_nozzle_temp_controls(size_t count);
     wxBoxSizer *create_misc_control(wxWindow *parent);
     wxBoxSizer *create_axis_control(wxWindow *parent);
     wxPanel *create_bed_control(wxWindow *parent);
@@ -654,6 +678,7 @@ private:
     friend class MonitorPanel;
     void wire_controls();
     bool load_thumbnail_from_url(const wxString &url, MachineObject *obj);
+    void sync_nozzle_temp_controls(size_t count);
 
 protected:
     std::shared_ptr<SliceInfoPopup> m_slice_info_popup;

@@ -30,6 +30,7 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/sizer.h>
+#include <wx/scrolwin.h>
 
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h" // Orca: DevFilaSwitch::SwitchPos for inlet-aware AMS placement
 
@@ -96,6 +97,7 @@ enum class AMSRoadShowMode : int {
     AMS_ROAD_MODE_SINGLE,
     AMS_ROAD_MODE_SINGLE_N3S,
     AMS_ROAD_MODE_AMS_LITE,
+    AMS_ROAD_MODE_GENERIC,
     AMS_ROAD_MODE_NONE
 };
 
@@ -480,6 +482,7 @@ public:
     //AMSextruderImage *m_amsSextruder{nullptr};
     AMSextruderImage* m_left_extruder = nullptr;
     AMSextruderImage* m_right_extruder = nullptr;
+    std::vector<AMSextruderImage*> m_nozzle_extruders;
     AMSextruder(wxWindow *parent, wxWindowID id, int nozzle_num, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
     ~AMSextruder();
 
@@ -681,11 +684,16 @@ public:
     // void                         Update(AMSRoadDownPartMode nozzle, AMSRoadShowMode left_mode, AMSRoadShowMode right_mode, int left_len, int right_len);
     void UpdateLeft(int nozzle_num, AMSRoadShowMode mode);
     void UpdateRight(int nozzle_num, AMSRoadShowMode mode);
+    void SetNozzleCount(int nozzle_num);
+    void SetSingleSideLayout(bool enabled, AMSPanelPos pos = AMSPanelPos::LEFT_PANEL);
+    void UpdateNozzle(int nozzle_id, AMSRoadShowMode mode);
 
     void OnVamsLoading(bool load, wxColour col = AMS_CONTROL_GRAY500);
     void SetPassRoadColour(bool left, wxColour col);
+    void SetPassRoadColour(int nozzle_id, wxColour col);
     void SetShowMode(AMSRoadShowMode left_mode, AMSRoadShowMode right_mode);
     void UpdatePassRoad(AMSPanelPos pos, int len, AMSPassRoadSTEP step);
+    void UpdatePassRoad(int nozzle_id, int len, AMSPassRoadSTEP step);
 
     void paintEvent(wxPaintEvent& evt);
     void render(wxDC& dc);
@@ -698,6 +706,8 @@ private:
     AMSRoadShowMode m_left_rode_mode       = {AMSRoadShowMode::AMS_ROAD_MODE_FOUR};
     AMSRoadShowMode m_right_rode_mode      = {AMSRoadShowMode::AMS_ROAD_MODE_FOUR};
     bool            m_selected             = {false};
+    bool            m_single_side_layout   = {false};
+    AMSPanelPos     m_single_side_pos     = {AMSPanelPos::LEFT_PANEL};
 
     int             m_left_road_length     = {-1};
     int             m_right_road_length    = {-1};
@@ -705,6 +715,15 @@ private:
     AMSPassRoadSTEP m_pass_road_right_step = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
 
     std::map<int, wxColour> m_road_color;
+
+    struct GenericRoadState
+    {
+        AMSRoadShowMode mode{AMSRoadShowMode::AMS_ROAD_MODE_NONE};
+        int road_length{-1};
+        AMSPassRoadSTEP pass_road_step{AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
+        wxColour road_color{AMS_CONTROL_GRAY500};
+    };
+    std::vector<GenericRoadState> m_generic_road_states;
 };
 
 /*************************************************
@@ -864,6 +883,9 @@ private:
 
     std::map<std::string, AMSLib*>      m_can_lib_list;
     //std::map<std::string, AMSRoad*>     m_can_road_list;
+    wxScrolledWindow* m_can_scroll = { nullptr };
+    wxBoxSizer*       m_can_scroll_sizer = { nullptr };
+    wxWindow*         m_can_parent = { nullptr };
     AMSRoadUpPart* m_panel_road = { nullptr };
     std::map<std::string, AMSrefresh*>  m_can_refresh_list;
     AMSHumidity* m_humidity = { nullptr };
