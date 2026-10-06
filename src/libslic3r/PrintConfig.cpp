@@ -10999,7 +10999,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
     std::vector<int> variant_index;
     int variant_count = extruder_count;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: extruder_count %2%, extruder_nozzle_volume_count %3%")%__LINE__ %extruder_count %extruder_nozzle_volume_count;
+    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(", Line %1%: extruder_count %2%, extruder_nozzle_volume_count %3%")%__LINE__ %extruder_count %extruder_nozzle_volume_count;
 
     auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
     auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
@@ -11019,7 +11019,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             nozzle_volume_type = filament_nvt;
         }
         else if (nozzle_volume_type != filament_nvt) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+            BOOST_LOG_TRIVIAL(trace) << __FUNCTION__
                                     << boost::format(", Line %1%: nozzle_volume_type is %2%,  not equal to filament_nvt %3%") % __LINE__ % nozzle_volume_type % filament_nvt;
         }
 
@@ -11218,7 +11218,7 @@ static void gather_option_values(const char *caller, const std::string &key, Opt
 
 void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filaments(DynamicPrintConfig& printer_config, int extruder_count, int extruder_nozzle_volume_count, std::set<std::string>& key_set, std::string id_name, std::string variant_name)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: extruder_count %2%, extruder_nozzle_volume_count %3%")%__LINE__ %extruder_count %extruder_nozzle_volume_count;
+    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(", Line %1%: extruder_count %2%, extruder_nozzle_volume_count %3%")%__LINE__ %extruder_count %extruder_nozzle_volume_count;
 
     {
         auto opt_filament_map = printer_config.option<ConfigOptionInts>("filament_map");
@@ -11268,7 +11268,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
             if (variant_index[f_index] < 0) {
                 // Orca: a filament need not define every extruder variant (a Direct Drive filament on a
                 // Bowden printer), so this is not an invalid state: the filament's first variant is used.
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: could not found extruder_type %2%, nozzle_volume_type %3%, filament_index %4%, extruder index %5%")
+                BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(", Line %1%: could not found extruder_type %2%, nozzle_volume_type %3%, filament_index %4%, extruder index %5%")
                     %__LINE__ %s_keys_names_ExtruderType[extruder_type] % s_keys_names_NozzleVolumeType[nozzle_volume_type] % (f_index+1) %filament_maps[f_index];
                 //for some updates happens in a invalid state(caused by popup window)
                 //we need to avoid crash
@@ -11334,7 +11334,7 @@ void DynamicPrintConfig::update_filament_config_values_for_multiple_extruders(Dy
     std::set<std::string>& key_set, std::string id_name, std::string variant_name,
     std::vector<int>* slot_machine_indices)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: extruder_count %2%, extruder_nozzle_volume_count %3%")%__LINE__ %extruder_count %extruder_nozzle_volume_count;
+    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(", Line %1%: extruder_count %2%, extruder_nozzle_volume_count %3%")%__LINE__ %extruder_count %extruder_nozzle_volume_count;
 
     auto opt_filament_map = printer_config.option<ConfigOptionInts>("filament_map");
     if (!opt_filament_map) {
