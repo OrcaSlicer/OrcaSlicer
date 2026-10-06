@@ -150,6 +150,9 @@
 #include "slic3r/plugin/host/PluginPages.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/defs.h>
+#include <cassert>
+#include <wx/display.h>
+#include <wx/window.h>
 
 
 namespace Slic3r {

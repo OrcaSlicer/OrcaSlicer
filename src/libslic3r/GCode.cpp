@@ -119,6 +119,7 @@
 #endif
 
 #include <Shiny/Shiny.h>
+#include <stdio.h>
 
 
 using namespace std::literals::string_view_literals;

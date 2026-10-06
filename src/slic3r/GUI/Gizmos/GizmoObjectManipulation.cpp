@@ -39,6 +39,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}

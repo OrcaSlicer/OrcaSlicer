@@ -19,6 +19,9 @@
 #include <utility>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include <cstddef>
+#include <cstring>
+#include <cwchar>
 
 #if !defined(_MSC_VER) && !defined(_WIN32)
 #include <dlfcn.h>

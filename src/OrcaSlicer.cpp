@@ -153,6 +153,8 @@ using namespace nlohmann;
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Jobs/SendJob.hpp"
+#include <boost/nowide/convert.hpp>
+#include <stdio.h>
 
 namespace fs = boost::filesystem;
 
