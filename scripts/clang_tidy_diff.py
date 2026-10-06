@@ -105,9 +105,10 @@ def is_checked(path):
 
 def changed_files(merge_base):
     # Against the working tree, so a local run covers uncommitted edits too.
-    # core.quotePath=false keeps a non-ASCII path unquoted, so parse_diff sees its b/ prefix.
+    # core.quotePath=false keeps a non-ASCII path unquoted, and the explicit prefixes
+    # override diff.noprefix and diff.mnemonicPrefix, so parse_diff sees its b/ prefix.
     diff = subprocess.run(["git", "-c", "core.quotePath=false", "diff", "-U0", "--no-color", "--no-ext-diff",
-                           "--diff-filter=AMR", merge_base],
+                           "--src-prefix=a/", "--dst-prefix=b/", "--diff-filter=AMR", merge_base],
                           check=True, capture_output=True, **UTF8).stdout
     return {path: change for path, change in parse_diff(diff).items() if is_checked(path)}
 

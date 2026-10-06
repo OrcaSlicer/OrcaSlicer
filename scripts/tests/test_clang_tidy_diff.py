@@ -155,6 +155,8 @@ class TestSubprocessCalls(unittest.TestCase):
         diff = "+++ b/src/libslic3r/Über.cpp\n@@ -1,0 +2 @@\n+// 打印\n"
         files, call, _ = self.run_patched(clang_tidy_diff.changed_files, "base", stdout=diff)
         self.assertIn("core.quotePath=false", call.args[0])
+        # Whatever diff.noprefix or diff.mnemonicPrefix a user has set.
+        self.assertIn("--dst-prefix=b/", call.args[0])
         self.assertEqual(call.kwargs["encoding"], "utf-8")
         self.assertEqual(files["src/libslic3r/Über.cpp"].lines, [[2, 2]])
 
