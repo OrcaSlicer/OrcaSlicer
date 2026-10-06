@@ -115,8 +115,6 @@ namespace fs = boost::filesystem;
 
 #define ORCA_NETWORK_DEBUG
 
-namespace pt = boost::property_tree;
-
 float string_to_float(const std::string& str_value) {
     float value = 0.0;
     fast_float::from_chars(str_value.c_str(), str_value.c_str() + str_value.size(), value);

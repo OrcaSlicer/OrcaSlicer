@@ -1527,7 +1527,6 @@ bool PresetBundle::apply_vendor_config(
     const std::string& preferred_printer_variant,
     const std::string& preferred_filament)
 {
-    namespace fs = boost::filesystem;
 
     // Get current configuration from AppConfig
     const auto old_vendors = app_config->vendors();

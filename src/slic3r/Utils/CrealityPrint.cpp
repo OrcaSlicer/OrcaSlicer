@@ -22,8 +22,6 @@
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -55,16 +53,12 @@
 #include <nlohmann/json.hpp>
 #include <wx/string.h>
 using json = nlohmann::json;
-using std::to_string;
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
-
-namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace Slic3r {
 

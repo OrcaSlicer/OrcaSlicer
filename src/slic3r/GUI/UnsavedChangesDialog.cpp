@@ -1,6 +1,5 @@
 #include "UnsavedChangesDialog.hpp"
 
-#include <boost/optional/optional.hpp>
 #include <cmath>
 #include <boost/algorithm/string/replace.hpp>
 #include <cassert>
@@ -26,7 +25,6 @@
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 
 #include <wx/colour.h>
 #include <wx/dataview.h>
@@ -65,8 +63,6 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/HyperLink.hpp"
-
-using boost::optional;
 
 #ifdef __linux__
 #define wxLinux true

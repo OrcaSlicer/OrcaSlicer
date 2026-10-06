@@ -81,8 +81,6 @@
     #include <gtk/gtk.h>
 #endif
 
-using Slic3r::GUI::format_wxstr;
-
 namespace Slic3r {
 namespace GUI {
 

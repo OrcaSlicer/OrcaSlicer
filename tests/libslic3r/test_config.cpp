@@ -16,7 +16,6 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
 
-#include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include "libslic3r/Config.hpp"
 #include <cstddef>
@@ -31,8 +30,6 @@
 #include <vector>
 #include <utility>
 #include <catch2/matchers/catch_matchers_vector.hpp>
-
-namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 

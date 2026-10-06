@@ -64,8 +64,6 @@ namespace Slic3r::GUI::Config { class SnapshotDB; }
 namespace fs = boost::filesystem;
 using Slic3r::GUI::Config::Index;
 using Slic3r::GUI::Config::Version;
-using Slic3r::GUI::Config::Snapshot;
-using Slic3r::GUI::Config::SnapshotDB;
 
 
 // FIXME: Incompat bundle resolution doesn't deal with inherited user presets

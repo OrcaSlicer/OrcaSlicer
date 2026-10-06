@@ -296,11 +296,7 @@
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevDefs.h"
 
-using boost::optional;
 namespace fs = boost::filesystem;
-using Slic3r::_3DScene;
-using Slic3r::Preset;
-using Slic3r::GUI::format_wxstr;
 using namespace nlohmann;
 
 static const std::pair<unsigned int, unsigned int> THUMBNAIL_SIZE_3MF = { 512, 512 };

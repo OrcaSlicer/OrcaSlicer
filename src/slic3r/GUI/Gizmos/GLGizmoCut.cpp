@@ -4098,8 +4098,6 @@ void GLGizmoCut3D::apply_cut_connectors(ModelObject* mo, const std::string& conn
     if (mo->cut_connectors.empty())
         return;
 
-    using namespace Geometry;
-
     size_t connector_id = mo->cut_id.connectors_cnt();
     for (const CutConnector& connector : mo->cut_connectors) {
         TriangleMesh mesh = TriangleMesh(get_connector_mesh(connector.attribs));
