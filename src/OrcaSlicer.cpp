@@ -77,11 +77,9 @@
 #include <condition_variable>
 #include <mutex>
 #include <boost/thread.hpp>
-//add json logic
-#include "nlohmann/json.hpp"
-
-using namespace nlohmann;
 #endif
+
+#include "nlohmann/json.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -156,6 +154,7 @@ using namespace nlohmann;
 #include <stdio.h>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 #ifdef __WXGTK__
 #if __has_include(<X11/Xlib.h>)
