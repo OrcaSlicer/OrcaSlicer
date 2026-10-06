@@ -8,7 +8,16 @@
 #include <string>
 
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/event.h>
 #include <wx/webview.h>
+
+class wxCloseEvent;
+class wxSize;
+class wxWebViewEvent;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

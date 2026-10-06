@@ -6,7 +6,11 @@
 
 #include <atomic>
 #include <memory>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
+#include <wx/string.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

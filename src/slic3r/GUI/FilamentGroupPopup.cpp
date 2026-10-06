@@ -5,6 +5,29 @@
 #include "I18N.hpp"
 #include "PartPlate.hpp"
 #include "Widgets/HyperLink.hpp"
+#include <wx/colour.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <string>
+#include <boost/log/trivial.hpp>
+#include <vector>
+#include <wx/utils.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/string.h>
+#include <wx/popupwin.h>
+#include <cstddef>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/window.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include <wx/tglbtn.h>
 
 namespace Slic3r { namespace GUI {
 

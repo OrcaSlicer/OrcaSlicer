@@ -1,8 +1,10 @@
 #ifndef FILAMENT_GROUP_HOVER_HPP
 #define FILAMENT_GROUP_HOVER_HPP
 
+#include <vector>
 #include <wx/bitmap.h>
 #include <wx/bmpbuttn.h>
+#include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/timer.h>
 #include "libslic3r/PrintConfig.hpp"

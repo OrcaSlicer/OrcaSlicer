@@ -1,33 +1,64 @@
-#include "Tab.hpp"
 #include "Project.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <atomic>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <array>
+#include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <utility>
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Auxiliary.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <cstddef>
+#include <memory>
+#include <map>
+#include <exception>
+#include <cmath>
+#include <fstream>
+#include <ios>
+#include <sstream>
 #include <wx/app.h>
+#include <wx/base64.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/filefn.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 #include <wx/filedlg.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wupdlock.h>
 #include <wx/dataview.h>
 #include <wx/tokenzr.h>
 #include <wx/arrstr.h>
 #include <wx/tglbtn.h>
 
-#include "wxExtensions.hpp"
 #include "GUI_App.hpp"
-#include "GUI_ObjectList.hpp"
-#include "MainFrame.hpp"
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
@@ -52,16 +83,10 @@ ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-    m_browser = WebView::CreateWebView(this, m_project_home_url);
-    if (m_browser == nullptr) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("load web view of project page failed");
-        return;
-    }
+    create_browser();
+    m_reset_on_show = WebView::NeedsRecreateOnShow();
     //m_browser->Hide();
     main_sizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-    m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
-    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
-    Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this, m_browser->GetId());
 
     Bind(EVT_PROJECT_RELOAD, &ProjectPanel::on_reload, this);
 
@@ -87,6 +112,23 @@ void ProjectPanel::shutdown()
     if (m_reload_task && m_reload_task->joinable())
         m_reload_task->join();
     m_reload_task.reset();
+}
+
+void ProjectPanel::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, m_project_home_url);
+    m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
+    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
+    m_browser->Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this);
+}
+
+void ProjectPanel::reset_browser()
+{
+    m_browser->Destroy(); // also removes it from the sizer
+    create_browser();
+    GetSizer()->Insert(0, m_browser, wxSizerFlags().Expand().Proportion(1));
+    Layout();
+    m_web_init_completed.store(false, std::memory_order_release);
 }
 
 // Helper to convert newlines to <br>
@@ -253,12 +295,13 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
 
         wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', false, json::error_handler_t::ignore));
 
-        if (m_web_init_completed.load(std::memory_order_acquire) &&
-            !cancel_token->load(std::memory_order_acquire) && wxTheApp != nullptr && !wxGetApp().is_closing()) {
+        if (!cancel_token->load(std::memory_order_acquire) && wxTheApp != nullptr && !wxGetApp().is_closing()) {
             wxGetApp().CallAfter([this, cancel_token, strJS] {
                 if (cancel_token->load(std::memory_order_acquire) || wxTheApp == nullptr || wxGetApp().is_closing())
                     return;
-                RunScript(strJS.ToStdString());
+                m_info_script = strJS.ToStdString();
+                if (m_web_init_completed.load(std::memory_order_acquire))
+                    RunScript(m_info_script);
             });
         }
     });
@@ -299,6 +342,11 @@ void ProjectPanel::OnScriptMessage(wxWebViewEvent& evt)
         }
         else if (strCmd == "request_3mf_info") {
             m_web_init_completed.store(true, std::memory_order_release);
+            // Replay the stored info after each page load.
+            CallAfter([this] {
+                if (!m_info_script.empty())
+                    RunScript(m_info_script);
+            });
         }
         else if (strCmd == "edit_project_info") {
             show_info_editor(true);
@@ -355,6 +403,8 @@ void ProjectPanel::clear_model_info()
     wxGetApp().CallAfter([this, cancel_token, strJS] {
         if (cancel_token->load(std::memory_order_acquire) || wxTheApp == nullptr || wxGetApp().is_closing())
             return;
+        // Runs after any store queued by an earlier reload pass, so stale info is never replayed.
+        m_info_script.clear();
         RunScript(strJS.ToStdString());
     });
 }
@@ -495,10 +545,12 @@ void ProjectPanel::RunScript(std::string content)
     WebView::RunScript(m_browser, content);
 }
 
-bool ProjectPanel::Show(bool show) 
+bool ProjectPanel::Show(bool show)
 {
+    if (show && std::exchange(m_reset_on_show, false))
+        reset_browser();
     if (show) update_model_data();
-    return wxPanel::Show(show); 
+    return wxPanel::Show(show);
 }
 
 }} // namespace Slic3r::GUI

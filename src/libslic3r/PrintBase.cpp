@@ -1,11 +1,23 @@
+#include "Config.hpp"
 #include "Exception.hpp"
 #include "PrintBase.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <mutex>
+#include <functional>
 
 #include "I18N.hpp"
+#include "Model.hpp"
+#include "libslic3r.h"
+#include "libslic3r_version.h"
+#include "PlaceholderParser.hpp"
 
 //! macro used to mark string used at localization,
 //! return same string

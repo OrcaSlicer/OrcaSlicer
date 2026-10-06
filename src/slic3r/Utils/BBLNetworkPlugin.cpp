@@ -1,13 +1,27 @@
 #include "BBLNetworkPlugin.hpp"
 #include "NetworkAgent.hpp"
 
+#include <mutex>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <boost/filesystem/file_status.hpp>
+#include <set>
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <boost/log/trivial.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include "bambu_networking.hpp"
+#include <string>
+#include <vector>
+#include <utility>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include <cstddef>
+#include <cstring>
+#include <cwchar>
 
 #if !defined(_MSC_VER) && !defined(_WIN32)
 #include <dlfcn.h>

@@ -2,6 +2,7 @@
 #define slic3r_PluginAuditManager_hpp_
 
 // Via pybind11 so this file requests the same python3xx.lib as everything else.
+#include <boost/filesystem/path.hpp>
 #include <pybind11/conduit/wrap_include_python_h.h>
 #include <memory>
 #include <mutex>

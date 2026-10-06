@@ -6,8 +6,6 @@
 #include <iterator>
 #include <vector>
 
-#include "../Line.hpp"
-#include "../Polyline.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 

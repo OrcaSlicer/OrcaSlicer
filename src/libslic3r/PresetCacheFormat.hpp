@@ -1,6 +1,7 @@
 #ifndef slic3r_PresetCacheFormat_hpp_
 #define slic3r_PresetCacheFormat_hpp_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -14,6 +15,9 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
+
+namespace cereal { class BinaryInputArchive; }
+namespace cereal { class BinaryOutputArchive; }
 
 namespace Slic3r {
 

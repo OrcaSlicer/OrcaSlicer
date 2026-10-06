@@ -1,4 +1,5 @@
 #pragma once
+#include "Line.hpp"
 #ifndef SRC_LIBSLIC3R_JUMPPOINTSEARCH_HPP_
 #define SRC_LIBSLIC3R_JUMPPOINTSEARCH_HPP_
 

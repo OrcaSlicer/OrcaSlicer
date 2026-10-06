@@ -2,12 +2,26 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <set>
+#include <wx/colour.h>
+#include <string>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <utility>
+#include <wx/event.h>
+#include <wx/peninfobase.h>
 #include <wx/sizer.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
 #include "wx/graphics.h"
 
 #include "I18N.hpp"

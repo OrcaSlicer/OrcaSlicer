@@ -4,10 +4,19 @@
 #include "I18N.hpp"
 #include "Widgets/DialogButtons.hpp"
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/listbase.h>
+#include <vector>
+#include <wx/busycursor.h>
+#include <utility>
+#include <cstddef>
 #include <wx/sizer.h>
 #include <wx/button.h>
 #include <wx/listctrl.h>
 #include <wx/stattext.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 
 #include <boost/log/trivial.hpp>
@@ -30,7 +39,7 @@ CrealityDiscoveryDialog::CrealityDiscoveryDialog(wxWindow* parent)
     m_list->AppendColumn(_L("Hostname"), wxLIST_FORMAT_LEFT, 14 * em);
     m_list->AppendColumn(_L("IP"),       wxLIST_FORMAT_LEFT, 14 * em);
 
-    auto* dlg_btns = new DialogButtons(this, {"Scan", "OK", "Cancel"}, "", 1 /*left_aligned*/);
+    auto* dlg_btns = new DialogButtons(this, {L("Scan"), "OK", "Cancel"}, "", 1 /*left_aligned*/);
     auto* ok_btn   = dlg_btns->GetOK();
     ok_btn->SetLabel(_L("Use Selected"));
     ok_btn->Disable();
@@ -82,7 +91,7 @@ void CrealityDiscoveryDialog::run_discovery()
         if (!h.model_name.empty())
             row.model = h.model_name;
         else if (h.cfs_capable)
-            row.model = "(unknown K-series)";
+            row.model = _u8L("(unknown K-series)");
         else
             row.model = "Creality";
         m_rows.push_back(std::move(row));

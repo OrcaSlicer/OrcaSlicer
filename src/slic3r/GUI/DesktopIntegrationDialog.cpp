@@ -1,3 +1,22 @@
+#include <string>
+#include <vector>
+#include <cstddef>
+#include <wx/string.h>
+#include <wx/utils.h>
+#include <boost/nowide/convert.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <fstream>
+#include <cstdlib>
+#include <exception>
+#include "libslic3r_version.h"
+#include <cstdio>
+#include <cassert>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Plater.hpp"
 #ifdef __linux__
 #include "DesktopIntegrationDialog.hpp"
 #include "GUI_App.hpp"
@@ -633,7 +652,7 @@ DesktopIntegrationDialog::DesktopIntegrationDialog(wxWindow *parent)
 
 	wxString text = _L("Desktop Integration sets this binary to be searchable by the system.\n\nPress \"Perform\" to proceed.");
 	if (can_undo)
-		text += "\nPress \"Undo\" to remove previous integration.";
+		text += "\n" + _L("Press \"Undo\" to remove previous integration.");
 
     vbox->Add(
         new wxStaticText( this, wxID_ANY, text),

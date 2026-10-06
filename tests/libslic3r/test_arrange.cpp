@@ -1,11 +1,26 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <limits>
+#include <cstddef>
+#include <cmath>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::arrangement;

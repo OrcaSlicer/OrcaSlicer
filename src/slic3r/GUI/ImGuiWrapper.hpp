@@ -1,8 +1,12 @@
 #ifndef slic3r_ImGuiWrapper_hpp_
 #define slic3r_ImGuiWrapper_hpp_
 
+#include "libslic3r/Technologies.hpp"
+#include <optional>
 #include <string>
 #include <map>
+#include <string_view>
+#include <tuple>
 #include <vector>
 #include <cstdlib>
 

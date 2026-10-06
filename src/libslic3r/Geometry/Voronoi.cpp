@@ -2,7 +2,12 @@
 
 #include <boost/log/trivial.hpp>
 #include <cassert>
+#include <vector>
+#include <iterator>
+#include <cstddef>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp"
 #include "libslic3r/Geometry/VoronoiUtils.hpp"
 #include "libslic3r/Geometry/VoronoiUtilsCgal.hpp"

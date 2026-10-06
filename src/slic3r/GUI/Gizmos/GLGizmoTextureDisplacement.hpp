@@ -10,11 +10,23 @@
 #include "slic3r/GUI/IconManager.hpp"
 #include "slic3r/GUI/TextureLibrary.hpp"
 
+#include <Eigen/Core>
 #include <array>
 #include <atomic>
+#include "libslic3r/Color.hpp"
+#include <cstddef>
+#include "libslic3r/TriangleSelector.hpp"
+#include <cstdint>
+#include "libslic3r/Point.hpp"
+#include <imgui.h>
 #include <map>
 #include <memory>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <string>
+#include <vector>
+#include <utility>
+#include <wx/event.h>
+#include <wx/string.h>
 
 namespace Slic3r::GUI {
 

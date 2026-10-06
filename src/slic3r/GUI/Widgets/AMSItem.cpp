@@ -1,7 +1,7 @@
 #include "AMSItem.hpp"
 #include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
+#include "../format.hpp"
 #include "../GUI_App.hpp"
 #include "../FilamentBitmapUtils.hpp"
 #include "../Utils/WxFontUtils.hpp"
@@ -12,12 +12,41 @@
 #include "slic3r/GUI/DeviceCore/DevConfig.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/peninfobase.h>
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <algorithm>
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <optional>
+#include <utility>
+#include <cstddef>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/timer.h>
+#include <wx/sizer.h>
 
 #include "CalibUtils.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+
+namespace Slic3r::GUI { struct SimpleEvent; }
 
 
 
@@ -1152,9 +1181,9 @@ void AMSLib::render_lite_text(wxDC& dc)
     }
 
     if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY) {
-        auto tsize = dc.GetMultiLineTextExtent(_L("/"));
+        auto tsize = dc.GetMultiLineTextExtent("/");
         auto pot = wxPoint((libsize.x - tsize.x) / 2 + FromDIP(2), (libsize.y - tsize.y) / 2 + FromDIP(3));
-        dc.DrawText(_L("/"), pot);
+        dc.DrawText("/", pot);
     }
 }
 
@@ -4027,7 +4056,7 @@ void FeedDirectionDialog::OnRadioClicked(wxCommandEvent& evt)
             m_extruderImage->setExtruderUsed("left");
             m_load_extruder_id = 1;
             {
-                SetTitle(wxString::Format(_L("Load %s to ") + _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase)), m_filament_id));
+                SetTitle(format_wxstr(_L("Load %1% to %2%"), m_filament_id, _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase))));
             }
         }
         else if (clicked == m_rightRadio)
@@ -4036,7 +4065,7 @@ void FeedDirectionDialog::OnRadioClicked(wxCommandEvent& evt)
             m_extruderImage->setExtruderUsed("right");
             m_load_extruder_id = 0;
             {
-                SetTitle(wxString::Format(_L("Load %s to ") + _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase)), m_filament_id));
+                SetTitle(format_wxstr(_L("Load %1% to %2%"), m_filament_id, _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase))));
             }
         }
     }
@@ -4096,7 +4125,7 @@ void FeedDirectionDialog::SetExtruderMapping(MachineObject* obj,
         return;
 
     m_filament_id = filamentID;
-    SetTitle(wxString::Format(_L("Load %s to "), filamentID));
+    SetTitle(wxString::Format(_L("Load %s"), filamentID));
 
     std::vector<wxString> extruderMapping(extruderSlots.size());
     for (size_t i = 0; i < extruderSlots.size(); ++i) {

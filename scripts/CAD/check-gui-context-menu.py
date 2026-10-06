@@ -78,8 +78,9 @@ def load_table():
         if not line.startswith('{"'):
             continue
         # id, name, row, key, action, refusal, accepts, need_bodies, need_sketches, need_sheet,
-        # sketch_mode, family, ... — split on top-level commas, respecting quotes.
-        f, cur, q, esc = [], "", False, False
+        # sketch_mode, family, ... — split on top-level commas, respecting quotes and the
+        # L(...) / L_CONTEXT(...) translation markers.
+        f, cur, q, esc, depth = [], "", False, False, 0
         for ch in line[1:]:
             if esc:
                 cur += ch; esc = False; continue
@@ -87,15 +88,18 @@ def load_table():
                 cur += ch; esc = True; continue
             if ch == '"':
                 q = not q
-            if ch == "," and not q:
+            if not q:
+                depth += (ch == "(") - (ch == ")")
+            if ch == "," and not q and depth == 0:
                 f.append(cur.strip()); cur = ""; continue
-            if ch == "}" and not q:
+            if ch == "}" and not q and depth == 0:
                 break
             cur += ch
         f.append(cur.strip())
         if len(f) < 12:
             continue
-        lit = lambda s: None if s == "nullptr" else s.strip('"')
+        # User-facing fields are wrapped in L("...") or L_CONTEXT("...", ...); take the literal.
+        lit = lambda s: None if s == "nullptr" else re.search(r'"((?:[^"\\]|\\.)*)"', s).group(1)
         out.append({"id": lit(f[0]), "name": lit(f[1]), "row": int(f[2]), "key": lit(f[3]),
                     "action": lit(f[4]), "accepts": int(f[6].rstrip("u"), 0),
                     "need_bodies": int(f[7]), "need_sketches": int(f[8]),

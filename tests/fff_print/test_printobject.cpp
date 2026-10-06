@@ -1,5 +1,11 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Layer.hpp"
@@ -10,12 +16,28 @@
 #include "test_helpers.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <iterator>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include <map>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

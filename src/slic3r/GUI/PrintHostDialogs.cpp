@@ -1,20 +1,57 @@
 #include "PrintHostDialogs.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <cctype>
+#include <functional>
+#include <cstddef>
+#include <cstdlib>
 #include <iomanip>
+#include "libslic3r/ProjectTask.hpp"
+#include <ios>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
 #include <limits>
 
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include <memory>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <vector>
+#include <utility>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <map>
+#include <string>
+#include <wx/busycursor.h>
+#include <wx/dialog.h>
+#include <wx/dvrenderers.h>
+#include <sstream>
+#include "slic3r/GUI/Widgets/RadioBox.hpp"
 #include <wx/frame.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
 #include <wx/progdlg.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 #include <wx/button.h>
 #include <wx/dataview.h>
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
+#include <wx/toplevel.h>
+#include <wx/tglbtn.h>
+#include <wx/vector.h>
+#include <wx/variant.h>
+#include <wx/types.h>
 #include <wx/wrapsizer.h>
 #include <wx/wupdlock.h>
 #include <wx/debug.h>
@@ -26,20 +63,28 @@
 #include <boost/algorithm/string.hpp>
 #include <nlohmann/json.hpp>
 
+#include "Flashforge.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
+#include "PrintHost.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "NotificationManager.hpp"
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
 #include "../Utils/CrealityPrint.hpp"
 #include "BitmapComboBox.hpp"
+#include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 
 #include <nlohmann/json.hpp>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/defs.h>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -2005,7 +2050,8 @@ void CrealityPrintHostSendDialog::init()
                 wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
                 wxString label_str;
                 if (slot.box_id == 0)
-                    label_str = wxString::Format("Ext - %s", slot.type.c_str());
+                    // TRN External spool slot, followed by its filament type
+                    label_str = wxString::Format(_L("Ext - %s"), slot.type.c_str());
                 else
                     label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
                 combo->Append(label_str, bmp ? *bmp : wxNullBitmap);

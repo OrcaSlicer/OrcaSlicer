@@ -1,9 +1,12 @@
 #ifndef __ORCA_CLOUD_SERVICE_AGENT_HPP__
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
+#include "CloudProvider.hpp"
 #include "ICameraSignalingChannel.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
 #include <cstdlib>
+#include "libslic3r/ProjectTask.hpp"
 #include <string>
 #include <map>
 #include <mutex>
@@ -13,6 +16,7 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -326,7 +330,7 @@ public:
 
     void persist_user_secret(const std::string& secret);
     bool load_user_secret(std::string& out_secret);
-    void clear_user_secret();
+    void clear_user_secret(bool all_backends = false);
 
     // Token refresh helpers
     bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
@@ -344,7 +348,7 @@ public:
                           bool persist = true);
     // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
-    void clear_session();
+    void clear_session(bool all_backends = false);
 
     static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
 
@@ -413,6 +417,11 @@ private:
     // Member variables - auth state
     PkceBundle pkce_bundle;
     std::string secret_fallback_path;
+    // Set once this process has read a secret from the store or written one. Unless the user logs
+    // out explicitly, clear_user_secret() only touches the store while it is set, so a logged-out
+    // instance (the GUI polls the login status every 2 s) makes no keychain calls and cannot wipe
+    // a login another instance saved.
+    std::atomic_bool secret_stored{false};
     SessionHandler session_handler;
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;

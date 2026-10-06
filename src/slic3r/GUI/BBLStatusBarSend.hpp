@@ -1,7 +1,9 @@
 #ifndef BBLSTATUSBARSEND_HPP
 #define BBLSTATUSBARSEND_HPP
 
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 
 #include <memory>

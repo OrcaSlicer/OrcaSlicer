@@ -23,6 +23,44 @@
 #include "libslic3r/ClipperUtils.hpp" // union_ex
 
 #include "imgui/imgui_stdlib.h" // using std::string for inputs
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/string.h>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/EmbossShape.hpp"
+#include <string_view>
+#include <memory>
+#include <atomic>
+#include "slic3r/GUI/IconManager.hpp"
+#include <utility>
+#include "slic3r/GUI/SurfaceDrag.hpp"
+#include <optional>
+#include <cassert>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <imgui.h>
+#include <vector>
+#include "libslic3r/Utils.hpp"
+#include <algorithm>
+#include "libslic3r/Line.hpp"
+#include <functional>
+#include <cmath>
+#include <cstdlib>
+#include "libslic3r/ExPolygon.hpp"
+#include <cstddef>
+#include "slic3r/GUI/Selection.hpp"
+#include <cstdint>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/GUI.hpp"
+#include <wx/filedlg.h>
+#include <wx/intl.h>
+#include <iomanip>
+#include <ios>
+#include <math.h>
+#include "libslic3r/Config.hpp"
+#include <wx/dataview.h>
+#include <wx/arrstr.h>
+#include <boost/algorithm/string/predicate.hpp>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -1313,25 +1351,25 @@ void GLGizmoSVG::draw_window()
     assert(m_volume_id.valid());
     if (m_volume == nullptr ||
         m_volume_id.invalid()) {
-        ImGui::Text("Not valid state please report reproduction steps on github");
+        ImGui::Text("%s", _u8L("Not valid state please report reproduction steps on github").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape.has_value());
     if (!m_volume->emboss_shape.has_value()) {
-        ImGui::Text("No embossed file");
+        ImGui::Text("%s", _u8L("No embossed file").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape->svg_file.has_value());
     if (!m_volume->emboss_shape->svg_file.has_value()){
-        ImGui::Text("Missing svg file in embossed shape");
+        ImGui::Text("%s", _u8L("Missing svg file in embossed shape").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape->svg_file->file_data != nullptr);
     if (m_volume->emboss_shape->svg_file->file_data == nullptr){
-        ImGui::Text("Missing data of svg file");
+        ImGui::Text("%s", _u8L("Missing data of svg file").c_str());
         return;
     }
 
@@ -2105,7 +2143,7 @@ std::string volume_name(const EmbossShape &shape)
     std::string file_name = get_file_name(shape.svg_file->path);
     if (!file_name.empty())
         return file_name;
-    return "SVG shape";
+    return _u8L("SVG shape");
 }
 
 CreateVolumeParams create_input(GLCanvas3D &canvas, RaycastManager& raycaster, ModelVolumeType volume_type)

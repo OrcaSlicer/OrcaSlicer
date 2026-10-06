@@ -1,13 +1,22 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
 #include <boost/filesystem.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

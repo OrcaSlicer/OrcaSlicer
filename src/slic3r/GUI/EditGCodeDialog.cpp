@@ -1,12 +1,34 @@
 #include "EditGCodeDialog.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <set>
+#include <initializer_list>
+#include <map>
+#include "libslic3r/libslic3r.h"
+#include <utility>
+#include <memory>
+#include <algorithm>
+#include <cassert>
 #include <vector>
 #include <string>
 
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/event.h>
+#include <wx/dataview.h>
+#include <wx/log.h>
+#include <wx/chartype.h>
+#include <wx/dvrenderers.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
+#include <wx/toplevel.h>
+#include <wx/variant.h>
 #include <wx/wupdlock.h>
 
 #include "GUI.hpp"
@@ -56,6 +78,7 @@ EditGCodeDialog::EditGCodeDialog(wxWindow* parent, const std::string& key, const
     m_search_bar->ShowCancelButton(true);
     m_search_bar->SetDescriptiveText(_L("Search G-code placeholders"));
     m_search_bar->SetForegroundColour(*wxBLACK);
+    m_search_bar->SetBackgroundColour(*wxWHITE);
     wxGetApp().UpdateDarkUI(m_search_bar);
 
     m_search_bar->Bind(wxEVT_SET_FOCUS, [](wxFocusEvent&) {
@@ -68,6 +91,7 @@ EditGCodeDialog::EditGCodeDialog(wxWindow* parent, const std::string& key, const
     param_sizer->Add(m_search_bar, 0, wxEXPAND | wxALL, border);
 
     m_params_list = new ParamsViewCtrl(this, wxDefaultSize);
+    m_params_list->SetBackgroundColour(*wxWHITE);
     m_params_list->SetFont(wxGetApp().code_font());
     wxGetApp().UpdateDarkUI(m_params_list);
     param_sizer->Add(m_params_list, 1, wxEXPAND | wxALL, border);
@@ -82,6 +106,7 @@ EditGCodeDialog::EditGCodeDialog(wxWindow* parent, const std::string& key, const
     );
 
     m_gcode_editor->SetFont(wxGetApp().code_font());
+    m_gcode_editor->SetBackgroundColour(*wxWHITE);
     m_gcode_editor->SetInsertionPointEnd();
     wxGetApp().UpdateDarkUI(m_gcode_editor);
 
