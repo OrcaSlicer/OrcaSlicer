@@ -61,10 +61,11 @@ bool is_displayable_file(const std::string& name)
     return ends_with_ci(name, ".gcode") || ends_with_ci(name, ".3mf");
 }
 
-// Only .gcode is printable today; .gcode.3mf support to be added later.
+// .gcode and .gcode.3mf are printable; OrcaSonar unpacks a 3MF to its plate
+// G-code. A bare .3mf is an unsliced project file, so it stays unprintable.
 bool is_printable_gcode(const std::string& name)
 {
-    return ends_with_ci(name, ".gcode");
+    return ends_with_ci(name, ".gcode") || ends_with_ci(name, ".gcode.3mf");
 }
 
 }

@@ -138,7 +138,7 @@ OrcaFilesPanel::OrcaFilesPanel(wxWindow* parent)
                               wxOK | wxICON_ERROR).ShowModal();
             });
         } else if (action == 1) {
-            // Print is .gcode-only for now; .gcode.3mf support to be added later.
+            // OrcaSonar unpacks a .gcode.3mf to its plate G-code before starting the print.
             MessageDialog dlg(this,
                 wxString::Format(_L("Do you want to print the file '%s' from printer?"), from_u8(name)),
                 _L("Print file"), wxYES_NO | wxICON_WARNING);
