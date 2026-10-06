@@ -193,6 +193,7 @@ protected:
     // Queue work that may use agent state. The command worker is joined during
     // destruction, so queued commands cannot outlive the agent.
     void enqueue_command(std::function<void()> fn);
+    mutable std::recursive_mutex connect_mutex;
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
@@ -312,7 +313,6 @@ private:
     // Connection thread management
     std::atomic<uint64_t>  connect_generation{0};
     std::thread            connect_thread;
-    mutable std::recursive_mutex connect_mutex;
 
     void run_command_worker();
     std::thread cmd_thread;
