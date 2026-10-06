@@ -71,6 +71,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <wx/window.h>
+#include <wx/busycursor.h>
 
 static constexpr const char* DEFAULT_VIRTUAL_FILAMENT_BASIC_TYPE = "PLA Basic";
 static constexpr const char* DEFAULT_VIRTUAL_FILAMENT_SHORT_TYPE = "PLA";

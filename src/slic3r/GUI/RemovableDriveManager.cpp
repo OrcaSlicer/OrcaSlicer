@@ -20,6 +20,7 @@
 #include <system_error>
 #include <wx/event.h>
 #include <utility>
+#include <cwchar>
 
 #if _WIN32
 #include <windows.h>
