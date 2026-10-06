@@ -596,7 +596,8 @@ PrintParams_Legacy BBLNetworkPlugin::as_legacy(PrintParams& param)
 }
 
 // Every PrintParams field except the four the 02.08.01 series added
-// (task_timelapse_use_internal, extruder_cali_manual_mode, svc_context, slicer_uid).
+// (task_timelapse_use_internal, extruder_cali_manual_mode, svc_context, slicer_uid) and the
+// queue_plate_id 02.08.02 appended.
 PrintParams_0203 BBLNetworkPlugin::as_0203(PrintParams& param)
 {
     PrintParams_0203 p;
