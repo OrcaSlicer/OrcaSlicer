@@ -3563,20 +3563,6 @@ void PrintConfigDef::init_fff_params()
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
-    // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
-    // (vertical) axis at low infill density to shorten the effective column length under
-    // Z-axis compression. Filament use at the same `sparse_infill_density` setting is
-    // preserved. No effect above ~30% density (formula clamps to no-op).
-    def             = this->add("gyroid_optimized", coBool);
-    def->label      = L("Z-buckling bias optimization (experimental)");
-    def->category   = L("Strength");
-    // xgettext:no-c-format, no-boost-format
-    def->tooltip    = L("Tightens the gyroid wave along the Z (vertical) axis at low infill density "
-                        "to shorten the effective vertical column length and improve Z-axis compression "
-                        "buckling resistance. Filament use is preserved. No effect at ~30% sparse infill "
-                        "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
-    def->set_default_value(new ConfigOptionBool(false));
-
     def             = this->add("tpms_adaptive", coBool);
     def->label      = L("Adaptive density (experimental)");
     def->category   = L("Strength");
@@ -3614,6 +3600,20 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Exponential"));
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<TpmsAdaptiveGradient>(TpmsAdaptiveGradient::Linear));
+
+    // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
+    // (vertical) axis at low infill density to shorten the effective column length under
+    // Z-axis compression. Filament use at the same `sparse_infill_density` setting is
+    // preserved. No effect above ~30% density (formula clamps to no-op).
+    def             = this->add("gyroid_optimized", coBool);
+    def->label      = L("Z-buckling bias optimization (experimental)");
+    def->category   = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip    = L("Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+                        "to shorten the effective vertical column length and improve Z-axis compression "
+                        "buckling resistance. Filament use is preserved. No effect at ~30% sparse infill "
+                        "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");

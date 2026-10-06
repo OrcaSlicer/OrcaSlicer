@@ -1430,10 +1430,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
-    ((ConfigOptionBool,                 gyroid_optimized))
     ((ConfigOptionBool,                 tpms_adaptive))
     ((ConfigOptionPercent,              tpms_interior_density))
     ((ConfigOptionEnum<TpmsAdaptiveGradient>, tpms_adaptive_gradient))
+    ((ConfigOptionBool,                 gyroid_optimized))
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
     ((ConfigOptionEnum<InfillPattern>, ironing_pattern))
