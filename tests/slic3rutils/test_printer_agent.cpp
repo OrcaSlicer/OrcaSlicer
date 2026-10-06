@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <functional>
 #include <slic3r/Utils/BBLPrinterAgent.hpp>
 #include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/MoonrakerPrinterAgent.hpp>
