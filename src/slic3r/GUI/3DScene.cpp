@@ -310,6 +310,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , force_native_color(false)
     , force_neutral_color(false)
     , force_sinking_contours(false)
+    , depth_bias(false)
     , picking(false)
     , tverts_range(0, size_t(-1))
 {
@@ -1332,11 +1333,17 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (volume.first->depth_bias) {
+            glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+            glsafe(::glPolygonOffset(1.0f, 1.0f));
+        }
 		//BBS: add outline related logic
         if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
+        if (volume.first->depth_bias)
+            glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 
 #if ENABLE_ENVIRONMENT_MAP
         if (use_environment_texture)

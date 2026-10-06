@@ -29,11 +29,19 @@ static constexpr int kCellDip = 20;   // square action cell, hover chip included
 static constexpr int kPadDip  = 4;    // row edges, and the gap before the action cells
 static constexpr int kGapDip  = 6;    // type icon to label
 
-DesignRowList::DesignRowList(wxWindow* parent, int max_visible)
-    // wxVListBox defaults to wxBORDER_THEME; the sidebar's lists take a simple frame.
-    : wxVListBox(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE)
+DesignRowList::DesignRowList(wxWindow* parent, int max_visible, bool selectable, long style)
+    // wxVListBox defaults to wxBORDER_THEME; `style` defaults to the simple frame the sidebar's
+    // lists take, and a list meant to sit unframed on its card passes wxBORDER_NONE.
+    : wxVListBox(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, style)
     , m_max_visible(std::max(max_visible, 1))
+    , m_selectable(selectable)
 {
+    // A non-selectable list takes no focus: from the mouse because it consumes the presses that
+    // would focus it, below, and from the keyboard through AcceptsFocus(). wxGTK reads that once,
+    // while the base class is being built, before the override exists, so it is told here.
+    if (!m_selectable)
+        SetCanFocus(false);
+
     Bind(wxEVT_LISTBOX, [this](wxCommandEvent&) { if (on_select) on_select(); });
     Bind(wxEVT_LISTBOX_DCLICK, [this](wxCommandEvent&) { if (on_activate) on_activate(); });
 
@@ -46,18 +54,20 @@ DesignRowList::DesignRowList(wxWindow* parent, int max_visible)
         m_pressed = Hit{};
         e.Skip();
     });
-    // A press on an action cell is remembered and skipped, so the list still selects the row.
+    // A press on an action cell is remembered and skipped, so the list still selects the row. A
+    // non-selectable list keeps every press from wxVListBox, which would select the row and take
+    // the focus.
     Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
         const Hit h = hit_test(e.GetPosition());
         m_pressed = h.cell >= 0 ? h : Hit{};
-        e.Skip();
+        if (m_selectable) e.Skip();
     });
     // The second press of a double-click on a cell is a press too, and is not skipped: the list
     // would otherwise turn it into a row double-click, so a quick double toggle of the eye would
     // also open the feature for editing.
     Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent& e) {
         const Hit h = hit_test(e.GetPosition());
-        if (h.cell < 0) { m_pressed = Hit{}; e.Skip(); return; }
+        if (h.cell < 0) { m_pressed = Hit{}; if (m_selectable) e.Skip(); return; }
         m_pressed = h;
     });
     Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
@@ -69,9 +79,9 @@ DesignRowList::DesignRowList(wxWindow* parent, int max_visible)
         const int id = m_rows[pressed.row].actions[pressed.cell].id;
         // After the click has finished dispatching: the action may rebuild these rows. The row
         // must still exist and still be the selected one, or the click is dropped rather than
-        // applied to whatever row took its place.
+        // applied to whatever row took its place. A non-selectable list has no selected row.
         CallAfter([this, row = pressed.row, id] {
-            if (row < int(GetItemCount()) && row == GetSelection() && on_action)
+            if (row < int(GetItemCount()) && (!m_selectable || row == GetSelection()) && on_action)
                 on_action(row, id);
         });
     });
@@ -79,7 +89,7 @@ DesignRowList::DesignRowList(wxWindow* parent, int max_visible)
     // press suppresses the wxEVT_CONTEXT_MENU that follows it.
     Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
         const Hit h = hit_test(e.GetPosition());
-        if (h.row != wxNOT_FOUND) select(h.row);
+        if (m_selectable && h.row != wxNOT_FOUND) select(h.row);
         e.Skip();
     });
     Bind(wxEVT_CONTEXT_MENU, [this](wxContextMenuEvent& e) {
@@ -95,7 +105,7 @@ DesignRowList::DesignRowList(wxWindow* parent, int max_visible)
             return;
         // On MSW the menu comes with the button's release, and the pointer may have moved to
         // another row since the press selected one: the menu is for the row it opens over.
-        select(row);
+        if (m_selectable) select(row);
         if (on_menu) on_menu(row, screen);
     });
     // wxVListBox takes every wheel event, even with nothing to scroll, so a short list would stop
@@ -254,7 +264,7 @@ void DesignRowList::OnDrawBackground(wxDC& dc, const wxRect& rect, size_t n) con
     wxColour bg;
     if (IsSelected(n))
         bg = StateColor::darkModeColorFor(wxColour("#BFE1DE"));
-    else if (int(n) == m_hover.row)
+    else if (m_selectable && int(n) == m_hover.row)   // a non-selectable row lights only its icons
         bg = StateColor::darkModeColorFor(wxColour("#E5F0EE"));
     if (!bg.IsOk())
         return;   // the list already cleared to its background colour
@@ -314,7 +324,7 @@ DesignRowList::Hit DesignRowList::hit_test(const wxPoint& pt) const
     const wxRect rect = GetItemRect(h.row);
     const auto&  acts = m_rows[h.row].actions;
     for (size_t i = 0; i < acts.size(); ++i)
-        if (cell_rect(rect, acts.size(), i).Contains(pt)) {
+        if (!acts[i].icon.empty() && cell_rect(rect, acts.size(), i).Contains(pt)) {
             h.cell = int(i);
             break;
         }

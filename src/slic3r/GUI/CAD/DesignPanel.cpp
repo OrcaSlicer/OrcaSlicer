@@ -9,6 +9,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
+#include "libslic3r/AppConfig.hpp"        // design_* view preferences
 #include "libslic3r/TriangleMesh.hpp"     // mesh import: STL/OBJ -> indexed_triangle_set
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"   // put_other_changes: mark the project dirty outside the undo stack
@@ -35,6 +36,7 @@
 #include "libslic3r/Point.hpp"
 #include <cstdlib>
 #include <exception>
+#include <initializer_list>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/CAD/SketchSolver.hpp"
@@ -104,7 +106,6 @@
 #include "libslic3r/Model.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "libslic3r/BuildVolume.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
@@ -275,12 +276,33 @@ static std::string commit_icon(bool bodies)
 }
 
 // The icons on each Feature tree and Bodies row (DesignRowList::Action::id).
-enum RowAction { RowEdit, RowMove, RowVisibility, RowDelete };
+enum RowAction { RowEdit, RowMove, RowVisibility, RowDelete, RowZoom };
+// The rows of the Feature tree's pinned block, above the features.
+static constexpr int kOriginRow = 0, kBedRow = 1;
 
 // A row's eye shows the state the row is in; its tip names what a click does.
 static DesignRowList::Action eye_action(bool shown)
 {
     return { RowVisibility, shown ? "design_eye" : "design_eye_off", shown ? _L("Hide") : _L("Show") };
+}
+
+// What the Origin row's eye and its menu item do.
+static wxString origin_toggle_text(bool shown)
+{
+    return shown ? _L("Hide reference planes and axes") : _L("Show reference planes and axes");
+}
+
+// What the Bed row's eye and its menu item do.
+static wxString bed_toggle_text(bool shown)
+{
+    return shown ? _L("Hide the printer bed and its plate grid")
+                 : _L("Show the printer bed and its plate grid");
+}
+
+// What Sketch asks for while it waits for a plane (DesignPanel::start_sketch).
+static wxString sketch_plane_prompt()
+{
+    return _L("Click a reference plane or a flat face to sketch on it — Esc cancels");
 }
 
 // Prepare outlines every numeric field (rounded, #4A4A51 on dark). wxSpinCtrlDouble is a
@@ -471,22 +493,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_construction->SetForegroundColour(dp_ctl_text());
     auto select_tool = [this](DesignSketchTool::Mode mode, const wxString& hint) {
         if (!m_viewport) return;
-        if (!m_viewport->is_sketching()) {
-            wxString on;
-            const SketchPlane plane = sketch_plane_from_selection(on);
-            m_viewport->begin_sketch(plane, mode);
-            m_construction->SetValue(false);   // a fresh session starts non-construction
-            m_sketch_on = on;                  // shown with the tool hint, so the target is visible
-            // The face has been CONSUMED as the sketch plane, so drop the pick. Leaving it live
-            // meant the next Extrude saw a selected face and push/pulled it instead of extruding
-            // the sketch just drawn — the same trap the imported-art path already guards against.
-            if (m_sel_solid_face >= 0 || m_pick_face >= 0) {
-                m_sel_solid_face = m_sel_solid_edge = m_sel_solid_body = -1;
-                m_pick_face = m_pick_face_body = -1;
-            }
-        } else {
-            m_viewport->set_sketch_tool(mode);
-        }
+        // Sketch mode opens with its session (start_sketch_on_target); this covers a mode a
+        // failed Constrain left without one.
+        if (!m_viewport->is_sketching())
+            start_sketch_on_target(false);
+        m_viewport->set_sketch_tool(mode);
         m_viewport->set_sketch_construction(m_construction->GetValue());
         set_status(StatusKind::Info, m_sketch_on.IsEmpty() ? hint
                            : wxString::Format(_L("%s  ·  plane: %s"), hint, m_sketch_on));
@@ -597,17 +608,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_status(_L("Axonometric view, fitted"));
     };
 
-    // Commit to Plate and the bed toggle were mouse-only: a toolbar button and a checkbox with
-    // no accelerator between them, so neither could be reached from the keyboard at all, nor by
-    // anything driving the keyboard. Ctrl+Shift+P is Plate, Ctrl+Shift+B is Bed; neither
-    // collides with Orca's own Ctrl+Shift+S (Save as) or Ctrl+Shift+G (Print plate).
+    // Commit to Plate and the bed and origin toggles are mouse targets — a toolbar button and the
+    // Feature tree's Bed and Origin rows, which never take the focus — so without an accelerator
+    // none could be reached from the keyboard, nor by anything driving the keyboard. Ctrl+Shift+P
+    // is Plate, Ctrl+Shift+B is Bed, Ctrl+Shift+O is Origin; none collides with Orca's own
+    // Ctrl+Shift+S (Save as) or Ctrl+Shift+G (Print plate).
     m_keys_feature['P' | SC_SHIFT | SC_CTRL] = [this] { on_commit(); };
     m_keys_feature['B' | SC_SHIFT | SC_CTRL] = [this] {
-        if (!m_show_bed) return;
-        const bool show = !m_show_bed->GetValue();
-        m_show_bed->SetValue(show);
-        if (m_viewport) m_viewport->set_show_bed(show);
-        set_status(show ? _L("Bed shown") : _L("Bed hidden"));
+        toggle_bed();
+        set_status(m_show_bed ? _L("Bed shown") : _L("Bed hidden"));
+    };
+    m_keys_feature['O' | SC_SHIFT | SC_CTRL] = [this] {
+        toggle_origin();
+        set_status(m_show_origin ? _L("Reference planes shown") : _L("Reference planes hidden"));
     };
 
     // Flyout rows show the design_* glyphs as they are: drawn in Orca's icon grey (#949494), which
@@ -625,14 +638,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // the addresses are created inside the widget-building loops, so not building would silently
     // delete 42 verbs from the offer while they still rendered. 7ih records the cleanup
     // that lets the construction go away too.
-    // What stays: the two doc-row imports (consumed by add_doc below) and the view controls,
-    // which are chrome_only in the atlas and so have no offer row to fall back on.
-    static const std::set<std::string> kBarKeep = { "step", "mesh", "place", "section", "flip" };
+    // What stays: the view controls, which are chrome_only in the atlas and so have no offer row
+    // to fall back on, and Sketch, the group's lead. All four are built with the doc buttons.
+    static const std::set<std::string> kBarKeep = { "place", "section", "flip" };
     auto fadd = [&tb_slot](const char* id, wxWindow* w) {
         if (kBarKeep.count(id) == 0) { w->Hide(); return; }
         tb_slot[id].push_back(w);
     };
-    m_tb_feature->Add(caption(_L("FEATURES")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
     {
         // Onshape-style FEATURE flyouts: same themed-DropDown pattern as the sketch toolbar
         // (tinted glyphs, Body_14 measure, content-width popup) but each entry runs an
@@ -710,36 +722,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
             fadd(id, chev);
         };
 
-        auto* b_sketch = icon_btn("design_sketch", _L("Sketch"));
-        // Sketch means a tool. Pressing it used to set the mode and then ask, unconditionally,
-        // for the very thing the user had just done — click XZ, read "XZ plane selected, press
-        // Sketch", press Sketch, and be told to click a reference plane. The plane was never
-        // lost (m_ref_plane holds it and begin_sketch captures it when the first tool is armed);
-        // the sentence was simply false, and with right-click excluded in sketch mode there was
-        // no door to the tools at all, so the only way on was the toolbar this tab is retiring.
-        std::function<void()> act_sketch = [this] {
-            set_ui_mode(UiMode::Sketch);
-            wxString where;
-            const bool have_plane = sketch_plane_target(where);
-            set_status(StatusKind::Info, have_plane
-                ? wxString::Format(_L("Sketch plane: %s — pick a tool"), where)
-                : _L("Click a face or a reference plane in the viewport, then a sketch tool"));
-            if (m_sketch_hint) {   // the card must agree with the status line, not argue with it
-                m_sketch_hint->SetLabel(have_plane
-                    ? wxString::Format(_L("Sketch plane: %s.\nPick a tool, or press Menu for the list."), where)
-                    : _L("Click a face or a reference plane, then a sketch tool."));
-                m_sketch_hint->Refresh();
-                m_cards->Layout();
-            }
-            // Hand over the tools rather than naming them in a status line. CallAfter so the
-            // mode change has settled before a modal menu takes the loop; the menu carries each
-            // tool's shortcut, so pressing the key instead of picking a row costs nothing.
-            if (have_plane)
-                CallAfter([this] { show_offer_menu(offer_anchor()); });
-        };
-        b_sketch->Bind(wxEVT_BUTTON, [act_sketch](wxCommandEvent&) { act_sketch(); });
-        m_keys_feature[SHIFT('S')] = act_sketch;
-        fadd("sketch", b_sketch);
+        // Sketch opens a sketch on the face or plane already picked, or asks for one first
+        // (start_sketch): sketch mode is never entered without a plane under it. Its button is
+        // built with the doc buttons below.
+        m_keys_feature[SHIFT('S')] = [this] { start_sketch(); };
         // Add material: every feature that grows new solid material — from a profile
         // (extrude/revolve/sweep/loft), from a face (thicken) or from a line (rib).
         feat_dropdown("material", "design_extrude", _L("Add material (extrude / revolve / sweep / loft / thicken / rib)"), {
@@ -1080,6 +1066,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_color->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_set_body_color(); });
         fadd("color", b_color);
         m_verb_actions["btn:colour"] = [this] { on_set_body_color(); };
+        m_verb_actions["btn:zoom_to"] = [this] { zoom_to_selection(); };
         m_verb_actions["btn:delete"] = [this] { on_delete_feature(); };
         // A row's double-click is Edit, so renaming needs a door of its own. The offer is this
         // tab's only tool vocabulary and the row IS the object, so rename sits in the offer, in
@@ -1091,8 +1078,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // is editable now (CadBody::user_name), so the verb opens the editor there.
             if (const int b = tree_body_selection(); b >= 0)
                 m_parts->begin_rename(b);
-            else if (const int sel = tree_selection(); sel != wxNOT_FOUND)
-                m_tree->begin_rename(sel);
+            else if (tree_selection() != wxNOT_FOUND)
+                m_tree->begin_rename(m_tree->selection());
             else
                 set_status(_L("Select a feature, or a body, first — then rename it"));   // not an error
         };
@@ -1240,18 +1227,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
              }, SHIFT('T')},
         });
         // Text / SVG insert tools live in the SKETCH toolbar (they produce 2D profiles =
-        // sketches), not here. STEP stays in Features: it imports a whole B-rep solid.
-        // Import STEP — standalone: a STEP comes in as a whole editable B-rep body, not a profile.
-        auto* b_step = icon_btn("design_step", _L("Import STEP (editable B-rep solid)"));
-        b_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_step(); });
-        m_keys_feature[SHIFT('I')] = [this] { on_import_step(); };
-        fadd("step", b_step);
-        // Import mesh — same destination as STEP (an editable B-rep body), but the geometry has
-        // to be reconstructed from triangles first (GeometryEngine::mesh_to_brep).
-        auto* b_mesh = icon_btn("param_triangles", _L("Import mesh (STL/OBJ) as an editable B-rep solid"));
-        b_mesh->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_mesh(); });
-        m_keys_feature[SHIFT('M')] = [this] { on_import_mesh(); };
-        fadd("mesh", b_mesh);
+        // sketches), not here. Import STEP / mesh are document actions: see the doc row.
         auto* b_constrain = icon_btn("design_constrain", _L("Constrain selected sketch"));
         b_constrain->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             on_begin_constrain();
@@ -1398,12 +1374,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // the sketch tools, not in the generic Features strip. Each places the art
         // in-canvas, then commits via the Insert card's Confirm.
         {
-            // In Sketch MODE the art must land in the sketch — but begin_sketch() does not run
-            // until the first tool is armed, so pressing Sketch and then Text would find no
-            // session and commit a separate feature. Arm Select first: it starts the session on
-            // the picked plane without drawing anything, so Text behaves the same whether or not
-            // you had already drawn a line. (MODE vs SESSION — the distinction that has bitten
-            // this panel before.)
+            // In Sketch MODE the art must land in the sketch. The mode opens with its session
+            // (start_sketch_on_target), but a failed Constrain can leave it without one, and Text
+            // would then find no session and commit a separate feature. Arm Select first: it
+            // starts the session without drawing anything. (MODE vs SESSION — the distinction
+            // that has bitten this panel before.)
             auto ensure_sketch = [this, select_tool] {
                 if (m_ui_mode == UiMode::Sketch && m_viewport && !m_viewport->is_sketching())
                     select_tool(DesignSketchTool::Mode::Select,
@@ -1540,10 +1515,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
             }
             m_viewport->set_sketch_construction(m_construction->GetValue()); });
         // STAYS on the bar. Construction is not a tool, it is a persistent MODE — the same kind
-        // of thing as the Bed checkbox — and the sketch bar is already shown only in Sketch mode,
-        // so it appears exactly while it can apply. Hiding it left Q and the offer's Construction
-        // row still toggling a checkbox nobody could see: you could not tell whether the next
-        // line would be construction geometry. A stateful toggle has to show its state.
+        // of thing as the Feature tree's Bed row — and the sketch bar is already shown only in
+        // Sketch mode, so it appears exactly while it can apply. Hiding it left Q and the offer's
+        // Construction row still toggling a checkbox nobody could see: you could not tell whether
+        // the next line would be construction geometry. A stateful toggle has to show its state.
         sadd_bar(m_construction);
         add_sep(m_tb_sketch);
         auto* b_del = icon_btn("design_delete", _L("Delete selected"));
@@ -1633,31 +1608,29 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto add_doc = [this](ScalableButton* b) {
             m_tb_doc->Add(b, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4); };
 
-        auto* b_new = doc_btn("add", _L("New Design — clear the feature tree"));
+        auto* b_new = doc_btn("design_new", _L("New Design — clear the feature tree"));
         b_new->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_new_design(); });
         add_doc(b_new);
-        add_doc(static_cast<ScalableButton*>(tb_slot["step"][0]));   // 2. Import STEP
-        add_doc(static_cast<ScalableButton*>(tb_slot["mesh"][0]));   // 3. Import mesh
-        auto* b_export = doc_btn("save", _L("Export STEP…"));
+        // Import STEP — a STEP comes in as a whole editable B-rep body, not a profile.
+        auto* b_step = doc_btn("design_step", _L("Import STEP (editable B-rep solid)"));
+        b_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_step(); });
+        m_keys_feature[SHIFT('I')] = [this] { on_import_step(); };
+        add_doc(b_step);
+        // Import mesh — same destination as STEP (an editable B-rep body), but the geometry has
+        // to be reconstructed from triangles first (GeometryEngine::mesh_to_brep).
+        auto* b_mesh = doc_btn("design_import_mesh", _L("Import mesh (STL/OBJ) as an editable B-rep solid"));
+        b_mesh->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_mesh(); });
+        m_keys_feature[SHIFT('M')] = [this] { on_import_mesh(); };
+        add_doc(b_mesh);
+        auto* b_export = doc_btn("design_export", _L("Export STEP…"));
         b_export->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
         add_doc(b_export);
 
-        // View option, not a document action: hide the printer bed to model without it. Lives in
-        // this row because it must stay reachable with no tool open — a card would come and go.
-        m_show_bed = new CheckBox(m_toolbar);
-        m_show_bed->SetValue(true);                 // bed visible by default, as the tab opens today
-        m_show_bed->SetToolTip(_L("Show the printer bed and its plate grid"));
-        // wxEVT_TOGGLEBUTTON, NOT wxEVT_CHECKBOX: Orca's CheckBox derives from
-        // wxBitmapToggleButton (Widgets/CheckBox.hpp), so a wxEVT_CHECKBOX handler never fires.
-        // Read the control rather than the event so the state cannot disagree with the glyph.
-        m_show_bed->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
-            if (m_viewport) m_viewport->set_show_bed(m_show_bed->GetValue());
-            e.Skip();
-        });
-        auto* bed_lbl = new wxStaticText(m_toolbar, wxID_ANY, _L("Bed"));
-        bed_lbl->SetForegroundColour(dp_sec_text());
-        m_tb_doc->Add(m_show_bed, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
-        m_tb_doc->Add(bed_lbl,    0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
+        // Sketch leads the feature group. Momentary like the imports: start_sketch() may only ask
+        // for a plane, or refuse, and a teal active-tool state would outlive either.
+        auto* b_sketch = doc_btn("design_new_sketch", _L("Create a new sketch"));
+        b_sketch->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { start_sketch(); });
+        tb_slot["sketch"].push_back(b_sketch);
 
         // These act on bodies / the view, so they ride in the feature group, in the slots
         // the user assigned them (9, 11bis, 16).
@@ -3111,11 +3084,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // looking and pointing. A combo duplicated that decision somewhere the geometry could not
         // see it, and once a face could be picked it went further and displayed a stale row that
         // contradicted the real target. e1p.
-        // Kept as a member, not a local: the card has to be able to STOP saying this. It asked
-        // for a plane even when one had just been picked, directly contradicting the status line
-        // two inches below it, which by then read "Sketching on XZ".
-        m_sketch_hint = new wxStaticText(m_cards, wxID_ANY,
-            _L("Click a face or a reference plane, then a sketch tool."));
+        // A member, not a local: it names the plane the session opened on, which is known only
+        // when it opens (start_sketch_on_target writes it), so the card and the status line agree.
+        m_sketch_hint = new wxStaticText(m_cards, wxID_ANY, _L("Pick a tool, or press Menu for the list."));
         m_sketch_hint->SetForegroundColour(dp_sec_text());
         m_box_sketch_session->Add(m_sketch_hint, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 12);
     }
@@ -3159,10 +3130,33 @@ DesignPanel::DesignPanel(wxWindow* parent)
               FromDIP(SidebarProps::ContentMargin()));
     tree_inner->Add(new wxStaticLine(m_tree_box), 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
               FromDIP(SidebarProps::TitlebarMargin()));
-    // Sized to its rows, so a short history wastes no block, and scrolling past 9.
+    // The Origin and Bed switches sit on the card itself, unframed, above the features' own framed
+    // list: view switches, not history. A list of their own so they stay put while the features
+    // scroll, and a non-selectable one because selecting them would do nothing: only their eyes
+    // answer. 13 = the feature list's margin plus its frame, so the two lists' icons line up.
+    m_pinned = new DesignRowList(m_tree_box, 2, false, wxBORDER_NONE);
+    m_pinned->SetBackgroundColour(dp_panel_bg());
+    tree_inner->Add(m_pinned, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 13);
+    // Sized to its rows, so a short history wastes no block, and scrolling past 9 features.
     m_tree = new DesignRowList(m_tree_box, 9);
     m_tree->SetBackgroundColour(dp_panel_bg());
     tree_inner->Add(m_tree, 0, wxEXPAND | wxALL, 12);
+
+    m_pinned->on_action = [this](int row, int) {
+        if (row == kBedRow)
+            toggle_bed();
+        else if (row == kOriginRow)
+            toggle_origin();
+    };
+    // Exactly what the eye does, named.
+    m_pinned->on_menu = [this](int row, const wxPoint& screen) {
+        const bool bed = (row == kBedRow);
+        wxMenu     menu;
+        const int  id_toggle = wxWindow::NewControlId();
+        menu.Append(id_toggle, bed ? bed_toggle_text(m_show_bed) : origin_toggle_text(m_show_origin));
+        menu.Bind(wxEVT_MENU, [this, bed](wxCommandEvent&) { bed ? toggle_bed() : toggle_origin(); }, id_toggle);
+        m_pinned->PopupMenu(&menu, m_pinned->ScreenToClient(screen));
+    };
 
     // Selecting a feature that leaves a body (Extrude, Fillet, Chamfer, Hole, ...) lights the
     // faces it made in the viewport — the fillet's round, not the whole part it sits on.
@@ -3172,7 +3166,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // "the target" — but ONLY when this tree has a selection. Each list notifies on every
         // change, so clicking a body row runs apply_body_row, whose m_tree->unselect() fires
         // THIS handler, which would otherwise clear the body row the user had just clicked.
-        if (m_parts && tree_selection() != wxNOT_FOUND) m_parts->unselect();
+        if (m_parts && m_tree->selection() != wxNOT_FOUND) m_parts->unselect();
         const int sel = tree_selection();
         // Likewise a viewport pick, which would be drawn just like the feature's faces. Not while
         // a card is open: the card reads that pick.
@@ -3194,14 +3188,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     };
 
     // Double-click a row = Edit, the same gesture that re-opens a committed sketch on the canvas.
-    m_tree->on_activate = [this] { on_edit_feature(); };
+    m_tree->on_activate = [this] {
+        if (tree_selection() != wxNOT_FOUND) on_edit_feature();
+    };
 
-    // The row's own Edit / Show-hide / Delete, on the row the click selected. The body list is
-    // cleared here too, not left to on_select, which re-clicking the selected row does not run:
-    // a body row still selected would be what on_toggle_visibility acts on.
-    m_tree->on_action = [this](int, int id) {
+    // The row's own Zoom to selection / Edit / Show-hide / Delete, on the row the click selected.
+    // The body list is cleared here too, not left to on_select, which re-clicking the selected row
+    // does not run: a body row still selected would be what on_toggle_visibility acts on.
+    m_tree->on_action = [this](int row, int id) {
         if (m_parts) m_parts->unselect();
         switch (id) {
+        case RowZoom:       zoom_to_feature(row);   break;
         case RowEdit:       on_edit_feature();      break;
         case RowVisibility: on_toggle_visibility(); break;
         case RowDelete:     on_delete_feature();    break;
@@ -3222,6 +3219,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const int id_up     = wxWindow::NewControlId();
         const int id_down   = wxWindow::NewControlId();
         const int id_vis    = wxWindow::NewControlId();
+        const int id_zoom   = wxWindow::NewControlId();
         const int id_art    = wxWindow::NewControlId();
         const int id_del    = wxWindow::NewControlId();
         menu.Append(id_rename, _L("Rename\tF2"));
@@ -3236,6 +3234,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         menu.Append(id_up,     _L("Move up"));
         menu.Append(id_down,   _L("Move down"));
         menu.Append(id_vis,    _L("Show / hide"));
+        // Offered where the row's own icon is: on a row with something to frame.
+        const bool zoom = can_zoom_to_feature(row);
+        if (zoom) menu.Append(id_zoom, _L("Zoom to selection"));
         menu.AppendSeparator();
         menu.Append(id_del,    _L("Delete"));
         menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { m_verb_actions["btn:rename"](); }, id_rename);
@@ -3246,6 +3247,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_delete_feature(); },    id_del);
         if (art)
             menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { on_transform_imported(row); }, id_art);
+        if (zoom)
+            menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { zoom_to_feature(row); }, id_zoom);
         m_tree->PopupMenu(&menu, m_tree->ScreenToClient(screen));
     };
 
@@ -3347,12 +3350,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_status(StatusKind::Info, wxString::Format(_L("Body %d selected — right-click for what applies to it"), b + 1));
     };
     m_parts->on_select = [this, apply_body_row] { apply_body_row(tree_body_selection()); };
-    // The row's own Move / Show-hide / Delete. apply_body_row runs unconditionally, as for the
-    // menu below: a face picked in the viewport since the row was selected has moved
-    // m_sel_solid_body, which is the body on_move_body and on_delete_body act on.
+    // The row's own Zoom to selection / Move / Show-hide / Delete. apply_body_row runs
+    // unconditionally, as for the menu below: a face picked in the viewport since the row was
+    // selected has moved m_sel_solid_body, which is the body on_move_body and on_delete_body act
+    // on.
     m_parts->on_action = [this, apply_body_row](int row, int id) {
         apply_body_row(row);
         switch (id) {
+        case RowZoom:       zoom_to_body(row);      break;
         case RowMove:       on_move_body();         break;
         case RowVisibility: on_toggle_visibility(); break;
         case RowDelete:     on_delete_body();       break;
@@ -3365,9 +3370,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // been promising this right-click since before it existed.
     m_parts->on_menu = [this, apply_body_row](int row, const wxPoint& screen) {
         apply_body_row(row);   // unconditional — see above
-        // Let the modal menu take the loop after this handler returns — same CallAfter as the
-        // sketch path, which learned it the hard way.
-        CallAfter([this, screen] { show_offer_menu(screen); });
+        // From inside the event, as the feature rows do, never CallAfter'd: wxGTK sends the
+        // context menu on the right PRESS, and a menu GTK pops after that event has finished
+        // has no trigger time, so the button's release closes it the moment it opens.
+        show_offer_menu(screen);
     };
     // Renaming a BODY names the body itself. It does NOT rename the feature that created it:
     // an Extrude, a Cut and a Fillet all land on one body, so source_feature is one operation in
@@ -3699,8 +3705,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // One selection at a time: a pick replaces the Feature tree row. Not while a card is open:
         // the feature being edited keeps its row while the card's picks are made.
         if (level >= 1 && m_active == Tool::None && m_tree) m_tree->unselect();
-        // A pick that fell through the move gizmo (clicked off the arrows) exits move mode.
-        if (m_viewport->moving_body()) m_viewport->clear_move_gizmo();
         // Remember which body + face/edge so Extrude / dress-up target the RIGHT body.
         m_sel_solid_body = (level >= 1) ? body : -1;
         m_sel_solid_face = (level == 2) ? face : -1;   // 4 = Vertex: a corner is not its face
@@ -3712,8 +3716,29 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_pick_face_body = (level >= 1) ? body : -1;
         m_pick_face      = (level >= 1) ? face : -1;
         // Last pick wins: a leftover loop pick would block Extrude's face push/pull branch, so
-        // Extrude would extrude a sketch instead of push/pulling the clicked face.
-        if (level >= 1) m_viewport->clear_loop_pick();
+        // Extrude would extrude a sketch instead of push/pulling the clicked face. And a reference
+        // plane picked before stops being the one chosen, as a plane pick drops a face: otherwise it
+        // would come back as the sketch plane, and be drawn selected, once this pick is let go.
+        if (level >= 1) {
+            m_viewport->clear_loop_pick();
+            m_plane_picked = false;
+        }
+        // Sketch is waiting for a plane: a flat face is one. m_pick_face is the face the click
+        // landed on whether it took the face, one of its edges or a corner — the rule Sketch
+        // applies to a face picked beforehand. A curved face says why it was not taken; a swept
+        // body or a click that let go of the pick leaves the prompt up.
+        if (sketch_plane_pick_live()) {
+            wxString on;
+            if (level >= 1 && sketch_plane_target(on)) {
+                start_sketch_on_target(true);
+                return;
+            }
+            set_status(StatusKind::Info, level >= 1 && m_pick_face >= 0
+                ? _L("That face is not flat — click a flat face or a reference plane")
+                : sketch_plane_prompt());
+            m_status->Refresh();
+            return;
+        }
         // Say what got picked. Without this the ONLY feedback is the viewport highlight, so a
         // pick that registers but draws faintly is indistinguishable from one that never
         // happened — which is precisely how this failure was reported and why it resisted
@@ -3909,7 +3934,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // A click on nothing drops a list row as it drops a pick. Not while a card is open: the
     // feature being edited keeps its row.
     m_viewport->set_on_empty_pick([this] {
-        if (m_active == Tool::None && deselect_rows())
+        if (m_active != Tool::None) return;
+        const bool row = deselect_rows();
+        if (drop_plane_pick() || row)
             set_status(StatusKind::Info, _L("Nothing selected"));
     });
 
@@ -3987,27 +4014,36 @@ DesignPanel::DesignPanel(wxWindow* parent)
             refresh_plane_labels();
             refresh_preview();   // re-resolve the frame + move the gizmo/ghosts to the new base
         } else {
-            // Clicking a reference plane in 3D IS how a sketch plane is chosen now. Record it and,
-            // when a session is already live, re-plane it immediately: begin_sketch captures the
-            // plane at first-tool-pick, so without this the entities would stay on the old plane
-            // while the committed feature landed on the new one.
+            // Clicking a reference plane in 3D IS how a sketch plane is chosen. The planes are
+            // only pickable outside a session (DesignSketchTool hit-tests them while no session
+            // is live), and the canvas reports the click after clearing the solid selection on the
+            // same miss, so the face pick is already empty and the sketch falls back to this plane.
             if (base >= 0) {
                 m_ref_plane = base;
                 m_plane_picked = true;                 // chosen, not merely defaulted to
                 m_pick_face = m_pick_face_body = -1;   // last pick wins: a plane beats a stale face
-                if (m_viewport && m_viewport->is_sketching())
-                    m_viewport->set_sketch_plane(plane_from_choice(m_ref_plane));
+            }
+            if (base >= 0 && sketch_plane_pick_live()) {
+                start_sketch_on_target(true);         // Sketch was waiting for exactly this
+                return;
             }
             const wxString nm = ref_plane_name(base);
-            // Both halves named the TOOLBAR, which no longer carries either button: the tools
-            // moved to the offer. Name the gesture that actually works in each mode, and say
-            // what a plain click does, since the two are easy to confuse on a plane.
-            set_status(StatusKind::Ok, m_ui_mode == UiMode::Sketch
-                ? wxString::Format(_L("%s plane selected — right-click for the drawing tools"), nm)
-                : wxString::Format(_L("%s plane selected — right-click to sketch on it, "
-                                      "or click an object to select it"), nm));
+            // Name the gesture that works, and what a plain click does, since the two are easy to
+            // confuse on a plane.
+            set_status(StatusKind::Ok,
+                wxString::Format(_L("%s plane selected — right-click to sketch on it, "
+                                    "or click an object to select it"), nm));
             m_status->Refresh();
         }
+    });
+    // The reference plane drawn selected: the Plane card's base, or else the plane a sketch would go
+    // on — chosen, and not overridden by a picked face (sketch_plane_target's test, without its
+    // per-face OCCT lookup, as this is asked every frame).
+    m_viewport->set_selected_base([this] {
+        if (m_active == Tool::Plane)
+            return m_plane_base != nullptr && m_pl_faceA < 0 ? m_plane_base->GetSelection() : -1;
+        const bool face = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) || (m_pick_face >= 0 && m_pick_face_body >= 0);
+        return m_plane_picked && !face ? m_ref_plane : -1;
     });
 
     // Move-body gizmo (M5): each drag/edit reports the body's new translation. Store it as a
@@ -4144,13 +4180,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const int  key  = e.GetKeyCode();
         const bool ctrl = e.ControlDown() || e.CmdDown();
         const bool sketching = (m_ui_mode == UiMode::Sketch) && m_viewport && m_viewport->is_sketching();
-        // Which key MAP applies is a question about the MODE, not about whether a session is
-        // already running. Gating the sketch map on is_sketching() made it unreachable by
-        // keyboard: is_sketching() only turns true inside select_tool()'s begin_sketch(), and
-        // select_tool() is what the sketch keys call — so the first letter after entering
-        // sketch mode fell through to the feature map, matched nothing (feature keys are
-        // Shift+letter), and did nothing. The mouse worked only because the toolbar flyout
-        // reaches select_tool() directly. That is why all 17 keys read as dead. 0ud.
+        // Which key MAP applies is a question about the MODE, not about the canvas tool:
+        // is_sketching() is true in Constrain too, which keeps the feature map. 0ud.
         const bool sketch_mode = (m_ui_mode == UiMode::Sketch);
         // Never steal editing keys from a focused text field or an open in-canvas value field —
         // Delete/Ctrl+Z there must edit the text, not the model.
@@ -4416,7 +4447,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         assert(dead.empty());   // debug builds stop here; release ships the log line
     }
 
+    m_show_origin = wxGetApp().app_config->get_bool("design_show_origin");
+    m_show_bed    = wxGetApp().app_config->get_bool("design_show_bed");
+    if (m_viewport) m_viewport->set_show_bed(m_show_bed);
     set_ui_mode(UiMode::Feature);
+    // The Origin and Bed rows from the first paint: nothing else builds them before the first
+    // edit, project load or theme switch.
+    refresh_pinned();
     build_phase("wiring");
     BOOST_LOG_TRIVIAL(info) << "Design tab build: total " << build_clock.Time() << " ms";
 }
@@ -4460,7 +4497,13 @@ void DesignPanel::apply_dof_status(int dof, bool ok, bool has_constraints)
 
 void DesignPanel::set_ui_mode(UiMode m)
 {
+    // A session's ✓/✗ and Esc are its own; a Move left open would answer them instead, unseen,
+    // since the gizmo is not drawn in a sketch.
+    if (m != UiMode::Feature) end_body_move(true);
     m_ui_mode = m;
+    // Any mode change ends a plane choice under way; the refreshes below put the planes and the
+    // ✓/✗ right for it.
+    m_choosing_sketch_plane = false;
     if (m != UiMode::Sketch) m_sketch_on.clear();   // no stale "on the picked face" on the next hint
     // A committed loop picked before the session means nothing to the sketch map, but it would
     // still count as a selection and swallow the first Esc. The double-click that opens a sketch
@@ -4507,9 +4550,8 @@ void DesignPanel::set_ui_mode(UiMode m)
         m_form->FitInside();
     }
     update_action_bar();   // Sketch/Constrain modes show the unified ✓/✗; Feature idle hides it
-    // The origin planes follow the mode: entering Sketch offers them even when a body exists,
-    // leaving it takes them back. Without this they would only refresh on the next tree
-    // rebuild, which is not an event that happens when you merely press Sketch.
+    // The reference planes follow the plane choice the mode change just ended
+    // (update_reference_planes); without this they would wait for the next tree rebuild.
     update_reference_planes();
 
     // Say where you are, in words, across the top of the viewport.
@@ -4519,8 +4561,8 @@ void DesignPanel::set_ui_mode(UiMode m)
     // Seen on the rig: pick XY, arm Line, and the viewport is an empty grey field — no bed, no
     // grid, no origin, nothing to judge a length or a direction against. The plate grid was
     // carrying the ground reference for the whole tab. The banner already says where you are;
-    // taking the floor away as well only made the sketch harder to draw. The Bed checkbox is the
-    // one thing that governs the bed, in every mode.
+    // taking the floor away as well only made the sketch harder to draw. The Feature tree's Bed
+    // row is the one thing that governs the bed, in every mode.
     if (m_sketch_banner != nullptr) {
         const bool sketching = (m == UiMode::Sketch);
         if (sketching && m_sketch_banner_txt != nullptr)
@@ -4546,7 +4588,9 @@ void DesignPanel::set_status_ok()
     set_status(wxString::Format(_L("OK — %zu triangles"),
                                         m_doc.display_mesh.its.indices.size()));
     if (m_viewport != nullptr) {
-        m_viewport->clear_move_gizmo();   // a recompute invalidates the gizmo's body centroid
+        // A recompute invalidates the gizmo's body centroid; a Move ends with it, keeping its pose.
+        if (body_move_pending()) end_body_move(true);
+        else                     m_viewport->clear_move_gizmo();   // the Transform card's, if up
         rebuild_disp_meshes();            // apply per-body Move transforms to the display/pick meshes
         // Point the solid-pick at the fresh body + TRANSFORMED pick mesh (stable address) + the
         // per-body xform vector (for edge sampling). Resets the whole/face/edge selection, whose
@@ -4657,6 +4701,8 @@ void DesignPanel::on_add_text()
 void DesignPanel::open_text_dialog(int feat)
 {
     if (m_text_dlg != nullptr) { m_text_dlg->Raise(); return; }
+    end_body_move(true);
+    end_sketch_plane_choice();   // the text goes on the plane picked before, not on the next click
     m_text_editing = feat >= 0 && feat < int(m_doc.features.size()) && m_doc.features[feat].is_text();
     m_text_feat    = m_text_editing ? feat : -1;
     m_text_face_body = -1;
@@ -5116,7 +5162,9 @@ void DesignPanel::add_imported_sketch(
 // Show the Insert Confirm/Cancel card while the imported art is being placed/sized.
 void DesignPanel::open_insert_card(const wxString& base_name)
 {
+    end_body_move(true);
     m_active = Tool::Insert;
+    end_sketch_plane_choice();
     if (m_hdr_insert) m_hdr_insert->SetLabel(base_name);
     wxSizer* s = m_cards->GetSizer();
     s->Show(m_box_insert, true, true);
@@ -5161,6 +5209,8 @@ void DesignPanel::on_transform_imported(int feat_idx)
     const CadFeature& f = m_doc.features[feat_idx];
     if (f.imported_regions.empty())
         return;
+    end_body_move(true);   // the art's placement gizmo and ✓/✗ take over from a Move left open
+    end_sketch_plane_choice();   // ...and from a plane choice: Scale artwork reaches here directly
     // In-canvas bbox handles (replaces the Move/Scale dialog): drag a corner to scale,
     // the centre to move. Values stream back via set_on_imported_transform.
     m_viewport->begin_imported_transform(feat_idx, f.imported_regions, f.plane,
@@ -5688,7 +5738,6 @@ void DesignPanel::on_add_transform()
                          // below does not — without this the body would keep showing the
                          // dragged pose after a Transform that failed to build.
         m_xf_gizmo_body = -1;
-        m_move_body     = -1;
     }
     if (m_doc.bodies.empty()) {
         set_status(StatusKind::Warning, _L("Transform needs a body — add or import one first"));
@@ -7247,7 +7296,7 @@ wxString DesignPanel::idle_hint() const
 {
     return m_doc.features.empty()
         ? _L("Nothing yet — import a STEP or a mesh from the toolbar,\n"
-             "or click a reference plane and right-click it to start a sketch.")
+             "or press Sketch and click a reference plane to start a sketch.")
         : _L("No solid yet — select a sketch and right-click it to Extrude.");
 }
 
@@ -7275,7 +7324,7 @@ void DesignPanel::on_tab_shown()
     if (m_viewport) m_viewport->refresh_bed();
 
     hydrate_from_model();
-    update_reference_planes();   // entering the Design tab: show the XY/XZ/YZ planes if no object yet
+    update_reference_planes();   // entering the Design tab
     if (show_clock.Time() > 100)   // a slow first show is what users report; the usual one is not news
         BOOST_LOG_TRIVIAL(info) << "Design tab shown: bed, project recipe and planes in " << show_clock.Time() << " ms";
     m_laid_out = true;
@@ -7336,6 +7385,7 @@ void DesignPanel::on_sys_color_changed()
     wxGetApp().UpdateDarkUIWin(this);
     refresh_icons();
     refresh_tree();   // the rows carry their own text colours
+    refresh_pinned();
     Refresh();
 }
 
@@ -7354,8 +7404,12 @@ void DesignPanel::hydrate_from_model()
     // that has none yet. A design in progress keeps its origin: its sketches have it baked into
     // their planes, so moving it under them (a printer change between visits) would slide the
     // datum planes off the geometry. A loaded project brings its own (load_recipe).
+    // The centre of the Design bed, not the plater's: the plater moves its bed onto the current
+    // plate, so on plate 2+ the origin would land one plate stride away from the bed drawn here.
+    // Re-synced first because the control socket calls this without on_tab_shown().
     if (!m_doc.origin_from_recipe) {
-        const Vec2d bc = plater->build_volume().bed_center();
+        m_viewport->refresh_bed();
+        const Vec2d bc = m_viewport->bed_center();
         m_doc.modeling_origin = Vec3d(bc.x(), bc.y(), 0.0);
         // A document started here takes the weld rule from the preference; a loaded one
         // brings its own (load_recipe).
@@ -7503,12 +7557,12 @@ void DesignPanel::refresh_tree()
     // Preserve the selected row across the rebuild — set_rows() drops the selection, which made
     // every edit/add feel like it "lost" the selection (and broke Edit/Move/Delete on the
     // just-touched feature).
-    const int keep = tree_selection();
+    const int keep = m_tree->selection();
 
     // Datum/reference planes carry no solid; feed them to the viewport so they render as
     // translucent rectangles (otherwise a Plane feature is invisible in the canvas).
     refresh_datum_planes();
-    update_reference_planes();   // body added/removed -> show/hide the XY/XZ/YZ origin planes
+    update_reference_planes();
     std::vector<DesignRowList::Row> rows;
     rows.reserve(m_doc.features.size());
     for (size_t fi = 0; fi < m_doc.features.size(); ++fi) {
@@ -7529,7 +7583,9 @@ void DesignPanel::refresh_tree()
         row.colour = !f.enabled                            ? dp_item_dim()
                    : mate_conflict_reason(int(fi)) != nullptr ? wxColour(235, 110, 110)
                                                               : dp_item_text();
+        // A row with nothing to frame keeps a blank cell, so the icons stay in their columns.
         row.actions = {
+            { RowZoom, can_zoom_to_feature(int(fi)) ? "design_zoom" : "", _L("Zoom to selection") },
             { RowEdit, "design_edit", _L("Edit") },
             eye_action(f.enabled),
             { RowDelete, "design_delete", _L("Delete") },
@@ -7573,6 +7629,7 @@ void DesignPanel::refresh_parts()
         // Hidden bodies are greyed and their eye is closed, so the state reads at a glance.
         row.colour  = vis ? dp_item_text() : dp_item_dim();
         row.actions = {
+            { RowZoom, "design_zoom", _L("Zoom to selection") },
             { RowMove, "design_move", _L("Move") },
             eye_action(vis),
             { RowDelete, "design_delete", _L("Delete") },
@@ -7605,10 +7662,20 @@ int DesignPanel::tree_body_selection() const
 // if a row was selected.
 bool DesignPanel::deselect_rows()
 {
-    const bool any = (m_tree && tree_selection() != wxNOT_FOUND) || tree_body_selection() >= 0;
+    const bool any = (m_tree && m_tree->selection() != wxNOT_FOUND) || tree_body_selection() >= 0;
     if (m_tree) m_tree->unselect();
     if (m_parts) m_parts->unselect();
     return any;
+}
+
+// A picked reference plane is a selection like a face: the next Sketch opens on it, so letting go
+// of everything has to let go of it too. The viewport asks for it every frame (set_selected_base).
+bool DesignPanel::drop_plane_pick()
+{
+    if (!m_plane_picked) return false;
+    m_plane_picked = false;
+    if (m_viewport) m_viewport->request_repaint();
+    return true;
 }
 
 void DesignPanel::update_section_flip_btn()
@@ -7725,23 +7792,108 @@ void DesignPanel::update_feature_highlight()
     const int  sel    = tree_selection();
     // Hidden while a feature card is open: the card's ghost and picks are what the view is about.
     const bool wanted = sel >= 0 && sel < int(m_doc.features.size()) && m_active == Tool::None;
-    if (wanted && (sel != m_hl_feature || m_hl_generation != m_doc.topo_generation)) {
+    // Re-sending the same faces is cheap: the viewport reuses what it has.
+    m_viewport->set_highlight_faces(wanted ? feature_faces(sel) : std::vector<std::pair<int, int>>{});
+}
+
+const std::vector<std::pair<int, int>>& DesignPanel::feature_faces(int f)
+{
+    if (f < 0 || f >= int(m_doc.features.size())) {
+        static const std::vector<std::pair<int, int>> none;
+        return none;
+    }
+    if (f != m_hl_feature || m_hl_generation != m_doc.topo_generation) {
         std::vector<std::pair<int, int>> faces;
-        const CadFeature& f = m_doc.features[sel];
-        if (f.enabled && CadDocument::produces_body(f.type))   // the rest make no faces
-            run_off_ui_thread(this, _L("Finding the feature's faces…"), [this, sel, &faces] {
+        const CadFeature& feat = m_doc.features[f];
+        if (feat.enabled && CadDocument::produces_body(feat.type))   // the rest make no faces
+            run_off_ui_thread(this, _L("Finding the feature's faces…"), [this, f, &faces] {
                 try {
-                    faces = m_doc.faces_made_by(sel);
+                    faces = m_doc.faces_made_by(f);
                 } catch (...) {
                     faces.clear();   // a highlight is not worth an escaped exception
                 }
             });
         m_hl_faces      = std::move(faces);
-        m_hl_feature    = sel;
+        m_hl_feature    = f;
         m_hl_generation = m_doc.topo_generation;
     }
-    // Re-sending the same faces is cheap: the viewport reuses what it has.
-    m_viewport->set_highlight_faces(wanted ? m_hl_faces : std::vector<std::pair<int, int>>{});
+    return m_hl_faces;
+}
+
+bool DesignPanel::can_zoom_to_feature(int f) const
+{
+    if (f < 0 || f >= int(m_doc.features.size()))
+        return false;
+    const CadFeature& feat = m_doc.features[f];
+    return feat.type == CadFeatureType::Sketch || (feat.enabled && CadDocument::produces_body(feat.type));
+}
+
+void DesignPanel::zoom_to_feature(int f)
+{
+    // A rebuild's busy loop runs queued clicks while its worker owns the document.
+    if (s_doc_worker_busy.load() > 0) {
+        set_status(StatusKind::Info, _L("The model is being rebuilt — zoom again when it finishes"));
+        return;
+    }
+    if (m_viewport == nullptr || !can_zoom_to_feature(f))
+        return;
+    const CadFeature& feat = m_doc.features[f];
+    const wxString    name = wxString::FromUTF8(feat.name);   // before finding faces runs the event loop
+    BoundingBoxf3     box;
+    if (feat.type == CadFeatureType::Sketch) {
+        // Whichever geometry the sketch keeps, drawn or not: a sketch an Extrude consumed is
+        // still where the Extrude starts.
+        const auto add = [&box, &feat](const Vec2d& p) { box.merge(feat.plane.to_world(p)); };
+        if (!feat.entities.empty()) {
+            box = DesignSketchTool::sketch_box(feat.entities, feat.plane);
+        } else if (!feat.imported_regions.empty()) {
+            for (const auto& region : transform_regions(feat.imported_regions, feat.import_offset,
+                                                        feat.import_scale_x, feat.import_scale_y))
+                for (const auto& contour : region)
+                    for (const Vec2d& p : contour)
+                        add(p);
+        } else if (!feat.profile.points.empty()) {
+            for (const Vec2d& p : feat.profile.points)
+                add(p);
+        } else {
+            // The legacy shape, centred on the plane origin (CadDocument::build_sketch_wire).
+            const Vec2d h = feat.shape == SketchShape::Circle ? Vec2d(feat.radius, feat.radius)
+                                                              : Vec2d(feat.width, feat.height) * 0.5;
+            for (const Vec2d& p : { Vec2d(-h.x(), -h.y()), Vec2d(h.x(), -h.y()), Vec2d(h.x(), h.y()), Vec2d(-h.x(), h.y()) })
+                add(p);
+        }
+    } else {
+        box = m_viewport->faces_box(feature_faces(f));
+    }
+    if (!m_viewport->zoom_to_box(box))
+        set_status(StatusKind::Info, wxString::Format(_L("%s has nothing on show to zoom to"), name));
+}
+
+void DesignPanel::zoom_to_body(int b)
+{
+    if (m_viewport == nullptr)
+        return;
+    // From the body's display mesh, Move applied, rather than the selection: the viewport selects
+    // no hidden body (DesignSketchTool::select_body). An empty mesh's box still reads defined.
+    BoundingBoxf3 box;
+    if (b >= 0 && b < int(m_disp_body_meshes.size()) && !m_disp_body_meshes[b].empty())
+        box = m_disp_body_meshes[b].bounding_box();
+    if (!m_viewport->zoom_to_box(box))
+        set_status(StatusKind::Error, _L("That body has no display mesh yet — recompute first"));
+}
+
+void DesignPanel::zoom_to_selection()
+{
+    if (m_viewport == nullptr)
+        return;
+    // A body, as its row frames it; the kind has checked the index.
+    const OfferSel kind = OfferSel(offer_selection_kind());
+    if (kind == OfferSel::BodySolid || kind == OfferSel::BodySheet) {
+        zoom_to_body(m_sel_solid_body);
+        return;
+    }
+    if (!m_viewport->zoom_to_box(m_viewport->selection_box()))
+        set_status(StatusKind::Info, _L("Select something to zoom to"));
 }
 
 // Boolean (combine bodies) — one gate for every door onto the tool. A body-body operation
@@ -7761,6 +7913,12 @@ void DesignPanel::on_move_body()
 {
     const int b = m_sel_solid_body;
     if (m_viewport == nullptr) return;
+    // Whatever is open owns the canvas and the ✓/✗, so a Move armed under it could not be left.
+    // The Bodies list stays clickable meanwhile, hence the check here.
+    if (m_active != Tool::None || m_ui_mode != UiMode::Feature || m_text_dlg != nullptr) {
+        set_status(StatusKind::Info, _L("Finish or cancel what is open first"));
+        return;
+    }
     if (b < 0 || b >= int(m_doc.display_body_meshes.size())) {
         // Never fail silently here: the caller gates on bodies.size() while this needs a
         // tessellated per-body mesh, and when those disagreed the click did nothing at all.
@@ -7768,6 +7926,14 @@ void DesignPanel::on_move_body()
                                  : _L("That body has no display mesh yet — recompute first"));
         return;
     }
+    const wxString hint = _L("Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)");
+    // Already moving it: Cancel still goes back to where it began. Another body re-arms below,
+    // and the one being moved keeps its placement.
+    if (body_move_pending() && b == m_move_body) {
+        set_status(StatusKind::Info, hint);
+        return;
+    }
+    end_sketch_plane_choice();   // the gizmo takes the clicks a plane choice was waiting for
     sync_body_xform();
     // Delta gizmo: pivot at the body's CURRENT world centroid; the tool composes the drag deltas
     // onto its current pose, so move + rotate both work (incl. on an already place-on-face'd body).
@@ -7788,7 +7954,25 @@ void DesignPanel::on_move_body()
     if (m_move_angle) m_move_angle->SetValue(0.0);
     show_move_card(true);
     update_action_bar();      // surface the unified ✓/✗ while moving
-    set_status(StatusKind::Info, _L("Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"));
+    set_status(StatusKind::Info, hint);
+}
+
+// The one way out of the Move button's session, so the gizmo, the Move / Rotate card and the ✓/✗
+// go together. keep = true leaves the pose on screen, as starting another edit does; only Esc and
+// Cancel put the body back. A no-op when no Move is up.
+void DesignPanel::end_body_move(bool keep)
+{
+    if (!body_move_pending()) return;
+    if (!keep) {
+        sync_body_xform();
+        if (m_move_body < int(m_body_xform.size()))
+            m_body_xform[m_move_body] = m_move_prev;
+        feed_bodies();           // re-render the reverted placement
+    }
+    m_viewport->clear_move_gizmo();
+    m_move_body = -1;
+    show_move_card(false);
+    update_action_bar();
 }
 
 // Transform card (add mode): arm the same move gizmo on the card's body so the geometry-first
@@ -7809,8 +7993,6 @@ void DesignPanel::arm_transform_gizmo()
     if (m_viewport) m_viewport->begin_move_body(b, pivot, base, radius);
     m_xf_gizmo_body = b;
     m_xf_gizmo_base = base;
-    m_move_body = b;          // the existing revert paths key off these two
-    m_move_prev = base;
     // Write the pivot into the card so the parametric feature reproduces what was dragged;
     // dx/dy/dz and angle start at zero (the gizmo reports deltas from this pose).
     if (m_xf_pivot_x) m_xf_pivot_x->SetValue(pivot.x());
@@ -7869,6 +8051,7 @@ bool DesignPanel::place_on_face()
     }
     const TopoDS_Face face = GeometryEngine::face_by_index(m_doc.bodies[b].shape, m_sel_solid_face);
     if (face.IsNull()) return false;
+    end_sketch_plane_choice();   // the body moves; a sketch was not started
     sync_body_xform();
     const Transform3d old_x = m_body_xform[b];
     // Outward face normal in the body's CURRENT displayed orientation.
@@ -7902,8 +8085,7 @@ void DesignPanel::set_tree_selection(int row)
 
 // The selection (the solid pick, the hit face and the committed-loop pick) names bodies, faces and
 // features by index, so replacing or renumbering the feature list (undo/redo, New Design, load,
-// delete, reorder) drops it, the viewport's highlights with it. The solid highlight too: a rebuild
-// that leaves no body never reaches set_solid_pick. The callers repaint.
+// delete, reorder) drops it, the viewport's highlights with it. The callers repaint.
 void DesignPanel::drop_selection()
 {
     if (m_viewport != nullptr)
@@ -7930,7 +8112,7 @@ void DesignPanel::drop_solid_pick()
 bool DesignPanel::begin_renumber()
 {
     if (m_ui_mode != UiMode::Feature || m_text_dlg != nullptr || m_active == Tool::Insert
-        || (m_active == Tool::None && m_viewport != nullptr && m_viewport->moving_body())) {
+        || body_move_pending()) {
         set_status(StatusKind::Info, _L("Finish or cancel what is open first"));
         return false;
     }
@@ -7942,6 +8124,9 @@ bool DesignPanel::begin_renumber()
 
 void DesignPanel::after_tree_edit(bool ok)
 {
+    // Any edit of the history (undo, delete, show/hide, a socket call...) writes the status line
+    // over the plane prompt, so it ends the choice rather than leave it waiting unannounced.
+    end_sketch_plane_choice();
     update_undo_redo_buttons();
     refresh_tree();
     refresh_variables();
@@ -7993,13 +8178,12 @@ void DesignPanel::on_new_design()
 void DesignPanel::clear_document()
 {
     tool_cancel();                 // leave any active tool / sketch / constrain cleanly
+    end_body_move(true);           // ...and a Move, which tool_cancel leaves while a value is pending
     m_doc.clear();                 // features + bodies + meshes + history
     m_doc.auto_close_loops = wxGetApp().is_auto_close_sketch_loops();   // a new design: today's preference
     Slic3r::set_sketch_auto_close(m_doc.auto_close_loops);
     drop_selection();
     m_edit_index = -1;
-    m_move_body  = -1;
-    show_move_card(false);
     m_body_xform.clear();
     if (m_viewport) { m_viewport->clear_move_gizmo(); m_viewport->clear_mesh(); }
     after_tree_edit(true);         // rebuild the (now empty) tree + clear the viewport
@@ -8083,6 +8267,11 @@ void DesignPanel::on_toggle_visibility()
         return;
     }
 
+    // Hiding or showing a feature can renumber the bodies, and the Move holds a body index.
+    if (body_move_pending()) {
+        set_status(StatusKind::Info, _L("Finish or cancel what is open first"));
+        return;
+    }
     int sel = tree_selection();
     if (sel == wxNOT_FOUND || sel >= int(m_doc.features.size())) {
         set_status(StatusKind::Error, _L("Select a feature in the tree first"));
@@ -8099,8 +8288,18 @@ void DesignPanel::on_toggle_visibility()
     refresh_tree();                       // greys the row
     set_tree_selection(sel);              // keep the toggled feature selected
     if (m_viewport != nullptr) {
-        if (m_doc.display_mesh.its.indices.empty()) m_viewport->clear_mesh();
-        else                                        feed_bodies();
+        if (m_doc.display_mesh.its.indices.empty()) {
+            m_viewport->clear_mesh();
+        } else {
+            // Not set_status_ok(), which would take the gizmo from an open Transform card.
+            feed_bodies();
+            // Hiding or showing a feature rebuilds the bodies and can renumber them, so the pick is
+            // re-pointed and its selection dropped. That also brings picking back for a body shown
+            // after everything was hidden (clear_mesh() dropped it).
+            m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh,
+                                       &m_doc.display_tri_face, &m_doc.display_tri_body,
+                                       &m_body_visible, &m_body_xform);
+        }
     }
     sync_sketch_display();                // skips the hidden sketch + direct-renders
     set_status(StatusKind::Info, shown ? _L("Feature shown") : _L("Feature hidden"));
@@ -10008,6 +10207,7 @@ void DesignPanel::on_commit()
     // is shown on screen, not the pre-feature solid. (confirm_tool() applies + closes.)
     if (m_active != Tool::None)
         confirm_tool();
+    end_sketch_plane_choice();   // the bodies leave for the plate; a sketch was not started
 
     if (m_doc.display_mesh.its.indices.empty()) {
         set_status(_L("Nothing to commit — add a feature first"));
@@ -10990,10 +11190,9 @@ void DesignPanel::update_rib_gizmo()
                               m_rib_thickness ? m_rib_thickness->GetValue() : 0.0);
 }
 
-// Onshape default planes: the XY/XZ/YZ reference planes are persistent, transparent, labelled, and
-// larger than the bed — shown as the FALLBACK when there is no object yet. When the Plane tool is
-// open they additionally surface existing datums so a base can be picked. Single authority for the
-// reference-plane overlay (set/clear_base_pick).
+// The XY/XZ/YZ reference planes and their axes. Single authority for the overlay
+// (set/clear_base_pick): the Plane tool offers them with the datums as Offset bases; otherwise they
+// are up while the Feature tree's Origin row shows them, and while a sketch plane is being chosen.
 void DesignPanel::update_reference_planes()
 {
     if (!m_viewport) return;
@@ -11020,24 +11219,115 @@ void DesignPanel::update_reference_planes()
         }
         return;
     }
-    // Fallback (Onshape default planes): show the 3 reference planes while there is no SOLID body
-    // yet — so they persist through the 2D-sketch phase and reappear after a sketch is confirmed
-    // (a sketch creates no body). They no longer block selection: clicking existing geometry wins,
-    // a base-plane pick only fires on a click that hit nothing else (see on_mouse fall-through).
-    // Available while there is no solid yet OR while the user is actually choosing a sketch
-    // plane. The second half fixes a dead end: delete a sketch on a document that still has a
-    // body, press Sketch, and act_sketch says "click a face or a reference plane" — with the
-    // reference planes already taken away, because a body existed. The instruction was
-    // impossible to follow and there was no way to start a sketch at all short of finding a
-    // face to click.
-    //
-    // Not simply always-on: m_dbp_active both RENDERS and picks, so three translucent planes
-    // would otherwise float over every finished model. Tying them to Sketch mode shows them
-    // exactly when they are the thing being chosen, and hides them again on Finish.
-    if (m_doc.bodies.empty() || m_ui_mode == UiMode::Sketch)
+    // Up while Sketch waits for a plane to be picked (start_sketch), which the session it opens
+    // takes away; a live session would draw none anyway (DesignSketchTool::draws_reference_axes).
+    // They never block selection: clicking existing geometry wins, and a base-plane pick only
+    // fires on a click that hit nothing else (see on_mouse fall-through).
+    if (m_show_origin || m_choosing_sketch_plane)
         m_viewport->set_base_pick(std::move(bp), std::move(bi), std::move(bl));
     else
         m_viewport->clear_base_pick();
+}
+
+void DesignPanel::toggle_origin()
+{
+    m_show_origin = !m_show_origin;
+    wxGetApp().app_config->set_bool("design_show_origin", m_show_origin);
+    // A plane picked while they were up is not a selection once nobody can see it.
+    if (!m_show_origin) drop_plane_pick();
+    // Not an edit: a plane choice under way stays, and keeps its planes up.
+    update_reference_planes();   // repaints
+    refresh_pinned();   // the Origin row's eye
+}
+
+void DesignPanel::toggle_bed()
+{
+    m_show_bed = !m_show_bed;
+    wxGetApp().app_config->set_bool("design_show_bed", m_show_bed);
+    if (m_viewport) m_viewport->set_show_bed(m_show_bed);   // repaints
+    refresh_pinned();   // the Bed row's eye
+}
+
+// View switches, not history: a view toggle rebuilds these two rows and leaves the features
+// alone. The label dims while its thing is hidden, as a hidden body's does.
+void DesignPanel::refresh_pinned()
+{
+    std::vector<DesignRowList::Row> rows;
+    auto add = [&rows](const char* icon, const wxString& label, bool shown, const wxString& tip) {
+        DesignRowList::Action eye = eye_action(shown);
+        eye.tip = tip;
+        // A blank cell under the features' Delete, so the eye sits in the features' eye column.
+        rows.push_back({ icon, label, {}, shown ? dp_item_text() : dp_item_dim(), { eye, {} } });
+    };
+    // In kOriginRow / kBedRow order.
+    add("design_plane", _L("Origin"), m_show_origin, origin_toggle_text(m_show_origin));
+    add("design_bed",   _L("Bed"),    m_show_bed,    bed_toggle_text(m_show_bed));
+    m_pinned->set_rows(std::move(rows));
+}
+
+void DesignPanel::start_sketch()
+{
+    if (m_ui_mode != UiMode::Feature) return;   // already sketching or constraining
+    if (m_active != Tool::None || m_text_dlg != nullptr || body_move_pending()) {
+        set_status(StatusKind::Info, _L("Finish or cancel what is open first"));
+        return;
+    }
+    wxString where;
+    if (sketch_plane_target(where)) {
+        start_sketch_on_target(true);
+        return;
+    }
+    // Nothing to sketch on yet: offer the planes and stay in Feature mode until one is picked
+    // (set_on_datum_base_picked, set_on_solid_selection_changed).
+    m_choosing_sketch_plane = true;
+    update_reference_planes();
+    update_action_bar();   // ✗ leaves the choice
+    set_status(StatusKind::Info, sketch_plane_prompt());
+}
+
+void DesignPanel::start_sketch_on_target(bool offer_tools)
+{
+    if (!m_viewport) return;
+    wxString on;
+    const SketchPlane plane = sketch_plane_from_selection(on);
+    m_viewport->begin_sketch(plane, DesignSketchTool::Mode::Select);
+    // The face or plane has been CONSUMED as the sketch plane, so drop the pick. A face left live
+    // meant the next Extrude saw a selected face and push/pulled it instead of extruding the
+    // sketch just drawn — the same trap the imported-art path already guards against — and a
+    // plane left picked would open the next sketch on it, unseen once the planes are hidden.
+    // The canvas's half goes too: left lit there, the next click on that face read as a second
+    // click on it and took the whole body, which has no plane to sketch on.
+    drop_solid_pick();
+    m_plane_picked = false;
+    m_construction->SetValue(false);   // a fresh session starts non-construction
+    set_ui_mode(UiMode::Sketch);       // ends the plane choice, so the planes go
+    m_sketch_on = on;                  // shown with the tool hint, so the target is visible
+    set_status(StatusKind::Info, wxString::Format(_L("Sketch plane: %s — pick a tool"), on));
+    if (m_sketch_hint) {   // the card must agree with the status line, not argue with it
+        m_sketch_hint->SetLabel(wxString::Format(_L("Sketch plane: %s.\nPick a tool, or press Menu for the list."), on));
+        m_sketch_hint->Refresh();
+        m_cards->Layout();
+    }
+    // Hand over the tools rather than naming them in a status line: the sketch bar carries none.
+    // CallAfter so the mode change has settled, and the pick that got here has returned, before a
+    // modal menu takes the loop; the menu carries each tool's shortcut, so pressing the key
+    // instead of picking a row costs nothing.
+    if (offer_tools)
+        CallAfter([this] { show_offer_menu(offer_anchor()); });
+}
+
+void DesignPanel::end_sketch_plane_choice()
+{
+    if (!m_choosing_sketch_plane) return;
+    m_choosing_sketch_plane = false;
+    update_reference_planes();
+    update_action_bar();
+}
+
+bool DesignPanel::sketch_plane_pick_live() const
+{
+    return m_choosing_sketch_plane && m_ui_mode == UiMode::Feature && m_active == Tool::None
+        && m_text_dlg == nullptr && !body_move_pending();
 }
 
 TriangleMesh DesignPanel::ghost_from_bodies(const std::vector<TriangleMesh>& per_body) const
@@ -11197,10 +11487,12 @@ void DesignPanel::refresh_preview()
     // Confirm so the user sees the gate before clicking; the red status says why.
     m_candidate_ok = ok;
     update_confirm_button();
-    // Fillet/Chamfer/Draft: once the target edge/face yields a valid result, show ONLY the
+    // Fillet/Chamfer/Draft/Hole: once the target edge/face yields a valid result, show ONLY the
     // preview (hide the base bodies) so the user sees the finished shape, not the old solid
-    // doubled with the ghost. Before a valid pick the body stays visible so it can be picked.
-    m_viewport->set_body_hidden((m_active == Tool::Dressup || m_active == Tool::Draft) && ok);
+    // doubled with the ghost. A hole's cut lies inside the old solid, so without this the body
+    // would hide it entirely. Before a valid pick the body stays visible so it can be picked.
+    m_viewport->set_body_hidden((m_active == Tool::Dressup || m_active == Tool::Draft ||
+                                 m_active == Tool::Hole) && ok);
     m_status->Refresh();
 
     // Refresh the in-canvas Extrude depth arrow (self-gates: only while the Extrude card is open).
@@ -11292,7 +11584,9 @@ void DesignPanel::push_polygon_params()
 
 void DesignPanel::open_tool(Tool t)
 {
+    end_body_move(true);   // first: arm_transform_gizmo below takes over the same gizmo
     m_active = t;
+    end_sketch_plane_choice();   // after m_active: the Plane card keeps its planes
     m_candidate_ok = true;   // a fresh card is confirmable until its preview says otherwise
     // Fillet/Chamfer/Draft no longer fade the body see-through; instead, once a valid target
     // is picked, refresh_preview hides the base bodies entirely (preview-only). Keep it opaque
@@ -11590,7 +11884,6 @@ void DesignPanel::close_tool()
         if (m_viewport) m_viewport->clear_move_gizmo();
         feed_bodies();
         m_xf_gizmo_body = -1;
-        m_move_body     = -1;
     }
     if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false); m_viewport->set_xray_focus(-1); }   // restore the opaque solid
     wxSizer* s = m_cards->GetSizer();
@@ -11639,7 +11932,7 @@ void DesignPanel::close_tool()
     m_viewport->clear_datum_gizmo();
     m_viewport->set_operand_bodies(-1, -1);
     m_viewport->set_highlight_sketches({});
-    update_reference_planes();   // back to no-tool: show the origin planes if there is no object yet
+    update_reference_planes();   // back to no-tool
     update_cards_frame(); m_form->Layout();
     m_form->FitInside();
     update_action_bar();   // no feature tool active -> hide the bar (unless a mode keeps it)
@@ -11714,11 +12007,8 @@ void DesignPanel::cancel_tool()
 void DesignPanel::tool_confirm()
 {
     if (m_value_cont) { confirm_value(); return; }   // value card owns ribbon ✓ while a value is pending
-    if (m_active == Tool::None && m_viewport && m_viewport->moving_body()) {   // keep the placement, drop the gizmo
-        m_viewport->clear_move_gizmo();
-        m_move_body = -1;
-        show_move_card(false);
-        update_action_bar();
+    if (body_move_pending()) {   // keep the placement, drop the gizmo
+        end_body_move(true);
         set_status_ok();
         return;
     }
@@ -11746,20 +12036,18 @@ void DesignPanel::tool_confirm()
 void DesignPanel::tool_cancel()
 {
     if (m_value_cont) { cancel_value(); return; }     // value card owns ribbon ✗ while a value is pending
-    if (m_active == Tool::None && m_viewport && m_viewport->moving_body()) {   // revert to the pose at move-start
-        sync_body_xform();
-        if (m_move_body >= 0 && m_move_body < int(m_body_xform.size()))
-            m_body_xform[m_move_body] = m_move_prev;
-        m_viewport->clear_move_gizmo();
-        m_move_body = -1;
-        show_move_card(false);
-        feed_bodies();           // re-render the reverted placement
-        update_action_bar();
+    if (body_move_pending()) {   // revert to the pose at move-start
+        end_body_move(false);
         set_status(StatusKind::Info, _L("Move canceled"));
         return;
     }
     if (m_active == Tool::Insert) { cancel_insert(); return; }
     if (m_active != Tool::None)   { cancel_tool();   return; }
+    if (m_choosing_sketch_plane) {   // Sketch was waiting for a plane: no sketch, planes away
+        end_sketch_plane_choice();
+        set_status(StatusKind::Info, wxString());
+        return;
+    }
     if (m_ui_mode == UiMode::Sketch) {
         // THE explicit discard. Esc no longer arrives here at all (it routes through escape(),
         // which cannot destroy anything), so this button is now the only way a drawn sketch is
@@ -11795,8 +12083,7 @@ bool DesignPanel::confirm_enabled() const
 {
     if (m_value_cont) return true;
     if (m_active == Tool::None)
-        return (m_viewport && m_viewport->moving_body())
-               || m_ui_mode == UiMode::Sketch || m_ui_mode == UiMode::Constrain;
+        return body_move_pending() || m_ui_mode == UiMode::Sketch || m_ui_mode == UiMode::Constrain;
     if (m_active == Tool::Insert) return true;
     return m_candidate_ok;
 }
@@ -11820,12 +12107,12 @@ CadLevel DesignPanel::escape_level() const
                           || (m_viewport && m_viewport->inline_busy());
     // An uncommitted delta: clicks are down on an entity that does not exist yet, or a body is
     // being moved by a gizmo that has not been confirmed.
-    st.gesture_active   = m_viewport
-                          && (m_viewport->drawing_in_progress()
-                              || (m_active == Tool::None && m_viewport->moving_body()));
-    // Something is armed and waiting for input: a feature card, a sketch draw tool, Constrain.
-    // A sketch SESSION is deliberately not in this list — see escape().
+    st.gesture_active   = body_move_pending()
+                          || (m_viewport && m_viewport->drawing_in_progress());
+    // Something is armed and waiting for input: a feature card, Sketch waiting for its plane, a
+    // sketch draw tool, Constrain. A sketch SESSION is deliberately not in this list — see escape().
     st.tool_armed       = (m_active != Tool::None)
+                          || m_choosing_sketch_plane
                           || m_ui_mode == UiMode::Constrain
                           || (m_ui_mode == UiMode::Sketch && m_viewport && !m_viewport->sketch_is_selecting());
     st.has_selection    = m_viewport && m_viewport->has_any_selection();
@@ -11862,7 +12149,10 @@ void DesignPanel::escape()
         // CANDIDATE (never a committed feature — in edit mode reset_edit_state only forgets which
         // feature was being edited, the feature itself is untouched); an armed sketch tool falls
         // back to Select, leaving every entity already drawn exactly where it is.
-        if (m_active != Tool::None || m_ui_mode == UiMode::Constrain) { tool_cancel(); return; }
+        if (m_active != Tool::None || m_choosing_sketch_plane || m_ui_mode == UiMode::Constrain) {
+            tool_cancel();
+            return;
+        }
         if (m_viewport && m_viewport->sketch_disarm_tool()) {
             set_status(StatusKind::Info, _L("Select"));
         }
@@ -11873,7 +12163,8 @@ void DesignPanel::escape()
         // both of which say which one they are, and never through a key pressed on the way out of
         // something else. The Feature tree and Bodies rows count as selections too.
         const bool row = deselect_rows();
-        if ((m_viewport && m_viewport->clear_any_selection()) || row) {
+        const bool plane = drop_plane_pick();
+        if ((m_viewport && m_viewport->clear_any_selection()) || row || plane) {
             set_status(StatusKind::Info, wxString());
             return;
         }
@@ -11896,7 +12187,7 @@ bool DesignPanel::menu_can_undo_redo(bool redo) const
 {
     if (m_ui_mode == UiMode::Sketch && m_viewport && m_viewport->is_sketching())
         return redo ? m_viewport->can_redo_sketch_entity() : m_viewport->can_undo_sketch_entity();
-    if (m_ui_mode != UiMode::Feature || m_active != Tool::None) return false;
+    if (m_ui_mode != UiMode::Feature || m_active != Tool::None || body_move_pending()) return false;
     return redo ? m_doc.can_redo() : m_doc.can_undo();
 }
 
@@ -11916,9 +12207,10 @@ void DesignPanel::update_action_bar()
     wxSizer* s = m_toolbar->GetSizer();
     if (s == nullptr) return;
     const bool active = (m_active != Tool::None)
+                     || m_choosing_sketch_plane          // ✗ only: ✓ has nothing to confirm
                      || m_ui_mode == UiMode::Sketch
                      || m_ui_mode == UiMode::Constrain
-                     || (m_viewport && m_viewport->moving_body());
+                     || body_move_pending();
     s->Show(m_tb_action, active, true);
     // HIDING THE BAR ORPHANS THE KEYBOARD, and that is the "app does not consent to sketch"
     // report. The ✓/✗ live in this bar, so the click that confirms a feature leaves focus on a
@@ -11954,7 +12246,8 @@ void DesignPanel::do_undo_redo(bool redo)
     // v1: act only in Feature mode. While authoring/constraining a sketch (m_ui_mode) or
     // with a feature dialog open (m_active), Esc/Cancel is the way out — popping committed
     // history mid-tool would be ambiguous (and could orphan the tool's referenced feature).
-    if (m_ui_mode != UiMode::Feature || m_active != Tool::None) {
+    // A Move is not in the history at all, so an undo under it would keep it without asking.
+    if (m_ui_mode != UiMode::Feature || m_active != Tool::None || body_move_pending()) {
         set_status(StatusKind::Info, _L("Finish or cancel the current tool first (Esc)"));
         return;
     }

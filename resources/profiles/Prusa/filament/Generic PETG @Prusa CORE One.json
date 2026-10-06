@@ -6,6 +6,9 @@
 	"from": "system",
 	"setting_id": "W71PW5bpf7CV16D4",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet"
+	],
 	"chamber_temperature": [
 		"35"
 	],

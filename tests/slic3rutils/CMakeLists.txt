@@ -40,6 +40,10 @@ add_executable(${_TEST_NAME}_tests
     ../fff_print/test_helpers.cpp
     )
 
+if (SLIC3R_CAD)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
+endif ()
+
 if (MSVC)
     target_link_libraries(${_TEST_NAME}_tests Setupapi.lib)
 endif ()

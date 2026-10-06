@@ -856,3 +856,141 @@ TEST_CASE("Fuzzy skin leaves the walls over an empty layer smooth", "[Perimeters
     CHECK(floating_first_layer >= 0.);
     CHECK(floating_first_layer < 0.001);
 }
+
+namespace {
+
+// A 20x20x5mm square tube whose walls are `wall` mm thick, except the far one at `far_wall` mm.
+Print &square_tube(Print &print, Model &model, const DynamicPrintConfig &config, double wall, double far_wall)
+{
+    ModelObject *object = model.add_object();
+    object->name = "square_tube.stl";
+    object->add_volume(make_cube(20., 20., 5.), ModelVolumeType::MODEL_PART, false);
+    TriangleMesh cavity = make_cube(20. - 2. * wall, 20. - wall - far_wall, 5.);
+    cavity.translate(float(wall), float(wall), 0.f);
+    object->add_volume(std::move(cavity), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    return print;
+}
+
+// Every setting the wall thicknesses below are measured against. With these widths the two outer walls of
+// a 0.8mm wall touch, a 1mm wall leaves a gap between them for gap fill, and an inner wall needs about 1.5mm.
+// Both one wall options are on, so the first and the last layer have a single wall whatever wall_loops asks.
+DynamicPrintConfig hole_direction_config(int wall_loops, const char *wall_direction)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             "classic" },
+        { "wall_direction",             wall_direction },
+        { "wall_loops",                 wall_loops },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "outer_wall_line_width",      0.42 },
+        { "inner_wall_line_width",      0.45 },
+        { "detect_thin_wall",           false },
+        { "filter_out_gap_fill",        0 },
+        { "top_shell_layers",           3 },
+        { "bottom_shell_layers",        3 },
+        { "only_one_wall_top",          true },
+        { "only_one_wall_first_layer",  true },
+        { "overhang_reverse",           false },
+        { "sparse_infill_density",      "15%" },
+    });
+    return config;
+}
+
+// The outer walls of a layer, contours and holes apart, and how many inner walls and gap fills it has.
+struct WallDirections {
+    std::vector<bool> contours_ccw;
+    std::vector<bool> holes_ccw;
+    int               inner_walls = 0;
+    size_t            gap_fills   = 0;
+};
+
+std::vector<WallDirections> wall_directions(const Print &print)
+{
+    std::vector<WallDirections> out;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        WallDirections &walls = out.emplace_back();
+        for (const LayerRegion *region : layer->regions()) {
+            walls.gap_fills += region->thin_fills.flatten().entities.size();
+            for (const ExtrusionEntity *entity : region->perimeters.flatten().entities) {
+                if (! entity->is_loop())
+                    continue;
+                const ExtrusionLoop *loop = static_cast<const ExtrusionLoop*>(entity);
+                if (loop->inset_idx > 0)
+                    ++ walls.inner_walls;
+                else
+                    (loop->loop_role() == elrHole ? walls.holes_ccw : walls.contours_ccw).push_back(loop->polygon().is_counter_clockwise());
+            }
+        }
+    }
+    return out;
+}
+
+} // namespace
+
+// Holes run against the wall direction, so the inside of a hole keeps its direction on the layers where the
+// hole opens into the contour. That holds on every layer, the single wall ones included, as soon as anything
+// fits beside the outer wall of the hole: infill, an inner wall, or only gap fill. The 1mm tube with a 3mm far
+// side is the shape that used to flip, where the far side has an inner wall on most layers and gap fill runs
+// around the rest.
+TEST_CASE("Holes run against the wall direction", "[Perimeters]")
+{
+    const auto [wall, far_wall] = GENERATE(std::make_pair(7., 7.), std::make_pair(1., 1.), std::make_pair(1., 3.));
+    const int   wall_loops      = GENERATE(1, 2);
+    const char *wall_direction  = GENERATE("ccw", "cw");
+    CAPTURE(wall, far_wall, wall_loops, wall_direction);
+
+    Print print;
+    Model model;
+    square_tube(print, model, hole_direction_config(wall_loops, wall_direction), wall, far_wall);
+    const std::vector<WallDirections> layers = wall_directions(print);
+    // 5mm at 0.2mm layers.
+    REQUIRE(layers.size() == 25);
+    // Without gap fill between the outer walls the thin tubes would test the case below instead.
+    if (wall < 2.)
+        REQUIRE(layers[layers.size() / 2].gap_fills > 0);
+
+    const bool ccw = std::string(wall_direction) == "ccw";
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(layers[i].contours_ccw.size() == 1);
+        REQUIRE(layers[i].holes_ccw.size() == 1);
+        CHECK(layers[i].contours_ccw.front() == ccw);
+        CHECK(layers[i].holes_ccw.front() == ! ccw);
+    }
+}
+
+// A hole whose outer wall touches the contour's all around, with nothing between them, runs with the contour
+// on every layer, so the two walls of a thin tube are laid side by side in the same direction.
+TEST_CASE("A hole whose outer wall touches the contour's runs with it", "[Perimeters]")
+{
+    const int   wall_loops     = GENERATE(1, 2);
+    const char *wall_direction = GENERATE("ccw", "cw");
+    CAPTURE(wall_loops, wall_direction);
+
+    Print print;
+    Model model;
+    square_tube(print, model, hole_direction_config(wall_loops, wall_direction), 0.8, 0.8);
+    const std::vector<WallDirections> layers = wall_directions(print);
+    REQUIRE(layers.size() == 25);
+    // Nothing fits between the two outer walls.
+    REQUIRE(layers[layers.size() / 2].gap_fills == 0);
+    REQUIRE(layers[layers.size() / 2].inner_walls == 0);
+
+    const bool ccw = std::string(wall_direction) == "ccw";
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(layers[i].contours_ccw.size() == 1);
+        REQUIRE(layers[i].holes_ccw.size() == 1);
+        CHECK(layers[i].contours_ccw.front() == ccw);
+        CHECK(layers[i].holes_ccw.front() == ccw);
+    }
+}
