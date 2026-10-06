@@ -366,9 +366,9 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 static t_config_enum_values s_keys_map_TpmsAdaptiveMode{
     { "disabled",    int(TpmsAdaptiveMode::Disabled) },
     { "3d",          int(TpmsAdaptiveMode::Volumetric) },
-    { "2d_normal_x", int(TpmsAdaptiveMode::NormalX) },
-    { "2d_normal_y", int(TpmsAdaptiveMode::NormalY) },
-    { "2d_normal_z", int(TpmsAdaptiveMode::NormalZ) },
+    { "normal_x", int(TpmsAdaptiveMode::NormalX) },
+    { "normal_y", int(TpmsAdaptiveMode::NormalY) },
+    { "normal_z", int(TpmsAdaptiveMode::NormalZ) },
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TpmsAdaptiveMode)
 
@@ -3579,19 +3579,19 @@ void PrintConfigDef::init_fff_params()
                         "object towards its center. The sparse infill density is used at the surface and the interior "
                         "density at the center.\n"
                         "3D: follows the shape of the object, including its top and bottom.\n"
-                        "2D Normal X, Y or Z: follows each section of the object normal to that axis, so the density "
-                        "does not change along it. 2D Normal Z grades every layer on its own.");
+                        "Normal X, Y or Z: follows each section of the object normal to that axis, so the density "
+                        "does not change along it. Normal Z grades every layer on its own.");
     def->enum_keys_map = &ConfigOptionEnum<TpmsAdaptiveMode>::get_enum_values();
     def->enum_values.push_back("disabled");
     def->enum_values.push_back("3d");
-    def->enum_values.push_back("2d_normal_x");
-    def->enum_values.push_back("2d_normal_y");
-    def->enum_values.push_back("2d_normal_z");
+    def->enum_values.push_back("normal_x");
+    def->enum_values.push_back("normal_y");
+    def->enum_values.push_back("normal_z");
     def->enum_labels.push_back(L("Disabled"));
     def->enum_labels.push_back(L("3D"));
-    def->enum_labels.push_back(L("2D Normal X"));
-    def->enum_labels.push_back(L("2D Normal Y"));
-    def->enum_labels.push_back(L("2D Normal Z"));
+    def->enum_labels.push_back(L("Normal X"));
+    def->enum_labels.push_back(L("Normal Y"));
+    def->enum_labels.push_back(L("Normal Z"));
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<TpmsAdaptiveMode>(TpmsAdaptiveMode::Disabled));
 

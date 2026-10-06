@@ -2094,9 +2094,9 @@ TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle heigh
 TEST_CASE("2D adaptive TPMS infill does not change along its axis", "[Fill]")
 {
     // A box of 30 x 30 mm sections, 90 mm long along the axis, centered on the origin in XY.
-    const std::string mode = GENERATE("2d_normal_x", "2d_normal_z");
+    const std::string mode = GENERATE("normal_x", "normal_z");
     CAPTURE(mode);
-    const bool   along_x = mode == "2d_normal_x";
+    const bool   along_x = mode == "normal_x";
     auto         slice   = [&](const std::string &adaptive, Print &print) {
         Slic3r::Test::init_and_process_print({along_x ? make_cube(90., 30., 30.) : make_cube(30., 30., 90.)}, print,
                                                          {{"sparse_infill_pattern", "gyroid"},
@@ -2187,7 +2187,7 @@ TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not ap
 {
     // Adaptive density turned off, or turned on for a pattern that is no TPMS.
     const auto [pattern, adaptive] = GENERATE(
-        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"gyroid", "disabled"}, {"grid", "3d"}, {"grid", "2d_normal_z"}}));
+        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"gyroid", "disabled"}, {"grid", "3d"}, {"grid", "normal_z"}}));
     CAPTURE(pattern, adaptive);
     Print reference, tuned;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,

@@ -5,7 +5,7 @@
 `tpms_adaptive` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
 patterns inside the object: the cells grow continuously from the surface
 towards the center of the object. In `3d` the grading follows the whole shape,
-including the top and bottom; in `2d_normal_x`, `2d_normal_y` and `2d_normal_z`
+including the top and bottom; in `normal_x`, `normal_y` and `normal_z`
 it follows each section of the object normal to that axis, so it does not
 change along the axis, as suits a profile extruded along it.
 `sparse_infill_density` is the density at the surface, `tpms_interior_density`
@@ -96,7 +96,7 @@ the mean over the disc, `2 / t^2 * integral of s * target(s) ds`. Along the axis
 the pattern keeps the interior frequency: scaling it with `m` would shear the
 pattern by the distance along the axis times the gradient of `m`, without bound
 on a long object. The cells are round at the center and stretched along the
-axis near the surface. With 2D Normal Z the layers are graded exactly, since
+axis near the surface. With Normal Z the layers are graded exactly, since
 the lines of a layer follow its in-plane frequencies; normal to X or Y, the
 layers near the sides are as dense as the larger of the two frequencies in the
 layer, which is the surface one.
