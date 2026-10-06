@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:10-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -21820,7 +21820,7 @@ msgstr ""
 msgid "Text unchanged"
 msgstr ""
 
-msgid "Text cancelled"
+msgid "Text canceled"
 msgstr ""
 
 msgid "Import SVG"
@@ -23155,9 +23155,6 @@ msgstr ""
 
 msgctxt "Design"
 msgid "Hole"
-msgstr ""
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
 msgstr ""
 
 msgctxt "Design"

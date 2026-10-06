@@ -4805,7 +4805,7 @@ void DesignPanel::text_dialog_done(bool accepted)
         if (have) m_doc.undo();   // a new text leaves, an edited one gets its old outline back
         refresh_tree();
         sync_sketch_display();
-        set_status(StatusKind::Info, editing ? _L("Text unchanged") : _L("Text cancelled"));
+        set_status(StatusKind::Info, editing ? _L("Text unchanged") : _L("Text canceled"));
         return;
     }
     if (!have) return;

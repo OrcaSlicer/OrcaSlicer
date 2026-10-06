@@ -513,7 +513,7 @@
       "gui": true,
       "action": "key:S+H",
       "icon": "design_hole",
-      "hint": "Drill a hole, centerd on a picked face or placed on a plane"
+      "hint": "Drill a hole, centered on a picked face or placed on a plane"
     },
     {
       "id": "thread",
