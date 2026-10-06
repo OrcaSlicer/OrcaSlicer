@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PETG @CORE One",
+	"renamed_from": "Prusament PETG CORE One;Prusament PETG @CORE One MMU3;Prusament PETG CORE One MMU3",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "LSvba9ds3XTwDMCG",
@@ -16,7 +17,11 @@
 		"Prusa CORE One 0.25 nozzle",
 		"Prusa CORE One 0.3 nozzle",
 		"Prusa CORE One 0.4 nozzle",
-		"Prusa CORE One 0.5 nozzle"
+		"Prusa CORE One 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"25"

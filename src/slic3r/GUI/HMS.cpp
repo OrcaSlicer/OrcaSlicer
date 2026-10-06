@@ -25,6 +25,8 @@
 #include <mutex>
 #include <ctime>
 
+namespace fs = boost::filesystem;
+
 static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 

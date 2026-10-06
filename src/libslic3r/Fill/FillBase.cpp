@@ -1,7 +1,16 @@
+#include <algorithm>
+#include <cassert>
+#include <cfloat>
+#include <math.h>
+#include <limits>
+#include <cstdint>
 #include <stdio.h>
 #include <numeric>
 
 #include <cmath>
+#include <string>
+#include <vector>
+#include <utility>
 #include "../ClipperUtils.hpp"
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
@@ -13,6 +22,12 @@
 #include "../VariableWidth.hpp"
 
 #include "FillBase.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "FillConcentric.hpp"
 #include "FillSpiralInset.hpp"
 #include "FillHoneycomb.hpp"
@@ -28,6 +43,12 @@
 // BBS: new infill pattern header
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/ShortestPath.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Flow.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
@@ -244,10 +265,7 @@ void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, Ex
                 return p.length() < scale_(params.config->filter_out_gap_fill.value);
             }), polylines.end());
 
-            ExtrusionEntityCollection gap_fill;
-            variable_width(polylines, erGapFill, params.flow, gap_fill.entities);
-            auto gap = std::move(gap_fill.entities);
-            out->append(gap);
+            variable_width(polylines, erGapFill, params.flow, out->entities);
         }
     }
 }

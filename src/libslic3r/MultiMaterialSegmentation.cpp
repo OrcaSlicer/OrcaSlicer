@@ -1,13 +1,39 @@
+#include "MultiMaterialSegmentation.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "Config.hpp"
 #include "EdgeGrid.hpp"
+#include "Geometry/VoronoiOffset.hpp"
+#include "Geometry/Voronoi.hpp"
+#include "Flow.hpp"
+#include "ExPolygon.hpp"
 #include "Layer.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
+#include "Line.hpp"
+#include "Model.hpp"
 #include "Print.hpp"
 #include "Geometry/VoronoiVisualUtils.hpp"
 #include "Geometry/VoronoiUtils.hpp"
 #include "MutablePolygon.hpp"
-#include "format.hpp"
+#include "Utils.hpp"
+#include "PrintConfig.hpp"
+#include "TriangleMeshSlicer.hpp"
+#include "Surface.hpp"
+#include "libslic3r.h"
 
+#include <cmath>
+#include <cstddef>
+#include <list>
+#include <cstdint>
+#include <cassert>
+#include <algorithm>
+#include <cstdlib>
+#include <boost/container_hash/hash.hpp>
+#include <math.h>
+#include <functional>
+#include <array>
+#include <limits>
 #include <utility>
 #include <unordered_set>
 
@@ -15,6 +41,11 @@
 #include <tbb/parallel_for.h>
 #include <mutex>
 #include <boost/thread/lock_guard.hpp>
+#include <vector>
+#include <queue>
+#include "SurfaceCollection.hpp"
+
+namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
 //#define MM_SEGMENTATION_DEBUG_GRAPH
 //#define MM_SEGMENTATION_DEBUG_REGIONS

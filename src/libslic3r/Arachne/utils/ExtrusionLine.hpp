@@ -19,9 +19,8 @@
 #include "ExtrusionJunction.hpp"
 #include "../../Polyline.hpp"
 #include "../../Polygon.hpp"
-#include "../../BoundingBox.hpp"
 #include "../../ExtrusionEntity.hpp"
-#include "../../Flow.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 
 namespace Slic3r {

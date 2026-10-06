@@ -1,11 +1,15 @@
+#include <cstddef>
+#include <cmath>
 #include <libslic3r/SLA/Pad.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
-#include <libslic3r/SLA/BoostAdapter.hpp>
 //#include <libslic3r/SLA/Contour3D.hpp>
 #include <libslic3r/TriangleMeshSlicer.hpp>
 
 #include "ConcaveHull.hpp"
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "boost/log/trivial.hpp"
 #include "ClipperUtils.hpp"
 #include "Tesselate.hpp"
@@ -19,7 +23,13 @@
 #include "SVG.hpp"
 
 #include "I18N.hpp"
+#include "libslic3r/libslic3r.h"
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
+#include <string>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polygon.hpp"
 
 //! macro used to mark string used at localization,
 //! return same string

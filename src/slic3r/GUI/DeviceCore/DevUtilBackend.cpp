@@ -2,7 +2,6 @@
 
 #include "slic3r/GUI/BackgroundSlicingProcess.hpp"
 
-#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -21,6 +20,9 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Config.hpp"
 #include <wx/string.h>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r
 {

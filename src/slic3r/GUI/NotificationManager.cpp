@@ -1272,7 +1272,7 @@ bool NotificationManager::ExportFinishedNotification::on_text_click()
 }
 void NotificationManager::ExportFinishedNotification::on_eject_click()
 {
-	NotificationData data{ get_data().type, get_data().level , 0, _utf8("Ejecting.") };
+	NotificationData data{ get_data().type, get_data().level , 0, _u8L("Ejecting.") };
 	m_eject_pending = true;
 	m_multiline = false;
 	update(data);
@@ -1671,9 +1671,7 @@ void NotificationManager::PrintHostUploadNotification::render_bar(ImGuiWrapper& 
 	{
 		ProgressBarNotification::render_bar(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
 		float uploaded = m_file_size * m_percentage;
-		std::stringstream stream;
-		stream << std::fixed << std::setprecision(2) << (int)(m_percentage * 100) << "% - " << uploaded << " of " << m_file_size << "MB uploaded";
-		text = stream.str();
+		text = into_u8(wxString::Format(_L("%d%% - %.2f of %.2fMB uploaded"), (int)(m_percentage * 100), uploaded, m_file_size));
 		ImGui::SetCursorPosX(m_left_indentation);
 		ImGui::SetCursorPosY(win_size_y / 2 + win_size_y / 6 - (m_multiline ? 0 : m_line_height / 4));
 		break;
@@ -2880,17 +2878,24 @@ void NotificationManager::update_slicing_notif_dailytips(bool need_change)
 	// Slicing progress notification was not found - init it thru plater so correct cancel callback function is appended
 	wxGetApp().plater()->init_notification_manager();
 }
+// Orca: Ensures the slicing-progress controller exists before applying the first slicing transition.
 void NotificationManager::set_slicing_progress_began()
 {
-	for (std::unique_ptr<PopNotification> & notification : m_pop_notifications) {
-		if (notification->get_type() == NotificationType::SlicingProgress) {
-			SlicingProgressNotification* spn = dynamic_cast<SlicingProgressNotification*>(notification.get());
-			spn->set_progress_state(SlicingProgressNotification::SlicingProgressState::SP_BEGAN);
-			return;
+	auto find_slicing_progress = [this]() -> SlicingProgressNotification* {
+		for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+			if (notification->get_type() == NotificationType::SlicingProgress)
+				return dynamic_cast<SlicingProgressNotification*>(notification.get());
 		}
+		return nullptr;
+	};
+
+	SlicingProgressNotification* notification = find_slicing_progress();
+	if (notification == nullptr) {
+		wxGetApp().plater()->init_notification_manager();
+		notification = find_slicing_progress();
 	}
-	// Slicing progress notification was not found - init it thru plater so correct cancel callback function is appended
-	wxGetApp().plater()->init_notification_manager();
+	if (notification != nullptr)
+		notification->set_progress_state(SlicingProgressNotification::SlicingProgressState::SP_BEGAN);
 }
 void NotificationManager::set_slicing_progress_percentage(const std::string& text, float percentage)
 {
@@ -3588,7 +3593,7 @@ void NotificationManager::bbl_show_bed_filament_incompatible_notification(const 
 		wxGetApp().open_browser_with_warning_dialog(bed_filament_compatibility_wiki);
 		return false;
 	};
-	push_notification_data({ NotificationType::BBLBedFilamentIncompatible,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,"Click for more.",callback }, 0);
+	push_notification_data({ NotificationType::BBLBedFilamentIncompatible,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,_u8L("Click for more."),callback }, 0);
 }
 
 void NotificationManager::bbl_close_bed_filament_incompatible_notification()

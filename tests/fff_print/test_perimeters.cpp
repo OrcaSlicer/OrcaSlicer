@@ -19,8 +19,10 @@
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 #include <limits>
 #include <string>
 #include <utility>
@@ -271,6 +273,124 @@ TEST_CASE("Only one wall on the first layer needs a bottom shell", "[Perimeters]
     CHECK(one_wall < plain);
     // No bottom shell: the option is inert, down to the same walls an unchecked box gives.
     CHECK_THAT(one_wall_no_shell, Catch::Matchers::WithinAbs(plain_no_shell, 1.0));
+}
+
+namespace {
+
+// The last layer of the tab, whose top surface shares an island with the tube walls rising past it.
+const double tab_top_z = 5.0;
+
+// With the widths below the tube walls are 1.10mm wide once the precise outer wall offset (0.043mm a side) is
+// taken off. That is narrower than 3 outer wall spacings (3 x 0.377 = 1.131mm), so an Arachne pass limited to a
+// single wall fills it by widening its 2 beads, yet wide enough for the full 2 wall pass to add a middle wall
+// (from 1.062mm).
+const double narrow_wall = 1.186;
+
+// A 20x30x10 tube with narrow_wall thick walls, and a 20x8x5 tab against its -Y side.
+Print &tube_with_tab(Print &print, Model &model, const DynamicPrintConfig &config)
+{
+    ModelObject *object = model.add_object();
+    object->name = "tube_with_tab.stl";
+    object->add_volume(make_cube(20., 30., 10.), ModelVolumeType::MODEL_PART, false);
+    // Overlaps the tube wall by 0.5mm so the two parts slice as one island.
+    TriangleMesh tab = make_cube(20., 8.5, 5.);
+    tab.translate(0.f, -8.f, 0.f);
+    object->add_volume(std::move(tab), ModelVolumeType::MODEL_PART, false);
+    TriangleMesh bore = make_cube(20. - 2. * narrow_wall, 30. - 2. * narrow_wall, 12.);
+    bore.translate(float(narrow_wall), float(narrow_wall), -1.f);
+    object->add_volume(std::move(bore), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    return print;
+}
+
+// Every width the narrow_wall arithmetic depends on, so none of them rests on a default.
+DynamicPrintConfig narrow_wall_config(bool only_one_wall_top, double top_surface_expansion)
+{
+    DynamicPrintConfig config = base_config("arachne");
+    config.set_deserialize_strict({
+        { "wall_loops",            2 },
+        { "nozzle_diameter",       "0.4" },
+        { "line_width",            0.42 },
+        { "outer_wall_line_width", 0.42 },
+        { "inner_wall_line_width", 0.45 },
+        { "min_bead_width",        "85%" },
+        { "precise_outer_wall",    true },
+        { "wall_sequence",         "inner wall/outer wall" },
+        { "only_one_wall_top",     only_one_wall_top },
+        { "top_surface_expansion", top_surface_expansion },
+    });
+    return config;
+}
+
+// Inner wall length the layer at print_z extrudes within 3mm of its +Y edge: the tube wall facing away from the tab.
+double far_wall_inner_wall_length(const Print &print, double print_z)
+{
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (std::abs(layer->print_z - print_z) > EPSILON)
+            continue;
+        BoundingBox band = get_extents(layer->lslices);
+        band.min.y()     = band.max.y() - scaled<coord_t>(3.);
+
+        Polylines inner_walls;
+        auto      collect = [&inner_walls](const ExtrusionPaths &paths) {
+            for (const ExtrusionPath &path : paths)
+                if (path.role() == erPerimeter)
+                    inner_walls.emplace_back(path.as_polyline());
+        };
+        for (const LayerRegion *region : layer->regions()) {
+            const ExtrusionEntityCollection walls = region->perimeters.flatten();
+            for (const ExtrusionEntity *entity : walls.entities) {
+                if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(entity))
+                    collect(loop->paths);
+                else if (const auto *multi_path = dynamic_cast<const ExtrusionMultiPath*>(entity))
+                    collect(multi_path->paths);
+                else if (const auto *path = dynamic_cast<const ExtrusionPath*>(entity))
+                    collect({ *path });
+            }
+        }
+        return unscaled<double>(total_length(intersection_pl(inner_walls, band.polygon())));
+    }
+    return 0.;
+}
+
+} // namespace
+
+// only_one_wall_top first lays out an island with a single Arachne wall and generates the inner walls inside it.
+// On a wall narrower than 3 outer wall spacings that single wall pass widens its 2 beads to fill the wall and leaves
+// no room for the middle wall, which is only intended over the top surface. The tube walls away from the tab are not
+// under the tab's top surface, so on the tab's last layer they keep the inner wall they get with the option off.
+TEST_CASE("Only one wall on top surfaces keeps the inner walls of narrow walls away from the top surface", "[Perimeters]")
+{
+    // 0 re-onions the region beside the top surface, 2 clips the inner walls over it.
+    const double top_surface_expansion = GENERATE(0.0, 2.0);
+    CAPTURE(top_surface_expansion);
+
+    struct TabTopLayer {
+        double perimeters;
+        double far_wall_inner_walls;
+    };
+    auto tab_top_layer_for = [top_surface_expansion](bool only_one_wall_top) {
+        Print print;
+        Model model;
+        tube_with_tab(print, model, narrow_wall_config(only_one_wall_top, top_surface_expansion));
+        print.process();
+        REQUIRE_FALSE(print.objects().empty());
+        return TabTopLayer{ perimeter_length_at(print, tab_top_z), far_wall_inner_wall_length(print, tab_top_z) };
+    };
+
+    const TabTopLayer plain    = tab_top_layer_for(false);
+    const TabTopLayer one_wall = tab_top_layer_for(true);
+
+    // The option acts on this layer: the inner walls under the tab's top surface are gone.
+    REQUIRE(plain.far_wall_inner_walls > 10.);
+    CHECK(one_wall.perimeters < plain.perimeters);
+    CHECK_THAT(one_wall.far_wall_inner_walls, Catch::Matchers::WithinAbs(plain.far_wall_inner_walls, 1.0));
 }
 
 namespace {

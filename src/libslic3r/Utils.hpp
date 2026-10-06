@@ -1,9 +1,23 @@
 #ifndef slic3r_Utils_hpp_
 #define slic3r_Utils_hpp_
 
+#include <cstddef>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cstdint>
+#include <cstdio>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <algorithm>
 #include <iomanip>
+#include <limits>
 #include <locale>
 #include <set>
+#include <string>
+#include <sstream>
+#include <stdexcept>
 #include <utility>
 #include <functional>
 #include <type_traits>
@@ -11,6 +25,8 @@
 #include <initializer_list>
 #include <string_view>
 #include <regex>
+#include <string_view>
+#include <algorithm>
 
 #include <boost/system/error_code.hpp>
 #include <boost/algorithm/string.hpp>
@@ -19,6 +35,7 @@
 #include "boost/date_time/posix_time/ptime.hpp"
 
 #include <openssl/md5.h>
+#include <vector>
 
 #include "libslic3r.h"
 #include "Semver.hpp"
@@ -286,6 +303,14 @@ extern bool is_absolute_path_within_root(const boost::filesystem::path &path, co
 // True if a file with this name is of a type that the desktop opens as plain content, so it cannot run code.
 // Anything unknown is not safe.
 extern bool is_safe_to_open_file_name(const std::string &file_name);
+
+// Case-insensitive compare against a fixed ASCII keyword, without boost::iequals, whose
+// std::locale() takes a lock the whole process shares in the MSVC runtime.
+inline bool ascii_iequals(std::string_view a, std::string_view b)
+{
+    auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [&lower](char x, char y) { return lower(x) == lower(y); });
+}
 
 // Orca: custom protocal support utils
 inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "orcaslicer://open"); }

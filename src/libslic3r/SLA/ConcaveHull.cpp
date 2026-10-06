@@ -1,10 +1,19 @@
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <iterator>
+#include "libslic3r/Polygon.hpp"
+#include <cmath>
+#include "libslic3r/ExPolygon.hpp"
 #include <libslic3r/SLA/ConcaveHull.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
 
-#include <libslic3r/MTUtils.hpp>
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <limits>
+#include <vector>
+#include "libslic3r/Line.hpp"
 
 namespace Slic3r {
 namespace sla {

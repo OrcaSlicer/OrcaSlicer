@@ -1,9 +1,6 @@
-#include "libslic3r/libslic3r.h"
 #include "KBShortcutsDialog.hpp"
 #include "I18N.hpp"
-#include "libslic3r/Utils.hpp"
 #include "GUI.hpp"
-#include "Notebook.hpp"
 #include <vector>
 #include "slic3r/GUI/Shortcuts.hpp"
 #include <wx/colour.h>
@@ -490,7 +487,7 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     m_status_colour = m_status->GetForegroundColour();
     sizer->Add(m_status, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(20));
 
-    auto dlg_btns = new DialogButtons(this, {"Unbind", "OK", "Cancel"}, "", 1 /*left_aligned*/);
+    auto dlg_btns = new DialogButtons(this, {L("Unbind"), "OK", "Cancel"}, "", 1 /*left_aligned*/);
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         m_chord = KeyChord{};
         m_conflicts.clear();

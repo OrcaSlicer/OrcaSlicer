@@ -1,6 +1,14 @@
 #ifndef slic3r_Print_hpp_
 #define slic3r_Print_hpp_
 
+#include "Config.hpp"
+#include "Model.hpp"
+#include "Polygon.hpp"
+#include "Fill/FillBase.hpp"
+#include "Polyline.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Geometry.hpp"
+#include "CommonDefs.hpp"
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
@@ -9,7 +17,9 @@
 #include "ExtrusionEntityCollection.hpp"
 #include "Flow.hpp"
 #include "Point.hpp"
+#include "PrintConfig.hpp"
 #include "Slicing.hpp"
+#include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "GCode/ToolOrdering.hpp"
 #include "GCode/WipeTower.hpp"
@@ -18,13 +28,25 @@
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
 #include "ObjectID.hpp"
+#include "TriangleSelector.hpp"
 #include "libslic3r.h"
 
 #include <Eigen/Geometry>
 
+#include <cstddef>
+#include <cmath>
+#include <algorithm>
 #include <functional>
+#include <memory>
+#include <map>
+#include <math.h>
+#include <optional>
 #include <set>
+#include <string>
+#include <tuple>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "calib.hpp"
 
@@ -470,10 +492,8 @@ public:
     std::vector<Polygons>       slice_support_volumes(const ModelVolumeType model_volume_type) const;
     std::vector<Polygons>       slice_support_blockers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_BLOCKER); }
     std::vector<Polygons>       slice_support_enforcers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_ENFORCER); }
-    // Shared slicing path; multiple volumes are united per layer.
-    std::vector<Polygons>       slice_modifier_volumes(const std::vector<const ModelVolume*> &volumes) const;
-    // Keep Precise Seam volumes separate so their individual priority is preserved.
-    std::vector<Polygons>       slice_single_volume(const ModelVolume* volume) const { return this->slice_modifier_volumes({volume}); }
+    // Preserve each connected region and its holes for perimeter clipping.
+    std::vector<ExPolygons>     slice_single_volume_regions(const ModelVolume* volume) const;
 
     // Helpers to project custom facets on slices
     void project_and_append_custom_facets(bool seam, EnforcerBlockerType type, std::vector<Polygons>& expolys, std::vector<std::pair<Vec3f,Vec3f>>* vertical_points=nullptr) const;

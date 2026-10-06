@@ -42,6 +42,7 @@
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/PerimeterGenerator.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Layer.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Arachne;

@@ -1,18 +1,19 @@
 #ifndef libslic3r_SeamPlacer_hpp_
 #define libslic3r_SeamPlacer_hpp_
 
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <optional>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <string>
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
-#include "libslic3r/ExtrusionEntity.hpp"
-#include "libslic3r/Polygon.hpp"
-#include "libslic3r/PrintConfig.hpp"
-#include "libslic3r/BoundingBox.hpp"
-#include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/KDTreeIndirect.hpp"
 
 namespace Slic3r {
@@ -149,10 +150,16 @@ public:
   //The following data structures hold all perimeter points for all PrintObject.
   std::unordered_map<const PrintObject*, PrintObjectSeamData> m_seam_per_object;
 
-  void init(Print &print, std::function<void(void)> throw_if_canceled_func);
+  void init(const Print &print, std::function<void(void)> throw_if_canceled_func);
+
+  // Precise Seam user warning prepared by the last init(), empty if there is none. init() does not
+  // change the Print: the caller issues the warning where a print step is active (G-code export).
+  const std::string &precise_seam_warning() const { return m_precise_seam_warning; }
 
   void place_seam(const Layer *layer, ExtrusionLoop &loop, const Point &last_pos, float& overhang) const;
 private:
+  std::string m_precise_seam_warning;
+
   void gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info,
                               PreciseSeam::PreciseSeamWarnings* warnings = nullptr);
   void calculate_candidates_visibility(const PrintObject *po,

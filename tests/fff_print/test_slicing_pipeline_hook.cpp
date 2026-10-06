@@ -496,6 +496,9 @@ TEST_CASE("refreshing lslices after a slice mutation makes islands track the geo
 }
 
 #include <random>   // deterministic RNG for the fuzzy-skin analogue below
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 // Fuzzy skin applied to the slice contours at the Slice boundary, matching what the Fuzzy
 // Slices sample (sandboxes/orca_fuzzy_slices_plugin_any.py) does: resample every ring at

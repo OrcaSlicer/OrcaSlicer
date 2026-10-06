@@ -7,24 +7,37 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "TreeModelVolumes.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "TreeSupportCommon.hpp"
 
 #include "../BuildVolume.hpp"
 #include "../ClipperUtils.hpp"
-#include "../Flow.hpp"
 #include "../Layer.hpp"
 #include "../Point.hpp"
 #include "../Print.hpp"
-#include "../PrintConfig.hpp"
 #include "../Utils.hpp"
 #include "../format.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <limits>
+#include <functional>
+#include <chrono>
+#include <optional>
+#include <numeric>
+#include <cmath>
 #include <string_view>
 
 #include <boost/log/trivial.hpp>
 
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
+#include <vector>
+#include <unordered_map>
+#include <utility>
 
 namespace Slic3r::TreeSupport3D
 {

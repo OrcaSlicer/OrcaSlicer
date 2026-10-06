@@ -1,7 +1,11 @@
-# clang-tidy configuration. Only missing includes are reported for now: a file
-# should include the header for every symbol it uses, not rely on the
-# precompiled header or another header's includes. Run with --fix to add them.
+# clang-tidy configuration, enforced by the clang-tidy CI job on the lines a pull
+# request changes (scripts/clang_tidy_diff.py). Only missing includes are reported
+# for now: a file should include the header for every symbol it uses, not rely on
+# the precompiled header or another header's includes. Run with --fix to add them.
+# Every check listed here gates pull requests, so enable a new one only once the
+# code it flags on touched lines is reasonable to fix in passing.
 Checks: '-*,misc-include-cleaner'
+WarningsAsErrors: '*'
 CheckOptions:
   # Missing includes only. Builds without the precompiled header break on these.
   misc-include-cleaner.UnusedIncludes: false
@@ -14,7 +18,9 @@ CheckOptions:
   # admesh's stl.h, which the include path also exposes without its directory.
   # Clipper's own clipper.hpp is only included through libslic3r/clipper.hpp or
   # clipper_z.hpp, which configure it first, and Boost.Polygon's headers only
-  # work through boost/polygon/polygon.hpp or voronoi.hpp. minilzo's config
+  # work through boost/polygon/polygon.hpp or voronoi.hpp. Clipper2's headers
+  # are included through clipper2/clipper.h, or clipper2_z.hpp, which defines
+  # USINGZ first. minilzo's config
   # headers are internal to minilzo.h.
   # FFmpeg's C headers are left alone because they are only included inside
   # extern "C", which an inserted include would miss. OS-specific headers (GLib,
@@ -55,8 +61,10 @@ CheckOptions:
     termios\.h;
     [/\\](um|shared)[/\\].*;
     sal\.h;
+    tchar\.h;
     clipper[/\\]clipper\.hpp;
     png(lib)?conf\.h;
     mcut[/\\]platform\.h;
     boost[/\\]polygon[/\\].*;
+    clipper2[/\\]clipper\.(core|engine|offset|minkowski|rectclip|export|triangulation|version)\.h;
     lzo(conf|defs)\.h

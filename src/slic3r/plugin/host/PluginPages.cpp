@@ -1,6 +1,7 @@
 #include "PluginPages.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -21,6 +22,7 @@
 #include "slic3r/GUI/WebPanel.hpp"
 #include <optional>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/GUI/LazyPage.hpp"
 #include <stdexcept>
 #include <string>
 #include <wx/app.h>
@@ -183,8 +185,10 @@ void PluginPages::initialize(Notebook* parent)
 
 void PluginPages::shutdown()
 {
-    while (!m_pages.empty())
-        remove_page(m_pages.begin()->first);
+    // Removing the selected tab selects the tab to its left. In tab order that is a built-in tab,
+    // never an unbuilt plugin page that is removed next and would be built only to be destroyed.
+    for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
+        remove_page(id);
     m_parent = nullptr;
 }
 
@@ -225,8 +229,7 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to get icon for plugin " << id.plugin_key;
     }
 
-    auto* page = new PluginPage(m_parent, std::move(capability));
-
+    wxBitmap bitmap;
     if (!icon.empty()) {
         try {
             boost::filesystem::path icon_path(icon);
@@ -234,7 +237,7 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
             if (extension == ".svg" || extension == ".png")
                 icon_path.replace_extension();
 
-            page->set_icon(create_scaled_bitmap(icon_path.string(), m_parent, 20));
+            bitmap = create_scaled_bitmap(icon_path.string(), m_parent, 20);
         } catch (const std::exception& error) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to load icon for plugin " << id.plugin_key << ": " << error.what();
         } catch (...) {
@@ -242,7 +245,15 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
         }
     }
 
-    m_pages.emplace(id, page);
+    // Built the first time its tab is shown, so a language switch never creates the page's browser
+    // while the main window is being rebuilt. Never prebuilt: the idle queue cannot drop a page
+    // that remove_page() destroys.
+    auto* page = new GUI::LazyPage<PluginPage>(m_parent, GUI::into_u8(page_tab_id(id)), -1,
+                                               [capability = std::move(capability)](wxWindow* parent) {
+                                                   return new PluginPage(parent, capability);
+                                               });
+
+    m_pages.emplace(id, Page{page, bitmap});
     m_order.push_back(id);
     return true;
 }
@@ -271,16 +282,10 @@ void PluginPages::on_plugin_register(const std::string& plugin_key)
 
 void PluginPages::on_plugin_deregister(const std::string& plugin_key)
 {
-    for (auto it = m_pages.begin(); it != m_pages.end();) {
-        if (it->first.plugin_key != plugin_key) {
-            ++it;
-            continue;
-        }
-
-        const PluginCapabilityId id = it->first;
-        ++it;
-        remove_page(id);
-    }
+    // In tab order, as in shutdown().
+    for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
+        if (id.plugin_key == plugin_key)
+            remove_page(id);
 }
 
 void PluginPages::remove_page(const PluginCapabilityId& id)
@@ -289,8 +294,10 @@ void PluginPages::remove_page(const PluginCapabilityId& id)
     if (it == m_pages.end())
         return;
 
-    PluginPage* page = it->second;
-    page->detach_capability();
+    GUI::LazyPage<PluginPage>* page = it->second.page;
+    // Only a built page has installed a message sender on the capability.
+    if (PluginPage* built = page->get())
+        built->detach_capability();
 
     m_pages.erase(it);
     m_order.erase(std::remove(m_order.begin(), m_order.end(), id), m_order.end());
@@ -348,26 +355,27 @@ void PluginPages::relayout()
     bool up_to_date = page_count >= tab_ids.size();
     for (size_t i = 0; up_to_date && i < tab_ids.size(); ++i)
         up_to_date = m_parent->GetPageName(page_count - tab_ids.size() + i) == page_tab_id(tab_ids[i]);
-    for (const auto& [id, page] : m_pages) {
+    for (const auto& [id, entry] : m_pages) {
         if (!up_to_date)
             break;
         const bool wanted = std::find(tab_ids.begin(), tab_ids.end(), id) != tab_ids.end();
-        up_to_date = (m_parent->FindPage(page) != wxNOT_FOUND) == wanted;
+        up_to_date = entry.page->in_book() == wanted;
     }
 
     if (!up_to_date) {
         const wxString id_to_reselect = m_parent->GetSelectedPageName();
 
-        for (const auto& [id, page] : m_pages) {
-            const int idx = m_parent->FindPage(page);
+        // In tab order, as in shutdown().
+        for (const auto& id : m_order) {
+            const int idx = m_parent->FindPage(m_pages.at(id).page);
             if (idx != wxNOT_FOUND)
                 m_parent->RemovePage(idx);
         }
 
         for (const auto& id : tab_ids) {
-            PluginPage* page = m_pages.at(id);
-            m_parent->InsertPage(m_parent->GetPageCount(), page_tab_id(id), page, wxString::FromUTF8(id.name), "",
-                                 false, page->icon());
+            const Page& entry = m_pages.at(id);
+            m_parent->InsertPage(m_parent->GetPageCount(), page_tab_id(id), entry.page, wxString::FromUTF8(id.name), "",
+                                 false, entry.icon);
         }
 
         if (!id_to_reselect.empty())

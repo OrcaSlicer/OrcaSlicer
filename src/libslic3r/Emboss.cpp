@@ -1,12 +1,35 @@
+#include <cmath>
+#include <cassert>
+#include <algorithm>
+#include <functional>
+#include <iterator>
+#include <cstdint>
+#include <memory>
+#include <cstdio>
+#include <cctype>
+#include <limits>
+#include <math.h>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <numeric>
 #include "Emboss.hpp"
+#include <optional>
 #include <stdio.h>
 #include <numeric>
 #include <cstdlib>
 #include <boost/nowide/convert.hpp>
 #include <boost/log/trivial.hpp>
 #include <ClipperUtils.hpp> // union_ex + for boldness(polygon extend(offset))
+#include "ExPolygon.hpp"
+#include <vector>
+#include "AABBTreeIndirect.hpp"
+#include <utility>
+#include "EmbossShape.hpp"
+#include <string>
 #include "IntersectionPoints.hpp"
+#include "Polygon.hpp"
+#include "TextConfiguration.hpp"
+#include "Point.hpp"
 
 #define STB_TRUETYPE_IMPLEMENTATION // force following include to generate implementation
 #include "imgui/imstb_truetype.h" // stbtt_fontinfo
@@ -20,6 +43,7 @@
 #include "libslic3r/AABBTreeLines.hpp" // search structure for found close points
 #include "libslic3r/Line.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include <sstream>
 
 // Experimentaly suggested ration of font ascent by multiple fonts
 // to get approx center of normal text line

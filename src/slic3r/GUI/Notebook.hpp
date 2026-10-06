@@ -18,8 +18,11 @@
 #include <wx/string.h>
 #include <wx/withimages.h>
 #include <wx/window.h>
+#include <wx/defs.h>
+#include <wx/notebook.h>
 
-class ScalableButton;
+class wxObject;
+
 class Button;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:

@@ -13,8 +13,9 @@
 #include <wx/toplevel.h>
 #include <wx/types.h>
 
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

@@ -202,6 +202,8 @@ set(lisbslic3r_sources
     Format/3mf.hpp
     Format/AMF.cpp
     Format/AMF.hpp
+    Format/AssembleList.cpp
+    Format/AssembleList.hpp
     Format/DRC.cpp
     Format/DRC.hpp
     Format/bbs_3mf.cpp
@@ -258,6 +260,7 @@ set(lisbslic3r_sources
     GCode/SeamPlacer.hpp
     GCode/PreciseSeam.cpp
     GCode/PreciseSeam.hpp
+    GCode/PreciseSeamInternal.hpp
     #GCodeSender.cpp
     #GCodeSender.hpp
     GCode/SmallAreaInfillFlowCompensator.cpp
@@ -646,11 +649,8 @@ find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
 set(OCCT_LIBS
-    TKXDESTEP
-    TKSTEP
-    TKSTEP209
-    TKSTEPAttr
-    TKSTEPBase
+    TKDESTEP
+    TKDE
     TKXCAF
     TKXSBase
     TKVCAF
@@ -697,6 +697,22 @@ if (SLIC3R_CAD)
 endif ()
 # Published for the Windows packaging step in the top-level CMakeLists.txt.
 set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
+if (WIN32)
+    # OCCT installs RelWithDebInfo and Debug builds to bin/occti and bin/occtd, so each build
+    # type's DLL directory is read from the imported target, falling back to the first installed
+    # build, as CMake does when linking.
+    get_target_property(_occt_configs TKernel IMPORTED_CONFIGURATIONS)
+    list(GET _occt_configs 0 _occt_fallback)
+    foreach (_build_config IN ITEMS DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set(_occt_config ${_occt_fallback})
+        if (_build_config IN_LIST _occt_configs)
+            set(_occt_config ${_build_config})
+        endif ()
+        get_target_property(_occt_dll TKernel IMPORTED_LOCATION_${_occt_config})
+        get_filename_component(_occt_bin "${_occt_dll}" DIRECTORY)
+        set(OCCT_BIN_DIR_${_build_config} "${_occt_bin}" CACHE INTERNAL "OCCT DLL directory for ${_build_config} builds")
+    endforeach ()
+endif ()
 
 target_link_libraries(libslic3r
     PUBLIC
@@ -731,6 +747,12 @@ target_link_libraries(libslic3r
     )
 
 if(NOT WIN32)
+    # OCCT's static targets name FreeType as a bare "freetype", which the macOS linker cannot
+    # find; this target maps that name to FREETYPE_LIBRARIES.
+    if (NOT TARGET freetype)
+        add_library(freetype INTERFACE IMPORTED GLOBAL)
+        target_link_libraries(freetype INTERFACE ${FREETYPE_LIBRARIES})
+    endif ()
     # Link freetype for OCCT dependency (CAD operations need font rendering)
     target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
     if (NOT APPLE)

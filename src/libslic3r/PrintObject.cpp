@@ -1,14 +1,20 @@
+#include "ExPolygon.hpp"
+#include "Config.hpp"
 #include "Exception.hpp"
+#include "Line.hpp"
+#include "Flow.hpp"
 #include "Model.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
-#include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MutablePolygon.hpp"
+#include "PrintBase.hpp"
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
@@ -22,20 +28,42 @@
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
-#include "Format/STL.hpp"
 #include "format.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
+#include "libslic3r.h"
 
+#include <algorithm>
+#include <cmath>
+#include <chrono>
+#include <Shiny/ShinyMacros.h>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <array>
 #include <cstddef>
+#include <cstdlib>
+#include <cstdint>
 #include <float.h>
+#include <functional>
+#include <ios>
+#include <iomanip>
+#include <initializer_list>
 #include <iterator>
+#include <memory>
+#include <limits>
+#include <map>
+#include <math.h>
 #include <mutex>
+#include <set>
+#include <optional>
+#include <ratio>
 #include <string>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <string_view>
+#include <tuple>
+#include <unordered_set>
 #include <utility>
 
 #include <boost/log/trivial.hpp>
@@ -45,6 +73,15 @@
 #include <tbb/concurrent_unordered_set.h>
 
 #include <Shiny/Shiny.h>
+#include <vector>
+#include <tbb/concurrent_unordered_map.h>
+#include "ExtrusionEntityCollection.hpp"
+#include "Fill/FillBase.hpp"
+#include "Fill/Lightning/Generator.hpp"
+#include "SurfaceCollection.hpp"
+#include "TriangleMesh.hpp"
+
+namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
 using namespace std::literals;
 
@@ -993,10 +1030,13 @@ void PrintObject::generate_support_material()
 void PrintObject::estimate_curled_extrusions()
 {
     if (this->set_started(posEstimateCurledExtrusions)) {
-        if ( std::any_of(this->print()->m_print_regions.begin(), this->print()->m_print_regions.end(), [](const PrintRegion* region) {
-                const auto& cfg = region->config().enable_overhang_speed.values;
-                return std::any_of(cfg.begin(), cfg.end(), [](const unsigned char v) { return (bool) v; });
-            })) {
+        const auto any_region_enables = [this](ConfigOptionBoolsNullable PrintRegionConfig::*option) {
+            return std::any_of(this->print()->m_print_regions.begin(), this->print()->m_print_regions.end(),
+                               [option](const PrintRegion* region) { return any_enabled(region->config().*option); });
+        };
+        // Only the slowdown for curled perimeters reads the curled lines, and they stay empty unless some region has overhang speed on.
+        if (any_region_enables(&PrintRegionConfig::enable_overhang_speed) &&
+            any_region_enables(&PrintRegionConfig::slowdown_for_curled_perimeters)) {
 
             // Estimate curling of support material and add it to the malformaition lines of each layer
             float support_flow_width = support_material_flow(this, this->config().layer_height).width();
@@ -1006,6 +1046,9 @@ void PrintObject::estimate_curled_extrusions()
                                                  float(this->config().brim_width.getFloat())};
             SupportSpotsGenerator::estimate_malformations(this->layers(), params);
             m_print->throw_if_canceled();
+        } else {
+            for (Layer *layer : m_layers)
+                layer->curled_lines.clear();
         }
         //this->set_done(posEstimateCurledExtrusions);
     }
@@ -3407,23 +3450,23 @@ void PrintObject::bridge_over_infill()
                     const bool turning_pattern = region_config.sparse_infill_pattern == ipHilbertCurve ||
                                                  region_config.sparse_infill_pattern == ipOctagramSpiral;
                     const Flow &flow              = candidate.region->bridging_flow(frSolidInfill, true);
-                    Polygons    area_to_be_bridge = expand(candidate.new_polys, flow.scaled_spacing());
-                    area_to_be_bridge             = intersection(area_to_be_bridge, deep_infill_area);
-
-                    area_to_be_bridge.erase(std::remove_if(area_to_be_bridge.begin(), area_to_be_bridge.end(),
-                                                           [internal_unsupported_area](const Polygon &p) {
-                                                               return intersection({p}, internal_unsupported_area).empty();
+                    ExPolygons bridge_components = intersection_ex(expand(candidate.new_polys, flow.scaled_spacing()), deep_infill_area);
+                    // Orca: Filter whole bridge areas so their holes remain holes.
+                    bridge_components.erase(std::remove_if(bridge_components.begin(), bridge_components.end(),
+                                                           [&internal_unsupported_area](const ExPolygon &component) {
+                                                               return intersection_ex(component, internal_unsupported_area).empty();
                                                            }),
-                                            area_to_be_bridge.end());
+                                            bridge_components.end());
+                    Polygons area_to_be_bridge = to_polygons(std::move(bridge_components));
 
                     Polygons limiting_area = union_(area_to_be_bridge, expansion_area);
 
                     if (area_to_be_bridge.empty())
                         continue;
 
-                    Polylines boundary_plines = to_polylines(expand(total_fill_area, 1.3 * flow.scaled_spacing()));
+                    Polylines boundary_plines = to_polylines(expand(total_fill_area, 1.3f * flow.scaled_spacing()));
                     {
-                        Polylines limiting_plines = to_polylines(expand(limiting_area, 0.3*flow.spacing()));
+                        Polylines limiting_plines = to_polylines(expand(limiting_area, 0.3f * flow.scaled_spacing()));
                         boundary_plines.insert(boundary_plines.end(), limiting_plines.begin(), limiting_plines.end());
                     }
 
@@ -3497,7 +3540,7 @@ void PrintObject::bridge_over_infill()
                     // Check collision with other expanded surfaces
                     {
                         bool     reconstruct       = false;
-                        Polygons tmp_expanded_area = expand(bridging_area, 3.0 * flow.scaled_spacing());
+                        Polygons tmp_expanded_area = expand(bridging_area, 3.0f * flow.scaled_spacing());
                         for (const CandidateSurface &s : expanded_surfaces) {
                             if (!intersection(s.new_polys, tmp_expanded_area).empty()) {
                                 bridging_angle = s.bridge_angle;
@@ -3514,7 +3557,7 @@ void PrintObject::bridge_over_infill()
 
                     // Orca: Keep fine details for better anchoring
                     // bridging_area         = opening(bridging_area, flow.scaled_spacing());
-                    bridging_area          = opening(bridging_area, flow.scaled_spacing() * 0.75);
+                    bridging_area          = opening(bridging_area, flow.scaled_spacing() * 0.75f);
                     bridging_area          = closing(bridging_area, flow.scaled_spacing());
                     // Orca: Opening/closing can pull rounded bridge ends away from their real
                     // supports. Restore those contacts after smoothing, preserving the cleaned

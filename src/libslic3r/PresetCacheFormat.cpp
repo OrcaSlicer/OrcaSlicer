@@ -1,9 +1,20 @@
 #include "libslic3r/PresetCacheFormat.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <cereal/archives/binary.hpp>
+#include <cstddef>
+#include <cereal/details/helpers.hpp>
+#include <cereal/cereal.hpp>
+#include <ios>
+#include <exception>
+#include <boost/filesystem/operations.hpp>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 
 #include <boost/crc.hpp>
@@ -14,7 +25,12 @@
 #include <boost/nowide/fstream.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/set.hpp>
+#include <vector>
 
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+#include "Semver.hpp"
+#include "Preset.hpp"
 #include "libslic3r/Utils.hpp"
 
 namespace Slic3r {

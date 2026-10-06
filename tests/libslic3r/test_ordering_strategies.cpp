@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <unordered_set>
+#include <catch2/catch_approx.hpp>
 
 using namespace Slic3r;
 
