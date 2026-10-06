@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <vector>
 
 #include "libslic3r/BoundingBox.hpp"
@@ -15,6 +16,7 @@
 #include "libslic3r/Fill/FillTpmsAdaptive.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 
 using namespace Slic3r;
@@ -28,24 +30,24 @@ ExPolygon rectangle(double x0, double y0, double x1, double y1)
 }
 
 // The expolygons stacked in 0.2 mm layers from z = 0 to height.
-TpmsRadialField radial_field(const ExPolygons &expolygons, double height)
+TpmsRadialField radial_field(const ExPolygons &expolygons, double height, TpmsAdaptiveMode mode = TpmsAdaptiveMode::Volumetric)
 {
     std::vector<TpmsRadialField::Slice> slices;
     for (int i = 0; 0.2 * (i + 1) < height + EPSILON; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &expolygons});
-    return TpmsRadialField(slices, get_extents(expolygons), [] {});
+    return TpmsRadialField(slices, get_extents(expolygons), mode, [] {});
 }
 
 double radial(const TpmsRadialField &field, const Vec3d &pt)
 {
-    std::array<TpmsRadialField::Radial, 2> radials;
+    std::array<TpmsRadialField::Radial, 4> radials;
     field.radial(pt, radials);
     return radials[0].t;
 }
 
 Vec3d center(const TpmsRadialField &field, const Vec3d &pt)
 {
-    std::array<TpmsRadialField::Radial, 2> radials;
+    std::array<TpmsRadialField::Radial, 4> radials;
     field.radial(pt, radials);
     return radials[0].center;
 }
@@ -132,7 +134,7 @@ TEST_CASE("TPMS radial field grades every lobe of a body towards its own center"
     }
     for (int i = 0; i < 100; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &layers[i]});
-    const TpmsRadialField field(slices, get_extents(layers[50]), [] {});
+    const TpmsRadialField field(slices, get_extents(layers[50]), TpmsAdaptiveMode::Volumetric, [] {});
 
     for (const Vec3d &c : {c1, c2}) {
         CAPTURE(c.x());
@@ -141,10 +143,31 @@ TEST_CASE("TPMS radial field grades every lobe of a body towards its own center"
         CHECK_THAT(radial(field, c + Vec3d(0., 0., 9.5)), WithinAbs(1., 2. * Tolerance));
     }
     // The side between the lobes is half way to the surface, where both patterns morph into each other.
-    std::array<TpmsRadialField::Radial, 2> radials;
+    std::array<TpmsRadialField::Radial, 4> radials;
     REQUIRE(field.radial(0.5 * (c1 + c2), radials) == 2);
-    for (const TpmsRadialField::Radial &r : radials) {
-        CHECK_THAT(r.t, WithinAbs(0.5, 2. * Tolerance));
-        CHECK_THAT(r.weight, WithinAbs(0.5, 0.05));
+    for (size_t i = 0; i < 2; ++i) {
+        CHECK_THAT(radials[i].t, WithinAbs(0.5, 2. * Tolerance));
+        CHECK_THAT(radials[i].weight, WithinAbs(0.5, 0.05));
+    }
+}
+
+TEST_CASE("TPMS radial field in 2D grades every section normal to the axis on its own", "[FillTpmsAdaptive]")
+{
+    // 20 x 20 x 60 mm: every section normal to Z is 10 mm from its center to the sides, whatever its height.
+    const ExPolygons      square{rectangle(0., 0., 20., 20.)};
+    const TpmsRadialField normal_z = radial_field(square, 60., TpmsAdaptiveMode::NormalZ);
+    for (double z : {5., 30., 55.}) {
+        CAPTURE(z);
+        CHECK_THAT(radial(normal_z, {10., 10., z}), WithinAbs(0., Tolerance));
+        CHECK_THAT(radial(normal_z, {15., 10., z}), WithinAbs(0.5, Tolerance));
+        CHECK_THAT(radial(normal_z, {10., 0., z}), WithinAbs(1., Tolerance));
+    }
+
+    // Normal to X, the sections are 20 x 60 mm: 10 mm from the center to the sides, 30 mm to the top and the bottom.
+    const TpmsRadialField normal_x = radial_field(square, 60., TpmsAdaptiveMode::NormalX);
+    for (double x : {3., 10., 17.}) {
+        CAPTURE(x);
+        CHECK_THAT(radial(normal_x, {x, 15., 30.}), WithinAbs(0.5, Tolerance));
+        CHECK_THAT(radial(normal_x, {x, 10., 45.}), WithinAbs(0.5, Tolerance));
     }
 }

@@ -798,7 +798,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // The sparse infill density is the surface density of the adaptive TPMS infill.
     bool have_tpms_infill = have_infill && is_tpms_adaptive_pattern(pattern);
     toggle_line("tpms_adaptive", have_tpms_infill);
-    bool have_tpms_adaptive = have_tpms_infill && config->opt_bool("tpms_adaptive");
+    bool have_tpms_adaptive = have_tpms_infill && config->opt_enum<TpmsAdaptiveMode>("tpms_adaptive") != TpmsAdaptiveMode::Disabled;
     toggle_line("tpms_interior_density", have_tpms_adaptive);
     toggle_line("tpms_adaptive_gradient", have_tpms_adaptive);
 

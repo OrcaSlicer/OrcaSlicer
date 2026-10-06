@@ -93,7 +93,7 @@ struct FillParams
     bool        gyroid_optimized { false };
 
     // For TPMS: grade the density from the surface to the interior of the object. Density fraction.
-    bool                 tpms_adaptive { false };
+    TpmsAdaptiveMode     tpms_adaptive { TpmsAdaptiveMode::Disabled };
     float                tpms_interior_density { 0.f };
     TpmsAdaptiveGradient tpms_adaptive_gradient { TpmsAdaptiveGradient::Linear };
 

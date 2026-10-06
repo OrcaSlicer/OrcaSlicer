@@ -18,6 +18,7 @@
 #include <unordered_set>
 #include <utility>
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
@@ -142,7 +143,7 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
     bbox.offset(scale_((params.multiline + 1) * spacing));
     Polylines polylines;
-    if (params.tpms_adaptive && this->tpms_radial_field != nullptr) {
+    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
         polylines = make_adaptive_tpms({fischer_koch, 2. * PI / period(params.density), 2. * PI / period(params.tpms_interior_density),
                                         params.tpms_adaptive_gradient},
                                        *this->tpms_radial_field, bbox, this->z, params.layer_height, spacing, infill_angle);

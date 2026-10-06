@@ -2057,8 +2057,8 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
                                              {"initial_layer_print_height", 0.4}});
     };
     Print uniform, adaptive;
-    slice("0", uniform);
-    slice("1", adaptive);
+    slice("disabled", uniform);
+    slice("3d", adaptive);
 
     // The middle of the cube, at most 10 mm from the center: at most 5% + 20% * 10 / 30 = 11.7% dense.
     const Polygons core = centered_square(10.);
@@ -2079,7 +2079,7 @@ TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle heigh
     Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
                                         {{"sparse_infill_pattern", "tpmsd"},
                                          {"sparse_infill_density", "25%"},
-                                         {"tpms_adaptive", "1"},
+                                         {"tpms_adaptive", "3d"},
                                          {"tpms_interior_density", "5%"},
                                          {"tpms_adaptive_gradient", "linear"},
                                          {"layer_height", 0.4},
@@ -2089,6 +2089,42 @@ TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle heigh
     const double   low    = sparse_infill_length(print, 10., 20., core);
     REQUIRE(low > 0.);
     CHECK(middle < 0.7 * low);
+}
+
+TEST_CASE("2D adaptive TPMS infill does not change along its axis", "[Fill]")
+{
+    // A box of 30 x 30 mm sections, 90 mm long along the axis, centered on the origin in XY.
+    const std::string mode = GENERATE("2d_normal_x", "2d_normal_z");
+    CAPTURE(mode);
+    const bool   along_x = mode == "2d_normal_x";
+    auto         slice   = [&](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({along_x ? make_cube(90., 30., 30.) : make_cube(30., 30., 90.)}, print,
+                                                         {{"sparse_infill_pattern", "gyroid"},
+                                                          {"sparse_infill_density", "25%"},
+                                                          {"tpms_adaptive", adaptive},
+                                                          {"tpms_interior_density", "5%"},
+                                                          {"tpms_adaptive_gradient", "linear"},
+                                                          {"layer_height", 0.4},
+                                                          {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice(mode, adaptive);
+
+    // The core of the sections near an end and at the middle of the box, at most 5 mm from their center.
+    auto rectangle = [](double x0, double x1) {
+        return Polygons{Polygon({Point::new_scale(x0, -5.), Point::new_scale(x1, -5.), Point::new_scale(x1, 5.), Point::new_scale(x0, 5.)})};
+    };
+    auto core = [&](const Print &print, bool end) {
+        return along_x ? sparse_infill_length(print, 10., 20., rectangle(end ? -40. : -5., end ? -30. : 5.)) :
+                         sparse_infill_length(print, end ? 10. : 40., end ? 20. : 50., centered_square(5.));
+    };
+    const double end    = core(adaptive, true);
+    const double middle = core(adaptive, false);
+    REQUIRE(end > 0.);
+    CHECK(middle > 0.8 * end);
+    CHECK(middle < 1.25 * end);
+    CHECK(middle < 0.7 * core(uniform, false));
 }
 
 TEST_CASE("Adaptive TPMS infill is sparse at the center of both of two united spheres", "[Fill]")
@@ -2110,8 +2146,8 @@ TEST_CASE("Adaptive TPMS infill is sparse at the center of both of two united sp
                                              {"initial_layer_print_height", 0.4}});
     };
     Print uniform, adaptive;
-    slice("0", uniform);
-    slice("1", adaptive);
+    slice("disabled", uniform);
+    slice("3d", adaptive);
     // Within 5 mm of either center: at most 5% + 20% * 7.1 / 20 = 12.1% dense, where one center for both
     // would leave the other sphere at more than 60% of the uniform density.
     for (const double x : {-16., 16.}) {
@@ -2133,7 +2169,7 @@ TEST_CASE("Adaptive TPMS gradients keep the surface density deeper in the order 
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
                                             {{"sparse_infill_pattern", "tpmsd"},
                                              {"sparse_infill_density", "25%"},
-                                             {"tpms_adaptive", "1"},
+                                             {"tpms_adaptive", "3d"},
                                              {"tpms_interior_density", "5%"},
                                              {"tpms_adaptive_gradient", gradient},
                                              {"layer_height", 0.4},
@@ -2151,7 +2187,7 @@ TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not ap
 {
     // Adaptive density turned off, or turned on for a pattern that is no TPMS.
     const auto [pattern, adaptive] = GENERATE(
-        table<std::string, std::string>({{"tpmsd", "0"}, {"tpmsfk", "0"}, {"gyroid", "0"}, {"grid", "1"}}));
+        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"gyroid", "disabled"}, {"grid", "3d"}, {"grid", "2d_normal_z"}}));
     CAPTURE(pattern, adaptive);
     Print reference, tuned;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
@@ -2176,7 +2212,7 @@ TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]"
                                             {{"sparse_infill_pattern", "gyroid"},
                                              {"sparse_infill_density", "10%"},
                                              {"gyroid_optimized", gyroid_optimized},
-                                             {"tpms_adaptive", "1"},
+                                             {"tpms_adaptive", "3d"},
                                              {"layer_height", 0.2}});
         return sparse_infill_shape(print);
     };
@@ -2195,7 +2231,7 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
     std::vector<TpmsRadialField::Slice> slices;
     for (int i = 0; i < 200; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
-    const TpmsRadialField field(slices, get_extents(box), [] {});
+    const TpmsRadialField field(slices, get_extents(box), TpmsAdaptiveMode::Volumetric, [] {});
 
     auto circle = [](double radius) {
         Polygon contour = make_circle_num_segments(scale_(radius), 120);
@@ -2213,7 +2249,7 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
 
         FillParams params;
         params.density                = 0.2f;
-        params.tpms_adaptive          = true;
+        params.tpms_adaptive          = TpmsAdaptiveMode::Volumetric;
         params.tpms_interior_density  = 0.05f;
         params.tpms_adaptive_gradient = TpmsAdaptiveGradient::Linear;
         params.layer_height           = 0.2;
@@ -2252,7 +2288,7 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(30)}, print,
                                         {{"sparse_infill_pattern", pattern},
                                          {"sparse_infill_density", "25%"},
-                                         {"tpms_adaptive", "1"},
+                                         {"tpms_adaptive", "3d"},
                                          {"tpms_interior_density", "5%"},
                                          {"layer_height", 0.2},
                                          {"initial_layer_print_height", 0.2},

@@ -3,8 +3,11 @@
 ## Purpose and scope
 
 `tpms_adaptive` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
-patterns inside the object: the cells grow continuously from the surface,
-including the top and bottom, towards the center of the object.
+patterns inside the object: the cells grow continuously from the surface
+towards the center of the object. In `3d` the grading follows the whole shape,
+including the top and bottom; in `2d_normal_x`, `2d_normal_y` and `2d_normal_z`
+it follows each section of the object normal to that axis, so it does not
+change along the axis, as suits a profile extruded along it.
 `sparse_infill_density` is the density at the surface, `tpms_interior_density`
 the density at the center, and `tpms_adaptive_gradient` picks how the density
 goes from one to the other. Only internal sparse infill is graded; the Gyroid
@@ -19,9 +22,10 @@ warped around the center of each lobe of a body so that its cell size follows th
 radial coordinate: 0 at the center, 1 at the surface along the ray from the
 center. `PrintObject::prepare_tpms_radial_field()` builds it in
 `bridge_over_infill()`, next to the adaptive cubic octree, because the anchoring
-infill generated there has to match the printed infill. It is built only when a
-region uses the feature, and is shared by all regions: the field depends on the
-geometry only, the densities are applied per region in the fill.
+infill generated there has to match the printed infill. A field is built for
+every mode a region uses, and is shared by the regions using that mode: the
+field depends on the geometry only, the densities are applied per region in the
+fill.
 
 A regular 3D grid of cubic cells is rasterized from the `lslices` of the layers,
 so the field follows what is printed: negative volumes, the union of
@@ -55,6 +59,13 @@ capped at about a million nodes, with cells no smaller than 0.5 mm.
 - Every outside node belongs to its nearest body, so points near a surface find
   their body without a search.
 
+In the 2D modes, every plane of nodes normal to the axis is a field of its own:
+the distance transform skips the axis, bodies, lobes and the nearest body are
+found within the plane, and the reach is sampled on a circle of 48 directions.
+A point is looked up in the two planes around it, the weights of their lobes
+interpolated along the axis, so the grading does not step between planes; a
+plane without a body uses the nearest one that has one.
+
 A distance to the nearest surface would be the obvious field, but no smooth map
 follows it. By the divergence theorem, the mean scale of a map over a body is
 fixed by its values on the surface: a map that keeps the full density along the
@@ -79,6 +90,16 @@ the mean of the three, and with it the density, follows the gradient. The cells
 are round at the center; near the surface they are flattened, with the lines
 running parallel to it. Beyond the surface the target is the surface scale, so
 the warp extends continuously outside.
+
+In the 2D modes only the coordinates within the plane are warped, and `m(t)` is
+the mean over the disc, `2 / t^2 * integral of s * target(s) ds`. Along the axis
+the pattern keeps the interior frequency: scaling it with `m` would shear the
+pattern by the distance along the axis times the gradient of `m`, without bound
+on a long object. The cells are round at the center and stretched along the
+axis near the surface. With 2D Normal Z the layers are graded exactly, since
+the lines of a layer follow its in-plane frequencies; normal to X or Y, the
+layers near the sides are as dense as the larger of the two frequencies in the
+layer, which is the surface one.
 
 Evaluating a TPMS at a frequency that varies with the position without such a
 map distorts it wherever the frequency changes, because the phase also changes
@@ -116,7 +137,7 @@ the layer.
 
 ## Constraints
 
-- With `tpms_adaptive` off, or for other patterns, the fill parameters are reset
+- With `tpms_adaptive` disabled, or for other patterns, the fill parameters are reset
   to their defaults, so they neither change the infill nor split fill batches.
 - `Layer::get_sparse_infill_max_void_area()` uses the sparser of the two
   densities, as the voids at the center are that large.

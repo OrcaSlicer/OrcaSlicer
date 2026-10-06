@@ -1271,17 +1271,17 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
     return has_lightning_infill ? FillLightning::build_generator(std::as_const(*this), [this]() -> void { this->throw_if_canceled(); }) : FillLightning::GeneratorPtr();
 }
 
-TpmsRadialFieldPtr PrintObject::prepare_tpms_radial_field() const
+TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
 {
-    bool has_adaptive_tpms = false;
+    TpmsRadialFields fields;
+    std::array<bool, size_t(TpmsAdaptiveMode::NormalZ) + 1> modes{};
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
         if (const PrintRegionConfig &config = this->printing_region(region_id).config();
-            config.sparse_infill_density > 0 && config.tpms_adaptive && is_tpms_adaptive_pattern(config.sparse_infill_pattern)) {
-            has_adaptive_tpms = true;
-            break;
-        }
-    if (!has_adaptive_tpms || m_layers.empty())
-        return nullptr;
+            config.sparse_infill_density > 0 && is_tpms_adaptive_pattern(config.sparse_infill_pattern))
+            modes[size_t(config.tpms_adaptive.value)] = true;
+    modes[size_t(TpmsAdaptiveMode::Disabled)] = false;
+    if (std::find(modes.begin(), modes.end(), true) == modes.end() || m_layers.empty())
+        return fields;
 
     std::vector<TpmsRadialField::Slice> slices;
     slices.reserve(m_layers.size());
@@ -1291,8 +1291,11 @@ TpmsRadialFieldPtr PrintObject::prepare_tpms_radial_field() const
         bbox.merge(get_extents(layer->lslices));
     }
     if (!bbox.defined)
-        return nullptr;
-    return std::make_unique<TpmsRadialField>(slices, bbox, [this]() { m_print->throw_if_canceled(); });
+        return fields;
+    for (size_t mode = 0; mode < modes.size(); ++mode)
+        if (modes[mode])
+            fields[mode] = std::make_unique<TpmsRadialField>(slices, bbox, TpmsAdaptiveMode(mode), [this]() { m_print->throw_if_canceled(); });
+    return fields;
 }
 
 void PrintObject::clear_layers()
@@ -3109,7 +3112,7 @@ void PrintObject::bridge_over_infill()
         }
 
         this->m_adaptive_fill_octrees = this->prepare_adaptive_infill_data(surfaces_w_layer);
-        this->m_tpms_radial_field     = this->prepare_tpms_radial_field();
+        this->m_tpms_radial_fields    = this->prepare_tpms_radial_fields();
 
         std::vector<size_t> layers_to_generate_infill;
         for (const auto &pair : surfaces_by_layer) {

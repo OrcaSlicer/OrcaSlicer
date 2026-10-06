@@ -14,6 +14,7 @@
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 #include "FillTpmsD.hpp"
 #include "FillTpmsAdaptive.hpp"
@@ -121,7 +122,7 @@ void FillTpmsD::_fill_surface_single(
         expolygon.rotate(-infill_angle);
 
     Polylines polylines;
-    if (params.tpms_adaptive && this->tpms_radial_field != nullptr) {
+    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
         // Radians per mm of the regular pattern at a density.
         auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
         BoundingBox bbox = expolygon.contour.bounding_box();

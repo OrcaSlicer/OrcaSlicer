@@ -32,10 +32,6 @@ namespace {
 constexpr double MaxNodes    = double(1 << 20);
 constexpr double MinCellSize = 0.5;
 
-// Directions of the reach of a lobe, on a latitude-longitude grid.
-constexpr int Polar   = 24;
-constexpr int Azimuth = 48;
-
 // Two deepest points are in separate lobes when the depth between them drops below this ratio of the shallower one.
 constexpr double NeckRatio = 0.8;
 // Lobes shallower than this ratio of the deepest one of their body are graded as part of it.
@@ -142,11 +138,12 @@ void rasterize(const ExPolygons &expolygons, const Vec2d &origin, double cell, i
 }
 
 // Scale of the pattern around the center at a radial coordinate t. The mean cell scale over the ball of radius t,
-// t^-3 * integral of 3 t'^2 * target(t'), follows the gradient; beyond the surface the target is the surface scale.
+// t^-3 * integral of 3 t'^2 * target(t'), or over the disc in 2D, follows the gradient; beyond the surface the target
+// is the surface scale.
 class RadialScale
 {
 public:
-    explicit RadialScale(const AdaptiveTpms &tpms)
+    RadialScale(const AdaptiveTpms &tpms, int dimensions) : m_dimensions(dimensions)
     {
         const double ratio  = std::max(tpms.interior_frequency / tpms.surface_frequency, 1e-3);
         auto         target = [&tpms, ratio](double depth) {
@@ -161,29 +158,34 @@ public:
         for (size_t i = 1; i < m_scale.size(); ++i) {
             const double t0 = double(i - 1) / double(m_scale.size() - 1);
             const double t1 = double(i) / double(m_scale.size() - 1);
-            volume += (t1 * t1 * t1 - t0 * t0 * t0) * target(1. - 0.5 * (t0 + t1));
-            m_scale[i] = volume / (t1 * t1 * t1);
+            volume += (std::pow(t1, m_dimensions) - std::pow(t0, m_dimensions)) * target(1. - 0.5 * (t0 + t1));
+            m_scale[i] = volume / std::pow(t1, m_dimensions);
         }
     }
 
     double operator()(double t) const
     {
-        if (t >= 1.)
-            return (m_scale.back() + t * t * t - 1.) / (t * t * t);
+        if (t >= 1.) {
+            const double volume = std::pow(t, m_dimensions);
+            return (m_scale.back() + volume - 1.) / volume;
+        }
         const double x = t * double(m_scale.size() - 1);
         const size_t i = std::min(size_t(x), m_scale.size() - 2);
         return m_scale[i] + (m_scale[i + 1] - m_scale[i]) * (x - double(i));
     }
 
 private:
+    int                     m_dimensions;
     std::array<double, 257> m_scale;
 };
 
 } // namespace
 
-TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, const std::function<void()> &throw_if_canceled)
+TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
+                                 const std::function<void()> &throw_if_canceled)
+    : m_axis(mode == TpmsAdaptiveMode::Volumetric ? -1 : int(mode) - int(TpmsAdaptiveMode::NormalX))
 {
-    assert(!slices.empty());
+    assert(!slices.empty() && mode != TpmsAdaptiveMode::Disabled);
     const Vec3d min(unscaled(bbox.min.x()), unscaled(bbox.min.y()), slices.front().bottom_z);
     const Vec3d extent = Vec3d(unscaled(bbox.max.x()), unscaled(bbox.max.y()), slices.back().top_z) - min;
 
@@ -208,7 +210,8 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
         throw_if_canceled();
     });
     for (int axis = 0; axis < 3; ++axis)
-        distance_transform_axis(depth, m_size, axis, throw_if_canceled);
+        if (axis != m_axis)
+            distance_transform_axis(depth, m_size, axis, throw_if_canceled);
 
     auto position = [this, sy, sz](size_t i) {
         return Vec3d(m_origin + m_cell * Vec3d(double(i % sy), double(i / sy % m_size.y()), double(i / sz)));
@@ -222,12 +225,14 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
             return -1;
         return std::ptrdiff_t(size_t(z) * sz + size_t(y) * sy + size_t(x));
     };
-    std::array<std::ptrdiff_t, 26> neighbours;
-    for (int dz = -1, k = 0; dz <= 1; ++dz)
+    // In the 2D modes, the steps within a section.
+    auto in_section = [this](size_t step) { return int(step / 2) != m_axis; };
+    std::vector<std::ptrdiff_t> neighbours;
+    for (int dz = -1; dz <= 1; ++dz)
         for (int dy = -1; dy <= 1; ++dy)
             for (int dx = -1; dx <= 1; ++dx)
-                if (dx != 0 || dy != 0 || dz != 0)
-                    neighbours[k++] = std::ptrdiff_t(dz) * std::ptrdiff_t(sz) + std::ptrdiff_t(dy) * std::ptrdiff_t(sy) + dx;
+                if ((dx != 0 || dy != 0 || dz != 0) && (m_axis < 0 || Vec3i32(dx, dy, dz)[m_axis] == 0))
+                    neighbours.push_back(std::ptrdiff_t(dz) * std::ptrdiff_t(sz) + std::ptrdiff_t(dy) * std::ptrdiff_t(sy) + dx);
 
     // Bodies are the connected inside nodes, none of which is on the border. The deepest nodes of a body are the
     // centers of its lobes, unless the depth between them stays above NeckRatio; where the depth ties, the center
@@ -243,8 +248,8 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
         float max_depth = 0.f;
         for (size_t k = 0; k < body_nodes.size(); ++k) {
             max_depth = std::max(max_depth, depth[body_nodes[k]]);
-            for (std::ptrdiff_t step : steps)
-                if (const size_t j = body_nodes[k] + step; depth[j] > 0.f && m_body[j] < 0) {
+            for (size_t s = 0; s < steps.size(); ++s)
+                if (const size_t j = body_nodes[k] + steps[s]; in_section(s) && depth[j] > 0.f && m_body[j] < 0) {
                     m_body[j] = id;
                     body_nodes.push_back(j);
                 }
@@ -296,7 +301,8 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
             for (size_t l = body.first_lobe; l < body.first_lobe + body.lobes; ++l) {
                 Lobe               &lobe = m_lobes[l];
                 const double        step = 0.5 * m_cell;
-                std::vector<double> log_reach(Polar * Azimuth);
+                const int           rows = this->directions() / Azimuth;
+                std::vector<double> log_reach(this->directions());
                 auto                nearest_lobe = [&](const Vec3d &pt) {
                     size_t nearest = l;
                     for (size_t k = body.first_lobe; k < body.first_lobe + body.lobes; ++k)
@@ -304,12 +310,18 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                             nearest = k;
                     return nearest;
                 };
-                for (int i = 0; i < Polar; ++i)
+                for (int i = 0; i < rows; ++i)
                     for (int j = 0; j < Azimuth; ++j) {
-                        const double polar   = (i + 0.5) * PI / Polar;
                         const double azimuth = j * 2. * PI / Azimuth;
-                        const Vec3d  dir(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
-                        double       r     = 0.;
+                        Vec3d        dir     = Vec3d::Zero();
+                        if (m_axis < 0) {
+                            const double polar = (i + 0.5) * PI / Polar;
+                            dir = Vec3d(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
+                        } else {
+                            dir[(m_axis + 1) % 3] = std::cos(azimuth);
+                            dir[(m_axis + 2) % 3] = std::sin(azimuth);
+                        }
+                        double r     = 0.;
                         double       limit = InfD;
                         for (;;) {
                             const Vec3d          pt = lobe.center + (r + step) * dir;
@@ -324,11 +336,11 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                     }
                 for (int pass = 0; pass < 2; ++pass) {
                     std::vector<double> smoothed(log_reach.size(), 0.);
-                    for (int i = 0; i < Polar; ++i)
+                    for (int i = 0; i < rows; ++i)
                         for (int j = 0; j < Azimuth; ++j) {
                             for (int di = -1; di <= 1; ++di)
                                 for (int dj = -1; dj <= 1; ++dj)
-                                    smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, Polar - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
+                                    smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, rows - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
                             smoothed[i * Azimuth + j] /= 9.;
                         }
                     log_reach = std::move(smoothed);
@@ -340,63 +352,114 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
         throw_if_canceled();
     });
 
-    // Every other node belongs to its nearest body.
+    // Every other node belongs to its nearest body, within its section in the 2D modes.
     std::deque<size_t> queue;
     for (size_t i = 0; i < m_body.size(); ++i)
         if (m_body[i] >= 0)
             queue.push_back(i);
+    if (m_axis >= 0) {
+        std::vector<bool> has_body(m_size[m_axis], false);
+        for (size_t i : queue)
+            has_body[m_axis == 0 ? i % sy : m_axis == 1 ? i / sy % m_size.y() : i / sz] = true;
+        m_section.assign(m_size[m_axis], -1);
+        for (int k = 0; k < m_size[m_axis]; ++k)
+            for (int d = 0; d < m_size[m_axis] && m_section[k] < 0; ++d)
+                if (k - d >= 0 && has_body[k - d])
+                    m_section[k] = k - d;
+                else if (k + d < m_size[m_axis] && has_body[k + d])
+                    m_section[k] = k + d;
+    }
     while (!queue.empty()) {
         const size_t i = queue.front();
         queue.pop_front();
         const size_t              x = i % sy, y = i / sy % m_size.y(), z = i / sz;
         const std::array<bool, 6> valid{x + 1 < sy, x > 0, y + 1 < size_t(m_size.y()), y > 0, z + 1 < size_t(m_size.z()), z > 0};
         for (size_t k = 0; k < steps.size(); ++k)
-            if (valid[k] && m_body[i + steps[k]] < 0) {
+            if (valid[k] && in_section(k) && m_body[i + steps[k]] < 0) {
                 m_body[i + steps[k]] = m_body[i];
                 queue.push_back(i + steps[k]);
             }
     }
 }
 
+Vec3d TpmsRadialField::offset(const Vec3d &pt, const Vec3d &center) const
+{
+    Vec3d d = pt - center;
+    if (m_axis >= 0)
+        d[m_axis] = 0.;
+    return d;
+}
+
 double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
 {
-    const Vec3d  d = pt - lobe.center;
+    const Vec3d  d = this->offset(pt, lobe.center);
     const double r = d.norm();
     if (r < EPSILON)
         return 0.;
-    const double polar   = std::clamp(std::acos(std::clamp(d.z() / r, -1., 1.)) / PI * Polar - 0.5, 0., double(Polar - 1));
-    const int    i       = std::min(int(polar), Polar - 2);
-    const double fi      = polar - i;
-    double       azimuth = std::atan2(d.y(), d.x()) / (2. * PI) * Azimuth;
+    int    i  = 0;
+    double fi = 0.;
+    double azimuth;
+    if (m_axis < 0) {
+        const double polar = std::clamp(std::acos(std::clamp(d.z() / r, -1., 1.)) / PI * Polar - 0.5, 0., double(Polar - 1));
+        i       = std::min(int(polar), Polar - 2);
+        fi      = polar - i;
+        azimuth = std::atan2(d.y(), d.x());
+    } else
+        azimuth = std::atan2(d[(m_axis + 2) % 3], d[(m_axis + 1) % 3]);
+    azimuth *= Azimuth / (2. * PI);
     if (azimuth < 0.)
         azimuth += Azimuth;
     const int    j0    = int(azimuth) % Azimuth;
     const int    j1    = (j0 + 1) % Azimuth;
     const double fj    = azimuth - std::floor(azimuth);
     auto         at    = [&lobe](int i, int j) { return double(lobe.reach[i * Azimuth + j]); };
-    const double reach = (at(i, j0) * (1. - fj) + at(i, j1) * fj) * (1. - fi) + (at(i + 1, j0) * (1. - fj) + at(i + 1, j1) * fj) * fi;
+    double       reach = at(i, j0) * (1. - fj) + at(i, j1) * fj;
+    if (fi > 0.)
+        reach = reach * (1. - fi) + (at(i + 1, j0) * (1. - fj) + at(i + 1, j1) * fj) * fi;
     return r / reach;
 }
 
-size_t TpmsRadialField::radial(const Vec3d &pt, std::array<Radial, 2> &out) const
+size_t TpmsRadialField::radial(const Vec3d &pt, std::array<Radial, 4> &out) const
 {
     if (m_bodies.empty()) {
         out[0] = {pt, 1., 1.f};
         return 1;
     }
-    size_t node = 0;
-    for (int axis = 2; axis >= 0; --axis)
-        node = node * m_size[axis] + size_t(std::clamp<long>(std::lround((pt[axis] - m_origin[axis]) / m_cell), 0, m_size[axis] - 1));
+    Vec3i32 idx;
+    for (int axis = 0; axis < 3; ++axis)
+        idx[axis] = std::clamp<int>(int(std::lround((pt[axis] - m_origin[axis]) / m_cell)), 0, m_size[axis] - 1);
+    auto node = [this](const Vec3i32 &idx) { return (size_t(idx.z()) * m_size.y() + idx.y()) * m_size.x() + idx.x(); };
+    if (m_axis < 0)
+        return this->body_radial(node(idx), pt, 1.f, out.data());
+
+    // The sections around pt, or the nearest ones with a body.
+    const double f     = std::clamp((pt[m_axis] - m_origin[m_axis]) / m_cell, 0., double(m_size[m_axis] - 1));
+    const int    k     = std::min(int(f), m_size[m_axis] - 2);
+    const float  w     = float(f - k);
+    size_t       count = 0;
+    if (w < 1.f) {
+        idx[m_axis] = m_section[k];
+        count += this->body_radial(node(idx), pt, 1.f - w, out.data());
+    }
+    if (w > 0.f) {
+        idx[m_axis] = m_section[k + 1];
+        count += this->body_radial(node(idx), pt, w, out.data() + count);
+    }
+    return count;
+}
+
+size_t TpmsRadialField::body_radial(size_t node, const Vec3d &pt, float weight, Radial *out) const
+{
     const Body &body = m_bodies[m_body[node]];
     if (body.lobes == 1) {
         const Lobe &lobe = m_lobes[body.first_lobe];
-        out[0]           = {lobe.center, radial(lobe, pt), 1.f};
+        out[0]           = {lobe.center, radial(lobe, pt), weight};
         return 1;
     }
 
     // The two lobes nearest relative to their depth; morph between them near the side where they are as near.
     size_t first = body.first_lobe, second = body.first_lobe + 1;
-    auto   distance = [this, &pt](size_t l) { return (pt - m_lobes[l].center).norm() / m_lobes[l].depth; };
+    auto   distance = [this, &pt](size_t l) { return this->offset(pt, m_lobes[l].center).norm() / m_lobes[l].depth; };
     if (distance(second) < distance(first))
         std::swap(first, second);
     for (size_t l = body.first_lobe + 2; l < body.first_lobe + body.lobes; ++l)
@@ -407,11 +470,11 @@ size_t TpmsRadialField::radial(const Vec3d &pt, std::array<Radial, 2> &out) cons
             second = l;
     const double u      = std::clamp(0.5 - (distance(second) - distance(first)) / LobeMorph, 0., 1.);
     const double s      = u * u * (3. - 2. * u);
-    const float  weight = float(s / (0.5 + s));
-    out[0]              = {m_lobes[first].center, radial(m_lobes[first], pt), 1.f - weight};
-    if (weight == 0.f)
+    const float  morph = float(s / (0.5 + s));
+    out[0]             = {m_lobes[first].center, radial(m_lobes[first], pt), weight * (1.f - morph)};
+    if (morph == 0.f)
         return 1;
-    out[1] = {m_lobes[second].center, radial(m_lobes[second], pt), weight};
+    out[1] = {m_lobes[second].center, radial(m_lobes[second], pt), weight * morph};
     return 2;
 }
 
@@ -437,26 +500,29 @@ struct AdaptiveTpmsField
     double                 sin_angle;
 
     AdaptiveTpmsField(const AdaptiveTpms &tpms, const TpmsRadialField &radial_field, const BoundingBox &bbox, coordf_t z, float angle)
-        : tpms(tpms), radial_field(radial_field), scale(tpms), size(bbox.size()), offs(bbox.min), z(z)
+        : tpms(tpms), radial_field(radial_field), scale(tpms, radial_field.axis() < 0 ? 3 : 2), size(bbox.size()), offs(bbox.min), z(z)
         , cos_angle(std::cos(angle)), sin_angle(std::sin(angle))
     {}
 
     // The pattern is scaled around the center of the lobe, morphing into the pattern of a neighbouring lobe near the
-    // side between them. The radial field is in the object frame, the fill is rotated by -angle.
+    // side between them. In the 2D modes only within the section, with the interior frequency along the axis.
+    // The radial field is in the object frame, the fill is rotated by -angle.
     float get_scalar(const Coord &p) const
     {
         const Point                            pt = to_Point(p);
         const double                           x  = unscaled(pt.x());
         const double                           y  = unscaled(pt.y());
-        std::array<TpmsRadialField::Radial, 2> radials;
-        const size_t count = radial_field.radial(Vec3d(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z), radials);
-        float        value = 0.f;
+        const Vec3d                            obj(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z);
+        const int                              axis = radial_field.axis();
+        std::array<TpmsRadialField::Radial, 4> radials;
+        const size_t                           count = radial_field.radial(obj, radials);
+        float                                  value = 0.f;
         for (size_t i = 0; i < count; ++i) {
-            const auto  &[center, t, weight] = radials[i];
-            const double frequency           = tpms.surface_frequency * scale(t);
-            const double cx                  = cos_angle * center.x() + sin_angle * center.y();
-            const double cy                  = cos_angle * center.y() - sin_angle * center.x();
-            value += weight * tpms.equation(float(frequency * (x - cx)), float(frequency * (y - cy)), float(frequency * (z - center.z())));
+            const auto &[center, t, weight] = radials[i];
+            Vec3d q                         = tpms.surface_frequency * scale(t) * (obj - center);
+            if (axis >= 0)
+                q[axis] = tpms.interior_frequency * obj[axis];
+            value += weight * tpms.equation(float(cos_angle * q.x() + sin_angle * q.y()), float(cos_angle * q.y() - sin_angle * q.x()), float(q.z()));
         }
         return value;
     }

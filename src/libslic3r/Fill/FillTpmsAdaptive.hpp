@@ -17,7 +17,8 @@
 namespace Slic3r {
 
 // Radial coordinate inside the lobes of the bodies of an object, sampled from its slices: 0 at the center of a
-// lobe, 1 at its surface. Lobes are parts of a body separated by a neck, like two spheres united.
+// lobe, 1 at its surface. Lobes are parts of a body separated by a neck, like two spheres united. In the 2D modes,
+// every section normal to the axis has its own bodies and lobes, and distances are measured within the section.
 class TpmsRadialField
 {
 public:
@@ -36,11 +37,16 @@ public:
     };
 
     // Slices sorted by z, in the XY coordinates of the fill and the print Z.
-    TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, const std::function<void()> &throw_if_canceled);
+    TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
+                    const std::function<void()> &throw_if_canceled);
 
     // Radial coordinates of pt in unscaled coordinates towards the lobe it belongs to, and towards a neighbouring
-    // lobe near the side between them, with weights summing to 1. Returns their count.
-    size_t radial(const Vec3d &pt, std::array<Radial, 2> &out) const;
+    // lobe near the side between them, with weights summing to 1. In the 2D modes, those of the two sections around
+    // pt. Returns their count.
+    size_t radial(const Vec3d &pt, std::array<Radial, 4> &out) const;
+
+    // Axis normal to the sections in the 2D modes, -1 in 3D.
+    int axis() const { return m_axis; }
 
 private:
     struct Lobe
@@ -58,7 +64,16 @@ private:
     };
 
     double radial(const Lobe &lobe, const Vec3d &pt) const;
+    size_t body_radial(size_t node, const Vec3d &pt, float weight, Radial *out) const;
+    // Offset of pt from a center, within the section in the 2D modes.
+    Vec3d  offset(const Vec3d &pt, const Vec3d &center) const;
+    int    directions() const { return m_axis < 0 ? Polar * Azimuth : Azimuth; }
 
+    // Directions of the reach of a lobe, on a latitude-longitude grid, or a circle in the 2D modes.
+    static constexpr int Polar   = 24;
+    static constexpr int Azimuth = 48;
+
+    int               m_axis;
     Vec3d             m_origin;
     double            m_cell;
     Vec3i32           m_size;
@@ -66,9 +81,13 @@ private:
     std::vector<int>  m_body;
     std::vector<Body> m_bodies;
     std::vector<Lobe> m_lobes;
+    // In the 2D modes, the nearest section with a body to every section.
+    std::vector<int>  m_section;
 };
 
 using TpmsRadialFieldPtr = std::unique_ptr<TpmsRadialField>;
+// A field for every adaptive mode in use, indexed by the mode.
+using TpmsRadialFields = std::array<TpmsRadialFieldPtr, size_t(TpmsAdaptiveMode::NormalZ) + 1>;
 
 struct AdaptiveTpms
 {
