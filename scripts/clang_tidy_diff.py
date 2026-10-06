@@ -311,11 +311,12 @@ def main():
         for path in fixed:
             print(f"    {path}")
     if failed and fixed:
-        print(f"\nclang-tidy still fails on {len(failed)} file(s); the findings above are what --fix could not add.")
+        print(f"\nclang-tidy still fails on {len(failed)} file(s); the findings above are what --fix could not fix.")
         return 1
     if failed:
         print(f"\nclang-tidy failed on {len(failed)} file(s). Add the includes it names, or apply its "
-              "suggestions locally with scripts/run_clang_tidy.sh --fix (scripts\\run_clang_tidy.ps1 -Fix on Windows).")
+              "suggestions locally with scripts/run_clang_tidy.sh --fix (scripts\\run_clang_tidy.ps1 -Fix on Windows). "
+              "Other findings need a manual fix.")
         return 1
     print("clang-tidy passed.")
     return 0
