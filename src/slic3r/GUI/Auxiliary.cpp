@@ -65,6 +65,8 @@
 #include "Widgets/Label.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
 
 namespace fs = boost::filesystem;
 

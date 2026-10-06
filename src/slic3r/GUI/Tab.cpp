@@ -116,6 +116,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <unordered_set>
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r {
 

@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <wx/app.h>
 #include <boost/algorithm/string.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 #ifdef WIN32
 #include <wx/msw/winundef.h>

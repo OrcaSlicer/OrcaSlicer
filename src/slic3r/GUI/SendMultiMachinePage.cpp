@@ -74,6 +74,7 @@
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <boost/filesystem.hpp>
+#include <wx/dcgraph.h>
 
 namespace fs = boost::filesystem;
 

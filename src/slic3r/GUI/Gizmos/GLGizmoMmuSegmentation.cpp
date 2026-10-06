@@ -46,6 +46,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r::GUI {
 
