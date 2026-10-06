@@ -25,6 +25,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
 #include "libslic3r/PrintConfig.hpp"
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/wxExtensions.hpp"
