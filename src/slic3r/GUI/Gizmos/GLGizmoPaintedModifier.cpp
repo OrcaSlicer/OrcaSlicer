@@ -318,7 +318,6 @@ void GLGizmoPaintedModifier::update_model_object()
         return;
 
     ModelVolume *painted_modifier = target(*mo);
-    bool         created          = false;
     if (painted_modifier == nullptr) {
         // The first stroke creates the painted modifier on the part it painted.
         std::vector<const ModelVolume *> parts;
@@ -329,21 +328,17 @@ void GLGizmoPaintedModifier::update_model_object()
             if (m_triangle_selectors[mesh_id]->has_facets(EnforcerBlockerType::ENFORCER)) {
                 const ModelObjectPtrs &objects = wxGetApp().model().objects;
                 const int              obj_idx = int(std::find(objects.begin(), objects.end(), mo) - objects.begin());
-                painted_modifier               = wxGetApp().obj_list()->add_painted_modifier(obj_idx, *parts[mesh_id]);
-                m_target_id                    = painted_modifier->id();
-                m_target_mesh_id               = mesh_id;
-                created                        = true;
-                break;
+                // Adding it reloads the scene, which may rebuild this tool from the model: the stroke goes in with it.
+                painted_modifier = wxGetApp().obj_list()->add_painted_modifier(obj_idx, *parts[mesh_id], m_triangle_selectors[mesh_id].get());
+                set_target(painted_modifier);
+                wxGetApp().obj_list()->select_item(ObjectVolumeID{mo, painted_modifier});
+                return;
             }
-        if (painted_modifier == nullptr)
-            return;
+        return;
     }
 
     if (m_target_mesh_id >= 0 && painted_modifier->painted_modifier_facets.set(*m_triangle_selectors[m_target_mesh_id]))
         m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
-    if (created)
-        // Show its settings, after its paint is stored.
-        wxGetApp().obj_list()->select_item(ObjectVolumeID{mo, painted_modifier});
 }
 
 void GLGizmoPaintedModifier::update_from_model_object(bool first_update)

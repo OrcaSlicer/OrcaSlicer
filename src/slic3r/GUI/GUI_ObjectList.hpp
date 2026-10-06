@@ -37,6 +37,7 @@ class DynamicPrintConfig;
 class ModelConfig;
 class ModelObject;
 class ModelVolume;
+class TriangleSelector;
 class TriangleMesh;
 enum class ModelVolumeType : int;
 
@@ -490,7 +491,8 @@ public:
     void set_extruder_for_selected_items(const int extruder);
     wxDataViewItemArray reorder_volumes_and_get_selection(int obj_idx, std::function<bool(const ModelVolume*)> add_to_selection = nullptr);
     // Adds a painted modifier on a part to the model and to the list, without an undo snapshot.
-    ModelVolume*        add_painted_modifier(int obj_idx, const ModelVolume &host);
+    // The paint, if any, is stored before the scene refresh, which rebuilds an open paint tool from the model.
+    ModelVolume*        add_painted_modifier(int obj_idx, const ModelVolume &host, const TriangleSelector *paint = nullptr);
     // Adds a painted modifier on the selected part or object and selects it.
     void                add_painted_modifier();
     void                open_painted_modifier_tool(const ModelVolume &painted_modifier);
