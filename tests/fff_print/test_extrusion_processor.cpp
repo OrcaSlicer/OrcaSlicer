@@ -11,6 +11,7 @@
 #include "libslic3r/GCode/ExtrusionProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include "test_helpers.hpp"
 
@@ -415,6 +416,10 @@ std::vector<double> shallow_face_feed_rates(const std::string &gcode, bool overh
 {
     return outer_wall_feed_rates(gcode, [overhanging_face](const GCodeReader &self, const GCodeReader::GCodeLine &line) {
         if (line.new_Z(self) < 3. * shallow_layer_height || line.new_Z(self) > 0.9)
+            return false;
+        // The front and back faces run along X. Exclude adjoining side-wall moves,
+        // which can lie near a face while retaining the supported wall speed.
+        if (std::abs(line.dist_Y(self)) > 0.1 * std::abs(line.dist_X(self)))
             return false;
         const double middle_y = 0.5 * (self.y() + line.new_Y(self));
         return overhanging_face ? middle_y < 1. : middle_y > 9.;
