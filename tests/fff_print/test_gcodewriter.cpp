@@ -100,6 +100,47 @@ SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {
     }
 }
 
+SCENARIO("z_hop respects filament overrides on single extruder machines", "[GCodeWriter]") {
+    GIVEN("A single extruder machine with two filaments configured") {
+        GCodeWriter writer;
+        writer.set_extruders({ 0, 1 });
+        // Filament 0 has z_hop=1.0, retract_lift_above=0, retract_lift_below=0
+        // Filament 1 has z_hop=2.0, retract_lift_above=5.0, retract_lift_below=15.0
+        writer.config.z_hop.values = { 1.0, 2.0 };
+        writer.config.retract_lift_above.values = { 0.0, 5.0 };
+        writer.config.retract_lift_below.values = { 0.0, 15.0 };
+
+        // Switch to filament 1 on single nozzle (extruder_id 0)
+        writer.toolchange(1, 0);
+        REQUIRE(writer.filament()->id() == 1);
+        REQUIRE(writer.filament()->extruder_id() == 0);
+
+        WHEN("Z is below retract_lift_above for filament 1") {
+            writer.travel_to_z(3.0);
+            std::string gcode = writer.eager_lift(LiftType::NormalLift);
+            THEN("no lift is emitted because Z < 5.0") {
+                REQUIRE(gcode.empty());
+            }
+        }
+
+        WHEN("Z is between retract_lift_above and retract_lift_below for filament 1") {
+            writer.travel_to_z(10.0);
+            std::string gcode = writer.eager_lift(LiftType::NormalLift);
+            THEN("a Z move up by filament 1's z_hop (2.0) is emitted to Z12") {
+                REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("Z12"));
+            }
+        }
+
+        WHEN("Z is above retract_lift_below for filament 1") {
+            writer.travel_to_z(20.0);
+            std::string gcode = writer.eager_lift(LiftType::NormalLift);
+            THEN("no lift is emitted because Z > 15.0") {
+                REQUIRE(gcode.empty());
+            }
+        }
+    }
+}
+
 SCENARIO("Origin manipulation", "[GCodeWriter]") {
 	Slic3r::GCode gcodegen;
 	WHEN("set_origin to (10,0)") {
