@@ -67,7 +67,7 @@ TEST_CASE("OrcaMqtt CONNECT packet - username/password (LAN form)", "[OrcaMqtt]"
 // Auth precedence (spec O3): when a bearer_provider is configured, connect_and_read
 // passes empty CONNECT credentials, so the packet must carry clean-session only and
 // no username/password flags or payload fields. (The precedence branch itself lives
-// in connect_and_read; the [.integration] cloud-style round trip exercises it live.)
+// in connect_and_read; the cloud-style round trip test exercises it live.)
 TEST_CASE("OrcaMqtt CONNECT omits creds when a bearer is configured", "[OrcaMqtt]") {
     auto p = OrcaMqttConnection::make_connect_packet("cid", "", "", 60);
     const size_t v = mqtt_varheader_offset(p);
@@ -115,17 +115,25 @@ TEST_CASE("OrcaMqtt start takes a Config", "[OrcaMqtt]") {
     conn.stop();
 }
 
-TEST_CASE("MockBroker starts and reports a url", "[OrcaMqtt][.integration]") {
+TEST_CASE("MockBroker starts and reports a url", "[OrcaMqtt]") {
     orca_mqtt_test::MockBroker b;
     CHECK(b.ws_url().rfind("ws://127.0.0.1:", 0) == 0);
     CHECK(b.connect_count() == 0);
 }
 
-// --- End-to-end integration: OrcaMqttConnection against the in-process MockBroker.
-// All hidden behind [.integration] (run explicitly). These prove a LAN-style config
-// (CONNECT username/password) and a cloud-style config (bearer on the WS upgrade,
-// no CONNECT creds) drive the *same* OrcaMqttConnection code path with identical
-// assertions.
+// --- End-to-end loopback: OrcaMqttConnection against the in-process MockBroker.
+// These prove a LAN-style config (CONNECT username/password) and a cloud-style
+// config (bearer on the WS upgrade, no CONNECT creds) drive the *same*
+// OrcaMqttConnection code path with identical assertions.
+
+// The client's SUBSCRIBE is written asynchronously; wait until the broker records it.
+static bool wait_subscribed(orca_mqtt_test::MockBroker& broker, const std::string& topic) {
+    for (int i = 0; i < 200; ++i) {
+        if (broker.is_subscribed(topic)) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+}
 
 static void run_round_trip(bool use_tls_flag_only) {
     orca_mqtt_test::MockBroker broker;
@@ -154,6 +162,7 @@ static void run_round_trip(bool use_tls_flag_only) {
         },
         [](bool,bool){}));
     REQUIRE(conn.subscribe("dev-1"));
+    REQUIRE(wait_subscribed(broker, "device/dev-1/report"));
     REQUIRE(conn.send_request("dev-1", R"({"pushing":{"command":"pushall","sequence_id":"20001"}})"));
 
     broker.push_report("dev-1", R"({"print":{"command":"push_status","sequence_id":"20001","result":"success"}})");
@@ -179,10 +188,10 @@ static void run_round_trip(bool use_tls_flag_only) {
     conn.stop();
 }
 
-TEST_CASE("OrcaMqtt round-trip — LAN-style config",   "[OrcaMqtt][.integration]") { run_round_trip(false); }
-TEST_CASE("OrcaMqtt round-trip — cloud-style config", "[OrcaMqtt][.integration]") { run_round_trip(true);  }
+TEST_CASE("OrcaMqtt round-trip — LAN-style config",   "[OrcaMqtt]") { run_round_trip(false); }
+TEST_CASE("OrcaMqtt round-trip — cloud-style config", "[OrcaMqtt]") { run_round_trip(true);  }
 
-TEST_CASE("OrcaMqtt keepalive runs while the connection is idle", "[OrcaMqtt][.integration]") {
+TEST_CASE("OrcaMqtt keepalive runs while the connection is idle", "[OrcaMqtt]") {
     orca_mqtt_test::MockBroker broker;
     OrcaMqttConnection conn;
     OrcaMqttConnection::Config cfg;
@@ -196,7 +205,7 @@ TEST_CASE("OrcaMqtt keepalive runs while the connection is idle", "[OrcaMqtt][.i
     conn.stop();
 }
 
-TEST_CASE("OrcaMqtt reconnects and re-subscribes after a socket drop", "[OrcaMqtt][.integration]") {
+TEST_CASE("OrcaMqtt reconnects and re-subscribes after a socket drop", "[OrcaMqtt]") {
     orca_mqtt_test::MockBroker broker;
     OrcaMqttConnection conn;
     OrcaMqttConnection::Config cfg; cfg.url = broker.ws_url(); cfg.use_tls = false; cfg.username = "u"; cfg.password = "p";
@@ -206,6 +215,7 @@ TEST_CASE("OrcaMqtt reconnects and re-subscribes after a socket drop", "[OrcaMqt
         [&](const std::string&, const std::string& p){ std::lock_guard<std::mutex> l(m); got.push_back(p); },
         [](bool,bool){}));
     REQUIRE(conn.subscribe("dev-1"));
+    REQUIRE(wait_subscribed(broker, "device/dev-1/report"));
 
     broker.drop_client();
     // the worker reconnects with ~1s backoff
@@ -214,6 +224,7 @@ TEST_CASE("OrcaMqtt reconnects and re-subscribes after a socket drop", "[OrcaMqt
     CHECK(broker.connect_count() >= 2);
 
     // a report after the reconnect must still be delivered -> the SUBSCRIBE was re-sent
+    REQUIRE(wait_subscribed(broker, "device/dev-1/report"));
     broker.push_report("dev-1", R"({"print":{"command":"push_status","sequence_id":"20002"}})");
     bool delivered = false;
     for (int i = 0; i < 200 && !delivered; ++i) {
@@ -224,7 +235,7 @@ TEST_CASE("OrcaMqtt reconnects and re-subscribes after a socket drop", "[OrcaMqt
     conn.stop();
 }
 
-TEST_CASE("OrcaMqtt auth rejection is terminal (no retry storm)", "[OrcaMqtt][.integration]") {
+TEST_CASE("OrcaMqtt auth rejection is terminal (no retry storm)", "[OrcaMqtt]") {
     orca_mqtt_test::MockBroker broker(/*refuse_auth=*/true);
     OrcaMqttConnection conn;
     OrcaMqttConnection::Config cfg; cfg.url = broker.ws_url(); cfg.use_tls = false; cfg.username = "u"; cfg.password = "bad";

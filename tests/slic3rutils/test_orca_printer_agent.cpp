@@ -538,7 +538,7 @@ TEST_CASE("send_message* reject when there is no connection", "[OrcaPrinterAgent
     CHECK(agent.send_message("", "{}", 0, 0)             == BAMBU_NETWORK_ERR_INVALID_HANDLE);   // empty dev_id
 }
 
-TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrinterAgent][.integration]") {
+TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrinterAgent]") {
     orca_mqtt_test::MockBroker broker;
     OrcaPrinterAgent agent("/tmp");
     const auto ep = broker.host_port();

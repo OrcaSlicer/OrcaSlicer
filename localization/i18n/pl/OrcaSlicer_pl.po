@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-06 11:49+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -291,6 +291,9 @@ msgstr "Standardowy"
 msgid "TPU High Flow"
 msgstr "TPU wysoki przepływ"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Nieznany"
 
@@ -462,12 +465,6 @@ msgstr "Typ narzędzia"
 
 msgid "Gap fill"
 msgstr "Wypełnianie szczelin"
-
-msgid "Reset direction"
-msgstr "Przywróć kierunek"
-
-msgid "Section view"
-msgstr "Widok przekroju"
 
 msgid "Brush size"
 msgstr "Rozmiar pędzla"
@@ -1143,12 +1140,6 @@ msgstr "Nie można zastosować w czasie podglądu procesu."
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "Operacja jest już anulowana. Proszę poczekać kilka sekund."
 
-msgid "Face recognition"
-msgstr "Rozpoznawanie twarzy"
-
-msgid "Perform Recognition"
-msgstr "Wykonaj rozpoznawanie"
-
 msgid "Enforce seam"
 msgstr "Wymuś szew"
 
@@ -1169,46 +1160,6 @@ msgstr "Zakończenie malowania miejsca szwu"
 
 msgid "Paint-on seam editing"
 msgstr "Edycja malowania szwu"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Czcionka"
-
-msgid "Thickness"
-msgstr "Grubość"
-
-msgid "Text Gap"
-msgstr "Odstęp między literami"
-
-msgid "Angle"
-msgstr "Kąt"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "Wbudowana głębokość"
-
-msgid "Input text"
-msgstr "Wprowadź tekst"
-
-msgid "Surface"
-msgstr "Powierzchnia"
-
-msgid "Horizontal text"
-msgstr "Tekst poziomy"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-# AI Translated
-msgid "Mouse move up or down"
-msgstr "Ruch myszy w górę lub w dół"
-
-msgid "Rotate text"
-msgstr "Obróć tekst"
-
-msgid "Text shape"
-msgstr "Kształt tekstu"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1569,6 +1520,11 @@ msgid "In queue"
 msgstr "W kolejce"
 
 #. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Czcionka"
+
+#. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
 msgid "Height"
 msgstr "Rozmiar"
@@ -1911,6 +1867,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Kopiuj do schowka"
 
+msgid "Angle"
+msgstr "Kąt"
+
 msgid "Perpendicular distance"
 msgstr "Odległość prostopadła"
 
@@ -1997,6 +1956,9 @@ msgstr "Wejście do gizmo składania"
 msgid "Leaving Assembly gizmo"
 msgstr "Wyjście z gizmo składania"
 
+msgid "Shift+"
+msgstr "Shift+"
+
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
@@ -2035,6 +1997,16 @@ msgstr "Załadowano pakiet konfiguracyjny, ale niektóre wartości nie zostały 
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Plik konfiguracyjny „%1%” został wczytany, ale niektóre wartości nie zostały rozpoznane."
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
 
 msgid "Loading configuration"
 msgstr "Ładowanie konfiguracji"
@@ -2683,6 +2655,9 @@ msgstr "Dodaj blokadę podpór"
 msgid "Add Support Enforcer"
 msgstr "Dodaj wymuszenie podpór"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "Dodaj tekst"
 
@@ -2807,6 +2782,9 @@ msgstr "Blokada podpory"
 
 msgid "Support Enforcer"
 msgstr "Wzmocnienie podpory"
+
+msgid "Precise Seam"
+msgstr ""
 
 msgid "Change part type"
 msgstr "Zmień rodzaj części"
@@ -2958,6 +2936,30 @@ msgstr "Odbicie lustrzane wzdłuż osi Z"
 
 msgid "Mirror object"
 msgstr "Odbicie lustrzane obiektu"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "Edytuj tekst"
@@ -4332,6 +4334,9 @@ msgstr "Czy na pewno usunąć informacje o filamentach?"
 msgid "You need to select the material type and color first."
 msgstr "Najpierw należy wybrać rodzaj i kolor filamentu."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Proszę podać prawidłową wartość (K w zakresie %.1f~%.1f)"
@@ -4874,6 +4879,13 @@ msgstr ""
 "Zbyt mała maksymalna prędkość przepływu.\n"
 "Zresetowano do 0,5"
 
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"Zbyt mała odległość między ścieżkami przy prasowaniu.\n"
+"Zresetowano do 0,1"
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Obecna temperatura komory jest wyższa niż bezpieczna temperatura dla filamentu, co może prowadzić do jego mięknięcia i zatykania. Maksymalna bezpieczna temperatura dla tego filamentu wynosi %d"
@@ -4906,13 +4918,6 @@ msgid ""
 msgstr ""
 "Zbyt mała wysokość warstwy.\n"
 "Zresetowano do 0,2"
-
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"Zbyt mała odległość między ścieżkami przy prasowaniu.\n"
-"Zresetowano do 0,1"
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5720,6 +5725,12 @@ msgstr "Prędkość: "
 msgid "Actual speed profile"
 msgstr "Profil prędkości rzeczywistej"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "Statystyki wszystkich płyt roboczych"
 
@@ -6109,6 +6120,9 @@ msgstr "Wróć"
 msgid "Canvas Toolbar"
 msgstr "Pasek narzędzi widoku"
 
+msgid "Section view"
+msgstr "Widok przekroju"
+
 msgid "Fit camera to scene or selected object."
 msgstr "Dopasuj kamerę do sceny lub wybranego obiektu."
 
@@ -6153,17 +6167,32 @@ msgstr "Linie siatki"
 msgid "Labels"
 msgstr "Etykiety"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Pasek narzędzi do malowania"
 
-msgid "Explosion Ratio"
-msgstr "Współczynnik wybuchu"
-
-msgid "Section View"
-msgstr "Widok przekroju"
-
 msgid "Assembly Control"
 msgstr "Kontrola montażu"
+
+msgid "Explosion Ratio"
+msgstr "Współczynnik wybuchu"
 
 msgid "Selection Mode"
 msgstr "Tryb wyboru"
@@ -6301,15 +6330,6 @@ msgstr "Ponów podgląd na żywo"
 msgid "Resolution"
 msgstr "Rozdzielczość"
 
-msgid "Enable"
-msgstr "Włącz"
-
-msgid "Hostname or IP"
-msgstr "Nazwa hosta lub IP"
-
-msgid "Custom camera source"
-msgstr "Zewnętrzna kamera IP"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "Pokaż stronę z przewodnikiem \"Transmisja na żywo\"."
 
@@ -6382,11 +6402,17 @@ msgstr "Nie"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "zostanie zamknięta przed utworzeniem nowego modelu. Czy kontynuować?"
 
-msgid "Slice plate"
-msgstr "Potnij aktualną płytę"
+msgid "Print all"
+msgstr "Drukuj wszystkie płyty"
 
 msgid "Print plate"
 msgstr "Drukuj aktualną płytę"
+
+msgid "Export plate sliced file"
+msgstr "Eksportuj plik pociętej płyty"
+
+msgid "Export all sliced file"
+msgstr "Eksportuj wszystkie pocięte płyty"
 
 msgid "Export G-code file"
 msgstr "Eksportuj plik G-code"
@@ -6395,23 +6421,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "Drukuj"
 
-msgid "Export plate sliced file"
-msgstr "Eksportuj plik pociętej płyty"
-
 msgid "Send"
 msgstr "Wyślij"
-
-msgid "Export all sliced file"
-msgstr "Eksportuj wszystkie pocięte płyty"
-
-msgid "Print all"
-msgstr "Drukuj wszystkie płyty"
 
 msgid "Send all"
 msgstr "Wyślij wszystko"
 
 msgid "Send to Multi-device"
 msgstr "Wyślij do wielu urządzeń"
+
+msgid "Slice plate"
+msgstr "Potnij aktualną płytę"
 
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
@@ -6431,6 +6451,12 @@ msgstr "Centrum rozwiązywania problemów"
 
 msgid "Open Network Test"
 msgstr "Otwórz test sieci"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "Wyświetl poradę dnia"
@@ -6901,6 +6927,15 @@ msgstr "Odtwarzacz nie został wczytany, ponieważ brakuje ujścia wideo GStream
 msgid "Please confirm if the printer is connected."
 msgstr "Proszę potwierdzić, czy drukarka jest podłączona."
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "Inicjowanie..."
+
+msgid "Playing..."
+msgstr "Odtwarzanie..."
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "Drukarka aktualnie pobiera dane. Proszę spróbować ponownie po zakończeniu tego procesu."
 
@@ -6916,20 +6951,17 @@ msgstr "Tryb podglądu LAN jest wyłączony. Proszę włączyć podgląd na żyw
 msgid "Please enter the IP of the printer to connect."
 msgstr "Proszę wprowadzić adres IP drukarki, aby nawiązać połączenie."
 
-msgid "Initializing..."
-msgstr "Inicjowanie..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "Połączenie nieudane. Proszę sprawdzić połączenie sieciowe i spróbować ponownie."
+
+msgid "Video Stopped."
+msgstr "Wideo zatrzymane."
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Proszę sprawdzić połączenie sieciowe i spróbować ponownie. Jeśli problem nadal występuje, można ponownie uruchomić lub zaktualizować drukarkę."
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "Drukarka została wylogowana i nie można się z nią połączyć."
-
-msgid "Video Stopped."
-msgstr "Wideo zatrzymane."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "Błąd połączenia LAN (Nie można uruchomić podglądu na żywo)"
@@ -6962,9 +6994,6 @@ msgstr "Brak połączenia z siecią"
 
 msgid "Information"
 msgstr "Informacja"
-
-msgid "Playing..."
-msgstr "Odtwarzanie..."
 
 msgid "Loading..."
 msgstr "Wczytywanie..."
@@ -7070,6 +7099,22 @@ msgstr "Plik .gcode.3mf nie zawiera danych G-code. Proszę poddać go obróbce w
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Plik „%s” został utracony! Proszę pobrać go ponownie."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -7311,9 +7356,6 @@ msgstr "Pamięć"
 
 msgid "Camera Setting"
 msgstr "Ustawienia kamery"
-
-msgid "Switch Camera View"
-msgstr "Zmień widok kamery"
 
 msgid "Control"
 msgstr "Sterowanie"
@@ -8424,6 +8466,9 @@ msgstr "Synchronizacja informacji o dyszach i liczbie AMS"
 msgid "Click to edit preset"
 msgstr "Kliknij, aby edytować profil"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "Dysza"
 
@@ -8515,6 +8560,9 @@ msgstr "Informacje o typie i kolorze filamentu zostały zsynchronizowane, ale br
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Czy zapisać zmiany w „%1%”?"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8867,13 +8915,6 @@ msgstr "Nieprawidłowe dane"
 msgid "Slicing Canceled"
 msgstr "Anulowano cięcie"
 
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Cięcie płyty %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Rozwiąż błędy w cięciu i opublikuj ponownie."
-
 # AI Translated
 msgid "Network plug-in switched successfully."
 msgstr "Wtyczka sieciowa została przełączona pomyślnie."
@@ -8908,6 +8949,17 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Synchronizuj teraz"
+
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -8953,6 +9005,9 @@ msgstr "przygotuj plik 3MF..."
 msgid "Download failed; unknown file format."
 msgstr "Nie udało się pobrać. Nieznany format pliku."
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "Importowanie do Orca Slicer nie powiodło się. Proszę pobrać plik i zaimportować go ręcznie."
+
 msgid "Downloading project..."
 msgstr "pobieranie projektu ..."
 
@@ -8962,9 +9017,6 @@ msgstr "Nie udało się pobrać. Wyjątek rozmiaru pliku."
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "Projekt pobrany w %d%%"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "Importowanie do Orca Slicer nie powiodło się. Proszę pobrać plik i zaimportować go ręcznie."
 
 # AI Translated
 msgid "INFO:"
@@ -9702,6 +9754,12 @@ msgstr "Usuń ograniczenie mieszanych temperatur"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Włączając tę opcję, możesz jednocześnie drukować materiały o dużych różnicach temperatury pracy."
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "Panel dotykowy"
 
@@ -9837,6 +9895,14 @@ msgstr "Cieniowanie Phonga"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Używa cieniowania Phonga w widoku realistycznym."
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 # AI Translated
 msgid "SSAO ambient occlusion"
 msgstr "Okluzja otoczenia SSAO"
@@ -9845,13 +9911,21 @@ msgstr "Okluzja otoczenia SSAO"
 msgid "Applies SSAO in realistic view."
 msgstr "Stosuje SSAO w widoku realistycznym."
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 # AI Translated
 msgid "Shadows"
 msgstr "Cienie"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "Renderuje cienie rzucane na płytę, inne obiekty oraz cienie własne obiektów w widoku realistycznym."
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -9949,9 +10023,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "Podgląd G-code"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10340,6 +10449,9 @@ msgstr "Sekwencja druku"
 msgid "Same as Global"
 msgstr "Takie samo jak globalne"
 
+msgid "Enable"
+msgstr "Włącz"
+
 msgid "Disable"
 msgstr "Rozłącz"
 
@@ -10364,37 +10476,6 @@ msgstr "Akceptuj"
 
 msgid "Log Out"
 msgstr "Wyloguj się"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Potnij wszystkie płyty, aby uzyskać oszacowany czas i ilości filamentu"
-
-msgid "Packing project data into 3MF file"
-msgstr "Pakowanie danych projektu do pliku 3mf"
-
-msgid "Uploading 3MF"
-msgstr "Przesyłanie 3mf"
-
-msgid "Jump to model publish web page"
-msgstr "Przejdź do strony publikacji modelu"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Uwaga: Przygotowanie może zająć kilka minut. Proszę o cierpliwość."
-
-msgid "Publish was canceled"
-msgstr "Publikacja została anulowana"
-
-msgid "Slicing Plate 1"
-msgstr "Krojenie płyty 1"
-
-msgid "Packing data to 3MF"
-msgstr "Pakowanie danych do 3mf"
-
-# AI Translated
-msgid "Uploading data"
-msgstr "Przesyłanie danych"
-
-msgid "Jump to webpage"
-msgstr "Przejdź na stronę"
 
 # AI Translated
 msgid "Material"
@@ -10547,6 +10628,36 @@ msgstr "Dla „%1%” dodaj „%2%” jako nowy szablon"
 msgid "Simply switch to \"%1%\""
 msgstr "Po prostu przełącz na „%1%”"
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -10554,10 +10665,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -10580,7 +10687,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -10832,6 +10939,10 @@ msgstr "Filament nie pasuje do filamentu w slocie AMS. Proszę zaktualizować op
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Wybrana drukarka (%s) jest niezgodna z konfiguracją pliku druku (%s). Dostosuj profil drukarki na stronie przygotowania lub wybierz kompatybilną drukarkę na tej stronie."
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Po włączeniu trybu wazy, maszyny o strukturze I3 nie będą generować filmów timelapse."
 
@@ -10914,8 +11025,20 @@ msgstr "Anuluj timelapse i drukuj"
 msgid "Clean Up"
 msgstr "Wyczyść"
 
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "Przygotowywanie zadania do druku"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "Długość nazwy przekracza limit."
@@ -11107,6 +11230,9 @@ msgstr "Nie można wysłać zadania druku dla pustej płyty"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Aby nagrywać timelapse, należy włożyć nośnik pamięci."
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Dla ekstrudera wybrano zarówno filament zewnętrzny, jak i AMS. Podczas drukowania konieczne będzie ręczne przełączenie zewnętrznego filamentu."
 
@@ -11174,6 +11300,9 @@ msgstr "Drukarka musi znajdować się w tej samej sieci LAN co Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
 msgstr "Drukarka nie obsługuje wysyłania do pamięci drukarki."
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "Wysyłam..."
@@ -12269,69 +12398,6 @@ msgstr "Brak dostępnych aktualizacji."
 msgid "The configuration is up to date."
 msgstr "Konfiguracja jest aktualna."
 
-msgid "OBJ file import color"
-msgstr "Importuj kolory z pliku .OBJ"
-
-msgid "Some faces don't have color defined."
-msgstr "Niektóre płaszczyzny nie mają zdefiniowanego koloru."
-
-# AI Translated
-msgid "MTL file exist error, could not find the material:"
-msgstr "Błąd istnienia pliku MTL, nie można znaleźć materiału:"
-
-# AI Translated
-msgid "Please check OBJ or MTL file."
-msgstr "Sprawdź plik OBJ lub MTL."
-
-msgid "Specify number of colors:"
-msgstr "Podaj liczbę kolorów:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Wprowadź wartość lub kliknij przycisk regulacji, aby ponownie zmodyfikować liczbę."
-
-msgid "Recommended "
-msgstr "Zalecane "
-
-msgid "view"
-msgstr "widok"
-
-msgid "Current filament colors"
-msgstr "Aktualne kolory filamentów"
-
-msgid "Matching"
-msgstr "Dopasowanie"
-
-msgid "Quick set"
-msgstr "Szybkie ustawienie"
-
-msgid "Color match"
-msgstr "Dopasowanie koloru"
-
-msgid "Approximate color matching."
-msgstr "Przybliżone dopasowanie kolorów."
-
-msgid "Append"
-msgstr "Dołącz"
-
-msgid "Append to existing filaments"
-msgstr "Dołącz do istniejących filamentów"
-
-msgid "Reset mapped extruders."
-msgstr "Zresetuj przypisane ekstrudery."
-
-msgid "Note"
-msgstr "Uwaga"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"Kolor został wybrany. Aby kontynuować, wybierz OK \n"
-"lub dostosuj go ręcznie."
-
-msgid "—> "
-msgstr "—> "
-
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
 "Are you sure you want to continue?"
@@ -12577,7 +12643,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -12629,9 +12698,6 @@ msgstr "Przesuń: naciśnij, aby przyciągnąć co 1 mm"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "Podpory/Kolorowanie: dostosuj promień pędzla"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "Podpory/Kolorowanie: dostosuj pozycję sekcji"
 
 msgid "Objects list"
 msgstr "Lista obiektów"
@@ -12691,8 +12757,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -12768,6 +12837,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "Kod dostępu"
+
+msgid "HTTPS CA File"
+msgstr "Plik CA HTTPS"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "Pliki certyfikatów (.crt, .pem)|.crt;.pem|Wszystkie pliki|*.*"
+
+msgid "Open CA certificate file"
+msgstr "Otwórz plik certyfikatu CA"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "Plik HTTPS CA jest opcjonalny. Jest potrzebny tylko w przypadku uzycia HTTPS z certyfikatem wlasnego podpisu."
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "Model drukarki"
@@ -12995,6 +13079,29 @@ msgstr "Błąd grupowania: %1% nie może zostać umieszczony w prawej dyszy"
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Błąd grupowania w trybie ręcznym. Sprawdź liczbę dysz lub pogrupuj ponownie."
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Wewnętrzny most"
@@ -13517,9 +13624,6 @@ msgstr "Lokalne API Flashforge wymaga numeru seryjnego drukarki."
 
 msgid "Name of the printer."
 msgstr "Nazwa drukarki"
-
-msgid "HTTPS CA File"
-msgstr "Plik CA HTTPS"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "Można określić niestandardowy plik certyfikatu CA dla połączeń HTTPS OctoPrint, w formacie crt/pem. Jeśli pozostanie puste, używane jest domyślne repozytorium certyfikatów CA systemu operacyjnego."
@@ -17341,6 +17445,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Hybryda"
 
+msgid "Extra High Flow"
+msgstr ""
+
 # AI Translated
 msgid "Enable filament dynamic map"
 msgstr "Włącz dynamiczne mapowanie filamentu"
@@ -17843,6 +17950,17 @@ msgstr "Warstwy bez czyszczenia (beta)"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Jeśli opcja jest włączona, wieża czyszcząca nie będzie drukowana na warstwach bez zmian narzędzia. Na warstwach ze zmianą narzędzia ekstruder zjedzie w dół, aby wydrukować wieżę czyszczącą, przez co wieża znajdzie się poniżej modelu, a głowica musi po nią sięgnąć w dół. Układy, w których doszłoby przy tym do kolizji z już wydrukowanym obiektem, są odrzucane. Nie działa przy płynnym timelapse ani przy wykrywaniu nalotu na dyszy, które wymagają wieży na każdej warstwie."
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Wyczyść wszystkie używane ekstrudery"
@@ -19158,6 +19276,12 @@ msgstr "Zezwól na obracanie podczas rozmieszczania"
 
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Jeśli włączone, pozwoli na obracanie obiektów podczas ich rozmieszczanie."
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Unikaj obszaru kalibracji ekstrudera podczas rozmieszczania"
@@ -21310,15 +21434,6 @@ msgstr "Wyświetl interfejs użytkownika serwera druku w zakładce „Urządzeni
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Zamień zakładkę urządzeń BambuLab na interfejs użytkownika serwera druku"
 
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "Plik HTTPS CA jest opcjonalny. Jest potrzebny tylko w przypadku uzycia HTTPS z certyfikatem wlasnego podpisu."
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "Pliki certyfikatów (.crt, .pem)|.crt;.pem|Wszystkie pliki|*.*"
-
-msgid "Open CA certificate file"
-msgstr "Otwórz plik certyfikatu CA"
-
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
 msgstr "W tym systemie %s używa certyfikatów HTTPS z systemowego magazynu certyfikatów lub łańcucha kluczy."
@@ -21689,168 +21804,6 @@ msgstr ""
 "Wyliczenie drukarek hosta nie powiodło się.\n"
 "Treść wiadomości: „%1%”\n"
 "Błąd: „%2%”"
-
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Ta niska wysokość warstwy prowadzi do praktycznie niewidocznych warstw i wysokiej jakości wydruku. Nadaje się do większości standardowych przypadków druku."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.2 mm, ma niższe prędkości i przyspieszenia, a wzorzec rzadkiego wypełnienia to Gyroidalny. Dlatego daje znacznie lepszą jakość druku, ale znacznie wydłuża czas druku."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.2 mm, ma nieznacznie większą wysokość warstwy, co skutkuje praktycznie niezauważalnymi liniami warstw i nieco krótszym czasem druku."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.2 mm, ma większą wysokość warstwy, co skutkuje lekko widocznymi liniami warstw, ale krótszym czasem druku."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "W porównaniu z domyślnym profilem dyszy 0,2 mm ma mniejszą wysokość warstwy. Daje to niemal niewidoczne linie warstw i wyższą jakość druku, ale dłuższy czas druku."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "W porównaniu z domyślnym profilem dyszy 0.2 mm, ma mniejszą wysokość warstwy, niższe prędkości i przyspieszenie, oraz wzór wypełnienia jest gyroidalny. To prowadzi do praktycznie niewidocznych linii warstw i wyższej jakości druku, ale znacznie wydłuża czasu druku."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "W porównaniu z domyślnym profilem dyszy 0,2 mm ma mniejszą wysokość warstwy. Daje to minimalne linie warstw i wyższą jakość druku, ale dłuższy czas druku."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "W porównaniu ze standardowym profilem dyszy o średnicy 0.2 mm, ma on mniejszą wysokość warstwy, niższe prędkości i przyspieszenia, a także zastosowany jest wzór wypełnienia Gyroidalny. To prowadzi do praktycznie niewidocznych warstw i znacznie lepszej jakości wydruku, ale jednocześnie wydłuża jego czas."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Ta standardowa wysokość warstwy zapewnia normalną jakość druku, odpowiednią dla większości standardowych przypadków druku."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "W porównaniu ze standardowym profilem dla dyszy o średnicy 0.4 mm, ten profil ma więcej obwodów i większą gęstość wypełnienia. To zwiększa wytrzymałość wydruku, ale prowadzi także do większego zużycia materiału i dłuższego czasu druku."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "W porównaniu ze standardowym profilem dla dyszy o średnicy 0.4 mm, ten profil ma większą wysokość warstwy. W rezultacie warstwy są bardziej widoczne, co obniża jakość druku, ale jednocześnie delikatnie skraca jego czas."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "W porównaniu ze standardowym profilem dla dyszy o średnicy 0.4 mm, ten profil ma większą wysokość warstwy. W rezultacie warstwy są bardziej widoczne, co obniża jakość druku, ale jednocześnie skraca jego czas."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są mniej widoczne, co skutkuje wyższą jakością druku, ale jednocześnie wydłuża się jego czas."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy, niższe prędkości i przyspieszenia, oraz wzór wypełnienia Gyroidalny. W rezultacie warstwy są mniej widoczne, co prowadzi do znacznie wyższej jakości druku, ale zauważalnie dłuższego czasu druku."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są prawie niewidoczne, co prowadzi do wyższej jakości druku, ale wydłużenia jego czas."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy, niższe prędkości i przyspieszenia, a także zastosowany wzór wypełnienia gyroidalnego. W rezultacie warstwy są prawie niewidoczne, co prowadzi do znacznie wyższej jakości druku, ale wydłuża jego czas."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są prawie niewidoczne, co prowadzi do wyższej jakości druku, ale wydłużenia jego czas."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "Ta wyższa wysokość warstwy, skutkuje widocznymi liniami warstw i zwykłą jakością i czasem druku."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma więcej obwodów i większą gęstość wypełnienia. Skutkuje to zwiększeniem wytrzymałości wydrukowanego elementu, ale zwiększa zużycie materiału i czas wydruku."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma większą wysokość warstwy. Skutkuje to bardziej zauważalnymi warstwami i obniżeniem jakości druku, chociaż w niektórych przypadkach może skrócić jego czas."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma większą wysokość warstwy. Skutkuje to bardziej zauważalnymi warstwami i znacznym obniżeniem jakości druku, chociaż w niektórych przypadkach może skrócić jego czas."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są mniej zauważalne, co powoduje nieznaczny wzrost jakości druku, ale jednocześnie zwiększa czas wydruku."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są mniej zauważalne, co prowadzi do wyższej jakości druku, ale wydłuża jego czas."
-
-# AI Translated
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Ma bardzo dużą wysokość warstwy. Daje to bardzo wyraźne linie warstw, niską jakość druku i krótszy czas druku."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "W porównaniu z domyślnym profilem dyszy 0,8 mm ma większą wysokość warstwy. Daje to bardzo wyraźne linie warstw i znacznie niższą jakość druku, ale w niektórych przypadkach krótszy czas druku."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "W porównaniu z domyślnym profilem dyszy 0,8 mm ma znacznie większą wysokość warstwy. Daje to skrajnie wyraźne linie warstw i znacznie niższą jakość druku, ale w niektórych przypadkach znacznie krótszy czas druku."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0,8 mm, ten profil ma nieco mniejszą wysokość warstwy. W rezultacie warstwy są nieco mniej widoczne, a jakość druku jest nieco lepsza, ale w niektórych przypadkach czas druku może się nieco wydłużyć."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "W porównaniu z domyślnym profilem dyszy 0,8 mm ma mniejszą wysokość warstwy. Daje to mniej, ale nadal wyraźne linie warstw i nieco wyższą jakość druku, ale w niektórych przypadkach dłuższy czas druku."
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Nie jest to ani powszechnie używany filament, ani filament Bambu i różni się znacznie w zależności od marki, dlatego zdecydowanie zaleca się, aby poprosić sprzedawcę o odpowiedni profil przed drukowaniem i dostosować niektóre parametry zgodnie z jego specyfikacją."
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Podczas druku z tego filamentu istnieje ryzyko wypaczania i słabej przyczepności warstw. Aby uzyskać lepsze rezultaty, zapoznaj się z poradami na wiki: Wskazówki dotyczące druku materiałów wysokotemperaturowych / technicznych."
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Podczas drukowania z tego filamentu istnieje ryzyko wypaczania i słabej przyczepności warstw. Aby uzyskać lepsze rezultaty, zapoznaj się z poradami na wiki: Wskazówki dotyczące druku materiałów wysokotemperaturowych / technicznych."
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Aby uzyskać lepsze, przezroczyste lub półprzezroczyste wydruki z odpowiedniego filamentu, zapoznaj się z wiki: Wskazówki dotyczące druku przezroczystego PETG."
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Aby uzyskać większy połysk wydruków, proszę przed użyciem wysuszyć filament i ustawić prędkość zewnętrznej warstwy na 40 do 60 mm/s w ustawieniach krojenia."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Ten filament zazwyczaj stosuje się tylko do drukowania modeli o niskiej gęstości i wymaga specjalnych parametrów. Aby uzyskać lepszą jakość druku, proszę zapoznać się z tym wiki: Instrukcja drukowania modeli RC ze spienionego PLA (PLA Aero)."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Ten filament zwykle używany jest tylko do drukowania modeli o niskiej gęstości, wymagających specjalnych parametrów. Aby uzyskać lepszą jakość druku, zapoznaj się z tym wiki: Przewodnik po druku ASA Aero."
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Ten filament jest zbyt miękki i nie jest kompatybilny z AMS. Istnieje kilka wymagań, aby drukować za jego pomocą, a aby uzyskać lepszą jakość druku, zapoznaj się z tą stroną wiki: Przewodnik po drukowaniu TPU."
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Ten filament ma wystarczająco wysoką twardość (około 67D) i jest kompatybilny z AMS. Istnieje kilka wymagań, aby drukować za jego pomocą, a aby uzyskać lepszą jakość druku, zapoznaj się z tą stroną wiki: Przewodnik po drukowaniu TPU."
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "W przypadku drukowania z miękkiego TPU, nie zaleca się używania tego profilu do cięcia. Nadaje się on tylko do TPU o odpowiedniej twardości (minimum 55D) i kompatybilnym z AMS. Aby uzyskać lepsze wyniki druku, zapoznaj się z tą stroną wiki: Przewodnik po druku TPU."
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Jest to filament podporowy rozpuszczalny w wodzie, który zazwyczaj używa się tylko do struktury podpory, a nie do samego modelu. Istnieje kilka wymagań dotyczących druku z tym materiałem, a aby uzyskać lepszą jakość druku, zapoznaj się z tym wiki: Przewodnik po druku PVA."
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Jest to filament podporowy nierozpuszczalny w wodzie, który zazwyczaj używa się tylko do struktury podpory, a nie do samego modelu. Aby uzyskać lepszą jakość druku, zapoznaj się z tym wiki: Wskazówki dotyczące drukowania z filamentu podporowego i funkcji podpory."
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "Profile ogólne zostały zoptymalizowane pod kątem kompatybilności z różnorodnymi filamentami. Aby uzyskać lepszą jakość druku i wyższe prędkości, prosimy używać filamentów Bambu z odpowiednimi profilami Bambu."
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Profil wysokiej jakości dla dyszy 0.2mm. Priorytetem jest jakość."
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Profil wysokiej jakości dla wysokości warstwy 0.16mm. Priorytetem jest jakość i wytrzymałość."
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Profil standardowy dla wysokości warstwy 0.16mm. Priorytetem jest szybkość."
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Profil wysokiej jakości dla wysokości warstwy 0.2mm. Priorytetem jest jakość i wytrzymałość."
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Profil standardowy dla dyszy 0.4mm. Priorytetem jest szybkość."
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Profil wysokiej jakości dla dyszy 0.6mm. Priorytetem jest jakość i wytrzymałość."
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Profil wytrzymałości dla dyszy 0.6mm. Priorytetem jest wytrzymałość."
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Profil standardowy dla dyszy 0.6mm. Priorytetem jest szybkość."
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Profil wysokiej jakości dla dyszy 0.8mm. Priorytetem jest jakość."
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Profil wytrzymałości dla dyszy 0.8mm. Priorytetem jest wytrzymałość."
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Profil standardowy dla dyszy 0.8mm. Priorytetem jest szybkość."
 
 msgid "No AMS"
 msgstr "Brak AMS"
@@ -23638,6 +23591,9 @@ msgstr ""
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr ""
 
+msgid "Thickness"
+msgstr "Grubość"
+
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr ""
 
@@ -25232,14 +25188,14 @@ msgstr "Przełączanie między przygotowaniem/podglądem"
 msgid "Collapse/Expand the sidebar"
 msgstr "Zwiń/Rozwiń pasek boczny"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "Pokaż listę skrótów klawiszowych"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -25260,6 +25216,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -25562,6 +25521,323 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "Reset direction"
+#~ msgstr "Przywróć kierunek"
+
+#~ msgid "Face recognition"
+#~ msgstr "Rozpoznawanie twarzy"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Wykonaj rozpoznawanie"
+
+#~ msgid "Text Gap"
+#~ msgstr "Odstęp między literami"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "Wbudowana głębokość"
+
+#~ msgid "Input text"
+#~ msgstr "Wprowadź tekst"
+
+#~ msgid "Surface"
+#~ msgstr "Powierzchnia"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Tekst poziomy"
+
+# AI Translated
+#~ msgid "Mouse move up or down"
+#~ msgstr "Ruch myszy w górę lub w dół"
+
+#~ msgid "Rotate text"
+#~ msgstr "Obróć tekst"
+
+#~ msgid "Text shape"
+#~ msgstr "Kształt tekstu"
+
+#~ msgid "Section View"
+#~ msgstr "Widok przekroju"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "Nazwa hosta lub IP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "Zewnętrzna kamera IP"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "Zmień widok kamery"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Cięcie płyty %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Rozwiąż błędy w cięciu i opublikuj ponownie."
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "Renderuje cienie rzucane na płytę, inne obiekty oraz cienie własne obiektów w widoku realistycznym."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Potnij wszystkie płyty, aby uzyskać oszacowany czas i ilości filamentu"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "Pakowanie danych projektu do pliku 3mf"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "Przesyłanie 3mf"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Przejdź do strony publikacji modelu"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Uwaga: Przygotowanie może zająć kilka minut. Proszę o cierpliwość."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "Publikacja została anulowana"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Krojenie płyty 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Pakowanie danych do 3mf"
+
+# AI Translated
+#~ msgid "Uploading data"
+#~ msgstr "Przesyłanie danych"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Przejdź na stronę"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "Importuj kolory z pliku .OBJ"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Niektóre płaszczyzny nie mają zdefiniowanego koloru."
+
+# AI Translated
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "Błąd istnienia pliku MTL, nie można znaleźć materiału:"
+
+# AI Translated
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Sprawdź plik OBJ lub MTL."
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "Podaj liczbę kolorów:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Wprowadź wartość lub kliknij przycisk regulacji, aby ponownie zmodyfikować liczbę."
+
+#~ msgid "Recommended "
+#~ msgstr "Zalecane "
+
+#~ msgid "view"
+#~ msgstr "widok"
+
+#~ msgid "Current filament colors"
+#~ msgstr "Aktualne kolory filamentów"
+
+#~ msgid "Matching"
+#~ msgstr "Dopasowanie"
+
+#~ msgid "Quick set"
+#~ msgstr "Szybkie ustawienie"
+
+#~ msgid "Color match"
+#~ msgstr "Dopasowanie koloru"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "Przybliżone dopasowanie kolorów."
+
+#~ msgid "Append"
+#~ msgstr "Dołącz"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "Dołącz do istniejących filamentów"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Zresetuj przypisane ekstrudery."
+
+#~ msgid "Note"
+#~ msgstr "Uwaga"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "Kolor został wybrany. Aby kontynuować, wybierz OK \n"
+#~ "lub dostosuj go ręcznie."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "Podpory/Kolorowanie: dostosuj pozycję sekcji"
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Ta niska wysokość warstwy prowadzi do praktycznie niewidocznych warstw i wysokiej jakości wydruku. Nadaje się do większości standardowych przypadków druku."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.2 mm, ma niższe prędkości i przyspieszenia, a wzorzec rzadkiego wypełnienia to Gyroidalny. Dlatego daje znacznie lepszą jakość druku, ale znacznie wydłuża czas druku."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.2 mm, ma nieznacznie większą wysokość warstwy, co skutkuje praktycznie niezauważalnymi liniami warstw i nieco krótszym czasem druku."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.2 mm, ma większą wysokość warstwy, co skutkuje lekko widocznymi liniami warstw, ale krótszym czasem druku."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dyszy 0,2 mm ma mniejszą wysokość warstwy. Daje to niemal niewidoczne linie warstw i wyższą jakość druku, ale dłuższy czas druku."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dyszy 0.2 mm, ma mniejszą wysokość warstwy, niższe prędkości i przyspieszenie, oraz wzór wypełnienia jest gyroidalny. To prowadzi do praktycznie niewidocznych linii warstw i wyższej jakości druku, ale znacznie wydłuża czasu druku."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dyszy 0,2 mm ma mniejszą wysokość warstwy. Daje to minimalne linie warstw i wyższą jakość druku, ale dłuższy czas druku."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "W porównaniu ze standardowym profilem dyszy o średnicy 0.2 mm, ma on mniejszą wysokość warstwy, niższe prędkości i przyspieszenia, a także zastosowany jest wzór wypełnienia Gyroidalny. To prowadzi do praktycznie niewidocznych warstw i znacznie lepszej jakości wydruku, ale jednocześnie wydłuża jego czas."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Ta standardowa wysokość warstwy zapewnia normalną jakość druku, odpowiednią dla większości standardowych przypadków druku."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "W porównaniu ze standardowym profilem dla dyszy o średnicy 0.4 mm, ten profil ma więcej obwodów i większą gęstość wypełnienia. To zwiększa wytrzymałość wydruku, ale prowadzi także do większego zużycia materiału i dłuższego czasu druku."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "W porównaniu ze standardowym profilem dla dyszy o średnicy 0.4 mm, ten profil ma większą wysokość warstwy. W rezultacie warstwy są bardziej widoczne, co obniża jakość druku, ale jednocześnie delikatnie skraca jego czas."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "W porównaniu ze standardowym profilem dla dyszy o średnicy 0.4 mm, ten profil ma większą wysokość warstwy. W rezultacie warstwy są bardziej widoczne, co obniża jakość druku, ale jednocześnie skraca jego czas."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są mniej widoczne, co skutkuje wyższą jakością druku, ale jednocześnie wydłuża się jego czas."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy, niższe prędkości i przyspieszenia, oraz wzór wypełnienia Gyroidalny. W rezultacie warstwy są mniej widoczne, co prowadzi do znacznie wyższej jakości druku, ale zauważalnie dłuższego czasu druku."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są prawie niewidoczne, co prowadzi do wyższej jakości druku, ale wydłużenia jego czas."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy, niższe prędkości i przyspieszenia, a także zastosowany wzór wypełnienia gyroidalnego. W rezultacie warstwy są prawie niewidoczne, co prowadzi do znacznie wyższej jakości druku, ale wydłuża jego czas."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.4 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są prawie niewidoczne, co prowadzi do wyższej jakości druku, ale wydłużenia jego czas."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "Ta wyższa wysokość warstwy, skutkuje widocznymi liniami warstw i zwykłą jakością i czasem druku."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma więcej obwodów i większą gęstość wypełnienia. Skutkuje to zwiększeniem wytrzymałości wydrukowanego elementu, ale zwiększa zużycie materiału i czas wydruku."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma większą wysokość warstwy. Skutkuje to bardziej zauważalnymi warstwami i obniżeniem jakości druku, chociaż w niektórych przypadkach może skrócić jego czas."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma większą wysokość warstwy. Skutkuje to bardziej zauważalnymi warstwami i znacznym obniżeniem jakości druku, chociaż w niektórych przypadkach może skrócić jego czas."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są mniej zauważalne, co powoduje nieznaczny wzrost jakości druku, ale jednocześnie zwiększa czas wydruku."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0.6 mm, ten profil ma mniejszą wysokość warstwy. W rezultacie warstwy są mniej zauważalne, co prowadzi do wyższej jakości druku, ale wydłuża jego czas."
+
+# AI Translated
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Ma bardzo dużą wysokość warstwy. Daje to bardzo wyraźne linie warstw, niską jakość druku i krótszy czas druku."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "W porównaniu z domyślnym profilem dyszy 0,8 mm ma większą wysokość warstwy. Daje to bardzo wyraźne linie warstw i znacznie niższą jakość druku, ale w niektórych przypadkach krótszy czas druku."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "W porównaniu z domyślnym profilem dyszy 0,8 mm ma znacznie większą wysokość warstwy. Daje to skrajnie wyraźne linie warstw i znacznie niższą jakość druku, ale w niektórych przypadkach znacznie krótszy czas druku."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "W porównaniu z domyślnym profilem dla dyszy o średnicy 0,8 mm, ten profil ma nieco mniejszą wysokość warstwy. W rezultacie warstwy są nieco mniej widoczne, a jakość druku jest nieco lepsza, ale w niektórych przypadkach czas druku może się nieco wydłużyć."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "W porównaniu z domyślnym profilem dyszy 0,8 mm ma mniejszą wysokość warstwy. Daje to mniej, ale nadal wyraźne linie warstw i nieco wyższą jakość druku, ale w niektórych przypadkach dłuższy czas druku."
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Nie jest to ani powszechnie używany filament, ani filament Bambu i różni się znacznie w zależności od marki, dlatego zdecydowanie zaleca się, aby poprosić sprzedawcę o odpowiedni profil przed drukowaniem i dostosować niektóre parametry zgodnie z jego specyfikacją."
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Podczas druku z tego filamentu istnieje ryzyko wypaczania i słabej przyczepności warstw. Aby uzyskać lepsze rezultaty, zapoznaj się z poradami na wiki: Wskazówki dotyczące druku materiałów wysokotemperaturowych / technicznych."
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Podczas drukowania z tego filamentu istnieje ryzyko wypaczania i słabej przyczepności warstw. Aby uzyskać lepsze rezultaty, zapoznaj się z poradami na wiki: Wskazówki dotyczące druku materiałów wysokotemperaturowych / technicznych."
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Aby uzyskać lepsze, przezroczyste lub półprzezroczyste wydruki z odpowiedniego filamentu, zapoznaj się z wiki: Wskazówki dotyczące druku przezroczystego PETG."
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Aby uzyskać większy połysk wydruków, proszę przed użyciem wysuszyć filament i ustawić prędkość zewnętrznej warstwy na 40 do 60 mm/s w ustawieniach krojenia."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Ten filament zazwyczaj stosuje się tylko do drukowania modeli o niskiej gęstości i wymaga specjalnych parametrów. Aby uzyskać lepszą jakość druku, proszę zapoznać się z tym wiki: Instrukcja drukowania modeli RC ze spienionego PLA (PLA Aero)."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Ten filament zwykle używany jest tylko do drukowania modeli o niskiej gęstości, wymagających specjalnych parametrów. Aby uzyskać lepszą jakość druku, zapoznaj się z tym wiki: Przewodnik po druku ASA Aero."
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Ten filament jest zbyt miękki i nie jest kompatybilny z AMS. Istnieje kilka wymagań, aby drukować za jego pomocą, a aby uzyskać lepszą jakość druku, zapoznaj się z tą stroną wiki: Przewodnik po drukowaniu TPU."
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Ten filament ma wystarczająco wysoką twardość (około 67D) i jest kompatybilny z AMS. Istnieje kilka wymagań, aby drukować za jego pomocą, a aby uzyskać lepszą jakość druku, zapoznaj się z tą stroną wiki: Przewodnik po drukowaniu TPU."
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "W przypadku drukowania z miękkiego TPU, nie zaleca się używania tego profilu do cięcia. Nadaje się on tylko do TPU o odpowiedniej twardości (minimum 55D) i kompatybilnym z AMS. Aby uzyskać lepsze wyniki druku, zapoznaj się z tą stroną wiki: Przewodnik po druku TPU."
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Jest to filament podporowy rozpuszczalny w wodzie, który zazwyczaj używa się tylko do struktury podpory, a nie do samego modelu. Istnieje kilka wymagań dotyczących druku z tym materiałem, a aby uzyskać lepszą jakość druku, zapoznaj się z tym wiki: Przewodnik po druku PVA."
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Jest to filament podporowy nierozpuszczalny w wodzie, który zazwyczaj używa się tylko do struktury podpory, a nie do samego modelu. Aby uzyskać lepszą jakość druku, zapoznaj się z tym wiki: Wskazówki dotyczące drukowania z filamentu podporowego i funkcji podpory."
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "Profile ogólne zostały zoptymalizowane pod kątem kompatybilności z różnorodnymi filamentami. Aby uzyskać lepszą jakość druku i wyższe prędkości, prosimy używać filamentów Bambu z odpowiednimi profilami Bambu."
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Profil wysokiej jakości dla dyszy 0.2mm. Priorytetem jest jakość."
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Profil wysokiej jakości dla wysokości warstwy 0.16mm. Priorytetem jest jakość i wytrzymałość."
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Profil standardowy dla wysokości warstwy 0.16mm. Priorytetem jest szybkość."
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Profil wysokiej jakości dla wysokości warstwy 0.2mm. Priorytetem jest jakość i wytrzymałość."
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Profil standardowy dla dyszy 0.4mm. Priorytetem jest szybkość."
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Profil wysokiej jakości dla dyszy 0.6mm. Priorytetem jest jakość i wytrzymałość."
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Profil wytrzymałości dla dyszy 0.6mm. Priorytetem jest wytrzymałość."
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Profil standardowy dla dyszy 0.6mm. Priorytetem jest szybkość."
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Profil wysokiej jakości dla dyszy 0.8mm. Priorytetem jest jakość."
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Profil wytrzymałości dla dyszy 0.8mm. Priorytetem jest wytrzymałość."
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Profil standardowy dla dyszy 0.8mm. Priorytetem jest szybkość."
 
 #~ msgid "Tab"
 #~ msgstr "Karty"

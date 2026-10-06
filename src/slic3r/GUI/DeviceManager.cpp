@@ -4290,7 +4290,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
                             // The ack carries the whole slot; re-derive empty so the panel flips off
                             // "Empty" without waiting out the hold.
-                            vt_slot[0].UpdateEmptyState(true);
+                            vt_slot[0].UpdateEmptyState(true, printer_agent_id == ORCA_PRINTER_AGENT_ID);
                             // delay update
                             vt_slot[0].set_hold_count();
                         } else {
@@ -4318,7 +4318,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     tray_it->second->m_fila_type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
                                     // The ack carries the whole slot; re-derive empty so the panel flips off
                                     // "Empty" without waiting out the hold.
-                                    tray_it->second->UpdateEmptyState(true);
+                                    tray_it->second->UpdateEmptyState(true, printer_agent_id == ORCA_PRINTER_AGENT_ID);
                                     // delay update
                                     tray_it->second->set_hold_count();
                                 } else {
@@ -5352,7 +5352,8 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
         else {
             vt_tray.remain = -1;
         }
-        vt_tray.UpdateEmptyState(vtray.contains("tray_info_idx") && vtray.contains("tray_type"));
+        vt_tray.UpdateEmptyState(vtray.contains("tray_info_idx") && vtray.contains("tray_type"),
+                                 printer_agent_id == ORCA_PRINTER_AGENT_ID);
     }
 
     return vt_tray;

@@ -20,6 +20,7 @@
 #include "DevFilaSystem.h"
 #include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp" // ORCA_PRINTER_AGENT_ID
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
@@ -63,12 +64,12 @@ void DevAmsTray::UpdateColorFromStr(const std::string& color)
     }
 }
 
-void DevAmsTray::UpdateEmptyState(bool material_fields_present)
+void DevAmsTray::UpdateEmptyState(bool material_fields_present, bool classify_empty)
 {
     const auto is_zero_or_empty = [](const std::string& value) {
         return value.empty() || std::all_of(value.begin(), value.end(), [](char c) { return c == '0'; });
     };
-    is_empty = material_fields_present && setting_id.empty() && m_fila_type.empty() &&
+    is_empty = material_fields_present && classify_empty && setting_id.empty() && m_fila_type.empty() &&
                is_zero_or_empty(color) && is_zero_or_empty(tag_uid);
 }
 
@@ -793,7 +794,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 curr_tray->remain = -1;
                             }
-                            curr_tray->UpdateEmptyState(tray_it->contains("tray_info_idx") && tray_it->contains("tray_type"));
+                            curr_tray->UpdateEmptyState(tray_it->contains("tray_info_idx") && tray_it->contains("tray_type"),
+                                                        obj->printer_agent_id == ORCA_PRINTER_AGENT_ID);
                             // The tray objects are reused across status updates. Reset this
                             // state when a previously empty slot receives a filament again.
                             curr_tray->is_slot_placeholder = tray_it->contains("tray_slot_placeholder");

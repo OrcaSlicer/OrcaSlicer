@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-06 11:49+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -309,6 +309,9 @@ msgstr "Tiêu chuẩn"
 msgid "TPU High Flow"
 msgstr "TPU lưu lượng cao"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Không rõ"
 
@@ -508,12 +511,6 @@ msgstr "Loại công cụ"
 
 msgid "Gap fill"
 msgstr "Lấp khe"
-
-msgid "Reset direction"
-msgstr "Đặt lại hướng"
-
-msgid "Section view"
-msgstr "Chế độ xem mặt cắt"
 
 msgid "Brush size"
 msgstr "Kích thước bút"
@@ -1190,12 +1187,6 @@ msgstr "Không thể áp dụng khi đang xử lý xem trước."
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "Thao tác đang hủy. Vui lòng chờ vài giây."
 
-msgid "Face recognition"
-msgstr "Nhận dạng mặt"
-
-msgid "Perform Recognition"
-msgstr "Thực hiện nhận dạng"
-
 msgid "Enforce seam"
 msgstr "Bắt buộc seam"
 
@@ -1216,46 +1207,6 @@ msgstr "Đang rời vẽ seam"
 
 msgid "Paint-on seam editing"
 msgstr "Chỉnh sửa seam bằng vẽ"
-
-# AI Translated
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Font"
-
-msgid "Thickness"
-msgstr "Độ dày"
-
-msgid "Text Gap"
-msgstr "Khoảng cách chữ"
-
-msgid "Angle"
-msgstr "Góc"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "Độ sâu nhúng"
-
-msgid "Input text"
-msgstr "Nhập chữ"
-
-msgid "Surface"
-msgstr "Bề mặt"
-
-msgid "Horizontal text"
-msgstr "Chữ ngang"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "Di chuyển chuột lên hoặc xuống"
-
-msgid "Rotate text"
-msgstr "Xoay chữ"
-
-msgid "Text shape"
-msgstr "Hình dạng chữ"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1617,6 +1568,12 @@ msgstr "Đang tải"
 msgid "In queue"
 msgstr "Trong hàng đợi"
 
+# AI Translated
+#. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Font"
+
 #. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
 msgid "Height"
@@ -1960,6 +1917,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Sao chép vào clipboard"
 
+msgid "Angle"
+msgstr "Góc"
+
 msgid "Perpendicular distance"
 msgstr "Khoảng cách vuông góc"
 
@@ -2053,6 +2013,9 @@ msgstr "Đang vào gizmo Lắp ráp"
 msgid "Leaving Assembly gizmo"
 msgstr "Đang rời gizmo Lắp ráp"
 
+msgid "Shift+"
+msgstr "Shift+"
+
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
@@ -2092,6 +2055,16 @@ msgstr "Gói cấu hình đã được tải, nhưng một số giá trị khôn
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "File cấu hình \"%1%\" đã được tải, nhưng một số giá trị không được nhận diện."
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
 
 msgid "Loading configuration"
 msgstr "Đang tải cấu hình"
@@ -2742,6 +2715,9 @@ msgstr "Thêm chặn support"
 msgid "Add Support Enforcer"
 msgstr "Thêm bắt buộc support"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "Thêm chữ"
 
@@ -2869,6 +2845,9 @@ msgstr "Chặn support"
 
 msgid "Support Enforcer"
 msgstr "Bắt buộc support"
+
+msgid "Precise Seam"
+msgstr ""
 
 # AI Translated
 msgid "Change part type"
@@ -3022,6 +3001,30 @@ msgstr "Lật dọc trục Z"
 
 msgid "Mirror object"
 msgstr "Lật vật thể"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "Chỉnh sửa chữ"
@@ -4444,6 +4447,9 @@ msgstr "Bạn có chắc muốn xóa thông tin filament?"
 msgid "You need to select the material type and color first."
 msgstr "Bạn cần chọn loại vật liệu và màu trước."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Vui lòng nhập giá trị hợp lệ (K trong %.1f~%.1f)"
@@ -5004,6 +5010,13 @@ msgstr ""
 "Tốc độ thể tích tối đa quá nhỏ.\n"
 "Đặt lại về 0.5."
 
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"Khoảng cách ironing quá nhỏ.\n"
+"Đặt lại về 0.1."
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Nhiệt độ buồng hiện tại cao hơn nhiệt độ an toàn của vật liệu, điều này có thể dẫn đến vật liệu mềm và tắc nghẽn. Nhiệt độ an toàn tối đa cho vật liệu là %d"
@@ -5036,13 +5049,6 @@ msgid ""
 msgstr ""
 "Chiều cao lớp quá nhỏ.\n"
 "Đặt lại về 0.2."
-
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"Khoảng cách ironing quá nhỏ.\n"
-"Đặt lại về 0.1."
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5904,6 +5910,12 @@ msgstr "Tốc độ: "
 msgid "Actual speed profile"
 msgstr "Biểu đồ tốc độ thực tế"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "Thống kê tất cả các plate"
 
@@ -6313,6 +6325,9 @@ msgstr "Trở về"
 msgid "Canvas Toolbar"
 msgstr "Thanh công cụ khung vẽ"
 
+msgid "Section view"
+msgstr "Chế độ xem mặt cắt"
+
 # AI Translated
 msgid "Fit camera to scene or selected object."
 msgstr "Điều chỉnh camera vừa với cảnh hoặc vật thể đã chọn."
@@ -6359,17 +6374,32 @@ msgstr "Đường lưới"
 msgid "Labels"
 msgstr "Nhãn"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Thanh công cụ vẽ"
 
-msgid "Explosion Ratio"
-msgstr "Tỷ lệ nổ"
-
-msgid "Section View"
-msgstr "Chế độ xem mặt cắt"
-
 msgid "Assembly Control"
 msgstr "Điều khiển lắp ráp"
+
+msgid "Explosion Ratio"
+msgstr "Tỷ lệ nổ"
 
 msgid "Selection Mode"
 msgstr "Chế độ chọn"
@@ -6518,15 +6548,6 @@ msgstr "Thử lại xem trực tiếp"
 msgid "Resolution"
 msgstr "Độ phân giải"
 
-msgid "Enable"
-msgstr "Bật"
-
-msgid "Hostname or IP"
-msgstr "Tên máy chủ hoặc IP"
-
-msgid "Custom camera source"
-msgstr "Nguồn camera tùy chỉnh"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "Hiện trang hướng dẫn \"Video trực tiếp\"."
 
@@ -6601,12 +6622,17 @@ msgstr "Không"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "sẽ bị đóng trước khi tạo model mới. Bạn có muốn tiếp tục?"
 
-# AI Translated
-msgid "Slice plate"
-msgstr "Slice plate"
+msgid "Print all"
+msgstr "In tất cả"
 
 msgid "Print plate"
 msgstr "In plate"
+
+msgid "Export plate sliced file"
+msgstr "Xuất file plate đã slice"
+
+msgid "Export all sliced file"
+msgstr "Xuất tất cả file đã slice"
 
 msgid "Export G-code file"
 msgstr "Xuất file G-code"
@@ -6615,23 +6641,18 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "In"
 
-msgid "Export plate sliced file"
-msgstr "Xuất file plate đã slice"
-
 msgid "Send"
 msgstr "Gửi"
-
-msgid "Export all sliced file"
-msgstr "Xuất tất cả file đã slice"
-
-msgid "Print all"
-msgstr "In tất cả"
 
 msgid "Send all"
 msgstr "Gửi tất cả"
 
 msgid "Send to Multi-device"
 msgstr "Gửi đến nhiều thiết bị"
+
+# AI Translated
+msgid "Slice plate"
+msgstr "Slice plate"
 
 msgid "Keyboard Shortcuts"
 msgstr "Phím tắt"
@@ -6651,6 +6672,12 @@ msgstr "Trung tâm khắc phục sự cố"
 
 msgid "Open Network Test"
 msgstr "Mở kiểm tra mạng"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "Hiện mẹo trong ngày"
@@ -7112,6 +7139,15 @@ msgstr "Trình phát không được tải vì thiếu GStreamer GTK video sink 
 msgid "Please confirm if the printer is connected."
 msgstr "Vui lòng xác nhận xem máy in đã kết nối chưa."
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "Đang khởi tạo..."
+
+msgid "Playing..."
+msgstr "Đang phát..."
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "Máy in hiện đang bận tải xuống. Vui lòng thử lại sau khi nó hoàn tất."
 
@@ -7127,20 +7163,17 @@ msgstr "Xem trực tiếp chỉ LAN đang tắt. Vui lòng bật xem trực ti�
 msgid "Please enter the IP of the printer to connect."
 msgstr "Vui lòng nhập IP của máy in để kết nối."
 
-msgid "Initializing..."
-msgstr "Đang khởi tạo..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "Kết nối thất bại. Vui lòng kiểm tra mạng và thử lại"
+
+msgid "Video Stopped."
+msgstr "Video đã dừng."
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Vui lòng kiểm tra mạng và thử lại. Bạn có thể khởi động lại hoặc cập nhật máy in nếu vấn đề vẫn tiếp diễn."
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "Máy in đã đăng xuất và không thể kết nối."
-
-msgid "Video Stopped."
-msgstr "Video đã dừng."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "Kết nối LAN thất bại (Không thể bắt đầu xem trực tiếp)"
@@ -7173,9 +7206,6 @@ msgstr "Mạng không thể truy cập"
 
 msgid "Information"
 msgstr "Thông tin"
-
-msgid "Playing..."
-msgstr "Đang phát..."
 
 msgid "Loading..."
 msgstr "Đang tải..."
@@ -7282,6 +7312,22 @@ msgstr "File .gcode.3mf không chứa dữ liệu G-code. Vui lòng slice với 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "File '%s' đã bị mất! Vui lòng tải lại."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -7543,9 +7589,6 @@ msgstr "Bộ nhớ"
 
 msgid "Camera Setting"
 msgstr "Cài đặt camera"
-
-msgid "Switch Camera View"
-msgstr "Chuyển chế độ xem camera"
 
 msgid "Control"
 msgstr "Điều khiển"
@@ -8695,6 +8738,9 @@ msgstr "Đồng bộ thông tin đầu phun và số lượng AMS"
 msgid "Click to edit preset"
 msgstr "Nhấp để chỉnh sửa preset"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "Đầu phun"
 
@@ -8789,6 +8835,9 @@ msgstr "Đã đồng bộ thông tin loại và màu filament, nhưng không bao
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Bạn có muốn lưu thay đổi vào \"%1%\"?"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -9141,13 +9190,6 @@ msgstr "Dữ liệu không hợp lệ"
 msgid "Slicing Canceled"
 msgstr "Đã hủy slice"
 
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Đang slice bản %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Vui lòng giải quyết các lỗi slice và xuất bản lại."
-
 # AI Translated
 msgid "Network plug-in switched successfully."
 msgstr "Đã chuyển plug-in mạng thành công."
@@ -9183,6 +9225,17 @@ msgstr ""
 # AI Translated
 msgid "Sync now"
 msgstr "Đồng bộ ngay"
+
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -9228,6 +9281,9 @@ msgstr "chuẩn bị file 3MF..."
 msgid "Download failed; unknown file format."
 msgstr "Tải xuống thất bại, định dạng file không xác định."
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "Nhập vào Orca Slicer thất bại. Vui lòng tải file xuống và nhập thủ công."
+
 msgid "Downloading project..."
 msgstr "đang tải dự án xuống..."
 
@@ -9237,9 +9293,6 @@ msgstr "Tải xuống thất bại, kích thước file bất thường."
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "Dự án đã tải xuống %d%%"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "Nhập vào Orca Slicer thất bại. Vui lòng tải file xuống và nhập thủ công."
 
 msgid "INFO:"
 msgstr "THÔNG TIN:"
@@ -10000,6 +10053,12 @@ msgstr "Bỏ hạn chế trộn lẫn nhiệt độ"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Khi bật tùy chọn này, bạn có thể in cùng lúc các vật liệu có chênh lệch nhiệt độ lớn."
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "Bàn di chuột cảm ứng"
 
@@ -10134,6 +10193,14 @@ msgstr "Đổ bóng Phong"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Dùng đổ bóng Phong trong chế độ xem thực tế."
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 # AI Translated
 msgid "SSAO ambient occlusion"
 msgstr "Che khuất môi trường SSAO"
@@ -10142,13 +10209,21 @@ msgstr "Che khuất môi trường SSAO"
 msgid "Applies SSAO in realistic view."
 msgstr "Áp dụng SSAO trong chế độ xem thực tế."
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 # AI Translated
 msgid "Shadows"
 msgstr "Bóng đổ"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "Kết xuất bóng đổ lên plate, lên các vật thể khác và lên chính từng vật thể trong chế độ xem thực tế."
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -10246,9 +10321,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "Xem trước G-code"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10642,6 +10752,9 @@ msgstr "Trình tự in"
 msgid "Same as Global"
 msgstr "Giống như toàn cục"
 
+msgid "Enable"
+msgstr "Bật"
+
 msgid "Disable"
 msgstr "Tắt"
 
@@ -10666,37 +10779,6 @@ msgstr "Chấp nhận"
 
 msgid "Log Out"
 msgstr "Đăng xuất"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Slice tất cả bản để có ước tính thời gian và filament"
-
-msgid "Packing project data into 3MF file"
-msgstr "Đang đóng gói dữ liệu dự án vào file 3mf"
-
-msgid "Uploading 3MF"
-msgstr "Đang tải 3MF lên"
-
-msgid "Jump to model publish web page"
-msgstr "Chuyển đến trang web xuất bản model"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Lưu ý: Chuẩn bị có thể mất vài phút. Vui lòng kiên nhẫn."
-
-msgid "Publish was canceled"
-msgstr "Xuất bản đã bị hủy"
-
-msgid "Slicing Plate 1"
-msgstr "Đang slice bản 1"
-
-msgid "Packing data to 3MF"
-msgstr "Đang đóng gói dữ liệu vào 3mf"
-
-# AI Translated
-msgid "Uploading data"
-msgstr "Đang tải dữ liệu lên"
-
-msgid "Jump to webpage"
-msgstr "Chuyển đến trang web"
 
 # AI Translated
 msgid "Material"
@@ -10849,6 +10931,36 @@ msgstr "Cho \"%1%\", thêm \"%2%\" như một preset mới"
 msgid "Simply switch to \"%1%\""
 msgstr "Đơn giản chuyển sang \"%1%\""
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -10856,10 +10968,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -10882,7 +10990,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -11141,6 +11249,10 @@ msgstr "Filament không khớp với filament trong khe AMS. Vui lòng cập nh�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Máy in đã chọn (%s) không tương thích với cấu hình của file in (%s). Vui lòng điều chỉnh cài đặt sẵn máy in ở trang chuẩn bị hoặc chọn một máy in tương thích trên trang này."
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Khi bật chế độ bình xoắn ốc, máy có cấu trúc I3 sẽ không tạo video timelapse."
 
@@ -11226,8 +11338,20 @@ msgstr "Hủy timelapse & In"
 msgid "Clean Up"
 msgstr "Dọn dẹp"
 
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "Đang chuẩn bị công việc in"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "Độ dài tên vượt quá giới hạn."
@@ -11434,6 +11558,9 @@ msgstr "Không thể gửi công việc in cho bản trống"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Cần lắp bộ nhớ để ghi timelapse."
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 # AI Translated
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Bạn đã chọn cả filament ngoài và filament AMS cho một extruder. Bạn sẽ phải đổi filament ngoài thủ công trong khi in."
@@ -11514,6 +11641,9 @@ msgstr "Máy in cần phải ở cùng LAN với Orca Slicer."
 # AI Translated
 msgid "The printer does not support sending to printer storage."
 msgstr "Máy in không hỗ trợ gửi vào bộ nhớ máy in."
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 # AI Translated
 msgid "Sending..."
@@ -12596,78 +12726,6 @@ msgstr "Không có cập nhật nào."
 msgid "The configuration is up to date."
 msgstr "Cấu hình đã được cập nhật."
 
-msgid "OBJ file import color"
-msgstr "Màu nhập file Obj"
-
-# AI Translated
-msgid "Some faces don't have color defined."
-msgstr "Một số mặt chưa được xác định màu."
-
-# AI Translated
-msgid "MTL file exist error, could not find the material:"
-msgstr "File MTL có lỗi, không tìm thấy vật liệu:"
-
-# AI Translated
-msgid "Please check OBJ or MTL file."
-msgstr "Vui lòng kiểm tra file OBJ hoặc MTL."
-
-msgid "Specify number of colors:"
-msgstr "Chỉ định số lượng màu:"
-
-# AI Translated
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Nhập hoặc nhấn nút điều chỉnh để sửa lại số"
-
-msgid "Recommended "
-msgstr "Khuyến nghị "
-
-# AI Translated
-msgid "view"
-msgstr "chế độ xem"
-
-# AI Translated
-msgid "Current filament colors"
-msgstr "Màu filament hiện tại"
-
-# AI Translated
-msgid "Matching"
-msgstr "Khớp"
-
-# AI Translated
-msgid "Quick set"
-msgstr "Đặt nhanh"
-
-msgid "Color match"
-msgstr "Khớp màu"
-
-msgid "Approximate color matching."
-msgstr "Khớp màu gần đúng."
-
-msgid "Append"
-msgstr "Thêm vào"
-
-# AI Translated
-msgid "Append to existing filaments"
-msgstr "Thêm vào các filament hiện có"
-
-msgid "Reset mapped extruders."
-msgstr "Đặt lại extruder đã ánh xạ."
-
-# AI Translated
-msgid "Note"
-msgstr "Lưu ý"
-
-# AI Translated
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"Màu đã được chọn, bạn có thể chọn OK \n"
-" để tiếp tục hoặc tự điều chỉnh."
-
-msgid "—> "
-msgstr "—> "
-
 # AI Translated
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -12946,7 +13004,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -12999,9 +13060,6 @@ msgstr "Di chuyển: nhấn để bám theo 1mm"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "Tô support/màu: điều chỉnh bán kính bút"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "Tô support/màu: điều chỉnh vị trí phần"
 
 msgid "Objects list"
 msgstr "Danh sách đối tượng"
@@ -13061,8 +13119,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -13141,6 +13202,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "Mã truy cập"
+
+msgid "HTTPS CA File"
+msgstr "File CA HTTPS"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "File chứng chỉ (*.crt, *.pem)|*.crt;*.pem|Tất cả file|*.*"
+
+msgid "Open CA certificate file"
+msgstr "Mở file chứng chỉ CA"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "File CA HTTPS là tùy chọn. Nó chỉ cần thiết nếu bạn sử dụng HTTPS với chứng chỉ tự ký."
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "Model máy in"
@@ -13377,6 +13453,29 @@ msgstr "Lỗi nhóm: %1% không thể đặt vào đầu phun phải"
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Lỗi nhóm ở chế độ thủ công. Vui lòng kiểm tra số lượng đầu phun hoặc nhóm lại."
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Cầu bên trong"
@@ -13901,9 +14000,6 @@ msgstr "API cục bộ của Flashforge yêu cầu số sê-ri máy in."
 
 msgid "Name of the printer."
 msgstr "Tên của máy in."
-
-msgid "HTTPS CA File"
-msgstr "File CA HTTPS"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "File chứng chỉ CA tùy chỉnh có thể được chỉ định cho kết nối HTTPS OctoPrint, ở định dạng crt/pem. Nếu để trống, kho chứng chỉ CA OS mặc định sẽ được sử dụng."
@@ -17736,6 +17832,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Lai"
 
+msgid "Extra High Flow"
+msgstr ""
+
 # AI Translated
 msgid "Enable filament dynamic map"
 msgstr "Bật ánh xạ filament động"
@@ -18228,6 +18327,17 @@ msgstr "Không có lớp thưa (beta)"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Nếu bật, wipe tower sẽ không được in ở những lớp không có đổi công cụ. Ở những lớp có đổi công cụ, extruder sẽ đi xuống để in wipe tower, nên tháp nằm thấp hơn mô hình và đầu công cụ phải với xuống tới đó. Những bố trí khiến điều này va chạm với một vật thể đã in sẽ bị từ chối. Không có tác dụng với timelapse mượt hoặc phát hiện đóng cục ở đầu phun, vì chúng cần có tháp ở mọi lớp."
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Nạp tất cả extruder in"
@@ -19549,6 +19659,12 @@ msgstr "Cho phép xoay khi sắp xếp"
 
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Nếu được bật, Sắp xếp sẽ cho phép xoay khi đặt đối tượng."
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Tránh vùng hiệu chỉnh đùn khi sắp xếp"
@@ -21709,15 +21825,6 @@ msgstr "Xem webui máy chủ in trong tab Thiết bị"
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Thay thế tab thiết bị của BambuLab bằng webui máy chủ in"
 
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "File CA HTTPS là tùy chọn. Nó chỉ cần thiết nếu bạn sử dụng HTTPS với chứng chỉ tự ký."
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "File chứng chỉ (*.crt, *.pem)|*.crt;*.pem|Tất cả file|*.*"
-
-msgid "Open CA certificate file"
-msgstr "Mở file chứng chỉ CA"
-
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
 msgstr "Trên hệ thống này, %s sử dụng chứng chỉ HTTPS từ Kho chứng chỉ hệ thống hoặc Keychain."
@@ -22088,186 +22195,6 @@ msgstr ""
 "Liệt kê máy in máy chủ thất bại.\n"
 "Nội dung thông báo: \"%1%\"\n"
 "Lỗi: \"%2%\""
-
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Nó có chiều cao lớp nhỏ. Điều này dẫn đến các đường lớp gần như không đáng kể và chất lượng in cao. Nó phù hợp cho hầu hết các trường hợp in."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp lớn hơn một chút. Điều này dẫn đến các đường lớp gần như không đáng kể và thời gian in ngắn hơn một chút."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp nhìn thấy một chút nhưng thời gian in ngắn hơn."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp gần như không nhìn thấy và chất lượng in cao hơn nhưng thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có các đường lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp gần như không nhìn thấy và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp tối thiểu và chất lượng in cao hơn nhưng thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có các đường lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp tối thiểu và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Nó có chiều cao lớp bình thường. Điều này dẫn đến các đường lớp trung bình và chất lượng in. Nó phù hợp cho hầu hết các trường hợp in."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có nhiều vòng thành hơn và mật độ infill thưa cao hơn. Điều này dẫn đến độ bền in cao hơn nhưng tiêu thụ filament nhiều hơn và thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn và chất lượng in thấp hơn, nhưng thời gian in ngắn hơn một chút."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn và chất lượng in thấp hơn, nhưng thời gian in ngắn hơn."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn nhưng thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp gần như không đáng kể và chất lượng in cao hơn nhưng thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp gần như không đáng kể và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp gần như không đáng kể và thời gian in dài hơn."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "Nó có chiều cao lớp lớn. Điều này dẫn đến các đường lớp rõ ràng và chất lượng in và thời gian in bình thường."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có nhiều vòng thành hơn và mật độ infill thưa cao hơn. Điều này dẫn đến độ bền in cao hơn nhưng tiêu thụ filament nhiều hơn và thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn và chất lượng in thấp hơn, nhưng thời gian in ngắn hơn trong một số trường hợp."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn nhiều và chất lượng in thấp hơn nhiều, nhưng thời gian in ngắn hơn trong một số trường hợp."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn một chút nhưng thời gian in dài hơn."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn nhưng thời gian in dài hơn."
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Nó có chiều cao lớp rất lớn. Điều này dẫn đến các đường lớp rất rõ ràng, chất lượng in thấp và thời gian in ngắn hơn."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rất rõ ràng và chất lượng in thấp hơn nhiều, nhưng thời gian in ngắn hơn trong một số trường hợp."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp lớn hơn nhiều. Điều này dẫn đến các đường lớp cực kỳ rõ ràng và chất lượng in thấp hơn nhiều, nhưng thời gian in ngắn hơn nhiều trong một số trường hợp."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp nhỏ hơn một chút. Điều này dẫn đến các đường lớp ít hơn một chút nhưng vẫn rõ ràng  và chất lượng in cao hơn một chút nhưng thời gian in dài hơn trong một số trường hợp."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít hơn nhưng vẫn rõ ràng và chất lượng in cao hơn một chút nhưng thời gian in dài hơn trong một số trường hợp."
-
-# AI Translated
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Đây không phải là filament thông dụng, cũng không phải filament của Bambu, và chất lượng thay đổi nhiều tùy theo thương hiệu. Vì vậy, rất nên hỏi nhà cung cấp về hồ sơ phù hợp trước khi in và điều chỉnh một số tham số theo đặc tính của nó."
-
-# AI Translated
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Khi in filament này, có nguy cơ cong vênh và độ bám giữa các lớp thấp. Để có kết quả tốt hơn, vui lòng tham khảo wiki này: Printing Tips for High Temp / Engineering materials."
-
-# AI Translated
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Khi in filament này, có nguy cơ tắc đầu phun, chảy nhựa, cong vênh và độ bám giữa các lớp thấp. Để có kết quả tốt hơn, vui lòng tham khảo wiki này: Printing Tips for High Temp / Engineering materials."
-
-# AI Translated
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Để có kết quả trong suốt hoặc mờ đục tốt hơn với filament tương ứng, vui lòng tham khảo wiki này: Printing tips for transparent PETG."
-
-# AI Translated
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Để bản in bóng hơn, hãy sấy khô filament trước khi dùng và đặt tốc độ thành ngoài từ 40 đến 60 mm/s khi slice."
-
-# AI Translated
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Filament này thường chỉ dùng để in các mô hình có mật độ thấp và cần một số tham số đặc biệt. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: Instructions for printing RC model with foaming PLA (PLA Aero)."
-
-# AI Translated
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Filament này thường chỉ dùng để in các mô hình có mật độ thấp và cần một số tham số đặc biệt. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: ASA Aero Printing Guide."
-
-# AI Translated
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Filament này quá mềm và không tương thích với AMS. Việc in nó có nhiều yêu cầu, và để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: TPU printing guide."
-
-# AI Translated
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Filament này có độ cứng đủ cao (khoảng 67D) và tương thích với AMS. Việc in nó có nhiều yêu cầu, và để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: TPU printing guide."
-
-# AI Translated
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Nếu bạn định in loại TPU mềm, vui lòng đừng slice bằng hồ sơ này; nó chỉ dành cho TPU có độ cứng đủ cao (không dưới 55D) và tương thích với AMS. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: TPU printing guide."
-
-# AI Translated
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Đây là filament support tan trong nước, và thường chỉ dùng cho cấu trúc support chứ không dùng cho thân mô hình. Việc in filament này có nhiều yêu cầu, và để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: PVA Printing Guide."
-
-# AI Translated
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Đây là filament support không tan trong nước, và thường chỉ dùng cho cấu trúc support chứ không dùng cho thân mô hình. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: Printing Tips for Support Filament and Support Function."
-
-# AI Translated
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "Các cài đặt sẵn chung được tinh chỉnh theo hướng an toàn để tương thích với nhiều loại filament hơn. Để có chất lượng và tốc độ in cao hơn, vui lòng dùng filament Bambu với cài đặt sẵn Bambu."
-
-# AI Translated
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Hồ sơ chất lượng cao cho đầu phun 0.2mm, ưu tiên chất lượng in."
-
-# AI Translated
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Hồ sơ chất lượng cao cho chiều cao lớp 0.16mm, ưu tiên chất lượng in và độ bền."
-
-# AI Translated
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Hồ sơ tiêu chuẩn cho chiều cao lớp 0.16mm, ưu tiên tốc độ."
-
-# AI Translated
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Hồ sơ chất lượng cao cho chiều cao lớp 0.2mm, ưu tiên độ bền và chất lượng in."
-
-# AI Translated
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Hồ sơ tiêu chuẩn cho đầu phun 0.4mm, ưu tiên tốc độ."
-
-# AI Translated
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Hồ sơ chất lượng cao cho đầu phun 0.6mm, ưu tiên chất lượng in và độ bền."
-
-# AI Translated
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Hồ sơ độ bền cho đầu phun 0.6mm, ưu tiên độ bền."
-
-# AI Translated
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Hồ sơ tiêu chuẩn cho đầu phun 0.6mm, ưu tiên tốc độ."
-
-# AI Translated
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Hồ sơ chất lượng cao cho đầu phun 0.8mm, ưu tiên chất lượng in."
-
-# AI Translated
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Hồ sơ độ bền cho đầu phun 0.8mm, ưu tiên độ bền."
-
-# AI Translated
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Hồ sơ tiêu chuẩn cho đầu phun 0.8mm, ưu tiên tốc độ."
 
 msgid "No AMS"
 msgstr "Không có AMS"
@@ -24101,6 +24028,9 @@ msgstr ""
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr ""
 
+msgid "Thickness"
+msgstr "Độ dày"
+
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr ""
 
@@ -25696,14 +25626,14 @@ msgstr "Chuyển đổi giữa Chuẩn bị/Xem trước"
 msgid "Collapse/Expand the sidebar"
 msgstr "Thu gọn/Mở rộng thanh bên"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "Hiển thị danh sách phím tắt"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -25724,6 +25654,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -26026,6 +25959,349 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Reset direction"
+#~ msgstr "Đặt lại hướng"
+
+#~ msgid "Face recognition"
+#~ msgstr "Nhận dạng mặt"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Thực hiện nhận dạng"
+
+#~ msgid "Text Gap"
+#~ msgstr "Khoảng cách chữ"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "Độ sâu nhúng"
+
+#~ msgid "Input text"
+#~ msgstr "Nhập chữ"
+
+#~ msgid "Surface"
+#~ msgstr "Bề mặt"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Chữ ngang"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "Di chuyển chuột lên hoặc xuống"
+
+#~ msgid "Rotate text"
+#~ msgstr "Xoay chữ"
+
+#~ msgid "Text shape"
+#~ msgstr "Hình dạng chữ"
+
+#~ msgid "Section View"
+#~ msgstr "Chế độ xem mặt cắt"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "Tên máy chủ hoặc IP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "Nguồn camera tùy chỉnh"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "Chuyển chế độ xem camera"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Đang slice bản %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Vui lòng giải quyết các lỗi slice và xuất bản lại."
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "Kết xuất bóng đổ lên plate, lên các vật thể khác và lên chính từng vật thể trong chế độ xem thực tế."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Slice tất cả bản để có ước tính thời gian và filament"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "Đang đóng gói dữ liệu dự án vào file 3mf"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "Đang tải 3MF lên"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Chuyển đến trang web xuất bản model"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Lưu ý: Chuẩn bị có thể mất vài phút. Vui lòng kiên nhẫn."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "Xuất bản đã bị hủy"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Đang slice bản 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Đang đóng gói dữ liệu vào 3mf"
+
+# AI Translated
+#~ msgid "Uploading data"
+#~ msgstr "Đang tải dữ liệu lên"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Chuyển đến trang web"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "Màu nhập file Obj"
+
+# AI Translated
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Một số mặt chưa được xác định màu."
+
+# AI Translated
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "File MTL có lỗi, không tìm thấy vật liệu:"
+
+# AI Translated
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Vui lòng kiểm tra file OBJ hoặc MTL."
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "Chỉ định số lượng màu:"
+
+# AI Translated
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Nhập hoặc nhấn nút điều chỉnh để sửa lại số"
+
+#~ msgid "Recommended "
+#~ msgstr "Khuyến nghị "
+
+# AI Translated
+#~ msgid "view"
+#~ msgstr "chế độ xem"
+
+# AI Translated
+#~ msgid "Current filament colors"
+#~ msgstr "Màu filament hiện tại"
+
+# AI Translated
+#~ msgid "Matching"
+#~ msgstr "Khớp"
+
+# AI Translated
+#~ msgid "Quick set"
+#~ msgstr "Đặt nhanh"
+
+#~ msgid "Color match"
+#~ msgstr "Khớp màu"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "Khớp màu gần đúng."
+
+#~ msgid "Append"
+#~ msgstr "Thêm vào"
+
+# AI Translated
+#~ msgid "Append to existing filaments"
+#~ msgstr "Thêm vào các filament hiện có"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Đặt lại extruder đã ánh xạ."
+
+# AI Translated
+#~ msgid "Note"
+#~ msgstr "Lưu ý"
+
+# AI Translated
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "Màu đã được chọn, bạn có thể chọn OK \n"
+#~ " để tiếp tục hoặc tự điều chỉnh."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "Tô support/màu: điều chỉnh vị trí phần"
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Nó có chiều cao lớp nhỏ. Điều này dẫn đến các đường lớp gần như không đáng kể và chất lượng in cao. Nó phù hợp cho hầu hết các trường hợp in."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp lớn hơn một chút. Điều này dẫn đến các đường lớp gần như không đáng kể và thời gian in ngắn hơn một chút."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp nhìn thấy một chút nhưng thời gian in ngắn hơn."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp gần như không nhìn thấy và chất lượng in cao hơn nhưng thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có các đường lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp gần như không nhìn thấy và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp tối thiểu và chất lượng in cao hơn nhưng thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.2 mm, nó có các đường lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp tối thiểu và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Nó có chiều cao lớp bình thường. Điều này dẫn đến các đường lớp trung bình và chất lượng in. Nó phù hợp cho hầu hết các trường hợp in."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có nhiều vòng thành hơn và mật độ infill thưa cao hơn. Điều này dẫn đến độ bền in cao hơn nhưng tiêu thụ filament nhiều hơn và thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn và chất lượng in thấp hơn, nhưng thời gian in ngắn hơn một chút."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn và chất lượng in thấp hơn, nhưng thời gian in ngắn hơn."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn nhưng thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp gần như không đáng kể và chất lượng in cao hơn nhưng thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn, tốc độ và gia tốc thấp hơn, và mẫu infill thưa là Gyroid. Điều này dẫn đến các đường lớp gần như không đáng kể và chất lượng in cao hơn nhiều nhưng thời gian in dài hơn nhiều."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.4 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp gần như không đáng kể và thời gian in dài hơn."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "Nó có chiều cao lớp lớn. Điều này dẫn đến các đường lớp rõ ràng và chất lượng in và thời gian in bình thường."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có nhiều vòng thành hơn và mật độ infill thưa cao hơn. Điều này dẫn đến độ bền in cao hơn nhưng tiêu thụ filament nhiều hơn và thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn và chất lượng in thấp hơn, nhưng thời gian in ngắn hơn trong một số trường hợp."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rõ ràng hơn nhiều và chất lượng in thấp hơn nhiều, nhưng thời gian in ngắn hơn trong một số trường hợp."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn một chút nhưng thời gian in dài hơn."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.6 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít rõ ràng hơn và chất lượng in cao hơn nhưng thời gian in dài hơn."
+
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Nó có chiều cao lớp rất lớn. Điều này dẫn đến các đường lớp rất rõ ràng, chất lượng in thấp và thời gian in ngắn hơn."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp lớn hơn. Điều này dẫn đến các đường lớp rất rõ ràng và chất lượng in thấp hơn nhiều, nhưng thời gian in ngắn hơn trong một số trường hợp."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp lớn hơn nhiều. Điều này dẫn đến các đường lớp cực kỳ rõ ràng và chất lượng in thấp hơn nhiều, nhưng thời gian in ngắn hơn nhiều trong một số trường hợp."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp nhỏ hơn một chút. Điều này dẫn đến các đường lớp ít hơn một chút nhưng vẫn rõ ràng  và chất lượng in cao hơn một chút nhưng thời gian in dài hơn trong một số trường hợp."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "So với hồ sơ mặc định của đầu phun 0.8 mm, nó có chiều cao lớp nhỏ hơn. Điều này dẫn đến các đường lớp ít hơn nhưng vẫn rõ ràng và chất lượng in cao hơn một chút nhưng thời gian in dài hơn trong một số trường hợp."
+
+# AI Translated
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Đây không phải là filament thông dụng, cũng không phải filament của Bambu, và chất lượng thay đổi nhiều tùy theo thương hiệu. Vì vậy, rất nên hỏi nhà cung cấp về hồ sơ phù hợp trước khi in và điều chỉnh một số tham số theo đặc tính của nó."
+
+# AI Translated
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Khi in filament này, có nguy cơ cong vênh và độ bám giữa các lớp thấp. Để có kết quả tốt hơn, vui lòng tham khảo wiki này: Printing Tips for High Temp / Engineering materials."
+
+# AI Translated
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Khi in filament này, có nguy cơ tắc đầu phun, chảy nhựa, cong vênh và độ bám giữa các lớp thấp. Để có kết quả tốt hơn, vui lòng tham khảo wiki này: Printing Tips for High Temp / Engineering materials."
+
+# AI Translated
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Để có kết quả trong suốt hoặc mờ đục tốt hơn với filament tương ứng, vui lòng tham khảo wiki này: Printing tips for transparent PETG."
+
+# AI Translated
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Để bản in bóng hơn, hãy sấy khô filament trước khi dùng và đặt tốc độ thành ngoài từ 40 đến 60 mm/s khi slice."
+
+# AI Translated
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Filament này thường chỉ dùng để in các mô hình có mật độ thấp và cần một số tham số đặc biệt. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: Instructions for printing RC model with foaming PLA (PLA Aero)."
+
+# AI Translated
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Filament này thường chỉ dùng để in các mô hình có mật độ thấp và cần một số tham số đặc biệt. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: ASA Aero Printing Guide."
+
+# AI Translated
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Filament này quá mềm và không tương thích với AMS. Việc in nó có nhiều yêu cầu, và để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: TPU printing guide."
+
+# AI Translated
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Filament này có độ cứng đủ cao (khoảng 67D) và tương thích với AMS. Việc in nó có nhiều yêu cầu, và để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: TPU printing guide."
+
+# AI Translated
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Nếu bạn định in loại TPU mềm, vui lòng đừng slice bằng hồ sơ này; nó chỉ dành cho TPU có độ cứng đủ cao (không dưới 55D) và tương thích với AMS. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: TPU printing guide."
+
+# AI Translated
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Đây là filament support tan trong nước, và thường chỉ dùng cho cấu trúc support chứ không dùng cho thân mô hình. Việc in filament này có nhiều yêu cầu, và để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: PVA Printing Guide."
+
+# AI Translated
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Đây là filament support không tan trong nước, và thường chỉ dùng cho cấu trúc support chứ không dùng cho thân mô hình. Để có chất lượng in tốt hơn, vui lòng tham khảo wiki này: Printing Tips for Support Filament and Support Function."
+
+# AI Translated
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "Các cài đặt sẵn chung được tinh chỉnh theo hướng an toàn để tương thích với nhiều loại filament hơn. Để có chất lượng và tốc độ in cao hơn, vui lòng dùng filament Bambu với cài đặt sẵn Bambu."
+
+# AI Translated
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Hồ sơ chất lượng cao cho đầu phun 0.2mm, ưu tiên chất lượng in."
+
+# AI Translated
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Hồ sơ chất lượng cao cho chiều cao lớp 0.16mm, ưu tiên chất lượng in và độ bền."
+
+# AI Translated
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Hồ sơ tiêu chuẩn cho chiều cao lớp 0.16mm, ưu tiên tốc độ."
+
+# AI Translated
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Hồ sơ chất lượng cao cho chiều cao lớp 0.2mm, ưu tiên độ bền và chất lượng in."
+
+# AI Translated
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Hồ sơ tiêu chuẩn cho đầu phun 0.4mm, ưu tiên tốc độ."
+
+# AI Translated
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Hồ sơ chất lượng cao cho đầu phun 0.6mm, ưu tiên chất lượng in và độ bền."
+
+# AI Translated
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Hồ sơ độ bền cho đầu phun 0.6mm, ưu tiên độ bền."
+
+# AI Translated
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Hồ sơ tiêu chuẩn cho đầu phun 0.6mm, ưu tiên tốc độ."
+
+# AI Translated
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Hồ sơ chất lượng cao cho đầu phun 0.8mm, ưu tiên chất lượng in."
+
+# AI Translated
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Hồ sơ độ bền cho đầu phun 0.8mm, ưu tiên độ bền."
+
+# AI Translated
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Hồ sơ tiêu chuẩn cho đầu phun 0.8mm, ưu tiên tốc độ."
 
 # AI Translated
 #~ msgid "Tab"

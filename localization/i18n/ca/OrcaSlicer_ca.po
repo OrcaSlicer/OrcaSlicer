@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-06 11:49+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -295,6 +295,9 @@ msgstr "Estàndard"
 msgid "TPU High Flow"
 msgstr "TPU d'Alt Flux"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Desconegut"
 
@@ -493,12 +496,6 @@ msgstr "Tipus d'eina"
 
 msgid "Gap fill"
 msgstr "Farcir el buit"
-
-msgid "Reset direction"
-msgstr "Restablir direcció"
-
-msgid "Section view"
-msgstr "Vista de secció"
 
 msgid "Brush size"
 msgstr "Mida del pinzell"
@@ -1180,12 +1177,6 @@ msgstr "No es pot aplicar quan es previsualitza el processament."
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "Operació ja cancel·lada. Si us plau, espereu uns segons."
 
-msgid "Face recognition"
-msgstr "Reconeixement facial"
-
-msgid "Perform Recognition"
-msgstr "Realitzar reconeixement"
-
 msgid "Enforce seam"
 msgstr "Força la costura"
 
@@ -1206,46 +1197,6 @@ msgstr "Sortint de pintat de Costura"
 
 msgid "Paint-on seam editing"
 msgstr "Edició de pintat de Costura"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Tipus de lletra"
-
-msgid "Thickness"
-msgstr "Gruix"
-
-msgid "Text Gap"
-msgstr "Espaiat de text"
-
-# AI Translated
-msgid "Angle"
-msgstr "Angle"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "Profunditat integrada"
-
-msgid "Input text"
-msgstr "Text d'entrada"
-
-msgid "Surface"
-msgstr "Superfície"
-
-msgid "Horizontal text"
-msgstr "Text horitzontal"
-
-msgid "Shift+"
-msgstr "Màj+"
-
-msgid "Mouse move up or down"
-msgstr "Moviment del ratolí amunt o avall"
-
-msgid "Rotate text"
-msgstr "Rotar text"
-
-msgid "Text shape"
-msgstr "Forma del text"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1602,6 +1553,11 @@ msgid "In queue"
 msgstr "A la cua"
 
 #. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Tipus de lletra"
+
+#. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
 msgid "Height"
 msgstr "Alçada"
@@ -1944,6 +1900,10 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Copiar al porta-retalls"
 
+# AI Translated
+msgid "Angle"
+msgstr "Angle"
+
 msgid "Perpendicular distance"
 msgstr "Distància perpendicular"
 
@@ -2031,6 +1991,9 @@ msgstr "Entrant al gizmo d'Ensamblatge"
 msgid "Leaving Assembly gizmo"
 msgstr "Sortint del gizmo d'Ensamblatge"
 
+msgid "Shift+"
+msgstr "Màj+"
+
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
@@ -2069,6 +2032,16 @@ msgstr "Ha estat carregat el paquet de configuració, però alguns valors no s'h
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Ha estat carregat el fitxer de configuració \"%1%\", però alguns valors no s'han pogut reconèixer."
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
 
 msgid "Loading configuration"
 msgstr "S'està carregant la configuració"
@@ -2691,6 +2664,9 @@ msgstr "Afegir bloqueig de suports"
 msgid "Add Support Enforcer"
 msgstr "Afegir forçat de suports"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "Afegir text"
 
@@ -2815,6 +2791,9 @@ msgstr "Bloquejador de Suport"
 
 msgid "Support Enforcer"
 msgstr "Reforçador de Suport"
+
+msgid "Precise Seam"
+msgstr ""
 
 # AI Translated
 msgid "Change part type"
@@ -2961,6 +2940,30 @@ msgstr "Mirall al llarg de l'eix Z"
 
 msgid "Mirror object"
 msgstr "Emmirallar objecte"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "Editar el text"
@@ -4320,6 +4323,9 @@ msgstr "Estàs segur que vols esborrar la informació del filament?"
 msgid "You need to select the material type and color first."
 msgstr "Primer heu de seleccionar el tipus de material i el color."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Introduïu un valor vàlid (K a %.1f~%.1f)"
@@ -4859,6 +4865,13 @@ msgstr ""
 "Velocitat volumètrica màxima massa petita.\n"
 "Restableix a 0.5"
 
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"Espaiat de planxa massa petit.\n"
+"Restableix a 0.1"
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "La temperatura actual de la cambra és superior a la temperatura segura del material, pot provocar un estovament i obstrucció del material. La temperatura màxima segura per al material és %d"
@@ -4891,13 +4904,6 @@ msgid ""
 msgstr ""
 "Alçada de capa massa petita.\n"
 "Restableix a 0.2"
-
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"Espaiat de planxa massa petit.\n"
-"Restableix a 0.1"
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5689,6 +5695,12 @@ msgstr "Velocitat: "
 msgid "Actual speed profile"
 msgstr "Perfil de velocitat real"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "Estadístiques de totes les plaques"
 
@@ -6073,6 +6085,9 @@ msgstr "Tornar"
 msgid "Canvas Toolbar"
 msgstr "Barra d'eines del llenç"
 
+msgid "Section view"
+msgstr "Vista de secció"
+
 msgid "Fit camera to scene or selected object."
 msgstr "Ajusta la càmera a l'escena o a l'objecte seleccionat."
 
@@ -6111,17 +6126,32 @@ msgstr "Línies de la graella"
 msgid "Labels"
 msgstr "Etiquetes"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Barra d'eines de pintura"
 
-msgid "Explosion Ratio"
-msgstr "Relació d'explosió"
-
-msgid "Section View"
-msgstr "Vista de secció"
-
 msgid "Assembly Control"
 msgstr "Control d'ensamblatge"
+
+msgid "Explosion Ratio"
+msgstr "Relació d'explosió"
 
 msgid "Selection Mode"
 msgstr "Mode de selecció"
@@ -6254,15 +6284,6 @@ msgstr "Reintentar Lifeview"
 msgid "Resolution"
 msgstr "Resolució"
 
-msgid "Enable"
-msgstr "Activar"
-
-msgid "Hostname or IP"
-msgstr "Nom d'equip o IP"
-
-msgid "Custom camera source"
-msgstr "Font de la càmera personalitzada"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "Mostra la pàgina de guia \"Vídeo en directe\"."
 
@@ -6336,11 +6357,17 @@ msgstr "No"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "es tancarà abans de crear un nou model. Vols continuar?"
 
-msgid "Slice plate"
-msgstr "Laminar placa"
+msgid "Print all"
+msgstr "Imprimeix-ho tot"
 
 msgid "Print plate"
 msgstr "Imprimir placa d'impressió"
+
+msgid "Export plate sliced file"
+msgstr "Exportar fitxer de la placa laminada"
+
+msgid "Export all sliced file"
+msgstr "Exportar el fitxer amb tot laminat"
 
 msgid "Export G-code file"
 msgstr "Exportar el fitxer del Codi-G"
@@ -6349,23 +6376,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "Imprimir"
 
-msgid "Export plate sliced file"
-msgstr "Exportar fitxer de la placa laminada"
-
 msgid "Send"
 msgstr "Enviar"
-
-msgid "Export all sliced file"
-msgstr "Exportar el fitxer amb tot laminat"
-
-msgid "Print all"
-msgstr "Imprimeix-ho tot"
 
 msgid "Send all"
 msgstr "Envia-ho tot"
 
 msgid "Send to Multi-device"
 msgstr "Enviar a multidispositiu"
+
+msgid "Slice plate"
+msgstr "Laminar placa"
 
 msgid "Keyboard Shortcuts"
 msgstr "Dreceres de teclat"
@@ -6385,6 +6406,12 @@ msgstr "Centre de resolució de problemes"
 
 msgid "Open Network Test"
 msgstr "Obrir Test de Xarxa"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "Mostra Consell del dia"
@@ -6842,6 +6869,15 @@ msgstr "El reproductor no s'ha carregat perquè falta el sink de vídeo GTK de G
 msgid "Please confirm if the printer is connected."
 msgstr "Confirmeu si la impressora està connectada."
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "Inicialitzant..."
+
+msgid "Playing..."
+msgstr "Reproduint..."
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "La impressora està ocupada descarregant, espereu que finalitzi la descàrrega."
 
@@ -6857,20 +6893,17 @@ msgstr "Liveview Només per LAN està desactivat. Activeu la pantalla de Lifevie
 msgid "Please enter the IP of the printer to connect."
 msgstr "Introduïu la IP de la impressora amb la que connectar."
 
-msgid "Initializing..."
-msgstr "Inicialitzant..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "S'ha produït un error de connexió. Comproveu la xarxa i torneu-ho a provar"
+
+msgid "Video Stopped."
+msgstr "Vídeo aturat."
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Comproveu la xarxa i torneu-ho a provar. Podeu reiniciar o actualitzar la impressora si el problema persisteix."
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "La impressora ha tancat la sessió i no es pot connectar."
-
-msgid "Video Stopped."
-msgstr "Vídeo aturat."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "S'ha produït un error en la connexió LAN ( no s'ha pogut iniciar la visualització en directe )"
@@ -6903,9 +6936,6 @@ msgstr "Xarxa inaccessible"
 
 msgid "Information"
 msgstr "Informació"
-
-msgid "Playing..."
-msgstr "Reproduint..."
 
 msgid "Loading..."
 msgstr "Carregant…"
@@ -7010,6 +7040,22 @@ msgstr "El fitxer .gcode.3mf no conté dades de Codi-G. Lamineu-lo amb Orca Slic
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "L'arxiu '%s' s'ha perdut! Si us plau, descarregueu-lo de nou."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -7247,9 +7293,6 @@ msgstr "Emmagatzematge"
 
 msgid "Camera Setting"
 msgstr "Configuració de la càmera"
-
-msgid "Switch Camera View"
-msgstr "Canviar Vista de Càmera"
 
 # AI Translated
 msgid "Control"
@@ -8349,6 +8392,9 @@ msgstr "Sincronitza la informació del broquet i el nombre d'AMS"
 msgid "Click to edit preset"
 msgstr "Feu clic per editar el perfil"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "Broquet( nozzle )"
 
@@ -8439,6 +8485,9 @@ msgstr "S'ha sincronitzat la informació del tipus i color del filament, però n
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Vols desar els canvis a \"%1%\"?"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8779,13 +8828,6 @@ msgstr "Les dades no són vàlides"
 msgid "Slicing Canceled"
 msgstr "Laminat cancel·lat"
 
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Laminant Base %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Resoleu els errors de laminat i torneu a publicar."
-
 msgid "Network plug-in switched successfully."
 msgstr "Connector de xarxa canviat correctament."
 
@@ -8816,6 +8858,17 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Sincronitza ara"
+
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -8861,6 +8914,9 @@ msgstr "preparar el fitxer 3MF..."
 msgid "Download failed; unknown file format."
 msgstr "S'ha produït un error en la baixada, format de fitxer desconegut."
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "La importació a Orca Slicer ha fallat. Descarregueu el fitxer manualment i importeu-lo."
+
 msgid "Downloading project..."
 msgstr "descarregant projecte ..."
 
@@ -8870,9 +8926,6 @@ msgstr "S'ha produït un error en la baixada, excepció mida del Fitxer."
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "Projecte descarregat %d%%"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "La importació a Orca Slicer ha fallat. Descarregueu el fitxer manualment i importeu-lo."
 
 msgid "INFO:"
 msgstr "INFORMACIÓ:"
@@ -9578,6 +9631,12 @@ msgstr "Elimina la restricció de temperatures barrejades"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Amb aquesta opció activada, podeu imprimir materials amb una gran diferència de temperatura junts."
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "Ratolí tàctil"
 
@@ -9707,6 +9766,14 @@ msgstr "Ombrejat Phong"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Utilitza l'ombrejat Phong dins de la vista realista."
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 # AI Translated
 msgid "SSAO ambient occlusion"
 msgstr "Oclusió ambiental SSAO"
@@ -9715,13 +9782,21 @@ msgstr "Oclusió ambiental SSAO"
 msgid "Applies SSAO in realistic view."
 msgstr "Aplica SSAO a la vista realista."
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 # AI Translated
 msgid "Shadows"
 msgstr "Ombres"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "Renderitza les ombres projectades sobre la placa, sobre altres objectes i de cada objecte sobre si mateix a la vista realista."
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -9819,9 +9894,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "Previsualització del G-code"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10197,6 +10307,9 @@ msgstr "Seqüència d'impressió"
 msgid "Same as Global"
 msgstr "El mateix que Global"
 
+msgid "Enable"
+msgstr "Activar"
+
 msgid "Disable"
 msgstr "Deshabilitar"
 
@@ -10221,37 +10334,6 @@ msgstr "Acceptar"
 
 msgid "Log Out"
 msgstr "Desconnectar-se"
-
-# AI Translated
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Laminar totes les plaques per obtenir estimació de temps i filament"
-
-msgid "Packing project data into 3MF file"
-msgstr "Empaquetar les dades del projecte en un fitxer 3MF"
-
-msgid "Uploading 3MF"
-msgstr "Pujant 3mf"
-
-msgid "Jump to model publish web page"
-msgstr "Anar a la pàgina web de publicació de models"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Nota: La preparació pot trigar uns quants minuts. Si us plau, sigui pacient."
-
-msgid "Publish was canceled"
-msgstr "La publicació ha estat cancel·lada"
-
-msgid "Slicing Plate 1"
-msgstr "Laminant Base 1"
-
-msgid "Packing data to 3MF"
-msgstr "Empaquetant dades a 3mf"
-
-msgid "Uploading data"
-msgstr "Carregant dades"
-
-msgid "Jump to webpage"
-msgstr "Anar a la pàgina web"
 
 # AI Translated
 msgid "Material"
@@ -10403,6 +10485,36 @@ msgstr "Per a \"%1%\", afegir \"%2%\" com a perfil nou"
 msgid "Simply switch to \"%1%\""
 msgstr "Simplement canviar a \"%1%\""
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -10410,10 +10522,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -10436,7 +10544,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -10683,6 +10791,10 @@ msgstr "El filament no coincideix amb el filament de la ranura AMS. Actualitzeu 
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "La impressora seleccionada (%s) és incompatible amb la configuració del fitxer d'impressió (%s). Ajusteu el perfil de la impressora a la pàgina de preparació o trieu una impressora compatible en aquesta pàgina."
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Quan s'habilita el mode Gerro Espiral, les màquines amb estructura I3 no generaran vídeos timelapse."
 
@@ -10764,8 +10876,20 @@ msgstr "Cancel·lar el timelapse i imprimir"
 msgid "Clean Up"
 msgstr "Netejar"
 
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "Preparant el treball d'impressió"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "La longitud del nom supera el límit."
@@ -10949,6 +11073,9 @@ msgstr "No es pot enviar el treball d'impressió d'una Base Buida"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Cal inserir un emmagatzematge per gravar el timelapse."
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "Heu seleccionat filaments tant externs com d'AMS per a un extrusor. Haureu de canviar manualment el filament extern durant la impressió."
 
@@ -11016,6 +11143,9 @@ msgstr "Es requereix que la impressora estigui a la mateixa LAN que Orca Slicer.
 
 msgid "The printer does not support sending to printer storage."
 msgstr "La impressora no admet l'enviament a l'emmagatzematge de la impressora."
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "Enviant..."
@@ -12093,67 +12223,6 @@ msgstr "No hi ha actualitzacions disponibles."
 msgid "The configuration is up to date."
 msgstr "La configuració està actualitzada."
 
-msgid "OBJ file import color"
-msgstr "Importar color de l'arxiu Obj"
-
-msgid "Some faces don't have color defined."
-msgstr "Algunes cares no tenen el color definit."
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "Error al fitxer MTL, no s'ha pogut trobar el material:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "Comproveu el fitxer OBJ o MTL."
-
-msgid "Specify number of colors:"
-msgstr "Especificar el nombre de colors:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Premeu Retorn o feu clic al botó d'ajustament per modificar el nombre de nou"
-
-msgid "Recommended "
-msgstr "Recomanat "
-
-msgid "view"
-msgstr "vista"
-
-msgid "Current filament colors"
-msgstr "Colors de filament actuals"
-
-msgid "Matching"
-msgstr "Coincidència"
-
-msgid "Quick set"
-msgstr "Configuració ràpida"
-
-msgid "Color match"
-msgstr "Concordança de color"
-
-msgid "Approximate color matching."
-msgstr "Concordança aproximada de color."
-
-msgid "Append"
-msgstr "Afegir"
-
-msgid "Append to existing filaments"
-msgstr "Afegeix als filaments existents"
-
-msgid "Reset mapped extruders."
-msgstr "Restableix els extrusors mapejats."
-
-msgid "Note"
-msgstr "Nota"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"El color s'ha seleccionat, podeu triar OK\n"
-"per continuar o ajustar-lo manualment."
-
-msgid "—> "
-msgstr "—> "
-
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
 "Are you sure you want to continue?"
@@ -12395,7 +12464,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -12448,9 +12520,6 @@ msgstr "Moure: Clicka per ajustar en passos d'1 mm"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "Suport/Pintat de color: configuració del radi de la ploma"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "Suport/Pintat de color: configuració de la posició de la secció"
 
 msgid "Objects list"
 msgstr "Llista d'objectes"
@@ -12510,8 +12579,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -12586,6 +12658,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "Clau d'Accés"
+
+msgid "HTTPS CA File"
+msgstr "Arxiu HTTPS CA"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "Fitxers de certificat ( *.crt, *.pem )|*.crt;*.pem|Tots els fitxers|*.*"
+
+msgid "Open CA certificate file"
+msgstr "Obrir fitxer de certificat CA"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "El fitxer HTTPS CA és opcional. Només es necessita si uses HTTPS amb un certificat autosignat."
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "Model d'impressora"
@@ -12813,6 +12900,29 @@ msgstr "Error d'agrupació: %1% no es pot col·locar al broquet dret"
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Error d'agrupació en mode manual. Comproveu el nombre de broquets o reagrupeu."
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Pont Interior"
@@ -13325,9 +13435,6 @@ msgstr "L'API local de Flashforge requereix el número de sèrie de la impressor
 
 msgid "Name of the printer."
 msgstr "Nom de la impressora"
-
-msgid "HTTPS CA File"
-msgstr "Arxiu HTTPS CA"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "Un fitxer de certificat CA personalitzat pot ser especificat per a connexions HTTPS d'OctoPrint, en format crt/pem. Si es deixa en blanc, el repositori de certificats CA del SO serà usat."
@@ -17089,6 +17196,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Híbrid"
 
+msgid "Extra High Flow"
+msgstr ""
+
 # AI Translated
 msgid "Enable filament dynamic map"
 msgstr "Activar l'assignació dinàmica de filament"
@@ -17578,6 +17688,17 @@ msgstr "Sense capes poc denses( beta )"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Si s'activa, la Torre de Purga no s'imprimirà a les capes sense canvis d'eina. A les capes amb un canvi d'eina, l'extrusor baixarà per imprimir la Torre de Purga, de manera que la torre queda per sota del model i el capçal ha de baixar fins a ella. Es rebutgen les disposicions en què això xocaria amb un objecte ja imprès. No té cap efecte amb el timelapse suau ni amb la detecció d'obstruccions al broquet, que necessiten una torre a cada capa."
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Purgar tots els extrusors d'impressió"
@@ -18884,6 +19005,12 @@ msgstr "Permet girs en fer l'arranjament"
 
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Si està habilitat, l'arranjament permetrà rotacions en col·locar l'objecte"
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 msgid "Avoid extrusion calibrate region when arranging"
 msgstr "Evitar la regió de calibratge d'extrusió en fer l'arranjament"
@@ -20986,15 +21113,6 @@ msgstr "Veure el host d'impressió webui a la pestanya Dispositiu"
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Substituïu la pestanya del dispositiu BambuLab pel host d'impressió webui"
 
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "El fitxer HTTPS CA és opcional. Només es necessita si uses HTTPS amb un certificat autosignat."
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "Fitxers de certificat ( *.crt, *.pem )|*.crt;*.pem|Tots els fitxers|*.*"
-
-msgid "Open CA certificate file"
-msgstr "Obrir fitxer de certificat CA"
-
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
 msgstr "En aquest sistema, %s utilitza certificats HTTPS del magatzem de certificats o clauer del sistema."
@@ -21365,162 +21483,6 @@ msgstr ""
 "L'enumeració de les impressores de l'amfitrió( host ) ha fallat.\n"
 "Cos del missatge: \"%1%\"\n"
 "Error: \"%2%\""
-
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Té una alçada de capa petita i produeix línies de capa gairebé insignificants i una alta qualitat d'impressió. És adequat per a la majoria dels casos d'impressió generals."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té velocitats i acceleracions més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en una qualitat d'impressió molt més alta, però un temps d'impressió molt més llarg."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té una alçada de capa lleugerament més gran i resulta en línies de capa gairebé insignificants i un temps d'impressió lleugerament més curt."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té una alçada de capa més gran i resulta en línies de capa lleugerament visibles, però un temps d'impressió més curt."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.2 mm, té una alçada de capa inferior. Això resulta en línies de capa gairebé invisibles i una qualitat d'impressió superior però un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té línies de capa més petites, velocitats i acceleracions més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en línies de capa gairebé invisibles i una qualitat d'impressió molt més gran, però un temps d'impressió molt més llarg."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.2 mm, té una alçada de capa inferior. Això resulta en línies de capa mínimes i una qualitat d'impressió superior però un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té línies de capa més petites, velocitats i acceleracions més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en línies de capa mínimes i una qualitat d'impressió molt més alta, però un temps d'impressió molt més llarg."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Té una alçada general de capa, i produeix línies de capa i qualitat d'impressió generals. És adequat per a la majoria dels casos d'impressió generals."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té més bucles de paret i una densitat de farciment més gran. Això es tradueix en una major resistència de les impressions, però més consum de filaments i un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més gran i produeix línies de capa més aparents i una qualitat d'impressió més baixa, però un temps d'impressió lleugerament més curt."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més gran i produeix línies de capa més aparents i una qualitat d'impressió més baixa, però un temps d'impressió més curt."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita i produeix línies de capa menys aparents i una qualitat d'impressió més alta, però un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita, velocitats i acceleració més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en línies de capa menys aparents i una qualitat d'impressió molt més gran, però un temps d'impressió molt més llarg."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita i produeix línies de capa gairebé insignificants i una qualitat d'impressió més alta, però un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita, velocitats i acceleració més baixes, i el patró de farciment poc dens és Giroide. Això produeix línies de capa gairebé insignificants i una qualitat d'impressió molt més gran, però un temps d'impressió molt més llarg."
-
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita i produeix línies de capa gairebé insignificants i un temps d'impressió més llarg."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "Té una gran alçada de capa i produeix línies de capa aparents i qualitat d'impressió i temps d'impressió ordinaris."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té més bucles de paret i una densitat de farciment més gran. Per tant, es tradueix en una major resistència de les impressions, però més consum de filaments i un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més gran i produeix línies de capa més aparents i una qualitat d'impressió més baixa, però un temps d'impressió més curt en alguns casos d'impressió."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més gran i produeix línies de capa molt més aparents i una qualitat d'impressió molt menor, però un temps d'impressió més curt en alguns casos d'impressió."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més petita i produeix línies de capa menys aparents i una lleugera qualitat d'impressió més alta, però un temps d'impressió més llarg."
-
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més petita i produeix línies de capa menys aparents i una qualitat d'impressió més alta, però un temps d'impressió més llarg."
-
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Té una alçada de capa molt gran. Això resulta en línies de capa molt evidents, baixa qualitat d'impressió i temps d'impressió més curt."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.8 mm, té una alçada de capa superior. Això resulta en línies de capa molt evidents i qualitat d'impressió molt inferior, però temps d'impressió més curt en alguns casos."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.8 mm, té una alçada de capa molt superior. Això resulta en línies de capa extremadament evidents i qualitat d'impressió molt inferior, però temps d'impressió molt més curt en alguns casos."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "En comparació amb el perfil predeterminat del broquet de 0,8 mm, té una alçada de capa lleugerament més petita i produeix línies de capa lleugerament inferiors però encara aparents i una qualitat d'impressió lleugerament superior, però un temps d'impressió més llarg en alguns casos d'impressió."
-
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.8 mm, té una alçada de capa inferior. Això resulta en línies de capa menys evidents però encara visibles i qualitat d'impressió lleugerament superior però temps d'impressió més llarg en alguns casos."
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Aquest no és un filament d'ús comú ni un filament Bambu, i varia molt de marca a marca. Per tant, es recomana encaridament demanar al proveïdor un perfil adequat abans d'imprimir i ajustar alguns paràmetres segons el seu rendiment."
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Quan s'imprimeix aquest filament, hi ha risc de deformació i baixa força d'adhesió entre capes. Per obtenir millors resultats, consulteu aquesta wiki: Consells d'impressió per a materials d'alta temperatura / enginyeria."
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Quan s'imprimeix aquest filament, hi ha risc d'obstrucció del broquet, degoteig, deformació i baixa força d'adhesió entre capes. Per obtenir millors resultats, consulteu aquesta wiki: Consells d'impressió per a materials d'alta temperatura / enginyeria."
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Per obtenir millors resultats transparents o translúcids amb el filament corresponent, consulteu aquesta wiki: Consells d'impressió per a PETG transparent."
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Per obtenir impressions amb més brillantor, assequeu el filament abans d'usar-lo i establiu la velocitat de la paret exterior entre 40 i 60 mm/s durant el tall."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Aquest filament s'utilitza normalment només per imprimir models amb baixa densitat i es requereixen alguns paràmetres especials. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Instruccions per imprimir models RC amb PLA espumós (PLA Aero)."
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Aquest filament s'utilitza normalment només per imprimir models amb baixa densitat i es requereixen alguns paràmetres especials. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió ASA Aero."
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Aquest filament és massa tou i no és compatible amb l'AMS. La seva impressió té molts requisits i per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió TPU."
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Aquest filament té una duresa prou alta (aproximadament 67D) i és compatible amb l'AMS. La seva impressió té molts requisits i per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió TPU."
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Si voleu imprimir un tipus de TPU tou, no talleu amb aquest perfil; és només per a TPU amb duresa prou alta (no inferior a 55D) i compatible amb l'AMS. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió TPU."
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Aquest és un filament de suport soluble en aigua, i normalment és només per a l'estructura de suport i no per al cos del model. La seva impressió té molts requisits i per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió PVA."
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Aquest és un filament de suport no soluble en aigua, i normalment és només per a l'estructura de suport i no per al cos del model. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Consells d'impressió per a filament de suport i funció de suport."
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "Els perfils genèrics estan ajustats de manera conservadora per a la compatibilitat amb una gamma més àmplia de filaments. Per a una qualitat i velocitat d'impressió superior, utilitzeu filaments Bambu amb perfils Bambu."
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Perfil d'alta qualitat per a broquet de 0.2mm, prioritzant la qualitat d'impressió."
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Perfil d'alta qualitat per a alçada de capa de 0.16mm, prioritzant la qualitat d'impressió i la resistència."
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Perfil estàndard per a alçada de capa de 0.16mm, prioritzant la velocitat."
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Perfil d'alta qualitat per a alçada de capa de 0.2mm, prioritzant la resistència i la qualitat d'impressió."
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Perfil estàndard per a broquet de 0.4mm, prioritzant la velocitat."
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Perfil d'alta qualitat per a broquet de 0.6mm, prioritzant la qualitat d'impressió i la resistència."
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Perfil de resistència per a broquet de 0.6mm, prioritzant la resistència."
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Perfil estàndard per a broquet de 0.6mm, prioritzant la velocitat."
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Perfil d'alta qualitat per a broquet de 0.8mm, prioritzant la qualitat d'impressió."
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Perfil de resistència per a broquet de 0.8mm, prioritzant la resistència."
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Perfil estàndard per a broquet de 0.8mm, prioritzant la velocitat."
 
 msgid "No AMS"
 msgstr "Sense AMS"
@@ -23293,6 +23255,9 @@ msgstr ""
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr ""
 
+msgid "Thickness"
+msgstr "Gruix"
+
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr ""
 
@@ -24887,14 +24852,14 @@ msgstr "Canviar entre Preparar/Previsualitzar"
 msgid "Collapse/Expand the sidebar"
 msgstr "Replegar/Expandir barra lateral"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "Mostrar la llista de dreceres de teclat"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -24915,6 +24880,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -25217,6 +25185,314 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Reset direction"
+#~ msgstr "Restablir direcció"
+
+#~ msgid "Face recognition"
+#~ msgstr "Reconeixement facial"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Realitzar reconeixement"
+
+#~ msgid "Text Gap"
+#~ msgstr "Espaiat de text"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "Profunditat integrada"
+
+#~ msgid "Input text"
+#~ msgstr "Text d'entrada"
+
+#~ msgid "Surface"
+#~ msgstr "Superfície"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Text horitzontal"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "Moviment del ratolí amunt o avall"
+
+#~ msgid "Rotate text"
+#~ msgstr "Rotar text"
+
+#~ msgid "Text shape"
+#~ msgstr "Forma del text"
+
+#~ msgid "Section View"
+#~ msgstr "Vista de secció"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "Nom d'equip o IP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "Font de la càmera personalitzada"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "Canviar Vista de Càmera"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Laminant Base %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Resoleu els errors de laminat i torneu a publicar."
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "Renderitza les ombres projectades sobre la placa, sobre altres objectes i de cada objecte sobre si mateix a la vista realista."
+
+# AI Translated
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Laminar totes les plaques per obtenir estimació de temps i filament"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "Empaquetar les dades del projecte en un fitxer 3MF"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "Pujant 3mf"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Anar a la pàgina web de publicació de models"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Nota: La preparació pot trigar uns quants minuts. Si us plau, sigui pacient."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "La publicació ha estat cancel·lada"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Laminant Base 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Empaquetant dades a 3mf"
+
+#~ msgid "Uploading data"
+#~ msgstr "Carregant dades"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Anar a la pàgina web"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "Importar color de l'arxiu Obj"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Algunes cares no tenen el color definit."
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "Error al fitxer MTL, no s'ha pogut trobar el material:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Comproveu el fitxer OBJ o MTL."
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "Especificar el nombre de colors:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Premeu Retorn o feu clic al botó d'ajustament per modificar el nombre de nou"
+
+#~ msgid "Recommended "
+#~ msgstr "Recomanat "
+
+#~ msgid "view"
+#~ msgstr "vista"
+
+#~ msgid "Current filament colors"
+#~ msgstr "Colors de filament actuals"
+
+#~ msgid "Matching"
+#~ msgstr "Coincidència"
+
+#~ msgid "Quick set"
+#~ msgstr "Configuració ràpida"
+
+#~ msgid "Color match"
+#~ msgstr "Concordança de color"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "Concordança aproximada de color."
+
+#~ msgid "Append"
+#~ msgstr "Afegir"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "Afegeix als filaments existents"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Restableix els extrusors mapejats."
+
+#~ msgid "Note"
+#~ msgstr "Nota"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "El color s'ha seleccionat, podeu triar OK\n"
+#~ "per continuar o ajustar-lo manualment."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "Suport/Pintat de color: configuració de la posició de la secció"
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Té una alçada de capa petita i produeix línies de capa gairebé insignificants i una alta qualitat d'impressió. És adequat per a la majoria dels casos d'impressió generals."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té velocitats i acceleracions més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en una qualitat d'impressió molt més alta, però un temps d'impressió molt més llarg."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té una alçada de capa lleugerament més gran i resulta en línies de capa gairebé insignificants i un temps d'impressió lleugerament més curt."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té una alçada de capa més gran i resulta en línies de capa lleugerament visibles, però un temps d'impressió més curt."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.2 mm, té una alçada de capa inferior. Això resulta en línies de capa gairebé invisibles i una qualitat d'impressió superior però un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té línies de capa més petites, velocitats i acceleracions més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en línies de capa gairebé invisibles i una qualitat d'impressió molt més gran, però un temps d'impressió molt més llarg."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.2 mm, té una alçada de capa inferior. Això resulta en línies de capa mínimes i una qualitat d'impressió superior però un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,2 mm, té línies de capa més petites, velocitats i acceleracions més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en línies de capa mínimes i una qualitat d'impressió molt més alta, però un temps d'impressió molt més llarg."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Té una alçada general de capa, i produeix línies de capa i qualitat d'impressió generals. És adequat per a la majoria dels casos d'impressió generals."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té més bucles de paret i una densitat de farciment més gran. Això es tradueix en una major resistència de les impressions, però més consum de filaments i un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més gran i produeix línies de capa més aparents i una qualitat d'impressió més baixa, però un temps d'impressió lleugerament més curt."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més gran i produeix línies de capa més aparents i una qualitat d'impressió més baixa, però un temps d'impressió més curt."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita i produeix línies de capa menys aparents i una qualitat d'impressió més alta, però un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita, velocitats i acceleració més baixes, i el patró de farciment poc dens és Giroide. Això es tradueix en línies de capa menys aparents i una qualitat d'impressió molt més gran, però un temps d'impressió molt més llarg."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita i produeix línies de capa gairebé insignificants i una qualitat d'impressió més alta, però un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita, velocitats i acceleració més baixes, i el patró de farciment poc dens és Giroide. Això produeix línies de capa gairebé insignificants i una qualitat d'impressió molt més gran, però un temps d'impressió molt més llarg."
+
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,4 mm, té una alçada de capa més petita i produeix línies de capa gairebé insignificants i un temps d'impressió més llarg."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "Té una gran alçada de capa i produeix línies de capa aparents i qualitat d'impressió i temps d'impressió ordinaris."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té més bucles de paret i una densitat de farciment més gran. Per tant, es tradueix en una major resistència de les impressions, però més consum de filaments i un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més gran i produeix línies de capa més aparents i una qualitat d'impressió més baixa, però un temps d'impressió més curt en alguns casos d'impressió."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més gran i produeix línies de capa molt més aparents i una qualitat d'impressió molt menor, però un temps d'impressió més curt en alguns casos d'impressió."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més petita i produeix línies de capa menys aparents i una lleugera qualitat d'impressió més alta, però un temps d'impressió més llarg."
+
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,6 mm, té una alçada de capa més petita i produeix línies de capa menys aparents i una qualitat d'impressió més alta, però un temps d'impressió més llarg."
+
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Té una alçada de capa molt gran. Això resulta en línies de capa molt evidents, baixa qualitat d'impressió i temps d'impressió més curt."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.8 mm, té una alçada de capa superior. Això resulta en línies de capa molt evidents i qualitat d'impressió molt inferior, però temps d'impressió més curt en alguns casos."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.8 mm, té una alçada de capa molt superior. Això resulta en línies de capa extremadament evidents i qualitat d'impressió molt inferior, però temps d'impressió molt més curt en alguns casos."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "En comparació amb el perfil predeterminat del broquet de 0,8 mm, té una alçada de capa lleugerament més petita i produeix línies de capa lleugerament inferiors però encara aparents i una qualitat d'impressió lleugerament superior, però un temps d'impressió més llarg en alguns casos d'impressió."
+
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "Comparat amb el perfil predeterminat d'un broquet de 0.8 mm, té una alçada de capa inferior. Això resulta en línies de capa menys evidents però encara visibles i qualitat d'impressió lleugerament superior però temps d'impressió més llarg en alguns casos."
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Aquest no és un filament d'ús comú ni un filament Bambu, i varia molt de marca a marca. Per tant, es recomana encaridament demanar al proveïdor un perfil adequat abans d'imprimir i ajustar alguns paràmetres segons el seu rendiment."
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Quan s'imprimeix aquest filament, hi ha risc de deformació i baixa força d'adhesió entre capes. Per obtenir millors resultats, consulteu aquesta wiki: Consells d'impressió per a materials d'alta temperatura / enginyeria."
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Quan s'imprimeix aquest filament, hi ha risc d'obstrucció del broquet, degoteig, deformació i baixa força d'adhesió entre capes. Per obtenir millors resultats, consulteu aquesta wiki: Consells d'impressió per a materials d'alta temperatura / enginyeria."
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Per obtenir millors resultats transparents o translúcids amb el filament corresponent, consulteu aquesta wiki: Consells d'impressió per a PETG transparent."
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Per obtenir impressions amb més brillantor, assequeu el filament abans d'usar-lo i establiu la velocitat de la paret exterior entre 40 i 60 mm/s durant el tall."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Aquest filament s'utilitza normalment només per imprimir models amb baixa densitat i es requereixen alguns paràmetres especials. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Instruccions per imprimir models RC amb PLA espumós (PLA Aero)."
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Aquest filament s'utilitza normalment només per imprimir models amb baixa densitat i es requereixen alguns paràmetres especials. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió ASA Aero."
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Aquest filament és massa tou i no és compatible amb l'AMS. La seva impressió té molts requisits i per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió TPU."
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Aquest filament té una duresa prou alta (aproximadament 67D) i és compatible amb l'AMS. La seva impressió té molts requisits i per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió TPU."
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Si voleu imprimir un tipus de TPU tou, no talleu amb aquest perfil; és només per a TPU amb duresa prou alta (no inferior a 55D) i compatible amb l'AMS. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió TPU."
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Aquest és un filament de suport soluble en aigua, i normalment és només per a l'estructura de suport i no per al cos del model. La seva impressió té molts requisits i per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Guia d'impressió PVA."
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Aquest és un filament de suport no soluble en aigua, i normalment és només per a l'estructura de suport i no per al cos del model. Per obtenir millor qualitat d'impressió, consulteu aquesta wiki: Consells d'impressió per a filament de suport i funció de suport."
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "Els perfils genèrics estan ajustats de manera conservadora per a la compatibilitat amb una gamma més àmplia de filaments. Per a una qualitat i velocitat d'impressió superior, utilitzeu filaments Bambu amb perfils Bambu."
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Perfil d'alta qualitat per a broquet de 0.2mm, prioritzant la qualitat d'impressió."
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Perfil d'alta qualitat per a alçada de capa de 0.16mm, prioritzant la qualitat d'impressió i la resistència."
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Perfil estàndard per a alçada de capa de 0.16mm, prioritzant la velocitat."
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Perfil d'alta qualitat per a alçada de capa de 0.2mm, prioritzant la resistència i la qualitat d'impressió."
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Perfil estàndard per a broquet de 0.4mm, prioritzant la velocitat."
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Perfil d'alta qualitat per a broquet de 0.6mm, prioritzant la qualitat d'impressió i la resistència."
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Perfil de resistència per a broquet de 0.6mm, prioritzant la resistència."
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Perfil estàndard per a broquet de 0.6mm, prioritzant la velocitat."
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Perfil d'alta qualitat per a broquet de 0.8mm, prioritzant la qualitat d'impressió."
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Perfil de resistència per a broquet de 0.8mm, prioritzant la resistència."
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Perfil estàndard per a broquet de 0.8mm, prioritzant la velocitat."
 
 # AI Translated
 #~ msgid "Tab"

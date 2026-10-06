@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-06 11:49+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -289,6 +289,9 @@ msgstr "標準"
 msgid "TPU High Flow"
 msgstr "TPUハイフロー"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "不明"
 
@@ -459,12 +462,6 @@ msgstr "ツールタイプ"
 
 msgid "Gap fill"
 msgstr "隙間充填"
-
-msgid "Reset direction"
-msgstr "方向をリセット"
-
-msgid "Section view"
-msgstr "断面"
 
 msgid "Brush size"
 msgstr "サイズ"
@@ -1135,12 +1132,6 @@ msgstr "プレビュー処理中は適用できません"
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "操作を取り消し中、少々お待ちください。"
 
-msgid "Face recognition"
-msgstr "外観認識"
-
-msgid "Perform Recognition"
-msgstr "認識を実行"
-
 msgid "Enforce seam"
 msgstr "強制継ぎ目"
 
@@ -1161,45 +1152,6 @@ msgstr "継ぎ目ペイントを退出"
 
 msgid "Paint-on seam editing"
 msgstr "継ぎ目編集"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "フォント"
-
-msgid "Thickness"
-msgstr "太さ"
-
-msgid "Text Gap"
-msgstr "テキスト間隔"
-
-msgid "Angle"
-msgstr "角度"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "埋め込み深さ"
-
-msgid "Input text"
-msgstr "テキスト"
-
-msgid "Surface"
-msgstr "表面"
-
-msgid "Horizontal text"
-msgstr "水平テキスト"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-msgid "Mouse move up or down"
-msgstr "マウスを上下に動かす"
-
-msgid "Rotate text"
-msgstr "テキストを回転"
-
-msgid "Text shape"
-msgstr "文字形状"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1555,6 +1507,11 @@ msgid "In queue"
 msgstr "キュー内"
 
 #. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "フォント"
+
+#. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
 msgid "Height"
 msgstr "高度"
@@ -1895,6 +1852,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "コピー"
 
+msgid "Angle"
+msgstr "角度"
+
 msgid "Perpendicular distance"
 msgstr "垂直距離"
 
@@ -1983,6 +1943,9 @@ msgstr "組み立てギズモを開始"
 msgid "Leaving Assembly gizmo"
 msgstr "組み立てギズモを終了"
 
+msgid "Shift+"
+msgstr "Shift+"
+
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
@@ -2020,6 +1983,16 @@ msgstr "構成パッケージをロードしましたが、一部認識できな
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "構成ファイル %1% がロードされましたが、一部の値が認識できませんでした"
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
 
 msgid "Loading configuration"
 msgstr "構成を読込み中"
@@ -2643,6 +2616,9 @@ msgstr "サポート除去器を追加"
 msgid "Add Support Enforcer"
 msgstr "サポート補強を追加"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 msgid "Add text"
 msgstr "テキストの追加"
 
@@ -2770,6 +2746,9 @@ msgstr "サポート除去器"
 
 msgid "Support Enforcer"
 msgstr "サポート増強器"
+
+msgid "Precise Seam"
+msgstr ""
 
 msgid "Change part type"
 msgstr "部品タイプを変更"
@@ -2915,6 +2894,30 @@ msgstr "反転 (Z軸)"
 
 msgid "Mirror object"
 msgstr "オブジェクトを反転"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 msgid "Edit text"
 msgstr "テキスト編集"
@@ -4245,6 +4248,9 @@ msgstr "フィラメント情報をクリアしてもよろしいですか？"
 msgid "You need to select the material type and color first."
 msgstr "まず材料タイプと色を選択してください。"
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "有効な値を入力してください（Kは%.1f～%.1f）"
@@ -4781,6 +4787,14 @@ msgstr ""
 "最大体積速度が小さすぎます。\n"
 "値を0.5にリセットしました"
 
+# AI Translated
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"アイロン間隔が小さすぎます\n"
+"0.1にリセットされました"
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "現在のチャンバー温度が材料の安全温度を超えています。材料の軟化や詰まりの原因になる可能性があります。材料の最大安全温度は%dです"
@@ -4814,14 +4828,6 @@ msgid ""
 msgstr ""
 "積層ピッチが小さすぎます\n"
 "0.2にリセットされました"
-
-# AI Translated
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"アイロン間隔が小さすぎます\n"
-"0.1にリセットされました"
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -5612,6 +5618,12 @@ msgstr "速度"
 msgid "Actual speed profile"
 msgstr "実際の速度プロファイル"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 msgid "Statistics of All Plates"
 msgstr "全プレートの統計"
 
@@ -5995,6 +6007,9 @@ msgstr "戻る"
 msgid "Canvas Toolbar"
 msgstr "キャンバスツールバー"
 
+msgid "Section view"
+msgstr "断面"
+
 msgid "Fit camera to scene or selected object."
 msgstr "シーンまたは選択したオブジェクトにカメラを合わせます。"
 
@@ -6033,17 +6048,32 @@ msgstr "グリッドライン"
 msgid "Labels"
 msgstr "ラベル"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "ペイント ツールバー"
 
-msgid "Explosion Ratio"
-msgstr "分解比率"
-
-msgid "Section View"
-msgstr "断面"
-
 msgid "Assembly Control"
 msgstr "組立て"
+
+msgid "Explosion Ratio"
+msgstr "分解比率"
 
 msgid "Selection Mode"
 msgstr "選択モード"
@@ -6174,15 +6204,6 @@ msgstr "ライブビュー再試行"
 msgid "Resolution"
 msgstr "分解能"
 
-msgid "Enable"
-msgstr "有効化"
-
-msgid "Hostname or IP"
-msgstr "ホスト名またはIP"
-
-msgid "Custom camera source"
-msgstr "カスタムカメラソース"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "「ライブビュー」ガイドを表示"
 
@@ -6252,11 +6273,17 @@ msgstr "いいえ"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "新しいモデルを作成する前に閉じられます。続行しますか？"
 
-msgid "Slice plate"
-msgstr "スライス"
+msgid "Print all"
+msgstr "造形開始 (全プレート)"
 
 msgid "Print plate"
 msgstr "造形開始"
+
+msgid "Export plate sliced file"
+msgstr "エクスポート"
+
+msgid "Export all sliced file"
+msgstr "エクスポート (全プレート)"
 
 msgid "Export G-code file"
 msgstr "G-codeをエクスポート"
@@ -6265,23 +6292,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "造形する"
 
-msgid "Export plate sliced file"
-msgstr "エクスポート"
-
 msgid "Send"
 msgstr "送信"
-
-msgid "Export all sliced file"
-msgstr "エクスポート (全プレート)"
-
-msgid "Print all"
-msgstr "造形開始 (全プレート)"
 
 msgid "Send all"
 msgstr "送信 (全プレート)"
 
 msgid "Send to Multi-device"
 msgstr "マルチデバイスに送信"
+
+msgid "Slice plate"
+msgstr "スライス"
 
 msgid "Keyboard Shortcuts"
 msgstr "ショートカット"
@@ -6301,6 +6322,12 @@ msgstr "トラブルシューティングセンター"
 
 msgid "Open Network Test"
 msgstr "ネットワークテストを開く"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "「毎日のヒント」を表示"
@@ -6758,6 +6785,15 @@ msgstr "GStreamer GTKビデオシンクが見つからないか初期化に失�
 msgid "Please confirm if the printer is connected."
 msgstr "プリンターが接続されているか確認してください。"
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "初期化中..."
+
+msgid "Playing..."
+msgstr "再生中..."
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "プリンターは現在ダウンロード中です。完了後に再試行してください。"
 
@@ -6773,20 +6809,17 @@ msgstr "LANのみのライブビューがオフです。プリンター画面で
 msgid "Please enter the IP of the printer to connect."
 msgstr "接続するプリンターのIPを入力してください。"
 
-msgid "Initializing..."
-msgstr "初期化中..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "接続に失敗しました。ネットワークを確認して再試行してください"
+
+msgid "Video Stopped."
+msgstr "ビデオが停止しました。"
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "ネットワークを確認して再試行してください。問題が続く場合はプリンターを再起動または更新してください。"
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "プリンターがログアウトされ、接続できません。"
-
-msgid "Video Stopped."
-msgstr "ビデオが停止しました。"
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "LAN接続失敗 (ライブビュー開始失敗)"
@@ -6816,9 +6849,6 @@ msgstr "ネットワークにアクセスできません"
 
 msgid "Information"
 msgstr "情報"
-
-msgid "Playing..."
-msgstr "再生中..."
 
 msgid "Loading..."
 msgstr "読込み中"
@@ -6923,6 +6953,22 @@ msgstr ".gcode.3mfファイルにG-codeデータが含まれていません。Or
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "ファイル %s が見つかりませんでした、もう一度ダウンロードしてください。"
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -7159,9 +7205,6 @@ msgstr "ストレージ"
 
 msgid "Camera Setting"
 msgstr "カメラ設定"
-
-msgid "Switch Camera View"
-msgstr "カメラビューを切り替え"
 
 msgid "Control"
 msgstr "コントロール"
@@ -8254,6 +8297,9 @@ msgstr "ノズル情報とAMS数を同期"
 msgid "Click to edit preset"
 msgstr "プリセットを編集"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "ノズル"
 
@@ -8343,6 +8389,9 @@ msgstr "フィラメントのタイプと色の情報が同期されましたが
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "変更を\"%1%\"に保存しますか？"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -8682,13 +8731,6 @@ msgstr "無効なデータ"
 msgid "Slicing Canceled"
 msgstr "スライスを取消しました"
 
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "プレート%dをスライス"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "スライシングエラーを解決して、もう一度公開していください"
-
 msgid "Network plug-in switched successfully."
 msgstr "ネットワークプラグインの切り替えに成功しました。"
 
@@ -8719,6 +8761,17 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "今すぐ同期"
+
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -8765,6 +8818,9 @@ msgstr "3mfファイルを準備"
 msgid "Download failed; unknown file format."
 msgstr "ダウンロード失敗、不明なファイル形式。"
 
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "Orca Slicerへのインポートに失敗しました。ファイルをダウンロードして手動でインポートしてください。"
+
 msgid "Downloading project..."
 msgstr "プロジェクトをダウンロード中"
 
@@ -8774,9 +8830,6 @@ msgstr "ダウンロード失敗、ファイルサイズ例外。"
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "プロジェクトをダウンロード %d%%"
-
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "Orca Slicerへのインポートに失敗しました。ファイルをダウンロードして手動でインポートしてください。"
 
 msgid "INFO:"
 msgstr "情報:"
@@ -9479,6 +9532,12 @@ msgstr "混合温度制限を解除"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "このオプションを有効にすると、大きな温度差のある材料を一緒に印刷できます。"
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 msgid "Touchpad"
 msgstr "タッチパッド"
 
@@ -9608,6 +9667,14 @@ msgstr "フォンシェーディング"
 msgid "Uses Phong shading inside realistic view."
 msgstr "リアルビュー内でフォンシェーディングを使用します。"
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 # AI Translated
 msgid "SSAO ambient occlusion"
 msgstr "SSAOアンビエントオクルージョン"
@@ -9616,13 +9683,21 @@ msgstr "SSAOアンビエントオクルージョン"
 msgid "Applies SSAO in realistic view."
 msgstr "リアルビューでSSAOを適用します。"
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 # AI Translated
 msgid "Shadows"
 msgstr "影"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "リアルビューで、プレートや他のオブジェクト、およびオブジェクト自身に落ちる影を描画します。"
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -9720,9 +9795,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "G-codeプレビュー"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10095,6 +10205,9 @@ msgstr "造形シーケンス"
 msgid "Same as Global"
 msgstr "グローバルと同じ"
 
+msgid "Enable"
+msgstr "有効化"
+
 msgid "Disable"
 msgstr "無効"
 
@@ -10119,37 +10232,6 @@ msgstr "承諾"
 
 msgid "Log Out"
 msgstr "ログアウト"
-
-# AI Translated
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "全プレートをスライスし、造形時間とフィラメント使用量を予測します"
-
-msgid "Packing project data into 3MF file"
-msgstr "プロジェクトデータを3MFファイルに書き込む"
-
-msgid "Uploading 3MF"
-msgstr "3mfをアップロード中"
-
-msgid "Jump to model publish web page"
-msgstr "モデル公開ページに移動"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "注意: 準備するには数分かかる場合があります、暫くお待ち下さい。"
-
-msgid "Publish was canceled"
-msgstr "公開は取り消しました"
-
-msgid "Slicing Plate 1"
-msgstr "プレート1をスライス"
-
-msgid "Packing data to 3MF"
-msgstr "データを構成中"
-
-msgid "Uploading data"
-msgstr "データをアップロード中"
-
-msgid "Jump to webpage"
-msgstr "ウェブページに移動"
 
 # AI Translated
 msgid "Material"
@@ -10301,6 +10383,36 @@ msgstr "\"%1%\"に対して、\"%2%\"を新しいプリセットとして追加�
 msgid "Simply switch to \"%1%\""
 msgstr "\"%1%\"に切り替え"
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -10308,10 +10420,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -10334,7 +10442,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -10581,6 +10689,10 @@ msgstr "フィラメントがAMSスロットのフィラメントと一致して
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "選択したプリンター(%s)が印刷ファイルの設定(%s)と互換性がありません。準備ページでプリンタープリセットを調整するか、このページで互換性のあるプリンターを選択してください。"
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "スパイラル花瓶モードを有効にすると、I3構造のマシンではタイムラプスビデオが生成されません。"
 
@@ -10661,8 +10773,20 @@ msgstr "タイムラプスを中止して印刷"
 msgid "Clean Up"
 msgstr "整理する"
 
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "造形タスクを準備"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 msgid "The name length exceeds the limit."
 msgstr "名前の長さが制限を超えています。"
@@ -10846,6 +10970,9 @@ msgstr "空プレートがある為、送信できません"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "タイムラプスを記録するにはストレージを挿入する必要があります。"
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "エクストルーダーに外部フィラメントとAMSフィラメントの両方を選択しました。印刷中に外部フィラメントを手動で切り替える必要があります。"
 
@@ -10913,6 +11040,9 @@ msgstr "このプリンターを使用するには、Orca Slicerを同一のLAN�
 
 msgid "The printer does not support sending to printer storage."
 msgstr "プリンターはプリンターストレージへの送信をサポートしていません。"
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "送信中..."
@@ -11971,67 +12101,6 @@ msgstr "利用可能なアップデートはありません"
 msgid "The configuration is up to date."
 msgstr "構成データが最新です"
 
-msgid "OBJ file import color"
-msgstr "OBJファイルインポートの色"
-
-msgid "Some faces don't have color defined."
-msgstr "一部の面に色が定義されていません。"
-
-msgid "MTL file exist error, could not find the material:"
-msgstr "MTLファイルエラー、材料が見つかりません:"
-
-msgid "Please check OBJ or MTL file."
-msgstr "OBJまたはMTLファイルを確認してください。"
-
-msgid "Specify number of colors:"
-msgstr "色の数を指定:"
-
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "数値を再変更するには、入力するか調整ボタンをクリックしてください"
-
-msgid "Recommended "
-msgstr "推奨 "
-
-msgid "view"
-msgstr "表示"
-
-msgid "Current filament colors"
-msgstr "現在のフィラメントの色"
-
-msgid "Matching"
-msgstr "マッチング"
-
-msgid "Quick set"
-msgstr "クイック設定"
-
-msgid "Color match"
-msgstr "色のマッチング"
-
-msgid "Approximate color matching."
-msgstr "近似色のマッチング。"
-
-msgid "Append"
-msgstr "追加"
-
-msgid "Append to existing filaments"
-msgstr "既存のフィラメントに追加"
-
-msgid "Reset mapped extruders."
-msgstr "マッピングされたエクストルーダーをリセット。"
-
-msgid "Note"
-msgstr "注意"
-
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"色が選択されました。OKを選択して続行するか、\n"
-"手動で調整してください。"
-
-msgid "—> "
-msgstr "—> "
-
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
 "Are you sure you want to continue?"
@@ -12271,7 +12340,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -12323,9 +12395,6 @@ msgstr "1mm単位で移動"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "サポート/色塗り: 半径のサイズ"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "サポート/色塗り: 断面の位置"
 
 msgid "Objects list"
 msgstr "オブジェクト一覧"
@@ -12385,8 +12454,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -12461,6 +12533,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "アクセスコード"
+
+msgid "HTTPS CA File"
+msgstr "CA証書ファイル"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "証明書ファイル(*.crt, *.pem)|*.crt;*.pem|全ファイル|*.*)"
+
+msgid "Open CA certificate file"
+msgstr "CA 証明書ファイルを開く"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "HTTPS CAファイルはオプションです。自己署名証明書を使用する場合のみ必要です。"
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 msgid "Printer model"
 msgstr "プリンターモデル"
@@ -12689,6 +12776,29 @@ msgstr "グルーピングエラー: %1% は右ノズルに配置できません
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "手動モードでのグループ分けエラーです。ノズル数を確認するか、グループを作り直してください。"
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "内部ブリッジ"
@@ -13208,9 +13318,6 @@ msgstr "FlashforgeのローカルAPIにはプリンターのシリアル番号�
 
 msgid "Name of the printer."
 msgstr "プリンター名"
-
-msgid "HTTPS CA File"
-msgstr "CA証書ファイル"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "カスタムCA証書を指定できます（フォーマット:CRT/PEM）"
@@ -17154,6 +17261,9 @@ msgstr "ボーデン"
 msgid "Hybrid"
 msgstr "ハイブリッド"
 
+msgid "Extra High Flow"
+msgstr ""
+
 # AI Translated
 msgid "Enable filament dynamic map"
 msgstr "フィラメントの動的マッピングを有効化"
@@ -17702,6 +17812,17 @@ msgstr "スパース層なし (ベータ)"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "有効にすると、ツール交換のない積層ではワイプタワーを造形しません。ツール交換のある積層では押出機が下降してワイプタワーを造形するため、タワーはモデルより下に位置し、ツールヘッドがそこまで下りる必要があります。造形済みのオブジェクトと衝突するような配置は拒否されます。全積層にタワーが必要なスムーズタイムラプスやノズル付着検出では効果がありません。"
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "全てのエクストルーダーでプライムを実施"
@@ -19081,6 +19202,12 @@ msgstr "配置時の回転を許可"
 # AI Translated
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "有効にすると、自動配置はオブジェクトを配置する際に回転を許可します。"
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 # AI Translated
 msgid "Avoid extrusion calibrate region when arranging"
@@ -21247,15 +21374,6 @@ msgstr "デバイスタブで印刷ホストWebUIを表示"
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "BambuLabのデバイスタブを印刷ホストWebUIに置換"
 
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "HTTPS CAファイルはオプションです。自己署名証明書を使用する場合のみ必要です。"
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "証明書ファイル(*.crt, *.pem)|*.crt;*.pem|全ファイル|*.*)"
-
-msgid "Open CA certificate file"
-msgstr "CA 証明書ファイルを開く"
-
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
 msgstr "このシステムでは、%s はシステムの証明書ストアまたはキーチェーンからHTTPS証明書を使用します。"
@@ -21629,189 +21747,6 @@ msgstr ""
 "ホストプリンタの列挙に失敗しました。\n"
 "メッセージ本文:「%1%」\n"
 "エラー: 「%2%」"
-
-# AI Translated
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "積層ピッチが小さいプロファイルです。積層跡がほとんど目立たず、高い印刷品質が得られます。ほとんどの印刷用途に適しています。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチがやや大きくなっています。積層跡はほとんど目立たず、印刷時間もわずかに短くなります。"
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比較すると、レイヤー高さが大きくなっています。そのため、レイヤーラインがわずかに見えますが、印刷時間は短縮されます。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど見えず印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど見えず印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は最小限になり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡は最小限になり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "標準的な積層ピッチのプロファイルです。積層跡と印刷品質は平均的です。ほとんどの印刷用途に適しています。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間はわずかに短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間は短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡が目立ちにくくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど目立たなくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなりますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "積層ピッチが大きいプロファイルです。積層跡が目立ち、印刷品質と印刷時間は標準的です。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、場合によっては印刷時間が短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡がかなり目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質はわずかに向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
-
-# AI Translated
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "積層ピッチが非常に大きいプロファイルです。積層跡が非常に目立ち、印刷品質は低くなりますが、印刷時間は短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が非常に目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがかなり大きくなっています。積層跡が極めて目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が大幅に短くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがわずかに小さくなっています。積層跡はやや少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
-
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "これは一般的なフィラメントでもなく、Bambuフィラメントでもありません。さらに、ブランドによって性能が大きく異なるため、印刷前に販売元へ適切なプロファイルを確認し、その性能に応じてパラメーターを調整することを強くお勧めします。"
-
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "このフィラメントを印刷する際、ワーピングや層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
-
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "このフィラメントを印刷する際、ノズルの詰まり、オーズ、ワーピング、層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
-
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "対応するフィラメントでより良い透明または半透明の仕上がりを得るには、、このウィキページ「透明PETGのための印刷のヒント」を参照してください。"
-
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "プリントをより光沢のあるものにするには、使用前にフィラメントを乾燥させ、スライス時の外壁速度を40～60mm/sに設定してください。"
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「発泡PLA（PLA Aero）を使用したRCモデルの印刷手順」を参照してください。"
-
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「ASA Aero印刷ガイド」を参照してください。"
-
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "このフィラメントは柔らかすぎるため、AMSと互換性がありません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
-
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "このフィラメントは十分な硬度（約67D）を持ち、AMSと互換性があります。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
-
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "柔らかいTPUを印刷する場合、このプロファイルでスライスしないでください。このプロファイルは、硬度が十分に高いTPU（55D以上）で、AMSに対応しているものにのみ適しています。より良い印刷品質を得るために、こちらのWiki：TPU印刷ガイドをご参照ください。"
-
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "これは水溶性のサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「PVA印刷ガイド」を参照してください。"
-
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "これは水溶性ではないサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。より良い印刷品質を得るために、こちらのWiki「サポートフィラメントとサポート機能の印刷ヒント」を参照してください。"
-
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "ジェネリックプリセットは、幅広いフィラメントとの互換性を考慮し、控えめに調整されています。より高い印刷品質と速度を求める場合は、BambuフィラメントとBambuプリセットを使用してください。"
-
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "造形品質を重視した、0.2mmノズル用の高品質プロファイルです。"
-
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "高品質・高強度を重視した、0.16mmレイヤー高用の高品質プロファイルです。"
-
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "造形速度を重視した、0.16mmレイヤー高用の標準プロファイルです。"
-
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "造形品質と強度を重視した、0.2mmノズル用の高品質プロファイルです。"
-
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "造形速度を重視した、0.4mmノズル用の標準プロファイルです。"
-
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "造形品質を重視した、0.6mmノズル用の高品質プロファイルです。"
-
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "強度を重視した、0.6mmノズル用の強化プロファイルです。"
-
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "造形速度を重視した、0.6mmノズル用の標準プロファイルです。"
-
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "造形品質を重視した、0.8mmノズル用の高品質プロファイルです。"
-
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "強度を重視した、0.8mmノズル用の強化プロファイルです。"
-
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "造形速度を重視した、0.8mmノズル用の標準プロファイルです。"
 
 msgid "No AMS"
 msgstr "AMSなし"
@@ -23582,6 +23517,9 @@ msgstr ""
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr ""
 
+msgid "Thickness"
+msgstr "太さ"
+
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr ""
 
@@ -25176,14 +25114,14 @@ msgstr "準備/プレビュー間の切り替え"
 msgid "Collapse/Expand the sidebar"
 msgstr "サイドバーを展開/隠す"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "ショートカット一覧を表示"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -25204,6 +25142,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 # AI Translated
@@ -25517,6 +25458,341 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Reset direction"
+#~ msgstr "方向をリセット"
+
+#~ msgid "Face recognition"
+#~ msgstr "外観認識"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "認識を実行"
+
+#~ msgid "Text Gap"
+#~ msgstr "テキスト間隔"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "埋め込み深さ"
+
+#~ msgid "Input text"
+#~ msgstr "テキスト"
+
+#~ msgid "Surface"
+#~ msgstr "表面"
+
+#~ msgid "Horizontal text"
+#~ msgstr "水平テキスト"
+
+#~ msgid "Mouse move up or down"
+#~ msgstr "マウスを上下に動かす"
+
+#~ msgid "Rotate text"
+#~ msgstr "テキストを回転"
+
+#~ msgid "Text shape"
+#~ msgstr "文字形状"
+
+#~ msgid "Section View"
+#~ msgstr "断面"
+
+#~ msgid "Hostname or IP"
+#~ msgstr "ホスト名またはIP"
+
+#~ msgid "Custom camera source"
+#~ msgstr "カスタムカメラソース"
+
+#~ msgid "Switch Camera View"
+#~ msgstr "カメラビューを切り替え"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "プレート%dをスライス"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "スライシングエラーを解決して、もう一度公開していください"
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "リアルビューで、プレートや他のオブジェクト、およびオブジェクト自身に落ちる影を描画します。"
+
+# AI Translated
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "全プレートをスライスし、造形時間とフィラメント使用量を予測します"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "プロジェクトデータを3MFファイルに書き込む"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "3mfをアップロード中"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "モデル公開ページに移動"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "注意: 準備するには数分かかる場合があります、暫くお待ち下さい。"
+
+#~ msgid "Publish was canceled"
+#~ msgstr "公開は取り消しました"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "プレート1をスライス"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "データを構成中"
+
+#~ msgid "Uploading data"
+#~ msgstr "データをアップロード中"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "ウェブページに移動"
+
+#~ msgid "OBJ file import color"
+#~ msgstr "OBJファイルインポートの色"
+
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "一部の面に色が定義されていません。"
+
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "MTLファイルエラー、材料が見つかりません:"
+
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "OBJまたはMTLファイルを確認してください。"
+
+#~ msgid "Specify number of colors:"
+#~ msgstr "色の数を指定:"
+
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "数値を再変更するには、入力するか調整ボタンをクリックしてください"
+
+#~ msgid "Recommended "
+#~ msgstr "推奨 "
+
+#~ msgid "view"
+#~ msgstr "表示"
+
+#~ msgid "Current filament colors"
+#~ msgstr "現在のフィラメントの色"
+
+#~ msgid "Matching"
+#~ msgstr "マッチング"
+
+#~ msgid "Quick set"
+#~ msgstr "クイック設定"
+
+#~ msgid "Color match"
+#~ msgstr "色のマッチング"
+
+#~ msgid "Approximate color matching."
+#~ msgstr "近似色のマッチング。"
+
+#~ msgid "Append"
+#~ msgstr "追加"
+
+#~ msgid "Append to existing filaments"
+#~ msgstr "既存のフィラメントに追加"
+
+#~ msgid "Reset mapped extruders."
+#~ msgstr "マッピングされたエクストルーダーをリセット。"
+
+#~ msgid "Note"
+#~ msgstr "注意"
+
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "色が選択されました。OKを選択して続行するか、\n"
+#~ "手動で調整してください。"
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "サポート/色塗り: 断面の位置"
+
+# AI Translated
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "積層ピッチが小さいプロファイルです。積層跡がほとんど目立たず、高い印刷品質が得られます。ほとんどの印刷用途に適しています。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチがやや大きくなっています。積層跡はほとんど目立たず、印刷時間もわずかに短くなります。"
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比較すると、レイヤー高さが大きくなっています。そのため、レイヤーラインがわずかに見えますが、印刷時間は短縮されます。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど見えず印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど見えず印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は最小限になり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.2 mmノズルのデフォルトプロファイルと比べて、積層跡が細かく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡は最小限になり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "標準的な積層ピッチのプロファイルです。積層跡と印刷品質は平均的です。ほとんどの印刷用途に適しています。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間はわずかに短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、印刷時間は短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡が目立ちにくくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さく、速度と加速度が低く、スパース インフィルパターンはジャイロイドです。積層跡はほとんど目立たなくなり印刷品質は大幅に向上しますが、印刷時間はかなり長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "0.4 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡はほとんど目立たなくなりますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "積層ピッチが大きいプロファイルです。積層跡が目立ち、印刷品質と印刷時間は標準的です。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、壁面層数が多く、スパース インフィル密度が高くなっています。印刷強度は高まりますが、フィラメント消費量が増え、印刷時間も長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が目立ちやすくなり印刷品質は下がりますが、場合によっては印刷時間が短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡がかなり目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質はわずかに向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "0.6 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡が目立ちにくくなり印刷品質は向上しますが、印刷時間は長くなります。"
+
+# AI Translated
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "積層ピッチが非常に大きいプロファイルです。積層跡が非常に目立ち、印刷品質は低くなりますが、印刷時間は短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが大きくなっています。積層跡が非常に目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがかなり大きくなっています。積層跡が極めて目立ちやすくなり印刷品質は大きく下がりますが、場合によっては印刷時間が大幅に短くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチがわずかに小さくなっています。積層跡はやや少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "0.8 mmノズルのデフォルトプロファイルと比べて、積層ピッチが小さくなっています。積層跡は少なくなるものの依然として目立ち、印刷品質はわずかに向上しますが、場合によっては印刷時間が長くなります。"
+
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "これは一般的なフィラメントでもなく、Bambuフィラメントでもありません。さらに、ブランドによって性能が大きく異なるため、印刷前に販売元へ適切なプロファイルを確認し、その性能に応じてパラメーターを調整することを強くお勧めします。"
+
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "このフィラメントを印刷する際、ワーピングや層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
+
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "このフィラメントを印刷する際、ノズルの詰まり、オーズ、ワーピング、層間の密着強度の低下のリスクがあります。より良い結果を得るために、こちらのWiki「高温・エンジニアリング素材の印刷ヒント」を参照してください。"
+
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "対応するフィラメントでより良い透明または半透明の仕上がりを得るには、、このウィキページ「透明PETGのための印刷のヒント」を参照してください。"
+
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "プリントをより光沢のあるものにするには、使用前にフィラメントを乾燥させ、スライス時の外壁速度を40～60mm/sに設定してください。"
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「発泡PLA（PLA Aero）を使用したRCモデルの印刷手順」を参照してください。"
+
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "このフィラメントは通常、低密度のモデルの印刷にのみ使用され、特定のパラメータが必要です。より良い印刷品質を得るために、こちらのWiki「ASA Aero印刷ガイド」を参照してください。"
+
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "このフィラメントは柔らかすぎるため、AMSと互換性がありません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
+
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "このフィラメントは十分な硬度（約67D）を持ち、AMSと互換性があります。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「TPU印刷ガイド」を参照してください。"
+
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "柔らかいTPUを印刷する場合、このプロファイルでスライスしないでください。このプロファイルは、硬度が十分に高いTPU（55D以上）で、AMSに対応しているものにのみ適しています。より良い印刷品質を得るために、こちらのWiki：TPU印刷ガイドをご参照ください。"
+
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "これは水溶性のサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。印刷にはいくつかの要件があり、より良い印刷品質を得るために、こちらのWiki「PVA印刷ガイド」を参照してください。"
+
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "これは水溶性ではないサポートフィラメントで、通常はサポート構造専用であり、モデル本体には使用されません。より良い印刷品質を得るために、こちらのWiki「サポートフィラメントとサポート機能の印刷ヒント」を参照してください。"
+
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "ジェネリックプリセットは、幅広いフィラメントとの互換性を考慮し、控えめに調整されています。より高い印刷品質と速度を求める場合は、BambuフィラメントとBambuプリセットを使用してください。"
+
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "造形品質を重視した、0.2mmノズル用の高品質プロファイルです。"
+
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "高品質・高強度を重視した、0.16mmレイヤー高用の高品質プロファイルです。"
+
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.16mmレイヤー高用の標準プロファイルです。"
+
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "造形品質と強度を重視した、0.2mmノズル用の高品質プロファイルです。"
+
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.4mmノズル用の標準プロファイルです。"
+
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "造形品質を重視した、0.6mmノズル用の高品質プロファイルです。"
+
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "強度を重視した、0.6mmノズル用の強化プロファイルです。"
+
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.6mmノズル用の標準プロファイルです。"
+
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "造形品質を重視した、0.8mmノズル用の高品質プロファイルです。"
+
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "強度を重視した、0.8mmノズル用の強化プロファイルです。"
+
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "造形速度を重視した、0.8mmノズル用の標準プロファイルです。"
 
 # AI Translated
 #~ msgid "Tab"

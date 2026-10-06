@@ -84,3 +84,52 @@ TEST_CASE("Empty external slots remain distinct from unknown slots", "[AMSItem]"
     CHECK_FALSE(unknown_info.cans[0].is_empty);
     CHECK(unknown_info.cans[0].material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL);
 }
+
+// Only the OrcaSonar agent opts into the "Empty" classification. Bambu and other
+// agents keep the unknown "?" for a present-but-blank tray, so they must leave the
+// empty flag untouched.
+TEST_CASE("Bambu-style agents keep blank AMS trays as unknown", "[AMSItem]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
+
+    const json print_json = json::parse(R"({
+        "ams": {
+            "ams_exist_bits": "1",
+            "tray_exist_bits": "3",
+            "ams": [ { "id": "0", "info": "0001", "tray": [
+                { "id": "0", "tag_uid": "0000000000000000", "tray_info_idx": "", "tray_type": "", "tray_color": "00000000" },
+                { "id": "1" }
+            ] } ]
+        }
+    })");
+    DevFilaSystemParser::ParseV1_0(print_json, &machine, machine.GetFilaSystem().get(), false);
+
+    const auto& ams_list = machine.GetFilaSystem()->GetAmsList();
+    const auto  ams_it   = ams_list.find("0");
+    REQUIRE(ams_it != ams_list.end());
+    auto* ams = ams_it->second;
+    REQUIRE(ams != nullptr);
+    REQUIRE(ams->GetTray("0") != nullptr);
+    CHECK_FALSE(ams->GetTray("0")->is_empty);
+
+    AMSinfo info;
+    REQUIRE(info.parse_ams_info(&machine, ams));
+    REQUIRE(info.cans.size() == 2);
+    CHECK_FALSE(info.cans[0].is_empty);
+}
+
+TEST_CASE("Bambu-style agents keep blank external slots as unknown", "[AMSItem]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
+
+    DevAmsTray empty_slot = machine.parse_vt_tray(json::parse(R"({
+        "id": "255", "tag_uid": "0000000000000000", "tray_info_idx": "", "tray_type": "", "tray_color": "00000000"
+    })"));
+    CHECK_FALSE(empty_slot.is_empty);
+
+    AMSinfo info;
+    info.parse_ext_info(&machine, empty_slot);
+    CHECK_FALSE(info.cans[0].is_empty);
+}

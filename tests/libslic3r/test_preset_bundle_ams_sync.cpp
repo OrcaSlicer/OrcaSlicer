@@ -61,6 +61,7 @@ TEST_CASE("AMS sync resolves a printer-set tray to Generic by material type", "[
     const unsigned int count = bundle.sync_ams_list(unknowns, /*use_map=*/false, maps, /*enable_append=*/false, merge);
 
     CHECK(count == 3);
+    CHECK(unknowns.empty());
     REQUIRE(bundle.filament_presets.size() == 3);
     CHECK(bundle.filament_presets[0] == "Generic PETG @Q2");
     CHECK(bundle.filament_presets[1] == "Generic PETG @Q2");
@@ -102,6 +103,7 @@ TEST_CASE("AMS sync still resolves an unmatched preset id by material type", "[P
     MergeFilamentInfo                                         merge;
 
     CHECK(bundle.sync_ams_list(unknowns, /*use_map=*/false, maps, /*enable_append=*/false, merge) == 1);
+    CHECK(unknowns.size() == 1);
     REQUIRE(bundle.filament_presets.size() == 1);
     CHECK(bundle.filament_presets[0] == "Generic PETG @Q2");
 }
@@ -128,6 +130,7 @@ TEST_CASE("AMS sync in mapping mode resolves a printer-set tray to Generic, not 
     const unsigned int count = bundle.sync_ams_list(unknowns, /*use_map=*/true, maps, /*enable_append=*/false, merge);
 
     CHECK(count == 1);
+    CHECK(unknowns.empty());
     REQUIRE(bundle.filament_presets.size() == 1);
     CHECK(bundle.filament_presets[0] == "Generic PETG @Q2");
     CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values[0] == "#898F9B");
@@ -152,4 +155,41 @@ TEST_CASE("Full config filament arrays follow the selected filament preset order
     CHECK(full.option<ConfigOptionStrings>("filament_type")->values == std::vector<std::string>{"PLA", "PETG"});
     // The AMS sync matches trays by filament_id, so this array must follow the same order.
     CHECK(full.option<ConfigOptionStrings>("filament_ids")->values == std::vector<std::string>{"GFL99", "OFYPdQJh"});
+}
+
+// get_ams_cobox_infos builds the combo arrays that SyncAmsInfoDialog pairs with AMS colors
+// positionally. A printer-set tray must appear so the array stays aligned with the sync output.
+TEST_CASE("AMS combo info keeps a printer-set tray and stays aligned", "[Preset][AMS]")
+{
+    PresetBundle bundle;
+    add_system_filament(bundle, "Generic PETG @Q2", "OFYPdQJh", "PETG");
+    add_system_filament(bundle, "Generic PLA @Q2", "GFL99", "PLA");
+
+    auto tray_a = make_tray("OFYPdQJh", "PETG", "#FE717A", "0", "0");
+    tray_a.set_key_value("tray_name", new ConfigOptionStrings{"A"});
+    auto tray_b = make_tray("", "PETG", "#898F9B", "0", "1");
+    tray_b.set_key_value("tray_name", new ConfigOptionStrings{"B"});
+    auto tray_c = make_tray("GFL99", "PLA", "#FAFAFA", "0", "2");
+    tray_c.set_key_value("tray_name", new ConfigOptionStrings{"C"});
+    bundle.filament_ams_list[0] = tray_a;
+    bundle.filament_ams_list[1] = tray_b;
+    bundle.filament_ams_list[2] = tray_c;
+
+    AMSComboInfo combo_info;
+    bundle.get_ams_cobox_infos(combo_info);
+
+    // The id-less PETG tray resolves to a generic preset instead of being dropped, so C keeps
+    // its index and its color.
+    REQUIRE(combo_info.ams_filament_presets.size() == 3);
+    CHECK(combo_info.ams_filament_presets[0] == "Generic PETG @Q2");
+    CHECK(combo_info.ams_filament_presets[1] == "Generic PETG @Q2");
+    CHECK(combo_info.ams_filament_presets[2] == "Generic PLA @Q2");
+    REQUIRE(combo_info.ams_filament_colors.size() == 3);
+    CHECK(combo_info.ams_filament_colors[0] == "#FE717A");
+    CHECK(combo_info.ams_filament_colors[1] == "#898F9B");
+    CHECK(combo_info.ams_filament_colors[2] == "#FAFAFA");
+    REQUIRE(combo_info.ams_names.size() == 3);
+    CHECK(combo_info.ams_names[0] == "A");
+    CHECK(combo_info.ams_names[1] == "B");
+    CHECK(combo_info.ams_names[2] == "C");
 }

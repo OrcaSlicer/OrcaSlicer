@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <thread>
 #include <utility>
@@ -96,13 +97,15 @@ public:
 
     std::pair<std::string, std::string> host_port() const { return {std::string("127.0.0.1"), m_port}; }
 
-    // Server -> client PUBLISH on device/<dev_id>/report.
+    // Server -> client PUBLISH on device/<dev_id>/report, but only to a client
+    // that actually subscribed to that topic.
     void push_report(const std::string& dev_id, const std::string& payload)
     {
+        const std::string topic = "device/" + dev_id + "/report";
         const std::vector<std::uint8_t> packet =
-            Slic3r::OrcaMqttConnection::make_publish_packet("device/" + dev_id + "/report", payload);
+            Slic3r::OrcaMqttConnection::make_publish_packet(topic, payload);
         std::lock_guard<std::mutex> lock(m_mutex);
-        if (!m_stream || !m_stream_ready)
+        if (!m_stream || !m_stream_ready || m_subscriptions.find(topic) == m_subscriptions.end())
             return;
         boost::system::error_code ec;
         m_stream->binary(true);
@@ -122,6 +125,13 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_received_requests;
+    }
+
+    // Whether a topic filter has been SUBSCRIBEd and not UNSUBSCRIBEd since.
+    bool is_subscribed(const std::string& topic) const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_subscriptions.find(topic) != m_subscriptions.end();
     }
 
     // MQTT CONNECTs seen; increments again after a reconnect.
@@ -152,6 +162,7 @@ private:
                 std::lock_guard<std::mutex> lock(m_mutex);
                 close_client_locked();
                 m_stream.reset();
+                m_subscriptions.clear(); // clean session: filters die with the connection
             }
         } catch (...) {
             // never let an exception escape the broker thread
@@ -221,12 +232,22 @@ private:
             const auto id = packet_id(packet);
             if (id)
                 write_packet(stream, {0x90, 0x03, id->first, id->second, 0x00}); // SUBACK, QoS 0
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                for (const std::string& topic : packet_topics(packet, /*qos_per_topic=*/true))
+                    m_subscriptions.insert(topic);
+            }
             return true;
         }
         case 0xa0: { // UNSUBSCRIBE (0xa2)
             const auto id = packet_id(packet);
             if (id)
                 write_packet(stream, {0xb0, 0x02, id->first, id->second}); // UNSUBACK
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                for (const std::string& topic : packet_topics(packet, /*qos_per_topic=*/false))
+                    m_subscriptions.erase(topic);
+            }
             return true;
         }
         case 0x30: { // PUBLISH, QoS 0 (no packet identifier)
@@ -254,6 +275,28 @@ private:
         if (pos + 2 > packet.size())
             return std::nullopt;
         return std::make_pair(static_cast<std::uint8_t>(packet[pos]), static_cast<std::uint8_t>(packet[pos + 1]));
+    }
+
+    // Topic filters carried by a SUBSCRIBE/UNSUBSCRIBE payload: repeated
+    // [2-byte length][UTF-8 topic], each followed by a QoS byte for SUBSCRIBE.
+    static std::vector<std::string> packet_topics(const std::string& packet, bool qos_per_topic)
+    {
+        std::vector<std::string> topics;
+        const auto               varint = mqtt_decode_remaining_length(packet, 1);
+        if (varint.second == 0)
+            return topics;
+        const std::size_t end = std::min(packet.size(), 1 + varint.second + varint.first);
+        std::size_t       pos = 1 + varint.second + 2; // after the packet identifier
+        while (pos + 2 <= end) {
+            const std::size_t len = (static_cast<std::size_t>(static_cast<std::uint8_t>(packet[pos])) << 8) |
+                                    static_cast<std::uint8_t>(packet[pos + 1]);
+            pos += 2;
+            if (pos + len > end)
+                break;
+            topics.push_back(packet.substr(pos, len));
+            pos += len + (qos_per_topic ? 1 : 0);
+        }
+        return topics;
     }
 
     void record_publish(const std::string& packet)
@@ -320,6 +363,7 @@ private:
     std::optional<ws::stream<beast::tcp_stream>> m_stream;      // guarded by m_mutex
     bool                                         m_stream_ready = false; // guarded by m_mutex
     std::vector<std::string>                     m_received_requests;    // guarded by m_mutex
+    std::set<std::string>                        m_subscriptions;        // guarded by m_mutex
 };
 
 } // namespace orca_mqtt_test

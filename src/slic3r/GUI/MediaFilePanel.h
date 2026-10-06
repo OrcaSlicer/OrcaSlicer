@@ -11,6 +11,7 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <cstddef>
 #include <set>
+#include <vector>
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
@@ -52,6 +53,8 @@ public:
 
 private:
     void modeChanged(wxCommandEvent & e);
+
+    void on_show_hide(wxShowEvent & e);
 
     void fetchUrl(boost::weak_ptr<PrinterFileSystem> fs);
 
@@ -99,6 +102,8 @@ private:
     int m_last_mode = 0;
     int m_last_type = 0;
     std::set<int> m_last_errors;
+
+    std::vector<wxWindow*> m_show_hosts;
 };
 
 

@@ -58,21 +58,25 @@ template<class Conn> void expires_never(Conn& conn) {
 OrcaMqttConnection::~OrcaMqttConnection() { stop(); }
 
 bool OrcaMqttConnection::start(const Config& config, MessageHandler on_message, StateHandler on_state) {
-    std::lock_guard<std::recursive_mutex> lifecycle_lock(lifecycle_mutex);
-    stop();
     {
-        std::lock_guard<std::mutex> lock(mutex);
-        current_config    = config;
-        this->on_message  = std::move(on_message);
-        this->on_state    = std::move(on_state);
-        initial_result    = false;
-        initial_completed = false;
-        connected         = false;
-        m_last_connack_rc.store(-1);
+        std::lock_guard<std::recursive_mutex> lifecycle_lock(lifecycle_mutex);
+        stop();
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            current_config    = config;
+            this->on_message  = std::move(on_message);
+            this->on_state    = std::move(on_state);
+            initial_result    = false;
+            initial_completed = false;
+            connected         = false;
+            m_last_connack_rc.store(-1);
+        }
+        stopping.store(false);
+        worker = std::thread(&OrcaMqttConnection::run, this);
     }
-    stopping.store(false);
-    worker = std::thread(&OrcaMqttConnection::run, this);
 
+    // Wait without holding lifecycle_mutex so a concurrent stop() can cancel the
+    // attempt and signal completion instead of blocking until the timeout.
     std::unique_lock<std::mutex> lock(mutex);
     if (!initial_cv.wait_for(lock, std::chrono::seconds(10), [this] { return initial_completed; })) {
         initial_completed = true;

@@ -397,8 +397,9 @@ private:
         return true;
     }
 
-    void ssdp_round()
+    bool ssdp_round()
     {
+        bool emitted = false;
         namespace asio = boost::asio;
         using asio::ip::udp;
         try {
@@ -436,8 +437,10 @@ private:
                         if (make_machine_alive_json(usn, sender.address().to_string(), location, machine_alive)) {
                             nlohmann::json machine      = nlohmann::json::parse(machine_alive);
                             const std::string device_id = machine["dev_id"].get<std::string>();
-                            if (seen_ids.insert(device_id).second && m_emit)
+                            if (seen_ids.insert(device_id).second && m_emit) {
                                 m_emit(machine_alive);
+                                emitted = true;
+                            }
                         }
                     }
                 } else if (error != asio::error::would_block && error != asio::error::try_again) {
@@ -450,14 +453,19 @@ private:
         } catch (const std::exception& error) {
             BOOST_LOG_TRIVIAL(warning) << "OrcaSonarDiscovery: SSDP round failed: " << error.what();
         }
+        return emitted;
     }
 
     void browse_loop()
     {
+        // Idle rounds back off to avoid a permanent 8s M-SEARCH when no OrcaSonar is present.
+        std::chrono::seconds interval(5);
         while (m_running.load()) {
-            ssdp_round();
+            const bool found = ssdp_round();
             std::unique_lock<std::mutex> lock(m_wait_mutex);
-            m_wait_cv.wait_for(lock, std::chrono::seconds(5), [this] { return !m_running.load(); });
+            m_wait_cv.wait_for(lock, found ? std::chrono::seconds(5) : interval, [this] { return !m_running.load(); });
+            interval = found ? std::chrono::seconds(5)
+                             : std::chrono::seconds(std::min<long long>(interval.count() * 2, 60));
         }
     }
 

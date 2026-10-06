@@ -8,6 +8,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -848,8 +849,8 @@ void SelectMachinePopup::update_machine_list(wxCommandEvent &event)
 
 void SelectMachinePopup::start_ssdp(bool start)
 {
-    return;
-    //if (wxGetApp().getAgent()) { wxGetApp().getAgent()->start_discovery(true, start); }
+    if (auto* agent = wxGetApp().getAgent())
+        agent->start_discovery(true, start);
 }
 
 void SelectMachinePopup::OnLeftUp(wxMouseEvent &event)

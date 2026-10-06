@@ -36,6 +36,10 @@
 #include <openssl/x509.h>
 #include <openssl/x509err.h>
 
+#ifdef __APPLE__
+#    include <unistd.h>
+#endif
+
 #ifdef _WIN32
 #    ifndef NOMINMAX
 #        define NOMINMAX
@@ -1001,6 +1005,11 @@ void Http::add_platform_root_certificates(SSL_CTX* ssl_context)
 
     load_store(CERT_SYSTEM_STORE_CURRENT_USER);
     load_store(CERT_SYSTEM_STORE_LOCAL_MACHINE);
+#elif defined(__APPLE__)
+    // macOS ships its system trust roots as a PEM bundle; the bundled OpenSSL's
+    // compiled-in default path is the build directory, so load this explicitly.
+    if (ssl_context && ::access("/etc/ssl/cert.pem", R_OK) == 0)
+        SSL_CTX_load_verify_locations(ssl_context, "/etc/ssl/cert.pem", nullptr);
 #else
     (void)ssl_context;
 #endif

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 17:02+0800\n"
+"POT-Creation-Date: 2026-10-06 11:49+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -299,6 +299,9 @@ msgstr "Standaard"
 msgid "TPU High Flow"
 msgstr "TPU High Flow"
 
+msgid "E3D High Flow"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Onbekend"
 
@@ -474,12 +477,6 @@ msgstr "Hulpmiddel type"
 
 msgid "Gap fill"
 msgstr "Gatvulling"
-
-msgid "Reset direction"
-msgstr "Richting terugzetten"
-
-msgid "Section view"
-msgstr "Doorsnede"
 
 msgid "Brush size"
 msgstr "Penseelgrootte"
@@ -1186,12 +1183,6 @@ msgstr "Kan niet toepassen bij een voorvertoning."
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr "De toepassing wordt al geannuleerd. Wacht even alstublieft."
 
-msgid "Face recognition"
-msgstr "Gezichtsherkenning"
-
-msgid "Perform Recognition"
-msgstr "Herkenning uitvoeren"
-
 msgid "Enforce seam"
 msgstr "Naad versterken"
 
@@ -1213,46 +1204,6 @@ msgstr "Naad schilderen verlaten"
 
 msgid "Paint-on seam editing"
 msgstr "Paint-on naadbewerking"
-
-#. TRN - Input label. Be short as possible
-#. Select look of letter shape
-msgid "Font"
-msgstr "Lettertype"
-
-msgid "Thickness"
-msgstr "Dikte"
-
-msgid "Text Gap"
-msgstr "Tekstruimte"
-
-msgid "Angle"
-msgstr "Hoek"
-
-# AI Translated
-msgid "Embedded depth"
-msgstr "Ingebedde diepte"
-
-msgid "Input text"
-msgstr "Tekst invoeren"
-
-msgid "Surface"
-msgstr "Oppervlak"
-
-msgid "Horizontal text"
-msgstr "Horizontale tekst"
-
-msgid "Shift+"
-msgstr "Shift+"
-
-# AI Translated
-msgid "Mouse move up or down"
-msgstr "Muis omhoog of omlaag bewegen"
-
-msgid "Rotate text"
-msgstr "Draai tekst"
-
-msgid "Text shape"
-msgstr "Tekstvorm"
 
 #. TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 msgid "Text rotate"
@@ -1657,6 +1608,11 @@ msgid "In queue"
 msgstr "In wachtrij"
 
 #. TRN - Input label. Be short as possible
+#. Select look of letter shape
+msgid "Font"
+msgstr "Lettertype"
+
+#. TRN - Input label. Be short as possible
 #. Height of one text line - Font Ascent
 msgid "Height"
 msgstr "Hoogte"
@@ -2054,6 +2010,9 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr "Kopieer naar klembord"
 
+msgid "Angle"
+msgstr "Hoek"
+
 # AI Translated
 msgid "Perpendicular distance"
 msgstr "Loodrechte afstand"
@@ -2160,6 +2119,9 @@ msgstr "Samenstelgizmo starten"
 msgid "Leaving Assembly gizmo"
 msgstr "Samenstelgizmo verlaten"
 
+msgid "Shift+"
+msgstr "Shift+"
+
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
@@ -2199,6 +2161,16 @@ msgstr "Het onfiguratiepakket werd geladen, maar sommige waarden werden niet her
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Configuratiebestand “%1%” werd geladen, maar sommige waarden werden niet herkend."
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" is not a plain document, image or model file. Opening it may run it as a program or script on this computer.\n"
+"\n"
+"Only open attachments from projects you trust. Open it anyway?"
+msgstr ""
+
+msgid "Open attachment"
+msgstr ""
 
 msgid "Loading configuration"
 msgstr "Configuratie wordt geladen"
@@ -2854,6 +2826,9 @@ msgstr "Ondersteuningsblokkade toevoegen"
 msgid "Add Support Enforcer"
 msgstr "Ondersteuning toevoegen"
 
+msgid "Add Precise Seam"
+msgstr ""
+
 # AI Translated
 msgid "Add text"
 msgstr "Tekst toevoegen"
@@ -2986,6 +2961,9 @@ msgstr "Ondersteuningsblokkade"
 
 msgid "Support Enforcer"
 msgstr "Ondersteuning handhaven"
+
+msgid "Precise Seam"
+msgstr ""
 
 msgid "Change part type"
 msgstr "Kies het onderdeel type"
@@ -3137,6 +3115,30 @@ msgstr "Spiegelen langs de Z as"
 
 msgid "Mirror object"
 msgstr "Spiegel object"
+
+msgid "Precise Seam Type"
+msgstr ""
+
+msgid "Seam Center"
+msgstr ""
+
+msgid "Seam Left"
+msgstr ""
+
+msgid "Seam Right"
+msgstr ""
+
+msgid "Seam Enforced"
+msgstr ""
+
+msgid "Seam Blocked"
+msgstr ""
+
+msgid "Seam Neutral"
+msgstr ""
+
+msgid "Choose precise seam subtype"
+msgstr ""
 
 # AI Translated
 msgid "Edit text"
@@ -4610,6 +4612,9 @@ msgstr "Weet u zeker dat u de filamentinformatie wilt wissen?"
 msgid "You need to select the material type and color first."
 msgstr "U moet eerst het materiaaltype en de kleur selecteren."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
@@ -5180,6 +5185,13 @@ msgstr ""
 "Te kleine maximale volumetrische snelheid.\n"
 "De waarde is teruggezet naar 0,5"
 
+msgid ""
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
+msgstr ""
+"De ruimte voor het strijken is te klein\n"
+"Teruggezet naar 0.1"
+
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "De huidige kamertemperatuur is hoger dan de veilige temperatuur van het materiaal; dit kan leiden tot verzachting van het materiaal en verstoppingen van het mondstuk. De maximale veilige temperatuur voor het materiaal is %d"
@@ -5212,13 +5224,6 @@ msgid ""
 msgstr ""
 "Laaghoogte is te klein\n"
 "Teruggezet naar 0.2mm"
-
-msgid ""
-"Ironing spacing too small\n"
-"It has been reset to 0.1"
-msgstr ""
-"De ruimte voor het strijken is te klein\n"
-"Teruggezet naar 0.1"
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -6097,6 +6102,12 @@ msgstr "Snelheid: "
 msgid "Actual speed profile"
 msgstr "Werkelijk snelheidsprofiel"
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Last used"
+msgstr ""
+
 # AI Translated
 msgid "Statistics of All Plates"
 msgstr "Statistieken van alle printbedden"
@@ -6513,6 +6524,9 @@ msgstr "Terug"
 msgid "Canvas Toolbar"
 msgstr "Canvaswerkbalk"
 
+msgid "Section view"
+msgstr "Doorsnede"
+
 # AI Translated
 msgid "Fit camera to scene or selected object."
 msgstr "Camera aanpassen aan de scène of het geselecteerde object."
@@ -6553,17 +6567,32 @@ msgstr "Rasterlijnen"
 msgid "Labels"
 msgstr "Labels"
 
+msgid "Move section plane"
+msgstr ""
+
+msgid "Mouse wheel on icon"
+msgstr ""
+
+msgid "Right click on icon"
+msgstr ""
+
+msgid "Toggle section view"
+msgstr ""
+
+msgid "Middle click on icon"
+msgstr ""
+
+msgid "Set viewing angle"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Kleur instellingen"
 
-msgid "Explosion Ratio"
-msgstr "Vergrotings ratio"
-
-msgid "Section View"
-msgstr "Sectie weergave"
-
 msgid "Assembly Control"
 msgstr "Assemblage controle"
+
+msgid "Explosion Ratio"
+msgstr "Vergrotings ratio"
 
 msgid "Selection Mode"
 msgstr "Selectiemodus"
@@ -6712,17 +6741,6 @@ msgstr "Liveweergave opnieuw proberen"
 msgid "Resolution"
 msgstr "Resolutie"
 
-msgid "Enable"
-msgstr "Inschakelen"
-
-# AI Translated
-msgid "Hostname or IP"
-msgstr "Hostnaam of IP"
-
-# AI Translated
-msgid "Custom camera source"
-msgstr "Aangepaste camerabron"
-
 msgid "Show \"Live Video\" guide page."
 msgstr "Toon \"Live Video\" gids pagina."
 
@@ -6800,11 +6818,17 @@ msgstr "Nee"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "wordt gesloten voordat een nieuw model wordt gemaakt. Wilt u doorgaan?"
 
-msgid "Slice plate"
-msgstr "Slice printbed"
+msgid "Print all"
+msgstr "Print alles"
 
 msgid "Print plate"
 msgstr "Printplaat"
+
+msgid "Export plate sliced file"
+msgstr "Exporteer plate sliced bestand"
+
+msgid "Export all sliced file"
+msgstr "Alle sliced bestanden exporteren"
 
 msgid "Export G-code file"
 msgstr "G-codebestand exporteren"
@@ -6814,23 +6838,17 @@ msgctxt "Verb"
 msgid "Print"
 msgstr "Printen"
 
-msgid "Export plate sliced file"
-msgstr "Exporteer plate sliced bestand"
-
 msgid "Send"
 msgstr "Versturen"
-
-msgid "Export all sliced file"
-msgstr "Alle sliced bestanden exporteren"
-
-msgid "Print all"
-msgstr "Print alles"
 
 msgid "Send all"
 msgstr "Alles verzenden"
 
 msgid "Send to Multi-device"
 msgstr "Naar meerdere apparaten verzenden"
+
+msgid "Slice plate"
+msgstr "Slice printbed"
 
 msgid "Keyboard Shortcuts"
 msgstr "Sneltoesten"
@@ -6850,6 +6868,12 @@ msgstr "Probleemoplossingscentrum"
 
 msgid "Open Network Test"
 msgstr "Open Netwerk Test"
+
+msgid "Benchmark 3D Scene"
+msgstr ""
+
+msgid "Measure how fast the 3D scene renders in Prepare and Preview"
+msgstr ""
 
 msgid "Show Tip of the Day"
 msgstr "Toon Tip van de dag"
@@ -7336,6 +7360,15 @@ msgstr "De speler is niet geladen omdat de GStreamer GTK-videosink ontbreekt of 
 msgid "Please confirm if the printer is connected."
 msgstr "Controleer of de printer is aangesloten."
 
+msgid "Sign in to OrcaCloud to view the camera."
+msgstr ""
+
+msgid "Initializing..."
+msgstr "Initialiseren..."
+
+msgid "Playing..."
+msgstr "Afspelen..."
+
 msgid "The printer is currently busy downloading. Please try again after it finishes."
 msgstr "De printer is momenteel bezig met downloaden. Probeer het opnieuw nadat het is voltooid."
 
@@ -7352,20 +7385,17 @@ msgstr "De liveview in de modus Alleen LAN staat uit. Schakel de liveview in op 
 msgid "Please enter the IP of the printer to connect."
 msgstr "Voer het IP-adres in van de printer waarmee u verbinding wilt maken."
 
-msgid "Initializing..."
-msgstr "Initialiseren..."
-
 msgid "Connection Failed. Please check the network and try again"
 msgstr "Verbinding mislukt. Controleer het netwerk en probeer het opnieuw"
+
+msgid "Video Stopped."
+msgstr "Video gestopt."
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Controleer het netwerk en probeer het opnieuw. U kunt de printer opnieuw opstarten of bijwerken als het probleem zich blijft voordoen."
 
 msgid "The printer has been logged out and cannot connect."
 msgstr "De printer is afgemeld en kan geen verbinding maken."
-
-msgid "Video Stopped."
-msgstr "Video gestopt."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "LAN-verbinding mislukt (liveview niet gestart)"
@@ -7398,9 +7428,6 @@ msgstr "Netwerk onbereikbaar"
 
 msgid "Information"
 msgstr "Informatie"
-
-msgid "Playing..."
-msgstr "Afspelen..."
 
 msgid "Loading..."
 msgstr "Laden..."
@@ -7517,6 +7544,22 @@ msgstr "Het .gcode.3mf-bestand bevat geen G-code-gegevens. Slice het met Orca Sl
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Bestand '%s' is verloren gegaan! Download het opnieuw."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -7781,10 +7824,6 @@ msgstr "Opslag"
 
 msgid "Camera Setting"
 msgstr "Camera-instelling"
-
-# AI Translated
-msgid "Switch Camera View"
-msgstr "Camerabeeld wisselen"
 
 msgid "Control"
 msgstr "Besturing"
@@ -8961,6 +9000,9 @@ msgstr "Synchroniseer de mondstukinformatie en het aantal AMS-eenheden"
 msgid "Click to edit preset"
 msgstr "Klik om de instelling te veranderen"
 
+msgid "Variant"
+msgstr ""
+
 msgid "Nozzle"
 msgstr "Mondstuk"
 
@@ -9055,6 +9097,9 @@ msgstr "De type- en kleurinformatie van het filament is gesynchroniseerd, maar d
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Wilt u de wijzigingen opslaan in \"%1%\"?"
+
+msgid "UV Editor"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -9419,13 +9464,6 @@ msgstr "Interne solide vulling (infill)"
 msgid "Slicing Canceled"
 msgstr "Slicing Geannuleerd"
 
-#, c-format, boost-format
-msgid "Slicing Plate %d"
-msgstr "Slicing printbed %d"
-
-msgid "Please resolve the slicing errors and publish again."
-msgstr "Los aub de slicing fouten op en publiceer opnieuw."
-
 # AI Translated
 msgid "Network plug-in switched successfully."
 msgstr "De netwerkplug-in is met succes gewisseld."
@@ -9460,6 +9498,17 @@ msgstr ""
 # AI Translated
 msgid "Sync now"
 msgstr "Nu synchroniseren"
+
+msgid "Cannot undo or redo while an operation is running. Stop it first."
+msgstr ""
+
+msgid ""
+"The selected printer does not support multiple bed types.\n"
+"Bed type overrides were reset to the global bed type."
+msgstr ""
+
+msgid "Plate bed types reset"
+msgstr ""
 
 # AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
@@ -9506,6 +9555,10 @@ msgstr "voorbereiden van 3MF bestand..."
 msgid "Download failed; unknown file format."
 msgstr "Downloaden mislukt; onbekende bestandsindeling."
 
+# AI Translated
+msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
+msgstr "Importeren naar Orca Slicer is mislukt. Download het bestand en importeer het handmatig."
+
 msgid "Downloading project..."
 msgstr "project downloaden..."
 
@@ -9516,10 +9569,6 @@ msgstr "Downloaden mislukt; uitzondering in bestandsgrootte."
 #, c-format, boost-format
 msgid "Project downloaded %d%%"
 msgstr "Project %d%% gedownload"
-
-# AI Translated
-msgid "Importing to Orca Slicer failed. Please download the file and manually import it."
-msgstr "Importeren naar Orca Slicer is mislukt. Download het bestand en importeer het handmatig."
 
 # AI Translated
 msgid "INFO:"
@@ -10294,6 +10343,12 @@ msgstr "Beperking op gemengde temperaturen opheffen"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Met deze optie ingeschakeld kunt u materialen met een groot temperatuurverschil samen printen."
 
+msgid "Remember last print action"
+msgstr ""
+
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr ""
+
 # AI Translated
 msgid "Touchpad"
 msgstr "Touchpad"
@@ -10431,6 +10486,14 @@ msgstr "Phong-shading"
 msgid "Uses Phong shading inside realistic view."
 msgstr "Gebruikt Phong-shading in de realistische weergave."
 
+msgid "Enable in Preview"
+msgstr ""
+
+msgid ""
+"Also applies realistic view to the Preview canvas, not just Prepare.\n"
+"Preview draws the full toolpath geometry, so shadows and SSAO cost considerably more there than on a plain model."
+msgstr ""
+
 # AI Translated
 msgid "SSAO ambient occlusion"
 msgstr "SSAO ambient occlusion"
@@ -10439,13 +10502,21 @@ msgstr "SSAO ambient occlusion"
 msgid "Applies SSAO in realistic view."
 msgstr "Past SSAO toe in de realistische weergave."
 
+msgid "Static"
+msgstr ""
+
+msgid "Orbit"
+msgstr ""
+
 # AI Translated
 msgid "Shadows"
 msgstr "Schaduwen"
 
-# AI Translated
-msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr "Rendert slagschaduwen op het printbed, op andere objecten en van elk object op zichzelf in de realistische weergave."
+msgid ""
+"Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+"Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+"Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."
+msgstr ""
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -10543,9 +10614,44 @@ msgstr ""
 msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
+msgid "Show render timings"
+msgstr ""
+
+msgid "Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport."
+msgstr ""
+
+msgid "CPU: time spent issuing the drawing commands."
+msgstr ""
+
+msgid "GPU: time the graphics card spent running them."
+msgstr ""
+
+msgid "Adds a small overhead to each frame while enabled."
+msgstr ""
+
+msgid "3D scene benchmark"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
+msgstr ""
+
 # AI Translated
 msgid "G-code Preview"
 msgstr "G-code-voorvertoning"
+
+msgid "Default view type"
+msgstr ""
+
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
 
 # AI Translated
 msgid "Dim lower layers"
@@ -10942,6 +11048,9 @@ msgstr "Afdrukvolgorde"
 msgid "Same as Global"
 msgstr "Hetzelfde als globaal"
 
+msgid "Enable"
+msgstr "Inschakelen"
+
 msgid "Disable"
 msgstr "Uitschakelen"
 
@@ -10966,37 +11075,6 @@ msgstr "Accepteer"
 
 msgid "Log Out"
 msgstr "Uitloggen"
-
-msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Slice alle printbedden om een inschatting te krijgen van de printtijd en het filamentverbruik"
-
-msgid "Packing project data into 3MF file"
-msgstr "De projectdata wordt opgelslagen in een 3MF bestand"
-
-msgid "Uploading 3MF"
-msgstr "3mf bestand uploaden"
-
-msgid "Jump to model publish web page"
-msgstr "Ga naar de website om het model te publiceren"
-
-msgid "Note: The preparation may take several minutes. Please be patient."
-msgstr "Notitie: het voorbereiden kan enkele minuten duren. Even geduld alstublieft."
-
-msgid "Publish was canceled"
-msgstr "Het publiceren is geannuleerd"
-
-msgid "Slicing Plate 1"
-msgstr "Slicing printbed 1"
-
-msgid "Packing data to 3MF"
-msgstr "De data wordt opgeslagen in een 3mf"
-
-# AI Translated
-msgid "Uploading data"
-msgstr "Gegevens uploaden"
-
-msgid "Jump to webpage"
-msgstr "Ga naar de website"
 
 # AI Translated
 msgid "Material"
@@ -11149,6 +11227,36 @@ msgstr "Voor \"%1%\", dient \"%2%\" toegevoegd te worden als nieuwe voorinstelli
 msgid "Simply switch to \"%1%\""
 msgstr "Schakel eenvoudig over naar \"%1%\""
 
+msgid "Loading the benchmark model"
+msgstr ""
+
+msgid "The benchmark model could not be loaded."
+msgstr ""
+
+msgid "Slicing failed, so only Prepare was measured."
+msgstr ""
+
+msgid "The benchmark stopped because the 3D view was hidden."
+msgstr ""
+
+msgid "Turning the camera in Prepare"
+msgstr ""
+
+msgid "Turning the camera in Preview"
+msgstr ""
+
+msgid "Moving through the layers in Preview"
+msgstr ""
+
+msgid "Copy the results to the clipboard"
+msgstr ""
+
+msgid "The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing every frame, and shows the results."
+msgstr ""
+
+msgid "It uses the current graphics settings and usually takes less than a minute. The main window stays locked until it finishes."
+msgstr ""
+
 msgid "Expert"
 msgstr ""
 
@@ -11156,10 +11264,6 @@ msgid "Simple"
 msgstr ""
 
 msgid "Search actions"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Search %s actions"
 msgstr ""
 
 msgid "Recent"
@@ -11182,7 +11286,7 @@ msgid "No tabs"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Showing %s of %s actions"
+msgid "Showing %s actions"
 msgstr ""
 
 #, c-format, boost-format
@@ -11439,6 +11543,10 @@ msgstr "Het filament komt niet overeen met het filament in de AMS-sleuf. Update 
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "De geselecteerde printer (%s) is niet compatibel met de configuratie van het printbestand (%s). Pas de printervoorinstelling aan op de voorbereidingspagina of kies op deze pagina een compatibele printer."
 
+#, c-format, boost-format
+msgid "The selected printer (%s) has an unknown model, so compatibility with the print file configuration (%s) cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 # AI Translated
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Wanneer de spiraalvaasmodus is ingeschakeld, genereren machines met een I3-structuur geen timelapse-video's."
@@ -11528,8 +11636,20 @@ msgstr "Timelapse annuleren en printen"
 msgid "Clean Up"
 msgstr "Opruimen"
 
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "Print opdracht voorbereiden"
+
+msgid "Failed to upload the file to the printer's storage. Please try again."
+msgstr ""
+
+msgid "Send Failed"
+msgstr ""
 
 # AI Translated
 msgid "The name length exceeds the limit."
@@ -11739,6 +11859,9 @@ msgstr "Kan geen afdruktaak verzenden voor een lege plaat"
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "Er moet een opslagmedium worden geplaatst om een timelapse op te nemen."
 
+msgid "The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."
+msgstr ""
+
 # AI Translated
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
 msgstr "U hebt voor één extruder zowel externe als AMS-filamenten geselecteerd. U moet het externe filament tijdens het printen handmatig wisselen."
@@ -11819,6 +11942,9 @@ msgstr "De printer moet zich in hetzelfde LAN bevinden als Orca Slicer."
 # AI Translated
 msgid "The printer does not support sending to printer storage."
 msgstr "De printer ondersteunt het verzenden naar de printeropslag niet."
+
+msgid "Failed to initialize the printer file transfer. Please check the connection and try again."
+msgstr ""
 
 msgid "Sending..."
 msgstr "Verzenden..."
@@ -12945,81 +13071,6 @@ msgid "The configuration is up to date."
 msgstr "De configuratie is up-to-date."
 
 # AI Translated
-msgid "OBJ file import color"
-msgstr "Kleur importeren uit OBJ-bestand"
-
-# AI Translated
-msgid "Some faces don't have color defined."
-msgstr "Voor sommige vlakken is geen kleur gedefinieerd."
-
-# AI Translated
-msgid "MTL file exist error, could not find the material:"
-msgstr "Fout in het MTL-bestand; het materiaal kon niet worden gevonden:"
-
-# AI Translated
-msgid "Please check OBJ or MTL file."
-msgstr "Controleer het OBJ- of MTL-bestand."
-
-# AI Translated
-msgid "Specify number of colors:"
-msgstr "Geef het aantal kleuren op:"
-
-# AI Translated
-msgid "Enter or click the adjustment button to modify number again"
-msgstr "Voer een waarde in of klik op de aanpassingsknop om het aantal opnieuw te wijzigen"
-
-# AI Translated
-msgid "Recommended "
-msgstr "Aanbevolen "
-
-msgid "view"
-msgstr "weergave"
-
-# AI Translated
-msgid "Current filament colors"
-msgstr "Huidige filamentkleuren"
-
-msgid "Matching"
-msgstr "Overeenkomsten"
-
-# AI Translated
-msgid "Quick set"
-msgstr "Snel instellen"
-
-# AI Translated
-msgid "Color match"
-msgstr "Kleurovereenkomst"
-
-# AI Translated
-msgid "Approximate color matching."
-msgstr "Benaderende kleurovereenkomst."
-
-msgid "Append"
-msgstr "Toevoegen"
-
-# AI Translated
-msgid "Append to existing filaments"
-msgstr "Toevoegen aan bestaande filamenten"
-
-# AI Translated
-msgid "Reset mapped extruders."
-msgstr "Toegewezen extruders terugzetten."
-
-msgid "Note"
-msgstr "Opmerking"
-
-# AI Translated
-msgid ""
-"The color has been selected, you can choose OK \n"
-" to continue or manually adjust it."
-msgstr ""
-"De kleur is geselecteerd; u kunt op OK klikken \n"
-" om door te gaan of deze handmatig aanpassen."
-
-msgid "—> "
-msgstr "—> "
-
-# AI Translated
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
 "Are you sure you want to continue?"
@@ -13296,7 +13347,10 @@ msgstr ""
 msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Run a speed dial favorite while the dial is open"
+msgid "Run favorite 1 to 10"
+msgstr ""
+
+msgid "Pin or unpin the selected action"
 msgstr ""
 
 # AI Translated
@@ -13348,9 +13402,6 @@ msgstr "Verplaatsen: druk om 1 mm te verplaatsen"
 
 msgid "Support/Color Painting: adjust pen radius"
 msgstr "Support/kleur intekenen: pas de pen diameter aan"
-
-msgid "Support/Color Painting: adjust section position"
-msgstr "Support/kleur intekenen: pas de sectie positie aan"
 
 msgid "Objects list"
 msgstr "Object lijst"
@@ -13410,8 +13461,11 @@ msgid ""
 "\"%s\""
 msgstr ""
 
+msgid "The system uses this shortcut, so it cannot be assigned."
+msgstr ""
+
 #, c-format, boost-format
-msgid "Already used as a step of %s."
+msgid "Shift and Ctrl with this key belong to %s and cannot be assigned."
 msgstr ""
 
 #, c-format, boost-format
@@ -13491,6 +13545,21 @@ msgstr "IP"
 
 msgid "Access Code"
 msgstr "Toegangscode"
+
+msgid "HTTPS CA File"
+msgstr "HTTPS CA Bestand"
+
+msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
+msgstr "Certificaatbestanden (*.crt, *.pem)|*.crt;*.pem|Alle bestanden|*.*"
+
+msgid "Open CA certificate file"
+msgstr "Open CA-certificaatbestand"
+
+msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
+msgstr "HTTPS CA-bestand is optioneel. Het is alleen nodig als je HTTPS gebruikt met een zelfondertekend certificaat."
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr ""
 
 # AI Translated
 msgid "Printer model"
@@ -13737,6 +13806,29 @@ msgstr "Groeperingsfout: %1% kan niet in de rechter nozzle worden geplaatst"
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Groeperingsfout in de handmatige modus. Controleer het aantal mondstukken of groepeer opnieuw."
+
+#, boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+#, boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr ""
+
+msgid "Seam placement may differ from expected."
+msgstr ""
 
 # AI Translated
 msgid "Internal Bridge"
@@ -14282,9 +14374,6 @@ msgstr "De lokale API van Flashforge vereist het serienummer van de printer."
 
 msgid "Name of the printer."
 msgstr "Naam van de printer"
-
-msgid "HTTPS CA File"
-msgstr "HTTPS CA Bestand"
 
 msgid "Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. If left blank, the default OS CA certificate repository is used."
 msgstr "Een aangepast CA-certificaatbestand kan worden gespecificeerd voor HTTPS OctoPrint-verbindingen, in crt/pem-formaat. Indien leeg gelaten, wordt de standaard opslagplaats voor OS CA-certificaten gebruikt."
@@ -18414,6 +18503,9 @@ msgstr "Bowden"
 msgid "Hybrid"
 msgstr "Hybride"
 
+msgid "Extra High Flow"
+msgstr ""
+
 # AI Translated
 msgid "Enable filament dynamic map"
 msgstr "Dynamische filamenttoewijzing inschakelen"
@@ -18979,6 +19071,17 @@ msgstr "Geen dunne lagen (bèta)"
 # AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Indien ingeschakeld wordt het afveegblok niet geprint op lagen zonder gereedschapswissels. Op lagen met een gereedschapswissel beweegt de extruder omlaag om het afveegblok te printen, zodat het blok onder het model uitkomt en de printkop ernaartoe omlaag moet reiken. Opstellingen waarbij dat zou botsen met een al geprint voorwerp worden afgewezen. Heeft geen effect bij vloeiende timelapse of klontdetectie, die op elke laag een blok nodig hebben."
+
+msgid "Combine sparse layers"
+msgstr ""
+
+msgid ""
+"If enabled, consecutive layers on which the prime tower has no filament change are printed as a single thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. The merged layer is printed at the top of the run, at the height of everything it covers.\n"
+"\n"
+"Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower (three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing is merged, while at 0.1 mm three layers become one.\n"
+"\n"
+"Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Veeg alle printextruders af"
@@ -20391,6 +20494,12 @@ msgstr "Rotatie toestaan bij het rangschikken"
 # AI Translated
 msgid "If enabled, Arrange will allow rotation when placing objects."
 msgstr "Indien ingeschakeld staat Rangschikken rotatie toe bij het plaatsen van objecten."
+
+msgid "Align to Y axis when arranging"
+msgstr ""
+
+msgid "If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. When not given, it is on for i3 printers and off for the others, as in the GUI."
+msgstr ""
 
 # AI Translated
 msgid "Avoid extrusion calibrate region when arranging"
@@ -22704,15 +22813,6 @@ msgstr "Bekijk de printhost webui op het tabblad Apparaat"
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Vervang het apparaattabblad van BambuLab door de printhost webui"
 
-msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
-msgstr "HTTPS CA-bestand is optioneel. Het is alleen nodig als je HTTPS gebruikt met een zelfondertekend certificaat."
-
-msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
-msgstr "Certificaatbestanden (*.crt, *.pem)|*.crt;*.pem|Alle bestanden|*.*"
-
-msgid "Open CA certificate file"
-msgstr "Open CA-certificaatbestand"
-
 #, c-format, boost-format
 msgid "On this system, %s uses HTTPS certificates from the system Certificate Store or Keychain."
 msgstr "Op dit systeem gebruikt %s HTTPS-certificaten uit de systeemcertificaatopslag of de sleutelhanger."
@@ -23093,210 +23193,6 @@ msgstr ""
 "Opsomming van hostprinters mislukt.\n"
 "Inhoud bericht: \"%1%\"\n"
 "Fout: \"%2%\""
-
-msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-msgstr "Het heeft een kleine laaghoogte en resulteert in bijna verwaarloosbare laaglijnen en een hoge afdrukkwaliteit. Het is geschikt voor de meeste algemene afdrukgevallen."
-
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm mondstuk, heeft het lagere snelheden en acceleratie, en het spaarzame infill patroon is Gyroid. Dit resulteert in een veel hogere printkwaliteit maar ook een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een iets grotere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een iets kortere printtijd op."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert licht zichtbare laaglijnen maar een kortere printtijd op."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel onzichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel onzichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minimale laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minimale laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-msgstr "Het heeft een normale laaghoogte en resulteert in gemiddelde laaglijnen en afdrukkwaliteit. Het is geschikt voor de meeste afdrukgevallen."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een iets kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minder zichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel verwaarloosbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een langere printtijd op."
-
-msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-msgstr "De laagdikte is groot, wat resulteert in zichtbare laaglijnen en een normale afdrukkwaliteit en afdruktijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert veel duidelijker zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een iets hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
-
-# AI Translated
-msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-msgstr "Dit heeft een zeer grote laaghoogte. Dat levert zeer duidelijk zichtbare laaglijnen, een lage printkwaliteit en een kortere printtijd op."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert zeer duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een veel grotere laaghoogte. Dit levert extreem duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een veel kortere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een iets kleinere laaghoogte. Dit levert iets minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
-
-# AI Translated
-msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
-
-# AI Translated
-msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-msgstr "Dit is geen veelgebruikt filament en ook geen Bambu-filament; het verschilt sterk per merk. Het wordt daarom sterk aangeraden om vóór het printen bij de leverancier een geschikt profiel op te vragen en enkele parameters aan te passen op basis van de eigenschappen."
-
-# AI Translated
-msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Bij het printen van dit filament bestaat er risico op kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
-
-# AI Translated
-msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-msgstr "Bij het printen van dit filament bestaat er risico op verstopping van het mondstuk, druipen, kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
-
-# AI Translated
-msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-msgstr "Raadpleeg voor betere transparante of doorschijnende resultaten met het betreffende filament deze wiki: Printing tips for transparent PETG."
-
-# AI Translated
-msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-msgstr "Droog het filament vóór gebruik en stel de snelheid van de buitenwand bij het slicen in op 40 tot 60 mm/s om prints met meer glans te krijgen."
-
-# AI Translated
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-
-# AI Translated
-msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: ASA Aero Printing Guide."
-
-# AI Translated
-msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Dit filament is te zacht en niet compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
-
-# AI Translated
-msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Dit filament is hard genoeg (ongeveer 67D)  en is compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
-
-# AI Translated
-msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-msgstr "Als u een zachte soort TPU gaat printen, slice dan niet met dit profiel; het is alleen bedoeld voor TPU dat hard genoeg is (niet minder dan 55D) en compatibel is met de AMS. Raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
-
-# AI Translated
-msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-msgstr "Dit is een in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Het printen van dit filament stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: PVA Printing Guide."
-
-# AI Translated
-msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-msgstr "Dit is een niet in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Raadpleeg voor een betere printkwaliteit deze wiki: Printing Tips for Support Filament and Support Function."
-
-# AI Translated
-msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-msgstr "De generieke voorinstellingen zijn behoudend afgestemd voor compatibiliteit met een breder scala aan filamenten. Gebruik voor een hogere printkwaliteit en hogere snelheden Bambu-filamenten met Bambu-voorinstellingen."
-
-# AI Translated
-msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr "Hogekwaliteitsprofiel voor een 0,2 mm-mondstuk, met prioriteit voor printkwaliteit."
-
-# AI Translated
-msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-msgstr "Hogekwaliteitsprofiel voor 0,16 mm laaghoogte, met prioriteit voor printkwaliteit en sterkte."
-
-# AI Translated
-msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr "Standaardprofiel voor 0,16 mm laaghoogte, met prioriteit voor snelheid."
-
-# AI Translated
-msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-msgstr "Hogekwaliteitsprofiel voor 0,2 mm laaghoogte, met prioriteit voor sterkte en printkwaliteit."
-
-# AI Translated
-msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr "Standaardprofiel voor een 0,4 mm-mondstuk, met prioriteit voor snelheid."
-
-# AI Translated
-msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-msgstr "Hogekwaliteitsprofiel voor een 0,6 mm-mondstuk, met prioriteit voor printkwaliteit en sterkte."
-
-# AI Translated
-msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr "Sterkteprofiel voor een 0,6 mm-mondstuk, met prioriteit voor sterkte."
-
-# AI Translated
-msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr "Standaardprofiel voor een 0,6 mm-mondstuk, met prioriteit voor snelheid."
-
-# AI Translated
-msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr "Hogekwaliteitsprofiel voor een 0,8 mm-mondstuk, met prioriteit voor printkwaliteit."
-
-# AI Translated
-msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr "Sterkteprofiel voor een 0,8 mm-mondstuk, met prioriteit voor sterkte."
-
-# AI Translated
-msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr "Standaardprofiel voor een 0,8 mm-mondstuk, met prioriteit voor snelheid."
 
 msgid "No AMS"
 msgstr "Geen AMS"
@@ -25164,6 +25060,9 @@ msgstr ""
 msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
 msgstr ""
 
+msgid "Thickness"
+msgstr "Dikte"
+
 msgid "Thickens a sheet body into a solid. Flip reverses the direction."
 msgstr ""
 
@@ -26765,14 +26664,14 @@ msgstr "Wisselen tussen Voorbereiden/Voorvertoning"
 msgid "Collapse/Expand the sidebar"
 msgstr "De menubalk in-/uitschuiven"
 
-msgid "Open the speed dial"
-msgstr ""
-
 msgid "Reload the device page"
 msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "Toon lijst met sneltoetsen"
+
+msgid "Open the Speed Dial"
+msgstr ""
 
 msgid "Slicing and printing"
 msgstr ""
@@ -26793,6 +26692,9 @@ msgid "Painting tools"
 msgstr ""
 
 msgid "Application"
+msgstr ""
+
+msgid "Speed Dial"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -27095,6 +26997,380 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Reset direction"
+#~ msgstr "Richting terugzetten"
+
+#~ msgid "Face recognition"
+#~ msgstr "Gezichtsherkenning"
+
+#~ msgid "Perform Recognition"
+#~ msgstr "Herkenning uitvoeren"
+
+#~ msgid "Text Gap"
+#~ msgstr "Tekstruimte"
+
+# AI Translated
+#~ msgid "Embedded depth"
+#~ msgstr "Ingebedde diepte"
+
+#~ msgid "Input text"
+#~ msgstr "Tekst invoeren"
+
+#~ msgid "Surface"
+#~ msgstr "Oppervlak"
+
+#~ msgid "Horizontal text"
+#~ msgstr "Horizontale tekst"
+
+# AI Translated
+#~ msgid "Mouse move up or down"
+#~ msgstr "Muis omhoog of omlaag bewegen"
+
+#~ msgid "Rotate text"
+#~ msgstr "Draai tekst"
+
+#~ msgid "Text shape"
+#~ msgstr "Tekstvorm"
+
+#~ msgid "Section View"
+#~ msgstr "Sectie weergave"
+
+# AI Translated
+#~ msgid "Hostname or IP"
+#~ msgstr "Hostnaam of IP"
+
+# AI Translated
+#~ msgid "Custom camera source"
+#~ msgstr "Aangepaste camerabron"
+
+# AI Translated
+#~ msgid "Switch Camera View"
+#~ msgstr "Camerabeeld wisselen"
+
+#, c-format, boost-format
+#~ msgid "Slicing Plate %d"
+#~ msgstr "Slicing printbed %d"
+
+#~ msgid "Please resolve the slicing errors and publish again."
+#~ msgstr "Los aub de slicing fouten op en publiceer opnieuw."
+
+# AI Translated
+#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+#~ msgstr "Rendert slagschaduwen op het printbed, op andere objecten en van elk object op zichzelf in de realistische weergave."
+
+#~ msgid "Slice all plates to obtain time and filament estimation"
+#~ msgstr "Slice alle printbedden om een inschatting te krijgen van de printtijd en het filamentverbruik"
+
+#~ msgid "Packing project data into 3MF file"
+#~ msgstr "De projectdata wordt opgelslagen in een 3MF bestand"
+
+#~ msgid "Uploading 3MF"
+#~ msgstr "3mf bestand uploaden"
+
+#~ msgid "Jump to model publish web page"
+#~ msgstr "Ga naar de website om het model te publiceren"
+
+#~ msgid "Note: The preparation may take several minutes. Please be patient."
+#~ msgstr "Notitie: het voorbereiden kan enkele minuten duren. Even geduld alstublieft."
+
+#~ msgid "Publish was canceled"
+#~ msgstr "Het publiceren is geannuleerd"
+
+#~ msgid "Slicing Plate 1"
+#~ msgstr "Slicing printbed 1"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "De data wordt opgeslagen in een 3mf"
+
+# AI Translated
+#~ msgid "Uploading data"
+#~ msgstr "Gegevens uploaden"
+
+#~ msgid "Jump to webpage"
+#~ msgstr "Ga naar de website"
+
+# AI Translated
+#~ msgid "OBJ file import color"
+#~ msgstr "Kleur importeren uit OBJ-bestand"
+
+# AI Translated
+#~ msgid "Some faces don't have color defined."
+#~ msgstr "Voor sommige vlakken is geen kleur gedefinieerd."
+
+# AI Translated
+#~ msgid "MTL file exist error, could not find the material:"
+#~ msgstr "Fout in het MTL-bestand; het materiaal kon niet worden gevonden:"
+
+# AI Translated
+#~ msgid "Please check OBJ or MTL file."
+#~ msgstr "Controleer het OBJ- of MTL-bestand."
+
+# AI Translated
+#~ msgid "Specify number of colors:"
+#~ msgstr "Geef het aantal kleuren op:"
+
+# AI Translated
+#~ msgid "Enter or click the adjustment button to modify number again"
+#~ msgstr "Voer een waarde in of klik op de aanpassingsknop om het aantal opnieuw te wijzigen"
+
+# AI Translated
+#~ msgid "Recommended "
+#~ msgstr "Aanbevolen "
+
+#~ msgid "view"
+#~ msgstr "weergave"
+
+# AI Translated
+#~ msgid "Current filament colors"
+#~ msgstr "Huidige filamentkleuren"
+
+#~ msgid "Matching"
+#~ msgstr "Overeenkomsten"
+
+# AI Translated
+#~ msgid "Quick set"
+#~ msgstr "Snel instellen"
+
+# AI Translated
+#~ msgid "Color match"
+#~ msgstr "Kleurovereenkomst"
+
+# AI Translated
+#~ msgid "Approximate color matching."
+#~ msgstr "Benaderende kleurovereenkomst."
+
+#~ msgid "Append"
+#~ msgstr "Toevoegen"
+
+# AI Translated
+#~ msgid "Append to existing filaments"
+#~ msgstr "Toevoegen aan bestaande filamenten"
+
+# AI Translated
+#~ msgid "Reset mapped extruders."
+#~ msgstr "Toegewezen extruders terugzetten."
+
+#~ msgid "Note"
+#~ msgstr "Opmerking"
+
+# AI Translated
+#~ msgid ""
+#~ "The color has been selected, you can choose OK \n"
+#~ " to continue or manually adjust it."
+#~ msgstr ""
+#~ "De kleur is geselecteerd; u kunt op OK klikken \n"
+#~ " om door te gaan of deze handmatig aanpassen."
+
+#~ msgid "—> "
+#~ msgstr "—> "
+
+#~ msgid "Support/Color Painting: adjust section position"
+#~ msgstr "Support/kleur intekenen: pas de sectie positie aan"
+
+#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
+#~ msgstr "Het heeft een kleine laaghoogte en resulteert in bijna verwaarloosbare laaglijnen en een hoge afdrukkwaliteit. Het is geschikt voor de meeste algemene afdrukgevallen."
+
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm mondstuk, heeft het lagere snelheden en acceleratie, en het spaarzame infill patroon is Gyroid. Dit resulteert in een veel hogere printkwaliteit maar ook een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een iets grotere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een iets kortere printtijd op."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert licht zichtbare laaglijnen maar een kortere printtijd op."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel onzichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel onzichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minimale laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,2 mm-mondstuk heeft dit kleinere laaglijnen, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minimale laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
+#~ msgstr "Het heeft een normale laaghoogte en resulteert in gemiddelde laaglijnen en afdrukkwaliteit. Het is geschikt voor de meeste afdrukgevallen."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een iets kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert minder zichtbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte, lagere snelheden en versnellingen, en is het patroon voor de dunne vulling (infill) Gyroide. Dit levert vrijwel verwaarloosbare laaglijnen en een veel hogere printkwaliteit op, maar een veel langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,4 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert vrijwel verwaarloosbare laaglijnen en een langere printtijd op."
+
+#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
+#~ msgstr "De laagdikte is groot, wat resulteert in zichtbare laaglijnen en een normale afdrukkwaliteit en afdruktijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit meer wanden en een hogere dichtheid van de dunne vulling (infill). Dit levert een hogere printsterkte op, maar meer filamentverbruik en een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert duidelijker zichtbare laaglijnen en een lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert veel duidelijker zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een iets hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,6 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder zichtbare laaglijnen en een hogere printkwaliteit op, maar een langere printtijd."
+
+# AI Translated
+#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
+#~ msgstr "Dit heeft een zeer grote laaghoogte. Dat levert zeer duidelijk zichtbare laaglijnen, een lage printkwaliteit en een kortere printtijd op."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een grotere laaghoogte. Dit levert zeer duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een veel grotere laaghoogte. Dit levert extreem duidelijk zichtbare laaglijnen en een veel lagere printkwaliteit op, maar in sommige gevallen een veel kortere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een iets kleinere laaghoogte. Dit levert iets minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
+
+# AI Translated
+#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
+#~ msgstr "Vergeleken met het standaardprofiel van een 0,8 mm-mondstuk heeft dit een kleinere laaghoogte. Dit levert minder maar nog steeds zichtbare laaglijnen en een iets hogere printkwaliteit op, maar in sommige gevallen een langere printtijd."
+
+# AI Translated
+#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
+#~ msgstr "Dit is geen veelgebruikt filament en ook geen Bambu-filament; het verschilt sterk per merk. Het wordt daarom sterk aangeraden om vóór het printen bij de leverancier een geschikt profiel op te vragen en enkele parameters aan te passen op basis van de eigenschappen."
+
+# AI Translated
+#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Bij het printen van dit filament bestaat er risico op kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
+
+# AI Translated
+#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+#~ msgstr "Bij het printen van dit filament bestaat er risico op verstopping van het mondstuk, druipen, kromtrekken en een lage hechtsterkte tussen de lagen. Raadpleeg voor betere resultaten deze wiki: Printing Tips for High Temp / Engineering materials."
+
+# AI Translated
+#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
+#~ msgstr "Raadpleeg voor betere transparante of doorschijnende resultaten met het betreffende filament deze wiki: Printing tips for transparent PETG."
+
+# AI Translated
+#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
+#~ msgstr "Droog het filament vóór gebruik en stel de snelheid van de buitenwand bij het slicen in op 40 tot 60 mm/s om prints met meer glans te krijgen."
+
+# AI Translated
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+#~ msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
+
+# AI Translated
+#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
+#~ msgstr "Dit filament wordt meestal alleen gebruikt om modellen met een lage dichtheid te printen en vereist enkele speciale parameters. Raadpleeg voor een betere printkwaliteit deze wiki: ASA Aero Printing Guide."
+
+# AI Translated
+#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Dit filament is te zacht en niet compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
+
+# AI Translated
+#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Dit filament is hard genoeg (ongeveer 67D)  en is compatibel met de AMS. Het printen ervan stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
+
+# AI Translated
+#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
+#~ msgstr "Als u een zachte soort TPU gaat printen, slice dan niet met dit profiel; het is alleen bedoeld voor TPU dat hard genoeg is (niet minder dan 55D) en compatibel is met de AMS. Raadpleeg voor een betere printkwaliteit deze wiki: TPU printing guide."
+
+# AI Translated
+#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
+#~ msgstr "Dit is een in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Het printen van dit filament stelt veel eisen; raadpleeg voor een betere printkwaliteit deze wiki: PVA Printing Guide."
+
+# AI Translated
+#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
+#~ msgstr "Dit is een niet in water oplosbaar ondersteuningsfilament en wordt meestal alleen gebruikt voor de ondersteuningsstructuur en niet voor het model zelf. Raadpleeg voor een betere printkwaliteit deze wiki: Printing Tips for Support Filament and Support Function."
+
+# AI Translated
+#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
+#~ msgstr "De generieke voorinstellingen zijn behoudend afgestemd voor compatibiliteit met een breder scala aan filamenten. Gebruik voor een hogere printkwaliteit en hogere snelheden Bambu-filamenten met Bambu-voorinstellingen."
+
+# AI Translated
+#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
+#~ msgstr "Hogekwaliteitsprofiel voor een 0,2 mm-mondstuk, met prioriteit voor printkwaliteit."
+
+# AI Translated
+#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
+#~ msgstr "Hogekwaliteitsprofiel voor 0,16 mm laaghoogte, met prioriteit voor printkwaliteit en sterkte."
+
+# AI Translated
+#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
+#~ msgstr "Standaardprofiel voor 0,16 mm laaghoogte, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
+#~ msgstr "Hogekwaliteitsprofiel voor 0,2 mm laaghoogte, met prioriteit voor sterkte en printkwaliteit."
+
+# AI Translated
+#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
+#~ msgstr "Standaardprofiel voor een 0,4 mm-mondstuk, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
+#~ msgstr "Hogekwaliteitsprofiel voor een 0,6 mm-mondstuk, met prioriteit voor printkwaliteit en sterkte."
+
+# AI Translated
+#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
+#~ msgstr "Sterkteprofiel voor een 0,6 mm-mondstuk, met prioriteit voor sterkte."
+
+# AI Translated
+#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
+#~ msgstr "Standaardprofiel voor een 0,6 mm-mondstuk, met prioriteit voor snelheid."
+
+# AI Translated
+#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
+#~ msgstr "Hogekwaliteitsprofiel voor een 0,8 mm-mondstuk, met prioriteit voor printkwaliteit."
+
+# AI Translated
+#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
+#~ msgstr "Sterkteprofiel voor een 0,8 mm-mondstuk, met prioriteit voor sterkte."
+
+# AI Translated
+#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
+#~ msgstr "Standaardprofiel voor een 0,8 mm-mondstuk, met prioriteit voor snelheid."
 
 # AI Translated
 #~ msgid "Tab"

@@ -149,6 +149,7 @@ src/slic3r/GUI/HMSPanel.cpp
 src/slic3r/GUI/MainFrame.cpp
 src/slic3r/GUI/MediaPlayCtrl.cpp
 src/slic3r/GUI/MediaFilePanel.cpp
+src/slic3r/GUI/OrcaFilesPanel.cpp
 src/slic3r/GUI/ImageGrid.cpp
 src/slic3r/GUI/Widgets/ImageSwitchButton.cpp
 src/slic3r/GUI/Printer/PrinterFileSystem.cpp

@@ -4,6 +4,7 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
 #include <algorithm>
@@ -473,9 +474,11 @@ void AMSMaterialsSetting::update_filament_editing(bool is_printing)
     }
 
     // A third-party tray owns its temp range; BBL RFID trays keep the read-only preset values.
+    // Only the OrcaSonar agent accepts the temp fields, so other agents stay read-only.
+    const bool is_orca_agent = obj && obj->printer_agent_id == ORCA_PRINTER_AGENT_ID;
     const bool can_edit = !is_printing || obj->is_support_filament_setting_inprinting;
-    m_input_nozzle_min->Enable(m_is_third && can_edit);
-    m_input_nozzle_max->Enable(m_is_third && can_edit);
+    m_input_nozzle_min->Enable(m_is_third && can_edit && is_orca_agent);
+    m_input_nozzle_max->Enable(m_is_third && can_edit && is_orca_agent);
 
     if (!m_is_third) {
         m_tip_readonly->SetLabelText(wxEmptyString);
@@ -726,6 +729,21 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
     if (ams_filament_id.empty() || nozzle_temp_min.empty() || nozzle_temp_max.empty() || m_filament_type.empty()) {
         BOOST_LOG_TRIVIAL(trace) << "Invalid Setting id";
         MessageDialog msg_dlg(nullptr, _L("You need to select the material type and color first."), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
+    if (nozzle_temp_min_int < FILAMENT_MIN_TEMP || nozzle_temp_min_int > FILAMENT_MAX_TEMP ||
+        nozzle_temp_max_int < FILAMENT_MIN_TEMP || nozzle_temp_max_int > FILAMENT_MAX_TEMP) {
+        MessageDialog msg_dlg(nullptr,
+            wxString::Format(_L("The input value should be greater than %1% and less than %2%"), FILAMENT_MIN_TEMP, FILAMENT_MAX_TEMP),
+            wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+    if (nozzle_temp_min_int > nozzle_temp_max_int) {
+        MessageDialog msg_dlg(nullptr, _L("The minimum temperature cannot be greater than the maximum temperature."),
+                              wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }

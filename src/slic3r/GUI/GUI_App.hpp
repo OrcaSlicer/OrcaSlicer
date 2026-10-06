@@ -399,6 +399,9 @@ public:
     // Reconcile the live printer agent with the stored preset selection.
     void switch_printer_agent();
 
+    // Whether the background SSDP scan should run for the effective printer agent.
+    bool should_start_ssdp_discovery();
+
     std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
     // then, all resolve and canonical would just be ORCA<->""

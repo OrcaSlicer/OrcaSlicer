@@ -6420,9 +6420,10 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             for (const auto &entry : wxGetApp().preset_bundle->filament_ams_list) {
                 const auto &tray = entry.second;
                 const bool has_filament = !tray.opt_string("filament_id", 0u).empty();
+                const bool has_type     = !tray.opt_string("filament_type", 0u).empty();
                 const bool is_placeholder = tray.has("filament_slot_placeholder") &&
                                              tray.opt_bool("filament_slot_placeholder", 0u);
-                if (!has_filament && !is_placeholder) {
+                if (!has_filament && !is_placeholder && !has_type) {
                     continue;
                 }
                 if (combo_index >= p->combos_filament.size()) {

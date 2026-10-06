@@ -100,7 +100,7 @@ public:
     // setters
     void reset();
     void UpdateColorFromStr(const std::string& color);
-    void UpdateEmptyState(bool material_fields_present);
+    void UpdateEmptyState(bool material_fields_present, bool classify_empty);
     void set_hold_count() { hold_count = HOLD_COUNT_MAX; }
 
     // getter
