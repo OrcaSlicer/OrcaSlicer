@@ -309,6 +309,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
     #include <gtk/gtk.h>
 #endif
 
+namespace fs = boost::filesystem;
 using namespace std::literals;
 namespace pt = boost::property_tree;
 

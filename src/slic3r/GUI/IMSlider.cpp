@@ -46,6 +46,8 @@
 
 namespace Slic3r {
 
+using namespace CustomGCode;
+
 namespace GUI {
 
 // equal to 25 mm2

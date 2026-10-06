@@ -8111,13 +8111,13 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_TAB, [this](SimpleEvent&) { select_next_view_3D(); });
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [this](SimpleEvent&) { this->q->collapse_sidebar(!this->q->is_sidebar_collapsed());  });
         preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](wxCommandEvent& event) {
-            Type tick_event_type = (Type)event.GetInt();
+            CustomGCode::Type tick_event_type = (CustomGCode::Type)event.GetInt();
             Model& model = wxGetApp().plater()->model();
             //BBS: replace model custom gcode with current plate custom gcode
             model.plates_custom_gcodes[model.curr_plate_index] = preview->get_canvas3d()->get_gcode_viewer().get_layers_slider()->GetTicksValues();
 
             // BBS set to invalid state only
-            if (tick_event_type == Type::ToolChange || tick_event_type == Type::Custom || tick_event_type == Type::Template || tick_event_type == Type::PausePrint) {
+            if (tick_event_type == CustomGCode::Type::ToolChange || tick_event_type == CustomGCode::Type::Custom || tick_event_type == CustomGCode::Type::Template || tick_event_type == CustomGCode::Type::PausePrint) {
                 PartPlate *plate = this->q->get_partplate_list().get_curr_plate();
                 if (plate) {
                     plate->update_slice_result_valid_state(false);
@@ -20544,7 +20544,7 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
 
     // update customize gcode
     for (auto item = p->model.plates_custom_gcodes.begin(); item != p->model.plates_custom_gcodes.end(); ++item) {
-        auto iter = std::remove_if(item->second.gcodes.begin(), item->second.gcodes.end(), [filament_id](const Item& gcode_item) {
+        auto iter = std::remove_if(item->second.gcodes.begin(), item->second.gcodes.end(), [filament_id](const CustomGCode::Item& gcode_item) {
             return (gcode_item.type == CustomGCode::Type::ToolChange && gcode_item.extruder == filament_id + 1);
         });
         if (replace_filament_id == -1)

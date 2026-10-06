@@ -80,6 +80,8 @@
 #include <vector>
 #include <utility>
 
+namespace fs = boost::filesystem;
+
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
 

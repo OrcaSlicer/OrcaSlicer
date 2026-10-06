@@ -3622,7 +3622,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (extruder_id + 1 != static_cast<unsigned char>(item.extruder))
                 continue;
 
-            if (item.type != ColorChange)
+            if (item.type != CustomGCode::ColorChange)
                 continue;
 
             if (!zs_built) {
@@ -4789,10 +4789,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImGui::SameLine();
 
             switch (custom_gcode.type) {
-            case PausePrint: imgui.text(cgcode_pause_str); break;
-            case Template: imgui.text(cgcode_template_str); break;
-            case ToolChange: imgui.text(cgcode_toolchange_str); break;
-            case Custom: imgui.text(cgcode_custom_str); break;
+            case CustomGCode::PausePrint: imgui.text(cgcode_pause_str); break;
+            case CustomGCode::Template: imgui.text(cgcode_template_str); break;
+            case CustomGCode::ToolChange: imgui.text(cgcode_toolchange_str); break;
+            case CustomGCode::Custom: imgui.text(cgcode_custom_str); break;
             default: imgui.text(cgcode_unknown_str); break;
             }
             ImGui::SameLine(max_len);

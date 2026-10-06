@@ -20,6 +20,7 @@
 
 namespace Slic3r::Geometry {
 
+using VD                          = VoronoiDiagram;
 using PolygonsSegmentIndexConstIt = std::vector<Arachne::PolygonsSegmentIndex>::const_iterator;
 using LinesIt                     = Lines::iterator;
 using ColoredLinesIt              = ColoredLines::iterator;

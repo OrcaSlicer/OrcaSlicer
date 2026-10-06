@@ -2177,7 +2177,7 @@ void GUI::CalibrateFilamentComboBox::OnSelect(wxCommandEvent &evt)
     wxPostEvent(m_parent, e);
 }
 
-void PlaterPresetComboBox::sys_color_changed()
+void GUI::PlaterPresetComboBox::sys_color_changed()
 {
     PresetComboBox::sys_color_changed();
     if (clr_picker) {
