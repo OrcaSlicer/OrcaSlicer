@@ -2,14 +2,27 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <deque>
+#include <functional>
 #include <limits>
+#include <utility>
+#include <vector>
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
+#include "../BoundingBox.hpp"
+#include "../ExPolygon.hpp"
+#include "../Execution/ExecutionTBB.hpp"
 #include "../MarchingSquares.hpp"
+#include "../Point.hpp"
+#include "../Polygon.hpp"
+#include "../Polyline.hpp"
+#include "../PrintConfig.hpp"
+#include "../libslic3r.h"
 
 namespace Slic3r {
 

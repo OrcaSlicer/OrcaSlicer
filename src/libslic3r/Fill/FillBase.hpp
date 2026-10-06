@@ -161,7 +161,7 @@ public:
     // Octree builds on mesh for usage in the adaptive cubic infill
     FillAdaptive::Octree* adapt_fill_octree = nullptr;
 
-    // Depth inside the object for the adaptive TPMS infill
+    // Radial coordinate inside the object for the adaptive TPMS infill
     const TpmsRadialField* tpms_radial_field = nullptr;
 
     // PrintConfig and PrintObjectConfig are used by infills that use Arachne (Concentric and FillEnsuring).
