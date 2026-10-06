@@ -14209,28 +14209,26 @@ int Plater::get_send_finished_event()
 
 void Plater::priv::set_current_canvas_as_dirty()
 {
-    if (current_panel != nullptr) {
-        if (current_panel == view3D)
-            view3D->set_as_dirty();
-        else if (current_panel == preview)
-            preview->set_as_dirty();
-        else if (current_panel == assemble_view)
-            assemble_view->set_as_dirty();
-    }
+    if (current_panel == view3D)
+        view3D->set_as_dirty();
+    else if (current_panel == preview)
+        preview->set_as_dirty();
+    else if (current_panel == assemble_view)
+        assemble_view->set_as_dirty();
 }
 
 GLCanvas3D* Plater::priv::get_current_canvas3D(bool exclude_preview)
 {
-    if (current_panel == view3D && view3D != nullptr)
+    if (current_panel == view3D)
         return view3D->get_canvas3d();
-    else if (!exclude_preview && (current_panel == preview) && preview != nullptr)
+    else if (!exclude_preview && (current_panel == preview))
         return preview->get_canvas3d();
-    else if (current_panel == assemble_view && assemble_view != nullptr)
+    else if (current_panel == assemble_view)
         return assemble_view->get_canvas3d();
-    else if (view3D != nullptr) //BBS default set to view3D
+    else //BBS default set to view3D
         return view3D->get_canvas3d();
 
-    return nullptr;
+    //return (current_panel == view3D) ? view3D->get_canvas3d() : ((current_panel == preview) ? preview->get_canvas3d() : nullptr);
 }
 
 void Plater::priv::unbind_canvas_event_handlers()
@@ -21131,35 +21129,35 @@ bool Plater::is_single_full_object_selection() const
 GLCanvas3D* Plater::canvas3D()
 {
     // BBS modify view3D->get_canvas3d() to current canvas
-    return p ? p->get_current_canvas3D() : nullptr;
+    return p->get_current_canvas3D();
 }
 
 const GLCanvas3D* Plater::canvas3D() const
 {
     // BBS modify view3D->get_canvas3d() to current canvas
-    return p ? p->get_current_canvas3D() : nullptr;
+    return p->get_current_canvas3D();
 }
 
 GLCanvas3D* Plater::get_view3D_canvas3D()
 {
-    return (p && p->view3D) ? p->view3D->get_canvas3d() : nullptr;
+    return p ? p->view3D->get_canvas3d() : nullptr;
 }
 
 GLCanvas3D* Plater::get_preview_canvas3D()
 {
-    return (p && p->preview) ? p->preview->get_canvas3d() : nullptr;
+    return p->preview->get_canvas3d();
 }
 
 GLCanvas3D* Plater::get_assmeble_canvas3D()
 {
-    if (p && p->assemble_view)
+    if (p->assemble_view)
         return p->assemble_view->get_canvas3d();
     return nullptr;
 }
 
 UVEditorCanvas* Plater::get_uv_editor_canvas()
 {
-    return p ? p->uv_editor_canvas : nullptr;
+    return p->uv_editor_canvas;
 }
 
 void Plater::show_uv_editor(bool show)
