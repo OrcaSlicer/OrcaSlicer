@@ -287,18 +287,20 @@ bool moonraker_is_light_name(const std::string& name)
 
 MoonrakerPrinterAgent::MoonrakerPrinterAgent(std::string log_dir) : m_cloud_agent(nullptr) { (void) log_dir; }
 
-MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
+MoonrakerPrinterAgent::~MoonrakerPrinterAgent() { shutdown(); }
+
+void MoonrakerPrinterAgent::shutdown()
 {
-    // Detached fetch_filament_info() threads (see QidiPrinterAgent::fetch_filament_info)
-    // hold a raw `this` with no other lifetime protection — wait for them to finish before
-    // any part of this object is torn down, so they never touch freed memory.
-    while (filament_fetch_in_flight.load() > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    {
+        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
+        if (shutting_down.exchange(true)) {
+            return;
+        }
     }
 
+    // Stop the producers before waiting on in-flight fetches.
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
-        device_info = MoonrakerDeviceInfo{};
         ++connect_generation;
     }
     if (connect_thread.joinable()) {
@@ -314,12 +316,25 @@ MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
     if (cmd_thread.joinable()) {
         cmd_thread.join();
     }
+
+    while (filament_fetch_in_flight.load() > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    // Fetches read device_info without the lock; clear it once none can run.
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        device_info = MoonrakerDeviceInfo{};
+    }
 }
 
 void MoonrakerPrinterAgent::enqueue_command(std::function<void()> fn)
 {
     {
         std::lock_guard<std::mutex> lock(cmd_mutex);
+        if (cmd_stop) {
+            return;
+        }
         if (!cmd_thread.joinable()) {
             cmd_thread = std::thread(&MoonrakerPrinterAgent::run_command_worker, this);
         }

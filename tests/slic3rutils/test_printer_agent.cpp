@@ -170,6 +170,119 @@ TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited
     REQUIRE(agent->invoked.load() == true);
 }
 
+namespace {
+
+// Globals so a parked proxy fetch thread never dereferences a freed agent.
+std::atomic<int>  g_deferred_fetch_running{0};
+std::atomic<bool> g_deferred_destroy_returned{false};
+
+// Joins on scope exit so a throwing REQUIRE does not std::terminate.
+class ScopedJoiner
+{
+public:
+    explicit ScopedJoiner(std::thread& t) : m_thread(t) {}
+    ~ScopedJoiner() { if (m_thread.joinable()) m_thread.join(); }
+    ScopedJoiner(const ScopedJoiner&) = delete;
+    ScopedJoiner& operator=(const ScopedJoiner&) = delete;
+
+private:
+    std::thread& m_thread;
+};
+
+// A fetch that parks before touching the in-flight counter, so teardown's wait can
+// observe zero first.
+class DeferredFetchAgent : public MoonrakerPrinterAgent
+{
+public:
+    explicit DeferredFetchAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
+
+    // Shared so a parked proxy fetch can never outlive the stack that owns it.
+    std::shared_ptr<std::promise<void>> entered{std::make_shared<std::promise<void>>()};
+    std::shared_ptr<std::promise<void>> allow_fetch{std::make_shared<std::promise<void>>()};
+    std::shared_ptr<std::promise<void>> allow_finish{std::make_shared<std::promise<void>>()};
+
+    // Runs the callable on the command worker, which teardown joins.
+    void post(std::function<void()> fn) { enqueue_command(std::move(fn)); }
+
+    bool fetch_filament_info(std::string /*dev_id*/, FilamentSyncMode /*sync_mode*/ = FilamentSyncMode::pull) override
+    {
+        // Resumes after ~DeferredFetchAgent destroyed these members; snapshot up front.
+        auto entered_p      = entered;
+        auto allow_fetch_p  = allow_fetch;
+        auto allow_finish_p = allow_finish;
+
+        entered_p->set_value();
+        allow_fetch_p->get_future().wait();
+
+        filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+        std::thread([this, finish = std::move(allow_finish_p)] {
+            struct InFlightGuard
+            {
+                std::atomic<int>& counter;
+                ~InFlightGuard() { counter.fetch_sub(1, std::memory_order_relaxed); }
+            } guard{filament_fetch_in_flight};
+
+            g_deferred_fetch_running.fetch_add(1, std::memory_order_relaxed);
+            finish->get_future().wait();
+            g_deferred_fetch_running.fetch_sub(1, std::memory_order_relaxed);
+        }).detach();
+        return true;
+    }
+};
+
+} // namespace
+
+// REGRESSION - teardown must not return while a fetch it started is in flight.
+// The command worker parks a fetch before it reserves the in-flight slot, forcing
+// the "wait already observed zero" interleaving deterministically.
+TEST_CASE("an agent's destruction waits for a fetch started by its worker during teardown",
+          "[unit][moonraker][Regression]")
+{
+    g_deferred_fetch_running.store(0);
+    g_deferred_destroy_returned.store(false);
+
+    auto agent        = std::make_shared<DeferredFetchAgent>(std::string{});
+    auto entered      = agent->entered;
+    auto allow_fetch  = agent->allow_fetch;
+    auto allow_finish = agent->allow_finish;
+
+    // Park a fetch inside the command worker while the agent is still complete.
+    agent->post([ptr = agent.get()] { ptr->fetch_filament_info("dev", FilamentSyncMode::pull); });
+    REQUIRE(entered->get_future().wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+    // Destroy on another thread so this one can drive the parked fetch.
+    std::thread destroyer([owned = std::move(agent)]() mutable {
+        owned.reset();
+        g_deferred_destroy_returned.store(true);
+    });
+    ScopedJoiner join_destroyer{destroyer};
+
+    // Let teardown pass its wait; the worker has not reserved yet.
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    allow_fetch->set_value();
+
+    // Get the fetch actually in flight (parked on allow_finish).
+    for (int i = 0; i < 200 && g_deferred_fetch_running.load() == 0; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    REQUIRE(g_deferred_fetch_running.load() == 1);
+
+    // A correct teardown cannot return while the fetch is parked; give a buggy one time.
+    for (int i = 0; i < 200 && !g_deferred_destroy_returned.load(); ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    if (g_deferred_destroy_returned.load()) {
+        // Bug: teardown returned with a fetch still running. Don't release allow_finish.
+        CHECK(g_deferred_fetch_running.load() == 0);
+        return;
+    }
+
+    // Fixed order: destruction is still blocked on the in-flight fetch.
+    allow_finish->set_value();
+    destroyer.join();
+    CHECK(g_deferred_destroy_returned.load());
+    CHECK(g_deferred_fetch_running.load() == 0);
+}
+
 // ===========================================================================
 // UNIT - printer-agent registry duplicate handling.
 // Confirms a duplicate agent id is rejected so a plugin cannot shadow a built-in

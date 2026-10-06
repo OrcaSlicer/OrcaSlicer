@@ -11,6 +11,7 @@
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <cstdint>
+#include <mutex>
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -33,6 +34,18 @@ int64_t now_ms()
     return std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
+
+// RAII decrement for the in-flight fetch count; movable so a failed thread start still releases it.
+struct InFlightGuard
+{
+    std::atomic<int>* counter;
+    explicit InFlightGuard(std::atomic<int>& c) noexcept : counter(&c) {}
+    InFlightGuard(InFlightGuard&& other) noexcept : counter(other.counter) { other.counter = nullptr; }
+    InFlightGuard(const InFlightGuard&) = delete;
+    InFlightGuard& operator=(const InFlightGuard&) = delete;
+    InFlightGuard& operator=(InFlightGuard&&) = delete;
+    ~InFlightGuard() { if (counter) counter->fetch_sub(1, std::memory_order_relaxed); }
+};
 
 // Safely access a parallel array by index, returning a fallback if out of bounds.
 template<typename T>
@@ -155,18 +168,24 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (sync_mode != get_filament_sync_mode())
         return false;
 
-    const std::string base_url = device_info.base_url;
-    const std::string api_key  = device_info.api_key;
+    std::string base_url;
+    std::string api_key;
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        base_url = device_info.base_url;
+        api_key  = device_info.api_key;
+    }
 
-    filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+    // Reserve under the same mutex shutdown() uses, so the flag and the count can't race.
+    {
+        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
+        if (shutting_down.load())
+            return false;
+        filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+    }
 
-    std::thread([this, base_url, api_key]() {
-        struct InFlightGuard
-        {
-            std::atomic<int>& counter;
-            ~InFlightGuard() { counter.fetch_sub(1, std::memory_order_relaxed); }
-        } guard{filament_fetch_in_flight};
-
+    InFlightGuard guard{filament_fetch_in_flight};
+    std::thread([this, guard = std::move(guard), base_url, api_key]() {
         const std::string url = join_url(base_url, "/printer/objects/query?print_task_config&filament_detect");
 
         std::string response_body;

@@ -16,7 +16,7 @@ class QidiPrinterAgent final : public MoonrakerPrinterAgent
 {
 public:
     explicit QidiPrinterAgent(std::string log_dir);
-    ~QidiPrinterAgent() override = default;
+    ~QidiPrinterAgent() override { shutdown(); }
 
     static AgentInfo get_agent_info_static();
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }

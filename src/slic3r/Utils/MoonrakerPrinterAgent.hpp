@@ -156,11 +156,15 @@ protected:
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
 
-    // Counts detached fetch_filament_info() background threads currently touching `this`
-    // (see QidiPrinterAgent::fetch_filament_info). Those threads hold a raw `this` with no
-    // other lifetime protection, so the destructor waits for this to reach 0 before any part
-    // of the object is torn down — see ~MoonrakerPrinterAgent().
+    // Detached fetch threads hold a raw `this`; shutdown() waits for this to reach 0.
     std::atomic<int> filament_fetch_in_flight{0};
+
+    // Idempotent teardown; must be called from the most-derived destructor.
+    void shutdown();
+    std::atomic<bool> shutting_down{false};
+
+    // Serializes the shutting_down check with the in-flight reservation.
+    std::mutex fetch_lifecycle_mutex;
 
     // Helpers
     bool        is_numeric(const std::string& value);

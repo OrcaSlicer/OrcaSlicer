@@ -16,6 +16,7 @@
 #include "libslic3r/Preset.hpp"
 #include <cstddef>
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <thread>
 #include <string>
@@ -40,13 +41,16 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
-// RAII decrement for MoonrakerPrinterAgent::filament_fetch_in_flight — guarantees the
-// counter drops back down on every exit path (early return or fall-through) inside the
-// detached fetch thread below, so ~MoonrakerPrinterAgent()'s wait loop can't stall forever.
+// RAII decrement for the in-flight fetch count; movable so a failed thread start still releases it.
 struct InFlightGuard
 {
-    std::atomic<int>& counter;
-    ~InFlightGuard() { counter.fetch_sub(1, std::memory_order_relaxed); }
+    std::atomic<int>* counter;
+    explicit InFlightGuard(std::atomic<int>& c) noexcept : counter(&c) {}
+    InFlightGuard(InFlightGuard&& other) noexcept : counter(other.counter) { other.counter = nullptr; }
+    InFlightGuard(const InFlightGuard&) = delete;
+    InFlightGuard& operator=(const InFlightGuard&) = delete;
+    InFlightGuard& operator=(InFlightGuard&&) = delete;
+    ~InFlightGuard() { if (counter) counter->fetch_sub(1, std::memory_order_relaxed); }
 };
 
 } // anonymous namespace
@@ -74,18 +78,26 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     if (sync_mode != get_filament_sync_mode())
         return false;
 
-    // Snapshot only what the fetch needs, rather than reading device_info live from the
-    // background thread below — device_info can be concurrently rewritten by a reconnect
-    // on another thread while this fetch is still in flight.
+    // Snapshot what the fetch needs; a reconnect can rewrite device_info meanwhile.
     ConnectionSettings connection = get_connection_settings();
-    std::string model_id   = device_info.model_id;
-    std::string model_name = device_info.model_name;
+    std::string        model_id;
+    std::string        model_name;
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        model_id   = device_info.model_id;
+        model_name = device_info.model_name;
+    }
 
-    filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+    // Reserve under the same mutex shutdown() uses, so the flag and the count can't race.
+    {
+        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
+        if (shutting_down.load())
+            return false;
+        filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+    }
 
-    std::thread([this, connection = std::move(connection), model_id, model_name]() mutable {
-        InFlightGuard guard{filament_fetch_in_flight};
-
+    InFlightGuard guard{filament_fetch_in_flight};
+    std::thread([this, guard = std::move(guard), connection = std::move(connection), model_id, model_name]() mutable {
         std::string error;
 
         // 1. Fetch device info and infer series_id
