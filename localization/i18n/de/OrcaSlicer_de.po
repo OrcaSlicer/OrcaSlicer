@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -3376,8 +3376,8 @@ msgstr "Zusätzliche Prozesseinstellung"
 msgid "Remove parameter"
 msgstr "Parameter entfernen"
 
-msgid "to"
-msgstr "bis"
+msgid "Range"
+msgstr "Reichweite"
 
 msgid "Add height range"
 msgstr "Höhenbereich hinzufügen"
@@ -5408,9 +5408,6 @@ msgstr "Parametername"
 
 msgid "layers"
 msgstr "Schichten"
-
-msgid "Range"
-msgstr "Reichweite"
 
 msgid "Empty string"
 msgstr "Leere Zeichenfolge"
@@ -10211,18 +10208,6 @@ msgstr "Nicht unterstützte Profile anzeigen"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Zeigt inkompatible/nicht unterstützte Profile in den Dropdown-Listen für Drucker und Filament an. Diese Profile können nicht ausgewählt werden."
 
-# AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Experimentell) Drucker-Agenten anstelle von Druck-Hosts verwenden"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Leitet Druckaufträge für Nicht-Bambu-Drucker über Drucker-Plugin-Agenten statt über den klassischen Druck-Host-Upload.\n"
-"Wenn deaktiviert, verwendet OrcaSlicer das bisherige Druck-Host-Verhalten."
-
 msgid "Experimental Features"
 msgstr "Experimentelle Funktionen"
 
@@ -10235,6 +10220,17 @@ msgid ""
 msgstr ""
 "Versuchen Sie, bemalte Funktionen (Farbe/Naht/Stütze/unscharf usw.) nach Änderung des Objekt-Meshs (z. B. schneiden/neu laden von der Festplatte/vereinfachen/reparieren usw.) beizubehalten\n"
 "Sehr experimentell! Langsam und kann Artefakte erzeugen."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Leitet Druckaufträge für Nicht-Bambu-Drucker über Drucker-Plugin-Agenten statt über den klassischen Druck-Host-Upload.\n"
+"Wenn deaktiviert, verwendet OrcaSlicer das bisherige Druck-Host-Verhalten."
 
 msgid "Allow Abnormal Storage"
 msgstr "Fehlerhaften Speicher zulassen"
@@ -10402,6 +10398,9 @@ msgstr "Andere Filament-Schichtsequenz"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Bitte geben Sie einen Schichtwert (>= 2) ein."
+
+msgid "to"
+msgstr "bis"
 
 msgid "Plate name"
 msgstr "Platten-Name"
@@ -16210,6 +16209,12 @@ msgstr "Symmetrische Füllung Y-Achse"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Wenn das Modell zwei Teile hat, die symmetrisch zur Y-Achse sind, und Sie möchten, dass diese Teile symmetrische Texturen haben, klicken Sie bitte auf diese Option auf einem der Teile."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "Kombinieren der Füllung - Maximale Schichthöhe"
@@ -22381,6 +22386,22 @@ msgstr "Das Filament ist möglicherweise nicht mit den aktuellen Geräteeinstell
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Das Filamentprofil ist unbekannt. Es wird ein zufälliges Filamentprofil verwendet."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Druckbett und sein Plattenraster anzeigen"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Hilfsgeometrie"
@@ -22492,35 +22513,11 @@ msgstr "Druckbett eingeblendet"
 msgid "Bed hidden"
 msgstr "Druckbett ausgeblendet"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "FEATURES"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Skizze"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Skizzenebene: %s — Werkzeug wählen"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Klicken Sie im Ansichtsfenster auf eine Fläche oder eine Referenzebene, dann auf ein Skizzenwerkzeug"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Skizzenebene: %s.\n"
-"Wählen Sie ein Werkzeug oder drücken Sie Menü für die Liste."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Klicken Sie auf eine Fläche oder eine Referenzebene, dann auf ein Skizzenwerkzeug."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22870,14 +22867,6 @@ msgstr "Eine zylindrische Fläche (Innenbohrung / außen) oder eine kreisförmig
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Wählen Sie eine zylindrische Fläche (Bohrung / außen) oder eine kreisförmige Kante für ein Gewinde"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "STEP importieren (bearbeitbarer B-rep-Volumenkörper)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Netz (STL/OBJ) als bearbeitbaren B-rep-Volumenkörper importieren"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23280,12 +23269,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Neue Konstruktion — Feature-Baum leeren"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "STEP importieren (bearbeitbarer B-rep-Volumenkörper)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Netz (STL/OBJ) als bearbeitbaren B-rep-Volumenkörper importieren"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "STEP exportieren…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Druckbett und sein Plattenraster anzeigen"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23321,6 +23317,10 @@ msgstr "Breite / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Höhe / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Skizze"
 
 # AI Translated
 msgid "Distance X"
@@ -23951,6 +23951,9 @@ msgstr "(keine Bindungen)"
 msgid "Value"
 msgstr "Wert"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Abhängigkeiten"
@@ -23988,6 +23991,9 @@ msgstr "Nach unten verschieben"
 # AI Translated
 msgid "Show / hide"
 msgstr "Einblenden / Ausblenden"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24060,6 +24066,9 @@ msgstr "Bereich ausgewählt — Rechtsklick zum Extrudieren oder Doppelklick zum
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Skizze ausgewählt — Rechtsklick zum Extrudieren oder Doppelklick zum Bearbeiten"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24107,11 +24116,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s-Ebene ausgewählt — Rechtsklick für die Zeichenwerkzeuge"
 
 # AI Translated
 #, c-format, boost-format
@@ -24928,13 +24932,10 @@ msgstr "Formschräge benötigt einen Volumenkörper — fügen Sie zuerst einen 
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Formschräge benötigt eine gewählte Fläche — klicken Sie zuerst auf eine Seitenfläche"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Noch nichts vorhanden — importieren Sie über die Werkzeugleiste eine STEP-Datei oder ein Netz,\n"
-"oder klicken Sie auf eine Referenzebene und dann mit der rechten Maustaste darauf, um eine Skizze zu beginnen."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -24972,13 +24973,26 @@ msgstr "Schnittansicht — die untere Hälfte wird angezeigt"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Wählen Sie zuerst einen Körper aus — klicken Sie im Ansichtsfenster oder in der Körperliste darauf"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Dieser Körper hat noch kein Anzeigenetz — zuerst neu berechnen"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Wählen Sie zuerst einen Körper aus — klicken Sie im Ansichtsfenster oder in der Körperliste darauf"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25004,9 +25018,6 @@ msgstr "Klicken Sie auf eine Fläche des Volumenkörpers und drücken Sie dann F
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Auf Fläche gelegt — Körper liegt flach auf dem Druckbett"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -25457,6 +25468,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Skizzenebene: %s — Werkzeug wählen"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Skizzenebene: %s.\n"
+"Wählen Sie ein Werkzeug oder drücken Sie Menü für die Liste."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Ebene bereit"
 
@@ -25707,9 +25732,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Skizze"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Auf eine Fläche oder eine Referenzebene klicken, dann ein Zeichenwerkzeug wählen"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -25995,6 +26022,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -30581,6 +30615,39 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimentell) Drucker-Agenten anstelle von Druck-Hosts verwenden"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "FEATURES"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Klicken Sie im Ansichtsfenster auf eine Fläche oder eine Referenzebene, dann auf ein Skizzenwerkzeug"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Klicken Sie auf eine Fläche oder eine Referenzebene, dann auf ein Skizzenwerkzeug."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s-Ebene ausgewählt — Rechtsklick für die Zeichenwerkzeuge"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Noch nichts vorhanden — importieren Sie über die Werkzeugleiste eine STEP-Datei oder ein Netz,\n"
+#~ "oder klicken Sie auf eine Referenzebene und dann mit der rechten Maustaste darauf, um eine Skizze zu beginnen."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Auf eine Fläche oder eine Referenzebene klicken, dann ein Zeichenwerkzeug wählen"
 
 #~ msgid "X"
 #~ msgstr "X"

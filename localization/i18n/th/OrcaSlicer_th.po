@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -3396,8 +3396,8 @@ msgstr "พรีเซ็ตกระบวนการเพิ่มเติ
 msgid "Remove parameter"
 msgstr "ลบพารามิเตอร์"
 
-msgid "to"
-msgstr "ถึง"
+msgid "Range"
+msgstr "พิสัย"
 
 msgid "Add height range"
 msgstr "เพิ่มช่วงความสูง"
@@ -5441,9 +5441,6 @@ msgstr "ชื่อพารามิเตอร์"
 
 msgid "layers"
 msgstr "ชั้น"
-
-msgid "Range"
-msgstr "พิสัย"
 
 msgid "Empty string"
 msgstr "สตริงว่าง"
@@ -10227,18 +10224,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(ทดลอง) ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"ส่งงานพิมพ์ของเครื่องพิมพ์ที่ไม่ใช่ Bambu ผ่านเอเจนต์ปลั๊กอินของเครื่องพิมพ์ แทนการอัพโหลดไปยังโฮสต์การพิมพ์แบบเดิม\n"
-"เมื่อปิดใช้ OrcaSlicer จะใช้พฤติกรรมโฮสต์การพิมพ์แบบเดิม"
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "ฟีเจอร์ทดลอง"
 
@@ -10252,6 +10237,17 @@ msgid ""
 msgstr ""
 "พยายามคงคุณสมบัติการทาสีไว้ (สี/รอยตะเข็บ/ส่วนรองรับ/ผิวฟัซซี ฯลฯ) หลังจากเปลี่ยนตาข่ายวัตถุ (เช่น ตัด/โหลดซ้ำจากดิสก์/ลดความซับซ้อน/แก้ไข ฯลฯ)\n"
 "น่าทดลองมาก! ช้าและอาจสร้างสิ่งประดิษฐ์"
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"ส่งงานพิมพ์ของเครื่องพิมพ์ที่ไม่ใช่ Bambu ผ่านเอเจนต์ปลั๊กอินของเครื่องพิมพ์ แทนการอัพโหลดไปยังโฮสต์การพิมพ์แบบเดิม\n"
+"เมื่อปิดใช้ OrcaSlicer จะใช้พฤติกรรมโฮสต์การพิมพ์แบบเดิม"
 
 msgid "Allow Abnormal Storage"
 msgstr "อนุญาตให้จัดเก็บผิดปกติ"
@@ -10419,6 +10415,9 @@ msgstr "ลำดับเส้นพลาสติกชั้นอื่น
 
 msgid "Please input layer value (>= 2)."
 msgstr "กรุณาป้อนค่าเลเยอร์ (>= 2)"
+
+msgid "to"
+msgstr "ถึง"
 
 msgid "Plate name"
 msgstr "ชื่อจาน"
@@ -16246,6 +16245,12 @@ msgstr "แกน Y ไส้ในแบบสมมาตร"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "หากแบบจำลองมีสองส่วนที่สมมาตรเกี่ยวกับแกน Y และคุณต้องการให้ส่วนเหล่านี้มีพื้นผิวที่สมมาตร โปรดคลิกตัวเลือกนี้บนส่วนใดส่วนหนึ่ง"
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "ชุดค่าผสม ไส้ใน - ความสูงของชั้นสูงสุด"
@@ -22478,6 +22483,22 @@ msgstr "เส้นพลาสติกอาจไม่เข้ากัน
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "ไม่ทราบแบบจำลองเส้นพลาสติก ระบบจะใช้การตั้งค่าฟิลาเมนต์แบบสุ่ม"
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "แสดงฐานพิมพ์ของเครื่องพิมพ์และเส้นกริดของฐานพิมพ์"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "ช่วยสร้าง"
@@ -22589,35 +22610,11 @@ msgstr "แสดงฐานพิมพ์แล้ว"
 msgid "Bed hidden"
 msgstr "ซ่อนฐานพิมพ์แล้ว"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "ฟีเจอร์"
-
-# AI Translated
-msgid "Sketch"
-msgstr "สเก็ตช์"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "ระนาบสเก็ตช์: %s — เลือกเครื่องมือ"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิงในวิวพอร์ต แล้วเลือกเครื่องมือสเก็ตช์"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"ระนาบสเก็ตช์: %s\n"
-"เลือกเครื่องมือ หรือกด Menu เพื่อดูรายการ"
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือสเก็ตช์"
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22967,14 +22964,6 @@ msgstr "ทำเกลียวบนพื้นผิวทรงกระบ
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "เลือกพื้นผิวทรงกระบอก (รูใน / ผิวนอก) หรือขอบวงกลมสำหรับทำเกลียว"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "นำเข้า STEP (ทรงตัน B-rep ที่แก้ไขได้)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "นำเข้าเมช (STL/OBJ) เป็นทรงตัน B-rep ที่แก้ไขได้"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23376,12 +23365,19 @@ msgid "New Design — clear the feature tree"
 msgstr "งานออกแบบใหม่ — ล้างแผนผังฟีเจอร์"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "นำเข้า STEP (ทรงตัน B-rep ที่แก้ไขได้)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "นำเข้าเมช (STL/OBJ) เป็นทรงตัน B-rep ที่แก้ไขได้"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "ส่งออก STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "แสดงฐานพิมพ์ของเครื่องพิมพ์และเส้นกริดของฐานพิมพ์"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23417,6 +23413,10 @@ msgstr "ความกว้าง / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "ความสูง / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "สเก็ตช์"
 
 # AI Translated
 msgid "Distance X"
@@ -24047,6 +24047,9 @@ msgstr "(ไม่มีการผูกค่า)"
 msgid "Value"
 msgstr "ค่า"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "เงื่อนไขบังคับ"
@@ -24084,6 +24087,9 @@ msgstr "ย้ายลง"
 # AI Translated
 msgid "Show / hide"
 msgstr "แสดง / ซ่อน"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24156,6 +24162,9 @@ msgstr "เลือกพื้นที่แล้ว — คลิกขว�
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "เลือกสเก็ตช์แล้ว — คลิกขวาเพื่อยืดขึ้นรูป หรือดับเบิลคลิกเพื่อแก้ไข"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24201,11 +24210,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "ระนาบ %s ถูกเลือก — คลิกขวาเพื่อดูเครื่องมือวาด"
 
 # AI Translated
 #, c-format, boost-format
@@ -25017,13 +25021,10 @@ msgstr "คำสั่งมุมถอดแบบต้องใช้บอ
 msgid "Draft needs a picked face — click a side face first"
 msgstr "คำสั่งมุมถอดแบบต้องมีผิวหน้าที่เลือก — คลิกผิวหน้าด้านข้างก่อน"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"ยังไม่มีอะไร — นำเข้า STEP หรือเมชจากแถบเครื่องมือ\n"
-"หรือคลิกระนาบอ้างอิงแล้วคลิกขวาเพื่อเริ่มสเก็ตช์"
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25061,13 +25062,26 @@ msgstr "มุมมองภาคตัดขวาง — แสดงคร�
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "เลือกบอดี้ก่อน — คลิกในวิวพอร์ตหรือในรายการบอดี้"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "บอดี้นั้นยังไม่มีเมชสำหรับแสดงผล — คำนวณใหม่ก่อน"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "เลือกบอดี้ก่อน — คลิกในวิวพอร์ตหรือในรายการบอดี้"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25093,9 +25107,6 @@ msgstr "คลิกผิวหน้าบนทรงตัน แล้ว�
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "วางบนผิวหน้าแล้ว — บอดี้วางราบบนฐานพิมพ์"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -25544,6 +25555,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "ระนาบสเก็ตช์: %s — เลือกเครื่องมือ"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"ระนาบสเก็ตช์: %s\n"
+"เลือกเครื่องมือ หรือกด Menu เพื่อดูรายการ"
+
+# AI Translated
 msgid "Plane ready"
 msgstr "ระนาบพร้อมแล้ว"
 
@@ -25792,9 +25817,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "สเก็ตช์"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26080,6 +26107,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -30674,6 +30708,39 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(ทดลอง) ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ฟีเจอร์"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "คลิกผิวหน้าหรือระนาบอ้างอิงในวิวพอร์ต แล้วเลือกเครื่องมือสเก็ตช์"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือสเก็ตช์"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "ระนาบ %s ถูกเลือก — คลิกขวาเพื่อดูเครื่องมือวาด"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "ยังไม่มีอะไร — นำเข้า STEP หรือเมชจากแถบเครื่องมือ\n"
+#~ "หรือคลิกระนาบอ้างอิงแล้วคลิกขวาเพื่อเริ่มสเก็ตช์"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
 
 #~ msgid "X"
 #~ msgstr "X"

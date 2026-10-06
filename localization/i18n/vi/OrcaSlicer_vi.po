@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -3553,8 +3553,8 @@ msgstr "Preset process bổ sung"
 msgid "Remove parameter"
 msgstr "Xóa tham số"
 
-msgid "to"
-msgstr "đến"
+msgid "Range"
+msgstr "Phạm vi"
 
 msgid "Add height range"
 msgstr "Thêm phạm vi chiều cao"
@@ -5766,9 +5766,6 @@ msgstr "tên tham số"
 
 msgid "layers"
 msgstr "lớp"
-
-msgid "Range"
-msgstr "Phạm vi"
 
 msgid "Empty string"
 msgstr "Chuỗi rỗng"
@@ -10877,18 +10874,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Hiện các cài đặt sẵn không tương thích/không được hỗ trợ trong danh sách thả xuống máy in và filament. Không thể chọn các cài đặt sẵn này."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Định tuyến các tác vụ in của máy in không phải Bambu qua các tác nhân plugin máy in thay vì luồng tải lên máy chủ in cổ điển.\n"
-"Khi tắt, OrcaSlicer sẽ dùng hành vi máy chủ in cũ."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Tính năng thử nghiệm"
 
@@ -10903,6 +10888,17 @@ msgid ""
 msgstr ""
 "Cố gắng giữ lại các phần đã tô (màu/đường nối/support/fuzzy v.v.) sau khi thay đổi lưới của vật thể (như cắt/tải lại từ đĩa/đơn giản hóa/sửa v.v.)\n"
 "Rất thử nghiệm! Chậm và có thể tạo ra khuyết điểm."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Định tuyến các tác vụ in của máy in không phải Bambu qua các tác nhân plugin máy in thay vì luồng tải lên máy chủ in cổ điển.\n"
+"Khi tắt, OrcaSlicer sẽ dùng hành vi máy chủ in cũ."
 
 # AI Translated
 msgid "Allow Abnormal Storage"
@@ -11080,6 +11076,9 @@ msgstr "Trình tự filament lớp khác"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Vui lòng nhập giá trị lớp (>= 2)."
+
+msgid "to"
+msgstr "đến"
 
 msgid "Plate name"
 msgstr "Tên bản"
@@ -17201,6 +17200,12 @@ msgstr "Infill đối xứng trục Y"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Nếu model có hai phần đối xứng về trục Y, và bạn muốn các phần này có kết cấu đối xứng, vui lòng nhấp tùy chọn này trên một trong các phần."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "Kết hợp infill - Chiều cao lớp tối đa"
@@ -23766,6 +23771,22 @@ msgstr "Filament có thể không tương thích với cài đặt máy hiện t
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Không rõ mẫu filament. Một cài đặt sẵn filament ngẫu nhiên sẽ được dùng."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Hiện bàn in của máy in và lưới plate"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Dựng hình"
@@ -23877,35 +23898,11 @@ msgstr "Đã hiện bàn in"
 msgid "Bed hidden"
 msgstr "Đã ẩn bàn in"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "ĐẶC TRƯNG"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Phác thảo"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Mặt phẳng phác thảo: %s — chọn một công cụ"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu trong khung nhìn, rồi chọn một công cụ phác thảo"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Mặt phẳng phác thảo: %s.\n"
-"Chọn một công cụ, hoặc nhấn Menu để xem danh sách."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ phác thảo."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -24255,14 +24252,6 @@ msgstr "Tạo ren trên một bề mặt trụ (lỗ trong / mặt ngoài) hoặ
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Chọn một bề mặt trụ (lỗ / mặt ngoài) hoặc một cạnh tròn để tạo ren"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Nhập STEP (khối đặc B-rep có thể chỉnh sửa)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Nhập lưới (STL/OBJ) thành khối đặc B-rep có thể chỉnh sửa"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -24664,12 +24653,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Thiết kế mới — xóa cây đặc trưng"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Nhập STEP (khối đặc B-rep có thể chỉnh sửa)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Nhập lưới (STL/OBJ) thành khối đặc B-rep có thể chỉnh sửa"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Xuất STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Hiện bàn in của máy in và lưới plate"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -24705,6 +24701,10 @@ msgstr "Độ rộng / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Chiều cao / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Phác thảo"
 
 # AI Translated
 msgid "Distance X"
@@ -25335,6 +25335,9 @@ msgstr "(không có liên kết)"
 msgid "Value"
 msgstr "Giá trị"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Ràng buộc"
@@ -25372,6 +25375,9 @@ msgstr "Di chuyển xuống"
 # AI Translated
 msgid "Show / hide"
 msgstr "Hiện / ẩn"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -25444,6 +25450,9 @@ msgstr "Đã chọn vùng — nhấn chuột phải để Đùn, hoặc nhấp �
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Đã chọn phác thảo — nhấn chuột phải để Đùn, hoặc nhấp đúp để chỉnh sửa"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -25489,11 +25498,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Đã chọn mặt phẳng %s — nhấn chuột phải để mở các công cụ vẽ"
 
 # AI Translated
 #, c-format, boost-format
@@ -26305,13 +26309,10 @@ msgstr "Thoát khuôn cần một khối đặc — hãy thêm hoặc nhập m�
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Thoát khuôn cần một mặt đã chọn — hãy nhấn một mặt bên trước"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Chưa có gì — hãy nhập STEP hoặc lưới từ thanh công cụ,\n"
-"hoặc nhấn một mặt phẳng tham chiếu rồi nhấn chuột phải vào nó để bắt đầu phác thảo."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -26349,13 +26350,26 @@ msgstr "Chế độ xem mặt cắt — đang hiện nửa dưới"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Hãy chọn một khối trước — nhấn vào nó trong khung nhìn hoặc trong danh sách Các khối"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Khối đó chưa có lưới hiển thị — hãy tính toán lại trước"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Hãy chọn một khối trước — nhấn vào nó trong khung nhìn hoặc trong danh sách Các khối"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -26381,9 +26395,6 @@ msgstr "Nhấn một mặt trên khối đặc, rồi nhấn F"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Đã đặt lên mặt — khối được đặt nằm phẳng trên bàn in"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -26832,6 +26843,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Mặt phẳng phác thảo: %s — chọn một công cụ"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Mặt phẳng phác thảo: %s.\n"
+"Chọn một công cụ, hoặc nhấn Menu để xem danh sách."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Mặt phẳng đã sẵn sàng"
 
@@ -27080,9 +27105,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Phác thảo"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ vẽ"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -27368,6 +27395,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -31964,6 +31998,39 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ĐẶC TRƯNG"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu trong khung nhìn, rồi chọn một công cụ phác thảo"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ phác thảo."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Đã chọn mặt phẳng %s — nhấn chuột phải để mở các công cụ vẽ"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Chưa có gì — hãy nhập STEP hoặc lưới từ thanh công cụ,\n"
+#~ "hoặc nhấn một mặt phẳng tham chiếu rồi nhấn chuột phải vào nó để bắt đầu phác thảo."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ vẽ"
 
 #~ msgid "X"
 #~ msgstr "X"

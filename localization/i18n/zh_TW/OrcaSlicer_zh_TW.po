@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -3368,8 +3368,8 @@ msgstr "附加列印參數預設"
 msgid "Remove parameter"
 msgstr "刪除參數"
 
-msgid "to"
-msgstr "到"
+msgid "Range"
+msgstr "範圍"
 
 msgid "Add height range"
 msgstr "新增高度範圍"
@@ -5423,9 +5423,6 @@ msgstr "參數名稱"
 
 msgid "layers"
 msgstr "層"
-
-msgid "Range"
-msgstr "範圍"
 
 msgid "Empty string"
 msgstr "空字串"
@@ -10213,18 +10210,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "在列印裝置和線材下拉選單中顯示不相容/不支援的預設。這些預設無法選取。"
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "（實驗性）使用列印裝置代理程式取代列印主機"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"將非 Bambu 列印裝置的列印工作透過列印裝置外掛代理程式傳送，而非傳統的列印主機上傳流程。\n"
-"停用時，OrcaSlicer 會使用舊有的列印主機行為。"
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "實驗性功能"
 
@@ -10238,6 +10223,17 @@ msgid ""
 msgstr ""
 "嘗試在變更物件網格（例如切割/從磁碟重新載入/簡化/修復等）後，保留已繪製的特徵（顏色/Z 縫/支撐/絨毛等）。\n"
 "高度實驗性！速度緩慢且可能產生瑕疵。"
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"將非 Bambu 列印裝置的列印工作透過列印裝置外掛代理程式傳送，而非傳統的列印主機上傳流程。\n"
+"停用時，OrcaSlicer 會使用舊有的列印主機行為。"
 
 msgid "Allow Abnormal Storage"
 msgstr "允許異常儲存空間"
@@ -10405,6 +10401,9 @@ msgstr "其他層的線材列印順序"
 
 msgid "Please input layer value (>= 2)."
 msgstr "請輸入層數值（>= 2）"
+
+msgid "to"
+msgstr "到"
 
 msgid "Plate name"
 msgstr "列印板名稱"
@@ -16190,6 +16189,12 @@ msgstr "對稱填充Y軸"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "若模型有兩個在Y軸上對稱的部分，並且您想對其使用對稱的紋理，就請在對應的模型部分上應用此設定。"
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "合併填充 - 最大層高"
@@ -22394,6 +22399,22 @@ msgstr "線材可能與目前的列印裝置設定不相容，將使用隨機線
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "線材型號未知，將使用隨機線材預設。"
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "顯示列印板及其網格"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "建構"
@@ -22505,35 +22526,11 @@ msgstr "已顯示列印板"
 msgid "Bed hidden"
 msgstr "已隱藏列印板"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "特徵"
-
-# AI Translated
-msgid "Sketch"
-msgstr "草圖"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "草圖平面：%s — 請選擇工具"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "在視埠中點選一個面或參考平面，再選擇草圖工具"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"草圖平面：%s。\n"
-"請選擇工具，或按「選單」查看清單。"
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "點選一個面或參考平面，再選擇草圖工具。"
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22883,14 +22880,6 @@ msgstr "在圓柱面（內孔 / 外圓）或圓形邊上建立螺紋"
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "選取要建立螺紋的圓柱面（內孔 / 外圓）或圓形邊"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "匯入 STEP（可編輯的 B-rep 實體）"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "將網格 (STL/OBJ) 匯入為可編輯的 B-rep 實體"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23292,12 +23281,19 @@ msgid "New Design — clear the feature tree"
 msgstr "新設計 — 清除特徵樹"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "匯入 STEP（可編輯的 B-rep 實體）"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "將網格 (STL/OBJ) 匯入為可編輯的 B-rep 實體"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "匯出 STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "顯示列印板及其網格"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23333,6 +23329,10 @@ msgstr "寬度 / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "高度 / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "草圖"
 
 # AI Translated
 msgid "Distance X"
@@ -23963,6 +23963,9 @@ msgstr "（無繫結）"
 msgid "Value"
 msgstr "數值"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "約束"
@@ -24000,6 +24003,9 @@ msgstr "下移"
 # AI Translated
 msgid "Show / hide"
 msgstr "顯示 / 隱藏"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24072,6 +24078,9 @@ msgstr "已選取區域 — 按右鍵進行擠出，或按兩下進行編輯"
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "已選取草圖 — 按右鍵進行擠出，或按兩下進行編輯"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24117,11 +24126,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "已選取 %s 平面 — 按右鍵開啟繪圖工具"
 
 # AI Translated
 #, c-format, boost-format
@@ -24933,13 +24937,10 @@ msgstr "拔模需要實體本體 — 請先新增或匯入一個"
 msgid "Draft needs a picked face — click a side face first"
 msgstr "拔模需要選取的面 — 請先點選側面"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"目前沒有任何內容 — 從工具列匯入 STEP 或網格，\n"
-"或點選參考平面後按右鍵開始繪製草圖。"
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -24977,13 +24978,26 @@ msgstr "剖面圖 — 顯示下半部"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "請先選取本體 — 在視埠或本體清單中點選"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "該本體尚無顯示網格 — 請先重新計算"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "請先選取本體 — 在視埠或本體清單中點選"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25009,9 +25023,6 @@ msgstr "點選實體上的面，然後按 F"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "已選擇底面 — 本體已平放在列印板上"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -25460,6 +25471,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "草圖平面：%s — 請選擇工具"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"草圖平面：%s。\n"
+"請選擇工具，或按「選單」查看清單。"
+
+# AI Translated
 msgid "Plane ready"
 msgstr "平面已就緒"
 
@@ -25708,9 +25733,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "草圖"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "點選一個面或參考平面，再選擇繪圖工具"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -25996,6 +26023,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -30616,6 +30650,39 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "（實驗性）使用列印裝置代理程式取代列印主機"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "特徵"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "在視埠中點選一個面或參考平面，再選擇草圖工具"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "點選一個面或參考平面，再選擇草圖工具。"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "已選取 %s 平面 — 按右鍵開啟繪圖工具"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "目前沒有任何內容 — 從工具列匯入 STEP 或網格，\n"
+#~ "或點選參考平面後按右鍵開始繪製草圖。"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "點選一個面或參考平面，再選擇繪圖工具"
 
 #~ msgid "X"
 #~ msgstr "X"

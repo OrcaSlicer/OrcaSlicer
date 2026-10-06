@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3435,8 +3435,8 @@ msgstr "Ek işlem ön ayarı"
 msgid "Remove parameter"
 msgstr "Parametreyi kaldır"
 
-msgid "to"
-msgstr "ile"
+msgid "Range"
+msgstr "Aralık"
 
 msgid "Add height range"
 msgstr "Yükseklik aralığı ekle"
@@ -5501,9 +5501,6 @@ msgstr "parametre adı"
 
 msgid "layers"
 msgstr "katman"
-
-msgid "Range"
-msgstr "Aralık"
 
 msgid "Empty string"
 msgstr "Boş dize"
@@ -10359,18 +10356,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Yazıcı ve filament açılır listelerinde uyumsuz/desteklenmeyen ön ayarları gösterir. Bu ön ayarlar seçilemez."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Deneysel) Baskı sunucuları yerine yazıcı aracılarını kullan"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Bambu olmayan yazıcıların baskı işlerini, klasik baskı sunucusuna yükleme akışı yerine yazıcı eklenti aracıları üzerinden yönlendirir.\n"
-"Devre dışı bırakıldığında OrcaSlicer eski baskı sunucusu davranışını kullanır."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Deneysel Özellikler"
 
@@ -10385,6 +10370,17 @@ msgid ""
 msgstr ""
 "Nesne mesh'i değiştikten sonra (kesme/diskten yeniden yükleme/basitleştirme/onarma vb.) boyanmış özellikleri (renk/dikiş/destek/pütür vb.) korumaya çalışır.\n"
 "Oldukça deneyseldir! Yavaştır ve bozulmalara yol açabilir."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bambu olmayan yazıcıların baskı işlerini, klasik baskı sunucusuna yükleme akışı yerine yazıcı eklenti aracıları üzerinden yönlendirir.\n"
+"Devre dışı bırakıldığında OrcaSlicer eski baskı sunucusu davranışını kullanır."
 
 msgid "Allow Abnormal Storage"
 msgstr "Anormal Depolamaya İzin Ver"
@@ -10554,6 +10550,9 @@ msgstr "Diğer katman filament dizisi"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Lütfen katman değerini girin (>= 2)."
+
+msgid "to"
+msgstr "ile"
 
 msgid "Plate name"
 msgstr "Plaka adı"
@@ -16502,6 +16501,12 @@ msgstr "Simetrik dolgu Y ekseni"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Modelin Y ekseni etrafında simetrik iki parçası varsa ve bu parçaların simetrik dokulara sahip olmasını istiyorsanız, lütfen parçalardan birinde bu seçeneğe tıklayın."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "Dolgu kombinasyonu - Maksimum katman yüksekliği"
@@ -22911,6 +22916,22 @@ msgstr "Filament mevcut makine ayarlarıyla uyumlu olmayabilir. Rastgele bir fil
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Filament modeli bilinmiyor. Rastgele bir filament ön ayarı kullanılacaktır."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Yazıcı yatağını ve plaka ızgarasını göster"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Yardımcı"
@@ -23022,35 +23043,11 @@ msgstr "Yatak gösterildi"
 msgid "Bed hidden"
 msgstr "Yatak gizlendi"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "UNSURLAR"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Eskiz"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Eskiz düzlemi: %s — bir araç seçin"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Görünüm penceresinde bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Eskiz düzlemi: %s.\n"
-"Bir araç seçin veya liste için Menü tuşuna basın."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23400,14 +23397,6 @@ msgstr "Silindirik bir yüzeye (iç delik / dış) veya dairesel bir kenara diş
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Diş için silindirik bir yüzey (delik / dış) veya dairesel bir kenar seçin"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "STEP içe aktar (düzenlenebilir B-rep katı)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Mesh'i (STL/OBJ) düzenlenebilir B-rep katı olarak içe aktar"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23810,12 +23799,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Yeni Tasarım — unsur ağacını temizle"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "STEP içe aktar (düzenlenebilir B-rep katı)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Mesh'i (STL/OBJ) düzenlenebilir B-rep katı olarak içe aktar"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "STEP olarak dışa aktar…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Yazıcı yatağını ve plaka ızgarasını göster"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23851,6 +23847,10 @@ msgstr "Genişlik / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Yükseklik / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Eskiz"
 
 # AI Translated
 msgid "Distance X"
@@ -24481,6 +24481,9 @@ msgstr "(bağlama yok)"
 msgid "Value"
 msgstr "Değer"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Kısıtlamalar"
@@ -24518,6 +24521,9 @@ msgstr "Aşağı taşı"
 # AI Translated
 msgid "Show / hide"
 msgstr "Göster / gizle"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24590,6 +24596,9 @@ msgstr "Bölge seçildi — Ekstrüzyon için sağ tıklayın veya düzenlemek i
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Eskiz seçildi — Ekstrüzyon için sağ tıklayın veya düzenlemek için çift tıklayın"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24637,11 +24646,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s düzlemi seçildi — çizim araçları için sağ tıklayın"
 
 # AI Translated
 #, c-format, boost-format
@@ -25458,13 +25462,10 @@ msgstr "Koniklik için katı bir gövde gerekir — önce bir tane ekleyin veya 
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Koniklik için seçilmiş bir yüz gerekir — önce bir yan yüze tıklayın"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Henüz bir şey yok — araç çubuğundan bir STEP veya mesh içe aktarın\n"
-"ya da bir eskize başlamak için bir referans düzlemine tıklayıp sağ tıklayın."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25502,13 +25503,26 @@ msgstr "Kesit görünümü — alt yarı gösteriliyor"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Önce bir gövde seçin — görünüm penceresinde veya Gövdeler listesinde ona tıklayın"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Bu gövdenin henüz görüntüleme mesh'i yok — önce yeniden hesaplayın"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Önce bir gövde seçin — görünüm penceresinde veya Gövdeler listesinde ona tıklayın"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25534,9 +25548,6 @@ msgstr "Katı üzerinde bir yüze tıklayın, ardından F'ye basın"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Yüze yerleştirildi — gövde yatağa düz yatırıldı"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -25987,6 +25998,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Eskiz düzlemi: %s — bir araç seçin"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Eskiz düzlemi: %s.\n"
+"Bir araç seçin veya liste için Menü tuşuna basın."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Düzlem hazır"
 
@@ -26237,9 +26262,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Eskiz"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Bir yüze veya referans düzlemine tıklayın, ardından bir çizim aracı seçin"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26525,6 +26552,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -31125,6 +31159,39 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Deneysel) Baskı sunucuları yerine yazıcı aracılarını kullan"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "UNSURLAR"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Görünüm penceresinde bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s düzlemi seçildi — çizim araçları için sağ tıklayın"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Henüz bir şey yok — araç çubuğundan bir STEP veya mesh içe aktarın\n"
+#~ "ya da bir eskize başlamak için bir referans düzlemine tıklayıp sağ tıklayın."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Bir yüze veya referans düzlemine tıklayın, ardından bir çizim aracı seçin"
 
 #~ msgid "X"
 #~ msgstr "X"

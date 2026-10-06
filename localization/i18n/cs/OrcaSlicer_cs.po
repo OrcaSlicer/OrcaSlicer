@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -3441,8 +3441,8 @@ msgstr "Další procesní předvolba"
 msgid "Remove parameter"
 msgstr "Odstranit parametr"
 
-msgid "to"
-msgstr "do"
+msgid "Range"
+msgstr "Rozsah"
 
 msgid "Add height range"
 msgstr "Přidat rozsah výšky"
@@ -5508,9 +5508,6 @@ msgstr "název parametru"
 
 msgid "layers"
 msgstr "Vrstvy"
-
-msgid "Range"
-msgstr "Rozsah"
 
 msgid "Empty string"
 msgstr "Prázdný řetězec"
@@ -10383,18 +10380,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Zobrazovat nekompatibilní/nepodporované předvolby v rozevíracích seznamech tiskáren a filamentů. Tyto předvolby nelze vybrat."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Experimentální) Používat agenty tiskárny místo tiskových hostů"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Směruje tiskové úlohy pro tiskárny jiné než Bambu přes agenty pluginů tiskárny místo klasického nahrávání na tiskový host.\n"
-"Pokud je vypnuto, OrcaSlicer používá původní chování tiskového hosta."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Experimentální funkce"
 
@@ -10409,6 +10394,17 @@ msgid ""
 msgstr ""
 "Pokusí se zachovat malované prvky (barva/šev/podpory/fuzzy atd.) po změně sítě objektu (například řez / znovunačtení z disku / zjednodušení / oprava atd.)\n"
 "Vysoce experimentální! Pomalé a může vytvářet artefakty."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Směruje tiskové úlohy pro tiskárny jiné než Bambu přes agenty pluginů tiskárny místo klasického nahrávání na tiskový host.\n"
+"Pokud je vypnuto, OrcaSlicer používá původní chování tiskového hosta."
 
 msgid "Allow Abnormal Storage"
 msgstr "Povolit neobvyklé úložiště"
@@ -10577,6 +10573,9 @@ msgstr "Pořadí filamentů pro jinou vrstvu"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Zadejte hodnotu vrstvy (>= 2)."
+
+msgid "to"
+msgstr "do"
 
 msgid "Plate name"
 msgstr "Název desky"
@@ -16533,6 +16532,12 @@ msgstr "Symetrická výplň podle osy Y"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Pokud má model dvě části symetrické podle osy Y a chcete, aby měly symetrické textury, klikněte na tuto možnost u jedné z těchto částí."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "Kombinace výplně – maximální výška vrstvy"
@@ -22972,6 +22977,22 @@ msgstr "Filament nemusí být kompatibilní s aktuálním nastavením stroje. Po
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Model filamentu je neznámý. Použije se náhodná předvolba filamentu."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Zobrazit podložku tiskárny a její mřížku"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Konstrukční"
@@ -23083,35 +23104,11 @@ msgstr "Podložka zobrazena"
 msgid "Bed hidden"
 msgstr "Podložka skryta"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "PRVKY"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Náčrt"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Rovina náčrtu: %s — vyberte nástroj"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "V zobrazovací oblasti klikněte na plochu nebo referenční rovinu, pak na nástroj náčrtu"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Rovina náčrtu: %s.\n"
-"Vyberte nástroj nebo stiskněte Menu pro zobrazení seznamu."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Klikněte na plochu nebo referenční rovinu, pak na nástroj náčrtu."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23461,14 +23458,6 @@ msgstr "Vytvořit závit na válcové ploše (vnitřní otvor / vnější) nebo 
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Pro závit vyberte válcovou plochu (otvor / vnější) nebo kruhovou hranu"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importovat STEP (upravitelné B-rep těleso)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importovat síť (STL/OBJ) jako upravitelné B-rep těleso"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23872,12 +23861,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Nový návrh — vymazat strom prvků"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Importovat STEP (upravitelné B-rep těleso)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Importovat síť (STL/OBJ) jako upravitelné B-rep těleso"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Exportovat STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Zobrazit podložku tiskárny a její mřížku"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23913,6 +23909,10 @@ msgstr "Šířka / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Výška / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Náčrt"
 
 # AI Translated
 msgid "Distance X"
@@ -24543,6 +24543,9 @@ msgstr "(žádná propojení)"
 msgid "Value"
 msgstr "Hodnota"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Vazby"
@@ -24580,6 +24583,9 @@ msgstr "Posunout dolů"
 # AI Translated
 msgid "Show / hide"
 msgstr "Zobrazit / skrýt"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24652,6 +24658,9 @@ msgstr "Oblast vybrána — pravým tlačítkem zvolte Vysunutí, nebo dvojklike
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Náčrt vybrán — pravým tlačítkem zvolte Vysunutí, nebo dvojklikem upravte"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24701,11 +24710,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Vybrána rovina %s — pravým tlačítkem zobrazíte nástroje kreslení"
 
 # AI Translated
 #, c-format, boost-format
@@ -25527,13 +25531,10 @@ msgstr "Úkos vyžaduje objemové těleso — nejprve nějaké přidejte nebo im
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Úkos vyžaduje vybranou plochu — nejprve klikněte na boční plochu"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Zatím nic — importujte STEP nebo síť z panelu nástrojů,\n"
-"nebo klikněte na referenční rovinu a pravým tlačítkem na ní začněte náčrt."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25571,13 +25572,26 @@ msgstr "Pohled v řezu — zobrazena dolní polovina"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Nejprve vyberte těleso — klikněte na něj v zobrazovací oblasti nebo v seznamu Tělesa"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Toto těleso zatím nemá zobrazovací síť — nejprve proveďte přepočet"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Nejprve vyberte těleso — klikněte na něj v zobrazovací oblasti nebo v seznamu Tělesa"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25603,9 +25617,6 @@ msgstr "Klikněte na plochu tělesa, pak stiskněte F"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Umístěno na plochu — těleso položeno naplocho na podložku"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -26058,6 +26069,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Rovina náčrtu: %s — vyberte nástroj"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Rovina náčrtu: %s.\n"
+"Vyberte nástroj nebo stiskněte Menu pro zobrazení seznamu."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Rovina připravena"
 
@@ -26310,9 +26335,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Náčrt"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Klikněte na plochu nebo referenční rovinu a pak vyberte kreslicí nástroj"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26598,6 +26625,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -31197,6 +31231,39 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimentální) Používat agenty tiskárny místo tiskových hostů"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "PRVKY"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "V zobrazovací oblasti klikněte na plochu nebo referenční rovinu, pak na nástroj náčrtu"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Klikněte na plochu nebo referenční rovinu, pak na nástroj náčrtu."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Vybrána rovina %s — pravým tlačítkem zobrazíte nástroje kreslení"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Zatím nic — importujte STEP nebo síť z panelu nástrojů,\n"
+#~ "nebo klikněte na referenční rovinu a pravým tlačítkem na ní začněte náčrt."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Klikněte na plochu nebo referenční rovinu a pak vyberte kreslicí nástroj"
 
 #~ msgid "X"
 #~ msgstr "X"

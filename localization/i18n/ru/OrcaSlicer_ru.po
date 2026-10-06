@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -3391,8 +3391,8 @@ msgstr "Доп. профиль настроек"
 msgid "Remove parameter"
 msgstr "Удалить параметр"
 
-msgid "to"
-msgstr "до"
+msgid "Range"
+msgstr "Диапазон"
 
 msgid "Add height range"
 msgstr "Добавление диапазона высот слоёв"
@@ -5457,9 +5457,6 @@ msgstr "имя параметра"
 # Используется в 12 местах, согласовать не получится
 msgid "layers"
 msgstr "слой(-я)"
-
-msgid "Range"
-msgstr "Диапазон"
 
 # Подставляется в "По умолчанию" в подсказке к параметрам. Не уверен, нужно ли здесь "строка", может просто "пусто"?
 msgid "Empty string"
@@ -10321,18 +10318,6 @@ msgstr ""
 "\n"
 "Примечание: профили остаются недоступными для выбора."
 
-# AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Экспериментально) Использовать агентов принтера вместо хостов печати"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Отправлять задания печати для принтеров, отличных от Bambu, через агентов плагинов принтера вместо классической загрузки на хост печати.\n"
-"Если отключено, OrcaSlicer использует прежнее поведение хоста печати."
-
 msgid "Experimental Features"
 msgstr "Экспериментальные настройки"
 
@@ -10346,6 +10331,17 @@ msgstr ""
 "Пытаться восстановить нарисованные элементы (швы, поддержки, раскраску цветов и т.п.) после изменения сетки модели (в результате перезагрузки модели, её упрощения, восстановления, разделения и т.д.).\n"
 "\n"
 "Внимание: функция экспериментальна! Возможны падение производительности и артефакты работы."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Отправлять задания печати для принтеров, отличных от Bambu, через агентов плагинов принтера вместо классической загрузки на хост печати.\n"
+"Если отключено, OrcaSlicer использует прежнее поведение хоста печати."
 
 msgid "Allow Abnormal Storage"
 msgstr "Игнорировать неисправность хранилища"
@@ -10514,6 +10510,9 @@ msgstr "Очерёдность материалов на других слоях
 
 msgid "Please input layer value (>= 2)."
 msgstr "Пожалуйста, введите значение слоя (>= 2)."
+
+msgid "to"
+msgstr "до"
 
 msgid "Plate name"
 msgstr "Имя стола"
@@ -16568,6 +16567,12 @@ msgstr "Отразить шаблон"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Если модель состоит из двух симметричных частей, у одной из них можно отразить шаблон заполнения, чтобы модель имела симметричную текстуру поверхности."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "Предел высоты объединённого слоя"
@@ -23066,6 +23071,22 @@ msgstr "Материал может быть несовместим с теку�
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Модель материала неизвестна. Будет использован случайный профиль материала."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Показать стол принтера и его сетку"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Вспомогательная"
@@ -23177,35 +23198,11 @@ msgstr "Стол показан"
 msgid "Bed hidden"
 msgstr "Стол скрыт"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "ЭЛЕМЕНТЫ"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Эскиз"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Плоскость эскиза: %s — выберите инструмент"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Щёлкните грань или опорную плоскость в рабочем пространстве, затем выберите инструмент эскиза"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Плоскость эскиза: %s.\n"
-"Выберите инструмент или нажмите Menu, чтобы открыть список."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Щёлкните грань или опорную плоскость, затем выберите инструмент эскиза."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23555,14 +23552,6 @@ msgstr "Нарезать резьбу на цилиндрической пове
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Выберите цилиндрическую поверхность (отверстие / наружную) или круговое ребро для резьбы"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Импорт STEP (редактируемое твёрдое тело B-rep)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Импорт сетки (STL/OBJ) как редактируемого твёрдого тела B-rep"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23966,12 +23955,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Новая модель — очистить дерево элементов"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Импорт STEP (редактируемое твёрдое тело B-rep)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Импорт сетки (STL/OBJ) как редактируемого твёрдого тела B-rep"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Экспорт в STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Показать стол принтера и его сетку"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -24007,6 +24003,10 @@ msgstr "Ширина / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Высота / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Эскиз"
 
 # AI Translated
 msgid "Distance X"
@@ -24638,6 +24638,9 @@ msgstr "(нет привязок)"
 msgid "Value"
 msgstr "Значение"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Ограничения"
@@ -24675,6 +24678,9 @@ msgstr "Переместить вниз"
 # AI Translated
 msgid "Show / hide"
 msgstr "Показать / скрыть"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24747,6 +24753,9 @@ msgstr "Область выбрана — ПКМ для выдавливания
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Эскиз выбран — ПКМ для выдавливания или двойной щелчок для изменения"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24796,11 +24805,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Выбрана плоскость %s — ПКМ для инструментов рисования"
 
 # AI Translated
 #, c-format, boost-format
@@ -25622,13 +25626,10 @@ msgstr "Для уклона нужно твёрдое тело — сначал�
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Для уклона нужна выбранная грань — сначала щёлкните боковую грань"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Пока пусто — импортируйте STEP или сетку с панели инструментов\n"
-"или щёлкните опорную плоскость и нажмите на ней ПКМ, чтобы начать эскиз."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25666,13 +25667,26 @@ msgstr "Сечение — показана нижняя половина"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Сначала выберите тело — щёлкните его в рабочем пространстве или в списке «Тела»"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "У этого тела ещё нет сетки для отображения — сначала выполните перестроение"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Сначала выберите тело — щёлкните его в рабочем пространстве или в списке «Тела»"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25698,9 +25712,6 @@ msgstr "Щёлкните грань твёрдого тела, затем наж
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Размещено гранью — тело положено на стол"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -26153,6 +26164,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Плоскость эскиза: %s — выберите инструмент"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Плоскость эскиза: %s.\n"
+"Выберите инструмент или нажмите Menu, чтобы открыть список."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Плоскость готова"
 
@@ -26406,9 +26431,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Эскиз"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Щёлкните грань или опорную плоскость, затем выберите инструмент рисования"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26694,6 +26721,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -31283,6 +31317,39 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Экспериментально) Использовать агентов принтера вместо хостов печати"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ЭЛЕМЕНТЫ"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Щёлкните грань или опорную плоскость в рабочем пространстве, затем выберите инструмент эскиза"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Щёлкните грань или опорную плоскость, затем выберите инструмент эскиза."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Выбрана плоскость %s — ПКМ для инструментов рисования"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Пока пусто — импортируйте STEP или сетку с панели инструментов\n"
+#~ "или щёлкните опорную плоскость и нажмите на ней ПКМ, чтобы начать эскиз."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Щёлкните грань или опорную плоскость, затем выберите инструмент рисования"
 
 #~ msgid "X"
 #~ msgstr "X"

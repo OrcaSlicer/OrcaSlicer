@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3402,8 +3402,8 @@ msgstr "Papildomas proceso profilis"
 msgid "Remove parameter"
 msgstr "Pašalinti parametrą"
 
-msgid "to"
-msgstr "į"
+msgid "Range"
+msgstr "Diapazonas"
 
 msgid "Add height range"
 msgstr "Pridėti aukščio ribas"
@@ -5469,9 +5469,6 @@ msgstr "parametro pavadinimas"
 
 msgid "layers"
 msgstr "sluoksniai"
-
-msgid "Range"
-msgstr "Diapazonas"
 
 msgid "Empty string"
 msgstr "Tuščia eilutė"
@@ -10297,18 +10294,6 @@ msgstr "Rodyti nepalaikomus profilius"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Rodyti nesuderinamus / nepalaikomus profilius spausdintuvų ir gijų išskleidžiamuosiuose sąrašuose. Šių profilių pasirinkti negalima."
 
-# AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Eksperimentinė) Naudoti spausdintuvo agentus vietoj spausdinimo serverių"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Nukreipia ne Bambu spausdintuvų spausdinimo užduotis per spausdintuvo papildinių agentus, o ne per klasikinį įkėlimo į spausdinimo serverį srautą.\n"
-"Kai išjungta, OrcaSlicer naudoja senąjį spausdinimo serverio veikimą."
-
 msgid "Experimental Features"
 msgstr "Eksperimentinis"
 
@@ -10321,6 +10306,17 @@ msgid ""
 msgstr ""
 "Bando išsaugoti nudažytas ypatybes (spalvą, siūlę, atramas, šiauštą paviršių ir kt.) pakeitus objekto tinklelio modelį (pvz., po pjovimo, įkėlimo iš naujo, supaprastinimo, taisymo ir kt.)\n"
 "Labai eksperimentinė funkcija! Veikia lėtai ir gali sukurti artefaktų."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Nukreipia ne Bambu spausdintuvų spausdinimo užduotis per spausdintuvo papildinių agentus, o ne per klasikinį įkėlimo į spausdinimo serverį srautą.\n"
+"Kai išjungta, OrcaSlicer naudoja senąjį spausdinimo serverio veikimą."
 
 msgid "Allow Abnormal Storage"
 msgstr "Leisti sutrikusią (neįprastą) laikmeną"
@@ -10487,6 +10483,9 @@ msgstr "Kita sluoksnio gijos seka"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Prašome įvesti sluoksnių skaičių (>=2)."
+
+msgid "to"
+msgstr "į"
 
 msgid "Plate name"
 msgstr "Spausdinimo pagrindo pavadinimas"
@@ -16361,6 +16360,12 @@ msgstr "Simetriškas užpildas pagal Y ašį"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Jei modelis turi dvi dalis, kurios yra simetriškos Y ašies atžvilgiu, ir norite, kad šios dalys turėtų simetriškas tekstūras, spustelėkite šią parinktį vienoje iš dalių."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "Užpildo derinimas – maksimalus sluoksnio aukštis"
@@ -22570,6 +22575,22 @@ msgstr "Gija gali būti nesuderinama su dabartiniais įrenginio nustatymais. Bus
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Gijos modelis nežinomas. Bus naudojamas atsitiktinis gijos profilis."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Rodyti spausdintuvo pagrindą ir jo plokštės tinklelį"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Pagalbinė"
@@ -22681,35 +22702,11 @@ msgstr "Pagrindas rodomas"
 msgid "Bed hidden"
 msgstr "Pagrindas paslėptas"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "ELEMENTAI"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Eskizas"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Eskizo plokštuma: %s — pasirinkite įrankį"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Vaizdo srityje spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Eskizo plokštuma: %s.\n"
-"Pasirinkite įrankį arba paspauskite „Menu“, kad pamatytumėte sąrašą."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23059,14 +23056,6 @@ msgstr "Sukurti sriegį cilindriniame paviršiuje (vidinėje angoje / išorėje)
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Sriegiui pasirinkite cilindrinį paviršių (angą / išorę) arba apskritą briauną"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importuoti STEP (redaguojamas B-rep kietasis kūnas)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importuoti poligoninį tinklą (STL/OBJ) kaip redaguojamą B-rep kietąjį kūną"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -23470,12 +23459,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Naujas modelis — išvalyti elementų medį"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Importuoti STEP (redaguojamas B-rep kietasis kūnas)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Importuoti poligoninį tinklą (STL/OBJ) kaip redaguojamą B-rep kietąjį kūną"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Eksportuoti STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Rodyti spausdintuvo pagrindą ir jo plokštės tinklelį"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23511,6 +23507,10 @@ msgstr "Plotis / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Aukštis / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Eskizas"
 
 # AI Translated
 msgid "Distance X"
@@ -24141,6 +24141,9 @@ msgstr "(nėra susiejimų)"
 msgid "Value"
 msgstr "Reikšmė"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Apribojimai"
@@ -24178,6 +24181,9 @@ msgstr "Perkelti žemyn"
 # AI Translated
 msgid "Show / hide"
 msgstr "Rodyti / slėpti"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24250,6 +24256,9 @@ msgstr "Sritis pasirinkta — spustelėkite dešiniuoju pelės mygtuku, kad išs
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Eskizas pasirinktas — spustelėkite dešiniuoju pelės mygtuku, kad išspaustumėte, arba dukart spustelėkite, kad redaguotumėte"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24299,11 +24308,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Pasirinkta %s plokštuma — spustelėkite dešiniuoju pelės mygtuku, kad atvertumėte piešimo įrankius"
 
 # AI Translated
 #, c-format, boost-format
@@ -25125,13 +25129,10 @@ msgstr "Nuolydžiui reikia kietojo kūno — pirmiausia jį pridėkite arba impo
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Nuolydžiui reikia pasirinkto paviršiaus — pirmiausia spustelėkite šoninį paviršių"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Kol kas nieko nėra — importuokite STEP failą arba poligoninį tinklą iš įrankių juostos,\n"
-"arba spustelėkite atskaitos plokštumą ir spustelėkite ją dešiniuoju pelės mygtuku, kad pradėtumėte eskizą."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25169,13 +25170,26 @@ msgstr "Pjūvio peržiūra — rodoma apatinė pusė"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Pirmiausia pasirinkite kūną — spustelėkite jį vaizdo srityje arba sąraše „Kūnai“"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Šis kūnas dar neturi rodomo poligoninio tinklo — pirmiausia perskaičiuokite"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Pirmiausia pasirinkite kūną — spustelėkite jį vaizdo srityje arba sąraše „Kūnai“"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25201,9 +25215,6 @@ msgstr "Spustelėkite kietojo kūno paviršių, tada paspauskite F"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Paguldyta ant paviršiaus — kūnas paguldytas ant pagrindo"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -25656,6 +25667,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Eskizo plokštuma: %s — pasirinkite įrankį"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Eskizo plokštuma: %s.\n"
+"Pasirinkite įrankį arba paspauskite „Menu“, kad pamatytumėte sąrašą."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Plokštuma paruošta"
 
@@ -25908,9 +25933,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Eskizas"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada pasirinkite piešimo įrankį"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26196,6 +26223,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -30795,6 +30829,39 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Eksperimentinė) Naudoti spausdintuvo agentus vietoj spausdinimo serverių"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ELEMENTAI"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Vaizdo srityje spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Pasirinkta %s plokštuma — spustelėkite dešiniuoju pelės mygtuku, kad atvertumėte piešimo įrankius"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Kol kas nieko nėra — importuokite STEP failą arba poligoninį tinklą iš įrankių juostos,\n"
+#~ "arba spustelėkite atskaitos plokštumą ir spustelėkite ją dešiniuoju pelės mygtuku, kad pradėtumėte eskizą."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada pasirinkite piešimo įrankį"
 
 #~ msgid "X"
 #~ msgstr "X"

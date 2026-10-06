@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3424,8 +3424,8 @@ msgstr "他のプリセット"
 msgid "Remove parameter"
 msgstr "パラメータを削除"
 
-msgid "to"
-msgstr "→"
+msgid "Range"
+msgstr "範囲"
 
 msgid "Add height range"
 msgstr "高さ範囲を追加"
@@ -5479,9 +5479,6 @@ msgstr "パラメータ名"
 
 msgid "layers"
 msgstr "積層"
-
-msgid "Range"
-msgstr "範囲"
 
 msgid "Empty string"
 msgstr "空の文字列"
@@ -10330,18 +10327,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "プリンターとフィラメントのドロップダウンリストに、互換性のない/非対応のプリセットを表示します。これらのプリセットは選択できません。"
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(実験的) プリントホストの代わりにプリンターエージェントを使用"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Bambu 以外のプリンターの印刷ジョブを、従来のプリントホストへのアップロードではなく、プリンターのプラグインエージェント経由で送信します。\n"
-"無効の場合、OrcaSlicer は従来のプリントホストの動作を使用します。"
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "実験的機能"
 
@@ -10356,6 +10341,17 @@ msgid ""
 msgstr ""
 "オブジェクトのメッシュを変更した後 (カット/ディスクから再読み込み/簡略化/修正など) も、ペイントした情報 (カラー/継ぎ目/サポート/ファジーなど) の保持を試みます。\n"
 "非常に実験的な機能です。処理が遅く、アーティファクトが発生する場合があります。"
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bambu 以外のプリンターの印刷ジョブを、従来のプリントホストへのアップロードではなく、プリンターのプラグインエージェント経由で送信します。\n"
+"無効の場合、OrcaSlicer は従来のプリントホストの動作を使用します。"
 
 msgid "Allow Abnormal Storage"
 msgstr "異常なストレージを許可"
@@ -10525,6 +10521,9 @@ msgstr "他のレイヤーのフィラメント順序"
 
 msgid "Please input layer value (>= 2)."
 msgstr "レイヤー値を入力してください（>= 2）。"
+
+msgid "to"
+msgstr "→"
 
 msgid "Plate name"
 msgstr "プレート名"
@@ -16579,6 +16578,12 @@ msgstr "Y軸対称インフィル"
 # AI Translated
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "モデルにY軸に対して対称な2つのパーツがあり、それらのテクスチャを対称にしたい場合は、一方のパーツでこのオプションをクリックしてください。"
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 # AI Translated
 msgid "Infill combination - Max layer height"
@@ -23256,6 +23261,22 @@ msgstr "フィラメントが現在のマシン設定と互換性がない可能
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "フィラメントモデルが不明です。ランダムなフィラメントプリセットが使用されます。"
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "プリンターのベッドとプレートグリッドを表示"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "補助ジオメトリ"
@@ -23367,35 +23388,11 @@ msgstr "ベッドを表示"
 msgid "Bed hidden"
 msgstr "ベッドを非表示"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "フィーチャー"
-
-# AI Translated
-msgid "Sketch"
-msgstr "スケッチ"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "スケッチ平面: %s — ツールを選択"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "ビューポートで面または参照平面をクリックしてから、スケッチツールを選択"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"スケッチ平面: %s\n"
-"ツールを選択するか、メニューを押して一覧を表示します。"
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "面または参照平面をクリックしてから、スケッチツールを選択します。"
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23745,14 +23742,6 @@ msgstr "円筒面 (内径 / 外径) または円形エッジにねじを作成"
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "ねじを作成する円筒面 (内径 / 外径) または円形エッジを選択してください"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "STEPをインポート (編集可能なB-repソリッド)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "メッシュ (STL/OBJ) を編集可能なB-repソリッドとしてインポート"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -24154,12 +24143,19 @@ msgid "New Design — clear the feature tree"
 msgstr "新規デザイン — フィーチャーツリーをクリア"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "STEPをインポート (編集可能なB-repソリッド)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "メッシュ (STL/OBJ) を編集可能なB-repソリッドとしてインポート"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "STEPをエクスポート…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "プリンターのベッドとプレートグリッドを表示"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -24195,6 +24191,10 @@ msgstr "幅 / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "高さ / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "スケッチ"
 
 # AI Translated
 msgid "Distance X"
@@ -24825,6 +24825,9 @@ msgstr "(バインドなし)"
 msgid "Value"
 msgstr "値"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "拘束"
@@ -24862,6 +24865,9 @@ msgstr "下へ移動"
 # AI Translated
 msgid "Show / hide"
 msgstr "表示 / 非表示"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24934,6 +24940,9 @@ msgstr "領域を選択しました — 右クリックで押し出し、ダブ�
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "スケッチを選択しました — 右クリックで押し出し、ダブルクリックで編集"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24979,11 +24988,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s平面を選択しました — 右クリックで描画ツールを表示"
 
 # AI Translated
 #, c-format, boost-format
@@ -25795,13 +25799,10 @@ msgstr "抜き勾配にはソリッドボディが必要です — 先に追加�
 msgid "Draft needs a picked face — click a side face first"
 msgstr "抜き勾配には面の選択が必要です — 先に側面をクリックしてください"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"まだ何もありません — ツールバーからSTEPまたはメッシュをインポートするか、\n"
-"参照平面をクリックして右クリックし、スケッチを開始してください。"
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25839,13 +25840,26 @@ msgstr "断面ビュー — 下半分を表示中"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "先にボディを選択してください — ビューポートまたはボディリストでクリックします"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "そのボディにはまだ表示用メッシュがありません — 先に再計算してください"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "先にボディを選択してください — ビューポートまたはボディリストでクリックします"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25871,9 +25885,6 @@ msgstr "ソリッドの面をクリックしてから、Fを押してくださ�
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "面に配置しました — ボディをベッドに平らに置きました"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -26322,6 +26333,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "スケッチ平面: %s — ツールを選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"スケッチ平面: %s\n"
+"ツールを選択するか、メニューを押して一覧を表示します。"
+
+# AI Translated
 msgid "Plane ready"
 msgstr "平面の準備完了"
 
@@ -26570,9 +26595,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "スケッチ"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "面または参照平面をクリックしてから、描画ツールを選択"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26858,6 +26885,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -31456,6 +31490,39 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(実験的) プリントホストの代わりにプリンターエージェントを使用"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "フィーチャー"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "ビューポートで面または参照平面をクリックしてから、スケッチツールを選択"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "面または参照平面をクリックしてから、スケッチツールを選択します。"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s平面を選択しました — 右クリックで描画ツールを表示"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "まだ何もありません — ツールバーからSTEPまたはメッシュをインポートするか、\n"
+#~ "参照平面をクリックして右クリックし、スケッチを開始してください。"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "面または参照平面をクリックしてから、描画ツールを選択"
 
 #~ msgid "X"
 #~ msgstr "X"

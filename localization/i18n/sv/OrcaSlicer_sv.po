@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3774,8 +3774,8 @@ msgstr "Ytterligare process inställning"
 msgid "Remove parameter"
 msgstr "Ta bort parameter"
 
-msgid "to"
-msgstr "till"
+msgid "Range"
+msgstr "Räckvidd"
 
 msgid "Add height range"
 msgstr "Lägg till höjdintervall"
@@ -6031,9 +6031,6 @@ msgstr "Parameter namn"
 
 msgid "layers"
 msgstr "lager"
-
-msgid "Range"
-msgstr "Räckvidd"
 
 msgid "Empty string"
 msgstr "Tom sträng"
@@ -11298,18 +11295,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Visa inkompatibla förinställningar och förinställningar som inte stöds i rullgardinslistorna för skrivare och filament. Dessa förinställningar kan inte väljas."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Experimentellt) Använd skrivaragenter i stället för utskriftsvärdar"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Skickar utskriftsjobb för icke-Bambu-skrivare via skrivarens insticksmodulagenter i stället för det klassiska uppladdningsflödet till utskriftsvärden.\n"
-"När detta är avaktiverat använder OrcaSlicer det äldre beteendet för utskriftsvärdar."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Experimentella funktioner"
 
@@ -11324,6 +11309,17 @@ msgid ""
 msgstr ""
 "Försök att behålla målade egenskaper (färg/söm/support/ojämn yta osv.) efter att objektets mesh ändrats (t.ex. snitt, läs in från disk igen, förenkla, reparera osv.)\n"
 "Mycket experimentellt! Långsamt och kan skapa artefakter."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Skickar utskriftsjobb för icke-Bambu-skrivare via skrivarens insticksmodulagenter i stället för det klassiska uppladdningsflödet till utskriftsvärden.\n"
+"När detta är avaktiverat använder OrcaSlicer det äldre beteendet för utskriftsvärdar."
 
 # AI Translated
 msgid "Allow Abnormal Storage"
@@ -11502,6 +11498,9 @@ msgstr "Filamentsekvens för övriga lager"
 # AI Translated
 msgid "Please input layer value (>= 2)."
 msgstr "Ange ett lagervärde (>= 2)."
+
+msgid "to"
+msgstr "till"
 
 msgid "Plate name"
 msgstr "Plattans namn"
@@ -18033,6 +18032,12 @@ msgstr "Symmetrisk ifyllnad kring Y-axeln"
 # AI Translated
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Om modellen har två delar som är symmetriska kring Y-axeln och du vill att dessa delar ska ha symmetriska texturer, klickar du i det här alternativet på en av delarna."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 # AI Translated
 msgid "Infill combination - Max layer height"
@@ -25119,6 +25124,22 @@ msgstr "Filamentet kanske inte är kompatibelt med de aktuella maskininställnin
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Filamentmodellen är okänd. En slumpmässig filamentförinställning används."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Visa skrivarens byggplatta och dess rutnät"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Konstruktion"
@@ -25230,35 +25251,11 @@ msgstr "Byggplattan visas"
 msgid "Bed hidden"
 msgstr "Byggplattan dold"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "OPERATIONER"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Skiss"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Skissplan: %s — välj ett verktyg"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Klicka på en yta eller ett referensplan i vyn, sedan på ett skissverktyg"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Skissplan: %s.\n"
-"Välj ett verktyg, eller tryck på Meny för listan."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Klicka på en yta eller ett referensplan, sedan på ett skissverktyg."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -25608,14 +25605,6 @@ msgstr "Gänga en cylindrisk yta (inre hål / yttre) eller en cirkulär kant"
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Välj en cylindrisk yta (hål / yttre) eller en cirkulär kant för en gänga"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importera STEP (redigerbar B-rep-solid)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importera mesh (STL/OBJ) som en redigerbar B-rep-solid"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -26019,12 +26008,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Ny design — rensa operationsträdet"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Importera STEP (redigerbar B-rep-solid)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Importera mesh (STL/OBJ) som en redigerbar B-rep-solid"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Exportera STEP…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Visa skrivarens byggplatta och dess rutnät"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -26060,6 +26056,10 @@ msgstr "Bredd / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Höjd / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Skiss"
 
 # AI Translated
 msgid "Distance X"
@@ -26690,6 +26690,9 @@ msgstr "(inga bindningar)"
 msgid "Value"
 msgstr "Värde"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Villkor"
@@ -26727,6 +26730,9 @@ msgstr "Flytta ner"
 # AI Translated
 msgid "Show / hide"
 msgstr "Visa / dölj"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -26799,6 +26805,9 @@ msgstr "Område valt — högerklicka för att extrudera, eller dubbelklicka fö
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Skiss vald — högerklicka för att extrudera, eller dubbelklicka för att redigera"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -26846,11 +26855,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s-planet valt — högerklicka för ritverktygen"
 
 # AI Translated
 #, c-format, boost-format
@@ -27667,13 +27671,10 @@ msgstr "Släppvinkel kräver en solid kropp — lägg till eller importera en f�
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Släppvinkel kräver en vald yta — klicka först på en sidoyta"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Inget ännu — importera en STEP-fil eller en mesh från verktygsfältet,\n"
-"eller klicka på ett referensplan och högerklicka på det för att börja en skiss."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -27711,13 +27712,26 @@ msgstr "Sektionsvy — visar den undre halvan"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Välj först en kropp — klicka på den i vyn eller i listan Kroppar"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Den kroppen har ingen visningsmesh än — beräkna om först"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Välj först en kropp — klicka på den i vyn eller i listan Kroppar"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -27743,9 +27757,6 @@ msgstr "Klicka på en yta på soliden och tryck sedan på F"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Placerad på yta — kroppen ligger plant på byggplattan"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -28196,6 +28207,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Skissplan: %s — välj ett verktyg"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Skissplan: %s.\n"
+"Välj ett verktyg, eller tryck på Meny för listan."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Planet klart"
 
@@ -28446,9 +28471,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Skiss"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Klicka på en yta eller ett referensplan och välj sedan ett ritverktyg"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -28734,6 +28761,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -33341,6 +33375,39 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimentellt) Använd skrivaragenter i stället för utskriftsvärdar"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "OPERATIONER"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Klicka på en yta eller ett referensplan i vyn, sedan på ett skissverktyg"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Klicka på en yta eller ett referensplan, sedan på ett skissverktyg."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s-planet valt — högerklicka för ritverktygen"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Inget ännu — importera en STEP-fil eller en mesh från verktygsfältet,\n"
+#~ "eller klicka på ett referensplan och högerklicka på det för att börja en skiss."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Klicka på en yta eller ett referensplan och välj sedan ett ritverktyg"
 
 #~ msgid "X"
 #~ msgstr "X"

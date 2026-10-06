@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3686,8 +3686,8 @@ msgstr "Extra procesvoorinstelling"
 msgid "Remove parameter"
 msgstr "Verwijder parameter"
 
-msgid "to"
-msgstr "naar"
+msgid "Range"
+msgstr "Bereik"
 
 # AI Translated
 msgid "Add height range"
@@ -5947,9 +5947,6 @@ msgstr "parameternaam"
 
 msgid "layers"
 msgstr "Lagen"
-
-msgid "Range"
-msgstr "Bereik"
 
 msgid "Empty string"
 msgstr "Lege tekenreeks"
@@ -11155,18 +11152,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Toon incompatibele/niet-ondersteunde voorinstellingen in de keuzelijsten voor printer en filament. Deze voorinstellingen kunnen niet worden geselecteerd."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Experimenteel) Printeragents gebruiken in plaats van printhosts"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Stuurt printtaken voor niet-Bambu-printers via printer-plug-inagents in plaats van via de klassieke uploadstroom naar de printhost.\n"
-"Wanneer dit is uitgeschakeld, gebruikt OrcaSlicer het oude printhostgedrag."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Experimentele functies"
 
@@ -11181,6 +11166,17 @@ msgid ""
 msgstr ""
 "Probeer geschilderde kenmerken (kleur/naad/ondersteuning/vaag enz.) te behouden na het wijzigen van de mesh van het object (zoals snijden/opnieuw laden vanaf schijf/vereenvoudigen/repareren enz.)\n"
 "Zeer experimenteel! Traag en kan artefacten veroorzaken."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Stuurt printtaken voor niet-Bambu-printers via printer-plug-inagents in plaats van via de klassieke uploadstroom naar de printhost.\n"
+"Wanneer dit is uitgeschakeld, gebruikt OrcaSlicer het oude printhostgedrag."
 
 # AI Translated
 msgid "Allow Abnormal Storage"
@@ -11360,6 +11356,9 @@ msgstr "Filamentvolgorde van andere lagen"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Voer de laagwaarde in (>= 2)."
+
+msgid "to"
+msgstr "naar"
 
 msgid "Plate name"
 msgstr "Plaat naam"
@@ -17771,6 +17770,12 @@ msgstr "Symmetrische vulling om de Y-as"
 # AI Translated
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Als het model twee delen heeft die symmetrisch zijn ten opzichte van de Y-as en u wilt dat deze delen symmetrische texturen hebben, klik dan op deze optie bij een van de delen."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 # AI Translated
 msgid "Infill combination - Max layer height"
@@ -24776,6 +24781,22 @@ msgstr "Het filament is mogelijk niet compatibel met de huidige machine-instelli
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Het filamentmodel is onbekend. Er wordt een willekeurige filamentvoorinstelling gebruikt."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Het printbed en het raster ervan tonen"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "Constructie"
@@ -24887,35 +24908,11 @@ msgstr "Printbed getoond"
 msgid "Bed hidden"
 msgstr "Printbed verborgen"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "FEATURES"
-
-# AI Translated
-msgid "Sketch"
-msgstr "Schets"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Schetsvlak: %s — kies een gereedschap"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Klik op een vlak of een referentievlak in de viewport en daarna op een schetsgereedschap"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"Schetsvlak: %s.\n"
-"Kies een gereedschap of druk op Menu voor de lijst."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Klik op een vlak of een referentievlak en daarna op een schetsgereedschap."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -25265,14 +25262,6 @@ msgstr "Schroefdraad maken op een cilindrisch oppervlak (binnenboring / buitenka
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "Kies een cilindrisch oppervlak (boring / buitenkant) of een cirkelvormige rand voor de schroefdraad"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "STEP importeren (bewerkbaar B-rep-volumelichaam)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Mesh (STL/OBJ) importeren als bewerkbaar B-rep-volumelichaam"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -25676,12 +25665,19 @@ msgid "New Design — clear the feature tree"
 msgstr "Nieuw ontwerp — de featureboom wissen"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "STEP importeren (bewerkbaar B-rep-volumelichaam)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Mesh (STL/OBJ) importeren als bewerkbaar B-rep-volumelichaam"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "STEP exporteren…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Het printbed en het raster ervan tonen"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -25717,6 +25713,10 @@ msgstr "Breedte / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Hoogte / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Schets"
 
 # AI Translated
 msgid "Distance X"
@@ -26347,6 +26347,9 @@ msgstr "(geen bindingen)"
 msgid "Value"
 msgstr "Waarde"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "Beperkingen"
@@ -26384,6 +26387,9 @@ msgstr "Omlaag verplaatsen"
 # AI Translated
 msgid "Show / hide"
 msgstr "Tonen / verbergen"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -26456,6 +26462,9 @@ msgstr "Gebied geselecteerd — rechtsklik om te extruderen of dubbelklik om te 
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Schets geselecteerd — rechtsklik om te extruderen of dubbelklik om te bewerken"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -26503,11 +26512,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s-vlak geselecteerd — rechtsklik voor de tekengereedschappen"
 
 # AI Translated
 #, c-format, boost-format
@@ -27324,13 +27328,10 @@ msgstr "Lossing vereist een volumelichaam — voeg er eerst een toe of importeer
 msgid "Draft needs a picked face — click a side face first"
 msgstr "Lossing vereist een gekozen vlak — klik eerst op een zijvlak"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"Nog niets — importeer een STEP of een mesh via de werkbalk,\n"
-"of klik op een referentievlak en klik er met de rechtermuisknop op om een schets te beginnen."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -27368,13 +27369,26 @@ msgstr "Doorsnede — de onderste helft wordt getoond"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Selecteer eerst een lichaam — klik erop in de viewport of in de lijst Lichamen"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Dat lichaam heeft nog geen weergavemesh — herbereken eerst"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Selecteer eerst een lichaam — klik erop in de viewport of in de lijst Lichamen"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -27400,9 +27414,6 @@ msgstr "Klik op een vlak van het volumelichaam en druk daarna op F"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Op vlak geplaatst — lichaam plat op het printbed gelegd"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -27853,6 +27864,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Schetsvlak: %s — kies een gereedschap"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"Schetsvlak: %s.\n"
+"Kies een gereedschap of druk op Menu voor de lijst."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "Vlak gereed"
 
@@ -28103,9 +28128,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "Schets"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Klik op een vlak of een referentievlak en kies daarna een tekengereedschap"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -28391,6 +28418,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -32993,6 +33027,39 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimenteel) Printeragents gebruiken in plaats van printhosts"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "FEATURES"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Klik op een vlak of een referentievlak in de viewport en daarna op een schetsgereedschap"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Klik op een vlak of een referentievlak en daarna op een schetsgereedschap."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s-vlak geselecteerd — rechtsklik voor de tekengereedschappen"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Nog niets — importeer een STEP of een mesh via de werkbalk,\n"
+#~ "of klik op een referentievlak en klik er met de rechtermuisknop op om een schets te beginnen."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Klik op een vlak of een referentievlak en kies daarna een tekengereedschap"
 
 #~ msgid "X"
 #~ msgstr "X"

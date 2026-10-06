@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:10-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -3432,8 +3432,8 @@ msgstr "추가 프로세스 사전 설정"
 msgid "Remove parameter"
 msgstr "매개 변수 제거"
 
-msgid "to"
-msgstr "으로"
+msgid "Range"
+msgstr "범위"
 
 msgid "Add height range"
 msgstr "높이 범위 추가"
@@ -5511,9 +5511,6 @@ msgstr "매개변수 이름"
 
 msgid "layers"
 msgstr "레이어"
-
-msgid "Range"
-msgstr "범위"
 
 msgid "Empty string"
 msgstr "빈 문자열"
@@ -10463,18 +10460,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "프린터 및 필라멘트 드롭다운 목록에 호환되지 않거나 지원되지 않는 사전 설정을 표시합니다. 이러한 사전 설정은 선택할 수 없습니다."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(실험적) 출력 호스트 대신 프린터 에이전트 사용"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Bambu 이외의 프린터 출력 작업을 기존 출력 호스트 업로드 방식 대신 프린터 플러그인 에이전트를 통해 전달합니다.\n"
-"비활성화하면 OrcaSlicer는 기존 출력 호스트 동작을 사용합니다."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "실험적 기능"
 
@@ -10489,6 +10474,17 @@ msgid ""
 msgstr ""
 "객체 메시를 변경한 후(자르기/디스크에서 다시 불러오기/단순화/수정 등)에도 칠한 기능(색상/재봉선/서포트/퍼지 등)을 유지하려고 시도합니다.\n"
 "매우 실험적인 기능입니다! 속도가 느리고 아티팩트가 생길 수 있습니다."
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bambu 이외의 프린터 출력 작업을 기존 출력 호스트 업로드 방식 대신 프린터 플러그인 에이전트를 통해 전달합니다.\n"
+"비활성화하면 OrcaSlicer는 기존 출력 호스트 동작을 사용합니다."
 
 # AI Translated
 msgid "Allow Abnormal Storage"
@@ -10661,6 +10657,9 @@ msgstr "다른 층 필라멘트 순서"
 
 msgid "Please input layer value (>= 2)."
 msgstr "레이어 값(>= 2)을 입력하세요."
+
+msgid "to"
+msgstr "으로"
 
 msgid "Plate name"
 msgstr "플레이트 이름"
@@ -16737,6 +16736,12 @@ msgstr "Y축 대칭 채우기"
 # AI Translated
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "모델에 Y축을 기준으로 대칭인 두 부품이 있고 이 부품들이 대칭 질감을 갖게 하려면, 두 부품 중 하나에서 이 옵션을 선택하십시오."
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr ""
 
 msgid "Infill combination - Max layer height"
 msgstr "채우기 조합 - 최대 레이어 높이"
@@ -23272,6 +23277,22 @@ msgstr "필라멘트가 현재 기기 설정과 호환되지 않을 수 있습�
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "미지의 필라멘트 모델. 무작위 필라멘트 사전 설정이 사용됩니다."
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "프린터 베드와 플레이트 격자 표시"
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 # AI Translated
 msgid "Construction"
 msgstr "보조"
@@ -23383,35 +23404,11 @@ msgstr "베드 표시됨"
 msgid "Bed hidden"
 msgstr "베드 숨겨짐"
 
-# AI Translated
-msgid "FEATURES"
-msgstr "피처"
-
-# AI Translated
-msgid "Sketch"
-msgstr "스케치"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "스케치 평면: %s — 도구를 선택하십시오"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "뷰포트에서 면 또는 기준 평면을 클릭한 다음 스케치 도구를 선택하십시오"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
+msgid "Reference planes shown"
 msgstr ""
-"스케치 평면: %s.\n"
-"도구를 선택하거나 메뉴를 눌러 목록을 보십시오."
 
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "면 또는 기준 평면을 클릭한 다음 스케치 도구를 선택하십시오."
+msgid "Reference planes hidden"
+msgstr ""
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23761,14 +23758,6 @@ msgstr "원통형 곡면(내부 구멍 / 외부) 또는 원형 모서리에 나�
 # AI Translated
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
 msgstr "나사산을 만들 원통형 곡면(구멍 / 외부) 또는 원형 모서리를 선택하십시오"
-
-# AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "STEP 가져오기(편집 가능한 B-rep 솔리드)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "메시(STL/OBJ)를 편집 가능한 B-rep 솔리드로 가져오기"
 
 # AI Translated
 msgid "Constrain selected sketch"
@@ -24170,12 +24159,19 @@ msgid "New Design — clear the feature tree"
 msgstr "새 디자인 — 피처 트리 지우기"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "STEP 가져오기(편집 가능한 B-rep 솔리드)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "메시(STL/OBJ)를 편집 가능한 B-rep 솔리드로 가져오기"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "STEP 내보내기…"
 
-# AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "프린터 베드와 플레이트 격자 표시"
+msgid "Create a new sketch"
+msgstr ""
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -24211,6 +24207,10 @@ msgstr "너비 / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "높이 / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "스케치"
 
 # AI Translated
 msgid "Distance X"
@@ -24841,6 +24841,9 @@ msgstr "(바인딩 없음)"
 msgid "Value"
 msgstr "값"
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 # AI Translated
 msgid "Constraints"
 msgstr "구속조건"
@@ -24878,6 +24881,9 @@ msgstr "아래로 이동"
 # AI Translated
 msgid "Show / hide"
 msgstr "표시 / 숨기기"
+
+msgid "Zoom to selection"
+msgstr ""
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -24950,6 +24956,9 @@ msgstr "영역 선택됨 — 마우스 오른쪽 클릭으로 돌출하거나 �
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "스케치 선택됨 — 마우스 오른쪽 클릭으로 돌출하거나 더블 클릭하여 편집"
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
@@ -24995,11 +25004,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
 msgstr ""
-
-# AI Translated
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s 평면 선택됨 — 그리기 도구는 마우스 오른쪽 클릭"
 
 # AI Translated
 #, c-format, boost-format
@@ -25811,13 +25815,10 @@ msgstr "구배에는 솔리드 바디가 필요합니다 — 먼저 추가하거
 msgid "Draft needs a picked face — click a side face first"
 msgstr "구배에는 선택한 면이 필요합니다 — 먼저 측면을 클릭하십시오"
 
-# AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
-"아직 아무것도 없습니다 — 도구 모음에서 STEP 또는 메시를 가져오거나,\n"
-"기준 평면을 클릭하고 마우스 오른쪽 클릭하여 스케치를 시작하십시오."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25855,13 +25856,26 @@ msgstr "단면도 — 아래쪽 절반 표시 중"
 msgid "Finding the feature's faces…"
 msgstr ""
 
-# AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "먼저 바디를 선택하십시오 — 뷰포트나 바디 목록에서 클릭하십시오"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr ""
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "해당 바디에는 아직 표시용 메시가 없습니다 — 먼저 재계산하십시오"
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "먼저 바디를 선택하십시오 — 뷰포트나 바디 목록에서 클릭하십시오"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25887,9 +25901,6 @@ msgstr "솔리드의 면을 클릭한 다음 F를 누르십시오"
 # AI Translated
 msgid "Placed on face — body laid flat on the bed"
 msgstr "면에 배치됨 — 바디를 베드에 평평하게 놓았습니다"
-
-msgid "Finish or cancel what is open first"
-msgstr ""
 
 #, c-format, boost-format
 msgid "Edit rejected: %s"
@@ -26338,6 +26349,20 @@ msgid "Line E%d"
 msgstr ""
 
 # AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "스케치 평면: %s — 도구를 선택하십시오"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+"스케치 평면: %s.\n"
+"도구를 선택하거나 메뉴를 눌러 목록을 보십시오."
+
+# AI Translated
 msgid "Plane ready"
 msgstr "평면 준비됨"
 
@@ -26586,9 +26611,11 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr "스케치"
 
-# AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "면이나 기준 평면을 클릭한 다음 그리기 도구를 선택하십시오"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26874,6 +26901,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 # AI Translated
@@ -31464,6 +31498,39 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(실험적) 출력 호스트 대신 프린터 에이전트 사용"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "피처"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "뷰포트에서 면 또는 기준 평면을 클릭한 다음 스케치 도구를 선택하십시오"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "면 또는 기준 평면을 클릭한 다음 스케치 도구를 선택하십시오."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s 평면 선택됨 — 그리기 도구는 마우스 오른쪽 클릭"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "아직 아무것도 없습니다 — 도구 모음에서 STEP 또는 메시를 가져오거나,\n"
+#~ "기준 평면을 클릭하고 마우스 오른쪽 클릭하여 스케치를 시작하십시오."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "면이나 기준 평면을 클릭한 다음 그리기 도구를 선택하십시오"
 
 #~ msgid "X"
 #~ msgstr "X"
