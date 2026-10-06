@@ -11,6 +11,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
+#include <boost/beast/core/detail/base64.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/address_v4.hpp>
@@ -36,7 +37,9 @@
 #include <cstdio>
 #include <condition_variable>
 #include <cmath>
+#include <deque>
 #include <limits>
+#include <map>
 #include <mutex>
 #include <random>
 #include <set>
@@ -60,6 +63,7 @@ namespace fs = boost::filesystem;
 
 struct OrcaDeviceCapabilities
 {
+    bool known = false; // a get_capabilities reply has been seen for this device
     bool fms = false;
     bool filament_slots = false;
     bool filament_mapping = false;
@@ -167,6 +171,162 @@ std::string next_gcode_file_sequence_id()
     }()};
     return std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
 }
+
+// ============================================================================
+// Pending OPCP files.* requests.
+//
+// A detached file worker registers a slot keyed by sequence_id, publishes the
+// request, then waits on the slot. The MQTT inbound handler fills and wakes it.
+// Process-wide (like the capability cache) so the worker never captures the
+// agent; sequence ids are unique per request.
+// ============================================================================
+struct PendingFileReply
+{
+    std::string             dev_id;
+    bool                    done   = false;
+    bool                    failed = false;
+    std::string             body;
+    std::condition_variable cv;
+};
+
+std::mutex g_file_replies_mutex;
+std::map<std::string, std::shared_ptr<PendingFileReply>> g_file_replies;
+
+std::shared_ptr<PendingFileReply> register_file_reply(const std::string& sequence_id, const std::string& dev_id)
+{
+    auto slot    = std::make_shared<PendingFileReply>();
+    slot->dev_id = dev_id;
+    std::lock_guard<std::mutex> lock(g_file_replies_mutex);
+    g_file_replies[sequence_id] = slot;
+    return slot;
+}
+
+void unregister_file_reply(const std::string& sequence_id, const std::shared_ptr<PendingFileReply>& slot)
+{
+    std::lock_guard<std::mutex> lock(g_file_replies_mutex);
+    const auto it = g_file_replies.find(sequence_id);
+    if (it != g_file_replies.end() && it->second == slot)
+        g_file_replies.erase(it);
+}
+
+bool wait_file_reply(const std::shared_ptr<PendingFileReply>& slot, std::chrono::milliseconds timeout)
+{
+    std::unique_lock<std::mutex> lock(g_file_replies_mutex);
+    return slot->cv.wait_for(lock, timeout, [&slot] { return slot->done; });
+}
+
+void mark_file_replies_failed(const std::string& dev_id)
+{
+    std::vector<std::shared_ptr<PendingFileReply>> slots;
+    {
+        std::lock_guard<std::mutex> lock(g_file_replies_mutex);
+        for (auto it = g_file_replies.begin(); it != g_file_replies.end();) {
+            if (it->second->dev_id == dev_id) {
+                it->second->done   = true;
+                it->second->failed = true;
+                slots.push_back(it->second);
+                it = g_file_replies.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    for (const auto& slot : slots)
+        slot->cv.notify_all();
+}
+
+// Register, publish and wait for one files.* request. Returns true with `body`
+// set when a reply arrived before `timeout`.
+bool send_and_wait_files(const std::function<int(const std::string&)>& send,
+                         const std::string& dev_id,
+                         const std::string& sequence_id,
+                         const std::string& payload,
+                         std::chrono::milliseconds timeout,
+                         std::string& body)
+{
+    const auto slot = register_file_reply(sequence_id, dev_id);
+    if (send(payload) != BAMBU_NETWORK_SUCCESS) {
+        unregister_file_reply(sequence_id, slot);
+        return false;
+    }
+    if (!wait_file_reply(slot, timeout)) {
+        unregister_file_reply(sequence_id, slot);
+        BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: files request timed out seq=" << sequence_id << " dev_id=" << dev_id;
+        return false;
+    }
+    if (slot->failed) {
+        BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: files request aborted seq=" << sequence_id << " dev_id=" << dev_id;
+        return false;
+    }
+    body = std::move(slot->body);
+    return true;
+}
+
+// True when a files.* reply reports success (or carries no result/errno at all).
+bool opcp_files_reply_ok(const std::string& body)
+{
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return false;
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
+        return false;
+    const auto result_it = files_it->find("result");
+    if (result_it != files_it->end()) {
+        if (result_it->is_string() && result_it->get<std::string>() != "success")
+            return false;
+        if (result_it->is_number() && result_it->get<int>() != 0)
+            return false;
+    }
+    const auto errno_it = files_it->find("errno");
+    if (errno_it != files_it->end() && errno_it->is_number() && errno_it->get<int>() != 0)
+        return false;
+    return true;
+}
+
+// Decode standard base64 (the OPCP thumbnail payload) to raw bytes. Trims
+// surrounding whitespace and rejects anything Beast's decoded_size() contract
+// cannot size (length not a multiple of four) or that is not the alphabet.
+std::string decode_base64(const std::string& input)
+{
+    const auto first = input.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+    const auto last = input.find_last_not_of(" \t\r\n");
+    const std::string trimmed = input.substr(first, last - first + 1);
+
+    // Unpadded input overruns the decoded_size() allocation, so reject it.
+    if (trimmed.size() % 4 != 0)
+        return {};
+
+    bool padding_seen = false;
+    for (std::size_t i = 0; i < trimmed.size(); ++i) {
+        const char c = trimmed[i];
+        if (c == '=') {
+            if (i + 2 < trimmed.size()) // '=' may only close the final group
+                return {};
+            padding_seen = true;
+            continue;
+        }
+        if (padding_seen) // a data character after padding
+            return {};
+        const bool alphabet = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                              (c >= '0' && c <= '9') || c == '+' || c == '/';
+        if (!alphabet)
+            return {};
+    }
+
+    std::string out;
+    out.resize(boost::beast::detail::base64::decoded_size(trimmed.size()));
+    const auto decoded = boost::beast::detail::base64::decode(out.data(), trimmed.data(), trimmed.size());
+    out.resize(decoded.first);
+    return out;
+}
+
+// Bounds for the directory walk: depth, directories visited, entries returned.
+constexpr int         kFileWalkMaxDepth   = 8;
+constexpr std::size_t kFileWalkMaxDirs    = 512;
+constexpr std::size_t kFileWalkMaxEntries = 4096;
 
 static constexpr const char* ORCASONAR_FALLBACK = "orcasonar";
 
@@ -702,6 +862,7 @@ std::string OrcaPrinterAgent::merge_capabilities(const std::string& dev_id, cons
                     parse_commands(*protocol_commands);
             }
         }
+        device_capabilities.known = true;
         {
             std::lock_guard<std::mutex> lock(g_capabilities_mutex);
             g_capabilities[dev_id] = std::move(device_capabilities);
@@ -736,12 +897,64 @@ void OrcaPrinterAgent::forget_device_capabilities(const std::string& dev_id)
 {
     if (dev_id.empty())
         return;
+    fail_pending_file_requests(dev_id);
     std::lock_guard<std::mutex> lock(g_capabilities_mutex);
     g_capabilities.erase(dev_id);
 }
 
+void OrcaPrinterAgent::fail_pending_file_requests(const std::string& dev_id)
+{
+    if (dev_id.empty())
+        return;
+    mark_file_replies_failed(dev_id);
+}
+
+bool OrcaPrinterAgent::handle_files_reply(const std::string& dev_id, const std::string& payload)
+{
+    if (payload.find("\"files\"") == std::string::npos)
+        return false;
+
+    const nlohmann::json envelope = nlohmann::json::parse(payload, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return false;
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
+        return false;
+
+    // Any files payload is ours; it must not reach MachineObject::parse_json.
+    const auto sequence_it = files_it->find("sequence_id");
+    if (sequence_it == files_it->end() || !sequence_it->is_string()) {
+        BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: dropping files report without sequence_id dev_id=" << dev_id;
+        return true;
+    }
+    const std::string sequence_id = sequence_it->get<std::string>();
+
+    std::shared_ptr<PendingFileReply> slot;
+    {
+        std::lock_guard<std::mutex> lock(g_file_replies_mutex);
+        const auto it = g_file_replies.find(sequence_id);
+        if (it != g_file_replies.end() && it->second->dev_id == dev_id) {
+            slot       = it->second;
+            slot->done = true;
+            slot->body = payload;
+            g_file_replies.erase(it);
+        }
+    }
+    if (!slot) {
+        BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: dropping unmatched files report seq=" << sequence_id
+                                 << " dev_id=" << dev_id;
+        return true;
+    }
+    slot->cv.notify_all();
+    return true;
+}
+
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
 {
+    // files.* replies belong to the pending-request mechanism, not the GUI parser.
+    if (handle_files_reply(dev_id, payload))
+        return;
+
     parse_ipcam_info(dev_id, payload);
     std::string merged_payload = merge_capabilities(dev_id, payload);
 
@@ -847,7 +1060,7 @@ bool OrcaPrinterAgent::supports_feature(const std::string& dev_id, const std::st
 }
 
 int OrcaPrinterAgent::prepare_outgoing_request(const std::string& dev_id, const std::string& payload,
-                                               std::string& command, std::string& prepared) const
+                                               std::string& command, std::string& prepared)
 {
     command = "<unparsed>";
     prepared = payload;
@@ -869,7 +1082,7 @@ int OrcaPrinterAgent::prepare_outgoing_request(const std::string& dev_id, const 
         break;
     }
 
-    if (!supports_command(dev_id, command))
+    if (!command_supported(capabilities_for(dev_id), command))
         return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 
     if (command == "print.ams_filament_setting" && print && print->contains("setting_id")) {
@@ -1218,7 +1431,7 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
         m_camera_stream_mode = CameraStreamMode::none;
         m_camera_url.clear();
         m_current_connection = LAN;
-        lan_mqtt_connection  = std::make_unique<OrcaMqttConnection>();
+        lan_mqtt_connection  = std::make_shared<OrcaMqttConnection>();
         conn                 = lan_mqtt_connection.get();
     }
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: selected LAN printer dev_id=" << params.dev_id
@@ -1279,7 +1492,7 @@ int OrcaPrinterAgent::disconnect_printer()
 {
     BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: disconnect_printer requested";
     ++m_lan_generation; // fence stale worker callbacks
-    std::unique_ptr<OrcaMqttConnection> doomed;
+    std::shared_ptr<OrcaMqttConnection> doomed;
     std::string prev_dev;
     CurrentConn previous_connection;
     CurrentConn current_connection;
@@ -1323,6 +1536,11 @@ int OrcaPrinterAgent::send_message_to_printer(std::string dev_id, std::string js
 
 int OrcaPrinterAgent::route_send(bool is_lan, const std::string& dev_id, const std::string& json_str)
 {
+    return route_send_via(is_lan, get_appropriate_mqtt_connection(is_lan), dev_id, json_str);
+}
+
+int OrcaPrinterAgent::route_send_via(bool is_lan, OrcaMqttConnection* conn, const std::string& dev_id, const std::string& json_str)
+{
     std::string command;
     std::string prepared;
     const int prepare_rc = prepare_outgoing_request(dev_id, json_str, command, prepared);
@@ -1334,7 +1552,6 @@ int OrcaPrinterAgent::route_send(bool is_lan, const std::string& dev_id, const s
         BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: refusing unsupported command " << command << " for dev_id=" << dev_id;
         return prepare_rc;
     }
-    OrcaMqttConnection* conn = get_appropriate_mqtt_connection(is_lan);
     if (!conn)
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     const bool queued = conn->send_request(dev_id, prepared);
@@ -1802,12 +2019,293 @@ std::vector<PrinterFileEntry> OrcaPrinterAgent::parse_file_list(const std::strin
     return files;
 }
 
+// ============================================================================
+// OPCP printer-file transport.
+// ============================================================================
+
+OrcaPrinterAgent::FileTransport OrcaPrinterAgent::preferred_file_transport(const std::string& dev_id)
+{
+    const OrcaDeviceCapabilities capabilities = capabilities_for(dev_id);
+    if (!capabilities.known)
+        return FileTransport::probe;
+    if (capabilities.supported_commands.count("files.list") != 0)
+        return FileTransport::opcp;
+    return FileTransport::http;
+}
+
+std::string OrcaPrinterAgent::build_files_list_request(const std::string& sequence_id, const std::string& path)
+{
+    nlohmann::json request;
+    request["files"]["command"]     = "list";
+    request["files"]["sequence_id"] = sequence_id;
+    request["files"]["root"]        = "gcodes";
+    request["files"]["path"]        = path;
+    return request.dump();
+}
+
+std::string OrcaPrinterAgent::build_files_metadata_request(const std::string& sequence_id, const std::string& path)
+{
+    nlohmann::json request;
+    request["files"]["command"]     = "metadata";
+    request["files"]["sequence_id"] = sequence_id;
+    request["files"]["root"]        = "gcodes";
+    request["files"]["path"]        = path;
+    return request.dump();
+}
+
+std::string OrcaPrinterAgent::build_files_delete_request(const std::string& sequence_id, const std::string& path)
+{
+    nlohmann::json request;
+    request["files"]["command"]     = "delete";
+    request["files"]["sequence_id"] = sequence_id;
+    request["files"]["root"]        = "gcodes";
+    request["files"]["path"]        = path;
+    return request.dump();
+}
+
+std::string OrcaPrinterAgent::build_files_thumbnail_request(const std::string& sequence_id, const std::string& path)
+{
+    nlohmann::json request;
+    request["files"]["command"]       = "thumbnail";
+    request["files"]["sequence_id"]   = sequence_id;
+    request["files"]["root"]          = "gcodes";
+    request["files"]["path"]          = path;
+    request["files"]["max_dimension"] = 0;
+    return request.dump();
+}
+
+bool OrcaPrinterAgent::file_reply_requires_http_fallback(const std::string& body)
+{
+    return !opcp_files_reply_ok(body);
+}
+
+// Pure normalization of one OPCP files.list reply. Directories are returned
+// separately so the walker can recurse; `success` is false for a failed reply
+// (result != success or errno != 0), which makes the caller fall back to HTTP.
+OrcaPrinterAgent::OpcpFileListPage OrcaPrinterAgent::parse_opcp_file_list(const std::string& body)
+{
+    OpcpFileListPage page;
+
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return page;
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
+        return page;
+
+    page.success = opcp_files_reply_ok(body);
+
+    const auto truncated_it = files_it->find("truncated");
+    if (truncated_it != files_it->end() && truncated_it->is_boolean())
+        page.truncated = truncated_it->get<bool>();
+
+    const auto entries_it = files_it->find("entries");
+    if (entries_it == files_it->end() || !entries_it->is_array())
+        return page;
+
+    for (const auto& item : *entries_it) {
+        if (!item.is_object())
+            continue;
+        const auto path_it = item.find("path");
+        if (path_it == item.end() || !path_it->is_string())
+            continue;
+        const std::string path = path_it->get<std::string>();
+        if (path.empty())
+            continue;
+
+        if (item.value("is_dir", false)) {
+            page.dirs.push_back(path);
+            continue;
+        }
+
+        PrinterFileEntry entry;
+        entry.path        = path;
+        const auto name_it = item.find("name");
+        entry.name        = (name_it != item.end() && name_it->is_string()) ? name_it->get<std::string>()
+                                                                           : fs::path(path).filename().string();
+
+        const auto size_it = item.find("size");
+        if (size_it != item.end() && size_it->is_number())
+            entry.size = size_it->get<std::uint64_t>();
+
+        const auto modified_it = item.find("modified");
+        if (modified_it != item.end() && modified_it->is_number())
+            entry.modified = static_cast<std::int64_t>(modified_it->get<double>());
+
+        page.files.push_back(std::move(entry));
+    }
+    return page;
+}
+
+PrinterFileMetadata OrcaPrinterAgent::parse_opcp_file_metadata(const std::string& body)
+{
+    PrinterFileMetadata meta;
+
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return meta;
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
+        return meta;
+
+    const nlohmann::json* fields = &*files_it;
+    const auto result_it = files_it->find("result");
+    if (result_it != files_it->end() && result_it->is_object())
+        fields = &*result_it; // tolerate a nested result object too
+
+    const auto time_it = fields->find("estimated_time");
+    if (time_it != fields->end() && time_it->is_number())
+        meta.estimated_time = static_cast<int>(time_it->get<double>());
+
+    const auto total_it = fields->find("filament_total");
+    if (total_it != fields->end() && total_it->is_number())
+        meta.filament_total = total_it->get<double>();
+
+    const auto weight_it = fields->find("filament_weight_total");
+    if (weight_it != fields->end() && weight_it->is_number())
+        meta.filament_weight = weight_it->get<double>();
+
+    return meta;
+}
+
+// Decode the base64 PNG payload. A reply without `data` means the file has no
+// embedded thumbnail: success with an empty image.
+std::string OrcaPrinterAgent::parse_opcp_thumbnail(const std::string& body)
+{
+    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return {};
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
+        return {};
+    const auto data_it = files_it->find("data");
+    if (data_it == files_it->end() || !data_it->is_string())
+        return {};
+    return decode_base64(data_it->get<std::string>());
+}
+
+bool OrcaPrinterAgent::collect_opcp_file_entries(const std::function<int(const std::string&)>& send,
+                                                 const std::string& dev_id,
+                                                 std::chrono::milliseconds first_timeout,
+                                                 std::chrono::milliseconds page_timeout,
+                                                 std::vector<PrinterFileEntry>& out,
+                                                 bool& truncated)
+{
+    truncated = false;
+
+    struct PendingDir { std::string path; int depth; };
+    std::deque<PendingDir> queue;
+    queue.push_back({"", 0});
+    std::size_t dirs_seen = 0;
+    bool        first     = true;
+
+    while (!queue.empty()) {
+        if (dirs_seen >= kFileWalkMaxDirs) {
+            truncated = true;
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file walk hit the directory cap dev_id=" << dev_id;
+            break;
+        }
+        const PendingDir current = queue.front();
+        queue.pop_front();
+        ++dirs_seen;
+
+        const std::string sequence_id = next_gcode_file_sequence_id();
+        const std::string payload     = build_files_list_request(sequence_id, current.path);
+        const auto        timeout     = first ? first_timeout : page_timeout;
+        first                         = false;
+
+        std::string body;
+        if (!send_and_wait_files(send, dev_id, sequence_id, payload, timeout, body)) {
+            if (dirs_seen == 1) {
+                BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: OPCP file listing unavailable dev_id=" << dev_id;
+                return false; // root failed: the caller may fall back to HTTP
+            }
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: OPCP file listing stopped at path=" << current.path;
+            truncated = true;
+            break;
+        }
+
+        const OpcpFileListPage page = parse_opcp_file_list(body);
+        if (!page.success) {
+            if (dirs_seen == 1) {
+                BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: OPCP file listing rejected dev_id=" << dev_id;
+                return false;
+            }
+            truncated = true;
+            break;
+        }
+
+        for (const PrinterFileEntry& entry : page.files) {
+            if (out.size() >= kFileWalkMaxEntries) {
+                truncated = true;
+                break;
+            }
+            out.push_back(entry);
+        }
+        if (page.truncated)
+            truncated = true;
+        if (out.size() >= kFileWalkMaxEntries) {
+            truncated = true;
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file walk hit the entry cap dev_id=" << dev_id;
+            break;
+        }
+
+        if (current.depth + 1 <= kFileWalkMaxDepth) {
+            for (const std::string& dir : page.dirs)
+                queue.push_back({dir, current.depth + 1});
+        } else if (!page.dirs.empty()) {
+            truncated = true;
+        }
+    }
+    return true;
+}
+
+void OrcaPrinterAgent::list_printer_files_http(const std::string& origin, bool use_ssl, const std::string& ca_file,
+                                               QueueOnMainFn queue, PrinterFileListFn callback)
+{
+    std::string body;
+    int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+    auto http = Http::get(origin + "/server/files/list?root=gcodes");
+    http.tls_verify(use_ssl);
+    if (!ca_file.empty())
+        http.ca_file(ca_file);
+    http.timeout_connect(5)
+        .timeout_max(15)
+        .on_complete([&](std::string b, unsigned status) {
+            if (status == 200) {
+                body   = std::move(b);
+                result = BAMBU_NETWORK_SUCCESS;
+            }
+        })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file list request failed status=" << status << " err=" << err;
+        })
+        .perform_sync();
+
+    std::vector<PrinterFileEntry> files;
+    if (result == BAMBU_NETWORK_SUCCESS) {
+        files = parse_file_list(body);
+        // Empty is a valid listing; an unparseable body is not.
+        if (nlohmann::json::parse(body, nullptr, false).is_discarded())
+            result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+    }
+
+    if (!callback)
+        return;
+    if (queue)
+        queue([callback, result, files = std::move(files)]() mutable { callback(result, std::move(files)); });
+    else
+        callback(result, std::move(files));
+}
+
 int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
 {
     std::string   origin;
     bool          use_ssl = false;
     std::string   ca_file;
     QueueOnMainFn queue;
+    std::shared_ptr<OrcaMqttConnection> conn;
     bool          live = false;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
@@ -1817,6 +2315,7 @@ int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileL
             use_ssl = m_lan_use_ssl;
             ca_file = m_lan_ca_file;
             queue   = queue_on_main_fn;
+            conn    = lan_mqtt_connection;
         }
     }
     if (!live) {
@@ -1824,43 +2323,47 @@ int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileL
             callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
         return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+
+    const FileTransport transport = preferred_file_transport(dev_id);
+    if (transport == FileTransport::http) {
+        if (origin.empty()) {
+            if (callback)
+                callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
+            return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+        }
+        std::thread([origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+            list_printer_files_http(origin, use_ssl, ca_file, queue, std::move(callback));
+        }).detach();
+        return BAMBU_NETWORK_SUCCESS;
     }
 
-    // perform_sync blocks, so the request runs off the UI thread. The worker captures
-    // only values (never `this`). A trusted LAN facade needs no API key.
-    std::thread([dev_id, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
-        std::string body;
-        int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+    const auto first_timeout = std::chrono::milliseconds(
+        transport == FileTransport::probe ? m_file_probe_timeout_ms.load() : m_file_request_timeout_ms.load());
+    const auto page_timeout = std::chrono::milliseconds(m_file_request_timeout_ms.load());
 
-        auto http = Http::get(origin + "/server/files/list?root=gcodes");
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string b, unsigned status) {
-                if (status == 200) {
-                    body   = std::move(b);
-                    result = BAMBU_NETWORK_SUCCESS;
-                }
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file list request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
+    // perform_sync/wait block, so the walk runs off the UI thread. The worker captures
+    // only values (never `this`); the shared connection outlives a disconnect.
+    std::thread([dev_id, origin, use_ssl, ca_file, queue, conn, first_timeout, page_timeout,
+                 callback = std::move(callback)]() mutable {
         std::vector<PrinterFileEntry> files;
-        if (result == BAMBU_NETWORK_SUCCESS) {
-            files = parse_file_list(body);
-            // Empty is a valid listing; an unparseable body is not.
-            if (nlohmann::json::parse(body, nullptr, false).is_discarded())
-                result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+        bool                          truncated = false;
+        bool                          root_ok   = false;
+        if (conn) {
+            auto send = [conn, dev_id](const std::string& payload) {
+                return OrcaPrinterAgent::route_send_via(true, conn.get(), dev_id, payload);
+            };
+            root_ok = collect_opcp_file_entries(send, dev_id, first_timeout, page_timeout, files, truncated);
         }
 
+        if (!root_ok && !origin.empty()) {
+            BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: OPCP file list failed; falling back to HTTP dev_id=" << dev_id;
+            list_printer_files_http(origin, use_ssl, ca_file, queue, std::move(callback));
+            return;
+        }
+        if (truncated)
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file listing truncated dev_id=" << dev_id;
+
+        const int result = root_ok ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
         if (!callback)
             return;
         if (queue)
@@ -1953,15 +2456,81 @@ std::string OrcaPrinterAgent::encode_file_path(const std::string& path)
     return encoded;
 }
 
-// Fetch one file's embedded thumbnail: first resolve its path via the thumbnails
-// listing, then download the image bytes. Mirrors list_printer_files for the
-// connection snapshot and off-thread marshalling; the worker captures no `this`.
+// HTTP fallback: resolve the thumbnail path via the thumbnails listing, then
+// download the image bytes. Static so the detached worker captures no `this`.
+void OrcaPrinterAgent::get_printer_file_thumbnail_http(const std::string& path, const std::string& origin, bool use_ssl,
+                                                       const std::string& ca_file, QueueOnMainFn queue,
+                                                       PrinterFileThumbnailFn callback)
+{
+    std::string image;
+    int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+    std::string thumb_body;
+    bool        listed = false;
+    auto http = Http::get(origin + "/server/files/thumbnails?filename=" + Http::url_encode(path));
+    http.tls_verify(use_ssl);
+    if (!ca_file.empty())
+        http.ca_file(ca_file);
+    http.timeout_connect(5)
+        .timeout_max(15)
+        .on_complete([&](std::string b, unsigned status) {
+            if (status == 200) {
+                thumb_body = std::move(b);
+                listed     = true;
+            }
+        })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail list request failed status=" << status << " err=" << err;
+        })
+        .perform_sync();
+
+    if (listed) {
+        if (nlohmann::json::parse(thumb_body, nullptr, false).is_discarded()) {
+            result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+        } else {
+            const std::string thumb_path = parse_thumbnail_path(thumb_body);
+            if (thumb_path.empty()) {
+                // No embedded thumbnail: a success the caller caches.
+                result = BAMBU_NETWORK_SUCCESS;
+            } else {
+                // The returned path is relative to the gcodes root, served at
+                // /server/files/gcodes; an explicit gcodes/ prefix is served at /server/files.
+                const std::string root = thumb_path.rfind("gcodes/", 0) == 0 ? "/server/files/" : "/server/files/gcodes/";
+                auto image_http = Http::get(origin + root + encode_file_path(thumb_path));
+                image_http.tls_verify(use_ssl);
+                if (!ca_file.empty())
+                    image_http.ca_file(ca_file);
+                image_http.timeout_connect(5)
+                    .timeout_max(15)
+                    .on_complete([&](std::string b, unsigned status) {
+                        if (status == 200) {
+                            image  = std::move(b);
+                            result = BAMBU_NETWORK_SUCCESS;
+                        }
+                    })
+                    .on_error([&](std::string, std::string err, unsigned status) {
+                        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail fetch failed status=" << status << " err=" << err;
+                    })
+                    .perform_sync();
+            }
+        }
+    }
+
+    if (!callback)
+        return;
+    if (queue)
+        queue([callback, result, image = std::move(image)]() mutable { callback(result, std::move(image)); });
+    else
+        callback(result, std::move(image));
+}
+
 int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
 {
     std::string   origin;
     bool          use_ssl = false;
     std::string   ca_file;
     QueueOnMainFn queue;
+    std::shared_ptr<OrcaMqttConnection> conn;
     bool          live = false;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
@@ -1971,6 +2540,7 @@ int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, cons
             use_ssl = m_lan_use_ssl;
             ca_file = m_lan_ca_file;
             queue   = queue_on_main_fn;
+            conn    = lan_mqtt_connection;
         }
     }
     if (!live) {
@@ -1978,67 +2548,44 @@ int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, cons
             callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
         return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+
+    const FileTransport transport = preferred_file_transport(dev_id);
+    if (transport == FileTransport::http) {
+        if (origin.empty()) {
+            if (callback)
+                callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
+            return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+        }
+        std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+            get_printer_file_thumbnail_http(path, origin, use_ssl, ca_file, queue, std::move(callback));
+        }).detach();
+        return BAMBU_NETWORK_SUCCESS;
     }
 
-    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+    const auto timeout = std::chrono::milliseconds(
+        transport == FileTransport::probe ? m_file_probe_timeout_ms.load() : m_file_request_timeout_ms.load());
+    std::thread([dev_id, path, origin, use_ssl, ca_file, queue, conn, timeout, callback = std::move(callback)]() mutable {
+        bool        ok = false;
         std::string image;
-        int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-
-        std::string thumb_body;
-        bool        listed = false;
-        auto http = Http::get(origin + "/server/files/thumbnails?filename=" + Http::url_encode(path));
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string b, unsigned status) {
-                if (status == 200) {
-                    thumb_body = std::move(b);
-                    listed     = true;
-                }
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail list request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
-        if (listed) {
-            if (nlohmann::json::parse(thumb_body, nullptr, false).is_discarded()) {
-                result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-            } else {
-                const std::string thumb_path = parse_thumbnail_path(thumb_body);
-                if (thumb_path.empty()) {
-                    // No embedded thumbnail: a success the caller caches.
-                    result = BAMBU_NETWORK_SUCCESS;
-                } else {
-                    // The returned path is relative to the gcodes root, served at
-                    // /server/files/gcodes; an explicit gcodes/ prefix is served at /server/files.
-                    const std::string root = thumb_path.rfind("gcodes/", 0) == 0 ? "/server/files/" : "/server/files/gcodes/";
-                    auto image_http = Http::get(origin + root + encode_file_path(thumb_path));
-                    image_http.tls_verify(use_ssl);
-                    if (!ca_file.empty())
-                        image_http.ca_file(ca_file);
-                    image_http.timeout_connect(5)
-                        .timeout_max(15)
-                        .on_complete([&](std::string b, unsigned status) {
-                            if (status == 200) {
-                                image  = std::move(b);
-                                result = BAMBU_NETWORK_SUCCESS;
-                            }
-                        })
-                        .on_error([&](std::string, std::string err, unsigned status) {
-                            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail fetch failed status=" << status << " err=" << err;
-                        })
-                        .perform_sync();
-                }
+        if (conn) {
+            auto send = [conn, dev_id](const std::string& payload) {
+                return OrcaPrinterAgent::route_send_via(true, conn.get(), dev_id, payload);
+            };
+            const std::string sequence_id = next_gcode_file_sequence_id();
+            const std::string payload     = OrcaPrinterAgent::build_files_thumbnail_request(sequence_id, path);
+            std::string body;
+            if (send_and_wait_files(send, dev_id, sequence_id, payload, timeout, body)) {
+                ok = !OrcaPrinterAgent::file_reply_requires_http_fallback(body);
+                if (ok)
+                    image = OrcaPrinterAgent::parse_opcp_thumbnail(body);
             }
         }
 
+        if (!ok && !origin.empty()) {
+            get_printer_file_thumbnail_http(path, origin, use_ssl, ca_file, queue, std::move(callback));
+            return;
+        }
+        const int result = ok ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
         if (!callback)
             return;
         if (queue)
@@ -2050,15 +2597,43 @@ int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, cons
     return BAMBU_NETWORK_SUCCESS;
 }
 
-// Delete one G-code file via Moonraker's HTTP DELETE endpoint. Mirrors
-// list_printer_files for the connection snapshot and off-thread marshalling; the
-// worker captures no `this`.
+// HTTP fallback: delete via Moonraker's HTTP DELETE endpoint. Static so the
+// detached worker captures no `this`.
+void OrcaPrinterAgent::delete_printer_file_http(const std::string& path, const std::string& origin, bool use_ssl,
+                                                const std::string& ca_file, QueueOnMainFn queue, PrinterFileDeleteFn callback)
+{
+    int result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+    auto http = Http::del(origin + "/server/files/gcodes/" + encode_file_path(path));
+    http.tls_verify(use_ssl);
+    if (!ca_file.empty())
+        http.ca_file(ca_file);
+    http.timeout_connect(5)
+        .timeout_max(15)
+        .on_complete([&](std::string, unsigned status) {
+            if (status == 200)
+                result = BAMBU_NETWORK_SUCCESS;
+        })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file delete request failed status=" << status << " err=" << err;
+        })
+        .perform_sync();
+
+    if (!callback)
+        return;
+    if (queue)
+        queue([callback, result]() mutable { callback(result); });
+    else
+        callback(result);
+}
+
 int OrcaPrinterAgent::delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
 {
     std::string   origin;
     bool          use_ssl = false;
     std::string   ca_file;
     QueueOnMainFn queue;
+    std::shared_ptr<OrcaMqttConnection> conn;
     bool          live = false;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
@@ -2068,6 +2643,7 @@ int OrcaPrinterAgent::delete_printer_file(const std::string& dev_id, const std::
             use_ssl = m_lan_use_ssl;
             ca_file = m_lan_ca_file;
             queue   = queue_on_main_fn;
+            conn    = lan_mqtt_connection;
         }
     }
     if (!live) {
@@ -2075,30 +2651,40 @@ int OrcaPrinterAgent::delete_printer_file(const std::string& dev_id, const std::
             callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
         return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE);
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+
+    const FileTransport transport = preferred_file_transport(dev_id);
+    if (transport == FileTransport::http) {
+        if (origin.empty()) {
+            if (callback)
+                callback(BAMBU_NETWORK_ERR_INVALID_HANDLE);
+            return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+        }
+        std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+            delete_printer_file_http(path, origin, use_ssl, ca_file, queue, std::move(callback));
+        }).detach();
+        return BAMBU_NETWORK_SUCCESS;
     }
 
-    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
-        int result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+    const auto timeout = std::chrono::milliseconds(
+        transport == FileTransport::probe ? m_file_probe_timeout_ms.load() : m_file_request_timeout_ms.load());
+    std::thread([dev_id, path, origin, use_ssl, ca_file, queue, conn, timeout, callback = std::move(callback)]() mutable {
+        bool ok = false;
+        if (conn) {
+            auto send = [conn, dev_id](const std::string& payload) {
+                return OrcaPrinterAgent::route_send_via(true, conn.get(), dev_id, payload);
+            };
+            const std::string sequence_id = next_gcode_file_sequence_id();
+            const std::string payload     = OrcaPrinterAgent::build_files_delete_request(sequence_id, path);
+            std::string body;
+            if (send_and_wait_files(send, dev_id, sequence_id, payload, timeout, body))
+                ok = !OrcaPrinterAgent::file_reply_requires_http_fallback(body);
+        }
 
-        auto http = Http::del(origin + "/server/files/gcodes/" + encode_file_path(path));
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string, unsigned status) {
-                if (status == 200)
-                    result = BAMBU_NETWORK_SUCCESS;
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file delete request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
+        if (!ok && !origin.empty()) {
+            delete_printer_file_http(path, origin, use_ssl, ca_file, queue, std::move(callback));
+            return;
+        }
+        const int result = ok ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
         if (!callback)
             return;
         if (queue)
@@ -2110,15 +2696,51 @@ int OrcaPrinterAgent::delete_printer_file(const std::string& dev_id, const std::
     return BAMBU_NETWORK_SUCCESS;
 }
 
-// Fetch one file's Moonraker metadata (print time and filament usage). Mirrors
-// list_printer_files for the connection snapshot and off-thread marshalling; the
-// worker captures no `this`.
+// HTTP fallback: fetch Moonraker metadata. Static so the detached worker
+// captures no `this`.
+void OrcaPrinterAgent::get_printer_file_metadata_http(const std::string& path, const std::string& origin, bool use_ssl,
+                                                      const std::string& ca_file, QueueOnMainFn queue,
+                                                      PrinterFileMetadataFn callback)
+{
+    PrinterFileMetadata meta;
+    int                 result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+
+    auto http = Http::get(origin + "/server/files/metadata?filename=" + Http::url_encode(path));
+    http.tls_verify(use_ssl);
+    if (!ca_file.empty())
+        http.ca_file(ca_file);
+    http.timeout_connect(5)
+        .timeout_max(15)
+        .on_complete([&](std::string b, unsigned status) {
+            if (status == 200) {
+                if (nlohmann::json::parse(b, nullptr, false).is_discarded())
+                    result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+                else {
+                    meta   = parse_file_metadata(b);
+                    result = BAMBU_NETWORK_SUCCESS;
+                }
+            }
+        })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file metadata request failed status=" << status << " err=" << err;
+        })
+        .perform_sync();
+
+    if (!callback)
+        return;
+    if (queue)
+        queue([callback, result, meta]() mutable { callback(result, meta); });
+    else
+        callback(result, meta);
+}
+
 int OrcaPrinterAgent::get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
 {
     std::string   origin;
     bool          use_ssl = false;
     std::string   ca_file;
     QueueOnMainFn queue;
+    std::shared_ptr<OrcaMqttConnection> conn;
     bool          live = false;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
@@ -2128,6 +2750,7 @@ int OrcaPrinterAgent::get_printer_file_metadata(const std::string& dev_id, const
             use_ssl = m_lan_use_ssl;
             ca_file = m_lan_ca_file;
             queue   = queue_on_main_fn;
+            conn    = lan_mqtt_connection;
         }
     }
     if (!live) {
@@ -2135,37 +2758,44 @@ int OrcaPrinterAgent::get_printer_file_metadata(const std::string& dev_id, const
             callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
         return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+
+    const FileTransport transport = preferred_file_transport(dev_id);
+    if (transport == FileTransport::http) {
+        if (origin.empty()) {
+            if (callback)
+                callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
+            return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+        }
+        std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+            get_printer_file_metadata_http(path, origin, use_ssl, ca_file, queue, std::move(callback));
+        }).detach();
+        return BAMBU_NETWORK_SUCCESS;
     }
 
-    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
+    const auto timeout = std::chrono::milliseconds(
+        transport == FileTransport::probe ? m_file_probe_timeout_ms.load() : m_file_request_timeout_ms.load());
+    std::thread([dev_id, path, origin, use_ssl, ca_file, queue, conn, timeout, callback = std::move(callback)]() mutable {
+        bool                ok = false;
         PrinterFileMetadata meta;
-        int                 result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+        if (conn) {
+            auto send = [conn, dev_id](const std::string& payload) {
+                return OrcaPrinterAgent::route_send_via(true, conn.get(), dev_id, payload);
+            };
+            const std::string sequence_id = next_gcode_file_sequence_id();
+            const std::string payload     = OrcaPrinterAgent::build_files_metadata_request(sequence_id, path);
+            std::string body;
+            if (send_and_wait_files(send, dev_id, sequence_id, payload, timeout, body)) {
+                ok = !OrcaPrinterAgent::file_reply_requires_http_fallback(body);
+                if (ok)
+                    meta = OrcaPrinterAgent::parse_opcp_file_metadata(body);
+            }
+        }
 
-        auto http = Http::get(origin + "/server/files/metadata?filename=" + Http::url_encode(path));
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string b, unsigned status) {
-                if (status == 200) {
-                    if (nlohmann::json::parse(b, nullptr, false).is_discarded())
-                        result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-                    else {
-                        meta   = parse_file_metadata(b);
-                        result = BAMBU_NETWORK_SUCCESS;
-                    }
-                }
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file metadata request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
+        if (!ok && !origin.empty()) {
+            get_printer_file_metadata_http(path, origin, use_ssl, ca_file, queue, std::move(callback));
+            return;
+        }
+        const int result = ok ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
         if (!callback)
             return;
         if (queue)

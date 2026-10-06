@@ -6,6 +6,7 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "OrcaMqttConnection.hpp"
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include "bambu_networking.hpp"
@@ -122,6 +123,12 @@ public:
     void bump_lan_generation_for_test() { ++m_lan_generation; }
     // Test-only: the same for the (independent) cloud selection epoch.
     void bump_cloud_generation_for_test() { ++m_cloud_generation; }
+    // Test-only: shrink the OPCP file-request waits (probe and per-page).
+    void set_file_opcp_timeouts_for_test(int probe_ms, int request_ms)
+    {
+        m_file_probe_timeout_ms.store(probe_ms);
+        m_file_request_timeout_ms.store(request_ms);
+    }
 
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::subscription; }
 
@@ -142,8 +149,8 @@ protected:
     // per-rule detail. Returns the payload unchanged when no rule applies.
     std::string merge_capabilities(const std::string& dev_id, const std::string& payload);
     void forget_device_capabilities(const std::string& dev_id);
-    int prepare_outgoing_request(const std::string& dev_id, const std::string& payload,
-                                 std::string& command, std::string& prepared) const;
+    static int prepare_outgoing_request(const std::string& dev_id, const std::string& payload,
+                                        std::string& command, std::string& prepared);
 
     // Report the asynchronous LAN connection state using the same callback contract as
     // the other printer agents. The transport result cannot be returned by
@@ -185,6 +192,65 @@ protected:
     // Percent-encode each '/'-separated segment for a Moonraker URL while keeping
     // the separators intact. protected static for the test Probe.
     static std::string encode_file_path(const std::string& path);
+
+    // ========================================================================
+    // OPCP printer-file transport (Storage tab).
+    //
+    // Newer OrcaSonar builds expose files.* over the same MQTT channel the agent
+    // already owns; older ones only have the Moonraker HTTP façade. The manifest's
+    // files.list advertisement picks the transport, with a short OPCP probe and an
+    // HTTP fallback when the capability is not known yet.
+    // ========================================================================
+
+    // opcp: the manifest advertises files.list. http: the manifest is known and
+    // does not. probe: no manifest yet; try OPCP briefly then fall back to HTTP.
+    enum class FileTransport { opcp, http, probe };
+    static FileTransport preferred_file_transport(const std::string& dev_id);
+
+    // One files.list reply: the file entries the GUI shows, plus the subdirectory
+    // paths the walker still has to visit.
+    struct OpcpFileListPage {
+        std::vector<PrinterFileEntry> files;
+        std::vector<std::string>      dirs;
+        bool                          truncated = false;
+        bool                          success   = false;
+    };
+
+    static std::string build_files_list_request(const std::string& sequence_id, const std::string& path);
+    static std::string build_files_metadata_request(const std::string& sequence_id, const std::string& path);
+    static std::string build_files_delete_request(const std::string& sequence_id, const std::string& path);
+    static std::string build_files_thumbnail_request(const std::string& sequence_id, const std::string& path);
+    static OpcpFileListPage parse_opcp_file_list(const std::string& body);
+    static PrinterFileMetadata parse_opcp_file_metadata(const std::string& body);
+    static std::string parse_opcp_thumbnail(const std::string& body);
+    // True when a files.* reply is unusable, so the caller should try HTTP.
+    static bool file_reply_requires_http_fallback(const std::string& body);
+
+    // Consume an inbound files.* reply. Returns true for any files payload, which
+    // is then not forwarded to the GUI.
+    bool handle_files_reply(const std::string& dev_id, const std::string& payload);
+    // Wake every pending file request for a device (disconnect/unbind/forget).
+    void fail_pending_file_requests(const std::string& dev_id);
+
+    // Bounded BFS over OPCP files.list from the gcodes root. Returns false when the
+    // root listing itself failed, so the caller can fall back to HTTP.
+    static bool collect_opcp_file_entries(const std::function<int(const std::string&)>& send,
+                                          const std::string& dev_id,
+                                          std::chrono::milliseconds first_timeout,
+                                          std::chrono::milliseconds page_timeout,
+                                          std::vector<PrinterFileEntry>& out,
+                                          bool& truncated);
+
+    // HTTP fallbacks, split out of the public ops. Static so the detached workers
+    // that call them never capture `this`.
+    static void list_printer_files_http(const std::string& origin, bool use_ssl, const std::string& ca_file,
+                                        QueueOnMainFn queue, PrinterFileListFn callback);
+    static void get_printer_file_thumbnail_http(const std::string& path, const std::string& origin, bool use_ssl,
+                                                const std::string& ca_file, QueueOnMainFn queue, PrinterFileThumbnailFn callback);
+    static void delete_printer_file_http(const std::string& path, const std::string& origin, bool use_ssl,
+                                         const std::string& ca_file, QueueOnMainFn queue, PrinterFileDeleteFn callback);
+    static void get_printer_file_metadata_http(const std::string& path, const std::string& origin, bool use_ssl,
+                                               const std::string& ca_file, QueueOnMainFn queue, PrinterFileMetadataFn callback);
     // Test hook: the ws:// URL connect_printer built for the current LAN session ("" if none).
     std::string lan_connection_target() const;
     // Shared post-connect sequence: SUBSCRIBE, then pushing.start, pushall,
@@ -218,7 +284,14 @@ private:
     CurrentConn m_current_connection = NONE;
 
     std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
-    std::unique_ptr<OrcaMqttConnection> lan_mqtt_connection;
+    // shared_ptr so a detached file worker can hold the connection across a
+    // disconnect without a use-after-free; the worker never captures `this`.
+    std::shared_ptr<OrcaMqttConnection> lan_mqtt_connection;
+
+    // OPCP file-request waits, in milliseconds. Probe is short so an older build
+    // fails over to HTTP quickly; the per-page wait covers a real transfer.
+    std::atomic<int> m_file_probe_timeout_ms{3000};
+    std::atomic<int> m_file_request_timeout_ms{15000};
 
     // Two independent epochs: a cloud (de)selection must not fence the live LAN
     // feed, and vice versa. Each transport's connect thread and inbound handler
@@ -249,6 +322,9 @@ private:
     // Route one command payload to device/<dev_id>/request on the LAN or the shared
     // cloud connection. The uniform send path for both send_message* overrides.
     int route_send(bool is_lan, const std::string& dev_id, const std::string& json_str);
+    // Core of route_send() on an already-resolved connection. Static so detached
+    // file workers (which must not capture `this`) send through the same path.
+    static int route_send_via(bool is_lan, OrcaMqttConnection* conn, const std::string& dev_id, const std::string& json_str);
 
     // Callbacks
     OnMsgArrivedFn on_ssdp_msg_fn;
