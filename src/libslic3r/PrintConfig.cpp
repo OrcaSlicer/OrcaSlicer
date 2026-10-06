@@ -3578,7 +3578,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def             = this->add("tpms_adaptive", coBool);
-    def->label      = L("Adaptive density");
+    def->label      = L("Adaptive density (experimental)");
     def->category   = L("Strength");
     def->tooltip    = L("Grades the Gyroid and TPMS infill inside the object: its cells grow from the surface of the "
                         "object, including its top and bottom, towards its center. The sparse infill density is used at "
