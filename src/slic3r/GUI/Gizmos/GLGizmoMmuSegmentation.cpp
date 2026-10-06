@@ -252,15 +252,16 @@ static void render_extruders_combo(const std::string& label,
                                    const std::vector<ColorRGBA>& extruders_colors,
                                    size_t& selection_idx)
 {
-    assert(!extruders_colors.empty());
-    assert(extruders_colors.size() == extruders_colors.size());
+    if (extruders_colors.empty() || extruders.empty())
+        return;
 
-    size_t selection_out = selection_idx;
+    size_t selection_out = (selection_idx < extruders_colors.size()) ? selection_idx : 0;
     // It is necessary to use BeginGroup(). Otherwise, when using SameLine() is called, then other items will be drawn inside the combobox.
     ImGui::BeginGroup();
     ImVec2 combo_pos = ImGui::GetCursorScreenPos();
     if (ImGui::BeginCombo(label.c_str(), "")) {
-        for (size_t extruder_idx = 0; extruder_idx < std::min(extruders.size(), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT); ++extruder_idx) {
+        size_t max_extruders = std::min({extruders.size(), extruders_colors.size(), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT});
+        for (size_t extruder_idx = 0; extruder_idx < max_extruders; ++extruder_idx) {
             ImGui::PushID(int(extruder_idx));
             ImVec2 start_position = ImGui::GetCursorScreenPos();
 
@@ -288,11 +289,13 @@ static void render_extruders_combo(const std::string& label,
     ImVec2 p      = ImGui::GetCursorScreenPos();
     float  height = ImGui::GetTextLineHeight();
 
-    ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + height + height / 2, p.y + height), ImGuiWrapper::to_ImU32(extruders_colors[selection_idx]));
+    size_t safe_selection_idx = (selection_out < extruders_colors.size()) ? selection_out : 0;
+    ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + height + height / 2, p.y + height), ImGuiWrapper::to_ImU32(extruders_colors[safe_selection_idx]));
     ImGui::GetWindowDrawList()->AddRect(p, ImVec2(p.x + height + height / 2, p.y + height), IM_COL32_BLACK);
 
     ImGui::SetCursorScreenPos(ImVec2(p.x + height + height / 2 + style.FramePadding.x, p.y));
-    ImGui::Text("%s", extruders[selection_out].c_str());
+    if (selection_out < extruders.size())
+        ImGui::Text("%s", extruders[selection_out].c_str());
     ImGui::SetCursorScreenPos(backup_pos);
     ImGui::EndGroup();
 
@@ -808,8 +811,9 @@ ColorRGBA GLGizmoMmuSegmentation::get_cursor_hover_color() const
 {
     if (m_selected_extruder_idx < m_extruders_colors.size())
         return m_extruders_colors[m_selected_extruder_idx];
-    else
+    else if (!m_extruders_colors.empty())
         return m_extruders_colors[0];
+    return ColorRGBA::WHITE();
 }
 
 void GLGizmoMmuSegmentation::on_set_state()
@@ -1015,11 +1019,15 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         
         std::string pop_id = "popup_" + std::to_string(src);
 
+        size_t safe_src = (src < m_extruders_colors.size()) ? src : 0;
+        size_t remap_target = (src < m_extruder_remap.size()) ? m_extruder_remap[src] : src;
+        size_t safe_dst = (remap_target < m_extruders_colors.size()) ? remap_target : safe_src;
+
         bool src_clicked = draw_color_button(
             (int)src + 1,                              // idx
             "###remap_src_",                           // button_id
-            m_extruders_colors[src],                   // color
-            m_extruders_colors[m_extruder_remap[src]], // mapped_color (shows bubble if not matches with Color)
+            m_extruders_colors[safe_src],              // color
+            m_extruders_colors[safe_dst],              // mapped_color (shows bubble if not matches with Color)
             ImGui::IsPopupOpen(pop_id.c_str()),        // is_active
             scale
         );

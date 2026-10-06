@@ -1391,12 +1391,18 @@ void TriangleSelectorPatch::render(ImGuiWrapper* imgui, const Transform3d& matri
             ColorRGBA color;
             if (patch.is_fragment() && !patch.neighbor_types.empty()) {
                 size_t color_idx = (size_t)*patch.neighbor_types.begin();
-                color = m_ebt_colors[color_idx];
+                if (color_idx < m_ebt_colors.size())
+                    color = m_ebt_colors[color_idx];
+                else if (!m_ebt_colors.empty())
+                    color = m_ebt_colors.front();
                 color.a(0.85);
             }
             else {
                 size_t color_idx = (size_t)patch.type;
-                color = m_ebt_colors[color_idx];
+                if (color_idx < m_ebt_colors.size())
+                    color = m_ebt_colors[color_idx];
+                else if (!m_ebt_colors.empty())
+                    color = m_ebt_colors.front();
             }
             //to make black not too hard too see
             ColorRGBA new_color = adjust_color_for_rendering(color);

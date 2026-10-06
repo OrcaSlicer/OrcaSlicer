@@ -766,24 +766,14 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     }
                 }
                 else {
-                    if (idx <= extruder_colors.size()) {
+                    if (!extruder_colors.empty()) {
+                        int color_idx = (idx > 0 && static_cast<size_t>(idx) <= extruder_colors.size()) ? (idx - 1) : 0;
                         //to make black not too hard too see
-                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[idx - 1]);
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
                         if (brighten_selected)
                             new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
-                            new_color[3] = (255 - (idx - 1))/255.0f;
-                        }
-                        m.set_color(new_color);
-                        // shader->set_uniform("uniform_color", new_color);
-                    }
-                    else {
-                        //to make black not too hard too see
-                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[0]);
-                        if (brighten_selected)
-                            new_color = brighten_color(new_color, 1.25f);
-                        if (ban_light) {
-                            new_color[3] = (255 - 0) / 255.0f;
+                            new_color[3] = (255 - color_idx)/255.0f;
                         }
                         m.set_color(new_color);
                         // shader->set_uniform("uniform_color", new_color);
@@ -1008,10 +998,18 @@ int GLVolumeCollection::load_wipe_tower_preview(
         wipe_tower_shell.merge(brim_slab);
     }
     for (int extruder_id : plate_extruders) {
-        if (extruder_id <= extruder_colors.size())
-            colors.push_back(extruder_colors[extruder_id - 1]);
+        if (!extruder_colors.empty()) {
+            if (extruder_id > 0 && static_cast<size_t>(extruder_id) <= extruder_colors.size())
+                colors.push_back(extruder_colors[extruder_id - 1]);
+            else
+                colors.push_back(extruder_colors.front());
+        }
+    }
+    if (colors.empty()) {
+        if (!extruder_colors.empty())
+            colors.push_back(extruder_colors.front());
         else
-            colors.push_back(extruder_colors[0]);
+            colors.push_back(ColorRGBA::GRAY());
     }
 
     // Orca: make it transparent
@@ -1053,11 +1051,14 @@ int GLVolumeCollection::load_real_wipe_tower_preview(
     GUI::PartPlateList               &ppl              = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int>                  plate_extruders  = ppl.get_plate(plate_idx)->get_extruders(true);
     std::vector<Slic3r::ColorRGBA>    colors;
-    if (!plate_extruders.empty()) {
-        if (plate_extruders.front() <= extruder_colors.size())
-            colors.push_back(extruder_colors[plate_extruders.front() - 1]);
+    if (!plate_extruders.empty() && !extruder_colors.empty()) {
+        int first_id = plate_extruders.front();
+        if (first_id > 0 && static_cast<size_t>(first_id) <= extruder_colors.size())
+            colors.push_back(extruder_colors[first_id - 1]);
         else
-            colors.push_back(extruder_colors[0]);
+            colors.push_back(extruder_colors.front());
+    } else if (!extruder_colors.empty()) {
+        colors.push_back(extruder_colors.front());
     }
     if (colors.empty()) return int(this->volumes.size() - 1);
     volumes.emplace_back(new GLWipeTowerVolume({colors}));
