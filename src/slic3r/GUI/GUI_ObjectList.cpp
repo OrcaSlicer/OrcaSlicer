@@ -104,6 +104,7 @@
 #include "Gizmos/GLGizmosManager.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
 class wxMenu;
 namespace Slic3r { class Step; }
@@ -5633,7 +5634,7 @@ bool ObjectList::is_painted_modifier_item(const wxDataViewItem &item) const
            (*m_objects)[obj_idx]->volumes[vol_idx]->is_painted_modifier();
 }
 
-ModelVolume *ObjectList::add_painted_modifier(int obj_idx, const ModelVolume &host)
+ModelVolume *ObjectList::add_painted_modifier(int obj_idx, const ModelVolume &host, const TriangleSelector *paint)
 {
     ModelObject &model_object = *(*m_objects)[obj_idx];
     int          count        = 1;
@@ -5641,6 +5642,8 @@ ModelVolume *ObjectList::add_painted_modifier(int obj_idx, const ModelVolume &ho
         count += v->is_painted_modifier();
     ModelVolume *painted_modifier = model_object.add_painted_modifier(host);
     painted_modifier->name        = into_u8(format_wxstr(_L("Painted modifier %1%"), count));
+    if (paint != nullptr)
+        painted_modifier->painted_modifier_facets.set(*paint);
     reorder_volumes_and_get_selection(obj_idx);
     changed_object(obj_idx);
     return painted_modifier;
