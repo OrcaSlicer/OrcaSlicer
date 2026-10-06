@@ -3959,7 +3959,7 @@ int CLI::run(int argc, char **argv)
                 object->config.assign_config(std::move(object_config));
             }
             for (ModelVolume* v : object->volumes) {
-                if (v->is_model_part() || v->is_modifier()) {
+                if (v->is_model_part() || v->is_region_modifier()) {
                     DynamicPrintConfig volume_config = v->config.get();
                     if (!volume_config.empty()) {
                         /* if (current_extruder_count < new_extruder_count)

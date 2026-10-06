@@ -102,6 +102,7 @@ public:
         Assembly,
         Simplify,
         BrimEars,
+        PaintedModifier,
         //SlaSupports,
         // BBS
         //FaceRecognition,

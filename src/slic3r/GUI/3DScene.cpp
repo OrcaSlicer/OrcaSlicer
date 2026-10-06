@@ -423,6 +423,7 @@ ColorRGBA color_from_model_volume(const ModelVolume& model_volume)
             case ModelVolumeType::PARAMETER_MODIFIER:
             case ModelVolumeType::SUPPORT_BLOCKER:
             case ModelVolumeType::SUPPORT_ENFORCER:
+            case ModelVolumeType::PAINTED_MODIFIER:
                 break;
         }
         return GLVolume::MODEL_MIDIFIER_COL; // unreachable fallback

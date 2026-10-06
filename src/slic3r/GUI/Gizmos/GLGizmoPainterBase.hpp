@@ -38,7 +38,8 @@ enum class PainterGizmoType {
     SEAM,
     MM_SEGMENTATION,
     FUZZY_SKIN,
-    TEXTURE_DISPLACEMENT
+    TEXTURE_DISPLACEMENT,
+    PAINTED_MODIFIER
 };
 
 class TriangleSelectorGUI : public TriangleSelector {
@@ -251,6 +252,8 @@ protected:
 
     virtual EnforcerBlockerType get_left_button_state_type() const { return EnforcerBlockerType::ENFORCER; }
     virtual EnforcerBlockerType get_right_button_state_type() const { return EnforcerBlockerType::BLOCKER; }
+    // A hit on a model part that may not be painted counts as a miss, so that the part still occludes.
+    virtual bool is_mesh_paintable(int mesh_id) const { return true; }
 
     float m_cursor_radius = 1.f;
     // BBS

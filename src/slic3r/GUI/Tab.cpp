@@ -7074,7 +7074,7 @@ void Tab::load_current_preset()
                         object->config.assign_config(std::move(object_config));
                     }
                     for (ModelVolume* v : object->volumes) {
-                        if (v->is_model_part() || v->is_modifier()) {
+                        if (v->is_model_part() || v->is_region_modifier()) {
                             DynamicPrintConfig volume_config = v->config.get();
                             if (!volume_config.empty()) {
                                 volume_config.update_values_from_multi_to_multi_2(prev_variant_list,new_variant_list,new_print_config, print_options_with_variant);
