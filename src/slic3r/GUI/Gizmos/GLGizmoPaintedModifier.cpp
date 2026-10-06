@@ -358,9 +358,14 @@ void GLGizmoPaintedModifier::update_from_model_object(bool first_update)
     mo->sync_painted_modifiers();
 
     const ModelVolume *painted_modifier = target(*mo);
-    if (painted_modifier == nullptr)
-        m_target_id = ObjectID();
-    else
+    if (painted_modifier == nullptr && first_update) {
+        // Opened from the toolbar: continue with the last painted modifier of the object.
+        auto it = std::find_if(mo->volumes.rbegin(), mo->volumes.rend(), [](const ModelVolume *v) { return v->is_painted_modifier(); });
+        if (it != mo->volumes.rend())
+            painted_modifier = *it;
+    }
+    m_target_id = painted_modifier ? painted_modifier->id() : ObjectID();
+    if (painted_modifier != nullptr)
         m_depth = painted_modifier->painted_modifier_depth;
     const ModelVolume *host = painted_modifier ? mo->painted_modifier_host(*painted_modifier) : nullptr;
 
