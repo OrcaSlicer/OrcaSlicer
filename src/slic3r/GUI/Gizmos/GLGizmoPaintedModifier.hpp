@@ -49,7 +49,6 @@ protected:
 
 private:
     bool on_init() override;
-    bool on_is_selectable() const override { return false; }
 
     void update_model_object() override;
     void update_from_model_object(bool first_update) override;

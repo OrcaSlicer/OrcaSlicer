@@ -139,12 +139,13 @@ as modifiers with prefixed settings only.
   in the scene to decide whether a whole instance is selected. Selecting a
   painted modifier in the list selects its instance, shows its settings and opens
   its paint tool.
-- **Paint tool.** `GLGizmoPaintedModifier` paints one painted modifier at a time
-  and has no toolbar button. Only its host can be painted; a hit on another part
-  counts as a miss, so other parts still occlude
+- **Paint tool.** `GLGizmoPaintedModifier` sits in the canvas toolbar with the
+  other paint tools and paints one painted modifier at a time: the one selected
+  in the list, or else the object's last one. Only its host can be painted; a hit
+  on another part counts as a miss, so other parts still occlude
   (`GLGizmoPainterBase::is_mesh_paintable()`). With "New painted modifier"
-  chosen, the first stroke creates one on the part it paints. The tool also edits
-  the depth.
+  chosen, or on an object without any, the first stroke creates one on the part
+  it paints. The tool also edits the depth.
 
 ## Known limitations
 
