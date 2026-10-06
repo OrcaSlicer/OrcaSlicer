@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 12:24+0800\n"
+"POT-Creation-Date: 2026-10-06 13:42+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -31498,10 +31498,6 @@ msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
-# AI Translated
-#~ msgid "(Experimental) Use printer agents instead of print hosts"
-#~ msgstr "(실험적) 출력 호스트 대신 프린터 에이전트 사용"
-
 #~ msgid "X"
 #~ msgstr "X"
 
@@ -32737,6 +32733,10 @@ msgstr ""
 
 #~ msgid "Support/Color Painting: adjust section position"
 #~ msgstr "서포트/색상 칠하기: 단면 위치 조정"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(실험적) 출력 호스트 대신 프린터 에이전트 사용"
 
 # AI Translated
 #~ msgid "Tab"

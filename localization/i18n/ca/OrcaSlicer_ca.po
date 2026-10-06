@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 12:24+0800\n"
+"POT-Creation-Date: 2026-10-06 13:42+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -31220,10 +31220,6 @@ msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
 
-# AI Translated
-#~ msgid "(Experimental) Use printer agents instead of print hosts"
-#~ msgstr "(Experimental) Utilitza agents d'impressora en lloc d'amfitrions d'impressió"
-
 #~ msgid "X"
 #~ msgstr "X"
 
@@ -32451,6 +32447,10 @@ msgstr ""
 
 #~ msgid "Support/Color Painting: adjust section position"
 #~ msgstr "Suport/Pintat de color: configuració de la posició de la secció"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimental) Utilitza agents d'impressora en lloc d'amfitrions d'impressió"
 
 # AI Translated
 #~ msgid "Tab"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 12:24+0800\n"
+"POT-Creation-Date: 2026-10-06 13:42+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -31999,10 +31999,6 @@ msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
-# AI Translated
-#~ msgid "(Experimental) Use printer agents instead of print hosts"
-#~ msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
-
 #~ msgid "X"
 #~ msgstr "X"
 
@@ -33265,6 +33261,10 @@ msgstr ""
 
 #~ msgid "Support/Color Painting: adjust section position"
 #~ msgstr "Tô support/màu: điều chỉnh vị trí phần"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
 
 # AI Translated
 #~ msgid "Tab"

@@ -61,8 +61,7 @@
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
-#include "slic3r/Utils/NetworkAgentFactory.hpp"
-#include "FilamentMappingUtils.hpp"
+
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"

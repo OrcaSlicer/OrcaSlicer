@@ -32,8 +32,6 @@
 #include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
-#include <algorithm>
-
 using namespace nlohmann;
 
 namespace Slic3r {

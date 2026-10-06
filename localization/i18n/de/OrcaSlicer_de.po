@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 12:24+0800\n"
+"POT-Creation-Date: 2026-10-06 13:42+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -30615,10 +30615,6 @@ msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
 
-# AI Translated
-#~ msgid "(Experimental) Use printer agents instead of print hosts"
-#~ msgstr "(Experimentell) Drucker-Agenten anstelle von Druck-Hosts verwenden"
-
 #~ msgid "X"
 #~ msgstr "X"
 
@@ -31845,6 +31841,10 @@ msgstr ""
 
 #~ msgid "Support/Color Painting: adjust section position"
 #~ msgstr "Stützen/Farbmalen: Position des Abschnitts anpassen"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimentell) Drucker-Agenten anstelle von Druck-Hosts verwenden"
 
 # AI Translated
 #~ msgid "Tab"
