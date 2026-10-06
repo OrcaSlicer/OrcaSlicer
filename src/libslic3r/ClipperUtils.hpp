@@ -23,11 +23,6 @@ enum ClipType { ctIntersection, ctUnion, ctDifference, ctXor };
 
 } // namespace Slic3r
 
-// import these wherever we're included
-using Slic3r::jtMiter;
-using Slic3r::jtRound;
-using Slic3r::jtSquare;
-
 namespace Slic3r {
 
 static constexpr const float                        ClipperSafetyOffset     = 10.f;
