@@ -24,6 +24,8 @@
 #include <wx/image.h>
 #include <mutex>
 #include <ctime>
+#include <thread>
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -31,12 +33,13 @@ static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
-// Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
-static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
+// Orca: dev-id-type set matching the devices Orca ships local HMS definitions for
+static const unordered_set<string> package_dev_id_types {"094", "239", "093", "22E", "26A", "20P", "31B"};
 
 // Orca: HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()
 {
+    if (!wxTheApp) return true;
     Slic3r::AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
     if (!config) return true;
     return config->get_stealth_mode() || !config->get_bool("installed_networking");
@@ -151,7 +154,8 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
             ;
         }
         })
-        .timeout_max(20)
+        .timeout_connect(5)
+        .timeout_max(15)
         .on_error([](std::string body, std::string error, unsigned status) {
             BOOST_LOG_TRIVIAL(error) << "HMSQuery: update hms info error = " << error << ", body = " << body << ", status = " << status;
         }).perform_sync();
@@ -325,30 +329,43 @@ std::string HMSQuery::get_hms_file(std::string hms_type, std::string lang, std::
 
 wxString HMSQuery::query_hms_msg(const MachineObject* obj, const std::string& long_error_code)
 {
-    if (!obj)
+    if (!obj || should_disable_hms() || long_error_code.empty())
     {
         return wxEmptyString;
     }
 
+    std::string dev_id_type = get_dev_id_type(obj);
+    if (dev_id_type.empty()) return wxEmptyString;
+
     AppConfig* config = wxGetApp().app_config;
     if (!config) return wxEmptyString;
     const std::string& lang_code = HMSQuery::hms_language_code();
-    return _query_hms_msg(get_dev_id_type(obj),long_error_code, lang_code);
+    return _query_hms_msg(dev_id_type, long_error_code, lang_code);
 }
 
 wxString HMSQuery::query_hms_msg(const std::string& dev_id, const std::string& long_error_code)
 {
+    if (should_disable_hms() || dev_id.length() < 3 || long_error_code.empty()) return wxEmptyString;
+    std::string dev_id_type = dev_id.substr(0, 3);
+    if (package_dev_id_types.count(dev_id_type) == 0) return wxEmptyString;
+
     AppConfig* config = wxGetApp().app_config;
     if (!config) return wxEmptyString;
     const std::string& lang_code = HMSQuery::hms_language_code();
-    return _query_hms_msg(dev_id.substr(0, 3), long_error_code, lang_code);
+    return _query_hms_msg(dev_id_type, long_error_code, lang_code);
 }
 
 string HMSQuery::get_dev_id_type(const MachineObject* obj) const
 {
     if (obj)
     {
-        return obj->get_dev_id().substr(0, 3);
+        if (!obj->printer_agent_id.empty() && obj->printer_agent_id != BBL_PRINTER_AGENT_ID)
+            return string();
+        if (obj->get_dev_id().length() >= 3) {
+            std::string prefix = obj->get_dev_id().substr(0, 3);
+            if (package_dev_id_types.count(prefix) != 0)
+                return prefix;
+        }
     }
 
     return string();
@@ -356,7 +373,7 @@ string HMSQuery::get_dev_id_type(const MachineObject* obj) const
 
 wxString HMSQuery::_query_hms_msg(const string& dev_id_type, const string& long_error_code, const string& lang_code)
 {
-    if (long_error_code.empty())
+    if (long_error_code.empty() || dev_id_type.empty() || should_disable_hms())
     {
         return wxEmptyString;
     }
@@ -429,6 +446,7 @@ bool HMSQuery::_is_internal_error(const string &dev_id_type,
                                   const string &error_code,
                                   const string &lang_code)
 {
+    if (dev_id_type.empty() || should_disable_hms()) return false;
     init_hms_info(dev_id_type);
     auto iter = m_hms_info_jsons.find(dev_id_type);
     if (iter == m_hms_info_jsons.end()) { return false; }
@@ -462,6 +480,7 @@ wxString HMSQuery::_query_error_msg(const std::string &dev_id_type,
                                     const std::string& error_code,
                                     const std::string& lang_code)
 {
+    if (dev_id_type.empty() || should_disable_hms()) return wxEmptyString;
     init_hms_info(dev_id_type);
     auto iter = m_hms_info_jsons.find(dev_id_type);
     if (iter == m_hms_info_jsons.end())
@@ -506,6 +525,7 @@ wxString HMSQuery::_query_error_msg(const std::string &dev_id_type,
 
 wxString HMSQuery::_query_error_image_action(const std::string& dev_id_type, const std::string& long_error_code, std::vector<int>& button_action)
 {
+    if (dev_id_type.empty() || should_disable_hms()) return wxEmptyString;
     init_hms_info(dev_id_type);
 
     auto iter = m_hms_action_jsons.find(dev_id_type);
@@ -542,46 +562,59 @@ wxString HMSQuery::_query_error_image_action(const std::string& dev_id_type, con
 
 bool HMSQuery::is_internal_error(const MachineObject *obj, int print_error)
 {
+    if (!obj || should_disable_hms()) return false;
+    std::string dev_id_type = get_dev_id_type(obj);
+    if (dev_id_type.empty()) return false;
+
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
     std::string lang_code = HMSQuery::hms_language_code();
-    return _is_internal_error(get_dev_id_type(obj), std::string(buf), lang_code);
+    return _is_internal_error(dev_id_type, std::string(buf), lang_code);
 }
 
 wxString HMSQuery::query_print_error_msg(const MachineObject *obj, int print_error)
 {
-    if (!obj)
+    if (!obj || should_disable_hms())
     {
         return wxEmptyString;
     }
 
+    std::string dev_id_type = get_dev_id_type(obj);
+    if (dev_id_type.empty()) return wxEmptyString;
+
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
     std::string lang_code = HMSQuery::hms_language_code();
-    return _query_error_msg(get_dev_id_type(obj), std::string(buf), lang_code);
+    return _query_error_msg(dev_id_type, std::string(buf), lang_code);
 }
 
 wxString HMSQuery::query_print_error_msg(const std::string& dev_id, int print_error)
 {
+    if (should_disable_hms() || dev_id.length() < 3) return wxEmptyString;
+    std::string dev_id_type = dev_id.substr(0, 3);
+    if (package_dev_id_types.count(dev_id_type) == 0) return wxEmptyString;
+
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
     std::string lang_code = HMSQuery::hms_language_code();
-    return _query_error_msg(dev_id.substr(0, 3), std::string(buf), lang_code);
+    return _query_error_msg(dev_id_type, std::string(buf), lang_code);
 }
 
 
 wxString HMSQuery::query_print_image_action(const MachineObject* obj, int print_error, std::vector<int>& button_action)
 {
-    if (!obj)
+    if (!obj || should_disable_hms())
     {
         return wxEmptyString;
     }
 
+    std::string dev_id_type = get_dev_id_type(obj);
+    if (dev_id_type.empty()) return wxEmptyString;
+
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
-    //The first three digits of SN number
-    const auto result = _query_error_image_action(get_dev_id_type(obj),std::string(buf), button_action);
-    if (should_disable_hms() && result.Contains("http")) {
+    const auto result = _query_error_image_action(dev_id_type, std::string(buf), button_action);
+    if (result.Contains("http")) {
         return wxEmptyString;
     }
     return result;
@@ -629,43 +662,59 @@ void HMSQuery::clear_hms_info()
 void HMSQuery::init_hms_info(const std::string& dev_type_id)
 {
     std::unique_lock unique_lock(m_hms_mutex);
-    if (package_dev_id_types.count(dev_type_id) != 0)
-    {
-        /*the local one only load once*/
-        if (m_hms_info_jsons.count(dev_type_id) == 0) {
+    if (should_disable_hms() || dev_type_id.empty())
+        return;
 
-            std::string load_version;
-            load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*load from local first*/
-            if (load_version.empty() || load_version == "0") {
-                copy_from_data_dir_to_local(); // STUDIO-9512
-                load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
-            }
-        }
+    if (package_dev_id_types.count(dev_type_id) == 0)
+        return;
 
-        if (m_hms_action_jsons.count(dev_type_id) == 0) {
-            std::string load_version;
-            load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*load from local first*/
-            if (load_version.empty() || load_version == "0") {
-                copy_from_data_dir_to_local(); // STUDIO-9512
-                load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
-            }
+    /*the local one only load once*/
+    if (m_hms_info_jsons.count(dev_type_id) == 0) {
+
+        std::string load_version;
+        load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*load from local first*/
+        if (load_version.empty() || load_version == "0") {
+            copy_from_data_dir_to_local(); // STUDIO-9512
+            load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
         }
     }
 
-    /*download from cloud*/
+    if (m_hms_action_jsons.count(dev_type_id) == 0) {
+        std::string load_version;
+        load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*load from local first*/
+        if (load_version.empty() || load_version == "0") {
+            copy_from_data_dir_to_local(); // STUDIO-9512
+            load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
+        }
+    }
+
+    /*download from cloud in background thread to prevent UI thread freezes*/
     time_t info_last_update_time = m_cloud_hms_last_update_time[dev_type_id];
+    time_t now = time(nullptr);
 
     /* check hms is valid or not */
     bool retry = false;
-    if(m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty()){
-        retry =time(nullptr) - info_last_update_time > (60 * 1); // retry after 1 minute
+    if (m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty()) {
+        retry = (now - info_last_update_time) > (60 * 10); // retry after 10 minutes on failure, not 1 minute
     }
 
-    if (time(nullptr) - info_last_update_time > (60 * 60 * 24) || retry)/*do not update in one day to reduce waiting*/
+    if ((now - info_last_update_time > (60 * 60 * 24)) || retry)/*do not update in one day to reduce waiting*/
     {
-        download_hms_related(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id]);
-        download_hms_related(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id]);
-        m_cloud_hms_last_update_time[dev_type_id] = time(nullptr);
+        m_cloud_hms_last_update_time[dev_type_id] = now;
+        std::thread([this, dev_type_id]() {
+            if (should_disable_hms()) return;
+            json info_json;
+            json action_json;
+            download_hms_related(QUERY_HMS_INFO, dev_type_id, &info_json);
+            download_hms_related(QUERY_HMS_ACTION, dev_type_id, &action_json);
+            if (!info_json.empty() || !action_json.empty()) {
+                std::unique_lock lock(m_hms_mutex);
+                if (!info_json.empty())
+                    m_hms_info_jsons[dev_type_id] = std::move(info_json);
+                if (!action_json.empty())
+                    m_hms_action_jsons[dev_type_id] = std::move(action_json);
+            }
+        }).detach();
     }
 }
 
