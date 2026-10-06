@@ -1,15 +1,20 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include "test_helpers.hpp"
 #include "test_utils.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include "libslic3r/PrintConfig.hpp"
@@ -176,4 +181,43 @@ TEST_CASE("A seam takes the actual speed of the move it follows", "[GCodeProcess
             CHECK_THAT(moves[i].actual_feedrate, Catch::Matchers::WithinAbs(moves[i - 1].actual_feedrate, 1e-4));
         }
     REQUIRE(seams > 0);
+}
+
+TEST_CASE("Line ends of the exported G-code mark every newline in the file", "[GCodeProcessor]")
+{
+    struct Case
+    {
+        const char* name;
+        bool        preheat_backtrace;
+        bool        pre_heating;
+    };
+    const auto test_case = GENERATE(values<Case>({
+        { "written by size", false, false },
+        { "written by time for the preheat backtrace", true, false },
+        { "rewritten by the pre-heating pass", false, true },
+    }));
+    INFO(test_case.name);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        { "single_extruder_multi_material", 0 },
+        { "ooze_prevention",                test_case.preheat_backtrace },
+        { "preheat_time",                   30 },
+        { "enable_pre_heating",             test_case.pre_heating },
+    });
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Test::init_print({ Test::cube(20), Test::cube(20) }, print, model, config, &overrides);
+    GCodeProcessorResult result;
+    const std::string    gcode = Test::gcode(print, &result);
+    REQUIRE((gcode.find("preheat T") != std::string::npos) == test_case.preheat_backtrace);
+    REQUIRE((gcode.find(GCodeProcessor::Machine_Start_GCode_End_Tag) != std::string::npos) == test_case.pre_heating);
+    REQUIRE(gcode.size() > GCodeProcessor::Output_Block_Size);
+
+    std::vector<size_t> newline_ends;
+    for (size_t i = gcode.find('\n'); i != std::string::npos; i = gcode.find('\n', i + 1))
+        newline_ends.push_back(i + 1);
+    REQUIRE(result.lines_ends.size() == newline_ends.size());
+    const auto difference = std::mismatch(result.lines_ends.begin(), result.lines_ends.end(), newline_ends.begin());
+    INFO("first difference at line " << difference.first - result.lines_ends.begin() + 1);
+    CHECK(difference.first == result.lines_ends.end());
 }
