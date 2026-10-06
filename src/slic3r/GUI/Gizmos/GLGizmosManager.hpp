@@ -95,6 +95,7 @@ public:
         Seam,
         FuzzySkin,
         MmSegmentation,
+        PaintedModifier,
         TextureDisplacement,
         Emboss,
         Svg,
@@ -102,7 +103,6 @@ public:
         Assembly,
         Simplify,
         BrimEars,
-        PaintedModifier,
         //SlaSupports,
         // BBS
         //FaceRecognition,
