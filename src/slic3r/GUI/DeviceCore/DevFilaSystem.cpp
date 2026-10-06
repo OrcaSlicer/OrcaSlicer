@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/app.h>
 #include <wx/colour.h>
 #include <string>
 #include <wx/string.h>

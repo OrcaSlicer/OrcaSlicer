@@ -19,6 +19,7 @@
 #include "RecenterDialog.hpp"
 #include "CalibUtils.hpp"
 #include <boost/algorithm/string/replace.hpp>
+#include <cassert>
 #include <cstddef>
 #include <ctime>
 #include "slic3r/GUI/DeviceManager.hpp"
