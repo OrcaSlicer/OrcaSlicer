@@ -242,7 +242,12 @@ cmake --build "$BUILD_DIR" --target git_commit_hash_header >/dev/null
 
 if [ -z "$BASE" ]; then
     REMOTE=$(git remote -v | awk '/github\.com[:\/]OrcaSlicer\/OrcaSlicer(\.git)? \(fetch\)/ { print $1; exit }')
-    REMOTE="${REMOTE:-origin}"
+    if [ -z "$REMOTE" ]; then
+        # Against a fork's main that already has the commits, nothing is checked.
+        echo "Warning: no remote points at github.com/OrcaSlicer/OrcaSlicer, so this compares against origin/main." >&2
+        echo "If origin is your fork, add the upstream remote (git remote add upstream https://github.com/OrcaSlicer/OrcaSlicer.git) or pass --base." >&2
+        REMOTE=origin
+    fi
     if [ "$FETCH" = 1 ]; then
         git fetch --quiet "$REMOTE" main
     fi
