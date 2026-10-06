@@ -21,8 +21,16 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/http/field.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/error.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/beast/websocket/stream_base.hpp>
@@ -32,6 +40,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <cstddef>
 #include <openssl/ssl.h>
 #include <algorithm>
 #include <chrono>
@@ -42,10 +51,16 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <openssl/tls1.h>
 #include <stdexcept>
 #include <thread>
 #include <utility>
 #include <variant>
+#include <string>
+#include <mutex>
+#include <sstream>
+#include <set>
+#include <vector>
 
 namespace {
 
@@ -617,7 +632,7 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_CANCELED;
     }
 
-    // Start print via Moonraker's print API, referencing the file we just uploaded.
+    // Start print via Moonraker's G-code script endpoint, referencing the file we just uploaded.
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
     std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
@@ -1431,12 +1446,8 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
             response["print"]["param"] = gcode;
 
-            auto [base_url, api_key] = connection_snapshot();
-            enqueue_command([this, dev_id, response = std::move(response), base_url = std::move(base_url),
-                             api_key = std::move(api_key)]() mutable {
-                response["print"]["result"] = send_gcode(dev_id, response["print"]["param"].get<std::string>(), base_url, api_key)
-                    ? "success"
-                    : "failed";
+            send_gcode_async(dev_id, gcode, [this, dev_id, response](bool success) mutable {
+                response["print"]["result"] = success ? "success" : "failed";
                 dispatch_message(dev_id, response.dump());
             });
             return BAMBU_NETWORK_SUCCESS;
@@ -1470,11 +1481,7 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             if (json["print"].contains("temp") && json["print"]["temp"].is_number()) {
                 int         temp  = json["print"]["temp"].get<int>();
                 std::string gcode = "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=" + std::to_string(temp);
-                auto [base_url, api_key] = connection_snapshot();
-                enqueue_command([this, dev_id, gcode = std::move(gcode), base_url = std::move(base_url),
-                                 api_key = std::move(api_key)] {
-                    send_gcode(dev_id, gcode, base_url, api_key);
-                });
+                send_gcode_async(dev_id, gcode);
                 return BAMBU_NETWORK_SUCCESS;
             }
         }
@@ -1489,11 +1496,7 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 }
                 std::string heater = (extruder_idx == 0) ? "extruder" : "extruder" + std::to_string(extruder_idx);
                 std::string gcode  = "SET_HEATER_TEMPERATURE HEATER=" + heater + " TARGET=" + std::to_string(temp);
-                auto [base_url, api_key] = connection_snapshot();
-                enqueue_command([this, dev_id, gcode = std::move(gcode), base_url = std::move(base_url),
-                                 api_key = std::move(api_key)] {
-                    send_gcode(dev_id, gcode, base_url, api_key);
-                });
+                send_gcode_async(dev_id, gcode);
                 return BAMBU_NETWORK_SUCCESS;
             }
         }
@@ -1501,10 +1504,7 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
         // why: no current OrcaSlicer sender emits the "home" discriminator;
         // GUI homing uses gcode_line with G28 instead.
         if (cmd == "home") {
-            auto [base_url, api_key] = connection_snapshot();
-            enqueue_command([this, dev_id, base_url = std::move(base_url), api_key = std::move(api_key)] {
-                send_gcode(dev_id, "G28", base_url, api_key);
-            });
+            send_gcode_async(dev_id, "G28");
             return BAMBU_NETWORK_SUCCESS;
         }
     }
@@ -2010,6 +2010,11 @@ void MoonrakerPrinterAgent::send_gcode_async(const std::string& dev_id, const st
 }
 
 bool MoonrakerPrinterAgent::send_gcode(const std::string& dev_id, const std::string& gcode) const
+{
+    return send_gcode_sync(dev_id, gcode);
+}
+
+bool MoonrakerPrinterAgent::send_gcode_sync(const std::string& dev_id, const std::string& gcode) const
 {
     // why: snapshot then release - see post_print_action.
     return send_gcode(dev_id, gcode, get_connection_settings());

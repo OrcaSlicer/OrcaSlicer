@@ -1,14 +1,23 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
+#include <atomic>
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <cstdint>
 #include <sstream>
 #include <thread>
+#include <vector>
+#include <string>
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <utility>
 
 using json = nlohmann::json;
 

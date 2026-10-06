@@ -4,7 +4,8 @@
 #include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
-#include "NetworkAgent.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -22,9 +23,8 @@ using json = nlohmann::json;
 #include <type_traits>
 #include <unordered_map>
 #include <memory>
-#include <nlohmann/json.hpp>
-#include <cmath>
-#include <slic3r/GUI/DeviceManager.hpp>
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 
@@ -156,36 +156,27 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // Communication
 // ============================================================================
 
-std::string BBLPrinterAgent::ams_refresh_rfid_gcode(const std::string& tray_id)
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
-    return (boost::format("M620 R%1% \n") % tray_id).str();
-}
-
-std::string BBLPrinterAgent::ams_calibrate_gcode(int ams_id)
-{
-    return (boost::format("M620 C%1% \n") % ams_id).str();
-}
-
-std::string BBLPrinterAgent::ams_select_tray_gcode(const std::string& tray_id)
-{
-    return (boost::format("M620 P%1% \n") % tray_id).str();
-}
-
-int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
-{
-    const std::string gcode = ams_refresh_rfid_gcode(tray_id);
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
     nlohmann::json j;
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = gcode;
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    if (ams_id == -1) {
+        const std::string gcode   = (boost::format("M620 R%1% \n") % slot_id).str();
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = gcode;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish(dev_id, j, lan_mode);
+    }
+
+    j["print"]["command"]     = "ams_get_rfid";
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["ams_id"]      = ams_id;
+    j["print"]["slot_id"]     = slot_id;
     return publish(dev_id, j, lan_mode);
 }
 
 int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = ams_calibrate_gcode(ams_id);
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    const std::string gcode = (boost::format("M620 C%1% \n") % ams_id).str();
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;
@@ -195,8 +186,7 @@ int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int s
 
 int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = ams_select_tray_gcode(tray_id);
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    const std::string gcode = (boost::format("M620 P%1% \n") % tray_id).str();
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;

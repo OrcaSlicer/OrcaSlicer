@@ -1,12 +1,15 @@
 #include <catch2/catch_all.hpp>
 
 #include <slic3r/Utils/BBLPrinterAgent.hpp>
+#include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/MoonrakerPrinterAgent.hpp>
+#include <memory>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <pybind11/pytypes.h>
 #include <catch2/catch_message.hpp>
+#include "catch2/catch_approx.hpp"
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
@@ -15,9 +18,14 @@
 #include <atomic>
 #include <chrono>
 #include <future>
-#include <memory>
+#include <slic3r/Utils/bambu_networking.hpp>
 #include <string>
 #include <thread>
+#include <pybind11/cast.h>
+#include <utility>
+
+namespace Slic3r { class ICloudServiceAgent; }
+namespace Slic3r { class IPrinterAgent; }
 
 using namespace Slic3r;
 namespace py = pybind11;
@@ -68,14 +76,6 @@ TEST_CASE("Moonraker parses nozzle diameter from raw config and tolerates missin
 
     CHECK(MoonrakerParserProbe::parse_nozzle_diameter(raw_config_response) == Catch::Approx(0.8f));
     CHECK(MoonrakerParserProbe::parse_nozzle_diameter(missing_response) == 0.0f);
-}
-
-// why: these builders preserve the Bambu firmware dialect byte-for-byte, including its trailing space.
-TEST_CASE("unit: BBL AMS gcode builders preserve command bytes", "[unit][bbl]")
-{
-    CHECK(BBLPrinterAgent::ams_refresh_rfid_gcode("123") == "M620 R123 \n");
-    CHECK(BBLPrinterAgent::ams_calibrate_gcode(123) == "M620 C123 \n");
-    CHECK(BBLPrinterAgent::ams_select_tray_gcode("123") == "M620 P123 \n");
 }
 
 // why: an agent without a Bambu-dialect translation must refuse these commands before any network or wx path.

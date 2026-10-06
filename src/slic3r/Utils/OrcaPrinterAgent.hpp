@@ -2,7 +2,6 @@
 #define __ORCA_PRINTER_AGENT_HPP__
 
 #include "IPrinterAgent.hpp"
-#include "ICloudServiceAgent.hpp"
 #include "bambu_networking.hpp"
 #include <string>
 #include <mutex>
