@@ -28,6 +28,7 @@
 #include "FuzzySkin.hpp"
 
 #include "libnoise/noise.h"
+#include <functional>
 
 // #define DEBUG_FUZZY
 

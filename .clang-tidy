@@ -61,6 +61,7 @@ CheckOptions:
     termios\.h;
     [/\\](um|shared)[/\\].*;
     sal\.h;
+    tchar\.h;
     clipper[/\\]clipper\.hpp;
     png(lib)?conf\.h;
     mcut[/\\]platform\.h;

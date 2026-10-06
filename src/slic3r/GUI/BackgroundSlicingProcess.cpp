@@ -60,6 +60,9 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
+#ifdef _WIN32
+#include <excpt.h>
+#endif
 
 namespace Slic3r {
 

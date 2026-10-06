@@ -44,6 +44,7 @@
 #include <wx/timer.h>
 
 #include "DeviceCore/DevManager.h"
+#include <wx/dcgraph.h>
 
 namespace Slic3r {
 namespace GUI {
