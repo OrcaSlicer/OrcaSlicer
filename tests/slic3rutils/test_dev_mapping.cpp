@@ -144,7 +144,10 @@ TEST_CASE("Generic AMS tray index map uses cumulative lane counts", "[DevMapping
 {
     MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
 
-    json filament = { {"units", json::array()} };
+    // A well-formed generic payload pairs "units" with "external". An empty external array resets
+    // vt_slot, clearing the default virtual tray (255) MachineObject's constructor seeds; otherwise
+    // that phantom external tray lands in GetTrayIndexMap and inflates the map size.
+    json filament = { {"units", json::array()}, {"external", json::array()} };
     for (int ams_id = 0; ams_id < 2; ++ams_id) {
         json unit = {
             {"id", std::to_string(ams_id)},
