@@ -24,7 +24,7 @@
 #include <wx/filename.h>
 #include <sstream>
 #include <string>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <functional>
 #include <cstddef>
 #include <wx/dialog.h>
@@ -44,6 +44,7 @@
 #include <wx/infobar.h>
 
 namespace pt = boost::property_tree;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

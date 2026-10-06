@@ -69,6 +69,7 @@
 #include <wx/dcmemory.h>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 

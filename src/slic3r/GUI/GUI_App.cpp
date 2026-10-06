@@ -311,6 +311,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 
 using namespace std::literals;
 namespace pt = boost::property_tree;
+using json = nlohmann::json;
 
 struct StaticBambuLib
 {

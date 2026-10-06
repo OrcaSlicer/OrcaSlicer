@@ -6,7 +6,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
 #include "Http.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/AppConfig.hpp"
 
 #include <boost/filesystem/operations.hpp>
@@ -26,6 +26,7 @@
 #include <ctime>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";

@@ -6,7 +6,6 @@
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
 
-#include "json_diff.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 
 #include "slic3r/GUI/DeviceManager.hpp"

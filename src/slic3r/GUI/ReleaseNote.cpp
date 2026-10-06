@@ -74,6 +74,8 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
 
+using json = nlohmann::json;
+
 namespace Slic3r::GUI { class Plater; }
 
 namespace fs = boost::filesystem;

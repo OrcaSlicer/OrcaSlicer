@@ -19,7 +19,7 @@
 #include <boost/log/trivial.hpp>
 #include <functional>
 #include <cstddef>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/string.h>
 #include "slic3r/GUI/PartPlate.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -39,6 +39,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

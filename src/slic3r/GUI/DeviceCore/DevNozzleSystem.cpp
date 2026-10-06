@@ -4,7 +4,7 @@
 #include "DevNozzleSystem.h"
 #include "DevUtil.h"
 
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
@@ -27,6 +27,8 @@
 #include <unordered_map>
 #include <optional>
 #include <cmath>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

@@ -2816,7 +2816,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         return ret;
     };
-    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
         const ImGuiStyle& style = ImGui::GetStyle();
         std::vector<float> offsets;
         offsets.push_back(max_width(title_columns[0].second, title_columns[0].first, extra_size) + 3.0f * style.ItemSpacing.x + style.WindowPadding.x);
@@ -2963,7 +2963,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ::sprintf(buff, "%.2f", longest_str);
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), {buff} });
@@ -3184,7 +3184,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
     float ams_item_height = 0;
     float filament_group_item_align_width = 0;
     {
-        float three_words_width    = imgui.calc_text_size("ABC"sv).x;
+        float three_words_width    = imgui.calc_text_size(std::string_view("ABC")).x;
         const int line_capacity = 4;
 
         for (const auto& extruder_filaments : {m_left_extruder_filament,m_right_extruder_filament })
@@ -3195,8 +3195,8 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
                 for (int j = idx; j < extruder_filaments.size() && j < idx + line_capacity; ++j) {
                     auto text_info = imgui.calculate_filament_group_text_size(get_filament_display_type(extruder_filaments[j]));
                     auto text_size = std::get<0>(text_info);
-                    filament_group_item_align_width = max(filament_group_item_align_width, text_size.x);
-                    text_line_height = max(text_line_height, text_size.y);
+                    filament_group_item_align_width = std::max(filament_group_item_align_width, text_size.x);
+                    text_line_height = std::max(text_line_height, text_size.y);
                 }
                 container_height += (three_words_width * 1.3f + text_line_height );
             }
@@ -3589,7 +3589,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
-    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
             const ImGuiStyle& style = ImGui::GetStyle();
             std::vector<float> offsets;
             // ORCA increase spacing for more readable format. Using direct number requires much less code change in here. GetTextLineHeight for additional spacing for icon_size
@@ -4014,7 +4014,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         total_filaments.push_back(buffer);
 
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), total_filaments });

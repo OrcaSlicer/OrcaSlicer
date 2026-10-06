@@ -62,7 +62,7 @@
 #include <cstdio>
 #include <cstddef>
 #include "libslic3r/Config.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <exception>
 #include <cstdlib>
 #include <map>
@@ -132,6 +132,8 @@
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+
+using json = nlohmann::json;
 
 namespace Slic3r { class PrintBase; }
 

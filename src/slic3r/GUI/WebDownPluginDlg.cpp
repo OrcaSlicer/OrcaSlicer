@@ -4,7 +4,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <exception>
 #include <string.h>
 #include "I18N.hpp"

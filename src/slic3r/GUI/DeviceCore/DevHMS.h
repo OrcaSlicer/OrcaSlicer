@@ -1,6 +1,6 @@
 #pragma once
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include <vector>
 #include <string>
 #include <wx/string.h>
@@ -18,7 +18,7 @@ public:
     DevHMS(MachineObject* obj) : m_object(obj) {}
 
 public:
-    void                           ParseHMSItems(const json& hms_json);
+    void                           ParseHMSItems(const nlohmann::json& hms_json);
     const std::vector<DevHMSItem>& GetHMSItems() const { return m_hms_list; };
 
 private:
@@ -69,7 +69,7 @@ public:
     bool has_read() const { return m_already_read; };
 
 protected:
-    friend void DevHMS::ParseHMSItems(const json& hms_json);
+    friend void DevHMS::ParseHMSItems(const nlohmann::json& hms_json);
     bool parse_hms_info(unsigned attr, unsigned code);
 
 private:

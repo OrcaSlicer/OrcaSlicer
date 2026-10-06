@@ -16,7 +16,7 @@
 #include <string>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Auxiliary.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <cstddef>
 #include <memory>
 #include <map>
@@ -54,7 +54,8 @@
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include "slic3r/GUI/Jobs/SendJob.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/Utils/json_diff.hpp"
+
+using json = nlohmann::json;
 
 class wxWindow;
 

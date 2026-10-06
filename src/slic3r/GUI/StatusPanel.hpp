@@ -23,7 +23,7 @@
 #include <unordered_set>
 #include "slic3r/GUI/wxMediaCtrl3.h"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <map>
 #include "libslic3r/calib.hpp"
@@ -689,7 +689,7 @@ protected:
     int          m_last_vcamera   = -1;
     int          m_model_mall_request_count = 0;
     bool         m_is_load_with_temp = false;
-    json         m_rating_result;
+    nlohmann::json m_rating_result;
 
     wxWebRequest web_request;
     bool bed_temp_input    = false;

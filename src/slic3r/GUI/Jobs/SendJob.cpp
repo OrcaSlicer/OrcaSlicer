@@ -1,5 +1,5 @@
 #include "SendJob.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "bambu_networking.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -23,6 +23,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

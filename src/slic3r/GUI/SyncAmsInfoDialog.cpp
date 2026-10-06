@@ -15,7 +15,7 @@
 #include "libslic3r/Utils.hpp"
 #include <string>
 #include "slic3r/GUI/BBLStatusBarPrint.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <cassert>
 #include "libslic3r/PrintConfig.hpp"
 #include <cstdlib>
@@ -85,6 +85,7 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;

@@ -1,5 +1,5 @@
 #include "PrinterNetworkTypes.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "DeviceManager.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
@@ -104,6 +104,8 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/Jobs/SendJob.hpp"
+
+using json = nlohmann::json;
 
 class wxWindow;
 

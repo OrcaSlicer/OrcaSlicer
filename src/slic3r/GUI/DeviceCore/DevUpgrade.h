@@ -4,7 +4,6 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <wx/string.h>
-#include "slic3r/Utils/json_diff.hpp"
 
 #include "DevDefs.h"
 #include "DevFirmware.h"
@@ -47,8 +46,8 @@ public:
     int CtrlUpgradeModule(std::string url, std::string module_type, std::string version);
 
     // parser
-    void ParseUpgrade_V1_0(const json &print_jj);
-    void ParseUpgradeDisplayState(const json &upgrade_state_jj);
+    void ParseUpgrade_V1_0(const nlohmann::json &print_jj);
+    void ParseUpgradeDisplayState(const nlohmann::json &upgrade_state_jj);
 
 protected:
     DevUpgrade(MachineObject *owner) : m_owner(owner) {}
@@ -90,7 +89,7 @@ public:
 public:
     int CtrlGetVersion(bool with_retry = true);
 
-    void ParseGetVersion(const json &print_jj);
+    void ParseGetVersion(const nlohmann::json &print_jj);
 
 private:
     MachineObject *m_owner;

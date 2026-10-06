@@ -25,7 +25,7 @@
 #include "slic3r/GUI/Widgets/RadioBox.hpp"
 #include <cstdio>
 #include <map>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <cstdlib>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
@@ -90,6 +90,8 @@
 #define FILAMENT_OPTION_COLOUR wxColour("#D9D9D9")
 #define SELECT_ALL_OPTION_COLOUR wxColour("#009688")
 #define DEFAULT_PROMPT_TEXT_COLOUR wxColour("#ACACAC")
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
