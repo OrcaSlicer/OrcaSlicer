@@ -2620,7 +2620,7 @@ void PartPlate::invalidate_plate_name_texture()
 {
 	m_plate_name_edit_icon.mesh_raycaster.reset();
 
-	if (!wxTheApp || wxGetApp().is_closing())
+	if (!wxTheApp || wxGetApp().is_closing() || wxGetApp().is_recreating_gui())
 		return;
 
 	auto canvas = (m_plater != nullptr) ? m_plater->get_view3D_canvas3D() : nullptr;
