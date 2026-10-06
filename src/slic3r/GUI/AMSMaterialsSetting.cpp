@@ -9,6 +9,7 @@
 #include "I18N.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
 #include <sstream>
 #include <ios>

@@ -10,6 +10,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include <boost/log/trivial.hpp>
+#include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
 #include <vector>
 #include "libslic3r/calib.hpp"

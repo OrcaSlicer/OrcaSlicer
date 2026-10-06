@@ -2,7 +2,14 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 
+#include <slic3r/GUI/Printer/IFileGridModel.h>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <slic3r/GUI/Printer/PrinterFileSystem.h>
+#include <cstddef>
+#include <ctime>
+#include <functional>
 #include <utility>
+#include <wx/event.h>
 
 namespace Slic3r {
 namespace GUI {

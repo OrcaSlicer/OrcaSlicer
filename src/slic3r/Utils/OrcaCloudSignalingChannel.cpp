@@ -1,20 +1,38 @@
 #include "OrcaCloudSignalingChannel.hpp"
 
 #include "Http.hpp"
+#include "OrcaCloudServiceAgent.hpp"
+#include "ICameraSignalingChannel.hpp"
 
+#include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
+#include <boost/asio/ssl/host_name_verification.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
 #include <boost/beast/core.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/log/trivial.hpp>
+#include <memory>
+#include <mutex>
+#include <ios>
+#include <exception>
+#include <cstddef>
 #include <nlohmann/json.hpp>
 
 #include <openssl/ssl.h>
 
 #include <cctype>
 #include <iomanip>
+#include <openssl/tls1.h>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

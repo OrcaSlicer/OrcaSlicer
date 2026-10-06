@@ -5,6 +5,8 @@
 #include "Printer/RemoteFileGridModel.h"
 
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include <slic3r/GUI/Printer/IFileGridModel.h>
+#include <string>
 #include <wx/panel.h>
 
 class Button;

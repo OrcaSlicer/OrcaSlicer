@@ -13,6 +13,7 @@
 #include <mutex>
 #include <memory>
 #include <thread>
+#include <vector>
 
 namespace Slic3r { class ICloudServiceAgent; }
 

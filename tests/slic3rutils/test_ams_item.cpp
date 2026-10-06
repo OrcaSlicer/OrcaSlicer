@@ -1,5 +1,6 @@
 // why: match the GUI include order to avoid rpcndr.h byte/std::byte
 // ambiguity in the Windows COM headers.
+#include "catch2/catch_test_macros.hpp"
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN

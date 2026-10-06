@@ -1,6 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <libslic3r/ProjectTask.hpp>
+#include <libslic3r/Preset.hpp>
+#include <libslic3r/Config.hpp>
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <slic3r/GUI/DeviceCore/DevFilaSystem.h>

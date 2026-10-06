@@ -1,21 +1,49 @@
 #include "OrcaMqttConnection.hpp"
 #include "Http.hpp"
 
+#include <atomic>
 #include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
+#include <boost/asio/ssl/host_name_verification.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
 #include <boost/beast/core.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
+#include <boost/beast/http/field.hpp>
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/string_body.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include <deque>
+#include <cstdint>
+#include <mutex>
+#include <cstddef>
+#include <boost/beast/websocket/rfc6455.hpp>
+#include <boost/beast/websocket/stream_base.hpp>
+#include <ios>
+#include <exception>
 #include <openssl/ssl.h>
 
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include <openssl/tls1.h>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace Slic3r {
 

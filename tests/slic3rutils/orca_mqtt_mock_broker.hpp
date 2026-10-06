@@ -9,6 +9,18 @@
 // OrcaMqttConnection::make_publish_packet() so the tests never depend on a
 // second, hand-rolled MQTT encoder.
 
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/beast/websocket/stream.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <boost/beast/websocket/stream_base.hpp>
+#include <boost/beast/websocket/rfc6455.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
 #include <slic3r/Utils/OrcaMqttConnection.hpp>
 
 #include <boost/asio.hpp>

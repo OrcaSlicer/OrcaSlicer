@@ -14,7 +14,14 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 
 #include <boost/make_shared.hpp>
+#include <slic3r/GUI/wxExtensions.hpp>
+#include <slic3r/GUI/Printer/IFileGridModel.h>
+#include <cstddef>
+#include <boost/smart_ptr/make_shared_object.hpp>
 #include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <utility>
 

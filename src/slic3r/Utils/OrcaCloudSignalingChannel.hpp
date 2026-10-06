@@ -7,9 +7,12 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/ssl/context.hpp>
 #include <boost/beast/ssl.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include <boost/beast/websocket/stream.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <atomic>

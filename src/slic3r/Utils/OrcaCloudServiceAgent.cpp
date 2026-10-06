@@ -3,6 +3,7 @@
 #include "Http.hpp"
 #include "ICameraSignalingChannel.hpp"
 #include "OrcaCloudSignalingChannel.hpp"
+#include "OrcaMqttConnection.hpp"
 #include "bambu_networking.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
@@ -18,6 +19,7 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/name_generator_sha1.hpp>
 #include <boost/uuid/uuid.hpp>

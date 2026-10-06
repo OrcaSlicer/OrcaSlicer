@@ -1,9 +1,19 @@
 #include "RemoteFileGridModel.h"
 
+#include "IPrinterAgent.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
+#include <slic3r/GUI/Printer/IFileGridModel.h>
+#include <string>
+#include <cstdint>
+#include <memory>
+#include <vector>
+#include <ctime>
+#include <functional>
+#include <cstddef>
 #include <wx/datetime.h>
+#include <wx/gdicmn.h>
 #include <wx/image.h>
 #include <wx/mstream.h>
 

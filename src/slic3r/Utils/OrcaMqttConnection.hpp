@@ -2,10 +2,14 @@
 #define slic3r_OrcaMqttConnection_hpp_
 
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/ssl/stream.hpp>
 #include <boost/beast/core.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <atomic>
+#include <boost/beast/websocket/stream.hpp>
 #include <condition_variable>
 #include <deque>
 #include <functional>

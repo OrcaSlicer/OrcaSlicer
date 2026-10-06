@@ -4,7 +4,9 @@
 
 #include "slic3r/Utils/IPrinterAgent.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <ctime>
 #include <deque>
 #include <functional>
 #include <memory>

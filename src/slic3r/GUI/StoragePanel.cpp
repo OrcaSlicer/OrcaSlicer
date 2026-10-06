@@ -7,6 +7,8 @@
 #include "Widgets/StateColor.hpp"
 
 #include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/event.h>
 #include <wx/sizer.h>
 
 namespace Slic3r {

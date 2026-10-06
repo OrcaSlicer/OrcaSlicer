@@ -7,6 +7,7 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 
+#include <slic3r/GUI/Printer/IFileGridModel.h>
 #include <utility>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/smart_ptr/make_shared_object.hpp>

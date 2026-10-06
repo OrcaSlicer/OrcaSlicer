@@ -1,10 +1,12 @@
 #include <catch2/catch_all.hpp>
 
+#include <libslic3r/PrintConfig.hpp>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "catch2/catch_test_macros.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
