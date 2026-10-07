@@ -47,6 +47,7 @@
 #include "TextureBake/TextureBakeDebug.hpp"
 #include "TextureBake/TextureBakeMesh.hpp"
 #include "TextureBake/TextureBakePipeline.hpp"
+#include "TextureBake/TextureBakeIndex.hpp"
 
 namespace Slic3r {
 

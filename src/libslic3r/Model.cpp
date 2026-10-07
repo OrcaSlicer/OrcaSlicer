@@ -85,6 +85,7 @@
 
 // Transtltion
 #include "I18N.hpp"
+#include "ExPolygon.hpp"
 
 // ModelIO support
 #ifdef __APPLE__

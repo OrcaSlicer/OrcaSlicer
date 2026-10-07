@@ -18,15 +18,14 @@
 #include "MutablePolygon.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
-#include "TriangleSelector.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "Surface.hpp"
-#include "format.hpp"
 #include "libslic3r.h"
 
 #include <cmath>
 #include <cstddef>
 #include <list>
+#include <cstdint>
 #include <cassert>
 #include <algorithm>
 #include <cstdlib>
@@ -44,6 +43,9 @@
 #include <boost/thread/lock_guard.hpp>
 #include <vector>
 #include <queue>
+#include "SurfaceCollection.hpp"
+
+namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
 //#define MM_SEGMENTATION_DEBUG_GRAPH
 //#define MM_SEGMENTATION_DEBUG_REGIONS
@@ -61,6 +63,7 @@
 
 namespace Slic3r {
 using boost::polygon::voronoi_diagram;
+using VD = Geometry::VoronoiDiagram;
 
 static inline Point mk_point(const Voronoi::VD::vertex_type *point) { return {coord_t(point->x()), coord_t(point->y())}; }
 

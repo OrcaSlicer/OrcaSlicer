@@ -13,6 +13,12 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 
+class wxEvent;
+class wxHtmlLinkEvent;
+class wxHtmlWindow;
+class wxStaticBitmap;
+class wxWindow;
+
 namespace Slic3r { 
 namespace GUI {
 

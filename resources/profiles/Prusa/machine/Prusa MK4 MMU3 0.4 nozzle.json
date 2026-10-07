@@ -16,7 +16,7 @@
 	],
 	"printer_model": "Prusa MK4 MMU3",
 	"default_filament_profile": [
-		"Generic PLA @System"
+		"Generic PLA @Prusa MK4 MMU3"
 	],
 	"default_print_profile": "0.20mm SPEED @MK4 MMU3 0.4",
 	"printer_notes": "Don't remove the following keywords! These keywords are used in the \"compatible printer\" condition of the print and filament profiles to link the particular print and filament profiles to this printer profile.\nPRINTER_MODEL_MK4IS\nPRINTER_MODEL_MK4MMU3\nPG"

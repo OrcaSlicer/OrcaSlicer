@@ -29,10 +29,9 @@ uniform vec3      palette_lab[64];
 uniform vec3      palette_rgb[64];
 uniform int       palette_count;
 uniform bool      pure_only;      // match against single filaments only (flat-colour image)
-// How each entry prints. A pure entry is one filament (a == b); a mix interleaves filaments a and b,
-// num parts of a in every den, and the print shows that interleave rather than the entry's average
-// colour. The fragment resolves it exactly as GLGizmoTextureDisplacement::make_mix_resolver() does
-// per triangle on the CPU, so the preview shows the pattern the bake will print.
+// How each entry prints. Every entry names a single filament: a mix is given its own mixed filament
+// slot, whose components the slicer alternates per print layer, so the fragment just looks that slot's
+// colour up.
 uniform int       palette_a[64];
 uniform int       palette_b[64];
 uniform vec3      filament_rgb[16];

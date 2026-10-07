@@ -2,14 +2,17 @@
 #define slic3r_ShortestPath_hpp_
 
 #include "Polyline.hpp"
-#include "libslic3r.h"
-#include "ExtrusionEntity.hpp"
 #include "Point.hpp"
 
 #include <cstddef>
 #include <memory>
 #include <utility>
 #include <vector>
+#include "ExPolygon.hpp"
+
+namespace Slic3r { class ExtrusionEntity; }
+namespace Slic3r { class ExtrusionPath; }
+namespace Slic3r { class Line; }
 
 namespace Slic3r {
 

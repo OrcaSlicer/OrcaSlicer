@@ -565,7 +565,7 @@ void progress_close(int id)
     });
 }
 
-void plater_notification(NotificationManager::NotificationLevel notification_level, const std::string& text,
+void plater_notification(GUI::NotificationManager::NotificationLevel notification_level, const std::string& text,
                          const std::string& hypertext, py::object on_click)
 {
     const std::string plugin_key = PluginAuditManager::instance().current_plugin();
@@ -600,7 +600,7 @@ void plater_notification(NotificationManager::NotificationLevel notification_lev
     }
 
     run_on_ui_blocking([notification_level, text, hypertext, callback = std::move(callback)]() mutable {
-        wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification, notification_level, text,
+        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::NotificationType::CustomNotification, notification_level, text,
                                                                            hypertext, std::move(callback));
     });
 }
@@ -713,16 +713,16 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
            py::arg("maximum") = 100, py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
            "Create a native progress dialog and return a ProgressDialog handle.");
 
-    py::enum_<NotificationManager::NotificationLevel>(ui, "NotificationLevel")
-        .value("ProgressBarNotificationLevel", NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
-        .value("HintNotificationLevel", NotificationManager::NotificationLevel::HintNotificationLevel)
-        .value("RegularNotificationLevel", NotificationManager::NotificationLevel::RegularNotificationLevel)
-        .value("PrintInfoNotificationLevel", NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
-        .value("PrintInfoShortNotificationLevel", NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
-        .value("ImportantNotificationLevel", NotificationManager::NotificationLevel::ImportantNotificationLevel)
-        .value("WarningNotificationLevel", NotificationManager::NotificationLevel::WarningNotificationLevel)
-        .value("SeriousWarningNotificationLevel", NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
-        .value("ErrorNotificationLevel", NotificationManager::NotificationLevel::ErrorNotificationLevel)
+    py::enum_<GUI::NotificationManager::NotificationLevel>(ui, "NotificationLevel")
+        .value("ProgressBarNotificationLevel", GUI::NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
+        .value("HintNotificationLevel", GUI::NotificationManager::NotificationLevel::HintNotificationLevel)
+        .value("RegularNotificationLevel", GUI::NotificationManager::NotificationLevel::RegularNotificationLevel)
+        .value("PrintInfoNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
+        .value("PrintInfoShortNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
+        .value("ImportantNotificationLevel", GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel)
+        .value("WarningNotificationLevel", GUI::NotificationManager::NotificationLevel::WarningNotificationLevel)
+        .value("SeriousWarningNotificationLevel", GUI::NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
+        .value("ErrorNotificationLevel", GUI::NotificationManager::NotificationLevel::ErrorNotificationLevel)
         .export_values();
 
     ui.def("push_notification", &plater_notification, py::arg("notification_level"), py::arg("text"),

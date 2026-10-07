@@ -10,7 +10,6 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
-#include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
@@ -25,12 +24,10 @@
 #include "Slicing.hpp"
 #include "Tesselate.hpp"
 #include "TriangleMeshSlicer.hpp"
-#include "TriangleSelector.hpp"
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
-#include "Format/STL.hpp"
 #include "format.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
@@ -77,6 +74,14 @@
 
 #include <Shiny/Shiny.h>
 #include <vector>
+#include <tbb/concurrent_unordered_map.h>
+#include "ExtrusionEntityCollection.hpp"
+#include "Fill/FillBase.hpp"
+#include "Fill/Lightning/Generator.hpp"
+#include "SurfaceCollection.hpp"
+#include "TriangleMesh.hpp"
+
+namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
 using namespace std::literals;
 
@@ -3445,14 +3450,14 @@ void PrintObject::bridge_over_infill()
                     const bool turning_pattern = region_config.sparse_infill_pattern == ipHilbertCurve ||
                                                  region_config.sparse_infill_pattern == ipOctagramSpiral;
                     const Flow &flow              = candidate.region->bridging_flow(frSolidInfill, true);
-                    Polygons    area_to_be_bridge = expand(candidate.new_polys, flow.scaled_spacing());
-                    area_to_be_bridge             = intersection(area_to_be_bridge, deep_infill_area);
-
-                    area_to_be_bridge.erase(std::remove_if(area_to_be_bridge.begin(), area_to_be_bridge.end(),
-                                                           [internal_unsupported_area](const Polygon &p) {
-                                                               return intersection({p}, internal_unsupported_area).empty();
+                    ExPolygons bridge_components = intersection_ex(expand(candidate.new_polys, flow.scaled_spacing()), deep_infill_area);
+                    // Orca: Filter whole bridge areas so their holes remain holes.
+                    bridge_components.erase(std::remove_if(bridge_components.begin(), bridge_components.end(),
+                                                           [&internal_unsupported_area](const ExPolygon &component) {
+                                                               return intersection_ex(component, internal_unsupported_area).empty();
                                                            }),
-                                            area_to_be_bridge.end());
+                                            bridge_components.end());
+                    Polygons area_to_be_bridge = to_polygons(std::move(bridge_components));
 
                     Polygons limiting_area = union_(area_to_be_bridge, expansion_area);
 

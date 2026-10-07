@@ -1228,11 +1228,11 @@ void AMSDryCtrWin::update_normal_description(DevAms* dev_ams)
     for (const auto& lim : ams_limits) {
         if (dev_ams->GetAmsType() == lim.type) {
             if (temp_val > lim.max_temp) {
-                wxString msg = wxString::Format(_L("%s maximum drying temperature is %d°C."), wxString(lim.name), lim.max_temp);
+                wxString msg = wxString::Format(_L("%s maximum drying temperature is %d\u2103." /* °C */), wxString(lim.name), lim.max_temp);
                 warning_text += msg + "\n";
                 can_enable_button = false;
             } else if (temp_val < lim.min_temp) {
-                wxString msg = wxString::Format(_L("%s minimum drying temperature is %d°C."), wxString(lim.name), lim.min_temp);
+                wxString msg = wxString::Format(_L("%s minimum drying temperature is %d\u2103." /* °C */), wxString(lim.name), lim.min_temp);
                 warning_text += msg + "\n";
                 can_enable_button = false;
             }
@@ -1260,7 +1260,7 @@ void AMSDryCtrWin::update_normal_description(DevAms* dev_ams)
             auto limit_temperature = preset.value().filament_dev_ams_drying_heat_distortion_temperature;
             if (temp_val > limit_temperature) {
                 warning_text += _L("The temperature shall not exceed the filament's heat distortion temperature") + "(" +
-                    wxString::Format(wxT("%d"), static_cast<int>(limit_temperature)) + wxString::FromUTF8("°C)\n");
+                    wxString::Format(wxT("%d"), static_cast<int>(limit_temperature)) + wxString::FromUTF8(u8"\u2103" /* °C */) + ")\n";
                 can_enable_button = false;
             }
         }

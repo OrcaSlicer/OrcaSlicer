@@ -28,6 +28,7 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include "libslic3r/MultiNozzleUtils.hpp"
 
 namespace fs = std::filesystem;
 using namespace Slic3r;

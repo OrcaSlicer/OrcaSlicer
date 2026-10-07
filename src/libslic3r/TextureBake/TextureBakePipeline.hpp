@@ -25,7 +25,6 @@
 #include "TextureBakeRegularize.hpp"
 #include "TextureBakeFlip.hpp"
 #include "TextureBakeRelocate.hpp"
-#include "TextureBakeRepair.hpp"
 #include "TextureBakeSubdivide.hpp"
 
 namespace Slic3r {

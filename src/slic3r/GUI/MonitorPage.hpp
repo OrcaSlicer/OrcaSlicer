@@ -6,6 +6,9 @@
 #include <wx/panel.h>
 #include <wx/sizer.h>
 
+class wxBoxSizer;
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 

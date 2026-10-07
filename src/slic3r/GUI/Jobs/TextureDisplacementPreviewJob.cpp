@@ -1,6 +1,5 @@
 #include "TextureDisplacementPreviewJob.hpp"
 
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include <cstdint>
 #include <memory>

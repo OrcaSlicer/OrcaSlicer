@@ -7,6 +7,9 @@
 	"setting_id": "LSvba9ds3XTwDMCG",
 	"filament_id": "OFkR8E2c",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet"
+	],
 	"chamber_temperature": [
 		"35"
 	],

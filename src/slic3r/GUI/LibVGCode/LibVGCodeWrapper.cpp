@@ -31,6 +31,10 @@
 #include "../../src/libvgcode/include/GCodeInputData.hpp"
 #include "../../src/libvgcode/include/PathVertex.hpp"
 #include "libvgcode/include/Types.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace libvgcode {
 class Viewer;

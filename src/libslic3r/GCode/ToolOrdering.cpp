@@ -52,6 +52,11 @@
 #include <unordered_map>
 
 #include <libslic3r.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {
 
@@ -1477,7 +1482,6 @@ static FilamentGroupContext build_filament_group_context(
     FilamentMapMode                                  mode,
     const std::unordered_map<int, int>&              nozzle_status)
 {
-    using namespace MultiNozzleUtils;
     using namespace FilamentGroupUtils;
 
     FilamentGroupContext context;
@@ -1686,7 +1690,6 @@ static std::vector<int> apply_master_extruder_preference(const FilamentGroupCont
 // multi-nozzle (H2C/A2L) resolves to a nozzle-granular result.
 MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print, const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables, const std::map<int, std::set<NozzleVolumeType>>& unprintable_volumes, const std::unordered_map<int, int>& nozzle_status)
 {
-    using namespace FilamentGroupUtils;
     using namespace MultiNozzleUtils;
 
     if (!print || layer_filaments.empty())

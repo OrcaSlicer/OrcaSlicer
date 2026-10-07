@@ -1,7 +1,5 @@
 #include "wxMediaCtrl3.h"
 #include "AVVideoDecoder.hpp"
-#include "I18N.hpp"
-#include "libslic3r/Utils.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Printer/BambuTunnel.h"
@@ -20,9 +18,12 @@
 #include <wx/gdicmn.h>
 #include <wx/mediactrl.h>
 #include <wx/string.h>
+#include <wx/image.h>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/log.h>
+
+class wxWindow;
 }
 #ifdef __WIN32__
 #include <versionhelpers.h>

@@ -536,12 +536,12 @@ void NotificationManager::PopNotification::count_lines()
 		return;
 
 	// handle with marks
-    if (pos_start == string::npos && pos_end == string::npos) {
+    if (pos_start == std::string::npos && pos_end == std::string::npos) {
         pos_start = text.find(error_start);
-        if (pos_start != string::npos) {
+        if (pos_start != std::string::npos) {
             text.erase(pos_start, error_start.length());
             pos_end = text.find(error_end);
-            if (pos_end != string::npos) {
+            if (pos_end != std::string::npos) {
                 text.erase(pos_end, error_end.length());
             }
         }
@@ -675,7 +675,7 @@ void NotificationManager::PopNotification::bbl_render_block_notif_text(ImGuiWrap
 			if (m_text1.size() > m_endlines[i])
 				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
 
-			if (pos_start != string::npos && pos_end != string::npos && m_endlines[i] - line.length() >= pos_start && m_endlines[i] <= pos_end) {
+			if (pos_start != std::string::npos && pos_end != std::string::npos && m_endlines[i] - line.length() >= pos_start && m_endlines[i] <= pos_end) {
 				push_style_color(ImGuiCol_Text, m_ErrorColor, m_state == EState::FadingOut, m_current_fade_opacity);
 				imgui.text(line.c_str());
 				ImGui::PopStyleColor();
@@ -737,7 +737,7 @@ void NotificationManager::PopNotification::render_text(ImGuiWrapper& imgui, cons
 			if (m_text1.size() > m_endlines[i])
 				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
 
-            if (pos_start != string::npos && pos_end != string::npos&& m_endlines[i] - line.length() >= pos_start && m_endlines[i] <= pos_end) {
+            if (pos_start != std::string::npos && pos_end != std::string::npos&& m_endlines[i] - line.length() >= pos_start && m_endlines[i] <= pos_end) {
                 push_style_color(ImGuiCol_Text, m_ErrorColor, m_state == EState::FadingOut, m_current_fade_opacity);
                 imgui.text(line.c_str());
                 ImGui::PopStyleColor();
@@ -1272,7 +1272,7 @@ bool NotificationManager::ExportFinishedNotification::on_text_click()
 }
 void NotificationManager::ExportFinishedNotification::on_eject_click()
 {
-	NotificationData data{ get_data().type, get_data().level , 0, _utf8("Ejecting.") };
+	NotificationData data{ get_data().type, get_data().level , 0, _u8L("Ejecting.") };
 	m_eject_pending = true;
 	m_multiline = false;
 	update(data);
@@ -1671,9 +1671,7 @@ void NotificationManager::PrintHostUploadNotification::render_bar(ImGuiWrapper& 
 	{
 		ProgressBarNotification::render_bar(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
 		float uploaded = m_file_size * m_percentage;
-		std::stringstream stream;
-		stream << std::fixed << std::setprecision(2) << (int)(m_percentage * 100) << "% - " << uploaded << " of " << m_file_size << "MB uploaded";
-		text = stream.str();
+		text = into_u8(wxString::Format(_L("%d%% - %.2f of %.2fMB uploaded"), (int)(m_percentage * 100), uploaded, m_file_size));
 		ImGui::SetCursorPosX(m_left_indentation);
 		ImGui::SetCursorPosY(win_size_y / 2 + win_size_y / 6 - (m_multiline ? 0 : m_line_height / 4));
 		break;
@@ -3595,7 +3593,7 @@ void NotificationManager::bbl_show_bed_filament_incompatible_notification(const 
 		wxGetApp().open_browser_with_warning_dialog(bed_filament_compatibility_wiki);
 		return false;
 	};
-	push_notification_data({ NotificationType::BBLBedFilamentIncompatible,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,"Click for more.",callback }, 0);
+	push_notification_data({ NotificationType::BBLBedFilamentIncompatible,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,_u8L("Click for more."),callback }, 0);
 }
 
 void NotificationManager::bbl_close_bed_filament_incompatible_notification()

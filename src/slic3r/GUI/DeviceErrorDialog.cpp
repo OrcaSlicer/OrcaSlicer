@@ -368,7 +368,7 @@ wxString DeviceErrorDialog::parse_error_level(int error_code)
     }
 }
 
-static const std::unordered_set<string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
+static const std::unordered_set<std::string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
 wxString DeviceErrorDialog::show_error_code(int error_code)
 {
     if (m_error_code == error_code) { return wxEmptyString;}

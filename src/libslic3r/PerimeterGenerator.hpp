@@ -1,7 +1,6 @@
 #ifndef slic3r_PerimeterGenerator_hpp_
 #define slic3r_PerimeterGenerator_hpp_
 
-#include "ExtrusionEntityCollection.hpp"
 #include "Point.hpp"
 #include "Surface.hpp"
 #include "libslic3r.h"
@@ -15,7 +14,11 @@
 #include "Flow.hpp"
 #include "Polygon.hpp"
 #include "PrintConfig.hpp"
-#include "SurfaceCollection.hpp"
+#include "Config.hpp"
+#include "ExPolygon.hpp"
+
+namespace Slic3r { class ExtrusionEntityCollection; }
+namespace Slic3r { class SurfaceCollection; }
 
 namespace Slic3r {
 struct FuzzySkinConfig

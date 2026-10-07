@@ -24,10 +24,14 @@
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
+#ifdef SLIC3R_CAD
+#include "CAD/DesignPanel.hpp"
+#endif
 #include "WebViewDialog.hpp"
 #include "PartPlate.hpp"
 
 #include <boost/log/trivial.hpp>
+#include "libslic3r/AppConfig.hpp"
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
@@ -37,6 +41,7 @@
 #define TOPBAR_TITLE_WIDTH  300
 
 using namespace Slic3r;
+using namespace Slic3r::GUI;
 
 enum CUSTOM_ID
 {
@@ -424,6 +429,9 @@ void BBLTopbar::OnSaveProject(wxAuiToolBarEvent& event)
 void BBLTopbar::OnUndo(wxAuiToolBarEvent& event)
 {
     MainFrame* main_frame = dynamic_cast<MainFrame*>(m_frame);
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = main_frame->shown_design_panel()) { design->menu_undo_redo(false); return; }
+#endif
     Plater* plater = main_frame->plater();
     plater->undo();
 }
@@ -431,6 +439,9 @@ void BBLTopbar::OnUndo(wxAuiToolBarEvent& event)
 void BBLTopbar::OnRedo(wxAuiToolBarEvent& event)
 {
     MainFrame* main_frame = dynamic_cast<MainFrame*>(m_frame);
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = main_frame->shown_design_panel()) { design->menu_undo_redo(true); return; }
+#endif
     Plater* plater = main_frame->plater();
     plater->redo();
 }
@@ -440,6 +451,13 @@ void BBLTopbar::EnableUndoRedoItems()
     this->EnableTool(m_undo_item->GetId(), true);
     this->EnableTool(m_redo_item->GetId(), true);
     this->EnableTool(m_calib_item->GetId(), true);
+    Refresh();
+}
+
+void BBLTopbar::EnableUndoRedo(bool undo, bool redo)
+{
+    this->EnableTool(m_undo_item->GetId(), undo);
+    this->EnableTool(m_redo_item->GetId(), redo);
     Refresh();
 }
 

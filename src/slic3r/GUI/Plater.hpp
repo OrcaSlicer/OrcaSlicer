@@ -17,6 +17,7 @@
 #include <atomic>
 #include <memory>
 #include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include <string>
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
@@ -140,7 +141,7 @@ wxDECLARE_EVENT(EVT_NOTICE_CHILDE_SIZE_CHANGED, SimpleEvent);
 wxDECLARE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 using ColorEvent = Event<wxColour>;
 wxDECLARE_EVENT(EVT_ADD_CUSTOM_FILAMENT, ColorEvent);
-const wxString DEFAULT_PROJECT_NAME = "Untitled";
+const wxString DEFAULT_PROJECT_NAME = L("Untitled");
 
 class SidebarProps
 {

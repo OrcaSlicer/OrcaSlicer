@@ -20,6 +20,7 @@
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::arrangement;

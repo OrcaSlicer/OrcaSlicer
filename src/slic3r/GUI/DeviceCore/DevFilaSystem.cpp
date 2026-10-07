@@ -18,17 +18,17 @@
 #include <set>
 #include <utility>
 #include "DevFilaSystem.h"
-#include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 using namespace nlohmann;
 
@@ -160,7 +160,7 @@ DevAms::~DevAms()
     m_trays.clear();
 }
 
-static unordered_map<int, wxString> s_ams_display_formats = {
+static std::unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},

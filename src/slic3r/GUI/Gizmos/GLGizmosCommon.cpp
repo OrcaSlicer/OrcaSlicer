@@ -4,12 +4,7 @@
 #include <cassert>
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
-#include "libslic3r/SLAPrint.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/Camera.hpp"
-#include "slic3r/GUI/Plater.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
 
 #include <cstddef>
 #include <glad/gl.h>
@@ -23,6 +18,10 @@
 #include <wx/busycursor.h>
 #include <memory>
 #include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r {
 namespace GUI {

@@ -41,6 +41,13 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r.h"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
+
+namespace Slic3r::FillAdaptive { struct Octree; }
+namespace Slic3r::FillLightning { class Generator; }
 
 namespace Slic3r {
 
@@ -294,6 +301,9 @@ struct SurfaceFillParams
     float skin_infill_depth       = 0;
     bool symmetric_infill_y_axis  = false;
 
+    // Top fill for 3D honeycomb
+    bool infill_complete_top = false;
+  
     // Params for Lateral honeycomb
     float infill_overhang_angle = 60.f;
 
@@ -337,6 +347,7 @@ struct SurfaceFillParams
         RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_1);
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
+		RETURN_COMPARE_NON_EQUAL(infill_complete_top);
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);
         RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
@@ -924,6 +935,8 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.symmetric_infill_y_axis = region_config.symmetric_infill_y_axis;
                 } else if (params.pattern == ipZigZag) {
                     params.symmetric_infill_y_axis = region_config.symmetric_infill_y_axis;
+                } else if (params.pattern == ip3DHoneycomb) {
+                    params.infill_complete_top = region_config.infill_complete_top;
                 }
 
                 if (surface.is_solid()) {
@@ -1423,6 +1436,8 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         } else if (surface_fill.params.pattern == ipZigZag) {
             params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
 
+        } else if (surface_fill.params.pattern == ip3DHoneycomb) {
+            params.infill_complete_top = surface_fill.params.infill_complete_top;
         }
 		if (surface_fill.params.pattern == ipGrid)
 			params.can_reverse = false;

@@ -1,6 +1,5 @@
 #include "Search.hpp"
 
-#include <boost/optional/optional.hpp>
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Config.hpp"
@@ -22,7 +21,6 @@
 #include <cstddef>
 #include <string>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 #include <boost/nowide/convert.hpp>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -55,8 +53,6 @@
 #if defined(__WXGTK__)
 #include "LinuxDisplayBackend.hpp"
 #endif
-
-using boost::optional;
 
 namespace Slic3r {
 

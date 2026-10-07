@@ -29,7 +29,6 @@
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include <numeric>
-#include <ClipperUtils.hpp>
 
 #include <boost/geometry/index/rtree.hpp>
 #include <utility>
@@ -45,6 +44,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/multiprecision/integer.hpp>
 #include <boost/rational.hpp>
+#include "MultiMaterialSegmentation.hpp"
 
 namespace libnest2d {
 #if !defined(_MSC_VER) && defined(__SIZEOF_INT128__) && !defined(__APPLE__)
@@ -93,7 +93,6 @@ using namespace libnest2d;
 using Item         = _Item<ExPolygon>;
 using Box          = _Box<Point>;
 using Circle       = _Circle<Point>;
-using Segment      = _Segment<Point>;
 using MultiPolygon = ExPolygons;
 
 // Summon the spatial indexing facilities from boost

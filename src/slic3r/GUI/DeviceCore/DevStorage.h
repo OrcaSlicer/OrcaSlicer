@@ -1,7 +1,6 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include <string>
-#include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {
 
@@ -27,7 +26,7 @@ public:
     SdcardState get_sdcard_state() const { return  m_sdcard_state; };
     SdcardState set_sdcard_state(int state);
 
-    static void ParseV1_0(const json &print_json, DevStorage *system);
+    static void ParseV1_0(const nlohmann::json &print_json, DevStorage *system);
 
     bool is_timelapse_storage_low(const std::string& storage) const;
 

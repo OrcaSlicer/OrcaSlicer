@@ -58,6 +58,8 @@
 //#define PRINTER_FILE_SYSTEM_TEST
 #endif
 
+using json = nlohmann::json;
+
 std::string last_system_error() {
     return Slic3r::decode_path(std::error_code(
 #ifdef _WIN32
@@ -1818,6 +1820,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
 
 
 #include <stdlib.h>
+#include "libslic3r/PrintConfig.hpp"
 #if defined(_MSC_VER) || defined(_WIN32)
 #include <Windows.h>
 #else

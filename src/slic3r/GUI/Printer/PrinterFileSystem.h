@@ -22,7 +22,6 @@
 #include <boost/enable_shared_from_this.hpp>
 
 #include "nlohmann/json_fwd.hpp"
-using nlohmann::json;
 
 #include <functional>
 #include <deque>
@@ -290,17 +289,17 @@ private:
     static void DumpLog(void* context, int level, tchar const *msg);
 
 private:
-    template<typename T> using Translator = std::function<int(json const &, T &, unsigned char const *)>;
+    template<typename T> using Translator = std::function<int(nlohmann::json const &, T &, unsigned char const *)>;
 
-    typedef std::function<void(int, json const & resp)> callback_t;
+    typedef std::function<void(int, nlohmann::json const & resp)> callback_t;
 
-    typedef std::function<int(int, json const &resp, unsigned char const *data)> callback_t2;
+    typedef std::function<int(int, nlohmann::json const &resp, unsigned char const *data)> callback_t2;
 
     typedef std::function<int(std::string &msg)> callback_t3;
 
-    template<typename T> boost::uint32_t SendRequest(int type, json const &req, Translator<T> const &translator, Callback<T> const &callback, const std::string &param = "")
+    template<typename T> boost::uint32_t SendRequest(int type, nlohmann::json const &req, Translator<T> const &translator, Callback<T> const &callback, const std::string &param = "")
     {
-        auto c = [translator, callback, this](int result, json const &resp, unsigned char const *data) -> int
+        auto c = [translator, callback, this](int result, nlohmann::json const &resp, unsigned char const *data) -> int
         {
             T t;
             if (result == 0 || result == CONTINUE || result == FILE_EXIST) {
@@ -323,7 +322,7 @@ private:
     template<typename T>
     void InstallNotify(int type, Translator<T> const& translator, Applier<T> const& applier)
     {
-        auto c = [translator, applier, this](int result, json const &resp, unsigned char const *data) -> int
+        auto c = [translator, applier, this](int result, nlohmann::json const &resp, unsigned char const *data) -> int
         {
             T t;
             if (result == 0 || result == CONTINUE) {
@@ -345,7 +344,7 @@ private:
         InstallNotify(type, c);
     }
 
-    boost::uint32_t SendRequest(int type, json const &req, callback_t2 const &callback, const std::string &param = "");
+    boost::uint32_t SendRequest(int type, nlohmann::json const &req, callback_t2 const &callback, const std::string &param = "");
 
     void InstallNotify(int type, callback_t2 const &callback);
 
