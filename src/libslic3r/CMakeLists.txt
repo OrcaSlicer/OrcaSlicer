@@ -160,6 +160,15 @@ set(lisbslic3r_sources
     Fill/FillCrossHatch.hpp
     Fill/FillGyroid.cpp
     Fill/FillGyroid.hpp
+    Fill/FillVoronoi.cpp
+    Fill/FillVoronoi.hpp
+    Fill/VoronoiInfill.cpp
+    Fill/VoronoiInfill.hpp
+    Fill/VoronoiPointCloud.cpp
+    Fill/VoronoiPointCloud.hpp
+    Fill/VoronoiRouting.cpp
+    Fill/VoronoiRouting.hpp
+    Fill/VoronoiInfillCgal.hpp
     Fill/FillHoneycomb.cpp
     Fill/FillHoneycomb.hpp
     Fill/Fill.hpp
@@ -592,6 +601,7 @@ unset(CMAKE_POLICY_DEFAULT_CMP0167)
 cmake_policy(POP)
 
 add_library(libslic3r_cgal STATIC
+    Fill/VoronoiInfillCgal.cpp
     CutSurface.hpp CutSurface.cpp
     IntersectionPoints.hpp IntersectionPoints.cpp
     MeshBoolean.hpp MeshBoolean.cpp

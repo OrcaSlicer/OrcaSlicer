@@ -1553,6 +1553,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipLateralHoneycomb:
         case ip3DHoneycomb:
         case ipGyroid:
+        case ipVoronoi:
         case ipTpmsD:
         case ipTpmsFK:
         case ipHilbertCurve:

@@ -842,13 +842,26 @@ void PrintObject::infill()
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
 
+        size_t completed_layers = 0;
+        std::mutex progress_mutex;
+        auto last_report = std::chrono::steady_clock::now();
+
         BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - start";
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
-            [this](const tbb::blocked_range<size_t>& range) {
+            [this, &completed_layers, &progress_mutex, &last_report](const tbb::blocked_range<size_t>& range) {
                 for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
                     m_print->throw_if_canceled();
                     m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees.first, &m_adaptive_fill_octrees.second, this->m_lightning_generator.get());
+                    std::lock_guard<std::mutex> lock(progress_mutex);
+                    ++completed_layers;
+                    const auto now = std::chrono::steady_clock::now();
+                    if (completed_layers == m_layers.size() || now - last_report >= std::chrono::milliseconds(250)) {
+                        m_print->set_status(35 + int(5 * completed_layers / m_layers.size()),
+                            std::string(L("Generating infill toolpath")) + " (" + std::to_string(completed_layers) +
+                            " / " + std::to_string(m_layers.size()) + ")");
+                        last_report = now;
+                    }
                 }
             }
         );
