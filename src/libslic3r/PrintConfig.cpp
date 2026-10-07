@@ -364,11 +364,14 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 
 //Orca
 static t_config_enum_values s_keys_map_TpmsAdaptiveMode{
-    { "disabled", int(TpmsAdaptiveMode::Disabled) },
-    { "lobes",    int(TpmsAdaptiveMode::Lobes) },
-    { "normal_x", int(TpmsAdaptiveMode::NormalX) },
-    { "normal_y", int(TpmsAdaptiveMode::NormalY) },
-    { "normal_z", int(TpmsAdaptiveMode::NormalZ) },
+    { "disabled",       int(TpmsAdaptiveMode::Disabled) },
+    { "distance_warp",  int(TpmsAdaptiveMode::DistanceWarp) },
+    { "smooth_blend",   int(TpmsAdaptiveMode::SmoothBlend) },
+    { "stepped_shells", int(TpmsAdaptiveMode::SteppedShells) },
+    { "lobes",          int(TpmsAdaptiveMode::Lobes) },
+    { "normal_z",       int(TpmsAdaptiveMode::NormalZ) },
+    { "normal_y",       int(TpmsAdaptiveMode::NormalY) },
+    { "normal_x",       int(TpmsAdaptiveMode::NormalX) },
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TpmsAdaptiveMode)
 
@@ -3578,21 +3581,35 @@ void PrintConfigDef::init_fff_params()
     def->tooltip    = L("Grades the Gyroid and TPMS infill inside the object: its cells grow from the surface of the "
                         "object towards its center. The sparse infill density is used at the surface and the interior "
                         "density at the center.\n"
-                        "Lobes: follows the 3D shape of the object, including its top and bottom. Every lobe of the "
-                        "object, a part joined to the rest by a narrower neck, is graded towards its own center.\n"
-                        "Normal X, Y or Z: follows the sections of the object normal to that axis, so the density "
+                        "Distance warp, Smooth blend and Stepped shells follow the distance to the nearest surface, "
+                        "including the top and bottom, with the interior density at the point farthest from it:\n"
+                        " - Distance warp: one continuous pattern, stretched and sheared where the distance changes "
+                        "across directions, as in plates and long parts.\n"
+                        " - Smooth blend: the patterns of neighbouring densities blended into each other, with small "
+                        "loops where they meet.\n"
+                        " - Stepped shells: shells of the regular pattern at densities about 1.5 times apart, their "
+                        "lines joined along the shell boundaries.\n"
+                        " - Lobes: follows the 3D shape of the object, including its top and bottom. Every lobe, a part "
+                        "joined to the rest by a narrower neck, is graded towards its own center.\n"
+                        " - Normal Z, Y or X: follows the sections of the object normal to that axis, so the density "
                         "does not change along it.");
     def->enum_keys_map = &ConfigOptionEnum<TpmsAdaptiveMode>::get_enum_values();
     def->enum_values.push_back("disabled");
+    def->enum_values.push_back("distance_warp");
+    def->enum_values.push_back("smooth_blend");
+    def->enum_values.push_back("stepped_shells");
     def->enum_values.push_back("lobes");
-    def->enum_values.push_back("normal_x");
-    def->enum_values.push_back("normal_y");
     def->enum_values.push_back("normal_z");
+    def->enum_values.push_back("normal_y");
+    def->enum_values.push_back("normal_x");
     def->enum_labels.push_back(L("Disabled"));
+    def->enum_labels.push_back(L("Distance warp"));
+    def->enum_labels.push_back(L("Smooth blend"));
+    def->enum_labels.push_back(L("Stepped shells"));
     def->enum_labels.push_back(L("Lobes"));
-    def->enum_labels.push_back(L("Normal X"));
-    def->enum_labels.push_back(L("Normal Y"));
     def->enum_labels.push_back(L("Normal Z"));
+    def->enum_labels.push_back(L("Normal Y"));
+    def->enum_labels.push_back(L("Normal X"));
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<TpmsAdaptiveMode>(TpmsAdaptiveMode::Disabled));
 

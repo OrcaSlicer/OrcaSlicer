@@ -15,6 +15,7 @@
 #include <tbb/parallel_for.h>
 
 #include "../BoundingBox.hpp"
+#include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Execution/ExecutionTBB.hpp"
 #include "../MarchingSquares.hpp"
@@ -40,6 +41,12 @@ constexpr double MinLobeRatio = 0.3;
 constexpr double LobeReach = 2.;
 // Width of the morph between the patterns of two lobes, in their distance to the center over its depth.
 constexpr double LobeMorph = 0.1;
+// Densities of the levels of Stepped shells, and of Smooth blend, are at most these ratios apart. Fewer levels blend
+// with fewer lines running along the blends.
+constexpr double ShellRatio = 1.5;
+constexpr double BlendRatio = 2.5;
+// Distance warp: samples of the mean depth along a ray.
+constexpr int Samples = 32;
 
 constexpr float  InfF = std::numeric_limits<float>::infinity();
 constexpr double InfD = std::numeric_limits<double>::infinity();
@@ -137,6 +144,35 @@ void rasterize(const ExPolygons &expolygons, const Vec2d &origin, double cell, i
     }
 }
 
+// Scale of the pattern relative to the surface at a depth from 0 at the surface to 1 at the deepest point.
+double target_scale(double ratio, TpmsAdaptiveGradient gradient, double depth)
+{
+    switch (gradient) {
+    case TpmsAdaptiveGradient::Quadratic: return 1. + (ratio - 1.) * depth * depth;
+    case TpmsAdaptiveGradient::Exponential: return std::pow(ratio, depth);
+    default: return 1. + (ratio - 1.) * depth;
+    }
+}
+
+// Levels of Stepped shells and Smooth blend, geometric from the surface at 0 to the interior at count, and the
+// continuous level of the target of a depth.
+struct DensityLevels
+{
+    DensityLevels(double ratio, double step, TpmsAdaptiveGradient gradient)
+        : ratio(ratio), gradient(gradient), count(int(std::ceil(std::abs(std::log(ratio)) / std::log(step) - EPSILON)))
+    {}
+
+    double scale(int level) const { return count == 0 ? 1. : std::pow(ratio, double(level) / count); }
+    double level(double depth) const
+    {
+        return count == 0 ? 0. : count * std::log(target_scale(ratio, gradient, depth)) / std::log(ratio);
+    }
+
+    double               ratio;
+    TpmsAdaptiveGradient gradient;
+    int                  count;
+};
+
 // Scale of the pattern around the center at a radial coordinate t. The mean cell scale over the ball of radius t,
 // t^-3 * integral of 3 t'^2 * target(t'), or over the disc in 2D, follows the gradient; beyond the surface the target
 // is the surface scale.
@@ -146,13 +182,7 @@ public:
     RadialScale(const AdaptiveTpms &tpms, int dimensions) : m_dimensions(dimensions)
     {
         const double ratio  = std::max(tpms.interior_frequency / tpms.surface_frequency, 1e-3);
-        auto         target = [&tpms, ratio](double depth) {
-            switch (tpms.gradient) {
-            case TpmsAdaptiveGradient::Quadratic: return 1. + (ratio - 1.) * depth * depth;
-            case TpmsAdaptiveGradient::Exponential: return std::pow(ratio, depth);
-            default: return 1. + (ratio - 1.) * depth;
-            }
-        };
+        auto         target = [&tpms, ratio](double depth) { return target_scale(ratio, tpms.gradient, depth); };
         m_scale[0]    = target(1.);
         double volume = 0.;
         for (size_t i = 1; i < m_scale.size(); ++i) {
@@ -183,7 +213,8 @@ private:
 
 TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
                                  const std::function<void()> &throw_if_canceled)
-    : m_axis(mode == TpmsAdaptiveMode::Lobes ? -1 : int(mode) - int(TpmsAdaptiveMode::NormalX))
+    : m_mode(mode)
+    , m_axis(mode == TpmsAdaptiveMode::NormalX ? 0 : mode == TpmsAdaptiveMode::NormalY ? 1 : mode == TpmsAdaptiveMode::NormalZ ? 2 : -1)
 {
     assert(!slices.empty() && mode != TpmsAdaptiveMode::Disabled);
     const Vec3d min(unscaled(bbox.min.x()), unscaled(bbox.min.y()), slices.front().bottom_z);
@@ -237,6 +268,7 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     // Bodies are the connected inside nodes, none of which is on the border. The deepest nodes of a body are the
     // centers of its lobes, unless the depth between them stays above NeckRatio; where the depth ties, the center
     // is the node nearest to the middle of the tied nodes.
+    const bool lobes = m_mode != TpmsAdaptiveMode::SteppedShells && m_mode != TpmsAdaptiveMode::SmoothBlend;
     m_body.assign(depth.size(), -1);
     std::vector<size_t> body_nodes;
     for (size_t seed = 0; seed < depth.size(); ++seed) {
@@ -254,6 +286,9 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                     body_nodes.push_back(j);
                 }
         }
+        m_bodies.push_back({m_lobes.size(), 0, (std::sqrt(double(max_depth)) - 0.5) * m_cell});
+        if (!lobes)
+            continue;
 
         std::vector<size_t> peaks;
         for (size_t i : body_nodes)
@@ -290,7 +325,7 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                     tied.push_back(peaks[k]);
             peaks = std::move(remaining);
         }
-        m_bodies.push_back({m_lobes.size(), ties.size()});
+        m_bodies.back().lobes = ties.size();
         for (const std::vector<size_t> &tied : ties) {
             Vec3d middle(0., 0., 0.);
             for (size_t i : tied)
@@ -305,11 +340,47 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     }
     throw_if_canceled();
 
+    if (m_mode == TpmsAdaptiveMode::SteppedShells || m_mode == TpmsAdaptiveMode::SmoothBlend || m_mode == TpmsAdaptiveMode::DistanceWarp) {
+        m_depth.assign(depth.size(), 0.f);
+        for (size_t i = 0; i < depth.size(); ++i)
+            if (m_body[i] >= 0)
+                m_depth[i] = float(std::min(1., std::max(0., std::sqrt(double(depth[i])) - 0.5) * m_cell / m_bodies[m_body[i]].depth));
+    }
+
     // The reach of a lobe is the first exit along each direction from its center, smoothed over the directions.
     // It is shortened towards a neighbouring lobe, from where the point is nearer to the other lobe relative to their depths.
     std::vector<int> lobe_body(m_lobes.size());
     for (size_t id = 0; id < m_bodies.size(); ++id)
         std::fill_n(lobe_body.begin() + m_bodies[id].first_lobe, m_bodies[id].lobes, int(id));
+    const int rows      = this->directions() / Azimuth;
+    auto      direction = [this](int i, int j) {
+        const double azimuth = j * 2. * PI / Azimuth;
+        Vec3d        dir     = Vec3d::Zero();
+        if (m_axis < 0) {
+            const double polar = (i + 0.5) * PI / Polar;
+            dir = Vec3d(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
+        } else {
+            dir[(m_axis + 1) % 3] = std::cos(azimuth);
+            dir[(m_axis + 2) % 3] = std::sin(azimuth);
+        }
+        return dir;
+    };
+    // Two passes of a box filter over the neighbouring directions, for each of the values of a direction.
+    auto smooth = [rows](std::vector<double> &values, size_t count) {
+        for (int pass = 0; pass < 2; ++pass) {
+            std::vector<double> smoothed(values.size(), 0.);
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < Azimuth; ++j)
+                    for (size_t k = 0; k < count; ++k) {
+                        double &sum = smoothed[size_t(i * Azimuth + j) * count + k];
+                        for (int di = -1; di <= 1; ++di)
+                            for (int dj = -1; dj <= 1; ++dj)
+                                sum += values[size_t(std::clamp(i + di, 0, rows - 1) * Azimuth + (j + dj + Azimuth) % Azimuth) * count + k];
+                        sum /= 9.;
+                    }
+            values = std::move(smoothed);
+        }
+    };
     tbb::parallel_for(tbb::blocked_range<size_t>(0, m_lobes.size()), [&](const tbb::blocked_range<size_t> &range) {
         for (size_t l = range.begin(); l < range.end(); ++l) {
             const int   id   = lobe_body[l];
@@ -328,21 +399,12 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                 return false;
             };
             const double        step = 0.5 * m_cell;
-            const int           rows = this->directions() / Azimuth;
             std::vector<double> log_reach(this->directions());
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < Azimuth; ++j) {
-                    const double azimuth = j * 2. * PI / Azimuth;
-                    Vec3d        dir     = Vec3d::Zero();
-                    if (m_axis < 0) {
-                        const double polar = (i + 0.5) * PI / Polar;
-                        dir = Vec3d(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
-                    } else {
-                        dir[(m_axis + 1) % 3] = std::cos(azimuth);
-                        dir[(m_axis + 2) % 3] = std::sin(azimuth);
-                    }
-                    double r     = 0.;
-                    double limit = InfD;
+                    const Vec3d dir   = direction(i, j);
+                    double      r     = 0.;
+                    double      limit = InfD;
                     for (;;) {
                         const Vec3d          pt = lobe.center + (r + step) * dir;
                         const std::ptrdiff_t n  = node_of(pt);
@@ -354,19 +416,33 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                     }
                     log_reach[i * Azimuth + j] = std::log(std::min(r + 0.5 * step, limit));
                 }
-            for (int pass = 0; pass < 2; ++pass) {
-                std::vector<double> smoothed(log_reach.size(), 0.);
-                for (int i = 0; i < rows; ++i)
-                    for (int j = 0; j < Azimuth; ++j) {
-                        for (int di = -1; di <= 1; ++di)
-                            for (int dj = -1; dj <= 1; ++dj)
-                                smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, rows - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
-                        smoothed[i * Azimuth + j] /= 9.;
-                    }
-                log_reach = std::move(smoothed);
-            }
+            smooth(log_reach, 1);
             lobe.reach.resize(log_reach.size());
             std::transform(log_reach.begin(), log_reach.end(), lobe.reach.begin(), [](double v) { return float(std::exp(v)); });
+
+            if (m_mode == TpmsAdaptiveMode::DistanceWarp) {
+                std::vector<double> mean(log_reach.size() * (Samples + 1));
+                for (size_t d = 0; d < log_reach.size(); ++d) {
+                    const Vec3d dir         = direction(int(d) / Azimuth, int(d) % Azimuth);
+                    double      integral    = 0.;
+                    double      previous    = this->depth(lobe.center);
+                    mean[d * (Samples + 1)] = previous;
+                    for (int k = 1; k <= Samples; ++k) {
+                        // Exact for a depth linear between the samples, a + b * tau, weighted by tau^2.
+                        const double t0 = double(k - 1) / Samples;
+                        const double t1 = double(k) / Samples;
+                        const double d1 = this->depth(lobe.center + t1 * lobe.reach[d] * dir);
+                        const double b  = (d1 - previous) * Samples;
+                        const double a  = previous - b * t0;
+                        integral += a * (std::pow(t1, 3) - std::pow(t0, 3)) / 3. + b * (std::pow(t1, 4) - std::pow(t0, 4)) / 4.;
+                        previous                    = d1;
+                        mean[d * (Samples + 1) + k] = 3. * integral / std::pow(t1, 3);
+                    }
+                }
+                // Smoothed like the reach: sharper profiles shear the pattern across the layer, adding lines.
+                smooth(mean, Samples + 1);
+                lobe.mean_depth.assign(mean.begin(), mean.end());
+            }
         }
         throw_if_canceled();
     });
@@ -406,6 +482,26 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     }
 }
 
+double TpmsRadialField::depth(const Vec3d &pt) const
+{
+    assert(!m_depth.empty());
+    const Vec3d           f = (pt - m_origin) / m_cell;
+    std::array<int, 3>    n0;
+    std::array<double, 3> w;
+    for (int a = 0; a < 3; ++a) {
+        n0[a] = std::clamp(int(std::floor(f[a])), 0, m_size[a] - 2);
+        w[a]  = std::clamp(f[a] - n0[a], 0., 1.);
+    }
+    const size_t sy    = size_t(m_size.x());
+    const size_t sz    = sy * size_t(m_size.y());
+    double       value = 0.;
+    for (int c = 0; c < 8; ++c) {
+        const size_t n = size_t(n0[2] + (c >> 2)) * sz + size_t(n0[1] + (c >> 1 & 1)) * sy + size_t(n0[0] + (c & 1));
+        value += (c & 1 ? w[0] : 1. - w[0]) * (c >> 1 & 1 ? w[1] : 1. - w[1]) * (c >> 2 ? w[2] : 1. - w[2]) * m_depth[n];
+    }
+    return value;
+}
+
 Vec3d TpmsRadialField::offset(const Vec3d &pt, const Vec3d &center) const
 {
     Vec3d d = pt - center;
@@ -418,8 +514,10 @@ double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
 {
     const Vec3d  d = this->offset(pt, lobe.center);
     const double r = d.norm();
+    // Distance warp: the radial coordinate of the linear profile with the same mean depth, which is 1 - 3/4 of it.
+    auto warp = [](double mean_depth) { return std::max(0., 4. / 3. * (1. - mean_depth)); };
     if (r < EPSILON)
-        return 0.;
+        return lobe.mean_depth.empty() ? 0. : warp(lobe.mean_depth.front());
     int    i  = 0;
     double fi = 0.;
     double azimuth;
@@ -440,7 +538,22 @@ double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
     double       reach = at(i, j0) * (1. - fj) + at(i, j1) * fj;
     if (fi > 0.)
         reach = reach * (1. - fi) + (at(i + 1, j0) * (1. - fj) + at(i + 1, j1) * fj) * fi;
-    return r / reach;
+    const double tau = r / reach;
+    if (lobe.mean_depth.empty())
+        return tau;
+    // Beyond the surface, the depth is zero.
+    auto mean_at = [&lobe, tau](int i, int j) {
+        const float *mean = lobe.mean_depth.data() + size_t(i * Azimuth + j) * (Samples + 1);
+        if (tau >= 1.)
+            return double(mean[Samples]) / (tau * tau * tau);
+        const double x = tau * Samples;
+        const int    k = std::min(int(x), Samples - 1);
+        return mean[k] + (mean[k + 1] - mean[k]) * (x - k);
+    };
+    double mean = mean_at(i, j0) * (1. - fj) + mean_at(i, j1) * fj;
+    if (fi > 0.)
+        mean = mean * (1. - fi) + (mean_at(i + 1, j0) * (1. - fj) + mean_at(i + 1, j1) * fj) * fi;
+    return warp(mean);
 }
 
 size_t TpmsRadialField::radial(const Vec3d &pt, Radials &out) const
@@ -524,6 +637,7 @@ struct AdaptiveTpmsField
     const AdaptiveTpms    &tpms;
     const TpmsRadialField &radial_field;
     RadialScale            scale;
+    DensityLevels          levels;
     Point                  size;
     Point                  offs;
     double                 z;
@@ -531,7 +645,9 @@ struct AdaptiveTpmsField
     double                 sin_angle;
 
     AdaptiveTpmsField(const AdaptiveTpms &tpms, const TpmsRadialField &radial_field, const BoundingBox &bbox, coordf_t z, float angle)
-        : tpms(tpms), radial_field(radial_field), scale(tpms, radial_field.axis() < 0 ? 3 : 2), size(bbox.size()), offs(bbox.min), z(z)
+        : tpms(tpms), radial_field(radial_field), scale(tpms, radial_field.axis() < 0 ? 3 : 2)
+        , levels(std::max(tpms.interior_frequency / tpms.surface_frequency, 1e-3), BlendRatio, tpms.gradient)
+        , size(bbox.size()), offs(bbox.min), z(z)
         , cos_angle(std::cos(angle)), sin_angle(std::sin(angle))
     {}
 
@@ -544,6 +660,20 @@ struct AdaptiveTpmsField
         const double                           x  = unscaled(pt.x());
         const double                           y  = unscaled(pt.y());
         const Vec3d                            obj(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z);
+        if (radial_field.mode() == TpmsAdaptiveMode::SmoothBlend) {
+            // The regular patterns of the two levels around the target of the depth, blended by a smoothstep.
+            auto lattice = [this, x, y](int level) {
+                const double frequency = tpms.surface_frequency * levels.scale(level);
+                return tpms.equation(float(frequency * x), float(frequency * y), float(frequency * z));
+            };
+            if (levels.count == 0)
+                return lattice(0);
+            const double c = std::clamp(levels.level(radial_field.depth(obj)), 0., double(levels.count));
+            const int    k = std::min(int(c), levels.count - 1);
+            const double u = c - k;
+            const double w = u * u * (3. - 2. * u);
+            return float((w < 1. ? (1. - w) * lattice(k) : 0.) + (w > 0. ? w * lattice(k + 1) : 0.));
+        }
         const int                              axis = radial_field.axis();
         TpmsRadialField::Radials               radials;
         const size_t                           count = radial_field.radial(obj, radials);
@@ -569,6 +699,43 @@ template<> struct _RasterTraits<AdaptiveTpmsField>
     static float  get(const AdaptiveTpmsField &sf, size_t row, size_t col) { return sf.get_scalar(Coord(long(row), long(col))); }
     static size_t rows(const AdaptiveTpmsField &sf) { return sf.to_coordr(sf.size.y()); }
     static size_t cols(const AdaptiveTpmsField &sf) { return sf.to_coordr(sf.size.x()); }
+};
+
+// Continuous density level of the depth over a layer, in the object frame.
+struct TpmsLevelField
+{
+    static constexpr float gsizef = 0.5f;
+    static constexpr float rsizef = 0.05f;
+    const coord_t          rsize  = scaled(rsizef);
+    const long             gsize  = std::lround(gsizef / rsizef);
+
+    const TpmsRadialField &field;
+    const DensityLevels   &levels;
+    Point                  size;
+    Point                  offs;
+    double                 z;
+
+    TpmsLevelField(const TpmsRadialField &field, const DensityLevels &levels, const BoundingBox &bbox, coordf_t z)
+        : field(field), levels(levels), size(bbox.size()), offs(bbox.min), z(z)
+    {}
+
+    float get_scalar(const Coord &p) const
+    {
+        const Point pt = to_Point(p);
+        return float(levels.level(field.depth(Vec3d(unscaled(pt.x()), unscaled(pt.y()), z))));
+    }
+
+    inline coord_t to_coord(long x) const { return x * rsize; }
+    inline long    to_coordr(coord_t x) const { return x / rsize; }
+    inline Point   to_Point(const Coord &p) const { return Point(to_coord(p.c) + offs.x(), to_coord(p.r) + offs.y()); }
+};
+
+template<> struct _RasterTraits<TpmsLevelField>
+{
+    using ValueType = float;
+    static float  get(const TpmsLevelField &sf, size_t row, size_t col) { return sf.get_scalar(Coord(long(row), long(col))); }
+    static size_t rows(const TpmsLevelField &sf) { return sf.to_coordr(sf.size.y()); }
+    static size_t cols(const TpmsLevelField &sf) { return sf.to_coordr(sf.size.x()); }
 };
 
 } // namespace marchsq
@@ -600,6 +767,36 @@ Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &fi
             polylines.push_back(std::move(polyline));
     }
     return polylines;
+}
+
+std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z,
+                                        float surface_density, float interior_density, TpmsAdaptiveGradient gradient)
+{
+    const DensityLevels levels(interior_density / surface_density, ShellRatio, gradient);
+    if (levels.count == 0)
+        return {{surface_density, {expolygon}}};
+    BoundingBox bbox = get_extents(expolygon);
+    bbox.offset(scaled(marchsq::TpmsLevelField::gsizef));
+    const marchsq::TpmsLevelField raster(field, levels, bbox, z);
+
+    // Each level takes the part deeper than the middle between it and the previous one.
+    std::vector<TpmsShell> shells;
+    ExPolygons             remaining{expolygon};
+    for (int level = 0; level < levels.count && !remaining.empty(); ++level) {
+        Polygons deeper;
+        for (const marchsq::Ring &ring : marchsq::execute_with_policy(ex_tbb, raster, float(level + 0.5), {raster.gsize, raster.gsize})) {
+            Polygon &polygon = deeper.emplace_back();
+            polygon.points.reserve(ring.size());
+            for (const marchsq::Coord &crd : ring)
+                polygon.points.emplace_back(raster.to_Point(crd));
+        }
+        ExPolygons inner = intersection_ex(union_ex(deeper), remaining);
+        shells.push_back({float(surface_density * levels.scale(level)), diff_ex(remaining, inner)});
+        remaining = std::move(inner);
+    }
+    if (!remaining.empty())
+        shells.push_back({interior_density, std::move(remaining)});
+    return shells;
 }
 
 } // namespace Slic3r

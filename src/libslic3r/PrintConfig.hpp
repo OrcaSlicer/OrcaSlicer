@@ -262,10 +262,14 @@ enum class SurfaceFillOrder {
 // Orca: what the adaptive TPMS density follows: the 3D shape of the object, or its 2D sections normal to an axis.
 enum class TpmsAdaptiveMode {
     Disabled,
+    DistanceWarp,
+    SmoothBlend,
+    SteppedShells,
     Lobes,
-    NormalX,
-    NormalY,
     NormalZ,
+    NormalY,
+    NormalX,
+    Count,
 };
 
 // Orca: how the adaptive TPMS density changes from the object surface to its deepest point.

@@ -4,18 +4,21 @@
 
 `tpms_adaptive` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
 patterns inside the object: the cells grow continuously from the surface
-towards the center of the object. In `lobes` the grading follows the whole 3D
-shape, including the top and bottom, towards the center of each lobe of the
-object; in `normal_x`, `normal_y` and `normal_z`
-it follows each section of the object normal to that axis, so it does not
+towards the center of the object. `distance_warp`, `smooth_blend` and
+`stepped_shells` follow the distance to the nearest surface, including the top
+and bottom, like concentric shells; `lobes` follows the whole 3D shape towards
+the center of each lobe of the object; `normal_z`, `normal_y` and `normal_x`
+follow each section of the object normal to that axis, so the grading does not
 change along the axis, as suits a profile extruded along it.
 `sparse_infill_density` is the density at the surface, `tpms_interior_density`
 the density at the center, and `tpms_adaptive_gradient` picks how the density
 goes from one to the other. Only internal sparse infill is graded; the Gyroid
 Z-buckling optimization does not apply to it.
 
-The design has two parts: a radial field built once per object, and a pattern
-warped around the center of each lobe of a body so that its cell size follows the field.
+The design has two parts: a field built once per object, and a pattern made
+from it, warped around the center of each lobe of a body so that its cell size
+follows the field, or, in the modes following the distance to the surface,
+split into shells or blended between densities.
 
 ## Radial field
 
@@ -27,7 +30,9 @@ infill generated there has to match the printed infill. A field is built for
 every mode a region uses, and is shared by the regions using that mode: the
 field depends on the geometry only, the densities are applied per region in the
 fill. An object thinner than the grid cells has no body in the field; no field
-is kept then, and the infill falls back to the regular pattern.
+is kept then, and the infill falls back to the regular pattern. In the modes
+following the distance to the surface, the field also gives the depth of every
+point (see below).
 
 A regular 3D grid of cubic cells is rasterized from the `lslices` of the layers,
 so the field follows what is printed: negative volumes, the union of
@@ -118,12 +123,10 @@ with the gradient of the frequency times the distance from the origin. Fitting a
 smooth map to a varying isotropic scale in the least-squares sense (a Poisson
 problem per axis) cannot grade strongly: its divergence is the target scale plus
 a harmonic function pinned by the surface, which keeps the scale in the core
-near two thirds of the surface one. Blending lattices of different densities
-changes the topology and follows a distance exactly, but mixes two lattices
-wherever it blends, which distorts the pattern, and leaves the core with the few
-lines of the sparsest lattice. Filling bands of equal distance with the regular
-pattern at their density keeps it intact, but cuts its lines at every band, and
-the bands are narrower than the sparse cells.
+near two thirds of the surface one. Following a distance exactly needs the
+lattice to change its topology, by blending lattices of different densities or
+filling shells of equal distance with them, as the modes following the distance
+to the surface do.
 
 The target scale at depth `d = 1 - t`, with `S` the surface and `I` the interior
 frequency, both from each pattern's own density calibration:
@@ -145,6 +148,54 @@ they would print as blobs. The fill works in a frame rotated by the infill
 angle, so the radial field is looked up at the point rotated back into the
 object frame, and the center rotated into the fill frame. Both use the middle of
 the layer.
+
+## Modes following the distance to the surface
+
+`distance_warp`, `smooth_blend` and `stepped_shells` grade by the distance to
+the nearest surface, including the top and bottom, as concentric shells do. The
+depth of a point is that distance over the distance of the deepest point of its
+body, from 0 at the surface to 1; the field keeps it for every node and
+interpolates it between them. A tall box so keeps its whole axis as sparse as
+its center, and a plate is graded through its thickness.
+
+No single smooth pattern follows that depth without distortion (see above), so
+the three modes trade differently:
+
+- Distance warp keeps the lobes and the warp of Lobes, but its radial profile
+  comes from the depth. For every direction of a lobe, the mean depth over the
+  ball along the ray is sampled at 33 radii up to the reach, then smoothed over
+  the neighbouring directions like the reach. The radial coordinate is the one
+  of the linear profile with the same mean depth, `t = 4/3 * (1 - mean depth)`,
+  so with a linear gradient the mean cell size follows the depth exactly, and
+  with the others approximately. In a sphere or a cube, where the depth falls
+  linearly along every ray, it is Lobes. Elsewhere the profile changes with the
+  direction, and the warp shears where neighbouring directions differ, as in
+  plates and long bodies; right under the top of a long body the cells are
+  sparser within the layer, the warp moving their density into the height.
+  The profiles are smoothed over the directions like the reach, as sharper
+  ones shear the pattern across the layer, which adds lines. A long body is so
+  graded partly along its length, between Lobes and the distance.
+- Smooth blend evaluates the regular patterns of the two levels around the
+  target of every point and blends them by a smoothstep over the whole gap
+  between the levels, here at most 2.5 times apart. The density follows the
+  depth without steps, but where two lattices blend, part of their lines run
+  along the blend, so fewer levels print fewer extra lines. From 25% to 5%,
+  three levels print about 0.45 of the uniform infill in a deep core whose
+  levels alone would print 0.3; levels 1.5 times apart print 0.6 to 0.7, and a
+  single blend from the surface to the interior 0.6.
+- Stepped shells split each region of a layer into shells and fill every shell
+  with the regular pattern at its density. The densities are levels from the
+  surface to the interior density at most 1.5 times apart, five from 25% to 5%,
+  and a point takes the level nearest to its target on that geometric scale.
+  The shells are traced by marching squares of the continuous level over the
+  layer on a 0.5 mm grid and clipped to the region; the regular filler of each
+  shell connects its lines along the shell boundary. The pattern is never
+  distorted, but its lines end at every shell, and thin parts get thin shells.
+  The connections add lines: in the core of a 60 mm cube, about a third more
+  than the target.
+
+Stepped shells and Smooth blend need neither lobes nor reaches, which are not
+built for them.
 
 ## Constraints
 

@@ -1274,7 +1274,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
 TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
 {
     TpmsRadialFields fields;
-    std::array<bool, size_t(TpmsAdaptiveMode::NormalZ) + 1> modes{};
+    std::array<bool, size_t(TpmsAdaptiveMode::Count)> modes{};
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
         if (const PrintRegionConfig &config = this->printing_region(region_id).config();
             config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_tpms_adaptive_pattern(config.sparse_infill_pattern))

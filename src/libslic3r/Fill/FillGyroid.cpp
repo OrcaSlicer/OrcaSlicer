@@ -315,6 +315,19 @@ void FillGyroid::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
+    if (params.tpms_adaptive == TpmsAdaptiveMode::SteppedShells && this->tpms_radial_field != nullptr) {
+        // Every shell gets the regular pattern at its density, its lines connected along the shell.
+        FillParams shell_params    = params;
+        shell_params.tpms_adaptive = TpmsAdaptiveMode::Disabled;
+        for (const TpmsShell &shell : make_tpms_shells(*this->tpms_radial_field, expolygon, this->z - 0.5 * params.layer_height,
+                                                       params.density, params.tpms_interior_density, params.tpms_adaptive_gradient)) {
+            shell_params.density = shell.density;
+            for (const ExPolygon &part : shell.expolygons)
+                this->_fill_surface_single(shell_params, thickness_layers, direction, part, polylines_out);
+        }
+        return;
+    }
+
     auto infill_angle = float(this->angle + (CorrectionAngle * 2*M_PI) / 360.);
     if(std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
