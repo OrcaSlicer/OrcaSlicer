@@ -209,6 +209,20 @@ private:
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
     void dispatch_printer_connected(const std::string& dev_id);
+
+    // Self-contained snapshot of the message callbacks. Async completions capture this
+    // by value so they never dereference `this` after the agent may have been destroyed.
+    struct MessageRouter
+    {
+        OnMessageFn   local_fn;
+        OnMessageFn   cloud_fn;
+        QueueOnMainFn queue_fn;
+        std::string   dev_id;
+
+        void deliver(std::string payload) const;
+    };
+
+    MessageRouter make_message_router(const std::string& dev_id) const;
     void dispatch_message(const std::string& dev_id, const std::string& payload);
     void start_status_stream(const std::string& dev_id, ConnectionSettings connection);
     void stop_status_stream();

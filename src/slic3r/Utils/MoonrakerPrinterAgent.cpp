@@ -1461,9 +1461,10 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
             response["print"]["param"] = gcode;
 
-            send_gcode_async(dev_id, gcode, [this, dev_id, response](bool success) mutable {
+            MessageRouter router = make_message_router(dev_id);
+            send_gcode_async(dev_id, gcode, [router, response](bool success) mutable {
                 response["print"]["result"] = success ? "success" : "failed";
-                dispatch_message(dev_id, response.dump());
+                router.deliver(response.dump());
             });
             return BAMBU_NETWORK_SUCCESS;
         }
@@ -2903,6 +2904,36 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     payload["t_utc"] = now_ms;
 
     return payload;
+}
+
+void MoonrakerPrinterAgent::MessageRouter::deliver(std::string payload) const
+{
+    auto dispatch = [local = local_fn, cloud = cloud_fn, dev = dev_id, payload = std::move(payload)]() {
+        if (local) {
+            local(dev, payload);
+            return;
+        }
+        if (cloud) {
+            cloud(dev, payload);
+        }
+    };
+
+    if (queue_fn) {
+        queue_fn(dispatch);
+    } else {
+        dispatch();
+    }
+}
+
+MoonrakerPrinterAgent::MessageRouter MoonrakerPrinterAgent::make_message_router(const std::string& dev_id) const
+{
+    MessageRouter router;
+    router.dev_id = dev_id;
+    std::lock_guard<std::recursive_mutex> lock(state_mutex);
+    router.local_fn = on_local_message_fn;
+    router.cloud_fn = on_message_fn;
+    router.queue_fn = queue_on_main_fn;
+    return router;
 }
 
 void MoonrakerPrinterAgent::dispatch_message(const std::string& dev_id, const std::string& payload)

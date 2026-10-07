@@ -53,6 +53,14 @@ struct InFlightGuard
     ~InFlightGuard() { if (counter) counter->fetch_sub(1, std::memory_order_relaxed); }
 };
 
+// nlohmann::json::value() returns the default only when the key is absent; a present but
+// null/wrong-typed value throws. Firmware JSON is untrusted, so read defensively.
+int read_int_or(const nlohmann::json& obj, const std::string& key, int fallback)
+{
+    auto it = obj.find(key);
+    return (it != obj.end() && it->is_number_integer()) ? it->get<int>() : fallback;
+}
+
 } // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
@@ -98,37 +106,45 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
 
     InFlightGuard guard{filament_fetch_in_flight};
     std::thread([this, guard = std::move(guard), connection = std::move(connection), model_id, model_name]() mutable {
-        std::string error;
+        try {
+            std::string error;
 
-        // 1. Fetch device info and infer series_id
-        std::string series_id;
-        {
-            MoonrakerDeviceInfo info;
-            if (fetch_device_info(connection, info, error)) {
-                series_id = infer_series_id(info.model_id, info.dev_name);
+            // 1. Fetch device info and infer series_id
+            std::string series_id;
+            {
+                MoonrakerDeviceInfo info;
+                if (fetch_device_info(connection, info, error)) {
+                    series_id = infer_series_id(info.model_id, info.dev_name);
+                }
             }
-        }
-        if (series_id.empty()) {
-            // Fall back to the configured Orca model if Moonraker doesn't expose a usable identifier.
-            series_id = infer_series_id(model_id, model_name);
-        }
+            if (series_id.empty()) {
+                // Fall back to the configured Orca model if Moonraker doesn't expose a usable identifier.
+                series_id = infer_series_id(model_id, model_name);
+            }
 
-        // 2. Fetch filament dictionary
-        QidiFilamentDict dict;
-        if (!fetch_filament_dict(connection, dict, error)) {
-            BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
-        }
+            // 2. Fetch filament dictionary
+            QidiFilamentDict dict;
+            if (!fetch_filament_dict(connection, dict, error)) {
+                BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
+            }
 
-        // 3. Fetch slot info and build AmsTrayData directly
-        std::vector<AmsTrayData> trays;
-        int box_count = 0;
-        if (!fetch_slot_info(connection, dict, series_id, trays, box_count, error)) {
-            BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
-            return;
-        }
+            // 3. Fetch slot info and build AmsTrayData directly
+            std::vector<AmsTrayData> trays;
+            int box_count = 0;
+            if (!fetch_slot_info(connection, dict, series_id, trays, box_count, error)) {
+                BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
+                return;
+            }
 
-        // 4. Build the AMS payload
-        build_ams_payload(box_count, box_count * 4 - 1, trays);
+            // 4. Build the AMS payload
+            build_ams_payload(box_count, box_count * 4 - 1, trays);
+        } catch (const std::exception& e) {
+            // why: an exception escaping a detached thread is std::terminate, and firmware
+            // JSON is untrusted; mirror run_command_worker and swallow it here.
+            BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: unhandled exception: " << e.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: unhandled exception";
+        }
     }).detach();
     return true;
 }
@@ -257,7 +273,7 @@ bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
     if (!parse_slot_response(response_body, status, variables, error))
         return false;
 
-    box_count = variables.value("box_count", 1);
+    box_count = read_int_or(variables, "box_count", 1);
     if (box_count < 0) {
         box_count = 0;
     }
@@ -280,9 +296,9 @@ bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
         tray.slot_index = i;
 
         // Read slot variables
-        const int color_index     = variables.value("color_slot" + std::to_string(i), 1);
-        const int filament_type   = variables.value("filament_slot" + std::to_string(i), 1);
-        const int vendor_type     = variables.value("vendor_slot" + std::to_string(i), 0);
+        const int color_index     = read_int_or(variables, "color_slot" + std::to_string(i), 1);
+        const int filament_type   = read_int_or(variables, "filament_slot" + std::to_string(i), 1);
+        const int vendor_type     = read_int_or(variables, "vendor_slot" + std::to_string(i), 0);
 
         // Check filament presence via runout sensor
         std::string box_stepper_key = "box_stepper slot" + std::to_string(i);
@@ -290,7 +306,7 @@ bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
         if (status.contains(box_stepper_key)) {
             auto& box_stepper = status[box_stepper_key];
             if (box_stepper.contains("runout_button") && !box_stepper["runout_button"].is_null()) {
-                int runout_button = box_stepper["runout_button"].template get<int>();
+                const int runout_button = read_int_or(box_stepper, "runout_button", 0);
                 tray.has_filament = (runout_button == 0);
             }
         }
