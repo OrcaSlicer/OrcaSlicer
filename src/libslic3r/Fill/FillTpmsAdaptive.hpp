@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "../libslic3r.h"
+#include "FillBase.hpp"
 #include "../BoundingBox.hpp"
 #include "../ExPolygon.hpp"
 #include "../Point.hpp"
@@ -133,5 +134,10 @@ struct TpmsShell
 // middle of the layer.
 std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z,
                                         float surface_density, float interior_density, TpmsAdaptiveGradient gradient);
+
+// Stepped shells: fills every shell with fill_shell at its density, each shrunk by half a line like a filled region,
+// so the lines connected along the boundaries of two shells don't overlap.
+void fill_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z, const FillParams &params, coordf_t spacing,
+                      const std::function<void(const FillParams &, const ExPolygon &)> &fill_shell);
 
 } // namespace Slic3r

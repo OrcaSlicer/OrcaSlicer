@@ -17,6 +17,7 @@
 #include "../BoundingBox.hpp"
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
+#include "FillBase.hpp"
 #include "../Execution/ExecutionTBB.hpp"
 #include "../MarchingSquares.hpp"
 #include "../Point.hpp"
@@ -461,6 +462,11 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                 else if (k + d < m_size[m_axis] && has_body[k + d])
                     m_section[k] = k + d;
     }
+    // Stepped shells and Smooth blend only look up the depth.
+    if (!lobes) {
+        m_body = {};
+        return;
+    }
     if (m_bodies.size() == 1) {
         std::fill(m_body.begin(), m_body.end(), 0);
         return;
@@ -775,8 +781,11 @@ std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPo
     const DensityLevels levels(interior_density / surface_density, ShellRatio, gradient);
     if (levels.count == 0)
         return {{surface_density, {expolygon}}};
-    BoundingBox bbox = get_extents(expolygon);
-    bbox.offset(scaled(marchsq::TpmsLevelField::gsizef));
+    // A fixed sampling grid, so that every region of a layer gets the same shells.
+    const coord_t cell = scaled(marchsq::TpmsLevelField::gsizef);
+    BoundingBox   bbox = get_extents(expolygon);
+    bbox.offset(cell);
+    bbox.merge(align_to_grid(bbox.min, Point(cell, cell)));
     const marchsq::TpmsLevelField raster(field, levels, bbox, z);
 
     // Each level takes the part deeper than the middle between it and the previous one.
@@ -797,6 +806,18 @@ std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPo
     if (!remaining.empty())
         shells.push_back({interior_density, std::move(remaining)});
     return shells;
+}
+
+void fill_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z, const FillParams &params, coordf_t spacing,
+                      const std::function<void(const FillParams &, const ExPolygon &)> &fill_shell)
+{
+    FillParams shell_params    = params;
+    shell_params.tpms_adaptive = TpmsAdaptiveMode::Disabled;
+    for (const TpmsShell &shell : make_tpms_shells(field, expolygon, z, params.density, params.tpms_interior_density, params.tpms_adaptive_gradient)) {
+        shell_params.density = shell.density;
+        for (const ExPolygon &part : offset_ex(shell.expolygons, -float(scale_(0.5 * spacing))))
+            fill_shell(shell_params, part);
+    }
 }
 
 } // namespace Slic3r

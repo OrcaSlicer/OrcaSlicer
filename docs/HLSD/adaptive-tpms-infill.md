@@ -188,8 +188,11 @@ the three modes trade differently:
   surface to the interior density at most 1.5 times apart, five from 25% to 5%,
   and a point takes the level nearest to its target on that geometric scale.
   The shells are traced by marching squares of the continuous level over the
-  layer on a 0.5 mm grid and clipped to the region; the regular filler of each
-  shell connects its lines along the shell boundary. The pattern is never
+  layer on a 0.5 mm grid fixed in the object, so every region of a layer gets
+  the same shells, and clipped to the region. Each shell is shrunk by half a
+  line, like a filled region, and its regular filler connects its lines along
+  that boundary, so the connections of two neighbouring shells lie side by side
+  instead of on top of each other. The pattern is never
   distorted, but its lines end at every shell, and thin parts get thin shells.
   The connections add lines: in the core of a 60 mm cube, about a third more
   than the target.

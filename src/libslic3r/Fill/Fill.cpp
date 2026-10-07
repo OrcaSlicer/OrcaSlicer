@@ -1013,7 +1013,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.tpms_adaptive = is_tpms_adaptive_pattern(params.pattern) && params.extrusion_role == erInternalInfill ?
                                            region_config.tpms_adaptive.value : TpmsAdaptiveMode::Disabled;
                 const bool tpms_adaptive      = params.tpms_adaptive != TpmsAdaptiveMode::Disabled;
-                params.tpms_interior_density  = tpms_adaptive ? float(region_config.tpms_interior_density) : 0.f;
+                params.tpms_interior_density  = tpms_adaptive ? std::max(1.f, float(region_config.tpms_interior_density)) : 0.f;
                 params.tpms_adaptive_gradient = tpms_adaptive ? region_config.tpms_adaptive_gradient.value : TpmsAdaptiveGradient::Linear;
 
                 // Pass through gyroid_optimized only when the effective pattern is Gyroid,
