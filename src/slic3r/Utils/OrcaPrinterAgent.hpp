@@ -13,6 +13,7 @@
 #include <mutex>
 #include <memory>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace Slic3r { class ICloudServiceAgent; }
@@ -170,17 +171,31 @@ protected:
                                                    const std::string& target,
                                                    const nlohmann::json& filament_mapping);
 
-    // Pure JSON -> entries normalization for OrcaSonar's /server/files/list reply.
-    // protected static so the test Probe reaches it.
-    static std::vector<PrinterFileEntry> parse_file_list(const std::string& body);
+    // Pure JSON -> entries normalization for the files.list MQTT reply
+    // ({"files":{...,"entries":[{name,path,is_dir,size,modified}]}}). Directory
+    // entries and entries without a usable name are skipped; a missing path falls
+    // back to the name and size/modified default to 0. protected static for the Probe.
+    static std::vector<PrinterFileEntry> parse_files_list_reply(const std::string& payload);
 
     // Pick the widest thumbnail path from OrcaSonar's /server/files/thumbnails
     // reply (the array is smallest-first). Empty when none carry a path.
     static std::string parse_thumbnail_path(const std::string& body);
 
-    // Pure JSON -> metadata normalization for OrcaSonar's /server/files/metadata
-    // reply. Missing or malformed fields default to 0. protected static for the Probe.
-    static PrinterFileMetadata parse_file_metadata(const std::string& body);
+    // Pure JSON -> metadata normalization for the files.metadata MQTT reply. Missing
+    // or malformed fields default to 0. protected static for the Probe.
+    static PrinterFileMetadata parse_files_metadata_reply(const std::string& payload);
+
+    // Dispatch one files.* command (list/metadata/delete) over the LAN MQTT
+    // connection and route its reply, matched by sequence_id, into `complete`.
+    // `complete` runs once on the UI thread (or the calling thread when no queue is
+    // set) with the raw reply payload on success, or an empty string on
+    // failure/timeout. Returns whether the request was dispatched.
+    int send_files_request(const std::string& dev_id, const std::string& command, nlohmann::json fields,
+                           std::function<void(int result, const std::string& payload)> complete);
+
+    // Consume an inbound report that answers a pending files.* request. Returns true
+    // when it matched, so the caller does not forward it to the machine-state sink.
+    bool try_consume_files_reply(const std::string& dev_id, const std::string& payload);
 
     // Percent-encode each '/'-separated segment for a Moonraker URL while keeping
     // the separators intact. protected static for the test Probe.
@@ -218,7 +233,7 @@ private:
     CurrentConn m_current_connection = NONE;
 
     std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
-    std::unique_ptr<OrcaMqttConnection> lan_mqtt_connection;
+    std::shared_ptr<OrcaMqttConnection> lan_mqtt_connection;
 
     // Two independent epochs: a cloud (de)selection must not fence the live LAN
     // feed, and vice versa. Each transport's connect thread and inbound handler
@@ -240,6 +255,20 @@ private:
     std::string m_lan_ca_file; // guarded by state_mutex
     CameraStreamMode m_camera_stream_mode = CameraStreamMode::none; // guarded by state_mutex
     std::string m_camera_url; // guarded by state_mutex
+
+    // Pending files.* MQTT replies, keyed by sequence_id. The registry is
+    // heap-owned so a timeout watchdog can outlive the agent without touching
+    // `this`; each entry carries its own one-shot guard.
+    struct FilesReply {
+        std::string                                     device_id;
+        std::function<void(int, const std::string&)>    complete;
+        std::shared_ptr<std::atomic<bool>>              fired = std::make_shared<std::atomic<bool>>(false);
+    };
+    struct FilesReplyRegistry {
+        std::mutex                                  mutex;
+        std::unordered_map<std::string, FilesReply> entries;
+    };
+    std::shared_ptr<FilesReplyRegistry> m_files_replies = std::make_shared<FilesReplyRegistry>();
 
     OrcaCloudServiceAgent* get_orca_cloud_agent();
 

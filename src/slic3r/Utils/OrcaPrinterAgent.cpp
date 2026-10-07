@@ -156,14 +156,15 @@ std::string http_origin_from_lan_ws(const std::string& ws_url)
     return s;
 }
 
-// print.gcode_file is non-idempotent and OrcaSonar replays a cached response for a
-// reused (namespace, command, sequence_id). Seed from the wall clock so ids do not
-// collide across slicer restarts, then bump once per call within a run.
-std::string next_gcode_file_sequence_id()
+// print.gcode_file and files.* are non-idempotent and OrcaSonar replays a cached
+// response for a reused (namespace, command, sequence_id). Seed from a
+// high-resolution wall clock so a fast restart cannot reissue an id a prior run
+// used, then bump once per call within a run.
+std::string next_command_sequence_id()
 {
     static std::atomic<uint64_t> counter{[] {
         const auto now = std::chrono::system_clock::now().time_since_epoch();
-        return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(now).count());
+        return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
     }()};
     return std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
 }
@@ -742,6 +743,10 @@ void OrcaPrinterAgent::forget_device_capabilities(const std::string& dev_id)
 
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
 {
+    // A files.* reply answers a pending request and is not printer state.
+    if (local && try_consume_files_reply(dev_id, payload))
+        return;
+
     parse_ipcam_info(dev_id, payload);
     std::string merged_payload = merge_capabilities(dev_id, payload);
 
@@ -1218,7 +1223,7 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
         m_camera_stream_mode = CameraStreamMode::none;
         m_camera_url.clear();
         m_current_connection = LAN;
-        lan_mqtt_connection  = std::make_unique<OrcaMqttConnection>();
+        lan_mqtt_connection  = std::make_shared<OrcaMqttConnection>();
         conn                 = lan_mqtt_connection.get();
     }
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: selected LAN printer dev_id=" << params.dev_id
@@ -1279,7 +1284,7 @@ int OrcaPrinterAgent::disconnect_printer()
 {
     BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: disconnect_printer requested";
     ++m_lan_generation; // fence stale worker callbacks
-    std::unique_ptr<OrcaMqttConnection> doomed;
+    std::shared_ptr<OrcaMqttConnection> doomed;
     std::string prev_dev;
     CurrentConn previous_connection;
     CurrentConn current_connection;
@@ -1759,35 +1764,48 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
     return BAMBU_NETWORK_SUCCESS;
 }
 
-// Pure normalization of Moonraker's /server/files/list reply: the `result` array
-// of {path, modified, size}. `name` is the basename of `path`; malformed entries
-// (non-object, missing/empty path) are skipped. size/modified default to 0.
-std::vector<PrinterFileEntry> OrcaPrinterAgent::parse_file_list(const std::string& body)
+// Pure normalization of the files.list MQTT reply:
+// {"files":{...,"entries":[{name,path,is_dir,size,modified}]}}. Directory entries
+// and entries without a usable name are skipped; a missing path falls back to the
+// name and size/modified default to 0.
+std::vector<PrinterFileEntry> OrcaPrinterAgent::parse_files_list_reply(const std::string& payload)
 {
     std::vector<PrinterFileEntry> files;
 
-    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    const nlohmann::json envelope = nlohmann::json::parse(payload, nullptr, false);
     if (envelope.is_discarded() || !envelope.is_object())
         return files;
 
-    const auto result_it = envelope.find("result");
-    if (result_it == envelope.end() || !result_it->is_array())
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
         return files;
 
-    for (const auto& item : *result_it) {
+    const auto entries_it = files_it->find("entries");
+    if (entries_it == files_it->end() || !entries_it->is_array())
+        return files;
+
+    for (const auto& item : *entries_it) {
         if (!item.is_object())
             continue;
-
-        const auto path_it = item.find("path");
-        if (path_it == item.end() || !path_it->is_string())
+        // Type-check is_dir rather than value(): a non-boolean would throw.
+        const auto is_dir_it = item.find("is_dir");
+        if (is_dir_it != item.end() && is_dir_it->is_boolean() && is_dir_it->get<bool>())
             continue;
-        const std::string path = path_it->get<std::string>();
-        if (path.empty())
+
+        const auto name_it = item.find("name");
+        if (name_it == item.end() || !name_it->is_string())
+            continue;
+        const std::string name = name_it->get<std::string>();
+        if (name.empty())
             continue;
 
         PrinterFileEntry entry;
-        entry.path = path;
-        entry.name = fs::path(path).filename().string();
+        entry.name = name;
+
+        const auto path_it = item.find("path");
+        entry.path = (path_it != item.end() && path_it->is_string() && !path_it->get<std::string>().empty())
+                         ? path_it->get<std::string>()
+                         : name;
 
         const auto size_it = item.find("size");
         if (size_it != item.end() && size_it->is_number())
@@ -1802,74 +1820,148 @@ std::vector<PrinterFileEntry> OrcaPrinterAgent::parse_file_list(const std::strin
     return files;
 }
 
-int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+// Dispatch one files.* command over the LAN MQTT connection and route its reply to
+// `complete`, matched by sequence_id. The UI-thread marshalling and the timing-out
+// watchdog capture only values and the heap-owned registry, never `this`.
+int OrcaPrinterAgent::send_files_request(const std::string& dev_id, const std::string& command, nlohmann::json fields,
+                                         std::function<void(int result, const std::string& payload)> complete)
 {
-    std::string   origin;
-    bool          use_ssl = false;
-    std::string   ca_file;
-    QueueOnMainFn queue;
-    bool          live = false;
+    if (!complete)
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+
+    std::shared_ptr<OrcaMqttConnection> conn;
+    QueueOnMainFn                       queue;
+    CurrentConn                         transport = NONE;
+    std::string                         lan_dev;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
-        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
-        if (live) {
-            origin  = http_origin_from_lan_ws(m_lan_url);
-            use_ssl = m_lan_use_ssl;
-            ca_file = m_lan_ca_file;
-            queue   = queue_on_main_fn;
-        }
+        transport = m_current_connection;
+        lan_dev   = m_lan_dev_id;
+        if (m_current_connection == LAN && m_lan_dev_id == dev_id)
+            conn = lan_mqtt_connection; // keep alive across the send, racing disconnects included
+        queue = queue_on_main_fn;
     }
-    if (!live) {
-        if (callback)
-            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
+    if (!conn) {
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files." << command << " not sent: no live LAN session for dev_id=" << dev_id
+                                   << " transport=" << connection_type_name(transport) << " m_lan_dev_id=" << lan_dev;
+        complete(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
         return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    }
 
-    // perform_sync blocks, so the request runs off the UI thread. The worker captures
-    // only values (never `this`). A trusted LAN facade needs no API key.
-    std::thread([dev_id, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
-        std::string body;
-        int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+    fields["command"]             = command;
+    fields["sequence_id"]         = next_command_sequence_id();
+    const std::string sequence_id = fields["sequence_id"].get<std::string>();
+    const std::string payload     = nlohmann::json{{"files", std::move(fields)}}.dump();
 
-        auto http = Http::get(origin + "/server/files/list?root=gcodes");
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string b, unsigned status) {
-                if (status == 200) {
-                    body   = std::move(b);
-                    result = BAMBU_NETWORK_SUCCESS;
-                }
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file list request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
-        std::vector<PrinterFileEntry> files;
-        if (result == BAMBU_NETWORK_SUCCESS) {
-            files = parse_file_list(body);
-            // Empty is a valid listing; an unparseable body is not.
-            if (nlohmann::json::parse(body, nullptr, false).is_discarded())
-                result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-        }
-
-        if (!callback)
+    auto registry = m_files_replies;
+    auto fired    = std::make_shared<std::atomic<bool>>(false);
+    auto finish   = [queue, complete = std::move(complete), fired](int result, const std::string& reply) {
+        if (fired->exchange(true))
             return;
         if (queue)
-            queue([callback, result, files = std::move(files)]() mutable { callback(result, std::move(files)); });
+            queue([complete, result, reply]() { complete(result, reply); });
         else
-            callback(result, std::move(files));
+            complete(result, reply);
+    };
+
+    {
+        std::lock_guard<std::mutex> lock(registry->mutex);
+        registry->entries[sequence_id] = FilesReply{dev_id, finish, fired};
+    }
+
+    if (!conn->send_request(dev_id, payload)) {
+        {
+            std::lock_guard<std::mutex> lock(registry->mutex);
+            registry->entries.erase(sequence_id);
+        }
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files." << command << " send_request failed dev_id=" << dev_id
+                                   << " sequence_id=" << sequence_id << " mqtt_connected=" << conn->is_connected();
+        finish(BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED, {});
+        return BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+    }
+
+    // Watchdog: the connector answers promptly on a healthy link; fail the request
+    // if nothing arrives so the UI does not wait on a dropped report.
+    std::thread([registry, sequence_id, command, fired, finish]() {
+        for (int waited = 0; waited < 100 && !fired->load(); ++waited)
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (fired->load())
+            return;
+        {
+            std::lock_guard<std::mutex> lock(registry->mutex);
+            if (registry->entries.erase(sequence_id) == 0)
+                return; // consumed concurrently
+        }
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files." << command << " timed out waiting for reply sequence_id=" << sequence_id;
+        finish(BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED, {});
     }).detach();
 
     return BAMBU_NETWORK_SUCCESS;
+}
+
+bool OrcaPrinterAgent::try_consume_files_reply(const std::string& dev_id, const std::string& payload)
+{
+    if (payload.find("\"files\"") == std::string::npos)
+        return false;
+
+    const nlohmann::json envelope = nlohmann::json::parse(payload, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return false;
+
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
+        return false;
+
+    const auto sequence_it = files_it->find("sequence_id");
+    if (sequence_it == files_it->end() || !sequence_it->is_string()) {
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files frame without string sequence_id dev_id=" << dev_id;
+        return false;
+    }
+    const std::string sequence_id = sequence_it->get<std::string>();
+
+    std::function<void(int, const std::string&)> complete;
+    {
+        std::lock_guard<std::mutex> lock(m_files_replies->mutex);
+        const auto it = m_files_replies->entries.find(sequence_id);
+        if (it == m_files_replies->entries.end()) {
+            BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files reply sequence_id=" << sequence_id
+                                       << " has no pending request dev_id=" << dev_id;
+            return false;
+        }
+        if (it->second.device_id != dev_id) {
+            BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files reply sequence_id=" << sequence_id << " device mismatch: pending="
+                                       << it->second.device_id << " reply=" << dev_id;
+            return false;
+        }
+        complete = it->second.complete;
+        m_files_replies->entries.erase(it);
+    }
+
+    // A non-string result (e.g. null) is a failure, never a throw.
+    const auto result_it = files_it->find("result");
+    const bool ok        = result_it != files_it->end() && result_it->is_string() && result_it->get<std::string>() == "success";
+    if (!ok) {
+        const auto reason_it = files_it->find("reason");
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: files reply result=fail sequence_id=" << sequence_id
+                                   << " reason=" << (reason_it != files_it->end() && reason_it->is_string() ? reason_it->get<std::string>() : std::string());
+    }
+    complete(ok ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED, ok ? payload : std::string());
+    return true;
+}
+
+// List the printer's G-code files over the LAN MQTT files.list command — the same
+// transport OrcaCloud uses, so the list works whether or not OrcaSonar's Moonraker
+// façade is enabled.
+int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+{
+    return send_files_request(
+        dev_id, "list", nlohmann::json{{"root", "gcodes"}, {"path", ""}},
+        [callback = std::move(callback)](int result, const std::string& payload) mutable {
+            if (!callback)
+                return;
+            callback(result, result == BAMBU_NETWORK_SUCCESS ? parse_files_list_reply(payload)
+                                                            : std::vector<PrinterFileEntry>{});
+        });
 }
 
 // Pure pick of the widest thumbnail path from Moonraker's /server/files/thumbnails
@@ -1905,31 +1997,32 @@ std::string OrcaPrinterAgent::parse_thumbnail_path(const std::string& body)
     return path;
 }
 
-// Pure normalization of Moonraker's /server/files/metadata reply: the `result`
-// object's estimated_time (seconds), filament_total (mm) and filament_weight_total
-// (grams). A malformed reply or any non-numeric field defaults to 0.
-PrinterFileMetadata OrcaPrinterAgent::parse_file_metadata(const std::string& body)
+// Pure normalization of the files.metadata MQTT reply: the `files` object's
+// estimated_time (seconds), filament_total (mm) and filament_weight_total (grams;
+// OrcaSonar currently reports only filament_total). A malformed reply or any
+// non-numeric field defaults to 0.
+PrinterFileMetadata OrcaPrinterAgent::parse_files_metadata_reply(const std::string& payload)
 {
     PrinterFileMetadata meta;
 
-    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
+    const nlohmann::json envelope = nlohmann::json::parse(payload, nullptr, false);
     if (envelope.is_discarded() || !envelope.is_object())
         return meta;
 
-    const auto result_it = envelope.find("result");
-    if (result_it == envelope.end() || !result_it->is_object())
+    const auto files_it = envelope.find("files");
+    if (files_it == envelope.end() || !files_it->is_object())
         return meta;
 
-    const auto time_it = result_it->find("estimated_time");
-    if (time_it != result_it->end() && time_it->is_number())
+    const auto time_it = files_it->find("estimated_time");
+    if (time_it != files_it->end() && time_it->is_number())
         meta.estimated_time = static_cast<int>(time_it->get<double>());
 
-    const auto total_it = result_it->find("filament_total");
-    if (total_it != result_it->end() && total_it->is_number())
+    const auto total_it = files_it->find("filament_total");
+    if (total_it != files_it->end() && total_it->is_number())
         meta.filament_total = total_it->get<double>();
 
-    const auto weight_it = result_it->find("filament_weight_total");
-    if (weight_it != result_it->end() && weight_it->is_number())
+    const auto weight_it = files_it->find("filament_weight_total");
+    if (weight_it != files_it->end() && weight_it->is_number())
         meta.filament_weight = weight_it->get<double>();
 
     return meta;
@@ -2050,131 +2143,27 @@ int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, cons
     return BAMBU_NETWORK_SUCCESS;
 }
 
-// Delete one G-code file via Moonraker's HTTP DELETE endpoint. Mirrors
-// list_printer_files for the connection snapshot and off-thread marshalling; the
-// worker captures no `this`.
+// Delete one G-code file over the LAN MQTT files.delete command.
 int OrcaPrinterAgent::delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
 {
-    std::string   origin;
-    bool          use_ssl = false;
-    std::string   ca_file;
-    QueueOnMainFn queue;
-    bool          live = false;
-    {
-        std::lock_guard<std::mutex> lock(state_mutex);
-        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
-        if (live) {
-            origin  = http_origin_from_lan_ws(m_lan_url);
-            use_ssl = m_lan_use_ssl;
-            ca_file = m_lan_ca_file;
-            queue   = queue_on_main_fn;
-        }
-    }
-    if (!live) {
-        if (callback)
-            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
-        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
-    }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE);
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    }
-
-    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
-        int result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-
-        auto http = Http::del(origin + "/server/files/gcodes/" + encode_file_path(path));
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string, unsigned status) {
-                if (status == 200)
-                    result = BAMBU_NETWORK_SUCCESS;
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file delete request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
-        if (!callback)
-            return;
-        if (queue)
-            queue([callback, result]() mutable { callback(result); });
-        else
-            callback(result);
-    }).detach();
-
-    return BAMBU_NETWORK_SUCCESS;
+    return send_files_request(dev_id, "delete", nlohmann::json{{"root", "gcodes"}, {"path", path}},
+                              [callback = std::move(callback)](int result, const std::string&) mutable {
+                                  if (callback)
+                                      callback(result);
+                              });
 }
 
-// Fetch one file's Moonraker metadata (print time and filament usage). Mirrors
-// list_printer_files for the connection snapshot and off-thread marshalling; the
-// worker captures no `this`.
+// Fetch one file's metadata (print time and filament usage) over the LAN MQTT
+// files.metadata command.
 int OrcaPrinterAgent::get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
 {
-    std::string   origin;
-    bool          use_ssl = false;
-    std::string   ca_file;
-    QueueOnMainFn queue;
-    bool          live = false;
-    {
-        std::lock_guard<std::mutex> lock(state_mutex);
-        live = m_current_connection == LAN && m_lan_dev_id == dev_id;
-        if (live) {
-            origin  = http_origin_from_lan_ws(m_lan_url);
-            use_ssl = m_lan_use_ssl;
-            ca_file = m_lan_ca_file;
-            queue   = queue_on_main_fn;
-        }
-    }
-    if (!live) {
-        if (callback)
-            callback(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED, {});
-        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
-    }
-    if (origin.empty()) {
-        if (callback)
-            callback(BAMBU_NETWORK_ERR_INVALID_HANDLE, {});
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    }
-
-    std::thread([path, origin, use_ssl, ca_file, queue, callback = std::move(callback)]() mutable {
-        PrinterFileMetadata meta;
-        int                 result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-
-        auto http = Http::get(origin + "/server/files/metadata?filename=" + Http::url_encode(path));
-        http.tls_verify(use_ssl);
-        if (!ca_file.empty())
-            http.ca_file(ca_file);
-        http.timeout_connect(5)
-            .timeout_max(15)
-            .on_complete([&](std::string b, unsigned status) {
-                if (status == 200) {
-                    if (nlohmann::json::parse(b, nullptr, false).is_discarded())
-                        result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-                    else {
-                        meta   = parse_file_metadata(b);
-                        result = BAMBU_NETWORK_SUCCESS;
-                    }
-                }
-            })
-            .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: file metadata request failed status=" << status << " err=" << err;
-            })
-            .perform_sync();
-
-        if (!callback)
-            return;
-        if (queue)
-            queue([callback, result, meta]() mutable { callback(result, meta); });
-        else
-            callback(result, meta);
-    }).detach();
-
-    return BAMBU_NETWORK_SUCCESS;
+    return send_files_request(
+        dev_id, "metadata", nlohmann::json{{"root", "gcodes"}, {"path", path}},
+        [callback = std::move(callback)](int result, const std::string& payload) mutable {
+            if (!callback)
+                return;
+            callback(result, result == BAMBU_NETWORK_SUCCESS ? parse_files_metadata_reply(payload) : PrinterFileMetadata{});
+        });
 }
 
 // Upload the sliced G-code, then start it: the LAN "print now" path.
@@ -2279,7 +2268,7 @@ int OrcaPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn up
         BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: start_sdcard_print emitting filament_mapping entries=" << filament_mapping.size();
     }
 
-    nlohmann::json j = build_gcode_file_payload(next_gcode_file_sequence_id(), target, filament_mapping);
+    nlohmann::json j = build_gcode_file_payload(next_command_sequence_id(), target, filament_mapping);
 
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
