@@ -83,7 +83,7 @@ std::vector<AxisTick> axis_ticks(double minimum, double maximum, int pixels, wxD
 CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance)
     : wxPanel(parent), m_appearance(appearance)
 {
-    SetMinSize(FromDIP(wxSize(640, 230)));
+    SetMinSize(FromDIP(wxSize(420, 180)));
     #ifndef __WXOSX__
         SetBackgroundStyle(wxBG_STYLE_PAINT);
     #endif
