@@ -800,6 +800,43 @@ TEST_CASE("A per-variant filament option read with a single value gives it to ev
     REQUIRE(config.option<ConfigOptionFloats>("pressure_advance")->values == std::vector<double>({0.021, 0.021, 0.021}));
 }
 
+// Machine limits (printer_options_with_variant_2) hold a (normal, silent) pair per printer variant, so the
+// printer Tab's Motion ability page can edit each extruder's own limits.
+TEST_CASE("set_num_extruders gives every printer variant its own pair of machine limits", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    auto speed_x = [&config]() { return config.option<ConfigOptionFloats>("machine_max_speed_x")->values; };
+
+    SECTION("a new extruder's pair is padded with the first value, like the other variant keys") {
+        config.option<ConfigOptionFloats>("machine_max_speed_x")->values = {500., 200.};
+        config.set_num_extruders(3);
+        REQUIRE(config.option<ConfigOptionStrings>("printer_extruder_variant")->size() == 3);
+        REQUIRE(speed_x() == std::vector<double>({500., 200., 500., 500., 500., 500.}));
+    }
+
+    SECTION("per-extruder pairs are kept, and removing an extruder removes its pair") {
+        config.option<ConfigOptionFloats>("machine_max_speed_x")->values = {500., 200., 400., 150., 300., 100.};
+        config.set_num_extruders(3);
+        REQUIRE(speed_x() == std::vector<double>({500., 200., 400., 150., 300., 100.}));
+        config.set_num_extruders(2);
+        REQUIRE(speed_x() == std::vector<double>({500., 200., 400., 150.}));
+    }
+
+    SECTION("a printer with nozzle variants gets a pair per variant") {
+        // 2 extruders x 2 variants each = 4 variants
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard,Direct Drive High Flow",
+                                                                                     "Direct Drive Standard,Direct Drive High Flow"};
+        const std::vector<double> per_variant = {500., 200., 510., 210., 520., 220., 530., 230.};
+        config.option<ConfigOptionFloats>("machine_max_speed_x")->values = per_variant;
+        config.set_num_extruders(2);
+        REQUIRE(speed_x() == per_variant);
+
+        config.option<ConfigOptionFloats>("machine_max_speed_x")->values = {500., 200.};
+        config.set_num_extruders(2);
+        REQUIRE(speed_x() == std::vector<double>({500., 200., 500., 500., 500., 500., 500., 500.}));
+    }
+}
+
 // The device drying options hold several values per filament, as many as each filament preset gives.
 TEST_CASE("The device drying options are rebuilt as each filament's values in slot order", "[Config]")
 {
