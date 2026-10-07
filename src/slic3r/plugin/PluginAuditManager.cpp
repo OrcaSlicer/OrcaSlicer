@@ -115,6 +115,9 @@ static const std::unordered_map<std::string, AuditEventCategory> audit_event_cat
     {"subprocess.Popen", AuditEventCategory::ProcessCreate},
     {"_winapi.CreateProcess", AuditEventCategory::ProcessCreate},
     {"_posixsubprocess.fork_exec", AuditEventCategory::ProcessCreate},
+
+    // threading
+    {"_thread.start_new_thread", AuditEventCategory::Threading},
 };
 
 // Returns the category event_name belongs to, or AuditEventCategory::None when it isn't audited.
@@ -735,6 +738,12 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         }
         return targets;
     }
+    case AuditEventCategory::Threading:
+        // Thread creation exposes no user-supplied target. Use a fixed sentinel so the grant
+        // persists per plugin: the permission list matches targets by exact string, and the
+        // started function's repr embeds an address that changes every run.
+        targets.emplace_back("thread");
+        return targets;
     default:
         break;
     }
@@ -761,6 +770,7 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, Plugi
     case AuditEventCategory::Http:          return &permissions.network_http;
     case AuditEventCategory::Socket:        return &permissions.network_socket;
     case AuditEventCategory::ProcessCreate: return &permissions.process;
+    case AuditEventCategory::Threading:     return &permissions.threading;
     default:                                return nullptr;
     }
 }
@@ -832,6 +842,8 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         return wxString::Format(_L("Plugin \"%s\" is requesting to open a network connection to:\n%s"), plugin_name, target_list);
     case AuditEventCategory::ProcessCreate:
         return wxString::Format(_L("Plugin \"%s\" is requesting to run the following command(s):\n%s"), plugin_name, target_list);
+    case AuditEventCategory::Threading:
+        return wxString::Format(_L("Plugin \"%s\" is requesting permission to create a thread."), plugin_name);
     default:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."), plugin_name, event_name);
     }

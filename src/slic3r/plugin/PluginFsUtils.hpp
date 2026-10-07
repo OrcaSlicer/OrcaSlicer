@@ -92,6 +92,7 @@ struct PluginPermissions
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;
+    std::vector<std::string> threading;
 };
 
 struct PluginInstallState {
