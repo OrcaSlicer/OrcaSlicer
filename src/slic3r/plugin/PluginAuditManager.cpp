@@ -849,6 +849,67 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
     }
 }
 
+// Builds and shows the modal permission prompt. Must run on the GUI thread.
+bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_name, const std::string& event_name,
+                        const std::vector<std::string>& unresolved)
+{
+    wxString target_list;
+    for (const auto& target : unresolved)
+        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+
+    wxMessageDialog dialog(nullptr,
+                           audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                        wxString::FromUTF8(event_name.c_str()), target_list),
+                           _L("Plugin permission request"), wxYES_NO | wxICON_WARNING);
+    return dialog.ShowModal() == wxID_YES;
+}
+
+// Records a grant in the plugin's sidecar so it is not asked again. Reads the install state
+// freshly because the async prompt outlives the caller's stack copy of it.
+void persist_grant(const std::string& plugin_key, AuditEventCategory category, const std::vector<std::string>& targets)
+{
+    PluginInstallState state;
+    if (!PluginManager::instance().get_install_state(plugin_key, state))
+        return;
+
+    std::vector<std::string>* permission_list = permission_list_for(category, state.permissions);
+    if (!permission_list)
+        return;
+
+    for (const auto& target : targets)
+        persist_permission(plugin_key, state, *permission_list, target);
+}
+
+// Requests permission for an audited event, returning true when it is already granted or the user
+// approves an inline prompt.
+//
+// An audited event can fire on a thread the UI thread may itself be blocked waiting on: the
+// SlicingPipeline hook runs on the slicing worker thread (see PluginHooks.cpp), and
+// BackgroundSlicingProcess::stop()/stop_internal() park the UI thread until that worker stops.
+// Blocking the worker on a marshaled modal -- which is safe for the plugin-load worker that
+// request_filesystem_read_permissions runs on -- would therefore deadlock the application (the
+// invariant PluginHostUi.cpp documents for slicing-hook UI calls). Off the main thread the prompt
+// is therefore posted asynchronously and the current event denied (fail closed, like an unanswered
+// prompt); the grant is persisted once the user accepts, so a later attempt succeeds without
+// re-prompting.
+bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
+                        const std::string& event_name, const std::vector<std::string>& unresolved)
+{
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+        return false;
+
+    if (wxIsMainThread())
+        return prompt_for_targets(category, plugin_name, event_name, unresolved);
+
+    GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, unresolved]() {
+        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+            return;
+        if (prompt_for_targets(category, plugin_name, event_name, unresolved))
+            persist_grant(plugin_key, category, unresolved);
+    });
+    return false;
+}
+
 int decide_audited_event(PluginAuditManager&             mgr,
                          PluginInstallState&              state,
                          const std::string&                plugin_key,
@@ -869,15 +930,7 @@ int decide_audited_event(PluginAuditManager&             mgr,
             return 0;
     }
 
-    wxString target_list;
-    for (const auto& target : unresolved)
-        target_list += wxString::FromUTF8(target.c_str()) + "\n";
-
-    wxMessageDialog dialog(nullptr,
-                           audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                        wxString::FromUTF8(event_name.c_str()), target_list),
-                           _L("Plugin permission request"), wxYES_NO | wxICON_WARNING);
-    if (dialog.ShowModal() != wxID_YES)
+    if (!request_permission(category, plugin_key, plugin_name, event_name, unresolved))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
     if (permission_list)
