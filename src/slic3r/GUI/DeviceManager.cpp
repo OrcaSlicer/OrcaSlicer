@@ -11,7 +11,6 @@
 #include "GUI_App.hpp"
 #include "DeviceErrorDialog.hpp"
 #include "Plater.hpp"
-#include "GUI_App.hpp"
 #include "ReleaseNote.hpp"
 #include <string>
 #include <boost/log/trivial.hpp>

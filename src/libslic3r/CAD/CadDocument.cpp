@@ -83,7 +83,6 @@
 #include <cmath>
 #include <cctype>
 #include <cstdio>
-#include <functional>
 #include <gp_XY.hxx>
 #include <initializer_list>
 #include <math.h>

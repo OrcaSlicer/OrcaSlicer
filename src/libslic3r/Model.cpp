@@ -22,7 +22,6 @@
 #include "Format/AssimpImport.hpp"
 #include "ClipperUtils.hpp"
 #include "Exception.hpp"
-#include "Model.hpp"
 #include "ModelArrange.hpp"
 #include "Arrange.hpp"
 #include "Geometry.hpp"

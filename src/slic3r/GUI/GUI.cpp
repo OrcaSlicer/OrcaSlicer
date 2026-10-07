@@ -50,7 +50,6 @@
 #include "AboutDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Plater.hpp"
-#include "format.hpp"
 
 #include "WebUserLoginDialog.hpp"
 
