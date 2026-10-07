@@ -51,6 +51,8 @@ public:
     // A null message means success; row identifies the offending point, or -1.
     const char* read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const;
     const char* read_view(const std::array<std::string, 4>& bounds, CurveView& view) const;
+    // Translate the viewport as a whole, stopping at its limits without changing scale.
+    CurveView panned_view(const CurveView& view, double x_offset, double y_offset) const;
     virtual const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const = 0;
     // Shared by previews and numeric consumers. Override the default PCHIP
     // factory when a feature uses a different interpolation algorithm.
