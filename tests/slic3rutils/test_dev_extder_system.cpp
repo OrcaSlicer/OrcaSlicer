@@ -3,6 +3,7 @@
 // makes std::byte a competing candidate (otherwise the Windows COM headers pulled in via
 // DeviceManager.hpp error with an ambiguous `byte`). wx/timer.h must precede DeviceManager.hpp,
 // which includes DeviceErrorDialog.hpp (uses wxTimerEvent) before its own wx/timer.h include.
+#include "catch2/catch_message.hpp"
 #include <string>
 #include <utility>
 #include <vector>

@@ -13,6 +13,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "libslic3r/PrintConfig.hpp"
 #include <boost/log/trivial.hpp>
+#include <wx/app.h>
 #include <wx/string.h>
 #include <string>
 #include "libslic3r/CommonDefs.hpp"
