@@ -3,6 +3,7 @@
 #include "CgalUtils.hpp"
 #include "Callbacks.hpp"
 #include <CGAL/boost/graph/border.h>
+#include <CGAL/Named_function_parameters.h>
 #include <CGAL/Polygon_mesh_processing/manifoldness.h>
 #include <CGAL/Polygon_mesh_processing/repair_degeneracies.h>
 #include <CGAL/Polygon_mesh_processing/repair_polygon_soup.h>
