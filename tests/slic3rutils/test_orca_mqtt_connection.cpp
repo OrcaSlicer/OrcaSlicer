@@ -252,3 +252,185 @@ TEST_CASE("OrcaMqtt auth rejection is terminal (no retry storm)", "[OrcaMqtt]") 
     CHECK(broker.connect_count() <= 2);
     conn.stop();
 }
+
+// --- MQTT-over-WebSocket stream reassembly. The OrcaSonar /mqtt proxy writes each
+// 8 KiB TCP read as its own WebSocket message, so a packet larger than one read
+// (e.g. a files.list reply) spans several messages; and several small packets can
+// arrive in one. The receiver must reassemble the MQTT stream, not assume one
+// packet per message.
+
+TEST_CASE("OrcaMqtt drain_mqtt_packets reassembles across message boundaries", "[OrcaMqtt]") {
+    const std::vector<std::uint8_t> a = OrcaMqttConnection::make_publish_packet("device/a/report", R"({"n":1})");
+    const std::vector<std::uint8_t> b = OrcaMqttConnection::make_publish_packet("device/a/report", R"({"n":2})");
+    const std::string               pa(a.begin(), a.end());
+    const std::string               pb(b.begin(), b.end());
+
+    // A partial packet yields nothing and is retained verbatim.
+    std::string              stream = pa.substr(0, pa.size() / 2);
+    std::vector<std::string> packets;
+    OrcaMqttConnection::drain_mqtt_packets(stream, packets);
+    CHECK(packets.empty());
+    CHECK(stream == pa.substr(0, pa.size() / 2));
+
+    // Completing the packet yields it and drains the stream.
+    stream += pa.substr(pa.size() / 2);
+    OrcaMqttConnection::drain_mqtt_packets(stream, packets);
+    REQUIRE(packets.size() == 1);
+    CHECK(packets[0] == pa);
+    CHECK(stream.empty());
+
+    // Two packets coalesced in one buffer are both extracted, in order.
+    stream = pa + pb;
+    packets.clear();
+    OrcaMqttConnection::drain_mqtt_packets(stream, packets);
+    REQUIRE(packets.size() == 2);
+    CHECK(packets[0] == pa);
+    CHECK(packets[1] == pb);
+    CHECK(stream.empty());
+
+    // A trailing partial packet is kept for the next call.
+    stream = pa + pb.substr(0, 2);
+    packets.clear();
+    CHECK(OrcaMqttConnection::drain_mqtt_packets(stream, packets));
+    REQUIRE(packets.size() == 1);
+    CHECK(packets[0] == pa);
+    CHECK(stream == pb.substr(0, 2));
+
+    // A multibyte remaining length (payload > 127 bytes) is parsed correctly.
+    const std::string big(300, 'x');
+    const auto        big_packet = OrcaMqttConnection::make_publish_packet("device/a/report", big);
+    const std::string pb_big(big_packet.begin(), big_packet.end());
+    stream = pb_big;
+    packets.clear();
+    REQUIRE(OrcaMqttConnection::drain_mqtt_packets(stream, packets));
+    REQUIRE(packets.size() == 1);
+    CHECK(packets[0] == pb_big);
+    CHECK(stream.empty());
+
+    // A malformed header is reported so the caller can drop the connection.
+    const std::vector<std::uint8_t> malformed_bytes{0x30, 0x80, 0x80, 0x80, 0x80};
+    stream.assign(malformed_bytes.begin(), malformed_bytes.end());
+    packets.clear();
+    CHECK_FALSE(OrcaMqttConnection::drain_mqtt_packets(stream, packets));
+    CHECK(packets.empty());
+    CHECK(stream.empty());
+}
+
+TEST_CASE("OrcaMqtt delivers a report split across WebSocket messages", "[OrcaMqtt]") {
+    orca_mqtt_test::MockBroker broker;
+    // Callback state is declared before `conn` so it outlives the worker: if a
+    // REQUIRE fails, `conn`'s destructor still runs before this state is destroyed.
+    std::mutex               m;
+    std::condition_variable  cv;
+    std::vector<std::string> got;
+    OrcaMqttConnection         conn;
+    OrcaMqttConnection::Config cfg;
+    cfg.url = broker.ws_url();
+    cfg.use_tls = false;
+    cfg.username = "u";
+    cfg.password = "p";
+    REQUIRE(conn.start(cfg,
+        [&](const std::string&, const std::string& p) {
+            { std::lock_guard<std::mutex> l(m); got.push_back(p); }
+            cv.notify_all();
+        },
+        [](bool, bool) {}));
+    REQUIRE(conn.subscribe("dev-1"));
+    REQUIRE(wait_subscribed(broker, "device/dev-1/report"));
+
+    const std::string payload = R"({"print":{"command":"push_status","sequence_id":"30001","result":"success"}})";
+    const auto        packet  = OrcaMqttConnection::make_publish_packet("device/dev-1/report", payload);
+    const std::string bytes(packet.begin(), packet.end());
+    const std::size_t third = bytes.size() / 3;
+    broker.push_raw(bytes.substr(0, third));
+    broker.push_raw(bytes.substr(third, third));
+    broker.push_raw(bytes.substr(2 * third));
+
+    bool delivered = false;
+    {
+        std::unique_lock<std::mutex> l(m);
+        delivered = cv.wait_for(l, std::chrono::seconds(3), [&] { return !got.empty(); });
+    }
+    REQUIRE(delivered);
+    {
+        std::lock_guard<std::mutex> l(m);
+        REQUIRE(got.size() == 1);
+        CHECK(got.front().find("push_status") != std::string::npos);
+    }
+    conn.stop();
+}
+
+TEST_CASE("OrcaMqtt delivers two reports coalesced into one WebSocket message", "[OrcaMqtt]") {
+    orca_mqtt_test::MockBroker broker;
+    // Callback state is declared before `conn` so it outlives the worker: if a
+    // REQUIRE fails, `conn`'s destructor still runs before this state is destroyed.
+    std::mutex               m;
+    std::condition_variable  cv;
+    std::vector<std::string> got;
+    OrcaMqttConnection         conn;
+    OrcaMqttConnection::Config cfg;
+    cfg.url = broker.ws_url();
+    cfg.use_tls = false;
+    cfg.username = "u";
+    cfg.password = "p";
+    REQUIRE(conn.start(cfg,
+        [&](const std::string&, const std::string& p) {
+            { std::lock_guard<std::mutex> l(m); got.push_back(p); }
+            cv.notify_all();
+        },
+        [](bool, bool) {}));
+    REQUIRE(conn.subscribe("dev-1"));
+    REQUIRE(wait_subscribed(broker, "device/dev-1/report"));
+
+    const auto        p1 = OrcaMqttConnection::make_publish_packet("device/dev-1/report", R"({"print":{"command":"push_status","sequence_id":"31001"}})");
+    const auto        p2 = OrcaMqttConnection::make_publish_packet("device/dev-1/report", R"({"print":{"command":"push_status","sequence_id":"31002"}})");
+    const std::string both(std::string(p1.begin(), p1.end()) + std::string(p2.begin(), p2.end()));
+    broker.push_raw(both);
+
+    bool two = false;
+    {
+        std::unique_lock<std::mutex> l(m);
+        two = cv.wait_for(l, std::chrono::seconds(3), [&] { return got.size() >= 2; });
+    }
+    REQUIRE(two);
+    {
+        std::lock_guard<std::mutex> l(m);
+        CHECK(got[0].find("31001") != std::string::npos);
+        CHECK(got[1].find("31002") != std::string::npos);
+    }
+    conn.stop();
+}
+
+TEST_CASE("OrcaMqtt stop() unblocks a stalled handshake", "[OrcaMqtt]") {
+    // A peer that completes the WebSocket upgrade and CONNECT but never answers:
+    // the worker blocks in the synchronous CONNACK read. stop() must shut the
+    // socket down and join it promptly rather than wait out the 10s deadline.
+    orca_mqtt_test::MockBroker broker(/*refuse_auth=*/false, /*stall_connack=*/true);
+    OrcaMqttConnection         conn;
+    OrcaMqttConnection::Config cfg;
+    cfg.url = broker.ws_url();
+    cfg.use_tls = false;
+    cfg.username = "u";
+    cfg.password = "p";
+
+    // start() waits up to 10s for CONNACK, so run it off the test thread.
+    std::thread starter([&] { conn.start(cfg, [](const std::string&, const std::string&) {}, [](bool, bool) {}); });
+    struct FinalJoin {
+        std::thread& thread;
+        ~FinalJoin() {
+            if (thread.joinable())
+                thread.join();
+        }
+    } final_join{starter};
+
+    // Wait until the broker has taken the CONNECT: the worker is now in the read.
+    for (int i = 0; i < 300 && broker.connect_count() == 0; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    REQUIRE(broker.connect_count() > 0);
+
+    const auto started_at = std::chrono::steady_clock::now();
+    conn.stop();
+    const auto elapsed = std::chrono::steady_clock::now() - started_at;
+    CHECK(elapsed < std::chrono::seconds(3));
+    CHECK_FALSE(conn.is_running());
+}

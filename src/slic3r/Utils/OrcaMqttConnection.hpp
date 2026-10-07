@@ -70,6 +70,15 @@ public:
     static std::vector<uint8_t> make_subscribe_packet(uint16_t packet_id, const std::string& topic, uint8_t qos);
     static std::vector<uint8_t> make_unsubscribe_packet(uint16_t packet_id, const std::string& topic);
 
+    // Split a raw MQTT byte stream into complete packets: each complete packet is
+    // appended to `packets` and erased from `stream`; a partial trailing packet is
+    // left in `stream` for the next call. Returns false when the stream begins with
+    // a malformed header, which cannot resync — the caller must drop the connection.
+    // Public for unit tests. MQTT-over-WebSocket allows a packet to span frames and
+    // several packets per frame, so the receiver must reassemble the stream rather
+    // than assume one packet per WebSocket message.
+    static bool drain_mqtt_packets(std::string& stream, std::vector<std::string>& packets);
+
     ~OrcaMqttConnection();
 
     bool start(const Config& config, MessageHandler on_message, StateHandler on_state);
@@ -118,6 +127,10 @@ private:
     void send_current_subscriptions(const std::shared_ptr<Connection>& conn);
     void send_pending_subscriptions(const std::shared_ptr<Connection>& conn);
     void handle_packet(const std::string& packet);
+    // Append freshly received WebSocket bytes to `conn`'s MQTT stream and dispatch
+    // every complete packet. An MQTT packet may span several WebSocket messages and
+    // several packets may arrive in one, so the stream is reassembled here.
+    void feed_mqtt(Connection& conn, const std::string& bytes);
     void notify_state(bool is_now_connected);
     void run();
 
