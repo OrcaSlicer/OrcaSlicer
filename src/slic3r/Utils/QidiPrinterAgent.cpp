@@ -41,16 +41,16 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
-// RAII decrement for the in-flight fetch count; movable so a failed thread start still releases it.
+// RAII release of the in-flight fetch slot; movable so a failed thread start still releases it.
 struct InFlightGuard
 {
-    std::atomic<int>* counter;
-    explicit InFlightGuard(std::atomic<int>& c) noexcept : counter(&c) {}
-    InFlightGuard(InFlightGuard&& other) noexcept : counter(other.counter) { other.counter = nullptr; }
+    MoonrakerPrinterAgent* owner;
+    explicit InFlightGuard(MoonrakerPrinterAgent& o) noexcept : owner(&o) {}
+    InFlightGuard(InFlightGuard&& other) noexcept : owner(other.owner) { other.owner = nullptr; }
     InFlightGuard(const InFlightGuard&) = delete;
     InFlightGuard& operator=(const InFlightGuard&) = delete;
     InFlightGuard& operator=(InFlightGuard&&) = delete;
-    ~InFlightGuard() { if (counter) counter->fetch_sub(1, std::memory_order_relaxed); }
+    ~InFlightGuard() { if (owner) owner->release_fetch_slot(); }
 };
 
 // nlohmann::json::value() returns the default only when the key is absent; a present but
@@ -104,7 +104,7 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
         filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
     }
 
-    InFlightGuard guard{filament_fetch_in_flight};
+    InFlightGuard guard{*this};
     std::thread([this, guard = std::move(guard), connection = std::move(connection), model_id, model_name]() mutable {
         try {
             std::string error;
@@ -155,8 +155,9 @@ bool QidiPrinterAgent::apply_box_mapping(const PrintParams& params) const
     // job actually routes filament through it. (See qidi-ams-findings.md §2/§8.3 —
     // if firmware treats enable_box as "a box exists" rather than "use it this job",
     // switch this gate to HasAms()/box_count instead.)
-    const int enable = params.task_use_ams ? 1 : 0;
-    if (!send_gcode(device_info.dev_id, "SAVE_VARIABLE VARIABLE=enable_box VALUE=" + std::to_string(enable))) {
+    const int         enable = params.task_use_ams ? 1 : 0;
+    const std::string dev_id = get_connection_settings().dev_id;
+    if (!send_gcode(dev_id, "SAVE_VARIABLE VARIABLE=enable_box VALUE=" + std::to_string(enable))) {
         BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to set enable_box";
         return false;
     }
@@ -188,7 +189,7 @@ bool QidiPrinterAgent::apply_box_mapping(const PrintParams& params) const
             continue; // unmapped filament — skip
         const std::string gcode = "SAVE_VARIABLE VARIABLE=value_t" + std::to_string(tool) +
                                   " VALUE=\"'slot" + std::to_string(slot) + "'\"";
-        if (!send_gcode(device_info.dev_id, gcode)) {
+        if (!send_gcode(dev_id, gcode)) {
             BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to set value_t" << tool;
             return false;
         }

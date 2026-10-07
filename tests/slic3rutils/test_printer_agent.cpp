@@ -219,9 +219,9 @@ public:
         std::thread([this, finish = std::move(allow_finish_p)] {
             struct InFlightGuard
             {
-                std::atomic<int>& counter;
-                ~InFlightGuard() { counter.fetch_sub(1, std::memory_order_relaxed); }
-            } guard{filament_fetch_in_flight};
+                MoonrakerPrinterAgent& owner;
+                ~InFlightGuard() { owner.release_fetch_slot(); }
+            } guard{*this};
 
             g_deferred_fetch_running.fetch_add(1, std::memory_order_relaxed);
             finish->get_future().wait();

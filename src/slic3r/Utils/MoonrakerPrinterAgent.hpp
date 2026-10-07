@@ -109,6 +109,10 @@ public:
     CameraStreamMode get_camera_stream_mode() const override;
     std::string get_camera_url() const override;
 
+    // Called by the fetch-thread RAII guard when a background filament fetch finishes.
+    // Serialized with the reservation so shutdown()'s wait cannot miss the transition to 0.
+    void release_fetch_slot() noexcept;
+
 protected:
     struct ConnectionSettings
     {
@@ -153,6 +157,9 @@ protected:
     virtual bool init_device_info(const PrinterConnectionParams& params);
     virtual bool fetch_device_info(const ConnectionSettings& connection, MoonrakerDeviceInfo& info, std::string& error) const;
     ConnectionSettings get_connection_settings() const;
+    // Copy of the mutable connection state, taken under connect_mutex. Background threads
+    // must use this instead of reading device_info directly.
+    MoonrakerDeviceInfo snapshot_device_info() const;
     void configure_http(Http& http, const ConnectionSettings& connection) const;
     static float parse_nozzle_diameter(const nlohmann::json& response);
 
@@ -168,6 +175,7 @@ protected:
 
     // Serializes the shutting_down check with the in-flight reservation.
     std::mutex fetch_lifecycle_mutex;
+    std::condition_variable fetch_done_cv;  // notified when filament_fetch_in_flight reaches 0
 
     // Helpers
     bool        is_numeric(const std::string& value);
@@ -315,6 +323,10 @@ private:
     // synchronous operations.
     std::mutex             ws_abort_mutex;
     std::function<void()>  ws_abort_io;  // guarded by ws_abort_mutex
+
+    // Interrupts the exponential reconnect backoff in run_status_stream() when stopping.
+    std::mutex              ws_wait_mutex;
+    std::condition_variable ws_wait_cv;
 
     // AMS/filament refresh cadence, independent of telemetry dispatch so a steady
     // stream of status updates can't starve it (ws_last_emit_ms is reset by those).

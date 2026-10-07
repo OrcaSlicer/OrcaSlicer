@@ -294,7 +294,9 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
     if (sync_mode != get_filament_sync_mode())
         return false;
 
-    if (device_info.dev_ip.empty()) {
+    const MoonrakerDeviceInfo info = snapshot_device_info();
+
+    if (info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent::fetch_filament_info: no device IP, falling back to base agent";
         return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
@@ -303,11 +305,11 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
     // Build a CrealityPrint helper so we can use its model detection + WS helpers
     // (added in upstream PR #13291).
     DynamicPrintConfig cfg;
-    cfg.set_key_value("print_host",                  new ConfigOptionString("http://" + device_info.dev_ip));
+    cfg.set_key_value("print_host",                  new ConfigOptionString("http://" + info.dev_ip));
     cfg.set_key_value("print_host_webui",            new ConfigOptionString(""));
     cfg.set_key_value("printhost_cafile",            new ConfigOptionString(""));
     cfg.set_key_value("printhost_port",              new ConfigOptionString(""));
-    cfg.set_key_value("printhost_apikey",            new ConfigOptionString(device_info.api_key));
+    cfg.set_key_value("printhost_apikey",            new ConfigOptionString(info.api_key));
     cfg.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(false));
 
     CrealityPrint host(&cfg);

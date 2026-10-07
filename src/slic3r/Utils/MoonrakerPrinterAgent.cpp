@@ -343,8 +343,9 @@ void MoonrakerPrinterAgent::shutdown()
         cmd_thread.join();
     }
 
-    while (filament_fetch_in_flight.load() > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    {
+        std::unique_lock<std::mutex> lock(fetch_lifecycle_mutex);
+        fetch_done_cv.wait(lock, [this] { return filament_fetch_in_flight.load() == 0; });
     }
 
     // Fetches read device_info without the lock; clear it once none can run.
@@ -766,8 +767,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         queue_fn = queue_on_main_fn;
     }
 
-    std::string dev_id   = device_info.dev_id;
-    std::string model_id = device_info.model_id;
+    const MoonrakerDeviceInfo info = snapshot_device_info();
+    std::string dev_id   = info.dev_id;
+    std::string model_id = info.model_id;
 
     auto apply = [dev_id, model_id, ams_count, max_lane_index, trays]() {
     // Look up MachineObject via DeviceManager
@@ -1641,6 +1643,21 @@ MoonrakerPrinterAgent::ConnectionSettings MoonrakerPrinterAgent::get_connection_
     return connection;
 }
 
+MoonrakerPrinterAgent::MoonrakerDeviceInfo MoonrakerPrinterAgent::snapshot_device_info() const
+{
+    std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+    return device_info;
+}
+
+void MoonrakerPrinterAgent::release_fetch_slot() noexcept
+{
+    {
+        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
+        filament_fetch_in_flight.fetch_sub(1, std::memory_order_relaxed);
+    }
+    fetch_done_cv.notify_all();
+}
+
 void MoonrakerPrinterAgent::configure_http(Http& http, const ConnectionSettings& connection) const
 {
     http.tls_verify(connection.use_ssl);
@@ -1924,6 +1941,11 @@ bool MoonrakerPrinterAgent::fetch_webcam_info(const ConnectionSettings& connecti
                     for (const auto& webcam : result["webcams"]) {
                         if (webcam.is_object())
                         {
+                            // /server/webcams/list returns disabled webcams too; skip them.
+                            if (webcam.contains("enabled") && webcam["enabled"].is_boolean() &&
+                                !webcam["enabled"].get<bool>()) {
+                                continue;
+                            }
                             if (webcam.contains("stream_url") && webcam["stream_url"].is_string() &&
                                 !webcam["stream_url"].get<std::string>().empty()) {
                                 camera_url = webcam["stream_url"].get<std::string>();
@@ -1948,7 +1970,9 @@ bool MoonrakerPrinterAgent::fetch_webcam_info(const ConnectionSettings& connecti
         }
 
         if (error.empty()) {
-            if (camera_url.rfind("http", 0) != 0 && !camera_url.empty() && camera_url.front() == '/') {
+            if (camera_url.rfind("rtsp://", 0) == 0 || camera_url.rfind("rtsps://", 0) == 0) {
+                stream_mode = CameraStreamMode::rtsp;
+            } else if (camera_url.rfind("http", 0) != 0 && !camera_url.empty() && camera_url.front() == '/') {
                 // why: Moonraker's API port serves a JSON 404 for /webcam; relative camera URLs use the printer web root.
                 const size_t scheme_end = connection.base_url.find("://");
                 const size_t authority_start = scheme_end == std::string::npos ? 0 : scheme_end + 3;
@@ -2202,7 +2226,7 @@ int MoonrakerPrinterAgent::send_version_info(const std::string& dev_id)
 
     nlohmann::json module;
     module["name"]         = "ota";
-    module["sw_ver"]       = device_info.version;
+    module["sw_ver"]       = snapshot_device_info().version;
     module["product_name"] = "Moonraker";
     payload["info"]["module"].push_back(module);
 
@@ -2214,7 +2238,7 @@ int MoonrakerPrinterAgent::send_access_code(const std::string& dev_id)
 {
     nlohmann::json payload;
     payload["system"]["command"]     = "get_access_code";
-    payload["system"]["access_code"] = device_info.api_key;
+    payload["system"]["access_code"] = snapshot_device_info().api_key;
     dispatch_message(dev_id, payload.dump());
     return BAMBU_NETWORK_SUCCESS;
 }
@@ -2336,13 +2360,14 @@ void MoonrakerPrinterAgent::stop_status_stream()
 {
     ws_stop.store(true);
     {
-        // Wake a blocked synchronous ws.read()/ws.write() in run_status_stream();
-        // ws_stop by itself is only observed between reads.
+        // Wake a blocked synchronous ws.connect()/tls_handshake()/read()/write() in
+        // run_status_stream(); ws_stop by itself is only observed between reads.
         std::lock_guard<std::mutex> lock(ws_abort_mutex);
         if (ws_abort_io) {
             ws_abort_io();
         }
     }
+    ws_wait_cv.notify_all();
     if (ws_thread.joinable()) {
         ws_thread.join();
     }
@@ -2366,15 +2391,14 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
 
         try {
             MoonrakerWebsocket ws{endpoint.secure, connection.api_key, connection.ca_file};
-            ws.connect(endpoint.host, endpoint.port, std::chrono::seconds(10));
-            ws.tls_handshake(endpoint.host);
 
-            // Allow stop_status_stream() to force this socket shut so a blocked
-            // synchronous ws.read()/ws.write() returns with an error (Beast's
-            // expires_after() does not bound synchronous operations). Declared
-            // after `ws` so the hook is cleared before `ws` is destroyed on every
-            // exit path (fallthrough, break, exception); ws_abort_mutex keeps the
-            // hook from running against a half-destroyed `ws`.
+            // Allow stop_status_stream() to force this socket shut so a blocked synchronous
+            // ws.connect()/tls_handshake()/read()/write() returns with an error (Beast's
+            // expires_after() does not bound synchronous operations). Registered before
+            // connect() so a stalled handshake is interruptible too; declared after `ws`
+            // so the hook is cleared before `ws` is destroyed on every exit path
+            // (fallthrough, break, exception); ws_abort_mutex keeps the hook from running
+            // against a half-destroyed `ws`.
             ScopeGuard ws_abort_guard([this] {
                 std::lock_guard<std::mutex> lock(ws_abort_mutex);
                 ws_abort_io = nullptr;
@@ -2385,6 +2409,9 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
                     ws.abort();
                 };
             }
+
+            ws.connect(endpoint.host, endpoint.port, std::chrono::seconds(10));
+            ws.tls_handshake(endpoint.host);
 
             std::string host_header = endpoint.host;
             if (!endpoint.port.empty() && endpoint.port != (endpoint.secure ? "7130" : "7125")) {
@@ -2536,9 +2563,13 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
         }
 
         // Exponential backoff before reconnection
-        int delay_ms = base_delay_ms * (1 << std::min(retry_count, 5));
+        const int delay_ms = base_delay_ms * (1 << std::min(retry_count, 5));
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: Reconnecting in " << delay_ms << "ms (attempt " << (retry_count + 1) << ")";
-        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+        {
+            // Interruptible so stop_status_stream() doesn't have to wait out a backoff of up to 32 s.
+            std::unique_lock<std::mutex> wait_lock(ws_wait_mutex);
+            ws_wait_cv.wait_for(wait_lock, std::chrono::milliseconds(delay_ms), [this] { return ws_stop.load(); });
+        }
         retry_count++;
     }
 
@@ -2831,8 +2862,9 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     // MachineObject::parse_json routes nozzle_diameter through the legacy nozzle
     // parser only when nozzle_type is present as well. Moonraker/Klipper exposes
     // the diameter but not Bambu's nozzle type, so use the parser's neutral value.
-    if (device_info.nozzle_diameter > 0.0f) {
-        payload["print"]["nozzle_diameter"] = device_info.nozzle_diameter;
+    const float nozzle_diameter = snapshot_device_info().nozzle_diameter;
+    if (nozzle_diameter > 0.0f) {
+        payload["print"]["nozzle_diameter"] = nozzle_diameter;
         payload["print"]["nozzle_type"]     = "N/A";
     }
 

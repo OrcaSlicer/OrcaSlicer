@@ -35,16 +35,16 @@ int64_t now_ms()
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-// RAII decrement for the in-flight fetch count; movable so a failed thread start still releases it.
+// RAII release of the in-flight fetch slot; movable so a failed thread start still releases it.
 struct InFlightGuard
 {
-    std::atomic<int>* counter;
-    explicit InFlightGuard(std::atomic<int>& c) noexcept : counter(&c) {}
-    InFlightGuard(InFlightGuard&& other) noexcept : counter(other.counter) { other.counter = nullptr; }
+    MoonrakerPrinterAgent* owner;
+    explicit InFlightGuard(MoonrakerPrinterAgent& o) noexcept : owner(&o) {}
+    InFlightGuard(InFlightGuard&& other) noexcept : owner(other.owner) { other.owner = nullptr; }
     InFlightGuard(const InFlightGuard&) = delete;
     InFlightGuard& operator=(const InFlightGuard&) = delete;
     InFlightGuard& operator=(InFlightGuard&&) = delete;
-    ~InFlightGuard() { if (counter) counter->fetch_sub(1, std::memory_order_relaxed); }
+    ~InFlightGuard() { if (owner) owner->release_fetch_slot(); }
 };
 
 // nlohmann::json::value() returns the default only when the key is absent; a present but
@@ -234,7 +234,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
         filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
     }
 
-    InFlightGuard guard{filament_fetch_in_flight};
+    InFlightGuard guard{*this};
     std::thread([this, guard = std::move(guard), connection]() {
         try {
             const std::string url = join_url(connection.base_url, "/printer/objects/query?print_task_config&filament_detect");
@@ -366,6 +366,11 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     }).detach();
 
     return true;
+}
+
+std::string SnapmakerPrinterAgent::get_camera_url() const
+{
+    return get_connection_settings().base_url + "/server/files/camera/monitor.jpg";
 }
 
 FilamentSyncMode SnapmakerPrinterAgent::get_filament_sync_mode() const
