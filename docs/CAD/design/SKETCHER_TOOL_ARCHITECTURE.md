@@ -262,9 +262,9 @@ and a band is not a "gesture" in the `CadLevel::Gesture` sense because nothing h
 |---|---|---|---|---|---|
 | `Move` | — | `update_hover` / `update_solid_hover` (**non-consuming**, returns false) | — | passthrough | hover only asks for a repaint, `:10022-10025` |
 | `LeftDown` | orbit may begin | latch press, **return false** | — | consume-or-orbit is the canvas's call | `:10058-10063`; consuming here killed orbit once already |
-| `LeftDrag` > 8 px | — | start + drive band, **consume** | — | no longer orbits in this canvas | middle-drag orbits, right-drag pans (`:10013-10016`) |
+| `LeftDrag` > 8 px | — | start + drive band, **consume**, when Shift is held or the left button has no camera action | — | otherwise the left button's drag action (Preferences > Control) | the band is Prepare's Shift+left-drag rectangle selection |
 | `LeftUp` | — | commit pick **or** resolve band | — | — | `:10035-10041` |
-| `MiddleDrag` / `RightDrag` | — | must not see it | — | orbit / pan | camera gestures never reach the FSM |
+| `MiddleDrag` / `RightDrag` | — | must not see it | — | the button's drag action (Preferences > Control) | camera gestures never reach the FSM; a right press reaches the tool only once its release shows it was a click |
 | `RightClick` | — | — | offer menu | — | `snaporca-xmh6` open: a right-click that only clears the sketch selection eats the offer |
 | `Esc` | — | — | `escape()` ladder | — | one route whatever holds focus (`:4228-4231`) |
 | `Del` / `Backspace` | — | `delete_selected_or_last_sketch_entity()` | char hook | — | `:4260` |

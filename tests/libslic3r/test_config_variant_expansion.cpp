@@ -799,3 +799,30 @@ TEST_CASE("A per-variant filament option read with a single value gives it to ev
     config.load_from_ini_string("pressure_advance = 0.021", ForwardCompatibilitySubstitutionRule::Disable);
     REQUIRE(config.option<ConfigOptionFloats>("pressure_advance")->values == std::vector<double>({0.021, 0.021, 0.021}));
 }
+
+// The device drying options hold several values per filament, as many as each filament preset gives.
+TEST_CASE("The device drying options are rebuilt as each filament's values in slot order", "[Config]")
+{
+    DynamicPrintConfig two_values, one_value, no_value;
+    two_values.option<ConfigOptionStrings>("filament_dev_ams_drying_ams_limitations", true)->values = {"1", "0"};
+    two_values.option<ConfigOptionFloats>("filament_dev_ams_drying_temperature", true)->values     = {45., 45., 55., 55.};
+    one_value.option<ConfigOptionStrings>("filament_dev_ams_drying_ams_limitations", true)->values = {"1"};
+    one_value.option<ConfigOptionFloats>("filament_dev_ams_drying_temperature", true)->values      = {65., 65., 75., 75.};
+
+    // values a project stored for three other filaments
+    DynamicPrintConfig config;
+    config.option<ConfigOptionStrings>("filament_dev_ams_drying_ams_limitations", true)->values = {"0", "0", "0"};
+    config.option<ConfigOptionFloats>("filament_dev_chamber_drying_time", true)->values         = {12., 8., 12.};
+
+    set_filament_dev_options(config, {&two_values, &one_value, &two_values});
+    REQUIRE(config.option<ConfigOptionStrings>("filament_dev_ams_drying_ams_limitations")->values ==
+            std::vector<std::string>({"1", "0", "1", "1", "0"}));
+    REQUIRE(config.option<ConfigOptionFloats>("filament_dev_ams_drying_temperature")->values ==
+            std::vector<double>({45., 45., 55., 55., 65., 65., 75., 75., 45., 45., 55., 55.}));
+    // an option no filament defines keeps the stored values
+    REQUIRE(config.option<ConfigOptionFloats>("filament_dev_chamber_drying_time")->values == std::vector<double>({12., 8., 12.}));
+
+    // a filament without the option takes the option's default
+    set_filament_dev_options(config, {&two_values, &no_value});
+    REQUIRE(config.option<ConfigOptionStrings>("filament_dev_ams_drying_ams_limitations")->values == std::vector<std::string>({"1", "0", ""}));
+}

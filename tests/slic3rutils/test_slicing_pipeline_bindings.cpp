@@ -144,7 +144,6 @@ TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view
 }
 
 #include "libslic3r/PrintConfig.hpp"   // DynamicPrintConfig for the psGCodePostProcess context
-#include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <sstream>
 #include "libslic3r/BoundingBox.hpp"
@@ -157,7 +156,6 @@ TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view
 // the export path handed in. Exercising the real bindings by calling the Python execute() directly
 // (not the C++ audit trampoline) keeps this a pure binding-surface test.
 TEST_CASE("orca.slicing psGCodePostProcess context: file edit in place + config fallback", "[slicing_pipeline]") {
-    namespace fs = boost::filesystem;
     ensure_python_initialized();
     import_orca_module();
     py::gil_scoped_acquire gil;
@@ -237,7 +235,6 @@ struct TestLayerRegion : Slic3r::LayerRegion {
 // decomposition of an ExtrusionLoop into its contained ExtrusionPath (flatten()
 // does NOT decompose loops, hence the hand-rolled recursive walk).
 static void build_nested_perimeters(TestLayerRegion& region) {
-    using namespace Slic3r;
     ExtrusionPath pathA(erExternalPerimeter);        // -> "Outer wall"
     pathA.mm3_per_mm = 0.05; pathA.width = 0.45f; pathA.height = 0.20f;
     pathA.polyline.points = { Point3(0, 0, 0), Point3(10, 0, 0), Point3(10, 10, 0) };
@@ -434,7 +431,6 @@ namespace {
 // Nested collection: outer -> inner -> [ ExtrusionLoop(pathA), ExtrusionPath(pathB) ].
 // Exercises polymorphic downcast of .entities and loop decomposition in flatten_paths().
 static Slic3r::ExtrusionEntityCollection build_nested_collection() {
-    using namespace Slic3r;
     ExtrusionPath pathA(erExternalPerimeter);        // -> "Outer wall"
     pathA.mm3_per_mm = 0.05; pathA.width = 0.45f; pathA.height = 0.20f;
     pathA.polyline.points = { Point3(0, 0, 0), Point3(10, 0, 0), Point3(10, 10, 0) };

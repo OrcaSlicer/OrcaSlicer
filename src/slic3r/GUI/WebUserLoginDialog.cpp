@@ -5,7 +5,6 @@
 #include "slic3r/GUI/HttpServer.hpp"
 #include <memory>
 #include <boost/log/trivial.hpp>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/GUI.hpp"
 #include <exception>
 #include <boost/filesystem/path.hpp>
@@ -53,7 +52,6 @@
 #include <sstream>
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/HyperLink.hpp> // ORCA
-using namespace std;
 
 using namespace nlohmann;
 

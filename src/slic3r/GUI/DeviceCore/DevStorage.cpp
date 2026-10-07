@@ -1,7 +1,9 @@
 #include "DevStorage.h"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include <string>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 

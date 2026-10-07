@@ -6,8 +6,9 @@
 #   scripts/run_clang_tidy.sh --fix      also add the missing includes it names
 #
 # It configures a separate build directory (build-tidy) without the precompiled
-# header, installs the pinned clang-tidy into a virtual environment inside it, and
-# runs scripts/clang_tidy_diff.py the way CI does. Uncommitted changes are checked too.
+# header, uses the clang-tidy on your system or installs the pinned one into a
+# virtual environment inside it, and runs scripts/clang_tidy_diff.py the way CI
+# does. Uncommitted changes are checked too.
 
 set -euo pipefail
 
@@ -23,7 +24,8 @@ Usage: scripts/run_clang_tidy.sh [options]
                        deps/build/<arch> on macOS)
   -j, --jobs N         parallel clang-tidy runs (default: all cores)
       --fix            apply clang-tidy's fixes (adds the missing includes)
-  -y, --yes            install missing tools without asking
+  -y, --yes            install missing tools without asking; another clang-tidy
+                       version found on the system is then not offered
   -h, --help           show this help
 EOF
 }
@@ -136,12 +138,38 @@ REQUIREMENTS="$ROOT/scripts/clang_tidy_requirements.txt"
 PINNED=$(sed -n 's/^clang-tidy==//p' "$REQUIREMENTS")
 VENV="$BUILD_DIR/clang-tidy-venv"
 
-if [ -n "${CLANG_TIDY:-}" ]; then
+is_pinned() {
+    [ -x "$1" ] && "$1" --version 2>/dev/null | grep -q "version $PINNED"
+}
+
+CLANG_TIDY="${CLANG_TIDY:-}"
+if [ -n "$CLANG_TIDY" ]; then
     # Set by the caller: use it as is.
-    :
+    is_pinned "$CLANG_TIDY" || echo "Warning: $CLANG_TIDY is not clang-tidy $PINNED, so results may differ from CI." >&2
 else
+    # One already on the system comes first: the pinned version outright, another
+    # version if the user accepts the difference. The pinned version is installed
+    # into a virtual environment otherwise.
+    INSTALLED=""
+    for candidate in $(command -v clang-tidy "clang-tidy-${PINNED%%.*}" || true) \
+                     "/usr/lib/llvm-${PINNED%%.*}/bin/clang-tidy" \
+                     "$(brew --prefix llvm 2>/dev/null || true)/bin/clang-tidy"; do
+        if is_pinned "$candidate"; then
+            CLANG_TIDY="$candidate"
+            break
+        fi
+        [ -z "$INSTALLED" ] && [ -x "$candidate" ] && INSTALLED="$candidate"
+    done
+    if [ -z "$CLANG_TIDY" ] && [ -n "$INSTALLED" ] && [ "$YES" = 0 ] && ! is_pinned "$VENV/bin/clang-tidy"; then
+        echo "Found $INSTALLED, which is $("$INSTALLED" --version | sed -n 's/.*version \([0-9.]*\).*/\1/p' | head -n 1), not the $PINNED CI uses, so results may differ slightly."
+        if ask "Use it anyway?"; then
+            CLANG_TIDY="$INSTALLED"
+        fi
+    fi
+fi
+if [ -z "$CLANG_TIDY" ]; then
     CLANG_TIDY="$VENV/bin/clang-tidy"
-    if [ ! -x "$CLANG_TIDY" ] || ! "$CLANG_TIDY" --version | grep -q "version $PINNED"; then
+    if ! is_pinned "$CLANG_TIDY"; then
         if ask "clang-tidy $PINNED (the version CI uses) is not installed. Install it into $VENV?"; then
             mkdir -p "$BUILD_DIR"
             if ! python3 -m venv "$VENV"; then
@@ -157,9 +185,6 @@ else
             exit 1
         fi
     fi
-fi
-if ! "$CLANG_TIDY" --version | grep -q "version $PINNED"; then
-    echo "Warning: $CLANG_TIDY is not clang-tidy $PINNED, so results may differ from CI." >&2
 fi
 
 # --- Dependencies -------------------------------------------------------------
@@ -217,7 +242,12 @@ cmake --build "$BUILD_DIR" --target git_commit_hash_header >/dev/null
 
 if [ -z "$BASE" ]; then
     REMOTE=$(git remote -v | awk '/github\.com[:\/]OrcaSlicer\/OrcaSlicer(\.git)? \(fetch\)/ { print $1; exit }')
-    REMOTE="${REMOTE:-origin}"
+    if [ -z "$REMOTE" ]; then
+        # Against a fork's main that already has the commits, nothing is checked.
+        echo "Warning: no remote points at github.com/OrcaSlicer/OrcaSlicer, so this compares against origin/main." >&2
+        echo "If origin is your fork, add the upstream remote (git remote add upstream https://github.com/OrcaSlicer/OrcaSlicer.git) or pass --base." >&2
+        REMOTE=origin
+    fi
     if [ "$FETCH" = 1 ]; then
         git fetch --quiet "$REMOTE" main
     fi

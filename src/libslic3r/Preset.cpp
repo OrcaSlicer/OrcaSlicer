@@ -87,6 +87,7 @@
 #include "libslic3r/GCode/Thumbnails.hpp"
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 using boost::property_tree::ptree;
 
@@ -1209,6 +1210,7 @@ static std::vector<std::string> s_Preset_print_options{
     "infill_lock_depth",
     "skin_infill_depth",
     "skin_infill_density",
+    "infill_complete_top",
     "align_infill_direction_to_model",
     "extra_solid_infills",
     "center_of_surface_pattern",

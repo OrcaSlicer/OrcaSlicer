@@ -8,6 +8,9 @@ include) fails wherever the error is. Headers are compiled on their own, and
 fail only on errors in their changed lines. Deleting an #include also fails
 on every use, changed or not, that now lacks the header it provided.
 
+With -- --fix, clang-tidy adds the missing includes, on those lines only, and
+each file it changed is checked again so that only what remains is reported.
+
 The checks come from .clang-tidy at the repository root. The compile database
 must come from a configure with SLIC3R_PCH=OFF, or the precompiled header hides
 missing includes.
@@ -102,9 +105,10 @@ def is_checked(path):
 
 def changed_files(merge_base):
     # Against the working tree, so a local run covers uncommitted edits too.
-    # core.quotePath=false keeps a non-ASCII path unquoted, so parse_diff sees its b/ prefix.
+    # core.quotePath=false keeps a non-ASCII path unquoted, and the explicit prefixes
+    # override diff.noprefix and diff.mnemonicPrefix, so parse_diff sees its b/ prefix.
     diff = subprocess.run(["git", "-c", "core.quotePath=false", "diff", "-U0", "--no-color", "--no-ext-diff",
-                           "--diff-filter=AMR", merge_base],
+                           "--src-prefix=a/", "--dst-prefix=b/", "--diff-filter=AMR", merge_base],
                           check=True, capture_output=True, **UTF8).stdout
     return {path: change for path, change in parse_diff(diff).items() if is_checked(path)}
 
@@ -201,13 +205,19 @@ def errors_alone_at(revision, clang_tidy, build_dir, path):
 
 
 def check_file(clang_tidy, build_dir, merge_base, path, change, extra_args):
-    """Run clang-tidy on one file and return (failed, output, failing diagnostics)."""
+    """Run clang-tidy on one file and return (failed, output, failing diagnostics, fixed)."""
+    fixing = any(arg.startswith("--fix") for arg in extra_args)
+    if fixing:
+        with open(path, "rb") as f:
+            before = f.read()
     # A deleted include can orphan uses on unchanged lines, so such a file is
-    # checked whole and the findings narrowed here. --fix keeps the line filter
-    # so it never rewrites unrelated code.
-    whole = bool(change.removed_includes) and not extra_args
+    # checked whole and the findings narrowed here. --fix keeps a line filter so
+    # it never rewrites unrelated code, which for such a file means a second,
+    # fixing run limited to the lines the first one found wanting.
+    whole = bool(change.removed_includes)
     returncode, output, diagnostics = run_clang_tidy(clang_tidy, build_dir, path,
-                                                     None if whole else change.lines, extra_args)
+                                                     None if whole else change.lines,
+                                                     [] if whole else extra_args)
     real = os.path.realpath(path)
 
     def introduced(d):
@@ -223,14 +233,25 @@ def check_file(clang_tidy, build_dir, merge_base, path, change, extra_args):
         if errors and change.removed_includes:
             with open(path, encoding="utf-8") as f:
                 text = f.read()
-            before = errors_alone_at(merge_base, clang_tidy, build_dir, path)
+            before_sites = errors_alone_at(merge_base, clang_tidy, build_dir, path)
             failing += [d for d in errors if d not in failing
-                        and (error_sites([d], text) - before)]
-        return bool(failing), output, failing
-    if whole:
+                        and (error_sites([d], text) - before_sites)]
+        failed = bool(failing)
+    elif whole:
         failing = [d for d in diagnostics if d.is_compile_error or introduced(d)]
-        return bool(failing), output, failing
-    return returncode != 0, output, diagnostics
+        failed = bool(failing)
+    else:
+        failing, failed = diagnostics, returncode != 0
+    if not fixing:
+        return failed, output, failing, False
+    if whole and failing:
+        lines = change.lines + [[d.line, d.line] for d in failing if os.path.realpath(d.file) == real]
+        run_clang_tidy(clang_tidy, build_dir, path, lines, extra_args)
+    with open(path, "rb") as f:
+        if f.read() == before:
+            return failed, output, failing, False
+    # Checked again, so what is reported is what the fixes left.
+    return check_file(clang_tidy, build_dir, merge_base, path, change, [])[:3] + (True,)
 
 
 def main():
@@ -263,11 +284,14 @@ def main():
     annotate = os.environ.get("GITHUB_ACTIONS") == "true"
     root = os.getcwd() + os.sep
     failed = []
+    fixed = []
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         jobs = {path: pool.submit(check_file, args.clang_tidy, args.build_dir, merge_base, path, change, args.extra_args)
                 for path, change in todo}
         for path, job in jobs.items():
-            file_failed, output, diagnostics = job.result()
+            file_failed, output, diagnostics, file_fixed = job.result()
+            if file_fixed:
+                fixed.append(path)
             if not file_failed:
                 continue
             failed.append(path)
@@ -282,9 +306,17 @@ def main():
             if len(diagnostics) > MAX_REPORTED:
                 print(f"... and {len(diagnostics) - MAX_REPORTED} more")
 
+    if fixed:
+        print(f"\nAdded includes to {len(fixed)} file(s):")
+        for path in fixed:
+            print(f"    {path}")
+    if failed and fixed:
+        print(f"\nclang-tidy still fails on {len(failed)} file(s); the findings above are what --fix could not fix.")
+        return 1
     if failed:
         print(f"\nclang-tidy failed on {len(failed)} file(s). Add the includes it names, or apply its "
-              "suggestions locally with scripts/run_clang_tidy.sh --fix (scripts\\run_clang_tidy.ps1 -Fix on Windows).")
+              "suggestions locally with scripts/run_clang_tidy.sh --fix (scripts\\run_clang_tidy.ps1 -Fix on Windows). "
+              "Other findings need a manual fix.")
         return 1
     print("clang-tidy passed.")
     return 0

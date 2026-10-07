@@ -19,7 +19,7 @@
 #include <boost/log/trivial.hpp>
 #include <functional>
 #include <cstddef>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/string.h>
 #include "slic3r/GUI/PartPlate.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -39,6 +39,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -334,7 +335,7 @@ void PrintJob::process(Ctl &ctl)
         auto origin_profile_id = model_info->metadata_items.find(BBL_DESIGNER_PROFILE_ID_TAG);
         if (origin_profile_id != model_info->metadata_items.end()) {
             try {
-                params.origin_profile_id    = stoi(origin_profile_id->second.c_str());
+                params.origin_profile_id    = std::stoi(origin_profile_id->second.c_str());
             }
             catch(...) {}
         }

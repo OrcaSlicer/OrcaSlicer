@@ -42,6 +42,10 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cassert>
+#include <cwchar>
+#include <stdlib.h>
 
 #ifdef WIN32
 

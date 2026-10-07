@@ -117,6 +117,7 @@
 #include "SafetyOptionsDialog.hpp"
 
 #include "ThermalPreconditioningDialog.hpp"
+#include <wx/dcgraph.h>
 
 
 namespace Slic3r { namespace GUI {

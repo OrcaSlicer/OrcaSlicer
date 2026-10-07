@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3424,8 +3424,8 @@ msgstr "他のプリセット"
 msgid "Remove parameter"
 msgstr "パラメータを削除"
 
-msgid "to"
-msgstr "→"
+msgid "Range"
+msgstr "範囲"
 
 msgid "Add height range"
 msgstr "高さ範囲を追加"
@@ -5479,9 +5479,6 @@ msgstr "パラメータ名"
 
 msgid "layers"
 msgstr "積層"
-
-msgid "Range"
-msgstr "範囲"
 
 msgid "Empty string"
 msgstr "空の文字列"
@@ -8814,8 +8811,9 @@ msgstr "接続されたプリンターは%sです。印刷にはプロジェク�
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "プリンター情報を同期してプリセットを自動的に切り替えますか？"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "このプロジェクトには、デザインタブで作成されたモデルのみが含まれ、他のジオメトリはありません。表示して編集するには、設定で「CAD機能 (実験的)」を有効にして再起動してください。このモデルはプロジェクトの保存時に保持されます。"
 
 msgid "The file does not contain any geometry data."
 msgstr "このファイルにはジオメトリデータが含まれていません。"
@@ -9872,8 +9870,9 @@ msgstr "デザインタブで、合致コネクターを従来のロール象限
 msgid "Auto-close sketch loops"
 msgstr "スケッチのループを自動で閉じる"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "0.001 mm以内にあるスケッチの端点を1つの接続点として扱い、ループを結合して閉じます。オフ: 完全に一致する端点のみが接続されるため、わずかな隙間のあるループは自動で閉じられず、開いたまま表示されます。この設定はデザインごとに保存され、変更後に開始したデザインに適用されます。"
 
 # AI Translated
 msgid "Pan"
@@ -10330,18 +10329,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "プリンターとフィラメントのドロップダウンリストに、互換性のない/非対応のプリセットを表示します。これらのプリセットは選択できません。"
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(実験的) プリントホストの代わりにプリンターエージェントを使用"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Bambu 以外のプリンターの印刷ジョブを、従来のプリントホストへのアップロードではなく、プリンターのプラグインエージェント経由で送信します。\n"
-"無効の場合、OrcaSlicer は従来のプリントホストの動作を使用します。"
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "実験的機能"
 
@@ -10356,6 +10343,18 @@ msgid ""
 msgstr ""
 "オブジェクトのメッシュを変更した後 (カット/ディスクから再読み込み/簡略化/修正など) も、ペイントした情報 (カラー/継ぎ目/サポート/ファジーなど) の保持を試みます。\n"
 "非常に実験的な機能です。処理が遅く、アーティファクトが発生する場合があります。"
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "プリントホストの代わりにプリンターエージェントを使用"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bambu 以外のプリンターの印刷ジョブを、従来のプリントホストへのアップロードではなく、プリンターのプラグインエージェント経由で送信します。\n"
+"無効の場合、OrcaSlicer は従来のプリントホストの動作を使用します。"
 
 msgid "Allow Abnormal Storage"
 msgstr "異常なストレージを許可"
@@ -10525,6 +10524,9 @@ msgstr "他のレイヤーのフィラメント順序"
 
 msgid "Please input layer value (>= 2)."
 msgstr "レイヤー値を入力してください（>= 2）。"
+
+msgid "to"
+msgstr "→"
 
 msgid "Plate name"
 msgstr "プレート名"
@@ -16579,6 +16581,14 @@ msgstr "Y軸対称インフィル"
 # AI Translated
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "モデルにY軸に対して対称な2つのパーツがあり、それらのテクスチャを対称にしたい場合は、一方のパーツでこのオプションをクリックしてください。"
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "パターン上部を埋める"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "インフィルパターンの上部を完全に埋めたい場合は、このオプションを選択します"
 
 # AI Translated
 msgid "Infill combination - Max layer height"
@@ -23257,6 +23267,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "フィラメントモデルが不明です。ランダムなフィラメントプリセットが使用されます。"
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "参照平面と軸を非表示"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "参照平面と軸を表示"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "プリンターのベッドとプレートグリッドを非表示"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "プリンターのベッドとプレートグリッドを表示"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "スケッチする参照平面または平面をクリック — Escで取消し"
+
+# AI Translated
 msgid "Construction"
 msgstr "補助ジオメトリ"
 
@@ -23281,8 +23311,9 @@ msgstr "円 — 中心、半径の順にクリック"
 msgid "Arc — click start, end, then a point"
 msgstr "円弧 — 始点、終点、通過点の順にクリック"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "スロット — 中心線の両端、次に幅"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -23356,8 +23387,9 @@ msgstr "ワールド座標軸を表示"
 msgid "World axes hidden"
 msgstr "ワールド座標軸を非表示"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "軸測投影ビュー (全体表示)"
 
 # AI Translated
 msgid "Bed shown"
@@ -23368,34 +23400,12 @@ msgid "Bed hidden"
 msgstr "ベッドを非表示"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "フィーチャー"
+msgid "Reference planes shown"
+msgstr "参照平面を表示"
 
 # AI Translated
-msgid "Sketch"
-msgstr "スケッチ"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "スケッチ平面: %s — ツールを選択"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "ビューポートで面または参照平面をクリックしてから、スケッチツールを選択"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"スケッチ平面: %s\n"
-"ツールを選択するか、メニューを押して一覧を表示します。"
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "面または参照平面をクリックしてから、スケッチツールを選択します。"
+msgid "Reference planes hidden"
+msgstr "参照平面を非表示"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -23581,8 +23591,9 @@ msgstr "軸"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "データム軸 (2点、面の法線、円柱の中心線、2平面、エッジに沿う)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "座標系"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -23646,8 +23657,9 @@ msgstr "反転にはボディが必要です — 先に追加またはインポ�
 msgid "Mate"
 msgstr "合致"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "アセンブリ: 2つの座標系を揃えます (締結、平面、回転、スライダー、円筒)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -23747,14 +23759,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "ねじを作成する円筒面 (内径 / 外径) または円形エッジを選択してください"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "STEPをインポート (編集可能なB-repソリッド)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "メッシュ (STL/OBJ) を編集可能なB-repソリッドとしてインポート"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "選択したスケッチを拘束"
 
@@ -23786,8 +23790,9 @@ msgstr "始点、終点の順にクリック — その後、正確な長さを�
 msgid "Polyline"
 msgstr "ポリライン"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "点を順にクリック。最初の点をクリックするとループを閉じ、右クリックまたはEnterでチェーンを終了します"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23877,8 +23882,9 @@ msgstr "中心、始点、次に終了角度を決める点をクリック"
 msgid "Slot"
 msgstr "スロット"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "中心線の両端をクリックし、次に幅を決める点をクリック"
 
 # AI Translated
 msgid "Arc slot"
@@ -23908,8 +23914,9 @@ msgstr "中心、長軸の端、短軸上の点、次に円弧の始点と終点
 msgid "Spline"
 msgstr "スプライン"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "制御点をクリック。ダブルクリック、右クリック、またはEnterで終了"
 
 # AI Translated
 msgid "Click to place a point"
@@ -23963,15 +23970,17 @@ msgstr "反転軸となる線分を選択し、次に反転するエンティテ
 msgid "Trim"
 msgstr "トリム"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "セグメントをクリックすると最も近い交点までトリムします。Escで終了"
 
 # AI Translated
 msgid "Extend"
 msgstr "延長"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "線分または円弧をクリックすると最も近いエンティティまで延長します。Escで終了"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -24154,12 +24163,20 @@ msgid "New Design — clear the feature tree"
 msgstr "新規デザイン — フィーチャーツリーをクリア"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "STEPをインポート (編集可能なB-repソリッド)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "メッシュ (STL/OBJ) を編集可能なB-repソリッドとしてインポート"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "STEPをエクスポート…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "プリンターのベッドとプレートグリッドを表示"
+msgid "Create a new sketch"
+msgstr "新しいスケッチを作成"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -24173,20 +24190,25 @@ msgstr "断面ビュー — モデルの一部を非表示にして内部を表�
 msgid "Flip Section — show the opposite half"
 msgstr "断面を反転 — 反対側の半分を表示"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "「プレートに確定」でのボディの送り方を選択"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "プレートに確定"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "すべてのボディを、ボディごとに1つのパーツとして1つのオブジェクトにまとめ、相対位置を保持します"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "プレートに確定 (ボディごと)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "各ボディを個別のオブジェクトにし、それぞれ単独で配置します"
 
 # AI Translated
 msgid "Width / X"
@@ -24195,6 +24217,10 @@ msgstr "幅 / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "高さ / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "スケッチ"
 
 # AI Translated
 msgid "Distance X"
@@ -24398,8 +24424,9 @@ msgstr "円形状"
 msgid "Direction"
 msgstr "方向"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "合計角度 (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -24783,11 +24810,13 @@ msgstr "円筒 — 軸が同一直線上。自由な回転 + 軸方向のスラ�
 msgid "Kind"
 msgstr "種類"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (固定)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (移動)"
 
 # AI Translated
 msgid "Angle °"
@@ -24824,6 +24853,10 @@ msgstr "(バインドなし)"
 # AI Translated
 msgid "Value"
 msgstr "値"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "ツールを選択するか、メニューキーを押して一覧を表示します。"
 
 # AI Translated
 msgid "Constraints"
@@ -24864,6 +24897,10 @@ msgid "Show / hide"
 msgstr "表示 / 非表示"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "選択項目にズーム"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "干渉チェック — 重なっているボディを検出"
 
@@ -24884,14 +24921,17 @@ msgstr "ボディ%dを選択中 — 右クリックで適用可能な操作を�
 msgid "Variables"
 msgstr "変数"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "変数を追加"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "変数を編集"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "変数を削除"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24910,9 +24950,10 @@ msgstr "スケッチを更新しました"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "スケッチを作成しました (駆動寸法 %zu 個) — 選択して右クリックで押し出し"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "長さ %.2f mm、角度 %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -24933,6 +24974,10 @@ msgstr "領域を選択しました — 右クリックで押し出し、ダブ�
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "スケッチを選択しました — 右クリックで押し出し、ダブルクリックで編集"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "その面は平面ではありません — 平面または参照平面をクリックしてください"
 
 # AI Translated
 #, c-format, boost-format
@@ -24962,28 +25007,27 @@ msgstr "ボディ%d: 面%dを選択しました — 右クリックでプッシ�
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "面%dを選択しました — 右クリックでプッシュ/プル、もう一度クリックでボディ全体を選択"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
+msgstr[0] "ボディ%d: %zu 本のエッジを選択中 — Shift+クリックで1本ずつ追加/削除、フィレット/面取りですべてを加工"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "%zu 本のエッジを選択中 — Shift+クリックで1本ずつ追加/削除、フィレット/面取りですべてを加工"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s平面を選択しました — 右クリックで描画ツールを表示"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "ボディ%d: エッジ%dを選択しました — Shift+クリックでエッジを追加、もう一度クリックでボディ全体を選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "エッジ%dを選択しました — Shift+クリックでエッジを追加、もう一度クリックでボディ全体を選択"
 
 # AI Translated
 #, c-format, boost-format
@@ -25008,8 +25052,9 @@ msgstr "ツールを終了しました"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "スケッチを保持しました — 「確定」で確定、「取消し」で破棄"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "削除するものを選択してください"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -25040,17 +25085,21 @@ msgstr "編集中: スケッチ%d   ·   N = 平面に垂直に表示   ·   ツ
 msgid "OK — %zu triangles"
 msgstr "OK — 三角形 %zu 個"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "テキストを編集 — Enterで適用、Escで元のまま"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "テキストを入力 — 入力中にビューに表示されます。Enterで挿入、Escで取消し"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "テキストは変更されていません"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "テキストの入力を取り消しました"
 
 # AI Translated
 msgid "Import SVG"
@@ -25076,9 +25125,10 @@ msgstr "STEPを読み込み中…"
 msgid "No solids found in STEP"
 msgstr "STEPにソリッドが見つかりません"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "STEPのインポートに失敗しました: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -25102,9 +25152,10 @@ msgstr "メッシュファイル (*.stl;*.obj)|*.stl;*.obj|すべてのファイ
 msgid "Could not read the STL file"
 msgstr "STLファイルを読み込めませんでした"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "OBJファイルを読み込めませんでした: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -25129,20 +25180,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "大きなメッシュ"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "メッシュの変換に失敗しました: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "メッシュの変換でジオメトリが生成されませんでした"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "メッシュ"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "メッシュのインポートに失敗しました: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -25171,17 +25225,19 @@ msgstr " — ドラッグで配置/サイズ調整し、確定してください
 msgid "Insert canceled"
 msgstr "挿入を取り消しました"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "角をドラッグしてスケール、中心をドラッグして移動 — 完了したらEnterまたは✓、Escで破棄"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "スケッチを追加しました (平面: %s) — 選択して右クリックで押し出し"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "モデルを再構築できませんでした: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -25253,18 +25309,21 @@ msgstr "先に開いた線を含むスケッチを選択してください"
 msgid "Add at least one face to delete first"
 msgstr "先に削除する面を少なくとも1つ追加してください"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "合致には2つの座標系が必要です — 先に作成してください"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "合致: AとBは異なる座標系である必要があります"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "合致が拒否されました"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "干渉チェックには少なくとも2つのボディが必要です"
 
 # AI Translated
 msgid "No interference found"
@@ -25275,35 +25334,42 @@ msgstr "干渉は見つかりませんでした"
 msgid "Body %d"
 msgstr "ボディ%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s (%.2f mm³)"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
+msgstr[0] "%zu 組のボディが重なっています: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "計測するボディを選択してください"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "このボディを計測できませんでした"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: シートボディ、表面積 %.2f mm²、体積なし — 厚み付けすると体積が得られます"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: 体積 %.2f mm³、表面積 %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "パターンにはソリッドボディが必要です — 先に追加またはインポートしてください"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "ブーリアンには2つのボディが必要です — 2つ目を追加またはインポートしてください"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -25318,35 +25384,45 @@ msgstr "選択した面 (ボディ%d)"
 msgid "Picked face"
 msgstr "選択した面"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "新しい形状をボディに結合できませんでした"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "新しい形状をボディから切り取れませんでした"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "形状の交差に失敗しました"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "履歴にソリッドを生成するフィーチャーがまだありません"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "スケッチプロファイルが正しく閉じたループになっていません"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "ツールがボディに接していません"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "式で存在しない変数が使用されています"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "式でゼロ除算が発生しています"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "2つの変数が互いを参照して定義されています"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "ジオメトリ演算に失敗しました"
 
 # AI Translated
 #, c-format, boost-format
@@ -25384,15 +25460,17 @@ msgstr "寸法 — 2点目をクリック"
 msgid "Line — click the start point"
 msgstr "線分 — 始点をクリック"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "線分 — 終点をクリック。その後、長さと角度を入力できます"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "ポリライン — 最初の点をクリック"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "ポリライン — 次の点をクリック  ·  始点をクリックで閉じる  ·  右クリック、ダブルクリック、またはEnterでチェーンを終了"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -25438,8 +25516,9 @@ msgstr "角丸長方形 — クリックして角の半径を設定"
 msgid "Circle — click the center"
 msgstr "円 — 中心をクリック"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "円 — クリックして半径を設定。その後、半径を入力できます"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -25565,18 +25644,21 @@ msgstr "楕円弧 — 円弧の終了位置をクリック"
 msgid "Spline — click the first control point"
 msgstr "スプライン — 最初の制御点をクリック"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "スプライン — 次の制御点をクリック  ·  右クリック、ダブルクリック、またはEnterで曲線を終了"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "点 — クリックして配置。ツールは続けて使用できます"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "トリム — 他のエンティティと交差するセグメントをクリック  ·  Escで終了"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "延長 — 線分または円弧をクリックして最も近いエンティティまで延長  ·  Escで終了"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -25586,8 +25668,9 @@ msgstr "フィレット — 交わる2本の線分のうち1本目をクリッ�
 msgid "Fillet — click the second line"
 msgstr "フィレット — 2本目の線分をクリック"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "フィレット — 矢印をドラッグ、または数値をクリックして半径を入力  ·  Enterで適用  ·  Escで取消し"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -25597,63 +25680,74 @@ msgstr "面取り — 交わる2本の線分のうち1本目をクリック"
 msgid "Chamfer — click the second line"
 msgstr "面取り — 2本目の線分をクリック"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "面取り — 矢印をドラッグ、または数値をクリックして面取り距離を入力  ·  Enterで適用  ·  Escで取消し"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "オフセット — 曲線をクリック。その輪郭全体がオフセットされます"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "オフセット — 矢印をどちらかの側にドラッグ、または数値をクリックして距離を入力  ·  Enterで適用  ·  Escで取消し"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "反転 — 最初に反転の基準となる線分をクリック (補助線も使用可)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "反転 — 軸を設定済み  ·  反転するエンティティをクリック  ·  Escで取消し"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "反転 — 軸を設定済み  ·  反転対象 %d 個  ·  別のエンティティをクリックして追加/削除  ·  Enterで適用"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "移動 — 移動するエンティティをクリック"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "移動 — ハンドルをドラッグ、または数値をクリックして距離を入力  ·  Enterで適用"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "回転 — 回転するエンティティをクリック"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "回転 — ハンドルをドラッグ、または数値をクリックして角度を入力  ·  Enterで適用"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "スケール — スケールするエンティティをクリック"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "スケール — ハンドルをドラッグ、または数値をクリックして倍率を入力  ·  Enterで適用"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "配列 — 繰り返すエンティティをクリック"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "配列 — ハンドルをドラッグして間隔を設定、個数をクリックして入力  ·  Enterで適用"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "円形配列 — 繰り返すエンティティをクリック"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "円形配列 — ハンドルをドラッグして角度範囲を設定、個数をクリックして入力  ·  Enterで適用"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "角をドラッグしてスケール、中心をドラッグして移動  ·  完了したらEnterまたは✓、Escで破棄"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -25663,61 +25757,76 @@ msgstr "  ·  Escで選択ツールに戻る"
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  拘束バッジをクリックして削除"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — ソリッドボディ"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — シートボディ"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "平面%d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "円筒面%d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "面%d (%s)"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
+msgstr[0] "%zu 本のエッジ (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "直線エッジ%d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "円形エッジ%d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "%sの頂点"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "スケッチプロファイル"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "スケッチ — 選択なし"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "スケッチ線分"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "スケッチ曲線"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "スケッチ点"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "%d 個のスケッチエンティティ"
 
 # AI Translated
 msgid "select something first"
@@ -25780,8 +25889,9 @@ msgstr "平面を追加しました — スケッチ平面として選択でき�
 msgid "Axis added"
 msgstr "軸を追加しました"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "座標系を追加しました"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -25798,10 +25908,10 @@ msgstr "抜き勾配には面の選択が必要です — 先に側面をクリ�
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "まだ何もありません — ツールバーからSTEPまたはメッシュをインポートするか、\n"
-"参照平面をクリックして右クリックし、スケッチを開始してください。"
+"「スケッチ」を押して参照平面をクリックし、スケッチを開始してください。"
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25811,9 +25921,10 @@ msgstr "まだソリッドがありません — スケッチを選択して右�
 msgid "Could not restore the CAD model from this project"
 msgstr "このプロジェクトからCADモデルを復元できませんでした"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "CADモデルを復元できませんでした: %s"
 
 # AI Translated
 #, c-format
@@ -25836,16 +25947,34 @@ msgstr "断面ビュー — 上半分を表示中"
 msgid "Section view — showing the lower half"
 msgstr "断面ビュー — 下半分を表示中"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "フィーチャーの面を検索中…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "先にボディを選択してください — ビューポートまたはボディリストでクリックします"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "モデルを再構築中です — 完了後にもう一度ズームしてください"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%sには表示中のズーム対象がありません"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "そのボディにはまだ表示用メッシュがありません — 先に再計算してください"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "ズームする対象を選択してください"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "先に開いている操作を完了または取り消してください"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "先にボディを選択してください — ビューポートまたはボディリストでクリックします"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25872,12 +26001,10 @@ msgstr "ソリッドの面をクリックしてから、Fを押してくださ�
 msgid "Placed on face — body laid flat on the bed"
 msgstr "面に配置しました — ボディをベッドに平らに置きました"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "編集が拒否されました: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -25896,9 +26023,10 @@ msgstr "このボディには削除できるフィーチャーがありません
 msgid "feature %d"
 msgstr "フィーチャー%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "%s (このボディの作成元のフィーチャー) を削除しました — Ctrl+Zで元に戻せます"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -26289,12 +26417,14 @@ msgstr "STEPファイル (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEPをエクスポートしました"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "STEPのエクスポートに失敗しました: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "プレートに確定 (ボディごと) — 各ボディを個別のオブジェクトとして準備タブに送る"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -26308,18 +26438,35 @@ msgstr "確定するものがありません — 先にフィーチャーを追�
 msgid "All bodies hidden — show one before committing"
 msgstr "すべてのボディが非表示です — 確定する前にいずれかを表示してください"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
+msgstr[0] "%zu 本のエッジ"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "中心線 E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "線分 E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "スケッチ平面: %s — ツールを選択"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"スケッチ平面: %s\n"
+"ツールを選択するか、メニューキーを押して一覧を表示します。"
 
 # AI Translated
 msgid "Plane ready"
@@ -26329,8 +26476,9 @@ msgstr "平面の準備完了"
 msgid "Axis ready"
 msgstr "軸の準備完了"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "座標系の準備完了"
 
 # AI Translated
 msgid "Helix ready"
@@ -26348,9 +26496,10 @@ msgstr "スケッチの準備完了"
 msgid "Mate ready"
 msgstr "合致の準備完了"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "無効: %s"
 
 # AI Translated
 #, c-format
@@ -26432,110 +26581,139 @@ msgstr "変数を編集"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "変数「%s」を削除できませんでした (フィーチャーの式からまだ参照されている可能性があります): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "「%s」は式で駆動できる値ではありません"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "そのフィールドにはバインドがありません"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "値は0より大きくする必要があります"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "値を負にすることはできません (0は一致を意味します)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "その寸法を満たせません — スケッチが過拘束です"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "%1% 個の拘束はこのジオメトリ (楕円やスプライン曲線、またはサイズ0の円) に作用できないため無視されます"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "このプロファイルは赤いマークの位置で自己交差または折り返しているため、1つの領域を囲んでいません"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "辺"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "長半径"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "短半径"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "角度は0°から360°の間にする必要があります"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "長半径は短半径より短くできません"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "角の半径は短い辺の半分より小さくする必要があります"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "スロットの幅が半径に対して広すぎます — 幅は半径の2倍未満にする必要があります"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "%1%を満たせません — スケッチが過拘束です"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "その2本の線分は角で交わっていません — 角で交わる2本の線分を選択してください"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "サイズは0より大きくする必要があります"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "フィレット: 半径が一方の辺の長さを超えているか、2本の線分が角で交わっていません"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "面取り: 距離が一方の辺の長さを超えているか、2本の線分が角で交わっていません"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "フィレット/面取りで無効になった %1% 個の拘束を削除しました"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "オフセット: 楕円やスプラインには同じ種類の平行曲線がありません — 線分、円弧、または円を選択してください"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "倍率は0より大きくする必要があります"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "コピー数"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "コピー数は2以上の整数にする必要があります"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "変換により %1% 個の拘束が解除されました"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "配列のコピーは拘束されていません — ソルバーがすべての関連付けを拒否しました"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "右クリックまたはダブルクリックで終了、始点をクリックで閉じる"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "延長: 別のエンティティまで届く線分または円弧をクリック"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "トリム: 別のエンティティと交差するセグメントをクリック"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "Enterまたは✓で適用、Escで破棄"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "そのエンティティにはまだ寸法を付けられません — 線分、円、円弧、または2点をクリックしてください"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "2点目、または距離を測る線分をクリックしてください"
 
 # AI Translated
 msgid "Enter a number"
@@ -26571,8 +26749,12 @@ msgid "Sketch"
 msgstr "スケッチ"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "面または参照平面をクリックしてから、描画ツールを選択"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "スケッチする平面または参照平面を選択してください"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "選択した平面または参照平面にスケッチします。後からクリックして選ぶこともできます"
 
 # AI Translated
 msgctxt "Design"
@@ -26594,9 +26776,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "厚み付け"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "結合"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -26649,16 +26832,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "サーフェスの厚み付け"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "サーフェスの厚み付けにはシートボディが必要です — 先にサーフェスツールで作成してください"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "穴"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26674,8 +26855,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "分割"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "分割にはソリッドボディが必要です — 先に追加またはインポートしてください"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -26721,8 +26903,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "サーフェスオフセット"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "サーフェスオフセットにはシートボディが必要です — 先にサーフェスツールで作成してください"
 
 # AI Translated
 msgctxt "Design"
@@ -26752,8 +26935,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "曲線に沿ったパターン"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "曲線に沿ったパターンにはボディと曲線が必要です"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -26774,8 +26958,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "位置合わせ"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "位置合わせにはボディが必要です — 先に追加またはインポートしてください"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -26791,9 +26976,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "軸"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "座標系"
 
 # AI Translated
 msgctxt "Design"
@@ -26809,9 +26995,10 @@ msgstr "計測"
 msgid "Measure between the picked points, edges or faces"
 msgstr "選択した点、エッジ、または面の間を計測"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "体積と表面積"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -26853,12 +27040,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "面を削除"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "色"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "選択したボディの表示色を設定"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "選択項目にズーム"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "表示方向を保ったまま、選択項目をビューに合わせて表示"
 
 # AI Translated
 msgctxt "Design"
@@ -26897,9 +27095,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "コーナー指定の長方形"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "中心指定の長方形"
 
 # AI Translated
 msgctxt "Design"
@@ -26911,9 +27110,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "角丸長方形"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "中心指定の円"
 
 # AI Translated
 msgctxt "Design"
@@ -26935,9 +27135,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "接線円弧"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "中心点円弧"
 
 # AI Translated
 msgctxt "Design"
@@ -26969,48 +27170,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "三角形"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "三角形 — 中心、次に頂点をクリック"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "正方形"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "正方形 — 中心、次に頂点をクリック"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "五角形"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "五角形 — 中心、次に頂点をクリック"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "六角形"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "六角形 — 中心、次に頂点をクリック"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "八角形"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "八角形 — 中心、次に頂点をクリック"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "十二角形"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "十二角形 — 中心、次に頂点をクリック"
 
 # AI Translated
 msgctxt "Design"
@@ -27040,8 +27247,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "テキスト"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "テキストを入力すると、このスケッチ平面上のテキストフィーチャーになり、後で編集できます"
 
 # AI Translated
 msgctxt "Design"
@@ -27158,27 +27366,34 @@ msgstr "角度 / 距離…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "2本の線分間の角度、または選択した2つの間の距離を入力"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "挿入するテキストを入力"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "ボールド"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "イタリック"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "このフォントはテキストに使用できません — 別のフォントを選択してください"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "テキストを入力するとサイズが表示されます"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "このフォントにはこのテキストのアウトラインがありません"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "サイズ: %.1f × %.1f mm"
 
 # AI Translated
 msgid "Primitive"
@@ -27276,8 +27491,9 @@ msgstr "プロファイル"
 msgid "Start new profile (for holes)"
 msgstr "新しいプロファイルを開始 (穴用)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "セグメント数"
 
 # AI Translated
 msgid "Sides"
@@ -27291,20 +27507,23 @@ msgstr "キャンバスをクリックして描画"
 msgid "Snap to grid"
 msgstr "グリッドにスナップ"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "グリッド間隔"
 
 # AI Translated
 msgid "Outer"
 msgstr "外側"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "閉じています"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% 点 %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -27340,8 +27559,9 @@ msgstr[0] "%zu個の閉じたプロファイル"
 msgid "Draw a closed profile to enable"
 msgstr "有効にするには閉じたプロファイルを描画してください"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "すべてクリア"
 
 # AI Translated
 msgid "Empty result"
@@ -31456,6 +31676,39 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(実験的) プリントホストの代わりにプリンターエージェントを使用"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "フィーチャー"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "ビューポートで面または参照平面をクリックしてから、スケッチツールを選択"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "面または参照平面をクリックしてから、スケッチツールを選択します。"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s平面を選択しました — 右クリックで描画ツールを表示"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "まだ何もありません — ツールバーからSTEPまたはメッシュをインポートするか、\n"
+#~ "参照平面をクリックして右クリックし、スケッチを開始してください。"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "面または参照平面をクリックしてから、描画ツールを選択"
 
 #~ msgid "X"
 #~ msgstr "X"

@@ -72,6 +72,7 @@
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
@@ -79,8 +80,6 @@
     #include <pango-1.0/pango/pango-layout.h>
     #include <gtk/gtk.h>
 #endif
-
-using Slic3r::GUI::format_wxstr;
 
 namespace Slic3r {
 namespace GUI {
@@ -2176,7 +2175,7 @@ void GUI::CalibrateFilamentComboBox::OnSelect(wxCommandEvent &evt)
     wxPostEvent(m_parent, e);
 }
 
-void PlaterPresetComboBox::sys_color_changed()
+void GUI::PlaterPresetComboBox::sys_color_changed()
 {
     PresetComboBox::sys_color_changed();
     if (clr_picker) {

@@ -4,15 +4,17 @@ OrcaSlicer — open-source C++17 3D slicer. wxWidgets GUI, CMake build system.
 
 ## Build Commands
 
+Build the Release configuration unless asked otherwise.
+
 ```bash
 # macOS
-cmake --build build/arm64 --config RelWithDebInfo --target all --
+cmake --build build/arm64 --config Release --target all --
 
 # Linux
-cmake --build build --config RelWithDebInfo --target all --
+cmake --build build --config Release --target all --
 
-# Windows (replace %build_type% with Debug/Release/RelWithDebInfo)
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+# Windows
+cmake --build . --config Release --target ALL_BUILD -- -m
 ```
 
 ## Testing

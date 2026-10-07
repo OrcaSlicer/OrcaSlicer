@@ -2851,7 +2851,6 @@ bool is_patch_inside_of_model(const SurfacePatch &patch,
 /// <returns>shape point index</returns>
 uint32_t get_shape_point_index(const CutAOI &cut, const CutMesh &model);
 
-using PatchNumber = CutMesh::Property_map<FI, size_t>;
 /// <summary>
 /// Separate triangles singned with number n
 /// </summary>

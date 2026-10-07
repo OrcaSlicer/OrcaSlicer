@@ -383,7 +383,16 @@ private:
     void       update_rib_gizmo();        // in-plane slab footprint + thickness handles (Rib card)
     void       refresh_datum_planes();    // push resolved datum frames + per-plane u/v extents to viewport
     void       refresh_mate_connectors(); // push connector frames so verse + polarity are visible
-    void       update_reference_planes(); // persistent XY/XZ/YZ reference planes (fallback when no object)
+    void       update_reference_planes(); // the XY/XZ/YZ planes + axes: Origin row, plane choice, Plane tool
+    void       toggle_origin();           // the Origin row's eye (and Ctrl+Shift+O): keep the reference planes up
+    void       toggle_bed();              // the Bed row's eye (and Ctrl+Shift+B): draw the printer bed, or not
+    void       refresh_pinned();          // rebuild the Origin and Bed rows (their eyes and label colours)
+    // Sketch: open a session on the picked face or plane, or with none picked, put the planes up
+    // and wait for one (m_choosing_sketch_plane).
+    void       start_sketch();
+    void       start_sketch_on_target(bool offer_tools);   // a session on sketch_plane_from_selection()
+    void       end_sketch_plane_choice(); // leave the plane choice without a sketch; no-op outside it
+    bool       sketch_plane_pick_live() const;   // may a pick made now still open the sketch?
 
     CadDocument m_doc;
 
@@ -413,7 +422,6 @@ private:
     ScalableButton* m_commit_btn{nullptr};   // main face: runs the current commit mode
     DropDown*       m_commit_drop{nullptr};  // commit-mode choices, owned via m_flyout_keepalive
     wxSizer*  m_tb_doc{nullptr};      // toolbar document/view actions (new, commit, export, section, place)
-    CheckBox* m_show_bed{nullptr};    // view option: draw the printer bed + plate grid, or not
     wxSizer*  m_box_move{nullptr};      // Move/Rotate numeric options (distance, axis, angle)
     wxSizer*  m_box_sketch{nullptr};
     wxSizer*  m_box_extrude{nullptr};
@@ -571,8 +579,20 @@ private:
     // deliberately no dropdown for it. e1p.
     int               m_ref_plane{0};
     // m_ref_plane is always a VALID plane, so it cannot itself distinguish "the user chose XY"
-    // from "nobody has chosen anything yet". This does.
+    // from "nobody has chosen anything yet". This does. A selection like a picked face: the sketch
+    // opened on it uses it up, and Esc or a click on nothing lets go of it.
     bool              m_plane_picked{false};
+    // Sketch was pressed with nothing to sketch on: the reference planes are up and the next
+    // reference plane or flat face clicked opens the sketch on it. Still Feature mode — sketch
+    // mode is entered only with the session (start_sketch_on_target).
+    bool              m_choosing_sketch_plane{false};
+    // The Feature tree's Origin row: keeps the reference planes and their axes up
+    // (update_reference_planes). A view preference (AppConfig "design_show_origin"), not part of
+    // the recipe.
+    bool              m_show_origin{false};
+    // The Feature tree's Bed row: draws the printer bed and its plate grid. A view preference
+    // (AppConfig "design_show_bed"), not part of the recipe.
+    bool              m_show_bed{true};
     ComboBox*         m_shape{nullptr};
     ComboBox*         m_mode{nullptr};
     wxSpinCtrlDouble* m_width{nullptr};
@@ -913,12 +933,16 @@ private:
     std::function<void(double)> m_value_cont;   // deferred apply, run on Confirm
     std::function<void()>       m_value_cancel; // optional action when the card is cancelled
 
-    // Feature tree: one row per feature, in feature order, with a per-type icon and the row's
-    // own Edit / Show-hide / Delete icons. Callers use row indices via
-    // tree_selection()/set_tree_selection(); refresh_tree() rebuilds the rows.
+    // Feature tree: the Origin and Bed rows, a fixed block of view switches that never scrolls
+    // and selects nothing, then, in a frame of its own below them, one row per feature, in feature
+    // order, with a per-type icon and the row's own Zoom to selection / Edit / Show-hide / Delete
+    // icons. Callers use row indices via tree_selection()/set_tree_selection(); refresh_tree()
+    // rebuilds the rows.
+    DesignRowList*            m_pinned{nullptr};
     DesignRowList*            m_tree{nullptr};
-    // The faces the selected feature row made (CadDocument::faces_made_by), drawn as selected.
-    // Finding them replays the history, so they are kept per row and topology generation.
+    // The faces the selected feature row made (CadDocument::faces_made_by), drawn as selected, and
+    // what Zoom to selection frames for a row. Finding them replays the history, so they are kept
+    // per row and topology generation (feature_faces).
     // request_feature_highlight() refreshes them after the current event; every change of row,
     // card or topology calls it.
     int      m_hl_feature{-1};      // the row m_hl_faces were found for...
@@ -927,7 +951,10 @@ private:
     bool     m_hl_pending{false};
     void     request_feature_highlight();
     void     update_feature_highlight();
+    // The faces feature `f` made, found again when the cached ones are another row's or topology's.
+    const std::vector<std::pair<int, int>>& feature_faces(int f);
     bool     deselect_rows();       // Esc / a click on nothing: drop the tree and Bodies rows
+    bool     drop_plane_pick();     // ...and a picked reference plane; true if one was picked
     // Bodies list under the feature tree: one row per body (parallel to m_doc.bodies). Selecting
     // one highlights that body and makes it the target for the next op.
     DesignRowList*            m_parts{nullptr};
@@ -964,8 +991,17 @@ private:
     void rebuild_disp_meshes();           // recompute m_disp_* from m_doc + m_body_xform
     void feed_bodies();                   // push m_disp_* + visibility/xform to the viewport
     void on_move_body();                  // start the move gizmo on the selected body
+    bool body_move_pending() const { return m_move_body >= 0; }   // the Move button's session is open
+    void end_body_move(bool keep);        // leave it: keep the dragged pose, or put the body back
     void arm_transform_gizmo();           // arm the move gizmo on the Transform card's body (add mode only)
     void on_set_body_color();             // Color tool: pick a per-body display colour override
+    // Zoom to selection: frame one thing along the current view, as the canvas's Fit button frames
+    // a selection. A body is framed whole, hidden or not; a feature by its sketch or the faces it
+    // made; anything else the offer is opened on, by what the Fit button frames for it.
+    void zoom_to_body(int b);
+    void zoom_to_feature(int f);
+    void zoom_to_selection();
+    bool can_zoom_to_feature(int f) const;   // a sketch, or a shown feature that makes faces
     void on_boolean_tool();               // Boolean (combine bodies): needs two solids, then opens the tool
     int  tree_selection() const;          // selected feature row, or wxNOT_FOUND
     int  tree_body_selection() const;     // selected Parts-list body index, or -1

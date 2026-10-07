@@ -230,7 +230,6 @@ std::vector<Bridge> get_grouped_bridges(
     {
         result.reserve(bridge_expansions.size());
         uint32_t group_id = 0;
-        using std::move_iterator;
         for (ExPolygon& expolygon : bridge_expolygons)
             result.push_back({ std::move(expolygon), group_id ++, bridge_expansions.end() });
     }
@@ -432,7 +431,6 @@ Surfaces expand_bridges_detect_orientations(
     const float closing_radius
 )
 {
-    using namespace Slic3r::Algorithm;
 
     double thickness;
     ExPolygons bridge_expolygons = fill_surfaces_extract_expolygons(surfaces, {stBottomBridge}, thickness);
@@ -1101,7 +1099,7 @@ void LayerRegion::simplify_entity_collection(ExtrusionEntityCollection* entity_c
 
 void LayerRegion::simplify_path(ExtrusionPath* path)
 {
-    const auto print_config = this->layer()->object()->print()->config();
+    const auto &print_config = this->layer()->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
@@ -1119,7 +1117,7 @@ void LayerRegion::simplify_path(ExtrusionPath* path)
 
 void LayerRegion::simplify_multi_path(ExtrusionMultiPath* multipath)
 {
-    const auto print_config = this->layer()->object()->print()->config();
+    const auto &print_config = this->layer()->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
@@ -1139,7 +1137,7 @@ void LayerRegion::simplify_multi_path(ExtrusionMultiPath* multipath)
 
 void LayerRegion::simplify_loop(ExtrusionLoop* loop)
 {
-    const auto print_config = this->layer()->object()->print()->config();
+    const auto &print_config = this->layer()->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);

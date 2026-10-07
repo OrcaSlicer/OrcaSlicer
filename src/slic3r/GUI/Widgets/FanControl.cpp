@@ -3,7 +3,7 @@
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../MsgDialog.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 
 #include <wx/anybutton.h>
 #include <wx/event.h>
@@ -27,6 +27,8 @@
 #include <wx/string.h>
 #include <wx/stattext.h>
 #include <wx/sizer.h>
+
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 

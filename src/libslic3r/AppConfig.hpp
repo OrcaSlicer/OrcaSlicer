@@ -15,8 +15,6 @@
 #include "libslic3r/Semver.hpp"
 #include "calib.hpp"
 
-using namespace nlohmann;
-
 #define ENV_DEV_HOST		"0"
 #define ENV_QAT_HOST		"1"
 #define ENV_PRE_HOST		"2"

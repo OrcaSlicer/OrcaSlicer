@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2026-07-26 11:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -3275,8 +3275,8 @@ msgstr "Predefinição de processo adicional"
 msgid "Remove parameter"
 msgstr "Remover parâmetro"
 
-msgid "to"
-msgstr "para"
+msgid "Range"
+msgstr "Intervalo"
 
 msgid "Add height range"
 msgstr "Adicionar intervalo de altura"
@@ -5279,9 +5279,6 @@ msgstr "nome do parâmetro"
 
 msgid "layers"
 msgstr "camadas"
-
-msgid "Range"
-msgstr "Intervalo"
 
 msgid "Empty string"
 msgstr "String vazia"
@@ -8501,8 +8498,9 @@ msgstr "A impressora conectada é %s. Ela deve corresponder à predefinição do
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Deseja sincronizar as informações da impressora e alternar automaticamente a predefinição?"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "Este projeto contém um modelo feito na aba Design e nenhuma outra geometria. Ative \"Recurso CAD (experimental)\" nas Preferências e reinicie para vê-lo e editá-lo; ele é mantido quando o projeto é salvo."
 
 msgid "The file does not contain any geometry data."
 msgstr "O arquivo não contém dados de geometria."
@@ -9521,8 +9519,9 @@ msgstr "Na aba Design, desenha um conector de posicionamento como uma pequena fa
 msgid "Auto-close sketch loops"
 msgstr "Fechar laços do esboço automaticamente"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "Trata extremidades do esboço a menos de 0,001 mm umas das outras como uma só junção e fecha o laço. Desativado: somente extremidades exatamente coincidentes se unem, então um laço com uma pequena folga é mostrado como aberto em vez de ser fechado para você. Salvo com cada design; aplica-se aos designs iniciados após a alteração."
 
 msgid "Pan"
 msgstr "Mover"
@@ -9940,16 +9939,6 @@ msgstr "Mostrar predefinições não suportadas"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Exibir predefinições incompatíveis e não suportadas nas listas de impressora e filamento. Essas predefinições não podem ser selecionadas."
 
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Experimental) Usar agentes de impressora em vez de hosts de impressão"
-
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Encaminha os trabalhos de impressão de impressoras que não são Bambu pelos agentes de plugin de impressora em vez do fluxo clássico de envio ao host de impressão.\n"
-"Quando desativado, o OrcaSlicer usa o comportamento antigo do host de impressão."
-
 msgid "Experimental Features"
 msgstr "Recursos Experimentais"
 
@@ -9962,6 +9951,17 @@ msgid ""
 msgstr ""
 "Tenta manter recursos pintados (cor/costura/suporte/textura difusa etc.) após alterar a malha do objeto (como cortar/recarregar do disco/simplificar/corrigir etc.)\n"
 "Altamente experimental! Lento e pode criar artefatos."
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "Usar agentes de impressora em vez de hosts de impressão"
+
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Encaminha os trabalhos de impressão de impressoras que não são Bambu pelos agentes de plugin de impressora em vez do fluxo clássico de envio ao host de impressão.\n"
+"Quando desativado, o OrcaSlicer usa o comportamento antigo do host de impressão."
 
 msgid "Allow Abnormal Storage"
 msgstr "Permitir Armazenamento Anormal"
@@ -10126,6 +10126,9 @@ msgstr "Sequência de filamento de outra camada"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Por favor insira o valor da camada (>= 2)."
+
+msgid "to"
+msgstr "para"
 
 msgid "Plate name"
 msgstr "Nome da placa"
@@ -15793,6 +15796,14 @@ msgstr "Preenchimento simétrico no eixo Y"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Se o modelo tiver duas partes simétricas em relação ao eixo Y e você quiser que essas partes tenham texturas simétricas, clique nesta opção em uma das partes."
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "Preencher os topos do padrão"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "Escolha esta opção se quiser preencher completamente os topos do padrão de preenchimento"
 
 msgid "Infill combination - Max layer height"
 msgstr "Combinação de preenchimento - Altura máx da camada"
@@ -21832,6 +21843,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "O modelo do filamento é desconhecido. Uma predefinição de filamento aleatória será usada."
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "Ocultar planos e eixos de referência"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "Mostrar planos e eixos de referência"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "Ocultar a mesa da impressora e a grade da placa"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Mostrar a mesa da impressora e a grade da placa"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "Clique em um plano de referência ou em uma face plana para esboçar — Esc cancela"
+
+# AI Translated
 msgid "Construction"
 msgstr "Construção"
 
@@ -21856,8 +21887,9 @@ msgstr "Círculo — clique no centro e depois no raio"
 msgid "Arc — click start, end, then a point"
 msgstr "Arco — clique no início, no fim e depois em um ponto"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "Rasgo — as duas extremidades da linha central e depois a largura"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -21931,8 +21963,9 @@ msgstr "Eixos globais exibidos"
 msgid "World axes hidden"
 msgstr "Eixos globais ocultos"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "Vista axonométrica, ajustada"
 
 msgid "Bed shown"
 msgstr "Mesa mostrada"
@@ -21941,34 +21974,12 @@ msgid "Bed hidden"
 msgstr "Mesa oculta"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "RECURSOS"
+msgid "Reference planes shown"
+msgstr "Planos de referência exibidos"
 
 # AI Translated
-msgid "Sketch"
-msgstr "Esboço"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Plano do esboço: %s — escolha uma ferramenta"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Clique em uma face ou em um plano de referência na janela de visualização e depois em uma ferramenta de esboço"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"Plano do esboço: %s.\n"
-"Escolha uma ferramenta ou pressione Menu para ver a lista."
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Clique em uma face ou em um plano de referência e depois em uma ferramenta de esboço."
+msgid "Reference planes hidden"
+msgstr "Planos de referência ocultos"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22154,8 +22165,9 @@ msgstr "Eixo"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Eixo de referência (dois pontos, normal da face, linha central do cilindro, dois planos, ao longo da aresta)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "Sistema de coordenadas"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -22219,8 +22231,9 @@ msgstr "O espelhamento precisa de um corpo — adicione ou importe um primeiro"
 msgid "Mate"
 msgstr "Posicionamento"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Montagem: alinhar dois sistemas de coordenadas (fixo, plano, de revolução, deslizante, cilíndrico)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -22319,14 +22332,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "Selecione uma superfície cilíndrica (furo / externa) ou uma aresta circular para a rosca"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importar STEP (sólido B-rep editável)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importar malha (STL/OBJ) como um sólido B-rep editável"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "Restringir o esboço selecionado"
 
@@ -22358,8 +22363,9 @@ msgstr "Clique no início e depois no fim — depois defina o comprimento exato"
 msgid "Polyline"
 msgstr "Polilinha"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "Clique nos pontos; clique no primeiro ponto para fechar o laço, clique com o botão direito ou Enter para encerrar a cadeia"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -22449,8 +22455,9 @@ msgstr "Clique no centro, depois no início e depois em um ponto para o ângulo 
 msgid "Slot"
 msgstr "Rasgo"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "Clique nas duas extremidades da linha central e depois em um ponto para a largura"
 
 # AI Translated
 msgid "Arc slot"
@@ -22480,8 +22487,9 @@ msgstr "Clique no centro, na extremidade do eixo maior, no ponto do eixo menor e
 msgid "Spline"
 msgstr "Spline"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "Clique nos pontos de controle; clique duplo, clique com o botão direito ou Enter para terminar"
 
 # AI Translated
 msgid "Click to place a point"
@@ -22535,15 +22543,17 @@ msgstr "Selecione uma linha como eixo de espelhamento e depois as entidades a es
 msgid "Trim"
 msgstr "Aparar"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "Clique em um segmento para apará-lo até a interseção mais próxima; Esc para sair"
 
 # AI Translated
 msgid "Extend"
 msgstr "Estender"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "Clique em uma linha ou arco para estendê-lo até a entidade mais próxima; Esc para sair"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -22720,12 +22730,20 @@ msgid "New Design — clear the feature tree"
 msgstr "Novo design — limpar a árvore de recursos"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Importar STEP (sólido B-rep editável)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Importar malha (STL/OBJ) como um sólido B-rep editável"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Exportar STEP…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Mostrar a mesa da impressora e a grade da placa"
+msgid "Create a new sketch"
+msgstr "Criar um novo esboço"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -22739,20 +22757,25 @@ msgstr "Vista de seção — oculta parte do modelo para ver o interior. PageUp/
 msgid "Flip Section — show the opposite half"
 msgstr "Inverter seção — mostrar a metade oposta"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "Escolher como os corpos são enviados para a placa"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "Enviar para a Placa"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "Todos os corpos se tornam um único objeto com uma peça por corpo, mantendo suas posições relativas"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "Enviar para a Placa (como corpos separados)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "Cada corpo se torna um objeto próprio, posicionado separadamente"
 
 # AI Translated
 msgid "Width / X"
@@ -22761,6 +22784,10 @@ msgstr "Largura / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Altura / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Esboço"
 
 # AI Translated
 msgid "Distance X"
@@ -22962,8 +22989,9 @@ msgstr "Circular"
 msgid "Direction"
 msgstr "Direção"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "Ângulo total (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -23347,11 +23375,13 @@ msgstr "Cilíndrico — eixos colineares; giro livre + deslizamento axial"
 msgid "Kind"
 msgstr "Tipo"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (fixo)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (móvel)"
 
 # AI Translated
 msgid "Angle °"
@@ -23388,6 +23418,10 @@ msgstr "(sem vínculos)"
 # AI Translated
 msgid "Value"
 msgstr "Valor"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "Escolha uma ferramenta ou pressione Menu para ver a lista."
 
 # AI Translated
 msgid "Constraints"
@@ -23427,6 +23461,10 @@ msgid "Show / hide"
 msgstr "Mostrar / ocultar"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "Zoom na seleção"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "Verificar interferência — encontrar corpos sobrepostos"
 
@@ -23447,14 +23485,17 @@ msgstr "Corpo %d selecionado — clique com o botão direito para ver o que se a
 msgid "Variables"
 msgstr "Variáveis"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "Adicionar variável"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "Editar variável"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "Excluir variável"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -23473,9 +23514,10 @@ msgstr "Esboço atualizado"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Esboço criado (%zu cotas motrizes) — selecione-o e clique com o botão direito para extrudar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "Comprimento %.2f mm, ângulo %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -23496,6 +23538,10 @@ msgstr "Região selecionada — clique com o botão direito para extrudar ou cli
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Esboço selecionado — clique com o botão direito para extrudar ou clique duas vezes para editar"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "Essa face não é plana — clique em uma face plana ou em um plano de referência"
 
 # AI Translated
 #, c-format, boost-format
@@ -23525,30 +23571,29 @@ msgstr "Corpo %d: face %d selecionada — clique com o botão direito para empur
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Face %d selecionada — clique com o botão direito para empurrá-la/puxá-la, ou clique novamente para o corpo inteiro"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Corpo %d: %zu aresta selecionada — Shift+clique adiciona ou remove uma, Filete/Chanfro arredonda ou chanfra todas"
+msgstr[1] "Corpo %d: %zu arestas selecionadas — Shift+clique adiciona ou remove uma, Filete/Chanfro arredonda ou chanfra todas"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "%zu aresta selecionada — Shift+clique adiciona ou remove uma, Filete/Chanfro arredonda ou chanfra todas"
+msgstr[1] "%zu arestas selecionadas — Shift+clique adiciona ou remove uma, Filete/Chanfro arredonda ou chanfra todas"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Plano %s selecionado — clique com o botão direito para ver as ferramentas de desenho"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Corpo %d: aresta %d selecionada — Shift+clique para adicionar arestas, ou clique novamente para o corpo inteiro"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Aresta %d selecionada — Shift+clique para adicionar arestas, ou clique novamente para o corpo inteiro"
 
 # AI Translated
 #, c-format, boost-format
@@ -23573,8 +23618,9 @@ msgstr "Ferramenta encerrada"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Esboço mantido — Confirmar para efetivá-lo, Cancelar para descartá-lo"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "Selecione algo para excluir"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -23606,17 +23652,21 @@ msgstr "Editando: Esboço %d   ·   N = olhar normal ao plano   ·   Confirmar o
 msgid "OK — %zu triangles"
 msgstr "OK — %zu triângulos"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "Edite o texto — Enter aplica, Esc o mantém como estava"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "Digite o texto — ele aparece na vista enquanto você digita; Enter insere, Esc cancela"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "Texto inalterado"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "Texto cancelado"
 
 # AI Translated
 msgid "Import SVG"
@@ -23642,9 +23692,10 @@ msgstr "Lendo STEP…"
 msgid "No solids found in STEP"
 msgstr "Nenhum sólido encontrado no STEP"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "Falha ao importar STEP: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -23669,9 +23720,10 @@ msgstr "Arquivos de malha (*.stl;*.obj)|*.stl;*.obj|Todos os arquivos|*.*"
 msgid "Could not read the STL file"
 msgstr "Não foi possível ler o arquivo STL"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "Não foi possível ler o arquivo OBJ: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -23696,20 +23748,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Malha grande"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "Falha na conversão da malha: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "A conversão da malha não produziu geometria"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "Malha"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "Falha ao importar a malha: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -23738,17 +23793,19 @@ msgstr " — arraste para colocar/dimensionar e depois confirme"
 msgid "Insert canceled"
 msgstr "Inserção cancelada"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Arraste um canto para dimensionar, o centro para mover — Enter ou ✓ ao terminar, Esc para descartar"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Esboço adicionado (plano: %s) — selecione-o e clique com o botão direito para extrudar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "Não foi possível reconstruir o modelo: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -23820,18 +23877,21 @@ msgstr "Selecione primeiro um esboço com uma linha aberta"
 msgid "Add at least one face to delete first"
 msgstr "Adicione primeiro pelo menos uma face a excluir"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "O posicionamento precisa de dois sistemas de coordenadas — crie-os primeiro"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "Posicionamento: A e B devem ser sistemas de coordenadas diferentes"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Posicionamento rejeitado"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "A verificação de interferência precisa de pelo menos dois corpos"
 
 # AI Translated
 msgid "No interference found"
@@ -23842,36 +23902,43 @@ msgstr "Nenhuma interferência encontrada"
 msgid "Body %d"
 msgstr "Corpo %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s %.2f mm³"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu par de corpos sobrepostos: %s"
+msgstr[1] "%zu pares de corpos sobrepostos: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "Selecione um corpo para medi-lo"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "Não foi possível medir este corpo"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: corpo de superfície, área %.2f mm², sem volume — espesse-o para obter um"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: volume %.2f mm³, área %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "O padrão precisa de um corpo sólido — adicione ou importe um primeiro"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "A operação booleana precisa de dois corpos — adicione ou importe um segundo"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -23886,35 +23953,45 @@ msgstr "Face selecionada (Corpo %d)"
 msgid "Picked face"
 msgstr "Face selecionada"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "não foi possível unir a nova forma ao corpo"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "não foi possível subtrair a nova forma do corpo"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "não foi possível intersectar as formas"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "nada no histórico produz um sólido ainda"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "o perfil do esboço não é um laço fechado válido"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "a ferramenta não toca o corpo"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "uma expressão usa uma variável que não existe"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "uma expressão divide por zero"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "duas variáveis são definidas uma em função da outra"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "uma operação geométrica falhou"
 
 # AI Translated
 #, c-format, boost-format
@@ -23953,15 +24030,17 @@ msgstr "Cota — clique no segundo ponto"
 msgid "Line — click the start point"
 msgstr "Linha — clique no ponto inicial"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "Linha — clique no ponto final; depois o comprimento e o ângulo podem ser digitados"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Polilinha — clique no primeiro ponto"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "Polilinha — clique no próximo ponto  ·  clique no ponto inicial para fechá-la  ·  clique com o botão direito, clique duplo ou Enter para encerrar a cadeia"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -24007,8 +24086,9 @@ msgstr "Retângulo arredondado — clique para definir o raio do canto"
 msgid "Circle — click the center"
 msgstr "Círculo — clique no centro"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "Círculo — clique para definir o raio; depois ele pode ser digitado"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -24134,18 +24214,21 @@ msgstr "Arco elíptico — clique onde o arco termina"
 msgid "Spline — click the first control point"
 msgstr "Spline — clique no primeiro ponto de controle"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "Spline — clique no próximo ponto de controle  ·  clique com o botão direito, clique duplo ou Enter para terminar a curva"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Ponto — clique para colocar um; a ferramenta continua ativa para mais"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "Aparar — clique em um segmento onde ele cruza outra entidade  ·  Esc para sair"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "Estender — clique em uma linha ou arco para prolongá-lo até a entidade mais próxima  ·  Esc para sair"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -24155,8 +24238,9 @@ msgstr "Filete — clique na primeira de duas linhas que se encontram"
 msgid "Fillet — click the second line"
 msgstr "Filete — clique na segunda linha"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Filete — arraste a seta ou clique no número para digitar o raio  ·  Enter aplica  ·  Esc cancela"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -24166,63 +24250,74 @@ msgstr "Chanfro — clique na primeira de duas linhas que se encontram"
 msgid "Chamfer — click the second line"
 msgstr "Chanfro — clique na segunda linha"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Chanfro — arraste a seta ou clique no número para digitar o recuo  ·  Enter aplica  ·  Esc cancela"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "Deslocamento — clique em uma curva; todo o contorno dela é deslocado"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Deslocamento — arraste a seta para qualquer lado ou clique no número para digitar a distância  ·  Enter aplica  ·  Esc cancela"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Espelhar — primeiro clique na LINHA em relação à qual espelhar (uma linha de construção serve)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "Espelhar — eixo definido  ·  agora clique nas entidades a espelhar  ·  Esc cancela"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "Espelhar — eixo definido  ·  %d a espelhar  ·  clique em outra para adicioná-la ou removê-la  ·  Enter aplica"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Mover — clique nas entidades a mover"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "Mover — arraste a alça ou clique no número para digitar a distância  ·  Enter aplica"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Rotacionar — clique nas entidades a rotacionar"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "Rotacionar — arraste a alça ou clique no número para digitar o ângulo  ·  Enter aplica"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Dimensionar — clique nas entidades a dimensionar"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "Dimensionar — arraste a alça ou clique no número para digitar o fator  ·  Enter aplica"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Matriz — clique nas entidades a repetir"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Matriz — arraste a alça para definir o passo, clique na quantidade para digitá-la  ·  Enter aplica"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Matriz polar — clique nas entidades a repetir"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Matriz polar — arraste a alça para definir o ângulo total, clique na quantidade para digitá-la  ·  Enter aplica"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Arraste um canto para dimensionar, o centro para mover  ·  Enter ou ✓ ao terminar, Esc para descartar"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -24232,62 +24327,77 @@ msgstr "  ·  Esc volta para Selecionar"
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  clique no ícone de uma restrição para removê-la"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — corpo sólido"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — corpo de superfície"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "Face plana %d de %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "Face cilíndrica %d de %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "Face %d de %s"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu aresta de %s"
+msgstr[1] "%zu arestas de %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "Aresta reta %d de %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "Aresta circular %d de %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "Vértice de %s"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "Perfil de esboço"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "Esboço — nada selecionado"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "Linha de esboço"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "Curva de esboço"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "Ponto de esboço"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "%d entidades de esboço"
 
 msgid "select something first"
 msgstr "selecione algo antes"
@@ -24349,8 +24459,9 @@ msgstr "Plano adicionado — selecione-o como plano de esboço"
 msgid "Axis added"
 msgstr "Eixo adicionado"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "Sistema de coordenadas adicionado"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -24367,10 +24478,10 @@ msgstr "A inclinação precisa de uma face selecionada — clique primeiro em um
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "Nada ainda — importe um STEP ou uma malha pela barra de ferramentas,\n"
-"ou clique em um plano de referência e clique nele com o botão direito para iniciar um esboço."
+"ou pressione Esboço e clique em um plano de referência para iniciar um esboço."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -24380,9 +24491,10 @@ msgstr "Nenhum sólido ainda — selecione um esboço e clique nele com o botão
 msgid "Could not restore the CAD model from this project"
 msgstr "Não foi possível restaurar o modelo CAD deste projeto"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "Não foi possível restaurar o modelo CAD: %s"
 
 # AI Translated
 #, c-format
@@ -24405,16 +24517,34 @@ msgstr "Vista de seção — mostrando a metade superior"
 msgid "Section view — showing the lower half"
 msgstr "Vista de seção — mostrando a metade inferior"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "Procurando as faces do recurso…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Selecione primeiro um corpo — clique nele na janela de visualização ou na lista Corpos"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "O modelo está sendo reconstruído — dê zoom novamente quando terminar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%s não tem nada visível para dar zoom"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Esse corpo ainda não tem malha de exibição — recalcule primeiro"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "Selecione algo para dar zoom"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "Termine ou cancele primeiro o que está aberto"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Selecione primeiro um corpo — clique nele na janela de visualização ou na lista Corpos"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -24441,12 +24571,10 @@ msgstr "Clique em uma face do sólido e depois pressione F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Apoiado na face — corpo deitado na mesa"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "Edição rejeitada: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -24465,9 +24593,10 @@ msgstr "Este corpo não tem recurso a excluir — use Novo design para recomeça
 msgid "feature %d"
 msgstr "recurso %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "Recurso excluído: %s, aquele a partir do qual este corpo foi criado — Ctrl+Z o restaura"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -24859,12 +24988,14 @@ msgstr "Arquivos STEP (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP exportado"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "Falha ao exportar STEP: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "Enviar para a Placa (como corpos separados) — enviar cada corpo para Preparar como um objeto próprio"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -24878,19 +25009,36 @@ msgstr "Nada para enviar à placa — adicione um recurso primeiro"
 msgid "All bodies hidden — show one before committing"
 msgstr "Todos os corpos estão ocultos — mostre um antes de enviar à placa"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu aresta"
+msgstr[1] "%zu arestas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "Linha central E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "Linha E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Plano do esboço: %s — escolha uma ferramenta"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"Plano do esboço: %s.\n"
+"Escolha uma ferramenta ou pressione Menu para ver a lista."
 
 # AI Translated
 msgid "Plane ready"
@@ -24900,8 +25048,9 @@ msgstr "Plano pronto"
 msgid "Axis ready"
 msgstr "Eixo pronto"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "Sistema de coordenadas pronto"
 
 # AI Translated
 msgid "Helix ready"
@@ -24919,9 +25068,10 @@ msgstr "Esboço pronto"
 msgid "Mate ready"
 msgstr "Posicionamento pronto"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "Inválido: %s"
 
 # AI Translated
 #, c-format
@@ -25005,110 +25155,139 @@ msgstr "Editar variável"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Não foi possível remover a variável '%s' (provavelmente ainda referenciada pela expressão de um recurso): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "\"%s\" não é um valor que uma expressão possa controlar"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "Nenhum vínculo para esse campo"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "O valor deve ser maior que zero"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "O valor não deve ser negativo (zero significa coincidente)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "Essa cota não pode ser satisfeita — o esboço está superrestrito"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "Restrições ignoradas por não poderem atuar sobre esta geometria (uma elipse ou curva spline, ou um círculo de tamanho zero): %1%"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "Este perfil se cruza ou se dobra sobre si mesmo na marca vermelha, então não delimita uma única região"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "Lado"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "Semieixo maior"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "Semieixo menor"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "O ângulo deve estar entre 0° e 360°"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "O semieixo maior não pode ser mais curto que o semieixo menor"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "O raio do canto deve ser menor que a metade do lado mais curto"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "O rasgo é largo demais para o seu raio — a largura deve ser menor que o dobro do raio"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "%1%: impossível de satisfazer — o esboço está superrestrito"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "Essas duas linhas não se encontram em um canto — selecione duas linhas que se encontrem"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "O tamanho deve ser maior que zero"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Filete: o raio excede o comprimento de um dos lados, ou as duas linhas não se encontram em um canto"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Chanfro: a distância excede o comprimento de um dos lados, ou as duas linhas não se encontram em um canto"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "Restrições invalidadas pelo filete/chanfro e removidas: %1%"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "Deslocamento: uma elipse ou uma spline não tem uma paralela do mesmo tipo — selecione linhas, arcos ou círculos"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "O fator de escala deve ser maior que zero"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "Cópias"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "O número de cópias deve ser um número inteiro, 2 ou mais"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "Restrições liberadas pela transformação: %1%"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "As cópias da matriz não estão restritas — o solucionador recusou todas as vinculações"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "clique com o botão direito ou clique duplo para terminar, clique no início para fechar"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "Estender: clique em uma linha ou um arco que possa alcançar outra entidade"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "Aparar: clique em um segmento onde ele cruza outra entidade"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "Pressione Enter ou ✓ para aplicar, Esc para descartar"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "Ainda não há cota para essa entidade — clique em uma linha, um círculo, um arco ou dois pontos"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "Clique em um segundo ponto, ou em uma linha até a qual medir a distância"
 
 # AI Translated
 msgid "Enter a number"
@@ -25144,8 +25323,12 @@ msgid "Sketch"
 msgstr "Esboço"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Clique em uma face ou em um plano de referência e depois escolha uma ferramenta de desenho"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "Selecione uma face plana ou um plano de referência para esboçar"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "Esboçar na face plana ou no plano selecionado, ou clicar em um deles depois"
 
 # AI Translated
 msgctxt "Design"
@@ -25167,9 +25350,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "Espessar"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "Unir"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -25222,16 +25406,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "Espessar superfície"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "O espessamento de superfície precisa de um corpo de superfície — crie um primeiro com uma ferramenta de superfície"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "Furo"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -25247,8 +25429,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "Dividir"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "A divisão precisa de um corpo sólido — adicione ou importe um primeiro"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -25294,8 +25477,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "Deslocamento de superfície"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "O deslocamento de superfície precisa de um corpo de superfície — crie um primeiro com uma ferramenta de superfície"
 
 # AI Translated
 msgctxt "Design"
@@ -25325,8 +25509,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "Padrão em curva"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "O padrão em curva precisa de um corpo e de uma curva"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -25347,8 +25532,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "Alinhar a"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "O alinhamento precisa de um corpo — adicione ou importe um primeiro"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -25364,9 +25550,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "Eixo"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "Sistema de coordenadas"
 
 # AI Translated
 msgctxt "Design"
@@ -25382,9 +25569,10 @@ msgstr "Medir"
 msgid "Measure between the picked points, edges or faces"
 msgstr "Medir entre os pontos, arestas ou faces selecionados"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "Volume e área"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -25425,12 +25613,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "Excluir face"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "Cor"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "Definir a cor de exibição do corpo selecionado"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "Zoom na seleção"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "Enquadrar a seleção na vista, mantendo a direção de visualização"
 
 # AI Translated
 msgctxt "Design"
@@ -25469,9 +25668,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Retângulo por cantos"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "Retângulo pelo centro"
 
 # AI Translated
 msgctxt "Design"
@@ -25483,9 +25683,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "Retângulo arredondado"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "Círculo pelo centro"
 
 # AI Translated
 msgctxt "Design"
@@ -25507,9 +25708,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "Arco tangente"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "Arco pelo centro"
 
 # AI Translated
 msgctxt "Design"
@@ -25541,48 +25743,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "Triângulo"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "Triângulo — clique no centro e depois em um vértice"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "Quadrado"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "Quadrado — clique no centro e depois em um vértice"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "Pentágono"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "Pentágono — clique no centro e depois em um vértice"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "Hexágono"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "Hexágono — clique no centro e depois em um vértice"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "Octógono"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "Octógono — clique no centro e depois em um vértice"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "Dodecágono"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "Dodecágono — clique no centro e depois em um vértice"
 
 # AI Translated
 msgctxt "Design"
@@ -25612,8 +25820,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "Texto"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "Digite um texto; ele se torna um recurso Texto no plano deste esboço, editável depois"
 
 # AI Translated
 msgctxt "Design"
@@ -25730,27 +25939,34 @@ msgstr "Ângulo / distância…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "Digitar o ângulo entre duas linhas ou a distância entre as duas seleções"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "Digite o texto a inserir"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "Negrito"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "Itálico"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "Esta fonte não pode ser usada para texto — escolha outra"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "Digite o texto para ver seu tamanho"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "Esta fonte não tem contorno para este texto"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "Tamanho: %.1f × %.1f mm"
 
 # AI Translated
 msgid "Primitive"
@@ -25848,8 +26064,9 @@ msgstr "Perfil"
 msgid "Start new profile (for holes)"
 msgstr "Iniciar novo perfil (para furos)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "Segmentos"
 
 # AI Translated
 msgid "Sides"
@@ -25863,20 +26080,23 @@ msgstr "Clique na tela para desenhar"
 msgid "Snap to grid"
 msgstr "Ajustar à grade"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "Passo da grade"
 
 # AI Translated
 msgid "Outer"
 msgstr "Externo"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "fechado"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% pontos %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -25913,8 +26133,9 @@ msgstr[1] "%zu perfis fechados"
 msgid "Draw a closed profile to enable"
 msgstr "Desenhe um perfil fechado para ativar"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "Limpar tudo"
 
 # AI Translated
 msgid "Empty result"
@@ -30017,6 +30238,38 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimental) Usar agentes de impressora em vez de hosts de impressão"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "RECURSOS"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Clique em uma face ou em um plano de referência na janela de visualização e depois em uma ferramenta de esboço"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Clique em uma face ou em um plano de referência e depois em uma ferramenta de esboço."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Plano %s selecionado — clique com o botão direito para ver as ferramentas de desenho"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Nada ainda — importe um STEP ou uma malha pela barra de ferramentas,\n"
+#~ "ou clique em um plano de referência e clique nele com o botão direito para iniciar um esboço."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Clique em uma face ou em um plano de referência e depois escolha uma ferramenta de desenho"
 
 #~ msgid "X"
 #~ msgstr "X"

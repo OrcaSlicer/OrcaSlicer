@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3774,8 +3774,8 @@ msgstr "Ytterligare process inställning"
 msgid "Remove parameter"
 msgstr "Ta bort parameter"
 
-msgid "to"
-msgstr "till"
+msgid "Range"
+msgstr "Räckvidd"
 
 msgid "Add height range"
 msgstr "Lägg till höjdintervall"
@@ -6031,9 +6031,6 @@ msgstr "Parameter namn"
 
 msgid "layers"
 msgstr "lager"
-
-msgid "Range"
-msgstr "Räckvidd"
 
 msgid "Empty string"
 msgstr "Tom sträng"
@@ -9639,8 +9636,9 @@ msgstr "Den anslutna skrivaren är %s. Den måste matcha projektets förinställ
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Vill du synkronisera skrivarinformationen och byta förinställning automatiskt?"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "Det här projektet innehåller en modell som skapats i fliken Design och ingen annan geometri. Aktivera \"CAD-funktion (experimentell)\" i Inställningar och starta om för att visa och redigera den; den behålls när projektet sparas."
 
 msgid "The file does not contain any geometry data."
 msgstr "Filen innehåller ingen geometrisk data."
@@ -10819,8 +10817,9 @@ msgstr "I fliken Design ritas en parningskoppling som en liten yta i stället f�
 msgid "Auto-close sketch loops"
 msgstr "Stäng skisslingor automatiskt"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "Behandla skissändpunkter inom 0,001 mm som en enda punkt och svetsa ihop slingan. Av: endast exakt sammanfallande ändpunkter sammanfogas, så en slinga med ett litet glapp visas som öppen i stället för att stängas åt dig. Sparas med varje design; gäller designer som påbörjas efter ändringen."
 
 # AI Translated
 msgid "Pan"
@@ -11298,18 +11297,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Visa inkompatibla förinställningar och förinställningar som inte stöds i rullgardinslistorna för skrivare och filament. Dessa förinställningar kan inte väljas."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Experimentellt) Använd skrivaragenter i stället för utskriftsvärdar"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Skickar utskriftsjobb för icke-Bambu-skrivare via skrivarens insticksmodulagenter i stället för det klassiska uppladdningsflödet till utskriftsvärden.\n"
-"När detta är avaktiverat använder OrcaSlicer det äldre beteendet för utskriftsvärdar."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Experimentella funktioner"
 
@@ -11324,6 +11311,18 @@ msgid ""
 msgstr ""
 "Försök att behålla målade egenskaper (färg/söm/support/ojämn yta osv.) efter att objektets mesh ändrats (t.ex. snitt, läs in från disk igen, förenkla, reparera osv.)\n"
 "Mycket experimentellt! Långsamt och kan skapa artefakter."
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "Använd skrivaragenter i stället för utskriftsvärdar"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Skickar utskriftsjobb för icke-Bambu-skrivare via skrivarens insticksmodulagenter i stället för det klassiska uppladdningsflödet till utskriftsvärden.\n"
+"När detta är avaktiverat använder OrcaSlicer det äldre beteendet för utskriftsvärdar."
 
 # AI Translated
 msgid "Allow Abnormal Storage"
@@ -11502,6 +11501,9 @@ msgstr "Filamentsekvens för övriga lager"
 # AI Translated
 msgid "Please input layer value (>= 2)."
 msgstr "Ange ett lagervärde (>= 2)."
+
+msgid "to"
+msgstr "till"
 
 msgid "Plate name"
 msgstr "Plattans namn"
@@ -18033,6 +18035,14 @@ msgstr "Symmetrisk ifyllnad kring Y-axeln"
 # AI Translated
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Om modellen har två delar som är symmetriska kring Y-axeln och du vill att dessa delar ska ha symmetriska texturer, klickar du i det här alternativet på en av delarna."
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "Fyll mönstrets ovansidor"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "Välj det här alternativet om du vill fylla ifyllnadsmönstrets ovansidor helt"
 
 # AI Translated
 msgid "Infill combination - Max layer height"
@@ -25120,6 +25130,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Filamentmodellen är okänd. En slumpmässig filamentförinställning används."
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "Dölj referensplan och axlar"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "Visa referensplan och axlar"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "Dölj skrivarens byggplatta och dess rutnät"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Visa skrivarens byggplatta och dess rutnät"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "Klicka på ett referensplan eller en plan yta att skissa på — Esc avbryter"
+
+# AI Translated
 msgid "Construction"
 msgstr "Konstruktion"
 
@@ -25144,8 +25174,9 @@ msgstr "Cirkel — klicka på mittpunkt, sedan radie"
 msgid "Arc — click start, end, then a point"
 msgstr "Båge — klicka på start, slut, sedan en punkt"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "Spår — mittlinjens två ändar, sedan bredden"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -25219,8 +25250,9 @@ msgstr "Världsaxlar visas"
 msgid "World axes hidden"
 msgstr "Världsaxlar dolda"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "Axonometrisk vy, anpassad"
 
 # AI Translated
 msgid "Bed shown"
@@ -25231,34 +25263,12 @@ msgid "Bed hidden"
 msgstr "Byggplattan dold"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "OPERATIONER"
+msgid "Reference planes shown"
+msgstr "Referensplanen visas"
 
 # AI Translated
-msgid "Sketch"
-msgstr "Skiss"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Skissplan: %s — välj ett verktyg"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Klicka på en yta eller ett referensplan i vyn, sedan på ett skissverktyg"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"Skissplan: %s.\n"
-"Välj ett verktyg, eller tryck på Meny för listan."
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Klicka på en yta eller ett referensplan, sedan på ett skissverktyg."
+msgid "Reference planes hidden"
+msgstr "Referensplanen dolda"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -25444,8 +25454,9 @@ msgstr "Axel"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Referensaxel (två punkter, ytnormal, cylinderns mittlinje, två plan, längs kant)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "Koordinatsystem"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -25509,8 +25520,9 @@ msgstr "Spegelvänd kräver en kropp — lägg till eller importera en först"
 msgid "Mate"
 msgstr "Parning"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Sammanställning: rikta in två koordinatsystem (fast, plan, roterande, glidande, cylindrisk)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -25610,14 +25622,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "Välj en cylindrisk yta (hål / yttre) eller en cirkulär kant för en gänga"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importera STEP (redigerbar B-rep-solid)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importera mesh (STL/OBJ) som en redigerbar B-rep-solid"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "Lägg till villkor i vald skiss"
 
@@ -25649,8 +25653,9 @@ msgstr "Klicka på start, sedan slut — ange sedan exakt längd"
 msgid "Polyline"
 msgstr "Polylinje"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "Klicka på punkter; klicka på den första punkten för att stänga slingan, högerklicka eller tryck på Enter för att avsluta kedjan"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -25740,8 +25745,9 @@ msgstr "Klicka på mittpunkten, sedan start, sedan en punkt för slutvinkeln"
 msgid "Slot"
 msgstr "Spår"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "Klicka på mittlinjens två ändar, sedan en punkt för bredden"
 
 # AI Translated
 msgid "Arc slot"
@@ -25771,8 +25777,9 @@ msgstr "Klicka på mittpunkt, storaxelns ände, punkt på lillaxeln, sedan båge
 msgid "Spline"
 msgstr "Spline"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "Klicka på styrpunkter; dubbelklicka, högerklicka eller tryck på Enter för att avsluta"
 
 # AI Translated
 msgid "Click to place a point"
@@ -25826,15 +25833,17 @@ msgstr "Välj en linje som speglingsaxel, sedan elementen att spegla; klicka på
 msgid "Trim"
 msgstr "Trimma"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "Klicka på ett segment för att trimma det till närmaste skärningspunkt; Esc avslutar"
 
 # AI Translated
 msgid "Extend"
 msgstr "Förläng"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "Klicka på en linje eller båge för att förlänga den till närmaste element; Esc avslutar"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -26019,12 +26028,20 @@ msgid "New Design — clear the feature tree"
 msgstr "Ny design — rensa operationsträdet"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Importera STEP (redigerbar B-rep-solid)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Importera mesh (STL/OBJ) som en redigerbar B-rep-solid"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Exportera STEP…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Visa skrivarens byggplatta och dess rutnät"
+msgid "Create a new sketch"
+msgstr "Skapa en ny skiss"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -26038,20 +26055,25 @@ msgstr "Sektionsvy — dölj en del av modellen för att se inuti. PageUp/PageDo
 msgid "Flip Section — show the opposite half"
 msgstr "Vänd sektion — visa den motsatta halvan"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "Välj hur \"Överför till platta\" skickar kropparna"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "Överför till platta"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "Alla kroppar blir ett objekt med en del per kropp, och deras inbördes placering behålls"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "Överför till platta (som kroppar)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "Varje kropp blir ett eget objekt och placeras för sig"
 
 # AI Translated
 msgid "Width / X"
@@ -26060,6 +26082,10 @@ msgstr "Bredd / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Höjd / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Skiss"
 
 # AI Translated
 msgid "Distance X"
@@ -26263,8 +26289,9 @@ msgstr "Cirkulär"
 msgid "Direction"
 msgstr "Riktning"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "Total vinkel (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -26648,11 +26675,13 @@ msgstr "Cylindrisk — axlarna kolinjära; fri rotation + axiell glidning"
 msgid "Kind"
 msgstr "Typ"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (fast)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (rörlig)"
 
 # AI Translated
 msgid "Angle °"
@@ -26689,6 +26718,10 @@ msgstr "(inga bindningar)"
 # AI Translated
 msgid "Value"
 msgstr "Värde"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "Välj ett verktyg, eller tryck på Meny för listan."
 
 # AI Translated
 msgid "Constraints"
@@ -26729,6 +26762,10 @@ msgid "Show / hide"
 msgstr "Visa / dölj"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "Zooma till markering"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "Kontrollera interferens — hitta överlappande kroppar"
 
@@ -26749,14 +26786,17 @@ msgstr "Kropp %d vald — högerklicka för det som gäller den"
 msgid "Variables"
 msgstr "Variabler"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "Lägg till variabel"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "Redigera variabel"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "Ta bort variabel"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -26775,9 +26815,10 @@ msgstr "Skissen uppdaterad"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Skiss skapad (%zu styrande mått) — välj den och högerklicka sedan för att extrudera"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "Längd %.2f mm, vinkel %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -26798,6 +26839,10 @@ msgstr "Område valt — högerklicka för att extrudera, eller dubbelklicka fö
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Skiss vald — högerklicka för att extrudera, eller dubbelklicka för att redigera"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "Den ytan är inte plan — klicka på en plan yta eller ett referensplan"
 
 # AI Translated
 #, c-format, boost-format
@@ -26827,30 +26872,29 @@ msgstr "Kropp %d: yta %d vald — högerklicka för att trycka/dra den, eller kl
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Yta %d vald — högerklicka för att trycka/dra den, eller klicka igen för hela kroppen"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Kropp %d: %zu kant vald — Shift+klick lägger till eller tar bort en, Avrundning/Fasning bearbetar alla"
+msgstr[1] "Kropp %d: %zu kanter valda — Shift+klick lägger till eller tar bort en, Avrundning/Fasning bearbetar alla"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "%zu kant vald — Shift+klick lägger till eller tar bort en, Avrundning/Fasning bearbetar alla"
+msgstr[1] "%zu kanter valda — Shift+klick lägger till eller tar bort en, Avrundning/Fasning bearbetar alla"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s-planet valt — högerklicka för ritverktygen"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Kropp %d: kant %d vald — Shift+klicka för att lägga till kanter, eller klicka igen för hela kroppen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Kant %d vald — Shift+klicka för att lägga till kanter, eller klicka igen för hela kroppen"
 
 # AI Translated
 #, c-format, boost-format
@@ -26875,8 +26919,9 @@ msgstr "Verktyget avslutat"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Skissen behålls — Bekräfta för att spara den, Avbryt för att förkasta den"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "Välj något att ta bort"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -26908,17 +26953,21 @@ msgstr "Redigerar: Skiss %d   ·   N = titta vinkelrätt mot planet   ·   Bekr�
 msgid "OK — %zu triangles"
 msgstr "OK — %zu trianglar"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "Redigera texten — Enter tillämpar, Esc behåller den som den var"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "Skriv texten — den visas i vyn medan du skriver; Enter infogar, Esc avbryter"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "Texten oförändrad"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "Texten avbröts"
 
 # AI Translated
 msgid "Import SVG"
@@ -26944,9 +26993,10 @@ msgstr "Läser STEP…"
 msgid "No solids found in STEP"
 msgstr "Inga solider hittades i STEP-filen"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "STEP-importen misslyckades: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -26971,9 +27021,10 @@ msgstr "Meshfiler (*.stl;*.obj)|*.stl;*.obj|Alla filer|*.*"
 msgid "Could not read the STL file"
 msgstr "Kunde inte läsa STL-filen"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "Kunde inte läsa OBJ-filen: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -26998,20 +27049,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Stor mesh"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "Mesh-konverteringen misslyckades: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "Mesh-konverteringen gav ingen geometri"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "Mesh"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "Mesh-importen misslyckades: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -27040,17 +27094,19 @@ msgstr " — dra för att placera/ändra storlek, sedan Bekräfta"
 msgid "Insert canceled"
 msgstr "Infogning avbruten"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Dra i ett hörn för att skala, i mitten för att flytta — Enter eller ✓ när du är klar, Esc för att förkasta"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Skiss tillagd (plan: %s) — välj den och högerklicka sedan för att extrudera"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "Modellen kunde inte byggas om: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -27122,18 +27178,21 @@ msgstr "Välj först en skiss med en öppen linje"
 msgid "Add at least one face to delete first"
 msgstr "Lägg först till minst en yta att ta bort"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "Parning kräver två koordinatsystem — skapa dem först"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "Parning: A och B måste vara olika koordinatsystem"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Parningen avvisades"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "Interferens kräver minst två kroppar"
 
 # AI Translated
 msgid "No interference found"
@@ -27144,36 +27203,43 @@ msgstr "Ingen interferens hittades"
 msgid "Body %d"
 msgstr "Kropp %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s %.2f mm³"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu överlappande par: %s"
+msgstr[1] "%zu överlappande par: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "Välj en kropp för att mäta den"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "Den här kroppen kunde inte mätas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: ytkropp, area %.2f mm², ingen volym — förtjocka den för att få en"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: volym %.2f mm³, area %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Mönster kräver en solid kropp — lägg till eller importera en först"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "Boolesk kräver två kroppar — lägg till eller importera en till"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -27188,35 +27254,45 @@ msgstr "Vald yta (Kropp %d)"
 msgid "Picked face"
 msgstr "Vald yta"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "den nya formen kunde inte förenas med kroppen"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "den nya formen kunde inte skäras ut ur kroppen"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "formernas skärning kunde inte beräknas"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "inget i historiken skapar en solid kropp ännu"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "skissprofilen är inte en ren sluten slinga"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "verktyget rör inte kroppen"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "ett uttryck använder en variabel som inte finns"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "ett uttryck dividerar med noll"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "två variabler hänvisar till varandra i sina definitioner"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "en geometrioperation misslyckades"
 
 # AI Translated
 #, c-format, boost-format
@@ -27255,15 +27331,17 @@ msgstr "Mått — klicka på den andra punkten"
 msgid "Line — click the start point"
 msgstr "Linje — klicka på startpunkten"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "Linje — klicka på slutpunkten; dess längd och vinkel kan sedan skrivas in"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Polylinje — klicka på den första punkten"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "Polylinje — klicka på nästa punkt  ·  klicka på startpunkten för att stänga den  ·  högerklick, dubbelklick eller Enter avslutar kedjan"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -27309,8 +27387,9 @@ msgstr "Rundad rektangel — klicka för att ange hörnradien"
 msgid "Circle — click the center"
 msgstr "Cirkel — klicka på mittpunkten"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "Cirkel — klicka för att ange radien; den kan sedan skrivas in"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -27436,18 +27515,21 @@ msgstr "Elliptisk båge — klicka där bågen slutar"
 msgid "Spline — click the first control point"
 msgstr "Spline — klicka på den första styrpunkten"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "Spline — klicka på nästa styrpunkt  ·  högerklick, dubbelklick eller Enter avslutar kurvan"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Punkt — klicka för att placera en; verktyget förblir aktivt för fler"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "Trimma — klicka på ett segment där det korsar ett annat element  ·  Esc för att avsluta"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "Förläng — klicka på en linje eller båge för att förlänga den till närmaste element  ·  Esc för att avsluta"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -27457,8 +27539,9 @@ msgstr "Avrundning — klicka på den första av två linjer som möts"
 msgid "Fillet — click the second line"
 msgstr "Avrundning — klicka på den andra linjen"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Avrundning — dra i pilen, eller klicka på siffran för att skriva radien  ·  Enter tillämpar  ·  Esc avbryter"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -27468,63 +27551,74 @@ msgstr "Fasning — klicka på den första av två linjer som möts"
 msgid "Chamfer — click the second line"
 msgstr "Fasning — klicka på den andra linjen"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Fasning — dra i pilen, eller klicka på siffran för att skriva fasavståndet  ·  Enter tillämpar  ·  Esc avbryter"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "Förskjut — klicka på en kurva; hela dess kontur förskjuts"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Förskjut — dra pilen åt någon av sidorna, eller klicka på siffran för att skriva avståndet  ·  Enter tillämpar  ·  Esc avbryter"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Spegelvänd — klicka först på LINJEN att spegla kring (en konstruktionslinje fungerar)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "Spegelvänd — axeln är angiven  ·  klicka nu på elementen att spegla  ·  Esc avbryter"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "Spegelvänd — axeln är angiven  ·  %d att spegla  ·  klicka på ett annat för att lägga till eller ta bort det  ·  Enter tillämpar"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Flytta — klicka på elementen att flytta"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "Flytta — dra i handtaget, eller klicka på siffran för att skriva avståndet  ·  Enter tillämpar"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Rotera — klicka på elementen att rotera"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "Rotera — dra i handtaget, eller klicka på siffran för att skriva vinkeln  ·  Enter tillämpar"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Skala — klicka på elementen att skala"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "Skala — dra i handtaget, eller klicka på siffran för att skriva faktorn  ·  Enter tillämpar"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Mönster — klicka på elementen att upprepa"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Mönster — dra i handtaget för att ange steget, klicka på antalet för att skriva det  ·  Enter tillämpar"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Polärt mönster — klicka på elementen att upprepa"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Polärt mönster — dra i handtaget för att ange vinkeln, klicka på antalet för att skriva det  ·  Enter tillämpar"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Dra i ett hörn för att skala, i mitten för att flytta  ·  Enter eller ✓ när du är klar, Esc för att förkasta"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -27534,62 +27628,77 @@ msgstr "  ·  Esc går tillbaka till Välj"
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  klicka på en villkorsmarkör för att ta bort den"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — solid kropp"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — ytkropp"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "Plan yta %d på %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "Cylindrisk yta %d på %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "Yta %d på %s"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu kant på %s"
+msgstr[1] "%zu kanter på %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "Rak kant %d på %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "Cirkulär kant %d på %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "Hörn på %s"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "Skissprofil"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "Skiss — inget valt"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "Skisslinje"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "Skisskurva"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "Skisspunkt"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "%d skisselement"
 
 # AI Translated
 msgid "select something first"
@@ -27652,8 +27761,9 @@ msgstr "Plan tillagt — välj det som skissplan"
 msgid "Axis added"
 msgstr "Axel tillagd"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "Koordinatsystem tillagt"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -27670,10 +27780,10 @@ msgstr "Släppvinkel kräver en vald yta — klicka först på en sidoyta"
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "Inget ännu — importera en STEP-fil eller en mesh från verktygsfältet,\n"
-"eller klicka på ett referensplan och högerklicka på det för att börja en skiss."
+"eller tryck på Skiss och klicka på ett referensplan för att börja en skiss."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -27683,9 +27793,10 @@ msgstr "Ingen solid ännu — välj en skiss och högerklicka på den för att e
 msgid "Could not restore the CAD model from this project"
 msgstr "Kunde inte återställa CAD-modellen från det här projektet"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "Kunde inte återställa CAD-modellen: %s"
 
 # AI Translated
 #, c-format
@@ -27708,16 +27819,34 @@ msgstr "Sektionsvy — visar den övre halvan"
 msgid "Section view — showing the lower half"
 msgstr "Sektionsvy — visar den undre halvan"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "Söker operationens ytor…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Välj först en kropp — klicka på den i vyn eller i listan Kroppar"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "Modellen byggs om — zooma igen när den är klar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%s har inget synligt att zooma till"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Den kroppen har ingen visningsmesh än — beräkna om först"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "Välj något att zooma till"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "Slutför eller avbryt det som är öppet först"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Välj först en kropp — klicka på den i vyn eller i listan Kroppar"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -27744,12 +27873,10 @@ msgstr "Klicka på en yta på soliden och tryck sedan på F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Placerad på yta — kroppen ligger plant på byggplattan"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "Redigeringen avvisades: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -27768,9 +27895,10 @@ msgstr "Den här kroppen har ingen operation att ta bort — använd Ny design f
 msgid "feature %d"
 msgstr "operation %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "%s togs bort, operationen som den här kroppen skapades från — Ctrl+Z återställer den"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -28162,12 +28290,14 @@ msgstr "STEP-filer (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP exporterad"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "STEP-exporten misslyckades: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "Överför till platta (som kroppar) — skicka varje kropp till Förbered som ett eget objekt"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -28181,19 +28311,36 @@ msgstr "Inget att överföra — lägg till en operation först"
 msgid "All bodies hidden — show one before committing"
 msgstr "Alla kroppar är dolda — visa en innan du överför"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu kant"
+msgstr[1] "%zu kanter"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "Mittlinje E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "Linje E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Skissplan: %s — välj ett verktyg"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"Skissplan: %s.\n"
+"Välj ett verktyg, eller tryck på Meny för listan."
 
 # AI Translated
 msgid "Plane ready"
@@ -28203,8 +28350,9 @@ msgstr "Planet klart"
 msgid "Axis ready"
 msgstr "Axeln klar"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "Koordinatsystemet klart"
 
 # AI Translated
 msgid "Helix ready"
@@ -28222,9 +28370,10 @@ msgstr "Skissen klar"
 msgid "Mate ready"
 msgstr "Parningen klar"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "Ogiltigt: %s"
 
 # AI Translated
 #, c-format
@@ -28308,110 +28457,139 @@ msgstr "Redigera variabel"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Variabeln '%s' kunde inte tas bort (refereras troligen fortfarande av ett operationsuttryck): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "\"%s\" är inte ett värde som ett uttryck kan styra"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "Ingen bindning för det fältet"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "Värdet måste vara större än noll"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "Värdet får inte vara negativt (noll betyder sammanfallande)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "Det måttet kan inte uppfyllas — skissen är överdefinierad"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "%1% villkor kan inte verka på den här geometrin (en ellips eller splinekurva, eller en cirkel med storleken noll) och ignoreras"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "Den här profilen korsar sig själv eller viker tillbaka på sig själv vid den röda markeringen, så den avgränsar inte ett enda område"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "Sida"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "Halva storaxeln"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "Halva lillaxeln"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "Vinkeln måste vara mellan 0° och 360°"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "Halva storaxeln kan inte vara kortare än halva lillaxeln"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "Hörnradien måste vara mindre än halva den kortare sidan"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "Spåret är för brett för sin radie — bredden måste vara mindre än dubbla radien"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "%1% kan inte uppfyllas — skissen är överdefinierad"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "De två linjerna möts inte i ett hörn — välj två linjer som gör det"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "Storleken måste vara större än noll"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Avrundning: radien sträcker sig förbi ett av benen, eller så möts inte de två linjerna i ett hörn"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Fasning: avståndet sträcker sig förbi ett av benen, eller så möts inte de två linjerna i ett hörn"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "%1% villkor som avrundningen/fasningen gjorde ogiltiga togs bort"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "Förskjut: en ellips eller spline har ingen parallell av samma slag — välj linjer, bågar eller cirklar"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "Skalfaktorn måste vara större än noll"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "Kopior"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "Antalet kopior måste vara ett heltal, 2 eller fler"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "%1% villkor upphävdes av transformationen"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "Mönsterkopiorna saknar villkor — lösaren avvisade varje bindning"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "högerklicka eller dubbelklicka för att avsluta, klicka på startpunkten för att stänga"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "Förläng: klicka på en linje eller en båge som kan nå ett annat element"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "Trimma: klicka på ett segment där det korsar ett annat element"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "Tryck på Enter eller ✓ för att tillämpa, Esc för att förkasta"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "Inget mått för det elementet ännu — klicka på en linje, en cirkel, en båge eller två punkter"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "Klicka på en andra punkt, eller på en linje att mäta avståndet till"
 
 # AI Translated
 msgid "Enter a number"
@@ -28447,8 +28625,12 @@ msgid "Sketch"
 msgstr "Skiss"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Klicka på en yta eller ett referensplan och välj sedan ett ritverktyg"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "Välj en plan yta eller ett referensplan att skissa på"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "Skissa på den valda plana ytan eller planet, eller klicka på en yta eller ett plan efteråt"
 
 # AI Translated
 msgctxt "Design"
@@ -28470,9 +28652,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "Förtjocka"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "Förena"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -28525,16 +28708,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "Förtjocka yta"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Förtjocka yta kräver en ytkropp — skapa först en med ett ytverktyg"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "Hål"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -28550,8 +28731,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "Dela"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "Dela kräver en solid kropp — lägg till eller importera en först"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -28597,8 +28779,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "Ytförskjutning"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Ytförskjutning kräver en ytkropp — skapa först en med ett ytverktyg"
 
 # AI Translated
 msgctxt "Design"
@@ -28628,8 +28811,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "Mönster längs kurva"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "Mönster längs kurva kräver en kropp och en kurva"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -28650,8 +28834,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "Rikta in mot"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "Rikta in kräver en kropp — lägg till eller importera en först"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -28667,9 +28852,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "Axel"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "Koordinatsystem"
 
 # AI Translated
 msgctxt "Design"
@@ -28685,9 +28871,10 @@ msgstr "Mät"
 msgid "Measure between the picked points, edges or faces"
 msgstr "Mät mellan de valda punkterna, kanterna eller ytorna"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "Volym och area"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -28729,12 +28916,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "Ta bort yta"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "Färg"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "Ange visningsfärg för den valda kroppen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "Zooma till markering"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "Passa in markeringen i vyn och behåll vyriktningen"
 
 # AI Translated
 msgctxt "Design"
@@ -28773,9 +28971,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Hörnrektangel"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "Mittpunktsrektangel"
 
 # AI Translated
 msgctxt "Design"
@@ -28787,9 +28986,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "Rundad rektangel"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "Mittpunktscirkel"
 
 # AI Translated
 msgctxt "Design"
@@ -28811,9 +29011,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "Tangentbåge"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "Mittpunktsbåge"
 
 # AI Translated
 msgctxt "Design"
@@ -28845,48 +29046,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "Triangel"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "Triangel — klicka på mittpunkten, sedan ett hörn"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "Kvadrat"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "Kvadrat — klicka på mittpunkten, sedan ett hörn"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "Pentagon"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "Pentagon — klicka på mittpunkten, sedan ett hörn"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "Hexagon"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "Hexagon — klicka på mittpunkten, sedan ett hörn"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "Oktagon"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "Oktagon — klicka på mittpunkten, sedan ett hörn"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "Dodekagon"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "Dodekagon — klicka på mittpunkten, sedan ett hörn"
 
 # AI Translated
 msgctxt "Design"
@@ -28916,8 +29123,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "Text"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "Skriv text; den blir en textoperation på den här skissens plan och kan redigeras senare"
 
 # AI Translated
 msgctxt "Design"
@@ -29034,27 +29242,34 @@ msgstr "Vinkel / avstånd…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "Skriv in vinkeln mellan två linjer eller avståndet mellan de två valda objekten"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "Skriv texten som ska infogas"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "Fet"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "Kursiv"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "Det här teckensnittet kan inte användas för text — välj ett annat"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "Skriv texten för att se dess storlek"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "Det här teckensnittet har ingen kontur för den här texten"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "Storlek: %.1f × %.1f mm"
 
 # AI Translated
 msgid "Primitive"
@@ -29152,8 +29367,9 @@ msgstr "Profil"
 msgid "Start new profile (for holes)"
 msgstr "Starta ny profil (för hål)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "Segment"
 
 # AI Translated
 msgid "Sides"
@@ -29167,20 +29383,23 @@ msgstr "Klicka i vyn för att rita"
 msgid "Snap to grid"
 msgstr "Fäst mot rutnät"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "Rutnätssteg"
 
 # AI Translated
 msgid "Outer"
 msgstr "Yttre"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "sluten"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% punkter %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -29217,8 +29436,9 @@ msgstr[1] "%zu slutna profiler"
 msgid "Draw a closed profile to enable"
 msgstr "Rita en sluten profil för att aktivera"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "Rensa alla"
 
 # AI Translated
 msgid "Empty result"
@@ -33341,6 +33561,39 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Experimentellt) Använd skrivaragenter i stället för utskriftsvärdar"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "OPERATIONER"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Klicka på en yta eller ett referensplan i vyn, sedan på ett skissverktyg"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Klicka på en yta eller ett referensplan, sedan på ett skissverktyg."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s-planet valt — högerklicka för ritverktygen"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Inget ännu — importera en STEP-fil eller en mesh från verktygsfältet,\n"
+#~ "eller klicka på ett referensplan och högerklicka på det för att börja en skiss."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Klicka på en yta eller ett referensplan och välj sedan ett ritverktyg"
 
 #~ msgid "X"
 #~ msgstr "X"
