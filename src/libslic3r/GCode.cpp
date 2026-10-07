@@ -394,23 +394,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         unsigned int extruder_id = gcodegen.writer().filament()->id();
 
-        // Check if this tool will ever be used again in this print.
-        // Never turn off heaters on Single Extruder Multi-Material (AMS/MMU) setups.
+       // Check if this tool will ever be used again in this print.
         bool is_last_use = false;
-        if (gcodegen.m_print != nullptr && !gcodegen.config().single_extruder_multi_material.value && !gcodegen.m_print->tool_ordering().empty()) {
-            size_t cur_layer_idx = gcodegen.layer() ? gcodegen.layer()->id() : (gcodegen.m_layer_index >= 0 ? static_cast<size_t>(gcodegen.m_layer_index) : 0);
-            is_last_use          = gcodegen.m_print->tool_ordering().is_last_extrusion_layer(cur_layer_idx, extruder_id);
+        if (gcodegen.m_print != nullptr && !gcodegen.m_print->tool_ordering().empty()) {
+            coordf_t cur_print_z = gcodegen.layer() ? gcodegen.layer()->print_z : 0.0;
+            is_last_use          = gcodegen.m_print->tool_ordering().is_last_extrusion_layer(cur_print_z, extruder_id);
         }
 
         if (is_last_use) {
-            // Toolhead has finished its last layer -> turn off heater completely (0 °C)
-            std::string temp_cmd = gcodegen.writer().set_temperature(0, false, extruder_id);
-            if (!temp_cmd.empty()) {
-                if (temp_cmd.back() == '\n')
-                    temp_cmd.pop_back();
-                temp_cmd += " ;cooldown\n";
-                gcode += temp_cmd;
-            }
+            gcode += gcodegen.writer().set_temperature(0, false, extruder_id);
+            gcode.pop_back();
+            gcode += " ;cooldown\n";
             return gcode;
         }
 

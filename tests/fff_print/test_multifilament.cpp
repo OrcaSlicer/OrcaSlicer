@@ -715,3 +715,41 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+// Verifies that when two objects with different heights and different layer heights are printed,
+// the extruder finishing earlier (short cube) receives M104 S0 upon completing its last layer,
+// while the taller object's extruder continues without being turned off early.
+TEST_CASE("Unused extruder turns off after its final layer on multi-object print", "[MultiFilament]")
+{
+    // Object 1: tall cube (10mm) printed with Extruder 1 (T0) at 0.20mm layer height
+    // Object 2: short cube (4mm) printed with Extruder 2 (T1) at 0.15mm layer height
+    const std::string gcode = slice_with_object_overrides(
+        { make_cube(20., 20., 10.), make_cube(20., 20., 4.) },
+        multifilament_config(2, {
+            { "single_extruder_multi_material", 0 },
+            { "ooze_prevention",                1 },
+            { "standby_temperature_delta",      -40 },
+            { "nozzle_temperature",             "240,240" },
+        }),
+        {
+            { { "extruder", 1 }, { "layer_height", 0.20 } },
+            { { "extruder", 2 }, { "layer_height", 0.15 } }
+        });
+
+    int t1_s0_cooldown_count = 0;
+    int t0_s0_cooldown_count = 0;
+
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.find(";cooldown") != std::string::npos) {
+            if (line.find("M104 S0 T1") != std::string::npos)
+                ++t1_s0_cooldown_count;
+            if (line.find("M104 S0 T0") != std::string::npos)
+                ++t0_s0_cooldown_count;
+        }
+    }
+
+    // T1 finishes at 4mm and must receive S0 cooldown exactly once when it docks.
+    CHECK(t1_s0_cooldown_count == 1);
+    // T0 prints all the way to 10mm (end of print), so it must never get S0 via pre_toolchange during active printing.
+    CHECK(t0_s0_cooldown_count == 0);
+}

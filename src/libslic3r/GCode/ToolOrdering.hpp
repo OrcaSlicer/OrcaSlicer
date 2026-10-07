@@ -356,7 +356,7 @@ public:
                                                   std::vector<int> & initial_filaments);
 
     bool                has_non_support_filament(const PrintConfig &config);
-    bool                is_last_extrusion_layer(size_t layer_idx, unsigned int extruder_id) const;
+    bool                is_last_extrusion_layer(coordf_t print_z, unsigned int extruder_id) const;
 
 private:
     void				initialize_layers(std::vector<coordf_t> &zs);
@@ -401,7 +401,7 @@ private:
     // no-ops; downstream emission falls through to the per-object branch).
     std::map<unsigned int, std::map<LayerTools::MixedSubLayerGroup::VolumeKey, std::vector<size_t>>> m_gradient_volume_layers;
     // Map: extruder_id -> index of the last layer it is used on
-    std::map<unsigned int, size_t> m_last_layer_per_extruder;
+    std::map<unsigned int, coordf_t> m_last_layer_per_extruder;
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;

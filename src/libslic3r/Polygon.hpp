@@ -86,7 +86,6 @@ public:
     Points concave_points(double angle_threshold = 0.) const;
     // Projection of a point onto the polygon.
     Point point_projection(const Point &point) const;
-    Point point_projection(const Point& point, size_t* segment_index) const;
     std::vector<float> parameter_by_length() const;
     
     //BBS

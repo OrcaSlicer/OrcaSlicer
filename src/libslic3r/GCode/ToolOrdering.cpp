@@ -1189,9 +1189,9 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
     }
 
     m_last_layer_per_extruder.clear();
-    for (size_t layer_idx = 0; layer_idx < m_layer_tools.size(); ++layer_idx) {
-        for (unsigned int ext : m_layer_tools[layer_idx].extruders) {
-            m_last_layer_per_extruder[ext] = layer_idx;
+    for (const LayerTools& lt : m_layer_tools) {
+        for (unsigned int ext : lt.extruders) {
+            m_last_layer_per_extruder[ext] = lt.print_z;
         }
     }
 
@@ -3579,11 +3579,11 @@ int WipingExtrusions::get_support_interface_extruder_overrides(const PrintObject
     return -1;
 }
 
-bool ToolOrdering::is_last_extrusion_layer(size_t layer_idx, unsigned int extruder_id) const
+bool ToolOrdering::is_last_extrusion_layer(coordf_t print_z, unsigned int extruder_id) const
 {
     auto it = m_last_layer_per_extruder.find(extruder_id);
     if (it == m_last_layer_per_extruder.end())
         return true;
-    return layer_idx >= it->second;
+    return print_z >= it->second - EPSILON;
 }
 } // namespace Slic3r
