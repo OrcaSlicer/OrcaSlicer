@@ -9,7 +9,6 @@
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/PrintConfig.hpp"
-#include "PchipInterpolatorHelper.hpp"
 
 namespace Slic3r {
 namespace {
@@ -38,13 +37,6 @@ const char* SmallAreaInfillFlowCompensationModel::validate_points(
         if (i == x.size() - 1 && !nearly_equal(y[i], 1.0)) return L("The last flow correction factor must be 1.");
     }
     return nullptr;
-}
-
-CurveModel::Interpolator SmallAreaInfillFlowCompensationModel::make_interpolator(
-    const std::vector<double>& x, const std::vector<double>& y) const
-{
-    if (x.empty() && y.empty()) return {};
-    return [model = PchipInterpolatorHelper(x, y)](double value) { return model.interpolate(value); };
 }
 
 CurveView SmallAreaInfillFlowCompensationModel::fitted_view(
