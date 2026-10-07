@@ -307,6 +307,93 @@ TEST_CASE("Flow viewports enforce useful bounds and a minimum visible span", "[S
     CHECK(model.validate_view(view) != nullptr);
 }
 
+TEST_CASE("Panning curve views preserves scale and model values", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewPanning]")
+{
+    const std::vector<std::string> parameters = {"0,0", "\n10,1"};
+    FlowModel model(parameters);
+    const CurveView view = {2, 12, -0.1, 0.9};
+    const double offset = GENERATE(-0.25, 0.25);
+    const bool vertical = GENERATE(false, true);
+    const double dx = vertical ? 0.0 : offset;
+    const double dy = vertical ? offset : 0.0;
+    const auto panned = model.panned_view(view, dx, dy);
+    CHECK(model.validate_view(panned) == nullptr);
+    CHECK_THAT(panned.min_x, WithinAbs(view.min_x + dx, 1e-12));
+    CHECK_THAT(panned.max_x, WithinAbs(view.max_x + dx, 1e-12));
+    CHECK_THAT(panned.min_y, WithinAbs(view.min_y + dy, 1e-12));
+    CHECK_THAT(panned.max_y, WithinAbs(view.max_y + dy, 1e-12));
+    CHECK_THAT(panned.max_x - panned.min_x, WithinAbs(view.max_x - view.min_x, 1e-12));
+    CHECK_THAT(panned.max_y - panned.min_y, WithinAbs(view.max_y - view.min_y, 1e-12));
+    CHECK(model.parameters() == parameters);
+    CHECK(model.serialized_parameters() == CurveModel::serialize_parameters(parameters));
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Panning curve views stops whole intervals at each boundary", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewPanning]")
+{
+    FlowModel model;
+    const CurveView view = {2, 12, -0.1, 0.9};
+    const auto bounds = model.view_limits().bounds;
+    const double offset = GENERATE(-1e100, 1e100);
+    const bool vertical = GENERATE(false, true);
+    const auto panned = model.panned_view(view, vertical ? 0.0 : offset, vertical ? offset : 0.0);
+    CHECK(model.validate_view(panned) == nullptr);
+    CHECK_THAT(panned.max_x - panned.min_x, WithinAbs(view.max_x - view.min_x, 1e-12));
+    CHECK_THAT(panned.max_y - panned.min_y, WithinAbs(view.max_y - view.min_y, 1e-12));
+    if (vertical) {
+        CHECK_THAT(offset > 0 ? panned.max_y : panned.min_y, WithinAbs(offset > 0 ? bounds.max_y : bounds.min_y, 1e-12));
+        CHECK_THAT(panned.min_x, WithinAbs(view.min_x, 1e-12));
+        CHECK_THAT(panned.max_x, WithinAbs(view.max_x, 1e-12));
+    } else {
+        CHECK_THAT(offset > 0 ? panned.max_x : panned.min_x, WithinAbs(offset > 0 ? bounds.max_x : bounds.min_x, 1e-12));
+        CHECK_THAT(panned.min_y, WithinAbs(view.min_y, 1e-12));
+        CHECK_THAT(panned.max_y, WithinAbs(view.max_y, 1e-12));
+    }
+}
+
+TEST_CASE("Panning full and minimum span curve views keeps valid ranges", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewPanning]")
+{
+    FlowModel model;
+    const auto bounds = model.view_limits().bounds;
+    const std::vector<CurveView> views = {{0, 0.001, 0, 0.001}, {999.999, 1000, 1.999, 2}, bounds};
+    const auto view = GENERATE_COPY(from_range(views));
+    REQUIRE(model.validate_view(view) == nullptr);
+    const double offset = GENERATE(-1e100, 1e100);
+    const auto panned = model.panned_view(view, offset, offset);
+    CHECK(model.validate_view(panned) == nullptr);
+    CHECK_THAT(panned.max_x - panned.min_x, WithinAbs(view.max_x - view.min_x, 1e-10));
+    CHECK_THAT(panned.max_y - panned.min_y, WithinAbs(view.max_y - view.min_y, 1e-10));
+    CHECK_THAT(offset > 0 ? panned.max_x : panned.min_x, WithinAbs(offset > 0 ? bounds.max_x : bounds.min_x, 1e-10));
+    CHECK_THAT(offset > 0 ? panned.max_y : panned.min_y, WithinAbs(offset > 0 ? bounds.max_y : bounds.min_y, 1e-10));
+}
+
+TEST_CASE("Panning with nonfinite offsets leaves the curve view unchanged", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewPanning]")
+{
+    FlowModel model;
+    const CurveView view = {2, 12, -0.1, 0.9};
+    const double offset = GENERATE(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(),
+                                  -std::numeric_limits<double>::infinity());
+    const bool vertical = GENERATE(false, true);
+    const auto panned = model.panned_view(view, vertical ? 1.0 : offset, vertical ? offset : 1.0);
+    CHECK_THAT(panned.min_x, WithinAbs(view.min_x, 1e-12));
+    CHECK_THAT(panned.max_x, WithinAbs(view.max_x, 1e-12));
+    CHECK_THAT(panned.min_y, WithinAbs(view.min_y, 1e-12));
+    CHECK_THAT(panned.max_y, WithinAbs(view.max_y, 1e-12));
+}
+
+TEST_CASE("Panning an invalid curve view leaves its bounds unchanged", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewPanning]")
+{
+    FlowModel model;
+    const std::vector<CurveView> views = {{-1, 10, 0, 1}, {0, 1001, 0, 1}, {0, 10, 1, 0}, {0, 0.0001, 0, 1}};
+    const auto view = GENERATE_COPY(from_range(views));
+    REQUIRE(model.validate_view(view) != nullptr);
+    const auto panned = model.panned_view(view, 1, 0.1);
+    CHECK_THAT(panned.min_x, WithinAbs(view.min_x, 1e-12));
+    CHECK_THAT(panned.max_x, WithinAbs(view.max_x, 1e-12));
+    CHECK_THAT(panned.min_y, WithinAbs(view.min_y, 1e-12));
+    CHECK_THAT(panned.max_y, WithinAbs(view.max_y, 1e-12));
+}
+
 TEST_CASE("Reading invalid visible bounds preserves the current viewport", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {
     FlowModel model;
