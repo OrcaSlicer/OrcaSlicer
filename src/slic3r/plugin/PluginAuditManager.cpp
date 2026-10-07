@@ -115,6 +115,7 @@ static const std::unordered_map<std::string, AuditEventCategory> audit_event_cat
     {"subprocess.Popen", AuditEventCategory::ProcessCreate},
     {"_winapi.CreateProcess", AuditEventCategory::ProcessCreate},
     {"_posixsubprocess.fork_exec", AuditEventCategory::ProcessCreate},
+    {"os.exec", AuditEventCategory::ProcessCreate},
 };
 
 // Returns the category event_name belongs to, or AuditEventCategory::None when it isn't audited.
@@ -708,6 +709,7 @@ static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_targ
     {"pty.spawn", {0}},
     {"_winapi.CreateProcess", {1, 0}},
     {"_posixsubprocess.fork_exec", {0}},
+    {"os.exec", {0}},
 };
 
 AuditEventCategory open_category(PyObject* args)
