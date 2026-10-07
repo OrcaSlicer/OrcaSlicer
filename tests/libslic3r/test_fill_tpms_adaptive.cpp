@@ -30,7 +30,7 @@ ExPolygon rectangle(double x0, double y0, double x1, double y1)
 }
 
 // The expolygons stacked in 0.2 mm layers from z = 0 to height.
-TpmsRadialField radial_field(const ExPolygons &expolygons, double height, TpmsAdaptiveMode mode = TpmsAdaptiveMode::Volumetric)
+TpmsRadialField radial_field(const ExPolygons &expolygons, double height, TpmsAdaptiveMode mode = TpmsAdaptiveMode::Lobes)
 {
     std::vector<TpmsRadialField::Slice> slices;
     for (int i = 0; 0.2 * (i + 1) < height + EPSILON; ++i)
@@ -134,7 +134,7 @@ TEST_CASE("TPMS radial field grades every lobe of a body towards its own center"
     }
     for (int i = 0; i < 100; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &layers[i]});
-    const TpmsRadialField field(slices, get_extents(layers[50]), TpmsAdaptiveMode::Volumetric, [] {});
+    const TpmsRadialField field(slices, get_extents(layers[50]), TpmsAdaptiveMode::Lobes, [] {});
 
     for (const Vec3d &c : {c1, c2}) {
         CAPTURE(c.x());
@@ -169,7 +169,7 @@ TEST_CASE("TPMS radial field blends the lobes meeting at a junction continuously
     }
     for (int i = 0; i < 100; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &layers[i]});
-    const TpmsRadialField field(slices, get_extents(layers[50]), TpmsAdaptiveMode::Volumetric, [] {});
+    const TpmsRadialField field(slices, get_extents(layers[50]), TpmsAdaptiveMode::Lobes, [] {});
 
     // Around the junction the nearest lobes swap, but the weight of every lobe changes smoothly.
     const Vec3d junction  = (centers[0] + centers[1] + centers[2]) / 3.;
@@ -209,7 +209,7 @@ TEST_CASE("TPMS radial field is empty when the object is thinner than the grid c
     for (int i = 0; i < 1000; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &bar});
     const TpmsRadialField field(slices, BoundingBox(Point::new_scale(0., 0.), Point::new_scale(200., 200.)),
-                                TpmsAdaptiveMode::Volumetric, [] {});
+                                TpmsAdaptiveMode::Lobes, [] {});
     CHECK(field.empty());
 }
 

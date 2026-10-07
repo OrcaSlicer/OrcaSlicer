@@ -4,8 +4,9 @@
 
 `tpms_adaptive` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
 patterns inside the object: the cells grow continuously from the surface
-towards the center of the object. In `3d` the grading follows the whole shape,
-including the top and bottom; in `normal_x`, `normal_y` and `normal_z`
+towards the center of the object. In `lobes` the grading follows the whole 3D
+shape, including the top and bottom, towards the center of each lobe of the
+object; in `normal_x`, `normal_y` and `normal_z`
 it follows each section of the object normal to that axis, so it does not
 change along the axis, as suits a profile extruded along it.
 `sparse_infill_density` is the density at the surface, `tpms_interior_density`

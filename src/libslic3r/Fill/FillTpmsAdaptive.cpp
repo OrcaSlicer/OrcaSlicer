@@ -183,7 +183,7 @@ private:
 
 TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
                                  const std::function<void()> &throw_if_canceled)
-    : m_axis(mode == TpmsAdaptiveMode::Volumetric ? -1 : int(mode) - int(TpmsAdaptiveMode::NormalX))
+    : m_axis(mode == TpmsAdaptiveMode::Lobes ? -1 : int(mode) - int(TpmsAdaptiveMode::NormalX))
 {
     assert(!slices.empty() && mode != TpmsAdaptiveMode::Disabled);
     const Vec3d min(unscaled(bbox.min.x()), unscaled(bbox.min.y()), slices.front().bottom_z);

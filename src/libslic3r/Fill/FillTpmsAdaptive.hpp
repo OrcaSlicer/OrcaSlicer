@@ -52,7 +52,7 @@ public:
     // pt. Returns their count.
     size_t radial(const Vec3d &pt, Radials &out) const;
 
-    // Axis normal to the sections in the 2D modes, -1 in 3D.
+    // Axis normal to the sections in the 2D modes, -1 for Lobes, graded in 3D.
     int axis() const { return m_axis; }
 
 private:
