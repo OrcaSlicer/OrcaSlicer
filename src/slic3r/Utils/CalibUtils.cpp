@@ -6,6 +6,7 @@
 #include "NetworkAgent.hpp"
 #include "../GUI/Jobs/ProgressIndicator.hpp"
 #include "../GUI/PartPlate.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Utils.hpp"
@@ -22,6 +23,45 @@
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "libslic3r/FlushVolCalc.hpp"
 #include "../GUI/Plater.hpp"
+#include <memory>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <string>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Flow.hpp"
+#include <cstddef>
+#include "libslic3r/ParameterUtils.hpp"
+#include <cmath>
+#include <algorithm>
+#include <cassert>
+#include "libslic3r/calib.hpp"
+#include <wx/string.h>
+#include "libslic3r/CommonDefs.hpp"
+#include <cstdlib>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Semver.hpp"
+#include <array>
+#include "libslic3r/BoundingBox.hpp"
+#include <wx/colour.h>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <utility>
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

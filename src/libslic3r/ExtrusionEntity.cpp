@@ -2,12 +2,25 @@
 #include "ExtrusionEntityCollection.hpp"
 #include "ExPolygon.hpp"
 #include "ClipperUtils.hpp"
-#include "Extruder.hpp"
 #include "Flow.hpp"
+#include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <sstream>
+#include "Point.hpp"
+#include "Polyline.hpp"
+#include "Polygon.hpp"
+#include <utility>
+#include <vector>
+#include "Line.hpp"
+#include <string>
+#include <string_view>
 #include "Utils.hpp"
+#include "libslic3r.h"
+#include "ArcFitter.hpp"
 
 #define L(s) (s)
 

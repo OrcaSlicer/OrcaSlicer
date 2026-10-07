@@ -1,10 +1,14 @@
 #ifndef slic3r_PrintHostSendDialog_hpp_
 #define slic3r_PrintHostSendDialog_hpp_
 
+#include <map>
+#include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/colour.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/dialog.h>

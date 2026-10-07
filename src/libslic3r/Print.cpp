@@ -3,6 +3,56 @@
 // needs the Win32 types declared already.
 #include <Windows.h>
 #endif
+
+#include "PrintBase.hpp"
+#include <utility>
+#include <string>
+#include <mutex>
+#include <vector>
+#include "libslic3r.h"
+#include "calib.hpp"
+#include <cassert>
+#include "CustomGCode.hpp"
+#include "ObjectID.hpp"
+#include <cstddef>
+#include "Point.hpp"
+#include "Polygon.hpp"
+#include "Geometry.hpp"
+#include <map>
+#include <cmath>
+#include <Eigen/Geometry>
+#include <set>
+#include "Slicing.hpp"
+#include <cstdlib>
+#include "TriangleSelector.hpp"
+#include "GCode/AdaptivePAProcessor.hpp"
+#include <exception>
+#include <ostream>
+#include "ExPolygon.hpp"
+#include "Layer.hpp"
+#include "FilamentGroup.hpp"
+#include <memory>
+#include "FilamentGroupUtils.hpp"
+#include "MultiNozzleUtils.hpp"
+#include <chrono>
+#include <optional>
+#include "GCode/GCodeProcessor.hpp"
+#include "GCode/ThumbnailData.hpp"
+#include "ExtrusionEntity.hpp"
+#include <math.h>
+#include "CommonDefs.hpp"
+#include <ios>
+#include <iomanip>
+#include <tuple>
+#include "Surface.hpp"
+#include "Circle.hpp"
+#include "Polyline.hpp"
+#include "ArcFitter.hpp"
+#include <cstdio>
+#include <boost/filesystem/operations.hpp>
+#include <boost/thread/lock_types.hpp>
+#include <iterator>
+#include "TriangleMesh.hpp"
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"
@@ -48,9 +98,13 @@
 #include "nlohmann/json.hpp"
 
 #include "GCode/ConflictChecker.hpp"
-#include "ParameterUtils.hpp"
 
 #include <codecvt>
+#include "Format/STEP.hpp"
+#include "PlaceholderParser.hpp"
+#include "SurfaceCollection.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace nlohmann;
 
@@ -3489,7 +3543,7 @@ void Print::_make_skirt()
             Polygon loop;
             {
                 // Orca: the hull already represents the occupied outline used for this skirt.
-                Polygons loops = offset(hull, distance, ClipperLib::jtRound, float(scale_(0.1)));
+                Polygons loops = offset(hull, distance, jtRound, float(scale_(0.1)));
                 Geometry::simplify_polygons(loops, scale_(0.05), &loops);
 			    if (loops.empty())
 				    break;
@@ -3526,7 +3580,7 @@ void Print::_make_skirt()
         }
 
         if (collect_skirt_hull)
-            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
+            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), jtRound, float(scale_(0.1))))
                 append(m_skirt_convex_hull, std::move(poly.points));
     };
 
@@ -3632,7 +3686,7 @@ void Print::_make_skirt()
                 if (group.emits_skirt) {
                     // Orca: If the expanded skirt outline touches another group
                     // or obstacle, merge them and run the pass again.
-                    Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
+                    Polygons envelopes = offset(envelope, grouping_offset, jtRound, float(scale_(0.1)));
                     if (envelopes.empty())
                         continue;
                     envelope = std::move(envelopes.front());
@@ -4298,10 +4352,11 @@ Polygons Print::get_extruder_shared_printable_polygon() const
     return shared_printable_polys;
 }
 
-// Narrow the stored grouping result to the layer-aware type the slicing pipeline uses.
-std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> Print::get_layered_nozzle_group_result() const
+void Print::set_nozzle_group_result(std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> result)
 {
-    return std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(m_nozzle_group_result);
+    m_nozzle_group_result         = std::move(result);
+    m_layered_nozzle_group_result = std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(m_nozzle_group_result);
+    ++m_config_index_generation;
 }
 
 // Dynamic (per-layer selector) regroup predicate.
@@ -4337,6 +4392,7 @@ int Print::get_filament_config_indx(int filament_id, int layer_id, bool use_cach
 void Print::update_filament_self_index_cache()
 {
     m_missing_nozzle_group_logged.clear();   // reset the per-slice get_config_index log dedupe
+    ++m_config_index_generation;
 
     std::vector<int> values;
     if (m_full_print_config.has("filament_self_index")) {
@@ -4376,7 +4432,7 @@ int Print::get_nozzle_config_index(int filament_id, int layer_id)
 
 int Print::get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap *index_map)
 {
-    auto group_result = get_layered_nozzle_group_result();
+    const MultiNozzleUtils::LayeredNozzleGroupResult *group_result = m_layered_nozzle_group_result.get();
     // Orca: defensive — when no grouping producer has published a result yet, fall back to the
     // static identity: one filament-variant column per filament.
     if (!group_result)
@@ -4411,7 +4467,7 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 
 int Print::get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, PrintIndexMap &index_map)
 {
-    auto group_result = get_layered_nozzle_group_result();
+    const MultiNozzleUtils::LayeredNozzleGroupResult *group_result = m_layered_nozzle_group_result.get();
     // Orca: same static fallback as the filament overload; the slot degenerates to the filament's
     // extruder column (filament_map is 1 based, get_extruder_id guards the filament id range).
     if (!group_result)

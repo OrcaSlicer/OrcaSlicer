@@ -1,8 +1,22 @@
 #include "Flashforge.hpp"
 #include <algorithm>
 #include <array>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <ctime>
 #include <chrono>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <exception>
+#include <ios>
 #include <thread>
 #include <sstream>
 #include <fstream>
@@ -11,16 +25,17 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <vector>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
@@ -28,17 +43,16 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
 #include "TCPConsole.hpp"
 #include "SerialMessage.hpp"
 #include "SerialMessageType.hpp"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 using json = nlohmann::json;
 
 namespace Slic3r {

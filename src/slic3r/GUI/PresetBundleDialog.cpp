@@ -2,11 +2,27 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include <atomic>
+#include <boost/chrono/duration.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <libslic3r/Config.hpp>
+#include "libslic3r/Semver.hpp"
+#include "libslic3r/Preset.hpp"
 #include <libslic3r/Thread.hpp>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/GUI.hpp"
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/event.h>
 #include <wx/filename.h>
+#include <wx/gdicmn.h>
+#include <wx/fswatcher.h>
+#include <wx/msgdlg.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <libslic3r/PresetBundle.hpp>
@@ -16,6 +32,9 @@
 #include <OrcaCloudServiceAgent.hpp>
 #include <wx/event.h>
 #include <wx/utils.h>
+
+using json = nlohmann::json;
+
 namespace Slic3r { namespace GUI {
 
 PresetBundleDialog::PresetBundleDialog(

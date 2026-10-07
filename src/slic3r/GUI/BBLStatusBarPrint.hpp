@@ -1,7 +1,9 @@
 #ifndef BBLStatusBarPrint_HPP
 #define BBLStatusBarPrint_HPP
 
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 
 #include <memory>
@@ -94,10 +96,6 @@ private:
     CancelFn m_cancel_cb;
     CancelFn m_cancel_cb_fina;
 };
-
-namespace GUI {
-using Slic3r::BBLStatusBarPrint;
-}
 
 wxDECLARE_EVENT(EVT_SHOW_ERROR_INFO, wxCommandEvent);
 

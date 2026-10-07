@@ -8,18 +8,63 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MeasureUtils.hpp"
 
+#include <cstdio>
+#include <cassert>
+#include <array>
+#include <cstdlib>
+#include <cstddef>
+#include <functional>
+#include <cfloat>
+#include <Eigen/Geometry>
+#include <cmath>
+#include <imgui.h>
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Measure.hpp"
+#include <memory>
+#include "libslic3r/TriangleMesh.hpp"
+#include <map>
+#include "libslic3r/Model.hpp"
+#include <limits>
+#include "libslic3r/Geometry.hpp"
+#include <math.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 
 #include <glad/gl.h>
 
+#include <string>
+#include <optional>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
 #include <tbb/parallel_for.h>
 
+#include <utility>
+#include <wx/busycursor.h>
+#include <vector>
 #include <wx/clipbrd.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
+#include <wx/strconv.h>
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {

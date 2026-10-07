@@ -1,10 +1,44 @@
 #include "BindDialog.hpp"
 #include "GUI_App.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/intl.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/simplebook.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <cstddef>
+#include <wx/utils.h>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/wrapsizer.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <wx/tglbtn.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarBind.hpp"
+#include "slic3r/GUI/Jobs/BindJob.hpp"
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
+#include "slic3r/GUI/GUI.hpp"
+#include <wx/image.h>
+#include <wx/stattext.h>
 #include <wx/wx.h>
 #include <wx/mstream.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
+#include "bambu_networking.hpp"
+#include "Http.hpp"
 #include "wx/evtloop.h"
 #include <wx/tokenzr.h>
 #include <wx/richmsgdlg.h>
@@ -19,6 +53,8 @@
 #include "Widgets/WebView.hpp"
 
 #include "DeviceCore/DevManager.h"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

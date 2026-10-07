@@ -1,6 +1,14 @@
 #include "TextureDisplacementBakeJob.hpp"
 
 #include <algorithm>
+#include <functional>
+#include <utility>
+#include <string>
+#include "libslic3r/TextureDisplacement.hpp"
+#include <exception>
+#include <cstddef>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <memory>
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/format.hpp"
@@ -15,6 +23,8 @@
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r::GUI {
 

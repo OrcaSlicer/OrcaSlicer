@@ -1,9 +1,24 @@
 #include "DevManager.h"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <mutex>
+#include <chrono>
+#include "libslic3r/LifecycleEvents.hpp"
+#include <map>
+#include <cstdint>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 
 #include <exception>
 
 #include <libslic3r/AppConfig.hpp>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <utility>
+#include <vector>
+#include <set>
+#include <wx/object.h>
+#include <wx/timer.h>
 #include "CloudProvider.hpp"
 #include "DevUtil.h"
 

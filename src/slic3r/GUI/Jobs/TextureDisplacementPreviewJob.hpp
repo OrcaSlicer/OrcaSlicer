@@ -3,13 +3,13 @@
 
 #include <atomic>
 #include <cstdint>
+#include <exception>
 #include <functional>
+#include "libslic3r/Point.hpp"
 #include <memory>
 #include <vector>
 
-#include "libslic3r/Color.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 
 #include "Job.hpp"
 

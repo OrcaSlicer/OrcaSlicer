@@ -1,5 +1,11 @@
 #pragma once
+#include "Point.hpp"
+#include <math.h>
+#include <cmath>
+#include <cstddef>
 #include <string>
+#include <vector>
+#include <utility>
 #define calib_pressure_advance_dd
 
 #include "GCodeWriter.hpp"

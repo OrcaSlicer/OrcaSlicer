@@ -2,7 +2,9 @@
 #define slic3r_GUI_Utils_FixModelByCgal_hpp_
 
 #include <string>
-#include "../GUI/Widgets/ProgressDialog.hpp"
+#include <wx/string.h>
+
+namespace Slic3r::GUI { class ProgressDialog; }
 
 namespace Slic3r {
 

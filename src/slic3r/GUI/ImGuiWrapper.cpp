@@ -1,6 +1,28 @@
 #include "ImGuiWrapper.hpp"
 
+#include <algorithm>
+#include <cstdint>
+#include <array>
+#include <cassert>
 #include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <map>
+#include <string>
+#include <imgui.h>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <cstdlib>
+#include <utility>
+#include <string_view>
+#include <cstring>
+#include "libslic3r/Point.hpp"
+#include <functional>
+#include <optional>
+#include <limits>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Exception.hpp"
+#include <tuple>
 #include <vector>
 #include <cmath>
 #include <stdexcept>
@@ -8,6 +30,9 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <wx/colour.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
@@ -38,7 +63,6 @@
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
 
-#include "../Utils/MacDarkMode.hpp"
 #include <nanosvg/nanosvg.h>
 #include <nanosvg/nanosvgrast.h>
 #include "OpenGLManager.hpp"
@@ -2631,11 +2655,7 @@ void ImGuiWrapper::push_toolbar_style(const float scale)
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(238 / 255.0f, 238 / 255.0f, 238 / 255.0f, 1.00f));  // 10
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(238 / 255.0f, 238 / 255.0f, 238 / 255.0f, 0.00f));        // 11
         ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, COL_GREEN_LIGHT);                                     // 12
-        // The checkbox/radio frame behind this is drawn fully transparent (see FrameBg above,
-        // alpha 0), showing the light window background through it - a white check mark there is
-        // invisible. Dark mode doesn't have this problem (its window background is dark), so only
-        // this branch needs a check mark color with real contrast against a light background.
-        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.f, 156 / 255.f, 136 / 255.f, 1.00f));//13
+        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));//13
         ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(0.42f, 0.42f, 0.42f, 1.00f));
         ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
         ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));

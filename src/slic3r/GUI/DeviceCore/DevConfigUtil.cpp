@@ -1,9 +1,23 @@
 #include "DevConfigUtil.h"
 
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 
+#include <string>
+#include <algorithm>
+#include <map>
+#include <vector>
+#include <boost/nowide/fstream.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <utility>
+#include <exception>
+#include <cctype>
 #include <wx/dir.h>
 #include <boost/filesystem/operations.hpp>
+#include <wx/string.h>
 #include "../I18N.hpp"
 
 using namespace nlohmann;

@@ -1,9 +1,30 @@
 // FIXME: extract absolute units -> em
 
 #include "ConfigWizard_private.hpp"
+#include "libslic3r_version.h"
 
 #include <algorithm>
+#include <memory>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Preset.hpp"
+#include <functional>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <boost/filesystem/directory.hpp>
+#include <map>
+#include <iterator>
 #include <numeric>
+#include <string>
+#include <set>
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
+#include "slic3r/GUI/BedShapeDialog.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <utility>
 #include <unordered_map>
 #include <stdexcept>
@@ -12,8 +33,19 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <vector>
+#include <wx/gdicmn.h>
+#include <wx/html/htmlwin.h>
+#include <wx/arrstr.h>
+#include <wx/busycursor.h>
+#include <wx/dialog.h>
+#include <wx/scrolwin.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/dcclient.h>
 #include <wx/statbmp.h>
@@ -24,6 +56,7 @@
 #include <wx/listbook.h>
 #include <wx/display.h>
 #include <wx/filefn.h>
+#include <wx/types.h>
 #include <wx/wupdlock.h>
 #include <wx/debug.h>
 
@@ -31,7 +64,6 @@
 #include <wx/msw/dark_mode.h>
 #endif // _MSW_DARK_MODE
 
-#include "libslic3r/Platform.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/libslic3r.h"
@@ -50,6 +82,8 @@
 #include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
+namespace fs = boost::filesystem;
+
 #if defined(__linux__) && defined(__WXGTK3__)
 #define wxLinux_gtk3 true
 #else
@@ -61,7 +95,6 @@ namespace GUI {
 
 
 using Config::Snapshot;
-using Config::SnapshotDB;
 
 
 // Configuration data structures extensions needed for the wizard
@@ -1096,7 +1129,7 @@ void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool mat
     for (const auto& item : prusa_profiles)
         list->append(item, &const_cast<std::string&>(item.get()));
     for (const auto& item : other_profiles)
-        list->append(item, &const_cast<std::string&>(item.get()));
+        list->append(item.get() == Materials::UNKNOWN ? _L(item.get()) : from_u8(item.get()), &const_cast<std::string&>(item.get()));
 }     
 
 void PageMaterials::sort_list_data(PresetList* list, const std::vector<ProfilePrintData>& data)
@@ -1176,13 +1209,13 @@ void PageMaterials::on_activate()
 }
 
 
-const char *PageCustom::default_profile_name = "My Settings";
+const char *PageCustom::default_profile_name = L("My Settings");
 
 PageCustom::PageCustom(ConfigWizard *parent)
     : ConfigWizardPage(parent, _L("Custom Printer Setup"), _L("Custom Printer"))
 {
     cb_custom = new wxCheckBox(this, wxID_ANY, _L("Define a custom printer profile"));
-    tc_profile_name = new wxTextCtrl(this, wxID_ANY, default_profile_name);
+    tc_profile_name = new wxTextCtrl(this, wxID_ANY, _L(default_profile_name));
     auto *label = new wxStaticText(this, wxID_ANY, _L("Custom profile name:"));
 
     wxGetApp().UpdateDarkUI(tc_profile_name);
@@ -1190,7 +1223,7 @@ PageCustom::PageCustom(ConfigWizard *parent)
     tc_profile_name->Enable(false);
     tc_profile_name->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &evt) {
         if (tc_profile_name->GetValue().IsEmpty()) {
-            if (profile_name_prev.IsEmpty()) { tc_profile_name->SetValue(default_profile_name); }
+            if (profile_name_prev.IsEmpty()) { tc_profile_name->SetValue(_L(default_profile_name)); }
             else { tc_profile_name->SetValue(profile_name_prev); }
         } else {
             profile_name_prev = tc_profile_name->GetValue();
@@ -1429,7 +1462,7 @@ PageTemperatures::PageTemperatures(ConfigWizard *parent)
     auto *default_bed = def_bed.get_default_value<ConfigOptionInts>();
     spin_bed->SetValue(default_bed != nullptr && default_bed->size() > 0 ? default_bed->get_at(0) : 0);
 
-    append_text(_L("Enter the nozzle_temperature needed for extruding your filament."));
+    append_text(_L("Enter the nozzle temperature needed for extruding your filament."));
     append_text(_L("A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."));
 #endif
 
@@ -1686,7 +1719,7 @@ void ConfigWizardIndex::msw_rescale()
 
 // Materials
 
-const std::string Materials::UNKNOWN = "(Unknown)";
+const std::string Materials::UNKNOWN = L("(Unknown)");
 
 void Materials::push(const Preset *preset)
 {
@@ -2154,8 +2187,8 @@ void ConfigWizard::priv::select_default_materials_for_printer_models(Technology 
         }
         printer_names += "\n\n";
         std::string message = (technology & T_FFF ?
-            GUI::format(_L("Following printer profiles has no default filament: %1%Please select one manually."), printer_names) :
-            GUI::format(_L("Following printer profiles has no default material: %1%Please select one manually."), printer_names));
+            GUI::format(_L("The following printer profiles have no default filament: %1%Please select one manually."), printer_names) :
+            GUI::format(_L("The following printer profiles have no default material: %1%Please select one manually."), printer_names));
         MessageDialog msg(q, message, _L("Notice"), wxOK);
         msg.ShowModal();
     }
@@ -2415,7 +2448,7 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
     }
     if (!check_unsaved_preset_changes)
         if ((check_unsaved_preset_changes = install_bundles.size() > 0))
-            header = _L_PLURAL("A new vendor was installed and one of its printers will be activated", "New vendors were installed and one of theirs printers will be activated", install_bundles.size());
+            header = _L_PLURAL("A new vendor was installed and one of its printers will be activated", "New vendors were installed and one of their printers will be activated", install_bundles.size());
 
     // Decide whether to create snapshot based on run_reason and the reset profile checkbox
     bool snapshot = true;

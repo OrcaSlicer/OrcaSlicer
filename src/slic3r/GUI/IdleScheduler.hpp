@@ -8,6 +8,8 @@
 
 #include "PrebuildQueue.hpp"
 
+namespace Slic3r::GUI { class LazyBase; }
+
 namespace Slic3r { namespace GUI {
 
 // Runs the queue's units while the user is idle. Once the user has been idle long enough,

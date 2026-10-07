@@ -2,6 +2,26 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
+#include <algorithm>
+#include <sstream>
+#include <iterator>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "libslic3r/Config.hpp"
+#include <cstddef>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/LabeledStaticBox.hpp"
+#include "slic3r/GUI/Widgets/RadioGroup.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dcgraph.h>
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -9,6 +29,13 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/dialog.h>
+#include <wx/valtext.h>
+#include <wx/tglbtn.h>
+#include <wx/event.h>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Utils.hpp"
@@ -453,7 +480,8 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
         if(!ti->GetTextCtrl()->GetValue().ToULong(&t))
             return;
         if(t> 500 || t < 155){
-            MessageDialog msg_dlg(nullptr, wxString::Format(L"Supported range: 170%s - 500%s",
+            // TRN %s is the temperature unit
+            MessageDialog msg_dlg(nullptr, wxString::Format(_L("Supported range: 170%s - 500%s"),
                 _L("\u2103" /* °C */), _L("\u2103" /* °C */)),
                 wxEmptyString, wxICON_WARNING | wxOK);
             msg_dlg.ShowModal();

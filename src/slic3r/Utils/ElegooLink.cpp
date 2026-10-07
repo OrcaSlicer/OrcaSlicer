@@ -1,8 +1,19 @@
 #include "ElegooLink.hpp"
 
 #include <algorithm>
+#include "libslic3r/Utils.hpp"
+#include <boost/optional/optional.hpp>
+#include <cstddef>
+#include <ios>
+#include <boost/uuid/random_generator.hpp>
+#include <chrono>
+#include <cctype>
+#include "libslic3r/PrintConfig.hpp"
+#include <iostream>
 #include <map>
 #include <mutex>
+#include <regex>
+#include <ostream>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -20,8 +31,15 @@
 
 #include <curl/curl.h>
 
+#include <string>
+#include <utility>
+#include <thread>
+#include <vector>
 #include <wx/progdlg.h>
 
+#include "OctoPrint.hpp"
+#include "PrintHost.hpp"
+#include "WebSocketClient.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -30,8 +48,8 @@
 #include "libslic3r/AppConfig.hpp"
 #include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
+#include <boost/asio/ip/address.hpp>
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 #define MAX_UPLOAD_PACKAGE_LENGTH 1048576 //(1024*1024)
 

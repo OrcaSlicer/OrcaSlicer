@@ -4,9 +4,20 @@
 
 #include "slic3r/plugin/PythonInterpreter.hpp"
 
+#include <string>
+#include <cstddef>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <memory>
+#include <vector>
+#include <utility>
 #include <wx/sizer.h>
 
 #include <cctype>
+#include <wx/string.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -87,7 +98,7 @@ void TerminalDialog::resolve_and_run(const std::string& cmd)
     if (m_runner->is_running()) {
         nlohmann::json err;
         err["command"]    = "process_error";
-        err["message"]    = "A command is already running.";
+        err["message"]    = _u8L("A command is already running.");
         call_web_handler(err);
         return;
     }
@@ -106,7 +117,7 @@ void TerminalDialog::resolve_and_run(const std::string& cmd)
     if (consume_command_prefix(cmd, "python", arg_string)) {
         const std::string python_path = PythonInterpreter::bundled_python_executable();
         if (python_path.empty()) {
-            send_process_error("Bundled Python executable not found.");
+            send_process_error(_u8L("Bundled Python executable not found."));
             return;
         }
         executable = python_path;
@@ -114,13 +125,13 @@ void TerminalDialog::resolve_and_run(const std::string& cmd)
     else if (consume_command_prefix(cmd, "uv", arg_string)) {
         const std::string uv_path = PythonInterpreter::bundled_uv_path();
         if (uv_path.empty()) {
-            send_process_error("uv executable not found.");
+            send_process_error(_u8L("uv executable not found."));
             return;
         }
         executable = uv_path;
     }
     else {
-        send_process_error("Only 'python' and 'uv' commands are supported.");
+        send_process_error(_u8L("Only 'python' and 'uv' commands are supported."));
         return;
     }
 
@@ -155,7 +166,7 @@ void TerminalDialog::resolve_and_run(const std::string& cmd)
     if (!started) {
         nlohmann::json err;
         err["command"] = "process_error";
-        err["message"] = "Failed to start process.";
+        err["message"] = _u8L("Failed to start process.");
         call_web_handler(err);
     }
 }

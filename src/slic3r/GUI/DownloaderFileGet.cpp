@@ -1,5 +1,16 @@
 #include "DownloaderFileGet.hpp"
 
+#include <cstddef>
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include <atomic>
+#include <regex>
+#include <cassert>
+#include <boost/filesystem/exception.hpp>
+#include <cstdio>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <stdexcept>
 #include <thread>
 #include <curl/curl.h>
 #include <boost/nowide/fstream.hpp>
@@ -8,11 +19,14 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <wx/event.h>
+#include <utility>
 
 #include "format.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/Utils/Http.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -147,7 +161,7 @@ void FileGet::priv::get_perform()
 		}
 		if (!found) {
 			wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_ERROR);
-			evt->SetString(GUI::format_wxstr(L"Failed to find suitable filename. Last name: %1%." , (m_dest_folder / final_filename).string()));
+			evt->SetString(GUI::format_wxstr(_L("Failed to find suitable filename. Last name: %1%."), (m_dest_folder / final_filename).string()));
 			evt->SetInt(m_id);
 			m_evt_handler->QueueEvent(evt);
 			return;
@@ -353,7 +367,7 @@ void FileGet::priv::get_perform()
 				//TODO: report?
 				//error_message = GUI::format("Failed to write and move %1% to %2%", tmp_path, dest_path);
 				wxCommandEvent* evt = new wxCommandEvent(EVT_DWNLDR_FILE_ERROR);
-				evt->SetString("Failed to write and move.");
+				evt->SetString(_L("Failed to write and move."));
 				evt->SetInt(m_id);
 				m_evt_handler->QueueEvent(evt);
 				return;

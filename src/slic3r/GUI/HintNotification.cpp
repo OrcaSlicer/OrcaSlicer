@@ -2,7 +2,6 @@
 #include "ImGuiWrapper.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
-#include "GUI_ObjectList.hpp"
 #include "GLCanvas3D.hpp"
 #include "MainFrame.hpp"
 #include "Preferences.hpp"
@@ -15,6 +14,22 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include <cstdint>
+#include "libslic3r/Exception.hpp"
+#include <cereal/cereal.hpp>
+#include <imgui.h>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <exception>
+#include <boost/filesystem/operations.hpp>
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+#include <ctime>
+#include <boost/algorithm/string/predicate.hpp>
+#include <functional>
+#include <boost/nowide/convert.hpp>
+#include <cassert>
 #include <map>
 
 #include <boost/algorithm/string/replace.hpp>
@@ -26,6 +41,12 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <utility>
+#include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/GUI.hpp"
 
 #define HINTS_CEREAL_VERSION 1
 // structure for writing used hints into binary file with version
