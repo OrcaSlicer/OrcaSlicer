@@ -98,7 +98,7 @@ inline void CloseBoundariesAndRepairManifoldness(cgalutils::CGALMesh& cgal_mesh)
 
     for (const HalfedgeDescriptor h : border_cycles) {
         std::vector<FaceDescriptor> patch_faces;
-        PMP::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_faces));
+        PMP::triangulate_hole(cgal_mesh, h, CGAL::parameters::face_output_iterator(std::back_inserter(patch_faces)));
     }
 
     PMP::remove_degenerate_faces(cgal_mesh);

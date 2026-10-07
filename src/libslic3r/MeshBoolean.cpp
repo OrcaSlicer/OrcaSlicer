@@ -145,7 +145,7 @@ void self_union(TriangleMesh& mesh)
 namespace cgal {
 
 namespace CGALProc    = CGAL::Polygon_mesh_processing;
-namespace CGALParams  = CGAL::Polygon_mesh_processing::parameters;
+namespace CGALParams  = CGAL::parameters;
 
 using EpecKernel = CGAL::Exact_predicates_exact_constructions_kernel;
 using EpicKernel = CGAL::Exact_predicates_inexact_constructions_kernel;

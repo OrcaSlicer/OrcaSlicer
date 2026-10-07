@@ -627,9 +627,6 @@ endif ()
 
 target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs)
 
-# libigl's CGAL code includes AABB headers deprecated in CGAL 6.2; -Werror makes the #warning fatal.
-target_compile_definitions(libslic3r_cgal PRIVATE CGAL_NO_DEPRECATION_WARNINGS)
-
 if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # 32 bit MSVC workaround
     target_compile_definitions(libslic3r_cgal PRIVATE CGAL_DO_NOT_USE_MPZF)
 endif ()
