@@ -71,6 +71,12 @@ namespace websocket = beast::websocket;
 namespace net       = boost::asio;
 using tcp           = net::ip::tcp;
 
+// Moonraker's default ports. Plaintext is 7125; secure connections default to 7130
+// (not 7125) so enabling TLS does not silently reuse the plaintext port. Overridable
+// via the connection port, which flows through normalize_base_url().
+constexpr const char* MOONRAKER_DEFAULT_PORT     = "7125";
+constexpr const char* MOONRAKER_DEFAULT_TLS_PORT = "7130";
+
 struct WsEndpoint
 {
     std::string host;
@@ -102,7 +108,7 @@ bool parse_ws_endpoint(const std::string& base_url, WsEndpoint& endpoint)
     }
 
     endpoint.host = url;
-    endpoint.port = endpoint.secure ? "7130" : "7125";
+    endpoint.port = endpoint.secure ? MOONRAKER_DEFAULT_TLS_PORT : MOONRAKER_DEFAULT_PORT;
     if (auto colon = url.rfind(':'); colon != std::string::npos && url.find(']') == std::string::npos) {
         endpoint.host = url.substr(0, colon);
         endpoint.port = url.substr(colon + 1);
@@ -1840,7 +1846,7 @@ bool MoonrakerPrinterAgent::send_ws_rpc(const std::string& method, const nlohman
     const std::string body = request.dump();
 
     std::vector<std::string> ports{endpoint.port};
-    const std::string default_port = endpoint.secure ? "7130" : "7125";
+    const std::string default_port = endpoint.secure ? MOONRAKER_DEFAULT_TLS_PORT : MOONRAKER_DEFAULT_PORT;
     if (endpoint.port != default_port) {
         ports.emplace_back(default_port);
     }
@@ -2417,7 +2423,7 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
             ws.tls_handshake(endpoint.host);
 
             std::string host_header = endpoint.host;
-            if (!endpoint.port.empty() && endpoint.port != (endpoint.secure ? "7130" : "7125")) {
+            if (!endpoint.port.empty() && endpoint.port != (endpoint.secure ? MOONRAKER_DEFAULT_TLS_PORT : MOONRAKER_DEFAULT_PORT)) {
                 host_header += ":" + endpoint.port;
             }
             ws.handshake(host_header, endpoint.target);
@@ -3243,6 +3249,15 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id,
         return;
     }
 
+    // A custom CA only takes effect where the curl backend can load one; on Schannel
+    // (Windows) and DarwinSSL (macOS) it is ignored, so a private-CA printer fails
+    // certificate verification with no hint as to why. Warn once per connection attempt.
+    if (connection.use_ssl && !connection.ca_file.empty() && !Http::ca_file_supported()) {
+        BOOST_LOG_TRIVIAL(warning)
+            << "MoonrakerPrinterAgent: a custom CA file is configured but this platform cannot load CA files "
+               "(Schannel/DarwinSSL); the CA will be ignored and the TLS connection may fail verification.";
+    }
+
     try {
         MoonrakerDeviceInfo fetched_info;
         if (!fetch_device_info(connection, fetched_info, error_msg)) {
@@ -3310,7 +3325,7 @@ std::string MoonrakerPrinterAgent::normalize_base_url(bool use_ssl, const std::s
 {
     std::string value = use_ssl ? "https://" : "http://";
     value += host;
-    value += ":" + (port.empty() ? (use_ssl ? "7130" : "7125") : port);
+    value += ":" + (port.empty() ? (use_ssl ? MOONRAKER_DEFAULT_TLS_PORT : MOONRAKER_DEFAULT_PORT) : port);
     return value;
 }
 
