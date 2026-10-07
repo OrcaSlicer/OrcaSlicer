@@ -119,6 +119,20 @@ const char* CurveModel::read_view(const std::array<std::string, 4>& bounds, Curv
     return nullptr;
 }
 
+CurveView CurveModel::panned_view(const CurveView& view, double x_offset, double y_offset) const
+{
+    if (validate_view(view) || !std::isfinite(x_offset) || !std::isfinite(y_offset)) return view;
+    const auto limits = view_limits();
+    const auto& bounds = limits.bounds;
+    const double dx = std::clamp(x_offset, bounds.min_x - view.min_x, bounds.max_x - view.max_x);
+    const double dy = std::clamp(y_offset, bounds.min_y - view.min_y, bounds.max_y - view.max_y);
+    CurveView panned = {view.min_x + dx, view.max_x + dx, view.min_y + dy, view.max_y + dy};
+    // Translation toward zero can expose roundoff in a minimum span accepted at larger coordinates.
+    if (dx != 0.0) panned.max_x = std::max(panned.max_x, panned.min_x + limits.minimum_span);
+    if (dy != 0.0) panned.max_y = std::max(panned.max_y, panned.min_y + limits.minimum_span);
+    return validate_view(panned) ? view : panned;
+}
+
 const char* CurveModel::read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const
 {
     x.clear();

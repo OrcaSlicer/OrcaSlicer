@@ -131,6 +131,15 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_grid->MakeCellVisible(row, 0);
     };
     m_chart->on_move = [this](int row, double x, double y) { move_point(row, x, y); };
+    m_chart->on_pan = [this](double steps, bool vertical) {
+        const auto& view = m_chart->view();
+        const double offset = steps * (vertical ? view.max_y - view.min_y : view.max_x - view.min_x) * 0.1;
+        const auto panned = m_model->panned_view(view, vertical ? 0.0 : offset, vertical ? offset : 0.0);
+        if (panned.min_x == view.min_x && panned.max_x == view.max_x &&
+            panned.min_y == view.min_y && panned.max_y == view.max_y) return;
+        m_chart->set_view(panned);
+        sync_chart_range();
+    };
     Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) { m_chart->finish_drag(); event.Skip(); });
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& event) { m_chart->finish_drag(); event.Skip(); }, wxID_CANCEL);
     SetEscapeId(wxID_CANCEL);
@@ -420,6 +429,7 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->before_drag = {};
     m_chart->on_select = {};
     m_chart->on_move = {};
+    m_chart->on_pan = {};
 }
 
 void CurveEditorDialog::finish_edit()
