@@ -81,7 +81,11 @@ public:
     // How many ratios depends on how many filaments there are, so the palette stays bounded: the
     // quantizer's lookup cube costs one DeltaE00 per cell per entry to fill, and with sixteen
     // filaments there are already plenty of colours without mixing any of them.
-    static std::vector<PaletteEntry> make_palette(const std::vector<ColorRGBA> &filaments, bool mixing);
+    // `max_entries` bounds the whole palette. It is normally the quantizer's own limit, but when the
+    // mixes become filament slots it has to be the paint mask's instead: a mask can name only
+    // EnforcerBlockerType::ExtruderMax states, and every mix now occupies one of them.
+    static std::vector<PaletteEntry> make_palette(const std::vector<ColorRGBA> &filaments, bool mixing,
+                                                  int max_entries);
 
     // Maps an image colour to the closest entry of `palette`, perceptually (CIEDE2000 over CIELAB - a
     // plain RGB distance picks visibly wrong filaments, most obviously between a saturated colour and
@@ -95,9 +99,6 @@ public:
 
     // Turns a palette index plus a position into the filament to print there, interleaving the two
     // filaments of a mixed entry per `mode`. `layer_height` sizes the Z bands; `cell_mm` the dither
-    // cells. See ColorResolveFn for why this is separate from the quantizer.
-    static ColorResolveFn make_mix_resolver(const std::vector<PaletteEntry> &palette, ColorMixMode mode,
-                                            float layer_height, float cell_mm);
 
     // Everything the jobs need to colour with, for the current volume: palette, mix mode, layer
     // height, despeckle. Empty when no layer is actually colouring.
@@ -106,16 +107,20 @@ public:
     // The printable palette for the current filaments and mixing setting, rebuilt only when either
     // actually changes - see the definition for why that caching is not optional.
     const std::vector<PaletteEntry> &cached_palette();
+    // Turns every mix in `palette` into a mixed filament slot and rewrites the entry to name that slot
+    // as a plain filament, so nothing downstream has to know a mix is involved: is_mix() goes false and
+    // the resolver simply returns it. The per-layer interleaving then happens in the slicer, where it is
+    // not limited by how fine the mesh is. Entries whose slot could not be created (the paint-state cap)
+    // fall back to the nearer of the two components.
+    void bind_mixes_to_filament_slots(std::vector<PaletteEntry> &palette);
     std::vector<PaletteEntry>  m_palette_cache;
     std::vector<ColorRGBA>     m_palette_filaments;
+    int                        m_palette_cap = 0; // the max_entries m_palette_cache was built with
     bool                       m_palette_mixing = false;
     ColorQuantizeFn            m_palette_quantizer;
 
     // The loaded filaments, clamped to the sixteen mmu_segmentation_facets can address.
     static std::vector<ColorRGBA> filament_palette();
-    // The print's layer height, which sizes ColorMixMode::ZBands. Falls back to 0.2 mm if it cannot be
-    // read - a wrong band size is a cosmetic error, not a reason to refuse to colour anything.
-    static float print_layer_height();
     // The Z band height, in mm. One print layer is the ideal, but the interleave is realised per
     // *facet*: a band thinner than the mesh can resolve does not dither, it beats against the triangle
     // grid and comes out as broad horizontal stripes - and since MMU segmentation reads facet colour,
@@ -123,7 +128,6 @@ public:
     // diagonal and knows nothing about the layer height, so the band is rounded up to a whole number of
     // layers at least two facet rows tall: still exact on the printer, and representable by the mesh
     // that has to carry it. Used by both the bake settings and the preview shader, so the two agree.
-    float        color_band_mm(const ModelVolume &mv);
 
     // The Normal preview's triangles, grouped by the filament they will print in. Colour is per facet
     // and there are at most sixteen filaments, so the mesh is uploaded once with its index buffer

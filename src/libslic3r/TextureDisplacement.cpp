@@ -2283,12 +2283,11 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     //
     // The *palette* index, not the printed filament. The decimation treats any edge whose two faces
     // differ as a crease (TextureBakeDecimate.cpp), so it must only ever see where the **perceived**
-    // colour changes - which is exactly what ColorResolveFn's own contract says the interleaving may
-    // never be fed into. Handing it the resolved filament made every Z band boundary a crease: on an
-    // upright wall that is one crease per band, so the collapse ran along those lines and left a stack
-    // of horizontal slivers, each printing in a single filament. Those were the horizontal colour
-    // lines in the baked result, and they also spent the triangle budget drawing a pattern the eye is
-    // meant to blend away. Faces the paint excludes are skipped by the pipeline itself.
+    // colour changes. A mix is one perceived colour however its components are laid down, which is why
+    // it has to be the palette index here: back when this was handed a per-triangle interleave instead,
+    // every band boundary read as a crease, the collapse ran along those lines and left a stack of
+    // horizontal slivers, and the triangle budget went on drawing a pattern the eye is meant to blend
+    // away. Faces the paint excludes are skipped by the pipeline itself.
     const TextureBake::ColorSampleFn color_sample =
         color_sampler ? TextureBake::ColorSampleFn([&color_sampler](const Vec3f &p, const Vec3f &n) {
                             return color_sampler(p, n);
@@ -2373,7 +2372,7 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                 Vec3f        normal   = (b - a).cross(c - a);
                 const float  nl       = normal.norm();
                 normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
-                const int filament = color->resolve ? color->resolve(palette[i], centroid, normal) : palette[i];
+                const int filament = palette[i];
                 if (filament >= 0)
                     out_color[i] = uint8_t(std::min(filament + 1, 255));
             }
@@ -2830,8 +2829,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
             Vec3f        normal   = (b - a).cross(c - a);
             const float  nl       = normal.norm();
             normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
-            const int filament = color->resolve ? color->resolve(triangle_palette[i], centroid, normal)
-                                                : triangle_palette[i];
+            const int filament = triangle_palette[i];
             if (filament >= 0)
                 out_color[i] = uint8_t(std::min(filament + 1, 255));
         }
