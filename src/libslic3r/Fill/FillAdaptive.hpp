@@ -14,6 +14,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <cstddef>
 #include <memory>
 #include <utility>
 #include <Eigen/Geometry>
@@ -36,6 +37,16 @@ struct Octree;
 // To keep the definition of Octree opaque, we have to define a custom deleter.
 struct OctreeDeleter { void operator()(Octree *p); };
 using  OctreePtr = std::unique_ptr<Octree, OctreeDeleter>;
+
+// Orca: Octree of the whole object, and for separated infills one per body (see Layer::lslices_separated_component_ids).
+struct Octrees
+{
+    OctreePtr              object;
+    std::vector<OctreePtr> bodies;
+
+    // A body without an octree of its own, or body -1, uses the object's.
+    Octree *get(int body) const { return body >= 0 && size_t(body) < bodies.size() && bodies[body] ? bodies[body].get() : object.get(); }
+};
 
 // Calculate line spacing for
 // 1) adaptive cubic infill

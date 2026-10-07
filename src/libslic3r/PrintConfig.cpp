@@ -7602,8 +7602,8 @@ void PrintConfigDef::init_fff_params()
                        "whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts "
                        "(or distinct 3D objects) each get their own.\n"
                        "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
-                       "Affects line and grid patterns and rotation-template infills.\n"
-                       "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected.");
+                       "Adaptive Cubic and Support Cubic always center each part on itself, and Lightning infill is generated for "
+                       "the whole object and is unaffected.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 

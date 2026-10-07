@@ -128,6 +128,9 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 {
     // Perform offset.
     Slic3r::ExPolygons expp = offset_ex(surface->expolygon, float(scale_(this->overlap - 0.5 * this->spacing)));
+    // Orca: Separated infills move the box center onto each body; origin-aligned patterns follow it.
+    const Point shift = this->aligned_to_origin() && ! empty(this->bounding_box) ? this->bounding_box.center() : Point::Zero();
+    translate(expp, -shift);
     // Create the infills for each of the regions.
     Polylines polylines_out;
     for (size_t i = 0; i < expp.size(); ++ i)
@@ -137,6 +140,8 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
             _infill_direction(surface),
             std::move(expp[i]),
             polylines_out);
+    for (Polyline &pl : polylines_out)
+        pl.translate(shift);
     return polylines_out;
 }
 

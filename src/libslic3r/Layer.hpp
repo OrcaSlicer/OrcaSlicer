@@ -33,7 +33,7 @@ class PrintObject;
 class Print;
 
 namespace FillAdaptive {
-    struct Octree;
+    struct Octrees;
 };
 
 namespace FillLightning {
@@ -174,6 +174,8 @@ public:
     // full bounding box of the 3D connected body (across all layers) it belongs to. Populated by
     // PrintObject::infill() only when the feature is used; empty otherwise.
     std::vector<BoundingBox> lslices_separated_component_bboxes;
+    // Orca: Index of that body within the object, aligned with lslices the same way.
+    std::vector<size_t>      lslices_separated_component_ids;
 
     // BBS
     ExPolygons              loverhangs;
@@ -208,9 +210,9 @@ public:
     void                    make_perimeters();
     // Phony version of make_fills() without parameters for Perl integration only.
     void                    make_fills() { this->make_fills(nullptr, nullptr); }
-    void                    make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive::Octree* support_fill_octree, FillLightning::Generator* lightning_generator = nullptr);
-    Polylines               generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Octree *adaptive_fill_octree,
-                                                                           FillAdaptive::Octree *support_fill_octree,
+    void                    make_fills(const FillAdaptive::Octrees* adaptive_fill_octrees, const FillAdaptive::Octrees* support_fill_octrees, FillLightning::Generator* lightning_generator = nullptr);
+    Polylines               generate_sparse_infill_polylines_for_anchoring(const FillAdaptive::Octrees *adaptive_fill_octrees,
+                                                                           const FillAdaptive::Octrees *support_fill_octrees,
                                                                            FillLightning::Generator* lightning_generator) const;
     void 					make_ironing();
     // Returns the filament id (1-based) the region is ironed with, or -1 when the
