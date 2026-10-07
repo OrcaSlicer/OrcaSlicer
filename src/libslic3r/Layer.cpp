@@ -1,12 +1,30 @@
 #include "Layer.hpp"
 #include "ClipperUtils.hpp"
+#include "Polygon.hpp"
+#include "Point.hpp"
+#include "ExPolygon.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Exception.hpp"
+#include "Flow.hpp"
 #include "Print.hpp"
-#include "Fill/Fill.hpp"
+#include "PrintConfig.hpp"
 #include "ShortestPath.hpp"
 #include "SVG.hpp"
 #include "BoundingBox.hpp"
+#include "Surface.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <cstddef>
+#include <utility>
+#include <cassert>
+#include <map>
+#include "Config.hpp"
+#include "MultiMaterialSegmentation.hpp"
+#include "ObjectID.hpp"
 
 namespace Slic3r {
 
@@ -360,7 +378,7 @@ void Layer::simplify_support_entity_collection(ExtrusionEntityCollection* entity
 //BBS: method to simplify support path
 void Layer::simplify_support_path(ExtrusionPath * path)
 {
-    const auto print_config = this->object()->print()->config();
+    const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
@@ -375,7 +393,7 @@ void Layer::simplify_support_path(ExtrusionPath * path)
 //BBS: method to simplify support path
 void Layer::simplify_support_multi_path(ExtrusionMultiPath* multipath)
 {
-    const auto print_config = this->object()->print()->config();
+    const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
@@ -392,7 +410,7 @@ void Layer::simplify_support_multi_path(ExtrusionMultiPath* multipath)
 //BBS: method to simplify support path
 void Layer::simplify_support_loop(ExtrusionLoop* loop)
 {
-    const auto print_config = this->object()->print()->config();
+    const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);

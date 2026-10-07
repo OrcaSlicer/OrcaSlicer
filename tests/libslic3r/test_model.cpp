@@ -1,6 +1,12 @@
 #include <catch2/catch_all.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Geometry.hpp"
 
 using namespace Slic3r;
 

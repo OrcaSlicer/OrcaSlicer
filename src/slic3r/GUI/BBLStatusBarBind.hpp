@@ -2,6 +2,7 @@
 #define BBLStatusBarBind_HPP
 
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/simplebook.h>
 
@@ -10,19 +11,16 @@
 #include <string>
 #include <functional>
 #include <string>
+#include <wx/string.h>
 #include "Jobs/ProgressIndicator.hpp"
-#include "Widgets/Label.hpp"
-#include "Widgets/Button.hpp"
 
-class wxTimer;
+class Button;
+class wxBoxSizer;
+class wxPanel;
+class wxStaticText;
+
 class wxGauge;
-class wxButton;
-class wxTimerEvent;
-class wxStatusBar;
 class wxWindow;
-class wxFrame;
-class wxString;
-class wxFont;
 
 
 namespace Slic3r {
@@ -81,10 +79,6 @@ private:
     CancelFn m_cancel_cb;
     CancelFn m_cancel_cb_fina;
 };
-
-namespace GUI {
-using Slic3r::BBLStatusBarBind;
-}
 
 } // namespace Slic3r
 

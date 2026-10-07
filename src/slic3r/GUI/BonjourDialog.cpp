@@ -2,15 +2,27 @@
 
 #include "BonjourDialog.hpp"
 
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include <boost/asio/ip/address.hpp>
+#include <cstddef>
 #include <set>
 #include <mutex>
 
 #include <boost/nowide/convert.hpp>
 
+#include <wx/event.h>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/listbase.h>
+#include <vector>
 #include <wx/sizer.h>
 #include <wx/listctrl.h>
 #include <wx/stattext.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
 #include "slic3r/GUI/GUI.hpp"

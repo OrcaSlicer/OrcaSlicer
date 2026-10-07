@@ -1,18 +1,42 @@
+#include "BoundingBox.hpp"
+#include "BrimEarsPoint.hpp"
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
+#include "ExPolygon.hpp"
+#include "Flow.hpp"
+#include "Geometry.hpp"
+#include "ExtrusionEntity.hpp"
 #include "Layer.hpp"
+#include "Point.hpp"
+#include "ObjectID.hpp"
+#include "Polygon.hpp"
+#include "Line.hpp"
+#include "MultiPoint.hpp"
+#include "Polyline.hpp"
 #include "Print.hpp"
+#include "PrintBase.hpp"
 #include "ShortestPath.hpp"
 #include "libslic3r.h"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <cmath>
 #include <cstdint>
 #include <limits>
+#include <map>
+#include <string>
 #include <tbb/parallel_for.h>
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
+#include "Config.hpp"
+#include "ExtrusionEntityCollection.hpp"
+#include "MultiMaterialSegmentation.hpp"
+#include "SurfaceCollection.hpp"
+#include "TriangleMesh.hpp"
 
 #ifndef NDEBUG
     // #define BRIM_DEBUG_TO_SVG
@@ -131,6 +155,7 @@ double getadhesionCoeff(const PrintObject* printObject)
     }
     double adhesionCoeff = 1;
     for (const ModelVolume* modelVolume : objectVolumes) {
+        if (modelVolume->is_precise_seam()) continue; // non-printing helper geometry
         for (auto iter = extrudersFirstLayer.begin(); iter != extrudersFirstLayer.end(); iter++) {
             if (modelVolume->extruder_id() == *iter) {
                 if (Model::extruderParamsMap.find(modelVolume->extruder_id()) != Model::extruderParamsMap.end()) {

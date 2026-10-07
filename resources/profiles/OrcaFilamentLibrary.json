@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.12",
+	"version": "02.04.00.19",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -473,6 +473,10 @@
 			"sub_path": "filament/Bambu/Bambu PETG HF @base.json"
 		},
 		{
+			"name": "Bambu PETG Matte @base",
+			"sub_path": "filament/Bambu/Bambu PETG Matte @base.json"
+		},
+		{
 			"name": "Bambu PETG Translucent @base",
 			"sub_path": "filament/Bambu/Bambu PETG Translucent @base.json"
 		},
@@ -709,6 +713,10 @@
 			"sub_path": "filament/Bambu/Bambu PLA Impact @base.json"
 		},
 		{
+			"name": "Bambu PLA Lite @base",
+			"sub_path": "filament/Bambu/Bambu PLA Lite @base.json"
+		},
+		{
 			"name": "Bambu PLA Marble @base",
 			"sub_path": "filament/Bambu/Bambu PLA Marble @base.json"
 		},
@@ -719,6 +727,10 @@
 		{
 			"name": "Bambu PLA Metal @base",
 			"sub_path": "filament/Bambu/Bambu PLA Metal @base.json"
+		},
+		{
+			"name": "Bambu PLA Pure @base",
+			"sub_path": "filament/Bambu/Bambu PLA Pure @base.json"
 		},
 		{
 			"name": "Bambu PLA Silk @base",
@@ -735,6 +747,14 @@
 		{
 			"name": "Bambu PLA Tough @base",
 			"sub_path": "filament/Bambu/Bambu PLA Tough @base.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @base",
+			"sub_path": "filament/Bambu/Bambu PLA Tough+ @base.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @base",
+			"sub_path": "filament/Bambu/Bambu PLA Translucent @base.json"
 		},
 		{
 			"name": "Bambu PLA Wood @base",
@@ -1193,12 +1213,24 @@
 			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
 		},
 		{
+			"name": "Bambu TPU 85A @base",
+			"sub_path": "filament/Bambu/Bambu TPU 85A @base.json"
+		},
+		{
+			"name": "Bambu TPU 90A @base",
+			"sub_path": "filament/Bambu/Bambu TPU 90A @base.json"
+		},
+		{
 			"name": "Bambu TPU 95A @base",
 			"sub_path": "filament/Bambu/Bambu TPU 95A @base.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @base",
 			"sub_path": "filament/Bambu/Bambu TPU 95A HF @base.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @base",
+			"sub_path": "filament/Bambu/Bambu TPU for AMS @base.json"
 		},
 		{
 			"name": "COEX TPE 30D @base",
@@ -1945,6 +1977,10 @@
 			"sub_path": "filament/Bambu/Bambu PETG HF @System.json"
 		},
 		{
+			"name": "Bambu PETG Matte @System",
+			"sub_path": "filament/Bambu/Bambu PETG Matte @System.json"
+		},
+		{
 			"name": "Bambu PETG Translucent @System",
 			"sub_path": "filament/Bambu/Bambu PETG Translucent @System.json"
 		},
@@ -2653,6 +2689,10 @@
 			"sub_path": "filament/Bambu/Bambu PLA Impact @System.json"
 		},
 		{
+			"name": "Bambu PLA Lite @System",
+			"sub_path": "filament/Bambu/Bambu PLA Lite @System.json"
+		},
+		{
 			"name": "Bambu PLA Marble @System",
 			"sub_path": "filament/Bambu/Bambu PLA Marble @System.json"
 		},
@@ -2663,6 +2703,10 @@
 		{
 			"name": "Bambu PLA Metal @System",
 			"sub_path": "filament/Bambu/Bambu PLA Metal @System.json"
+		},
+		{
+			"name": "Bambu PLA Pure @System",
+			"sub_path": "filament/Bambu/Bambu PLA Pure @System.json"
 		},
 		{
 			"name": "Bambu PLA Silk @System",
@@ -2679,6 +2723,14 @@
 		{
 			"name": "Bambu PLA Tough @System",
 			"sub_path": "filament/Bambu/Bambu PLA Tough @System.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @System",
+			"sub_path": "filament/Bambu/Bambu PLA Tough+ @System.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @System",
+			"sub_path": "filament/Bambu/Bambu PLA Translucent @System.json"
 		},
 		{
 			"name": "Bambu PLA Wood @System",
@@ -3893,12 +3945,24 @@
 			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL X1C.json"
 		},
 		{
+			"name": "Bambu TPU 85A @System",
+			"sub_path": "filament/Bambu/Bambu TPU 85A @System.json"
+		},
+		{
+			"name": "Bambu TPU 90A @System",
+			"sub_path": "filament/Bambu/Bambu TPU 90A @System.json"
+		},
+		{
 			"name": "Bambu TPU 95A @System",
 			"sub_path": "filament/Bambu/Bambu TPU 95A @System.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @System",
 			"sub_path": "filament/Bambu/Bambu TPU 95A HF @System.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @System",
+			"sub_path": "filament/Bambu/Bambu TPU for AMS @System.json"
 		},
 		{
 			"name": "COEX TPE 30D @BBL A1",

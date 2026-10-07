@@ -6,6 +6,8 @@
     "setting_id": "GFSA06_11",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "80",
+        "80",
         "80"
     ],
     "eng_plate_temp": [

@@ -1,9 +1,17 @@
 #include "DevPrintOptions.h"
 #include "DevUtil.h"
 
+#include <boost/log/trivial.hpp>
 #include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <string>
+#include <ctime>
+#include <exception>
 
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

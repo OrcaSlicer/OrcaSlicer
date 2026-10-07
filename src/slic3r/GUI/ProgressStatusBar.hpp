@@ -11,7 +11,6 @@
 class wxTimer;
 class wxGauge;
 class wxButton;
-class wxTimerEvent;
 class wxStatusBar;
 class wxWindow;
 class wxFrame;
@@ -68,10 +67,6 @@ private:
     bool m_busy = false;
     CancelFn m_cancel_cb;
 };
-
-namespace GUI {
-    using Slic3r::ProgressStatusBar;
-}
 
 }
 

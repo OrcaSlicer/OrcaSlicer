@@ -6,12 +6,20 @@
 #include "Widgets/WebViewHostDialog.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
 #include <slic3r/GUI/GUI.hpp>
+#include <wx/chartype.h>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <utility>
 #include <wx/dataview.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/language.h>
 #include <wx/string.h>
 #include <wx/fswatcher.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -59,7 +67,7 @@ public:
 
     void on_script_message(const nlohmann::json& payload) override;
     void OnRequestPresets();
-    void OnExportData(const wxString& path, const wxString& name, json data);
+    void OnExportData(const wxString& path, const wxString& name, nlohmann::json data);
 
 protected:
     bool m_seq_top_layer_only_changed{false};

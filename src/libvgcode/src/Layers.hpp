@@ -6,6 +6,11 @@
 #define VGCODE_LAYERS_HPP
 
 #include "Range.hpp"
+#include <cstdint>
+#include <cstddef>
+#include "../include/Types.hpp"
+#include <array>
+#include <vector>
 
 namespace libvgcode {
 

@@ -1,17 +1,45 @@
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 
+#include <cstddef>
+#include <functional>
+#include <cassert>
+#include <cstdlib>
+#include <memory>
+#include <math.h>
+#include <cmath>
+#include <iterator>
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <utility>
 
+#include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "ElephantFootCompensation.hpp"
+#include "ExPolygon.hpp"
 #include "Exception.hpp"
+#include "Flow.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
+#include "Model.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "ObjectID.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "Print.hpp"
 //BBS
+#include "PrintConfig.hpp"
+#include "PrintBase.hpp"
 #include "ShortestPath.hpp"
+#include "libslic3r.h"
+#include "TriangleMeshSlicer.hpp"
+#include "TriangleMesh.hpp"
+#include "Slicing.hpp"
+#include "Surface.hpp"
+#include "Utils.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
+#include "Config.hpp"
+#include "SurfaceCollection.hpp"
 
 //! macro used to mark string used at localization, return same string
 #define L(s) Slic3r::I18N::translate(s)
@@ -1600,6 +1628,18 @@ std::vector<Polygons> PrintObject::slice_support_volumes(const ModelVolumeType m
         }
     }
     return slices;
+}
+
+std::vector<ExPolygons> PrintObject::slice_single_volume_regions(const ModelVolume* volume) const
+{
+    if (volume == nullptr)
+        return {};
+    // Match the existing slicing heights and centered transform without flattening holes.
+    const std::vector<float> zs = zs_from_layers(this->layers());
+    MeshSlicingParamsEx params;
+    params.trafo = this->trafo_centered();
+    const Print *print = this->print();
+    return slice_volume(*volume, zs, params, [print]() { print->throw_if_canceled(); });
 }
 
 } // namespace Slic3r

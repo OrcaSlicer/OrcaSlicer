@@ -4,7 +4,13 @@
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include <cereal/archives/binary.hpp>
+#include <TopoDS_Shape.hxx>
 #include <imgui/imgui.h>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include "libslic3r/Point.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -22,6 +28,7 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    bool on_is_selectable() const override;
     void on_render() override;
     void on_set_state() override;
     CommonGizmosDataID on_get_requirements() const override;

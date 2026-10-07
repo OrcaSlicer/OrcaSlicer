@@ -1,12 +1,27 @@
 #include "../GCode.hpp"
+#include "../LocalesUtils.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Circle.hpp"
 #include "CoolingBuffer.hpp"
+#include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <cstdlib>
+#include <cmath>
+#include <charconv>
+#include <cstring>
+#include <cstdio>
 #include <iostream>
 #include <float.h>
+#include <string>
 #include <system_error>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #if 0
     #define DEBUG
@@ -15,10 +30,13 @@
 #endif
 
 #include <assert.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
-CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
+CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
 {
     this->reset(gcodegen.writer().get_position());
 
@@ -394,13 +412,13 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
                 if (*c == 0 || *c == ';')
                     break;
 
-                assert(is_decimal_separator_point()); // for atof
                 //BBS: Parse the axis.
                 size_t axis = (*c >= 'X' && *c <= 'Z') ? (*c - 'X') :
                               (*c == 'E') ? 3 : (*c == 'F') ? 4 :
                               (*c == 'I') ? 5 : (*c == 'J') ? 6 : size_t(-1);
                 if (axis != size_t(-1)) {
-                    new_pos[axis] = float(atof(++c));
+                    ++ c;
+                    new_pos[axis] = float(atof_decimal_point(std::string_view(c, sline.data() + sline.size() - c)));
                     if (axis == 4) {
                         // Convert mm/min to mm/sec.
                         new_pos[4] /= 60.f;
@@ -536,10 +554,9 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_G4;
             size_t pos_S = sline.find('S', 3);
             size_t pos_P = sline.find('P', 3);
-            assert(is_decimal_separator_point()); // for atof
             line.time = line.time_max = float(
-                (pos_S > 0) ? atof(sline.c_str() + pos_S + 1) :
-                (pos_P > 0) ? atof(sline.c_str() + pos_P + 1) * 0.001 : 0.);
+                (pos_S > 0) ? atof_decimal_point(sline.c_str() + pos_S + 1) :
+                (pos_P > 0) ? atof_decimal_point(sline.c_str() + pos_P + 1) * 0.001 : 0.);
         } else if (boost::starts_with(sline, ";_FORCE_RESUME_FAN_SPEED")) {
             line.type = CoolingLine::TYPE_FORCE_RESUME_FAN;
         }
@@ -737,10 +754,12 @@ std::string CoolingBuffer::apply_layer_cooldown(
         &ironing_fan_control, &ironing_fan_speed
     ](bool immediately_apply) {
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
-        float fan_min_speed = EXTRUDER_CONFIG(fan_min_speed);
+        // The per-variant options take the extruder variant the filament prints with on this layer
+        const size_t config_index = m_gcodegen.get_filament_config_index(m_current_extruder, layer_id);
+        float fan_min_speed = m_config.fan_min_speed.get_at(config_index);
         float fan_speed_new = EXTRUDER_CONFIG(reduce_fan_stop_start_freq) ? fan_min_speed : 0;
         //BBS
-        int additional_fan_speed_new = EXTRUDER_CONFIG(additional_cooling_fan_speed);
+        int additional_fan_speed_new = m_config.additional_cooling_fan_speed.get_at(config_index);
         int close_fan_the_first_x_layers = EXTRUDER_CONFIG(close_fan_the_first_x_layers);
         // Is the fan speed ramp enabled?
         int full_fan_speed_layer = EXTRUDER_CONFIG(full_fan_speed_layer);
@@ -776,7 +795,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
             // additional_fan_speed_new is left at its configured value (auxiliary fan is independent of the
             // part-cooling override).
         } else if (int(layer_id) >= close_fan_the_first_x_layers) {
-            float   fan_max_speed             = EXTRUDER_CONFIG(fan_max_speed);
+            float   fan_max_speed             = m_config.fan_max_speed.get_at(config_index);
             float slow_down_layer_time = float(EXTRUDER_CONFIG(slow_down_layer_time));
             float fan_cooling_layer_time      = float(EXTRUDER_CONFIG(fan_cooling_layer_time));
             //BBS: always enable the fan speed interpolation according to layer time

@@ -73,10 +73,6 @@ private:
     CancelFn m_cancel_cb;
 };
 
-namespace GUI {
-    using Slic3r::BBLStatusBar;
-}
-
 }
 
 #endif // BBLSTATUSBAR_HPP

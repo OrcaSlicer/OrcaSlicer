@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Eryone PA-GF @0.2 nozzle",
+	"inherits": "Eryone PA-GF",
 	"from": "system",
 	"setting_id": "J7Oy1mm1szLspwBb",
 	"instantiation": "true",
-	"inherits": "Eryone PA-GF",
 	"compatible_printers": [
 		"Thinker X400 0.2 nozzle"
 	],

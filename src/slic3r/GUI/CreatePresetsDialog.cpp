@@ -1,15 +1,69 @@
 #include "CreatePresetsDialog.hpp"
+#include <algorithm>
+#include <any>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <cctype>
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstddef>
+#include "libslic3r/Preset.hpp"
+#include <deque>
+#include <exception>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include "libslic3r/Config.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <memory>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/RadioBox.hpp"
+#include <cstdio>
+#include <map>
+#include <nlohmann/json.hpp>
+#include <cstdlib>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cassert>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "libslic3r/Utils.hpp"
+#include <cmath>
+#include "libslic3r/Point.hpp"
+#include <miniz.h>
+#include "slic3r/GUI/ParamsDialog.hpp"
 #include <vector>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <openssl/md5.h>
 #include <openssl/evp.h>
+#include <wx/anybutton.h>
+#include <wx/colour.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/tglbtn.h>
+#include <wx/filedlg.h>
+#include <wx/dirdlg.h>
 #include <wx/tooltip.h>
+#include <wx/treebase.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 #include <boost/nowide/cstdio.hpp>
+#include <wx/valtext.h>
 #include "libslic3r/PresetBundle.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
@@ -36,6 +90,8 @@
 #define FILAMENT_OPTION_COLOUR wxColour("#D9D9D9")
 #define SELECT_ALL_OPTION_COLOUR wxColour("#009688")
 #define DEFAULT_PROMPT_TEXT_COLOUR wxColour("#ACACAC")
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -291,7 +347,7 @@ static std::string get_curr_timestmp()
     // return timestampString;
 }
 
-static void get_filament_compatible_printer(Preset* preset, vector<std::string>& printers)
+static void get_filament_compatible_printer(Preset* preset, std::vector<std::string>& printers)
 {
     auto compatible_printers = dynamic_cast<ConfigOptionStrings *>(preset->config.option("compatible_printers"));
     if (compatible_printers == nullptr) return;
@@ -699,7 +755,7 @@ CreateFilamentPresetDialog::CreateFilamentPresetDialog(wxWindow *parent)
     m_scrolled_preset_panel = new wxScrolledWindow(this, wxID_ANY);
     m_scrolled_preset_panel->SetMaxSize(wxSize(-1, FromDIP(350)));
     m_scrolled_preset_panel->SetBackgroundColour(*wxWHITE);
-    m_scrolled_preset_panel->SetScrollRate(5, 5);
+    m_scrolled_preset_panel->SetScrollRate(5, FromDIP(20));
     m_scrolled_sizer = new wxBoxSizer(wxVERTICAL);
     m_scrolled_sizer->Add(create_item(FilamentOptionType::PRESET_FOR_PRINTER), 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(5));
     m_scrolled_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
@@ -1525,7 +1581,7 @@ void CreateFilamentPresetDialog::sort_printer_by_nozzle(std::vector<std::pair<st
 {
     std::unordered_map<std::string, float> nozzle_diameter = nozzle_diameter_map;
     std::sort(printer_name_to_filament_preset.begin(), printer_name_to_filament_preset.end(),
-              [&nozzle_diameter](const std::pair<string, T> &a, const std::pair<string, T> &b) {
+              [&nozzle_diameter](const std::pair<std::string, T> &a, const std::pair<std::string, T> &b) {
                   size_t nozzle_index_a = a.first.find(" nozzle");
                   size_t nozzle_index_b = b.first.find(" nozzle");
                   if (nozzle_index_a == std::string::npos || nozzle_index_b == std::string::npos) return a.first < b.first;
@@ -1593,7 +1649,7 @@ CreatePrinterPresetDialog::CreatePrinterPresetDialog(wxWindow *parent)
 
     m_page1 = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_page1->SetBackgroundColour(*wxWHITE);
-    m_page1->SetScrollRate(5, 5);
+    m_page1->SetScrollRate(5, FromDIP(20));
     m_page2 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);    m_page2->SetBackgroundColour(*wxWHITE);
 
     create_printer_page1(m_page1);
@@ -2652,7 +2708,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
     wxBoxSizer *vertical_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_scrolled_preset_window = new wxScrolledWindow(parent);
-    m_scrolled_preset_window->SetScrollRate(5, 5);
+    m_scrolled_preset_window->SetScrollRate(5, FromDIP(20));
     m_scrolled_preset_window->SetBackgroundColour(*wxWHITE);
     //m_scrolled_preset_window->SetMinSize(wxSize(FromDIP(1500), FromDIP(-1)));
     m_scrolled_preset_window->SetMaxSize(wxSize(FromDIP(1500), FromDIP(-1)));
@@ -3087,7 +3143,7 @@ void CreatePrinterPresetDialog::set_current_visible_printer()
 
 wxArrayString CreatePrinterPresetDialog::printer_preset_sort_with_nozzle_diameter(const VendorProfile &vendor_profile, float nozzle_diameter)
 {
-    std::vector<pair<float, std::string>> preset_sort;
+    std::vector<std::pair<float, std::string>> preset_sort;
 
     auto get_nozzle_size_for_printer_model = [this](const std::string & model_name) -> size_t {
         auto iter = m_printer_name_to_preset.find(model_name);
@@ -4297,7 +4353,7 @@ wxBoxSizer *ExportConfigsDialog::create_select_printer(wxWindow *parent)
     optionSizer->SetMinSize(OPTION_SIZE);
     horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
     m_scrolled_preset_window = new wxScrolledWindow(parent);
-    m_scrolled_preset_window->SetScrollRate(5, 5);
+    m_scrolled_preset_window->SetScrollRate(5, FromDIP(20));
     m_scrolled_preset_window->SetBackgroundColour(*wxWHITE);
     m_scrolled_preset_window->SetMaxSize(wxSize(FromDIP(660), FromDIP(400)));
     m_scrolled_preset_window->SetSize(wxSize(FromDIP(660), FromDIP(400)));
@@ -4736,7 +4792,7 @@ wxBoxSizer *EditFilamentPresetDialog::create_preset_tree_sizer()
 {
     wxBoxSizer *filament_preset_tree_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_preset_tree_window = new wxScrolledWindow(this);
-    m_preset_tree_window->SetScrollRate(5, 5);
+    m_preset_tree_window->SetScrollRate(5, FromDIP(20));
     m_preset_tree_window->SetBackgroundColour(PRINTER_LIST_COLOUR);
     m_preset_tree_window->SetMinSize(wxSize(-1, FromDIP(400)));
     m_preset_tree_window->SetMaxSize(wxSize(-1, FromDIP(300)));
@@ -4908,7 +4964,7 @@ wxBoxSizer *CreatePresetForPrinterDialog::create_selected_filament_preset_sizer(
 
     m_selected_printer->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
         wxString printer_name = m_selected_printer->GetStringSelection();
-        std::unordered_map<string, std::vector<std::shared_ptr<Preset>>>::iterator filament_iter = m_printer_compatible_filament_presets.find(into_u8(printer_name));
+        std::unordered_map<std::string, std::vector<std::shared_ptr<Preset>>>::iterator filament_iter = m_printer_compatible_filament_presets.find(into_u8(printer_name));
         if (m_printer_compatible_filament_presets.end() != filament_iter) {
             filament_choice_to_filament_preset.clear();
             wxArrayString filament_choices;

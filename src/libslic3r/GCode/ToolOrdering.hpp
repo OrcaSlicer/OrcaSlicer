@@ -5,17 +5,27 @@
 
 #include "../libslic3r.h"
 
+#include <cstdint>
+#include <cstddef>
+#include <algorithm>
 #include <functional>
 #include <map>
+#include <tuple>
+#include <set>
+#include <unordered_map>
+#include <string>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
-#include "../FilamentGroup.hpp"
+#include <vector>
 #include "../FilamentMixer.hpp"
 #include "../MultiNozzleUtils.hpp"
-#include "../ExtrusionEntity.hpp"
 #include "../ObjectID.hpp"
 #include "../PrintConfig.hpp"
+
+namespace Slic3r { class ExtrusionEntity; }
+namespace Slic3r { class ExtrusionEntityCollection; }
+namespace Slic3r { enum ExtrusionRole : uint8_t; }
 
 namespace Slic3r {
 

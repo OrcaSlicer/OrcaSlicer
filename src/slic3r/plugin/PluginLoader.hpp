@@ -1,12 +1,13 @@
 #pragma once
 
-#include "PluginDescriptor.hpp"
 
 #include <boost/filesystem/path.hpp>
 
 #include <functional>
 #include <string>
 #include <vector>
+
+namespace Slic3r { struct PluginDescriptor; }
 
 namespace Slic3r {
 struct Plugin;

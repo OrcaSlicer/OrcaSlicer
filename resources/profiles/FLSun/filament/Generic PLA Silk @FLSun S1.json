@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Silk @FLSun S1",
-	"inherits": "Generic PLA Silk @System",
 	"renamed_from": "FLSun S1 PLA Silk",
+	"inherits": "Generic PLA Silk @System",
 	"from": "system",
 	"setting_id": "NTJw0fbcn3JoOr0R",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_retraction_length": [
 		"nil"
 	],

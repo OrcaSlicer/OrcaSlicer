@@ -4,9 +4,9 @@
 #include <array>
 #include <cmath>
 #include <functional>
+#include <utility>
 #include <vector>
 
-#include "../libslic3r.h"
 #include "../Point.hpp"
 #include "../Polygon.hpp"
 #include "../Polyline.hpp"
