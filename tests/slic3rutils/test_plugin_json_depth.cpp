@@ -7,7 +7,10 @@
 
 #include "plugin_test_utils.hpp"
 
+#include <cstdint>
 #include <exception>
+#include <utility>
+
 #include <nlohmann/json.hpp>
 #include <pybind11/embed.h>
 #include <pybind11/gil.h>
