@@ -87,6 +87,7 @@
 #include "libslic3r/GCode/Thumbnails.hpp"
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 using boost::property_tree::ptree;
 

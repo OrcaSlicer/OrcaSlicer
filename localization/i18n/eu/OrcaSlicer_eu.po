@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -3307,8 +3307,8 @@ msgstr "Prozesuaren aurrezarpen gehigarriak"
 msgid "Remove parameter"
 msgstr "Ezabatu parametroa"
 
-msgid "to"
-msgstr "nora"
+msgid "Range"
+msgstr "Barrutia"
 
 msgid "Add height range"
 msgstr "Gehitu altuera-tartea"
@@ -5323,9 +5323,6 @@ msgstr "parametroaren izena"
 
 msgid "layers"
 msgstr "geruzak"
-
-msgid "Range"
-msgstr "Barrutia"
 
 msgid "Empty string"
 msgstr "Kate hutsa"
@@ -8614,8 +8611,9 @@ msgstr "Konektatutako inprimagailua %s da. Inprimatzeko, proiektuaren aurrezarpe
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Inprimagailuaren informazioa sinkronizatu eta aurrezarpena automatikoki aldatu nahi duzu?"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "Proiektu honek Diseinua fitxan sortutako modelo bat dauka, eta ez du beste geometriarik. Gaitu \"CAD eginbidea (esperimentala)\" Hobespenetan eta berrabiarazi hura ikusi eta editatzeko; proiektua gordetzean mantendu egiten da."
 
 msgid "The file does not contain any geometry data."
 msgstr "Fitxategiak ez du geometria-daturik."
@@ -9639,8 +9637,9 @@ msgstr "Diseinua fitxan, akoplamendu-konektorea aurpegi txiki gisa marrazten du,
 msgid "Auto-close sketch loops"
 msgstr "Itxi automatikoki krokisen begiztak"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "Elkarrengandik 0,001 mm-ra dauden krokis-muturrak lotune bakartzat hartzen ditu eta begizta soldatuz ixten du. Desaktibatuta: zehazki bat datozen muturrak soilik lotzen dira; beraz, tarte txiki bat duen begizta irekita erakusten da, automatikoki itxi beharrean. Diseinu bakoitzarekin gordetzen da; aldaketaren ondoren hasitako diseinuei aplikatzen zaie."
 
 msgid "Pan"
 msgstr "Desplazatu"
@@ -10061,18 +10060,6 @@ msgstr "Erakutsi onartzen ez diren aurrezarpenak"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Erakutsi bateraezinak edo onartu gabeak diren aurrezarpenak inprimagailuaren eta filamentuaren goitibeherako zerrendetan. Aurrezarpen hauek ezin dira hautatu."
 
-# AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Esperimentala) Erabili inprimagailu-agenteak inprimatze-hostenen ordez"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Bideratu Bambu ez diren inprimagailuen inprimatze-lanak inprimagailuaren plugin-agenteen bidez, inprimatze-hostera igotzeko fluxu klasikoaren ordez.\n"
-"Desgaituta dagoenean, OrcaSlicer-ek inprimatze-hostaren aurreko portaera erabiltzen du."
-
 msgid "Experimental Features"
 msgstr "Ezaugarri esperimentalak"
 
@@ -10085,6 +10072,18 @@ msgid ""
 msgstr ""
 "Saiatu pintatutako eginbideak (kolorea/jostura/euskarria/gainazal zimurra eta abar) mantentzen objektuaren sarea aldatu ondoren (adibidez, ebaki/diskotik birkargatu/sinplifikatu/konpondu eta abar).\n"
 "Oso esperimentala! Motela da eta artefaktuak sor ditzake."
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "Erabili inprimagailu-agenteak inprimatze-ostalarien ordez"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bideratu Bambu ez diren inprimagailuen inprimatze-lanak inprimagailuaren plugin-agenteen bidez, inprimatze-hostera igotzeko fluxu klasikoaren ordez.\n"
+"Desgaituta dagoenean, OrcaSlicer-ek inprimatze-hostaren aurreko portaera erabiltzen du."
 
 msgid "Allow Abnormal Storage"
 msgstr "Baimendu biltegiratze anormala"
@@ -10250,6 +10249,9 @@ msgstr "Beste geruzen filamentuen sekuentzia"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Sartu geruzaren balioa (>= 2)."
+
+msgid "to"
+msgstr "nora"
 
 msgid "Plate name"
 msgstr "Plakaren izena"
@@ -16021,6 +16023,14 @@ msgstr "Betegarri simetrikoaren Y ardatza"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Modeloak Y ardatzarekiko simetrikoak diren bi zati baditu eta zati horiek testura simetrikoak izatea nahi baduzu, aktibatu aukera hau zatietako batean."
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "Bete patroiaren goialdeak"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "Aukeratu aukera hau betegarri-patroiaren goialdeak guztiz bete nahi badituzu"
 
 msgid "Infill combination - Max layer height"
 msgstr "Betegarri-konbinazioa - Gehieneko geruza-altuera"
@@ -22119,6 +22129,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Filamentu-modeloa ezezaguna da. Ausazko filamentuen aurrezarpen bat erabiliko da."
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "Ezkutatu erreferentzia-planoak eta ardatzak"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "Erakutsi erreferentzia-planoak eta ardatzak"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "Ezkutatu inprimagailuaren ohea eta haren plakako sareta"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Erakutsi inprimagailuaren ohea eta haren plakako sareta"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "Egin klik erreferentzia-plano batean edo aurpegi lau batean bertan krokisa egiteko — Esc-ek bertan behera uzten du"
+
+# AI Translated
 msgid "Construction"
 msgstr "Eraikuntza"
 
@@ -22143,8 +22173,9 @@ msgstr "Zirkulua — egin klik zentroan, gero erradioan"
 msgid "Arc — click start, end, then a point"
 msgstr "Arkua — egin klik hasieran, amaieran, gero puntu batean"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "Arteka — erdiko lerroaren bi muturrak, gero zabalera"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -22218,8 +22249,9 @@ msgstr "Munduko ardatzak erakutsita"
 msgid "World axes hidden"
 msgstr "Munduko ardatzak ezkutatuta"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "Ikuspegi axonometrikoa, doituta"
 
 # AI Translated
 msgid "Bed shown"
@@ -22230,34 +22262,12 @@ msgid "Bed hidden"
 msgstr "Ohea ezkutatuta"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "ERAGIKETAK"
+msgid "Reference planes shown"
+msgstr "Erreferentzia-planoak erakutsita"
 
 # AI Translated
-msgid "Sketch"
-msgstr "Krokisa"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Krokis-planoa: %s — hautatu tresna bat"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Egin klik aurpegi batean edo erreferentzia-plano batean ikuspegi-eremuan, gero krokis-tresna batean"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"Krokis-planoa: %s.\n"
-"Hautatu tresna bat, edo sakatu Menua zerrenda ikusteko."
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Egin klik aurpegi batean edo erreferentzia-plano batean, gero krokis-tresna batean."
+msgid "Reference planes hidden"
+msgstr "Erreferentzia-planoak ezkutatuta"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22443,8 +22453,9 @@ msgstr "Ardatza"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Erreferentzia-ardatza (bi puntu, aurpegiaren normala, zilindroaren erdiko lerroa, bi plano, ertzean zehar)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "Koordenatu-sistema"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -22508,8 +22519,9 @@ msgstr "Islatu eragiketak gorputz bat behar du — gehitu edo inportatu bat lehe
 msgid "Mate"
 msgstr "Akoplamendua"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Muntaketa: lerrokatu bi koordenatu-sistema (finkoa, planarra, birakaria, lerragarria, zilindrikoa)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -22609,14 +22621,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "Hautatu gainazal zilindriko bat (zuloa / kanpokoa) edo ertz zirkular bat haria egiteko"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Inportatu STEP (B-rep solido editagarria)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Inportatu sarea (STL/OBJ) B-rep solido editagarri gisa"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "Murriztu hautatutako krokisa"
 
@@ -22648,8 +22652,9 @@ msgstr "Egin klik hasieran, gero amaieran — gero ezarri luzera zehatza"
 msgid "Polyline"
 msgstr "Polilerroa"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "Egin klik puntuetan; egin klik lehen puntuan begizta ixteko, eskuineko klik edo Enter katea amaitzeko"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -22739,8 +22744,9 @@ msgstr "Egin klik zentroan, gero hasieran, gero puntu batean amaierako angelurak
 msgid "Slot"
 msgstr "Arteka"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "Egin klik erdiko lerroaren bi muturretan, gero puntu batean zabalerarako"
 
 # AI Translated
 msgid "Arc slot"
@@ -22770,8 +22776,9 @@ msgstr "Egin klik zentroan, ardatz nagusiaren muturrean, ardatz txikiko puntuan,
 msgid "Spline"
 msgstr "Spline-a"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "Egin klik kontrol-puntuetan; klik bikoitza, eskuineko klik edo Enter amaitzeko"
 
 # AI Translated
 msgid "Click to place a point"
@@ -22825,15 +22832,17 @@ msgstr "Hautatu islatze-ardatzaren lerroa, gero islatu beharreko entitateak; egi
 msgid "Trim"
 msgstr "Moztu"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "Egin klik segmentu batean hurbilen duen ebakiduraraino mozteko; Esc-ek irteten du"
 
 # AI Translated
 msgid "Extend"
 msgstr "Luzatu"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "Egin klik lerro edo arku batean hurbilen dagoen entitateraino luzatzeko; Esc-ek irteten du"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -23017,12 +23026,20 @@ msgid "New Design — clear the feature tree"
 msgstr "Diseinu berria — garbitu eragiketa-zuhaitza"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Inportatu STEP (B-rep solido editagarria)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Inportatu sarea (STL/OBJ) B-rep solido editagarri gisa"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Esportatu STEP…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Erakutsi inprimagailuaren ohea eta haren plakako sareta"
+msgid "Create a new sketch"
+msgstr "Sortu krokis berri bat"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23036,20 +23053,25 @@ msgstr "Sekzioaren ikuspegia — ezkutatu modeloaren zati bat barrualdea ikustek
 msgid "Flip Section — show the opposite half"
 msgstr "Irauli sekzioa — erakutsi aurkako erdia"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "Aukeratu Bidali plakara aukerak gorputzak nola bidaltzen dituen"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "Bidali plakara"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "Gorputz guztiak objektu bakar bihurtzen dira, gorputz bakoitzeko pieza batekin, eta beren posizio erlatiboak mantentzen dituzte"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "Bidali plakara (gorputz gisa)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "Gorputz bakoitza objektu bereizi bihurtzen da, eta bakoitza bere aldetik kokatzen da"
 
 # AI Translated
 msgid "Width / X"
@@ -23058,6 +23080,10 @@ msgstr "Zabalera / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Altuera / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Krokisa"
 
 # AI Translated
 msgid "Distance X"
@@ -23261,8 +23287,9 @@ msgstr "Zirkularra"
 msgid "Direction"
 msgstr "Norabidea"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "Angelu osoa (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -23646,11 +23673,13 @@ msgstr "Zilindrikoa — ardatzak kolinealak; biraketa librea + irristatze axiala
 msgid "Kind"
 msgstr "Mota"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (finkoa)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (mugitzen da)"
 
 # AI Translated
 msgid "Angle °"
@@ -23687,6 +23716,10 @@ msgstr "(loturarik ez)"
 # AI Translated
 msgid "Value"
 msgstr "Balioa"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "Hautatu tresna bat, edo sakatu Menua zerrenda ikusteko."
 
 # AI Translated
 msgid "Constraints"
@@ -23727,6 +23760,10 @@ msgid "Show / hide"
 msgstr "Erakutsi / ezkutatu"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "Zooma hautapenera"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "Egiaztatu interferentzia — bilatu gainjarritako gorputzak"
 
@@ -23747,14 +23784,17 @@ msgstr "Gorputza %d hautatuta — eskuineko klik hari aplika dakiokeena ikusteko
 msgid "Variables"
 msgstr "Aldagaiak"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "Gehitu aldagaia"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "Editatu aldagaia"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "Ezabatu aldagaia"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -23773,9 +23813,10 @@ msgstr "Krokisa eguneratu da"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Krokisa sortu da (%zu kota gidari) — hautatu, gero eskuineko klik Estruitu aukeratzeko"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "Luzera %.2f mm, angelua %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -23796,6 +23837,10 @@ msgstr "Eskualdea hautatuta — eskuineko klik Estruitu aukeratzeko, edo klik bi
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Krokisa hautatuta — eskuineko klik Estruitu aukeratzeko, edo klik bikoitza editatzeko"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "Aurpegi hori ez da laua — egin klik aurpegi lau batean edo erreferentzia-plano batean"
 
 # AI Translated
 #, c-format, boost-format
@@ -23825,30 +23870,29 @@ msgstr "Gorputza %d: aurpegia %d hautatuta — eskuineko klik bultzatzeko/tiratz
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Aurpegia %d hautatuta — eskuineko klik bultzatzeko/tiratzeko, edo egin klik berriro gorputz osorako"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Gorputza %d: %zu ertz hautatuta — Shift+klik bat gehitzeko edo kentzeko, Biribildu/Alakatu guztiei akabera emateko"
+msgstr[1] "Gorputza %d: %zu ertz hautatuta — Shift+klik bat gehitzeko edo kentzeko, Biribildu/Alakatu guztiei akabera emateko"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "%zu ertz hautatuta — Shift+klik bat gehitzeko edo kentzeko, Biribildu/Alakatu guztiei akabera emateko"
+msgstr[1] "%zu ertz hautatuta — Shift+klik bat gehitzeko edo kentzeko, Biribildu/Alakatu guztiei akabera emateko"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "%s planoa hautatuta — eskuineko klik marrazte-tresnetarako"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Gorputza %d: ertza %d hautatuta — Shift+klik ertzak gehitzeko, edo egin klik berriro gorputz osorako"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Ertza %d hautatuta — Shift+klik ertzak gehitzeko, edo egin klik berriro gorputz osorako"
 
 # AI Translated
 #, c-format, boost-format
@@ -23873,8 +23917,9 @@ msgstr "Tresnatik irten da"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Krokisa mantendu da — Berretsi onartzeko, Utzi baztertzeko"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "Hautatu zerbait ezabatzeko"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -23906,17 +23951,21 @@ msgstr "Editatzen: Krokisa %d   ·   N = begiratu planoarekiko normalean   ·   
 msgid "OK — %zu triangles"
 msgstr "Ados — %zu triangelu"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "Editatu testua — Enter-ek aplikatzen du, Esc-ek lehen zegoen bezala uzten du"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "Idatzi testua — idatzi ahala agertzen da ikuspegian; Enter-ek txertatzen du, Esc-ek bertan behera uzten du"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "Testua ez da aldatu"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "Testua bertan behera utzi da"
 
 # AI Translated
 msgid "Import SVG"
@@ -23942,9 +23991,10 @@ msgstr "STEP irakurtzen…"
 msgid "No solids found in STEP"
 msgstr "Ez da solidorik aurkitu STEP fitxategian"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "STEP inportazioak huts egin du: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -23969,9 +24019,10 @@ msgstr "Sare-fitxategiak (*.stl;*.obj)|*.stl;*.obj|Fitxategi guztiak|*.*"
 msgid "Could not read the STL file"
 msgstr "Ezin izan da STL fitxategia irakurri"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "Ezin izan da OBJ fitxategia irakurri: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -23996,20 +24047,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Sare handia"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "Sare-bihurketak huts egin du: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "Sare-bihurketak ez du geometriarik sortu"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "Sarea"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "Sare-inportazioak huts egin du: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -24038,17 +24092,19 @@ msgstr " — arrastatu kokatzeko/tamaina aldatzeko, gero Berretsi"
 msgid "Insert canceled"
 msgstr "Txertatzea bertan behera utzi da"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Arrastatu izkina bat eskalatzeko, zentroa mugitzeko — Enter edo ✓ amaitzean, Esc baztertzeko"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Krokisa gehitu da (planoa: %s) — hautatu, gero eskuineko klik Estruitu aukeratzeko"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "Ezin izan da modeloa berreraiki: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -24120,18 +24176,21 @@ msgstr "Hautatu lehenik lerro irekia duen krokis bat"
 msgid "Add at least one face to delete first"
 msgstr "Gehitu lehenik ezabatzeko aurpegi bat gutxienez"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "Akoplamenduak bi koordenatu-sistema behar ditu — sortu lehenik"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "Akoplamendua: A eta B koordenatu-sistema desberdinak izan behar dira"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Akoplamendua baztertu da"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "Interferentzia egiaztatzeko gutxienez bi gorputz behar dira"
 
 # AI Translated
 msgid "No interference found"
@@ -24142,36 +24201,43 @@ msgstr "Ez da interferentziarik aurkitu"
 msgid "Body %d"
 msgstr "Gorputza %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s %.2f mm³"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu bikote gainjarri: %s"
+msgstr[1] "%zu bikote gainjarri: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "Hautatu gorputz bat neurtzeko"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "Ezin izan da gorputz hau neurtu"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: xafla-gorputza, azalera %.2f mm², bolumenik gabe — loditu bolumena izan dezan"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: bolumena %.2f mm³, azalera %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Errepikapenak gorputz solido bat behar du — gehitu edo inportatu bat lehenik"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "Eragiketa boolearrak bi gorputz behar ditu — gehitu edo inportatu bigarren bat"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -24186,35 +24252,45 @@ msgstr "Hautatutako aurpegia (Gorputza %d)"
 msgid "Picked face"
 msgstr "Hautatutako aurpegia"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "ezin izan da forma berria gorputzarekin elkartu"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "ezin izan da forma berria gorputzetik kendu"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "ezin izan da formen arteko ebakidura kalkulatu"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "historian ez dago oraindik solidorik sortzen duen ezer"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "krokis-profila ez da begizta itxi garbia"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "tresnak ez du gorputza ukitzen"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "adierazpen batek existitzen ez den aldagai bat erabiltzen du"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "adierazpen batek zeroz zatitzen du"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "bi aldagai elkarren arabera definituta daude"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "eragiketa geometriko batek huts egin du"
 
 # AI Translated
 #, c-format, boost-format
@@ -24253,15 +24329,17 @@ msgstr "Kota — egin klik bigarren puntuan"
 msgid "Line — click the start point"
 msgstr "Lerroa — egin klik hasierako puntuan"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "Lerroa — egin klik amaierako puntuan; gero haren luzera eta angelua idatz daitezke"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Polilerroa — egin klik lehen puntuan"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "Polilerroa — egin klik hurrengo puntuan  ·  egin klik hasierako puntuan ixteko  ·  eskuineko klik, klik bikoitza edo Enter katea amaitzeko"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -24307,8 +24385,9 @@ msgstr "Laukizuzen biribildua — egin klik izkinen erradioa ezartzeko"
 msgid "Circle — click the center"
 msgstr "Zirkulua — egin klik zentroan"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "Zirkulua — egin klik erradioa ezartzeko; gero idatz daiteke"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -24434,18 +24513,21 @@ msgstr "Elipse-arkua — egin klik arkua amaitzen den tokian"
 msgid "Spline — click the first control point"
 msgstr "Spline-a — egin klik lehen kontrol-puntuan"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "Spline-a — egin klik hurrengo kontrol-puntuan  ·  eskuineko klik, klik bikoitza edo Enter kurba amaitzeko"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Puntua — egin klik bat kokatzeko; tresna aktibo geratzen da gehiagorako"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "Moztu — egin klik segmentu batean beste entitate bat gurutzatzen duen tokian  ·  Esc irteteko"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "Luzatu — egin klik lerro edo arku batean hurbilen dagoen entitateraino luzatzeko  ·  Esc irteteko"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -24455,8 +24537,9 @@ msgstr "Biribildu — egin klik elkartzen diren bi lerroetako lehenengoan"
 msgid "Fillet — click the second line"
 msgstr "Biribildu — egin klik bigarren lerroan"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Biribildu — arrastatu gezia, edo egin klik zenbakian erradioa idazteko  ·  Enter-ek aplikatzen du  ·  Esc-ek bertan behera uzten du"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -24466,63 +24549,74 @@ msgstr "Alakatu — egin klik elkartzen diren bi lerroetako lehenengoan"
 msgid "Chamfer — click the second line"
 msgstr "Alakatu — egin klik bigarren lerroan"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Alakatu — arrastatu gezia, edo egin klik zenbakian izkinarainoko distantzia idazteko  ·  Enter-ek aplikatzen du  ·  Esc-ek bertan behera uzten du"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "Desplazatu — egin klik kurba batean; haren ingerada osoa desplazatzen da"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Desplazatu — arrastatu gezia edozein aldetara, edo egin klik zenbakian distantzia idazteko  ·  Enter-ek aplikatzen du  ·  Esc-ek bertan behera uzten du"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Islatu — egin klik lehenik islatze-ardatz gisa erabiliko den LERROAN (eraikuntza-lerro batek ere balio du)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "Islatu — ardatza ezarrita  ·  orain egin klik islatu beharreko entitateetan  ·  Esc-ek bertan behera uzten du"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "Islatu — ardatza ezarrita  ·  %d islatzeko  ·  egin klik beste batean gehitzeko edo kentzeko  ·  Enter-ek aplikatzen du"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Mugitu — egin klik mugitu beharreko entitateetan"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "Mugitu — arrastatu heldulekua, edo egin klik zenbakian distantzia idazteko  ·  Enter-ek aplikatzen du"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Biratu — egin klik biratu beharreko entitateetan"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "Biratu — arrastatu heldulekua, edo egin klik zenbakian angelua idazteko  ·  Enter-ek aplikatzen du"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Eskalatu — egin klik eskalatu beharreko entitateetan"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "Eskalatu — arrastatu heldulekua, edo egin klik zenbakian faktorea idazteko  ·  Enter-ek aplikatzen du"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Matrizea — egin klik errepikatu beharreko entitateetan"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Matrizea — arrastatu heldulekua urratsa ezartzeko, egin klik kopuruan hura idazteko  ·  Enter-ek aplikatzen du"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Matrize polarra — egin klik errepikatu beharreko entitateetan"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Matrize polarra — arrastatu heldulekua angelu-tartea ezartzeko, egin klik kopuruan hura idazteko  ·  Enter-ek aplikatzen du"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Arrastatu izkina bat eskalatzeko, zentroa mugitzeko  ·  Enter edo ✓ amaitzean, Esc baztertzeko"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -24532,62 +24626,77 @@ msgstr "  ·  Esc teklak Hautatu tresnara itzultzen du"
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  egin klik murrizketa-ikur batean hura kentzeko"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — gorputz solidoa"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — xafla-gorputza"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "Aurpegi laua %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "Aurpegi zilindrikoa %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "Aurpegia %d (%s)"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu ertz (%s)"
+msgstr[1] "%zu ertz (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "Ertz zuzena %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "Ertz zirkularra %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "Erpina (%s)"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "Krokis-profila"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "Krokisa — ez da ezer hautatu"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "Krokis-lerroa"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "Krokis-kurba"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "Krokis-puntua"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "%d krokis-entitate"
 
 # AI Translated
 msgid "select something first"
@@ -24650,8 +24759,9 @@ msgstr "Planoa gehitu da — hautatu krokis-plano gisa"
 msgid "Axis added"
 msgstr "Ardatza gehitu da"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "Koordenatu-sistema gehitu da"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -24668,10 +24778,10 @@ msgstr "Desmoldatze-angeluak hautatutako aurpegi bat behar du — egin klik lehe
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "Ez dago ezer oraindik — inportatu STEP bat edo sare bat tresna-barratik,\n"
-"edo egin klik erreferentzia-plano batean eta eskuineko klik krokis bat hasteko."
+"edo sakatu Krokisa eta egin klik erreferentzia-plano batean krokis bat hasteko."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -24681,9 +24791,10 @@ msgstr "Oraindik ez dago solidorik — hautatu krokis bat eta egin eskuineko kli
 msgid "Could not restore the CAD model from this project"
 msgstr "Ezin izan da proiektu honetako CAD modeloa leheneratu"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "Ezin izan da CAD modeloa leheneratu: %s"
 
 # AI Translated
 #, c-format
@@ -24706,16 +24817,34 @@ msgstr "Sekzioaren ikuspegia — goiko erdia erakusten"
 msgid "Section view — showing the lower half"
 msgstr "Sekzioaren ikuspegia — beheko erdia erakusten"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "Eragiketaren aurpegiak bilatzen…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Hautatu lehenik gorputz bat — egin klik gainean ikuspegi-eremuan edo Gorputzak zerrendan"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "Modeloa berreraikitzen ari da — egin zooma berriro amaitzen denean"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%s: ez dago zooma egiteko ezer ikusgai"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Gorputz horrek ez du bistaratze-sarerik oraindik — birkalkulatu lehenik"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "Hautatu zerbait zooma egiteko"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "Amaitu edo utzi bertan behera lehenik irekita dagoena"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Hautatu lehenik gorputz bat — egin klik gainean ikuspegi-eremuan edo Gorputzak zerrendan"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -24742,12 +24871,10 @@ msgstr "Egin klik solidoaren aurpegi batean, gero sakatu F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Aurpegian jarrita — gorputza ohearen gainean etzanda"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "Edizioa baztertu da: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -24766,9 +24893,10 @@ msgstr "Gorputz honek ez du ezabatzeko eragiketarik — erabili Diseinu berria b
 msgid "feature %d"
 msgstr "eragiketa %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "%s ezabatu da, gorputz hau sortu zuen eragiketa — Ctrl+Z-k leheneratzen du"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -25160,12 +25288,14 @@ msgstr "STEP fitxategiak (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP esportatu da"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "STEP esportazioak huts egin du: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "Bidali plakara (gorputz gisa) — bidali gorputz bakoitza Prestatu fitxara objektu bereizi gisa"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -25179,19 +25309,36 @@ msgstr "Ez dago plakara bidaltzeko ezer — gehitu lehenik eragiketa bat"
 msgid "All bodies hidden — show one before committing"
 msgstr "Gorputz guztiak ezkutatuta daude — erakutsi bat plakara bidali aurretik"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%zu ertz"
+msgstr[1] "%zu ertz"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "Erdiko lerroa E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "Lerroa E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Krokis-planoa: %s — hautatu tresna bat"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"Krokis-planoa: %s.\n"
+"Hautatu tresna bat, edo sakatu Menua zerrenda ikusteko."
 
 # AI Translated
 msgid "Plane ready"
@@ -25201,8 +25348,9 @@ msgstr "Planoa prest"
 msgid "Axis ready"
 msgstr "Ardatza prest"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "Koordenatu-sistema prest"
 
 # AI Translated
 msgid "Helix ready"
@@ -25220,9 +25368,10 @@ msgstr "Krokisa prest"
 msgid "Mate ready"
 msgstr "Akoplamendua prest"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "Baliogabea: %s"
 
 # AI Translated
 #, c-format
@@ -25306,110 +25455,139 @@ msgstr "Editatu aldagaia"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Ezin izan da '%s' aldagaia kendu (ziurrenik eragiketa-adierazpen batek erreferentziatzen du oraindik): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "\"%s\" ez da adierazpen batek kontrola dezakeen balioa"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "Ez dago loturarik eremu horretarako"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "Balioak zero baino handiagoa izan behar du"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "Balioa ezin da negatiboa izan (zeroak bat datozela esan nahi du)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "Kota hori ezin da bete — krokisa gehiegi murriztuta dago"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "Geometria honetan eragin ezin duten murrizketak ez dira kontuan hartzen (elipse edo spline kurba bat, edo zero tamainako zirkulu bat): %1%"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "Profil hau bere buruarekin gurutzatzen edo tolesten da marka gorrian; beraz, ez du eskualde bakar bat mugatzen"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "Aldea"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "Ardatzerdi nagusia"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "Ardatzerdi txikia"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "Angeluak 0° eta 360° artean egon behar du"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "Ardatzerdi nagusia ezin da ardatzerdi txikia baino laburragoa izan"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "Izkinaren erradioak alde laburrenaren erdia baino txikiagoa izan behar du"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "Arteka zabalegia da bere erradiorako — zabalerak erradioaren bikoitza baino txikiagoa izan behar du"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "%1%: ezin da bete — krokisa gehiegi murriztuta dago"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "Bi lerro horiek ez dira izkina batean elkartzen — hautatu elkartzen diren bi lerro"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "Tamainak zero baino handiagoa izan behar du"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Biribildu: erradioak alde bateko luzera gainditzen du, edo bi lerroak ez dira izkina batean elkartzen"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Alakatu: distantziak alde bateko luzera gainditzen du, edo bi lerroak ez dira izkina batean elkartzen"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "Biribiltzeak/alakatzeak baliogabetu eta kendutako murrizketak: %1%"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "Desplazatu: elipse batek edo spline batek ez du mota bereko paralelorik — hautatu lerroak, arkuak edo zirkuluak"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "Eskala-faktoreak zero baino handiagoa izan behar du"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "Kopiak"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "Kopia kopuruak zenbaki osoa izan behar du, 2 edo gehiago"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "Transformazioak askatutako murrizketak: %1%"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "Matrizearen kopiak murriztu gabe geratu dira — ebazleak lotura guztiak baztertu ditu"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "eskuineko klik edo klik bikoitza amaitzeko, klik hasieran ixteko"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "Luzatu: egin klik beste entitate batera irits daitekeen lerro edo arku batean"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "Moztu: egin klik beste entitate bat gurutzatzen duen segmentu batean"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "Sakatu Enter edo ✓ aplikatzeko, Esc baztertzeko"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "Oraindik ez dago kotarik entitate horretarako — egin klik lerro, zirkulu edo arku batean, edo bi puntutan"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "Egin klik bigarren puntu batean, edo lerro batean harainoko distantzia neurtzeko"
 
 # AI Translated
 msgid "Enter a number"
@@ -25445,8 +25623,12 @@ msgid "Sketch"
 msgstr "Krokisa"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Egin klik aurpegi batean edo erreferentzia-plano batean, gero hautatu marrazketa-tresna bat"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "Hautatu aurpegi lau bat edo erreferentzia-plano bat bertan krokisa egiteko"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "Egin krokis bat hautatutako aurpegi lauan edo planoan, edo egin klik gero aurpegi edo plano batean"
 
 # AI Translated
 msgctxt "Design"
@@ -25468,9 +25650,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "Loditu"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "Elkartu"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -25523,16 +25706,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "Loditu gainazala"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Loditu gainazala eragiketak xafla-gorputz bat behar du — sortu bat lehenik gainazal-tresna batekin"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "Zuloa"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -25548,8 +25729,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "Zatitu"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "Zatitu eragiketak gorputz solido bat behar du — gehitu edo inportatu bat lehenik"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -25595,8 +25777,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "Gainazal-desplazamendua"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Gainazal-desplazamendua eragiketak xafla-gorputz bat behar du — sortu bat lehenik gainazal-tresna batekin"
 
 # AI Translated
 msgctxt "Design"
@@ -25626,8 +25809,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "Errepikapena kurban"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "Kurbako errepikapenak gorputz bat eta kurba bat behar ditu"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -25648,8 +25832,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "Lerrokatu honekin"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "Lerrokatu eragiketak gorputz bat behar du — gehitu edo inportatu bat lehenik"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -25665,9 +25850,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "Ardatza"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "Koordenatu-sistema"
 
 # AI Translated
 msgctxt "Design"
@@ -25683,9 +25869,10 @@ msgstr "Neurtu"
 msgid "Measure between the picked points, edges or faces"
 msgstr "Neurtu hautatutako puntu, ertz edo aurpegien artean"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "Bolumena eta azalera"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -25727,12 +25914,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "Ezabatu aurpegia"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "Kolorea"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "Ezarri hautatutako gorputzaren bistaratze-kolorea"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "Zooma hautapenera"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "Enkoadratu hautapena ikuspegian, ikuspegiaren norabidea mantenduz"
 
 # AI Translated
 msgctxt "Design"
@@ -25771,9 +25969,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Izkinetako laukizuzena"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "Zentroko laukizuzena"
 
 # AI Translated
 msgctxt "Design"
@@ -25785,9 +25984,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "Laukizuzen biribildua"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "Zentroko zirkulua"
 
 # AI Translated
 msgctxt "Design"
@@ -25809,9 +26009,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "Arku tangentea"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "Zentro-puntuko arkua"
 
 # AI Translated
 msgctxt "Design"
@@ -25843,48 +26044,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "Triangelua"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "Triangelua — egin klik zentroan, gero erpin batean"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "Karratua"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "Karratua — egin klik zentroan, gero erpin batean"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "Pentagonoa"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "Pentagonoa — egin klik zentroan, gero erpin batean"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "Hexagonoa"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "Hexagonoa — egin klik zentroan, gero erpin batean"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "Oktogonoa"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "Oktogonoa — egin klik zentroan, gero erpin batean"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "Dodekagonoa"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "Dodekagonoa — egin klik zentroan, gero erpin batean"
 
 # AI Translated
 msgctxt "Design"
@@ -25914,8 +26121,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "Testua"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "Idatzi testua; Testua eragiketa bihurtzen da krokis honen planoan, eta gero edita daiteke"
 
 # AI Translated
 msgctxt "Design"
@@ -26032,27 +26240,34 @@ msgstr "Angelua / distantzia…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "Idatzi bi lerroren arteko angelua edo bi hautapenen arteko distantzia"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "Idatzi txertatu beharreko testua"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "Lodia"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "Etzana"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "Letra-tipo hau ezin da testurako erabili — hautatu beste bat"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "Idatzi testua haren tamaina ikusteko"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "Letra-tipo honek ez du ingeradarik testu honetarako"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "Tamaina: %.1f × %.1f mm"
 
 # AI Translated
 msgid "Primitive"
@@ -26150,8 +26365,9 @@ msgstr "Profila"
 msgid "Start new profile (for holes)"
 msgstr "Hasi profil berri bat (zuloetarako)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "Segmentuak"
 
 # AI Translated
 msgid "Sides"
@@ -26165,20 +26381,23 @@ msgstr "Egin klik mihisean marrazteko"
 msgid "Snap to grid"
 msgstr "Atxiki saretara"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "Sareta-urratsa"
 
 # AI Translated
 msgid "Outer"
 msgstr "Kanpokoa"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "itxita"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% puntu %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -26215,8 +26434,9 @@ msgstr[1] "%zu profil itxi"
 msgid "Draw a closed profile to enable"
 msgstr "Marraztu profil itxi bat gaitzeko"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "Garbitu dena"
 
 # AI Translated
 msgid "Empty result"
@@ -30328,6 +30548,39 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Esperimentala) Erabili inprimagailu-agenteak inprimatze-hostenen ordez"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ERAGIKETAK"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Egin klik aurpegi batean edo erreferentzia-plano batean ikuspegi-eremuan, gero krokis-tresna batean"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Egin klik aurpegi batean edo erreferentzia-plano batean, gero krokis-tresna batean."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "%s planoa hautatuta — eskuineko klik marrazte-tresnetarako"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Ez dago ezer oraindik — inportatu STEP bat edo sare bat tresna-barratik,\n"
+#~ "edo egin klik erreferentzia-plano batean eta eskuineko klik krokis bat hasteko."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Egin klik aurpegi batean edo erreferentzia-plano batean, gero hautatu marrazketa-tresna bat"
 
 #~ msgid "X"
 #~ msgstr "X"

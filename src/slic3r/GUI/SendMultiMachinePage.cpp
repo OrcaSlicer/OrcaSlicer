@@ -26,7 +26,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "libslic3r/PrintConfig.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
@@ -77,6 +77,7 @@
 #include <wx/dcgraph.h>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

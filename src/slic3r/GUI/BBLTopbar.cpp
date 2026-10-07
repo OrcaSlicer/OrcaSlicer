@@ -41,6 +41,7 @@
 #define TOPBAR_TITLE_WIDTH  300
 
 using namespace Slic3r;
+using namespace Slic3r::GUI;
 
 enum CUSTOM_ID
 {

@@ -8,6 +8,7 @@
 #include "slic3r/GUI/Camera.hpp"   // N: look down the sketch plane normal
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PartPlate.hpp"   // the current plate's origin: the first view's offset
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/Event.hpp"
@@ -58,6 +59,16 @@ extern wxPopupWindow* wxCurrentPopupWindow;
 namespace Slic3r {
 namespace GUI {
 
+// The Design tab's iso view is the CAD one: a true isometric from the front-right corner, which
+// shows the navigator's Front, Right and Top faces. Camera's own "iso" looks from the front-left
+// at 45 degrees and stays Prepare's and the thumbnails'.
+static void select_iso_view(Camera& camera)
+{
+    const Vec3d target = camera.get_target();
+    camera.look_at(target + camera.get_distance() * Vec3d(1., -1., 1.).normalized(), target, Vec3d::UnitZ());
+    camera.auto_type(Camera::EType::Perspective);
+}
+
 DesignCanvas::DesignCanvas(wxWindow* parent)
     : wxPanel()
 {
@@ -91,7 +102,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_canvas->enable_plate_chrome(false);
     m_canvas->enable_labels(false);
     m_canvas->enable_sinking_contours(false); // they would be sliced from the plater's meshes
-    m_canvas->set_axes_at_bed_center(true);   // triad at bed centre = modeling origin
+    m_canvas->set_design_canvas(true);   // home-position bed, triad and CAD grid at the modeling origin
 
     m_canvas->set_design_sketch_tool(&m_sketch_tool);
     m_sketch_tool.on_commit = [this](const SketchProfile& prof, const SketchPlane& pl) {
@@ -190,8 +201,13 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     refresh_bed();
 
     // The view this canvas opens on. Built lazily, on the way into the Design tab, so this
-    // is the view the user is looking at right now.
+    // is the view the user is looking at right now — moved off the current plate onto the
+    // Design bed, which stays at the printer bed's home whichever plate is current — turned to
+    // the iso view Home returns to, keeping its target and zoom.
     m_parked_camera = wxGetApp().plater()->get_camera();
+    if (PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+        m_parked_camera.translate_world(-plate->get_origin());
+    select_iso_view(m_parked_camera);
 
     // Before any of this class's own Binds below: wx calls dynamically bound handlers in
     // reverse order of binding, and GLCanvas3D swallows several events without skipping them —
@@ -345,7 +361,7 @@ void DesignCanvas::repaint_now()
     m_canvas_widget->Update();    // service the pending paint immediately (a modal popup owns the loop)
 }
 
-void DesignCanvas::reload(bool keep_view)
+void DesignCanvas::reload()
 {
     m_canvas->reset_volumes();
 
@@ -378,21 +394,19 @@ void DesignCanvas::reload(bool keep_view)
                 v->set_color(c);
             }
         } else if (obj_idx == 1) {
-            // The ghost is normally a faint blue overlay on the visible body. In preview-only
-            // mode it IS the result (base bodies hidden), so render it opaque so it reads as a
-            // finished solid rather than a see-through hint.
+            // The ghost is the whole resulting model, normally drawn as a faint blue overlay on
+            // the visible bodies. Every face the feature leaves alone is in both, at the same
+            // depth, so the ghost is drawn with a depth bias: the bodies win on those faces instead
+            // of the two copies z-fighting, and the ghost shows only where the result reaches past
+            // the bodies. In preview-only mode it IS the result (base bodies hidden), so render it
+            // opaque so it reads as a finished solid rather than a see-through hint.
             v->set_color(m_body_hidden ? ColorRGBA(0.40f, 0.82f, 1.0f, 1.0f) : ghost);
+            v->depth_bias = true;
         }
     }
 
-    if (!keep_view) {
-        if (m_first_frame && !m_model.objects.empty()) {
-            m_canvas->select_view("iso");
-            m_canvas->zoom_to_volumes();
-            m_first_frame = false;
-        }
-    }
-
+    // The camera stays where the user left it, even for the first body: Home and a double-click
+    // fit on demand.
     m_canvas->set_as_dirty();
     if (m_canvas_widget)
         m_canvas_widget->Refresh();
@@ -406,18 +420,21 @@ void DesignCanvas::set_bodies(const std::vector<TriangleMesh>* body_meshes,
     if (body_meshes == nullptr || body_meshes->empty()) { clear_mesh(); return; }
 
     m_body_meshes = body_meshes;
+    m_sketch_tool.refresh_body_edges();   // of the bodies set_solid_pick() pointed the tool at
     m_lit_faces   = m_sketch_tool.selected_faces();
     rebuild_bodies();
-    reload(!m_first_frame);
+    reload();
 }
 
 void DesignCanvas::clear_mesh()
 {
     m_body_meshes = nullptr;
     m_volumes.clear();
+    // No solid, so no edge lines, pick or hover either, as after a rebuild that leaves no body.
+    m_sketch_tool.set_solid_pick(nullptr, nullptr, nullptr, nullptr);
     if (!m_model.objects.empty()) {
         m_model.delete_object((size_t)0);
-        reload(true);
+        reload();
     }
 }
 
@@ -431,14 +448,14 @@ void DesignCanvas::set_preview_mesh(const TriangleMesh& mesh)
     obj->add_volume(mesh);
     obj->add_instance();
 
-    reload(true);
+    reload();
 }
 
 void DesignCanvas::clear_preview()
 {
     if (m_model.objects.size() > 1) {
         m_model.delete_object((size_t)1);
-        reload(true);
+        reload();
     }
 }
 
@@ -452,10 +469,23 @@ void DesignCanvas::fit_view()
     }
 }
 
+bool DesignCanvas::zoom_to_box(BoundingBoxf3 box)
+{
+    if (m_canvas == nullptr || !box.defined)
+        return false;
+    DesignSketchTool::pad_box(box);
+    m_canvas->zoom_to_box(box);
+    request_repaint();
+    return true;
+}
+
 void DesignCanvas::set_view(const std::string& view_name)
 {
     if (m_canvas) {
-        m_canvas->select_view(view_name);
+        if (view_name == "iso")
+            select_iso_view(wxGetApp().plater()->get_camera());   // the Design camera while the tab is shown
+        else
+            m_canvas->select_view(view_name);
         m_canvas->zoom_to_volumes();
         m_canvas->set_as_dirty();
         if (m_canvas_widget)
@@ -466,13 +496,6 @@ void DesignCanvas::set_view(const std::string& view_name)
 void DesignCanvas::begin_sketch(const SketchPlane& plane, DesignSketchTool::Mode mode)
 {
     m_sketch_tool.begin(plane, mode);
-    if (m_canvas) m_canvas->set_as_dirty();
-    if (m_canvas_widget) m_canvas_widget->Refresh();
-}
-
-void DesignCanvas::set_sketch_plane(const SketchPlane& plane)
-{
-    m_sketch_tool.set_plane(plane);   // keeps the 2D entities; only the carrier plane changes
     if (m_canvas) m_canvas->set_as_dirty();
     if (m_canvas_widget) m_canvas_widget->Refresh();
 }
@@ -550,6 +573,7 @@ void DesignCanvas::refresh_bed()
     double printable_height = 100.0;
     const auto* ph_opt = config->opt<ConfigOptionFloat>("printable_height");
     if (ph_opt) printable_height = ph_opt->value;
+    // No position: the Design bed stays at the printer bed's home, whichever plate is current.
     m_bed.set_shape(bed_shape_opt->values, printable_height, {}, {}, "", false);  // mainline added extruder_areas/heights params
 }
 
@@ -730,8 +754,6 @@ void DesignCanvas::clear_move_gizmo()
     m_sketch_tool.clear_move_gizmo();
     request_repaint();
 }
-
-bool DesignCanvas::moving_body() const { return m_sketch_tool.moving_body(); }
 
 void DesignCanvas::set_on_body_move_changed(std::function<void(int, const Transform3d&)> cb)
 {
@@ -1025,6 +1047,11 @@ void DesignCanvas::set_on_datum_base_picked(std::function<void(int)> cb)
     m_sketch_tool.on_datum_base_picked = std::move(cb);
 }
 
+void DesignCanvas::set_selected_base(std::function<int()> cb)
+{
+    m_sketch_tool.selected_base = std::move(cb);
+}
+
 void DesignCanvas::set_on_sketch_exit(std::function<void()> cb)
 {
     m_sketch_tool.on_exit = std::move(cb);
@@ -1047,15 +1074,18 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
         return;
     m_ctx_bound = true;
     // Bound AFTER GLCanvas3D's own handlers, so this runs first and can consume the event.
-    // It only consumes when it actually opens the offer; every other right-click still falls
-    // through to the polyline-chain end and the move gizmo, which were there first.
-    // Right-drag pans. Without remembering where the press landed, every pan ended by popping
-    // the offer over wherever the camera stopped — the menu appearing as the reward for moving
-    // the view. The offer is the release of a STATIONARY right-click (kCadRightClickDriftPx).
+    // It only consumes when it actually opens the offer.
+    // Right-drag may pan or orbit (Preferences > Control). Without remembering where the press
+    // landed, every such drag ended by popping the offer over wherever the camera stopped — the
+    // menu appearing as the reward for moving the view. A right-click is the release of a
+    // STATIONARY press (kCadRightClickDriftPx); only that reaches the sketch tool or the offer.
     m_canvas_widget->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
         m_ctx_press     = e.GetPosition();
         m_ctx_travelled = false;
-        e.Skip();     // the canvas still needs the press to seed the orbit
+        // Drop any press the tool still keeps (only a click's release takes it, so a pan's stays)
+        // before the canvas offers it this one, which ImGui may take instead.
+        m_sketch_tool.drop_right_click();
+        e.Skip();     // the canvas still needs the press to seed a pan or an orbit
     });
     m_canvas_widget->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
         if (e.RightIsDown()) {
@@ -1066,12 +1096,13 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
     });
     m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
         const wxPoint d  = e.GetPosition() - m_ctx_press;
-        // Always read-and-clear, even when another guard already rules the offer out, or a
-        // terminator recorded under one condition would still be pending under the next.
-        const bool terminated = m_sketch_tool.take_right_consumed();
-        // Click, or navigation? A press that travelled orbited; one that did not, did not.
+        // Click, or navigation? A press that travelled panned or orbited; one that did not, did not.
         const bool is_click = !m_ctx_travelled && std::max(std::abs(d.x), std::abs(d.y)) <= kCadRightClickDriftPx;
-        if (m_on_context_menu && !terminated && !inline_busy() && is_click) {
+        // Ending a chain or abandoning an anchor uses the click up.
+        const bool terminated = is_click && m_canvas && m_sketch_tool.take_right_click(*m_canvas);
+        if (terminated)
+            m_canvas->set_as_dirty();   // drawn by the canvas's own RightUp (e.Skip below) or at idle
+        else if (m_on_context_menu && !inline_busy() && is_click) {
             // The menu belongs to what you POINTED AT — and pointing happened at the PRESS, not
             // at the release, so the raycast uses the press position. Within a 3 px budget the
             // two are the same pixel in practice; using the press is what makes that a
@@ -1167,9 +1198,6 @@ void DesignCanvas::set_readout(const std::string& text)
     if (m_canvas) m_canvas->set_as_dirty();   // drawn by the next frame (the tool feeds this from one)
 }
 
-// Clear of the view cube and the two round view buttons, which own the bottom-left corner.
-static constexpr float kStatusHudLeftInset = 190.f;
-
 void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
 {
     if (text == m_status_hud_last && colour == m_status_hud_colour) return;
@@ -1204,8 +1232,11 @@ void DesignCanvas::render_hud()
         ImGuiWrapper::pop_common_window_style();
     };
     if (!m_status_hud_last.IsEmpty()) {
+        // Past the view cube and the round view buttons, which own the bottom-left corner. Asked
+        // of the canvas, which lays them out: they follow the monitor's DPI on Windows, where `em`
+        // does not, so a fixed inset in `em` let them cover the start of the line at 150%.
         // A sentence can be a sentence: it wraps to the room left of the readout chip.
-        const float  left = kStatusHudLeftInset * em;
+        const float  left = m_canvas->get_canvas_toolbar_right() + margin;
         const ImVec4 col  = m_status_hud_colour.IsOk()
             ? ImVec4(m_status_hud_colour.Red() / 255.f, m_status_hud_colour.Green() / 255.f,
                      m_status_hud_colour.Blue() / 255.f, 1.f)
@@ -1241,7 +1272,7 @@ void DesignCanvas::sync_selected_faces()
         if (m_body_meshes == nullptr || m_model.objects.empty())
             return;
         rebuild_bodies();
-        reload(true);
+        reload();
     });
 }
 
@@ -1293,7 +1324,7 @@ void DesignCanvas::set_operand_bodies(int target_body, int tool_body)
     if (m_hl_body_target == target_body && m_hl_body_tool == tool_body) return;
     m_hl_body_target = target_body;
     m_hl_body_tool   = tool_body;
-    reload(true);      // recolours the body volumes
+    reload();      // recolours the body volumes
 }
 
 void DesignCanvas::set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl)
@@ -1306,7 +1337,7 @@ void DesignCanvas::set_body_translucent(bool on)
 {
     if (m_body_translucent == on) return;
     m_body_translucent = on;
-    reload(true);   // re-applies object-0 alpha so the solid fades for the fillet preview
+    reload();   // re-applies object-0 alpha so the solid fades for the fillet preview
 }
 
 void DesignCanvas::set_xray_focus(int body)
@@ -1314,7 +1345,7 @@ void DesignCanvas::set_xray_focus(int body)
     if (m_xray_focus == body) return;
     m_xray_focus = body;
     m_sketch_tool.set_pick_only_body(body);
-    reload(true);   // re-applies per-body alpha so the non-focused bodies fade
+    reload();   // re-applies per-body alpha so the non-focused bodies fade
 }
 
 void DesignCanvas::set_body_hidden(bool on)
@@ -1322,7 +1353,7 @@ void DesignCanvas::set_body_hidden(bool on)
     if (m_body_hidden == on) return;
     m_body_hidden = on;
     m_sketch_tool.set_body_edges_hidden(on);
-    reload(true);   // hides/show base bodies + flips the ghost opaque/faint for preview-only mode
+    reload();   // hides/show base bodies + flips the ghost opaque/faint for preview-only mode
 }
 
 bool DesignCanvas::delete_selected_sketch_entities()

@@ -25,7 +25,6 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <vector>
 #include <utility>
-namespace pt = boost::property_tree;
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>

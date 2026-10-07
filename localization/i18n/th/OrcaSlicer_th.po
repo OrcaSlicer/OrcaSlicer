@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -3396,8 +3396,8 @@ msgstr "พรีเซ็ตกระบวนการเพิ่มเติ
 msgid "Remove parameter"
 msgstr "ลบพารามิเตอร์"
 
-msgid "to"
-msgstr "ถึง"
+msgid "Range"
+msgstr "พิสัย"
 
 msgid "Add height range"
 msgstr "เพิ่มช่วงความสูง"
@@ -5441,9 +5441,6 @@ msgstr "ชื่อพารามิเตอร์"
 
 msgid "layers"
 msgstr "ชั้น"
-
-msgid "Range"
-msgstr "พิสัย"
 
 msgid "Empty string"
 msgstr "สตริงว่าง"
@@ -8753,8 +8750,9 @@ msgstr "เครื่องพิมพ์ที่เชื่อมต่อ
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "คุณต้องการซิงค์ข้อมูลเครื่องพิมพ์และสลับการตั้งค่าล่วงหน้าโดยอัตโนมัติหรือไม่"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "โปรเจกต์นี้มีโมเดลที่สร้างในแท็บออกแบบและไม่มีรูปทรงเรขาคณิตอื่น เปิดใช้ \"ฟังก์ชัน CAD (ทดลอง)\" ในการตั้งค่าแล้วรีสตาร์ทเพื่อดูและแก้ไขโมเดลนี้ โมเดลจะยังคงอยู่เมื่อบันทึกโปรเจกต์"
 
 msgid "The file does not contain any geometry data."
 msgstr "ไฟล์นี้ไม่มีข้อมูลเรขาคณิตใดๆ"
@@ -9803,8 +9801,9 @@ msgstr "ในแท็บออกแบบ วาดตัวเชื่อ�
 msgid "Auto-close sketch loops"
 msgstr "ปิดลูปสเก็ตช์อัตโนมัติ"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "ถือว่าจุดปลายของสเก็ตช์ที่ห่างกันไม่เกิน 0.001 มม. เป็นจุดต่อเดียวกัน และเชื่อมลูปให้ปิด ปิด: เชื่อมเฉพาะจุดปลายที่ทับกันพอดีเท่านั้น ลูปที่มีช่องว่างเล็กน้อยจึงแสดงเป็นลูปเปิด แทนที่จะถูกปิดให้โดยอัตโนมัติ บันทึกไว้กับแต่ละงานออกแบบ และมีผลกับงานออกแบบที่เริ่มหลังจากการเปลี่ยนแปลง"
 
 msgid "Pan"
 msgstr "แพน"
@@ -10227,18 +10226,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(ทดลอง) ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"ส่งงานพิมพ์ของเครื่องพิมพ์ที่ไม่ใช่ Bambu ผ่านเอเจนต์ปลั๊กอินของเครื่องพิมพ์ แทนการอัพโหลดไปยังโฮสต์การพิมพ์แบบเดิม\n"
-"เมื่อปิดใช้ OrcaSlicer จะใช้พฤติกรรมโฮสต์การพิมพ์แบบเดิม"
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "ฟีเจอร์ทดลอง"
 
@@ -10252,6 +10239,18 @@ msgid ""
 msgstr ""
 "พยายามคงคุณสมบัติการทาสีไว้ (สี/รอยตะเข็บ/ส่วนรองรับ/ผิวฟัซซี ฯลฯ) หลังจากเปลี่ยนตาข่ายวัตถุ (เช่น ตัด/โหลดซ้ำจากดิสก์/ลดความซับซ้อน/แก้ไข ฯลฯ)\n"
 "น่าทดลองมาก! ช้าและอาจสร้างสิ่งประดิษฐ์"
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"ส่งงานพิมพ์ของเครื่องพิมพ์ที่ไม่ใช่ Bambu ผ่านเอเจนต์ปลั๊กอินของเครื่องพิมพ์ แทนการอัพโหลดไปยังโฮสต์การพิมพ์แบบเดิม\n"
+"เมื่อปิดใช้ OrcaSlicer จะใช้พฤติกรรมโฮสต์การพิมพ์แบบเดิม"
 
 msgid "Allow Abnormal Storage"
 msgstr "อนุญาตให้จัดเก็บผิดปกติ"
@@ -10419,6 +10418,9 @@ msgstr "ลำดับเส้นพลาสติกชั้นอื่น
 
 msgid "Please input layer value (>= 2)."
 msgstr "กรุณาป้อนค่าเลเยอร์ (>= 2)"
+
+msgid "to"
+msgstr "ถึง"
 
 msgid "Plate name"
 msgstr "ชื่อจาน"
@@ -16246,6 +16248,14 @@ msgstr "แกน Y ไส้ในแบบสมมาตร"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "หากแบบจำลองมีสองส่วนที่สมมาตรเกี่ยวกับแกน Y และคุณต้องการให้ส่วนเหล่านี้มีพื้นผิวที่สมมาตร โปรดคลิกตัวเลือกนี้บนส่วนใดส่วนหนึ่ง"
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "เติมด้านบนของรูปแบบ"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "เลือกตัวเลือกนี้หากต้องการเติมด้านบนของรูปแบบไส้ในให้เต็ม"
 
 msgid "Infill combination - Max layer height"
 msgstr "ชุดค่าผสม ไส้ใน - ความสูงของชั้นสูงสุด"
@@ -22479,6 +22489,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "ไม่ทราบแบบจำลองเส้นพลาสติก ระบบจะใช้การตั้งค่าฟิลาเมนต์แบบสุ่ม"
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "ซ่อนระนาบอ้างอิงและแกน"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "แสดงระนาบอ้างอิงและแกน"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "ซ่อนฐานพิมพ์ของเครื่องพิมพ์และเส้นกริดของฐานพิมพ์"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "แสดงฐานพิมพ์ของเครื่องพิมพ์และเส้นกริดของฐานพิมพ์"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "คลิกระนาบอ้างอิงหรือผิวหน้าแบนราบเพื่อสเก็ตช์บนนั้น — Esc เพื่อยกเลิก"
+
+# AI Translated
 msgid "Construction"
 msgstr "ช่วยสร้าง"
 
@@ -22503,8 +22533,9 @@ msgstr "วงกลม — คลิกจุดศูนย์กลาง แ
 msgid "Arc — click start, end, then a point"
 msgstr "ส่วนโค้ง — คลิกจุดเริ่มต้น จุดสิ้นสุด แล้วคลิกอีกหนึ่งจุด"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "ร่อง — ปลายทั้งสองของเส้นกึ่งกลาง แล้วความกว้าง"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -22578,8 +22609,9 @@ msgstr "แสดงแกนโลกแล้ว"
 msgid "World axes hidden"
 msgstr "ซ่อนแกนโลกแล้ว"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "มุมมองแอกโซโนเมตริก ปรับให้พอดีแล้ว"
 
 # AI Translated
 msgid "Bed shown"
@@ -22590,34 +22622,12 @@ msgid "Bed hidden"
 msgstr "ซ่อนฐานพิมพ์แล้ว"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "ฟีเจอร์"
+msgid "Reference planes shown"
+msgstr "แสดงระนาบอ้างอิงแล้ว"
 
 # AI Translated
-msgid "Sketch"
-msgstr "สเก็ตช์"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "ระนาบสเก็ตช์: %s — เลือกเครื่องมือ"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิงในวิวพอร์ต แล้วเลือกเครื่องมือสเก็ตช์"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"ระนาบสเก็ตช์: %s\n"
-"เลือกเครื่องมือ หรือกด Menu เพื่อดูรายการ"
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือสเก็ตช์"
+msgid "Reference planes hidden"
+msgstr "ซ่อนระนาบอ้างอิงแล้ว"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22803,8 +22813,9 @@ msgstr "แกน"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "แกนอ้างอิง (สองจุด, เส้นตั้งฉากผิวหน้า, เส้นแกนกลางทรงกระบอก, สองระนาบ, ตามขอบ)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "ระบบพิกัด"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -22868,8 +22879,9 @@ msgstr "คำสั่งกลับด้านต้องใช้บอด
 msgid "Mate"
 msgstr "เมท"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "การประกอบ: จัดแนวระบบพิกัดสองระบบ (ยึดแน่น, ระนาบ, หมุน, เลื่อน, ทรงกระบอก)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -22969,14 +22981,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "เลือกพื้นผิวทรงกระบอก (รูใน / ผิวนอก) หรือขอบวงกลมสำหรับทำเกลียว"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "นำเข้า STEP (ทรงตัน B-rep ที่แก้ไขได้)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "นำเข้าเมช (STL/OBJ) เป็นทรงตัน B-rep ที่แก้ไขได้"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "กำหนดเงื่อนไขบังคับให้สเก็ตช์ที่เลือก"
 
@@ -23008,8 +23012,9 @@ msgstr "คลิกจุดเริ่มต้น แล้วจุดส�
 msgid "Polyline"
 msgstr "โพลีไลน์"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "คลิกจุดต่าง ๆ; คลิกจุดแรกเพื่อปิดลูป คลิกขวาหรือกด Enter เพื่อจบเส้นต่อเนื่อง"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23099,8 +23104,9 @@ msgstr "คลิกจุดศูนย์กลาง แล้วจุด�
 msgid "Slot"
 msgstr "ร่อง"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "คลิกปลายทั้งสองของเส้นกึ่งกลาง แล้วคลิกจุดเพื่อกำหนดความกว้าง"
 
 # AI Translated
 msgid "Arc slot"
@@ -23130,8 +23136,9 @@ msgstr "คลิกจุดศูนย์กลาง ปลายแกน�
 msgid "Spline"
 msgstr "สไปลน์"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "คลิกจุดควบคุม; ดับเบิลคลิก คลิกขวา หรือกด Enter เพื่อเสร็จสิ้น"
 
 # AI Translated
 msgid "Click to place a point"
@@ -23185,15 +23192,17 @@ msgstr "เลือกเส้นแกนกลับด้าน แล้�
 msgid "Trim"
 msgstr "ตัดเล็ม"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "คลิกช่วงเส้นเพื่อตัดเล็มกลับไปยังจุดตัดที่ใกล้ที่สุด; Esc เพื่อออก"
 
 # AI Translated
 msgid "Extend"
 msgstr "ต่อขยาย"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "คลิกเส้นหรือส่วนโค้งเพื่อต่อขยายไปยังเอนทิตีที่ใกล้ที่สุด; Esc เพื่อออก"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -23376,12 +23385,20 @@ msgid "New Design — clear the feature tree"
 msgstr "งานออกแบบใหม่ — ล้างแผนผังฟีเจอร์"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "นำเข้า STEP (ทรงตัน B-rep ที่แก้ไขได้)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "นำเข้าเมช (STL/OBJ) เป็นทรงตัน B-rep ที่แก้ไขได้"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "ส่งออก STEP…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "แสดงฐานพิมพ์ของเครื่องพิมพ์และเส้นกริดของฐานพิมพ์"
+msgid "Create a new sketch"
+msgstr "สร้างสเก็ตช์ใหม่"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23395,20 +23412,25 @@ msgstr "มุมมองภาคตัดขวาง — ซ่อนบา�
 msgid "Flip Section — show the opposite half"
 msgstr "พลิกภาคตัด — แสดงอีกครึ่งหนึ่ง"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "เลือกวิธีที่คำสั่ง ส่งไปยังฐานพิมพ์ ใช้ส่งบอดี้"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "ส่งไปยังฐานพิมพ์"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "บอดี้ทั้งหมดจะรวมเป็นวัตถุเดียว โดยแต่ละบอดี้เป็นหนึ่งชิ้นส่วน และคงตำแหน่งสัมพัทธ์ไว้"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "ส่งไปยังฐานพิมพ์ (แยกตามบอดี้)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "แต่ละบอดี้จะกลายเป็นวัตถุแยกของตัวเอง และถูกจัดวางแยกกัน"
 
 # AI Translated
 msgid "Width / X"
@@ -23417,6 +23439,10 @@ msgstr "ความกว้าง / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "ความสูง / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "สเก็ตช์"
 
 # AI Translated
 msgid "Distance X"
@@ -23620,8 +23646,9 @@ msgstr "แบบวงกลม"
 msgid "Direction"
 msgstr "ทิศทาง"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "มุมรวม (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -24005,11 +24032,13 @@ msgstr "ทรงกระบอก — แกนอยู่ในแนวเ�
 msgid "Kind"
 msgstr "ชนิด"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (คงที่)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (เคลื่อนที่)"
 
 # AI Translated
 msgid "Angle °"
@@ -24046,6 +24075,10 @@ msgstr "(ไม่มีการผูกค่า)"
 # AI Translated
 msgid "Value"
 msgstr "ค่า"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "เลือกเครื่องมือ หรือกด Menu เพื่อดูรายการ"
 
 # AI Translated
 msgid "Constraints"
@@ -24086,6 +24119,10 @@ msgid "Show / hide"
 msgstr "แสดง / ซ่อน"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "ซูมไปที่ส่วนที่เลือก"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "ตรวจสอบการทับซ้อน — ค้นหาบอดี้ที่ซ้อนทับกัน"
 
@@ -24106,14 +24143,17 @@ msgstr "เลือกบอดี้ %d แล้ว — คลิกขวา
 msgid "Variables"
 msgstr "ตัวแปร"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "เพิ่มตัวแปร"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "แก้ไขตัวแปร"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "ลบตัวแปร"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24132,9 +24172,10 @@ msgstr "อัปเดตสเก็ตช์แล้ว"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "สร้างสเก็ตช์แล้ว (มิติขับเคลื่อน %zu รายการ) — เลือกสเก็ตช์ แล้วคลิกขวาเพื่อยืดขึ้นรูป"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "ความยาว %.2f มม., มุม %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -24155,6 +24196,10 @@ msgstr "เลือกพื้นที่แล้ว — คลิกขว�
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "เลือกสเก็ตช์แล้ว — คลิกขวาเพื่อยืดขึ้นรูป หรือดับเบิลคลิกเพื่อแก้ไข"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "ผิวหน้านั้นไม่แบนราบ — คลิกผิวหน้าแบนราบหรือระนาบอ้างอิง"
 
 # AI Translated
 #, c-format, boost-format
@@ -24184,28 +24229,27 @@ msgstr "บอดี้ %d: ผิวหน้า %d ถูกเลือก �
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "ผิวหน้า %d ถูกเลือก — คลิกขวาเพื่อดัน/ดึง หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
+msgstr[0] "บอดี้ %d: เลือกขอบแล้ว %zu ขอบ — Shift+คลิกเพื่อเพิ่มหรือนำออกทีละขอบ ใช้ลบมุมมน/ลบมุมเอียงเพื่อตกแต่งขอบทั้งหมด"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "เลือกขอบแล้ว %zu ขอบ — Shift+คลิกเพื่อเพิ่มหรือนำออกทีละขอบ ใช้ลบมุมมน/ลบมุมเอียงเพื่อตกแต่งขอบทั้งหมด"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "ระนาบ %s ถูกเลือก — คลิกขวาเพื่อดูเครื่องมือวาด"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "บอดี้ %d: ขอบ %d ถูกเลือก — Shift+คลิกเพื่อเพิ่มขอบ หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "ขอบ %d ถูกเลือก — Shift+คลิกเพื่อเพิ่มขอบ หรือคลิกอีกครั้งเพื่อเลือกทั้งบอดี้"
 
 # AI Translated
 #, c-format, boost-format
@@ -24230,8 +24274,9 @@ msgstr "ออกจากเครื่องมือแล้ว"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "เก็บสเก็ตช์ไว้แล้ว — กด ยืนยัน เพื่อบันทึก หรือ ยกเลิก เพื่อทิ้ง"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "เลือกสิ่งที่จะลบ"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24262,17 +24307,21 @@ msgstr "กำลังแก้ไข: สเก็ตช์ %d   ·   N = ม�
 msgid "OK — %zu triangles"
 msgstr "สำเร็จ — %zu รูปสามเหลี่ยม"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "แก้ไขข้อความ — Enter เพื่อใช้, Esc เพื่อคงข้อความเดิมไว้"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "พิมพ์ข้อความ — ข้อความจะปรากฏในมุมมองขณะพิมพ์; Enter เพื่อแทรก, Esc เพื่อยกเลิก"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "ข้อความไม่เปลี่ยนแปลง"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "ยกเลิกข้อความแล้ว"
 
 # AI Translated
 msgid "Import SVG"
@@ -24298,9 +24347,10 @@ msgstr "กำลังอ่าน STEP…"
 msgid "No solids found in STEP"
 msgstr "ไม่พบทรงตันใน STEP"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "นำเข้า STEP ล้มเหลว: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -24324,9 +24374,10 @@ msgstr "ไฟล์เมช (*.stl;*.obj)|*.stl;*.obj|ไฟล์ทั้ง
 msgid "Could not read the STL file"
 msgstr "ไม่สามารถอ่านไฟล์ STL ได้"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "ไม่สามารถอ่านไฟล์ OBJ ได้: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -24351,20 +24402,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "เมชขนาดใหญ่"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "การแปลงเมชล้มเหลว: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "การแปลงเมชไม่ได้สร้างรูปทรงเรขาคณิตใด ๆ"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "เมช"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "นำเข้าเมชล้มเหลว: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -24393,17 +24447,19 @@ msgstr " — ลากเพื่อวาง/ปรับขนาด แล�
 msgid "Insert canceled"
 msgstr "ยกเลิกการแทรกแล้ว"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "ลากมุมเพื่อปรับขนาด ลากจุดกึ่งกลางเพื่อย้าย — กด Enter หรือ ✓ เมื่อเสร็จ, Esc เพื่อทิ้ง"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "เพิ่มสเก็ตช์แล้ว (ระนาบ: %s) — เลือกสเก็ตช์ แล้วคลิกขวาเพื่อยืดขึ้นรูป"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "ไม่สามารถสร้างโมเดลใหม่ได้: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -24475,18 +24531,21 @@ msgstr "เลือกสเก็ตช์ที่มีเส้นเปิ
 msgid "Add at least one face to delete first"
 msgstr "เพิ่มผิวหน้าที่จะลบอย่างน้อยหนึ่งผิวหน้าก่อน"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "เมทต้องใช้ระบบพิกัดสองระบบ — สร้างระบบพิกัดเหล่านั้นก่อน"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "เมท: A และ B ต้องเป็นระบบพิกัดที่ต่างกัน"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "เมทถูกปฏิเสธ"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "การตรวจสอบการทับซ้อนต้องใช้บอดี้อย่างน้อยสองรายการ"
 
 # AI Translated
 msgid "No interference found"
@@ -24497,35 +24556,42 @@ msgstr "ไม่พบการทับซ้อน"
 msgid "Body %d"
 msgstr "บอดี้ %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s %.2f mm³"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
+msgstr[0] "คู่ที่ซ้อนทับกัน %zu คู่: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "เลือกบอดี้เพื่อวัด"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "ไม่สามารถวัดบอดี้นี้ได้"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: บอดี้พื้นผิว, พื้นที่ผิว %.2f mm², ไม่มีปริมาตร — เพิ่มความหนาเพื่อให้มีปริมาตร"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: ปริมาตร %.2f mm³, พื้นที่ผิว %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "คำสั่งแพทเทิร์นต้องใช้บอดี้ทรงตัน — เพิ่มหรือนำเข้าบอดี้ก่อน"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "คำสั่งบูลีนต้องใช้บอดี้สองรายการ — เพิ่มหรือนำเข้าบอดี้ที่สอง"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -24540,35 +24606,45 @@ msgstr "ผิวหน้าที่เลือก (บอดี้ %d)"
 msgid "Picked face"
 msgstr "ผิวหน้าที่เลือก"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "ไม่สามารถรวมรูปทรงใหม่เข้ากับบอดี้ได้"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "ไม่สามารถตัดรูปทรงใหม่ออกจากบอดี้ได้"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "ไม่สามารถหาส่วนร่วมของรูปทรงได้"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "ยังไม่มีฟีเจอร์ใดในประวัติที่สร้างทรงตัน"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "โปรไฟล์สเก็ตช์ไม่ใช่ลูปปิดที่สมบูรณ์"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "เครื่องมือไม่ได้สัมผัสบอดี้"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "นิพจน์ใช้ตัวแปรที่ไม่มีอยู่"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "นิพจน์มีการหารด้วยศูนย์"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "ตัวแปรสองตัวถูกนิยามโดยอ้างอิงซึ่งกันและกัน"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "การดำเนินการทางเรขาคณิตล้มเหลว"
 
 # AI Translated
 #, c-format, boost-format
@@ -24606,15 +24682,17 @@ msgstr "มิติ — คลิกจุดที่สอง"
 msgid "Line — click the start point"
 msgstr "เส้น — คลิกจุดเริ่มต้น"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "เส้น — คลิกจุดสิ้นสุด แล้วจึงพิมพ์ความยาวและมุมได้"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "โพลีไลน์ — คลิกจุดแรก"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "โพลีไลน์ — คลิกจุดถัดไป  ·  คลิกจุดเริ่มต้นเพื่อปิด  ·  คลิกขวา ดับเบิลคลิก หรือกด Enter เพื่อจบเส้นต่อเนื่อง"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -24660,8 +24738,9 @@ msgstr "สี่เหลี่ยมผืนผ้ามุมมน — ค�
 msgid "Circle — click the center"
 msgstr "วงกลม — คลิกจุดศูนย์กลาง"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "วงกลม — คลิกเพื่อกำหนดรัศมี แล้วจึงพิมพ์ค่าได้"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -24787,18 +24866,21 @@ msgstr "ส่วนโค้งวงรี — คลิกตำแหน่�
 msgid "Spline — click the first control point"
 msgstr "สไปลน์ — คลิกจุดควบคุมแรก"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "สไปลน์ — คลิกจุดควบคุมถัดไป  ·  คลิกขวา ดับเบิลคลิก หรือกด Enter เพื่อจบเส้นโค้ง"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "จุด — คลิกเพื่อวางจุด; เครื่องมือยังคงพร้อมสำหรับวางจุดเพิ่ม"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "ตัดเล็ม — คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่น  ·  Esc เพื่อออก"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "ต่อขยาย — คลิกเส้นหรือส่วนโค้งเพื่อยืดออกไปยังเอนทิตีที่ใกล้ที่สุด  ·  Esc เพื่อออก"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -24808,8 +24890,9 @@ msgstr "ลบมุมมน — คลิกเส้นแรกจากส�
 msgid "Fillet — click the second line"
 msgstr "ลบมุมมน — คลิกเส้นที่สอง"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "ลบมุมมน — ลากลูกศร หรือคลิกตัวเลขเพื่อพิมพ์รัศมี  ·  Enter เพื่อใช้  ·  Esc เพื่อยกเลิก"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -24819,63 +24902,74 @@ msgstr "ลบมุมเอียง — คลิกเส้นแรกจ�
 msgid "Chamfer — click the second line"
 msgstr "ลบมุมเอียง — คลิกเส้นที่สอง"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "ลบมุมเอียง — ลากลูกศร หรือคลิกตัวเลขเพื่อพิมพ์ระยะร่น  ·  Enter เพื่อใช้  ·  Esc เพื่อยกเลิก"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "ออฟเซ็ต — คลิกเส้นโค้ง แล้วเส้นขอบทั้งหมดที่เส้นโค้งนั้นอยู่จะถูกออฟเซ็ต"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "ออฟเซ็ต — ลากลูกศรไปด้านใดด้านหนึ่ง หรือคลิกตัวเลขเพื่อพิมพ์ระยะ  ·  Enter เพื่อใช้  ·  Esc เพื่อยกเลิก"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "กลับด้าน — คลิก เส้น ที่จะใช้เป็นแกนกลับด้านก่อน (ใช้เส้นช่วยสร้างได้)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "กลับด้าน — กำหนดแกนแล้ว  ·  ตอนนี้คลิกเอนทิตีที่จะกลับด้าน  ·  Esc เพื่อยกเลิก"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "กลับด้าน — กำหนดแกนแล้ว  ·  จะกลับด้าน %d รายการ  ·  คลิกรายการอื่นเพื่อเพิ่มหรือนำออก  ·  Enter เพื่อใช้"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "ย้าย — คลิกเอนทิตีที่จะย้าย"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "ย้าย — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์ระยะ  ·  Enter เพื่อใช้"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "หมุน — คลิกเอนทิตีที่จะหมุน"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "หมุน — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์มุม  ·  Enter เพื่อใช้"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "ปรับขนาด — คลิกเอนทิตีที่จะปรับขนาด"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "ปรับขนาด — ลากจุดจับ หรือคลิกตัวเลขเพื่อพิมพ์ตัวคูณ  ·  Enter เพื่อใช้"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "อาร์เรย์ — คลิกเอนทิตีที่จะทำซ้ำ"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "อาร์เรย์ — ลากจุดจับเพื่อกำหนดระยะห่าง คลิกจำนวนเพื่อพิมพ์ค่า  ·  Enter เพื่อใช้"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "อาร์เรย์เชิงขั้ว — คลิกเอนทิตีที่จะทำซ้ำ"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "อาร์เรย์เชิงขั้ว — ลากจุดจับเพื่อกำหนดมุมกวาด คลิกจำนวนเพื่อพิมพ์ค่า  ·  Enter เพื่อใช้"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "ลากมุมเพื่อปรับขนาด ลากจุดกึ่งกลางเพื่อย้าย  ·  กด Enter หรือ ✓ เมื่อเสร็จ, Esc เพื่อทิ้ง"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -24885,61 +24979,76 @@ msgstr "  ·  Esc เพื่อกลับไปที่เครื่อ�
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  คลิกป้ายเงื่อนไขบังคับเพื่อนำออก"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — บอดี้ทรงตัน"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — บอดี้พื้นผิว"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "ผิวหน้าแบนราบ %d ของ %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "ผิวหน้าทรงกระบอก %d ของ %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "ผิวหน้า %d ของ %s"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
+msgstr[0] "ขอบ %zu ขอบของ %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "ขอบตรง %d ของ %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "ขอบวงกลม %d ของ %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "จุดยอดของ %s"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "โปรไฟล์สเก็ตช์"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "สเก็ตช์ — ยังไม่ได้เลือกอะไร"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "เส้นสเก็ตช์"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "เส้นโค้งสเก็ตช์"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "จุดสเก็ตช์"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "เอนทิตีสเก็ตช์ %d รายการ"
 
 # AI Translated
 msgid "select something first"
@@ -25002,8 +25111,9 @@ msgstr "เพิ่มระนาบแล้ว — เลือกระน�
 msgid "Axis added"
 msgstr "เพิ่มแกนแล้ว"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "เพิ่มระบบพิกัดแล้ว"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -25020,10 +25130,10 @@ msgstr "คำสั่งมุมถอดแบบต้องมีผิว
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "ยังไม่มีอะไร — นำเข้า STEP หรือเมชจากแถบเครื่องมือ\n"
-"หรือคลิกระนาบอ้างอิงแล้วคลิกขวาเพื่อเริ่มสเก็ตช์"
+"หรือกด สเก็ตช์ แล้วคลิกระนาบอ้างอิงเพื่อเริ่มสเก็ตช์"
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25033,9 +25143,10 @@ msgstr "ยังไม่มีทรงตัน — เลือกสเก�
 msgid "Could not restore the CAD model from this project"
 msgstr "ไม่สามารถกู้คืนโมเดล CAD จากโปรเจกต์นี้ได้"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "ไม่สามารถกู้คืนโมเดล CAD ได้: %s"
 
 # AI Translated
 #, c-format
@@ -25058,16 +25169,34 @@ msgstr "มุมมองภาคตัดขวาง — แสดงคร�
 msgid "Section view — showing the lower half"
 msgstr "มุมมองภาคตัดขวาง — แสดงครึ่งล่าง"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "กำลังค้นหาผิวหน้าของฟีเจอร์…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "เลือกบอดี้ก่อน — คลิกในวิวพอร์ตหรือในรายการบอดี้"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "กำลังสร้างโมเดลใหม่ — ซูมอีกครั้งเมื่อเสร็จสิ้น"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%s ไม่มีส่วนที่แสดงอยู่ให้ซูมไป"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "บอดี้นั้นยังไม่มีเมชสำหรับแสดงผล — คำนวณใหม่ก่อน"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "เลือกสิ่งที่จะซูมไป"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "เสร็จสิ้นหรือยกเลิกสิ่งที่เปิดอยู่ก่อน"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "เลือกบอดี้ก่อน — คลิกในวิวพอร์ตหรือในรายการบอดี้"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25094,12 +25223,10 @@ msgstr "คลิกผิวหน้าบนทรงตัน แล้ว�
 msgid "Placed on face — body laid flat on the bed"
 msgstr "วางบนผิวหน้าแล้ว — บอดี้วางราบบนฐานพิมพ์"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "การแก้ไขถูกปฏิเสธ: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -25118,9 +25245,10 @@ msgstr "บอดี้นี้ไม่มีฟีเจอร์ให้ล
 msgid "feature %d"
 msgstr "ฟีเจอร์ %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "ลบ %s ซึ่งเป็นฟีเจอร์ที่ใช้สร้างบอดี้นี้แล้ว — กด Ctrl+Z เพื่อกู้คืน"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -25511,12 +25639,14 @@ msgstr "ไฟล์ STEP (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "ส่งออก STEP แล้ว"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "ส่งออก STEP ล้มเหลว: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "ส่งไปยังฐานพิมพ์ (แยกตามบอดี้) — ส่งแต่ละบอดี้ไปยังเตรียมพิมพ์เป็นวัตถุแยกกัน"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -25530,18 +25660,35 @@ msgstr "ไม่มีสิ่งที่จะส่งไปยังฐา
 msgid "All bodies hidden — show one before committing"
 msgstr "บอดี้ทั้งหมดถูกซ่อนอยู่ — แสดงอย่างน้อยหนึ่งบอดี้ก่อนส่งไปยังฐานพิมพ์"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
+msgstr[0] "%zu ขอบ"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "เส้นกึ่งกลาง E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "เส้น E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "ระนาบสเก็ตช์: %s — เลือกเครื่องมือ"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"ระนาบสเก็ตช์: %s\n"
+"เลือกเครื่องมือ หรือกด Menu เพื่อดูรายการ"
 
 # AI Translated
 msgid "Plane ready"
@@ -25551,8 +25698,9 @@ msgstr "ระนาบพร้อมแล้ว"
 msgid "Axis ready"
 msgstr "แกนพร้อมแล้ว"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "ระบบพิกัดพร้อมแล้ว"
 
 # AI Translated
 msgid "Helix ready"
@@ -25570,9 +25718,10 @@ msgstr "สเก็ตช์พร้อมแล้ว"
 msgid "Mate ready"
 msgstr "เมทพร้อมแล้ว"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "ไม่ถูกต้อง: %s"
 
 # AI Translated
 #, c-format
@@ -25654,110 +25803,139 @@ msgstr "แก้ไขตัวแปร"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "ไม่สามารถลบตัวแปร '%s' ได้ (อาจยังถูกอ้างอิงโดยนิพจน์ของฟีเจอร์): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "\"%s\" ไม่ใช่ค่าที่นิพจน์สามารถควบคุมได้"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "ไม่มีการผูกค่าสำหรับฟิลด์นั้น"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "ค่าต้องมากกว่าศูนย์"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "ค่าต้องไม่ติดลบ (ศูนย์หมายถึงทับกัน)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "ไม่สามารถทำให้มิตินั้นเป็นไปตามที่กำหนดได้ — สเก็ตช์มีเงื่อนไขบังคับเกิน"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "เงื่อนไขบังคับ %1% รายการใช้กับเรขาคณิตนี้ไม่ได้ (เส้นโค้งวงรีหรือสไปลน์ หรือวงกลมที่มีขนาดเป็นศูนย์) จึงถูกละเว้น"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "โปรไฟล์นี้ตัดกันเองหรือพับย้อนกลับที่เครื่องหมายสีแดง จึงไม่ได้ล้อมรอบเป็นพื้นที่เดียว"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "ความยาวด้าน"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "กึ่งแกนหลัก"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "กึ่งแกนรอง"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "มุมต้องอยู่ระหว่าง 0° ถึง 360°"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "กึ่งแกนหลักต้องไม่สั้นกว่ากึ่งแกนรอง"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "รัศมีมุมต้องน้อยกว่าครึ่งหนึ่งของด้านที่สั้นกว่า"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "ร่องกว้างเกินไปสำหรับรัศมี — ความกว้างต้องน้อยกว่าสองเท่าของรัศมี"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "ไม่สามารถทำให้ %1% เป็นไปตามที่กำหนดได้ — สเก็ตช์มีเงื่อนไขบังคับเกิน"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "เส้นทั้งสองนั้นไม่ได้บรรจบกันที่มุม — เลือกเส้นสองเส้นที่บรรจบกัน"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "ขนาดต้องมากกว่าศูนย์"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "ลบมุมมน: รัศมีเกินความยาวของด้านใดด้านหนึ่ง หรือเส้นทั้งสองไม่ได้บรรจบกันที่มุม"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "ลบมุมเอียง: ระยะเกินความยาวของด้านใดด้านหนึ่ง หรือเส้นทั้งสองไม่ได้บรรจบกันที่มุม"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "นำเงื่อนไขบังคับ %1% รายการที่ใช้ไม่ได้แล้วหลังการลบมุมมน/ลบมุมเอียงออกแล้ว"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "ออฟเซ็ต: วงรีหรือสไปลน์ไม่มีเส้นขนานที่เป็นชนิดเดียวกัน — เลือกเส้น ส่วนโค้ง หรือวงกลม"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "ตัวคูณการปรับขนาดต้องมากกว่าศูนย์"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "จำนวนสำเนา"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "จำนวนสำเนาต้องเป็นจำนวนเต็มตั้งแต่ 2 ขึ้นไป"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "การแปลงรูปได้ปลดเงื่อนไขบังคับ %1% รายการ"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "สำเนาของอาร์เรย์ไม่มีเงื่อนไขบังคับ — ตัวแก้เงื่อนไขบังคับปฏิเสธการผูกทุกรายการ"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "คลิกขวาหรือดับเบิลคลิกเพื่อเสร็จสิ้น คลิกจุดเริ่มต้นเพื่อปิด"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "ต่อขยาย: คลิกเส้นหรือส่วนโค้งที่ต่อขยายไปถึงเอนทิตีอื่นได้"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "ตัดเล็ม: คลิกช่วงเส้นตรงตำแหน่งที่ตัดกับเอนทิตีอื่น"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "กด Enter หรือ ✓ เพื่อใช้, Esc เพื่อทิ้ง"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "ยังไม่รองรับการกำหนดมิติสำหรับเอนทิตีนั้น — คลิกเส้น วงกลม ส่วนโค้ง หรือจุดสองจุด"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "คลิกจุดที่สอง หรือคลิกเส้นที่ต้องการวัดระยะไปถึง"
 
 # AI Translated
 msgid "Enter a number"
@@ -25793,8 +25971,12 @@ msgid "Sketch"
 msgstr "สเก็ตช์"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "เลือกผิวหน้าแบนราบหรือระนาบอ้างอิงเพื่อสเก็ตช์"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "สเก็ตช์บนผิวหน้าแบนราบหรือระนาบที่เลือก หรือคลิกเลือกในขั้นถัดไป"
 
 # AI Translated
 msgctxt "Design"
@@ -25816,9 +25998,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "เพิ่มความหนา"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "รวม"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -25871,16 +26054,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "เพิ่มความหนาพื้นผิว"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "คำสั่งเพิ่มความหนาพื้นผิวต้องใช้บอดี้พื้นผิว — สร้างด้วยเครื่องมือพื้นผิวก่อน"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "รู"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -25896,8 +26077,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "แยก"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "คำสั่งแยกต้องใช้บอดี้ทรงตัน — เพิ่มหรือนำเข้าบอดี้ก่อน"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -25943,8 +26125,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "ออฟเซ็ตพื้นผิว"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "คำสั่งออฟเซ็ตพื้นผิวต้องใช้บอดี้พื้นผิว — สร้างด้วยเครื่องมือพื้นผิวก่อน"
 
 # AI Translated
 msgctxt "Design"
@@ -25974,8 +26157,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "แพทเทิร์นตามเส้นโค้ง"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "แพทเทิร์นตามเส้นโค้งต้องใช้บอดี้และเส้นโค้ง"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -25996,8 +26180,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "จัดแนวกับ"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "คำสั่งจัดแนวต้องใช้บอดี้ — เพิ่มหรือนำเข้าบอดี้ก่อน"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -26013,9 +26198,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "แกน"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "ระบบพิกัด"
 
 # AI Translated
 msgctxt "Design"
@@ -26031,9 +26217,10 @@ msgstr "วัด"
 msgid "Measure between the picked points, edges or faces"
 msgstr "วัดระหว่างจุด ขอบ หรือผิวหน้าที่เลือก"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "ปริมาตรและพื้นที่ผิว"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -26075,12 +26262,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "ลบผิวหน้า"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "สี"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "ตั้งค่าสีที่แสดงของบอดี้ที่เลือก"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "ซูมไปที่ส่วนที่เลือก"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "จัดส่วนที่เลือกให้พอดีกับมุมมอง โดยคงทิศทางมุมมองไว้"
 
 # AI Translated
 msgctxt "Design"
@@ -26119,9 +26317,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "สี่เหลี่ยมผืนผ้าแบบมุม"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "สี่เหลี่ยมผืนผ้าแบบจุดศูนย์กลาง"
 
 # AI Translated
 msgctxt "Design"
@@ -26133,9 +26332,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "สี่เหลี่ยมผืนผ้ามุมมน"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "วงกลมแบบจุดศูนย์กลาง"
 
 # AI Translated
 msgctxt "Design"
@@ -26157,9 +26357,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "ส่วนโค้งสัมผัส"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "ส่วนโค้งแบบจุดศูนย์กลาง"
 
 # AI Translated
 msgctxt "Design"
@@ -26191,48 +26392,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "สามเหลี่ยม"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "สามเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "สี่เหลี่ยมจัตุรัส"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "สี่เหลี่ยมจัตุรัส — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "ห้าเหลี่ยม"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "ห้าเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "หกเหลี่ยม"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "หกเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "แปดเหลี่ยม"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "แปดเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "สิบสองเหลี่ยม"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "สิบสองเหลี่ยม — คลิกจุดศูนย์กลาง แล้วคลิกจุดยอด"
 
 # AI Translated
 msgctxt "Design"
@@ -26262,8 +26469,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "ข้อความ"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "พิมพ์ข้อความ; ข้อความจะกลายเป็นฟีเจอร์ข้อความบนระนาบของสเก็ตช์นี้ และแก้ไขได้ภายหลัง"
 
 # AI Translated
 msgctxt "Design"
@@ -26380,27 +26588,34 @@ msgstr "มุม / ระยะ…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "พิมพ์มุมระหว่างเส้นสองเส้น หรือระยะระหว่างสองตำแหน่งที่เลือก"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "พิมพ์ข้อความที่จะแทรก"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "ตัวหนา"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "ตัวเอียง"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "ไม่สามารถใช้แบบอักษรนี้กับข้อความได้ — เลือกแบบอักษรอื่น"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "พิมพ์ข้อความเพื่อดูขนาด"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "แบบอักษรนี้ไม่มีเส้นขอบสำหรับข้อความนี้"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "ขนาด: %.1f × %.1f มม."
 
 # AI Translated
 msgid "Primitive"
@@ -26498,8 +26713,9 @@ msgstr "โปรไฟล์"
 msgid "Start new profile (for holes)"
 msgstr "เริ่มโปรไฟล์ใหม่ (สำหรับรู)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "เซกเมนต์"
 
 # AI Translated
 msgid "Sides"
@@ -26513,20 +26729,23 @@ msgstr "คลิกบนพื้นที่วาดเพื่อวาด
 msgid "Snap to grid"
 msgstr "สแน็ปกับกริด"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "ระยะกริด"
 
 # AI Translated
 msgid "Outer"
 msgstr "ด้านนอก"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "แบบปิด"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% จุด %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -26562,8 +26781,9 @@ msgstr[0] "โปรไฟล์ปิด %zu รายการ"
 msgid "Draw a closed profile to enable"
 msgstr "วาดโปรไฟล์ปิดเพื่อเปิดใช้งาน"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "ล้างทั้งหมด"
 
 # AI Translated
 msgid "Empty result"
@@ -30674,6 +30894,39 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(ทดลอง) ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ฟีเจอร์"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "คลิกผิวหน้าหรือระนาบอ้างอิงในวิวพอร์ต แล้วเลือกเครื่องมือสเก็ตช์"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือสเก็ตช์"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "ระนาบ %s ถูกเลือก — คลิกขวาเพื่อดูเครื่องมือวาด"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "ยังไม่มีอะไร — นำเข้า STEP หรือเมชจากแถบเครื่องมือ\n"
+#~ "หรือคลิกระนาบอ้างอิงแล้วคลิกขวาเพื่อเริ่มสเก็ตช์"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "คลิกผิวหน้าหรือระนาบอ้างอิง แล้วเลือกเครื่องมือวาด"
 
 #~ msgid "X"
 #~ msgstr "X"

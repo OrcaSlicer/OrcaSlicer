@@ -12,7 +12,6 @@
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/libslic3r.h"
 
-using namespace Slic3r::Test;
 using namespace Slic3r;
 
 /// Test the expected behavior for auto-width,

@@ -77,7 +77,6 @@
 #include <fstream>
 
 using namespace Slic3r;
-using namespace Slic3r::Emboss;
 using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Emboss;
 

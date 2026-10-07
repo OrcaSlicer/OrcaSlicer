@@ -2,7 +2,6 @@
 #include <string>
 #include "DevFilaSystem.h"
 
-#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"// TODO: remove this include
 
 using namespace nlohmann;

@@ -97,10 +97,6 @@ private:
     CancelFn m_cancel_cb_fina;
 };
 
-namespace GUI {
-using Slic3r::BBLStatusBarPrint;
-}
-
 wxDECLARE_EVENT(EVT_SHOW_ERROR_INFO, wxCommandEvent);
 
 } // namespace Slic3r

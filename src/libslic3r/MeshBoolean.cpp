@@ -660,7 +660,6 @@ bool empty(const CGALMesh &mesh)
 
 bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string* error)
 {
-    using namespace CGAL;
     namespace PMP = CGAL::Polygon_mesh_processing;
 
     if (mesh.empty())

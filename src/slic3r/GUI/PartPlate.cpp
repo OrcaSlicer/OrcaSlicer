@@ -1,4 +1,3 @@
-#include <boost/optional/optional.hpp>
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -60,7 +59,6 @@
 #include <future>
 #include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
@@ -113,9 +111,6 @@
 #include "slic3r/GUI/GLModel.hpp"
 
 class wxFont;
-namespace boost { template <class T> class optional; }
-using boost::optional;
-namespace fs = boost::filesystem;
 
 static const float GROUND_Z = -0.03f;
 static const float GROUND_Z_GRIDLINE = -0.26f;

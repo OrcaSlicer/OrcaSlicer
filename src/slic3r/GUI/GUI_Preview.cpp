@@ -396,7 +396,7 @@ void Preview::sys_color_changed()
     // m_layers_slider->sys_color_changed();
 }
 
-void Preview::on_tick_changed(Type type)
+void Preview::on_tick_changed(CustomGCode::Type type)
 {
     //if (type == Type::PausePrint) {
     //    m_schedule_background_process();

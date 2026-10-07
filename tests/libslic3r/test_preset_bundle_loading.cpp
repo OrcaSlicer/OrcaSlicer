@@ -6228,8 +6228,9 @@ TEST_CASE("A per-variant project value maps onto its base preset's variant layou
                                                                    base_finder(&base, calls));
     CHECK(config.option<ConfigOptionStrings>("print_extruder_variant")->values ==
           std::vector<std::string>{"Direct Drive Standard", "Direct Drive High Flow"});
-    // The listed key keeps the project's Standard value and takes High Flow from the base.
-    check_double_vector(config.option<ConfigOptionFloats>("outer_wall_speed")->values, {100., 300.});
+    // The listed key keeps the project's Standard value, and High Flow, which the project does not
+    // list, takes it too, as a user preset's value does.
+    check_double_vector(config.option<ConfigOptionFloats>("outer_wall_speed")->values, {100., 100.});
     check_double_vector(config.option<ConfigOptionFloats>("inner_wall_speed")->values, {250., 350.});
 }
 

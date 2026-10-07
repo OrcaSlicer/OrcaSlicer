@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -3164,7 +3164,7 @@ msgstr ""
 msgid "Remove parameter"
 msgstr ""
 
-msgid "to"
+msgid "Range"
 msgstr ""
 
 msgid "Add height range"
@@ -5058,9 +5058,6 @@ msgid "parameter name"
 msgstr ""
 
 msgid "layers"
-msgstr ""
-
-msgid "Range"
 msgstr ""
 
 msgid "Empty string"
@@ -9460,14 +9457,6 @@ msgstr ""
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr ""
 
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr ""
-
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-
 msgid "Experimental Features"
 msgstr ""
 
@@ -9477,6 +9466,14 @@ msgstr ""
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
+msgstr ""
+
+msgid "Use printer agents instead of print hosts"
+msgstr ""
+
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
 msgstr ""
 
 msgid "Allow Abnormal Storage"
@@ -9639,6 +9636,9 @@ msgid "Other layer filament sequence"
 msgstr ""
 
 msgid "Please input layer value (>= 2)."
+msgstr ""
+
+msgid "to"
 msgstr ""
 
 msgid "Plate name"
@@ -14773,6 +14773,12 @@ msgid "Symmetric infill Y axis"
 msgstr ""
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
+msgstr ""
+
+msgid "Fill pattern tops"
+msgstr ""
+
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
 msgstr ""
 
 msgid "Infill combination - Max layer height"
@@ -20417,6 +20423,21 @@ msgstr ""
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 msgid "Construction"
 msgstr ""
 
@@ -20502,26 +20523,10 @@ msgstr ""
 msgid "Bed hidden"
 msgstr ""
 
-msgid "FEATURES"
+msgid "Reference planes shown"
 msgstr ""
 
-msgid "Sketch"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr ""
-
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr ""
-
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-
-msgid "Click a face or a reference plane, then a sketch tool."
+msgid "Reference planes hidden"
 msgstr ""
 
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -20787,12 +20792,6 @@ msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
 msgstr ""
 
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr ""
-
-msgid "Import STEP (editable B-rep solid)"
-msgstr ""
-
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
 msgstr ""
 
 msgid "Constrain selected sketch"
@@ -21107,10 +21106,16 @@ msgstr ""
 msgid "New Design — clear the feature tree"
 msgstr ""
 
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
 msgid "Export STEP…"
 msgstr ""
 
-msgid "Show the printer bed and its plate grid"
+msgid "Create a new sketch"
 msgstr ""
 
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -21141,6 +21146,9 @@ msgid "Width / X"
 msgstr ""
 
 msgid "Height / Y"
+msgstr ""
+
+msgid "Sketch"
 msgstr ""
 
 msgid "Distance X"
@@ -21621,6 +21629,9 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 msgid "Constraints"
 msgstr ""
 
@@ -21648,6 +21659,9 @@ msgid "Move down"
 msgstr ""
 
 msgid "Show / hide"
+msgstr ""
+
+msgid "Zoom to selection"
 msgstr ""
 
 msgid "Check interference — find overlapping bodies"
@@ -21707,6 +21721,9 @@ msgstr ""
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr ""
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 #, c-format, boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
 msgstr ""
@@ -21747,10 +21764,6 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
 msgstr ""
 
 #, c-format, boost-format
@@ -21807,7 +21820,7 @@ msgstr ""
 msgid "Text unchanged"
 msgstr ""
 
-msgid "Text cancelled"
+msgid "Text canceled"
 msgstr ""
 
 msgid "Import SVG"
@@ -22427,7 +22440,7 @@ msgstr ""
 
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -22459,10 +22472,23 @@ msgstr ""
 msgid "Finding the feature's faces…"
 msgstr ""
 
-msgid "Select a body first — click it in the viewport or the Bodies list"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
 msgstr ""
 
 msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
 msgstr ""
 
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -22482,9 +22508,6 @@ msgid "Click a face on the solid, then press F"
 msgstr ""
 
 msgid "Placed on face — body laid flat on the bed"
-msgstr ""
-
-msgid "Finish or cancel what is open first"
 msgstr ""
 
 #, c-format, boost-format
@@ -22835,6 +22858,16 @@ msgstr ""
 msgid "Line E%d"
 msgstr ""
 
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
 msgid "Plane ready"
 msgstr ""
 
@@ -23051,7 +23084,10 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr ""
 
-msgid "Click a face or a reference plane, then pick a drawing tool"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
 msgstr ""
 
 msgctxt "Design"
@@ -23119,9 +23155,6 @@ msgstr ""
 
 msgctxt "Design"
 msgid "Hole"
-msgstr ""
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
 msgstr ""
 
 msgctxt "Design"
@@ -23284,6 +23317,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 msgctxt "Design"

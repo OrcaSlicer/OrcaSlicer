@@ -974,8 +974,8 @@ bool AMSMaterialsSetting::Show(bool show)
 
 static void _collect_filament_info(const wxString& shown_name,
                                    const Preset& filament,
-                                   unordered_map<wxString, wxString>& query_filament_vendors,
-                                   unordered_map<wxString, wxString>& query_filament_types)
+                                   std::unordered_map<wxString, wxString>& query_filament_vendors,
+                                   std::unordered_map<wxString, wxString>& query_filament_types)
 {
     query_filament_vendors[shown_name] = filament.config.get_filament_vendor();
     query_filament_types[shown_name] = filament.config.get_filament_type();

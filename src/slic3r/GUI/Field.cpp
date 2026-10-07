@@ -702,11 +702,11 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 set_value(str, true);
             }
         } else if (m_opt.opt_key == "sparse_infill_rotate_template" || m_opt.opt_key == "solid_infill_rotate_template") {
-            string ustr(str.utf8_string());
+            std::string ustr(str.utf8_string());
             if (!ConfigOptionFloats::validate_string(ustr)) {
-                string      v;
+                std::string v;
                 std::smatch match;
-                string      ps = (m_opt.opt_key == "sparse_infill_rotate_template") ?
+                std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ?
                                      u8"[BT][!]?|[#][\\d]+[!]?|[+\\-]?[\\d.]+[%]?[*]?[\\d]*[/NnZz$LlUuQq~^|#]?[+\\-]?[\\d.]*[%#\'\"cm]?[m]?[BT]?[!*]?" :
                                      u8"[#][\\d]+[!]?|[+\\-]?[\\d.]+[%]?[*]?[\\d]*[/NnZz$LlUuQq~^|#]?[+\\-]?[\\d.]*[%#\'\"cm]?[m]?[!*]?";
 
@@ -729,7 +729,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             }
             break;
         } else if (m_opt.opt_key == "extra_solid_infills") {
-            string ustr(str.utf8_string());
+            std::string ustr(str.utf8_string());
             // New rule: accept either interval form (N or N#K) or explicit list (e.g. 1,7,9), with optional quotes.
             const std::regex rx_interval(u8R"(^\s*['"]?\s*\d+\s*(?:#\s*\d*)?\s*['"]?\s*$)");
             // List entries may be plain numbers or number with optional #K count, e.g., 5, 9#2, 18

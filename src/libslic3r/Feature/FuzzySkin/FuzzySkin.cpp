@@ -32,8 +32,6 @@
 
 // #define DEBUG_FUZZY
 
-using namespace Slic3r;
-
 namespace Slic3r::Feature::FuzzySkin {
 
 // Produces a random value between 0 and 1. Thread-safe.
