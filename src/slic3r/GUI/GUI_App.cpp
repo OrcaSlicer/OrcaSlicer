@@ -7204,11 +7204,11 @@ void GUI_App::sync_preset(Preset* preset, bool force)
 
         BOOST_LOG_TRIVIAL(trace) << "sync_preset: sync operation: " << preset->sync_info << " success! preset = " << preset->name;
         if (preset->type == Preset::Type::TYPE_FILAMENT) {
-            preset_bundle->filaments.set_sync_info_and_save(preset->name, setting_id, updated_info, update_time);
+            preset_bundle->filaments.set_sync_info_and_save(preset->name, setting_id, updated_info, update_time, m_agent->get_user_id());
         } else if (preset->type == Preset::Type::TYPE_PRINT) {
-            preset_bundle->prints.set_sync_info_and_save(preset->name, setting_id, updated_info, update_time);
+            preset_bundle->prints.set_sync_info_and_save(preset->name, setting_id, updated_info, update_time, m_agent->get_user_id());
         } else if (preset->type == Preset::Type::TYPE_PRINTER) {
-            preset_bundle->printers.set_sync_info_and_save(preset->name, setting_id, updated_info, update_time);
+            preset_bundle->printers.set_sync_info_and_save(preset->name, setting_id, updated_info, update_time, m_agent->get_user_id());
         }
     }
 }
@@ -7907,7 +7907,7 @@ void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
                 ? OrcaCloudServiceAgent::generate_uuid_for_setting_id(preset.name, user_id)
                 : preset.setting_id;
             if (preset_id == setting_id) {
-                coll->set_sync_info_and_save(preset.name, setting_id, "update", 0);
+                coll->set_sync_info_and_save(preset.name, setting_id, "update", 0, user_id);
                 break;
             }
         }
