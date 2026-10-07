@@ -34,7 +34,7 @@
 #include "slic3r/GUI/Widgets/SideMenuPopup.hpp"
 #include <utility>
 #include "libslic3r/libslic3r.h"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <wx/dirdlg.h>
 #include <exception>
@@ -154,6 +154,8 @@
 #include <wx/display.h>
 #include <wx/window.h>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

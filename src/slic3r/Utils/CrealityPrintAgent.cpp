@@ -214,7 +214,6 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
                                             int&                  box_count,
                                             std::string&          error)
 {
-    using nlohmann::json;
 
     slots.clear();
     box_count = 0;

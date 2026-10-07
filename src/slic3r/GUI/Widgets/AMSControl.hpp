@@ -80,7 +80,7 @@ protected:
     std::vector<NozzleAmsPane>       m_nozzle_panes;
     wxSimplebook*                    m_nozzle_book{nullptr};
     int                              m_active_nozzle_id{0};
-    std::vector<std::pair<string, string>> pair_id;
+    std::vector<std::pair<std::string, std::string>> pair_id;
 
     int         m_total_ext_count = 1;
     AMSextruder *m_extruder{nullptr};
@@ -200,7 +200,7 @@ public:
     std::tuple<bool, bool> isFilaSwitchReady();
     void show_switcher_status(bool show);
 
-    void UpdatePassRoad(string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
+    void UpdatePassRoad(std::string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
     void CreateAms();
     void CreateAmsMultiNozzle(const std::string& series_name, const std::string& printer_type);
     void CreateAmsDoubleNozzle(const std::string &series_name, const std::string& printer_type);

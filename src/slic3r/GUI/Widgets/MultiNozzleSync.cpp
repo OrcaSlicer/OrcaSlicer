@@ -12,7 +12,7 @@
 #include "Label.hpp"
 #include "ComboBox.hpp"
 #include "StaticBox.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 
@@ -55,6 +55,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 

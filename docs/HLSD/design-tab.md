@@ -135,7 +135,7 @@ contract between them is stated in code rather than spread across handlers.
 | --- | --- | --- |
 | `Transient` | a value field or a popup menu | closes it; the tool stays armed |
 | `Gesture` | an uncommitted delta — an entity being drawn, a body being dragged | reverts it; committed work is untouched |
-| `Tool` | a feature card, an armed sketch tool, a constrain session | exits it; drawn entities survive |
+| `Tool` | a feature card, Sketch waiting for its plane, an armed sketch tool, a constrain session | exits it; drawn entities survive |
 | `Idle` | nothing transient | clears the selection, a Feature tree or Bodies row included; leaves a sketch session only if it is empty |
 
 `cad_escape_level()` is a `constexpr` free function over a POD of four booleans rather than a
@@ -149,26 +149,66 @@ explicit selection, the sketch ribbon's Cancel, which asks first, or `Ctrl+Z`. A
 *session* is deliberately not a `Tool` level; it is the environment the `Idle` level lives in,
 which makes the destructive path unrepresentable rather than merely unlikely.
 
+A body Move is the one `Gesture` that outlives the press: its gizmo stays up between drags until
+Confirm keeps the placement or `Esc` or Cancel puts the body back. Until then the selection is
+held — a click off the gizmo only steers the camera — and undo is refused, since the placement
+is not in the history. Anything that starts another edit (a feature card, a sketch, placing
+imported art or text, another body's Move, a rebuild) keeps the placement, as switching gizmos
+keeps a move in Prepare. The panel ends the Move in one place (`DesignPanel::end_body_move`), so
+the gizmo, the Move / Rotate card and the ✓/✗ cannot outlive one another.
+
 Right-click is read at button-up against one budget, 3 px of drift, applied to the whole press
 rather than to its end points: a press that wandered past the budget at any moment is
 navigation, even if it comes back to where it started, which is what stops a slow, careful
 orbit from ending in a menu. There is no time budget — a gesture that means something different
 when it is slow is exactly what the interaction charter rules out. The raycast uses the press
-position, not the release. An armed sketch tool that already consumed the right
-button (to terminate a chain, say) declines to also open a menu, through a read-and-clear flag.
-Past either budget the event is navigation, and navigation does not transition the state
-machine.
+position, not the release. The sketch tool sees a right press only once the release has shown it
+was a click: the press itself goes to the camera, which may pan or orbit with that button, and the
+canvas replays it to the tool on a stationary release. A tool that uses the click (to terminate a
+chain, say) keeps the menu closed. Past either budget the event is navigation, and navigation
+does not transition the state machine.
 
 Navigation itself is Prepare's: the camera reads the drag actions set in Preferences > Control
-for each button. The left button is shared with picking, so a whole body is swept with a
-rectangle on plain left-drag only while no camera action is assigned to it, and with
-Shift+left-drag otherwise — Prepare's own rectangle selection.
+for each button, and in the Touchpad camera style a move with Alt held orbits and one with Shift
+held pans, whatever tool is armed. The left button is shared with picking and drawing, so a tool
+handle or a press that draws takes it first, as a gizmo does in Prepare; a whole body is swept
+with a rectangle on plain left-drag only while no camera action is assigned to the left button,
+and with Shift+left-drag otherwise — Prepare's own rectangle selection.
 
-Entering a sketch changes three things at once so the mode is legible: a banner above the
+Entering a sketch changes two things at once so the mode is legible: a banner above the
 canvas (a sibling of the canvas, not a child over it — on GTK a child window over a
-`wxGLCanvas` is a native window and does not reliably stack over GL), the printer bed muted so
-a plate grid is never read as a sketch grid, and `N` to look normal to the plane. Code that
-changes any of the three belongs with a change to this section.
+`wxGLCanvas` is a native window and does not reliably stack over GL), and `N` to look normal to
+the plane. The printer bed stays: there is no sketch grid, so the plate grid is the only ground
+reference a sketch has. Code that changes either belongs with a change to this section.
+
+Sketch mode is never entered without a plane under it, so the banner, the sketch keys and the
+sketch offer always have a session to act on. Sketch on a picked flat face or reference plane opens
+the session on it at once. With nothing picked it stays in Feature mode and waits for one — an
+armed `Tool`, left with `Esc` or ✗, and ended by anything that starts another edit — and the
+reference plane or flat face clicked next opens the session. A picked plane is a selection like a
+face: the sketch on it uses it up, and `Esc` or a click on nothing lets go of it, so a plane that
+can no longer be seen never decides where the next sketch goes.
+
+The reference planes — XY, XZ and YZ through the modeling origin, with their half-axes — are
+drawn on demand, because three translucent squares over every model are noise once they are not
+the thing being picked. Sketch brings them up while it waits for a plane, which is exactly when
+they are picked, and the session the pick opens takes them away; a live session draws none. The
+Feature tree's Origin row keeps them up outside a sketch. Its state is a view preference in
+AppConfig rather than part of the recipe, so it costs the project format nothing. The Plane tool
+keeps its own rule: the planes and the datums as Offset bases, and nothing for the other methods,
+where a click on a plane would rewrite the datum's references. The `P` and `A` keys are a
+separate, unpickable view helper and do not follow the Origin row.
+
+The Bed row, under the Origin row, is the printer bed's switch in the same way: it draws or hides
+the bed and its plate grid in every mode. It is a view preference in AppConfig too, and the bed is
+shown until it is turned off.
+
+The two rows are view switches, not history, and the tree says so: they sit unframed on the Feature
+tree's card, above the features' own framed list, and stay put while the features scroll. A click
+never selects either row, since a selected Origin or Bed would have nothing to edit, move or
+delete; the eye and the right-click menu are the only targets, and a row's label dims while its
+thing is hidden, as a hidden body's does. Because the block never takes the focus, `Ctrl+Shift+O`
+and `Ctrl+Shift+B` flip the Origin and the Bed from the keyboard.
 
 ## Rendering the bodies
 
@@ -188,6 +228,15 @@ rasterise under the software GL context the tab also supports. Seams of closed s
 degenerate edges are left out (`GeometryEngine::display_edges`), and the polylines are sampled
 once per shape, keyed by its `TShape`, because a recompute that leaves a body unchanged is the
 common case.
+
+While a feature card is open, its preview ghost is the whole model the candidate would produce,
+drawn translucent over the bodies, so every face the feature leaves alone is in both at the same
+depth. The ghost is drawn with a depth bias that pushes it back (`GLVolume::depth_bias`), so on a shared face
+the body always wins instead of the two copies z-fighting, and the ghost shows only where the
+result reaches past the bodies. Material a feature removes lies inside the old solid and would not
+show at all, so the tools whose result mostly coincides with the body — Fillet/Chamfer, Draft,
+Hole and the Mate hover — hide the bodies once the preview is valid and draw the result alone,
+opaque.
 
 ## Showing what is selected
 
@@ -214,7 +263,17 @@ replay costs up to a recompute, so the panel finds the faces once per row and to
 generation, off the UI thread, and only while no feature card is open. One selection is live at
 a time: a viewport pick clears the feature row and a feature row clears the viewport pick, as the
 Feature tree and Bodies list do between themselves. `Esc`, a click on empty space and an
-empty rubber band all let go of it, whichever list or pick made it.
+empty rubber band all let go of it, whichever list or pick made it — except while a body Move is
+open, which holds the selection until it ends (see the interaction contract).
+
+Zoom to selection, on a Feature tree or Bodies row and in its right-click menu, frames one thing
+along the current view direction, as the canvas's Fit button frames the selection. On a body it
+frames the body whole, hidden or not, from its display mesh: the viewport never selects a hidden
+body, so the selection cannot stand in for it. On a sketch it frames the sketch's own geometry,
+drawn, consumed or suppressed; on any other feature, the faces the feature made, found as the row
+highlight finds them and from the same cache. From the offer it frames whatever the selection is,
+a body again included. A feature that is not a sketch and makes no faces, such as a datum plane
+or a suppressed Extrude, has no Zoom to selection.
 
 ## Following the app
 
@@ -231,9 +290,21 @@ The tab is a page of Orca's main window and answers to the same settings as Prep
 - **Sidebar icons.** Every clickable icon in the sidebar shows a hover chip. The card-header and
   constraint-row buttons are Orca's self-painted `Button`, because a native button cannot take a
   hover background on macOS. The Feature tree and Bodies lists are a custom-drawn
-  `DesignRowList` rather than a `wxTreeCtrl`, so each row carries its own actions — Edit,
-  Show/hide and Delete on a feature, Move, Show/hide and Delete on a body — and the eye shows
-  whether that row is hidden.
+  `DesignRowList` rather than a `wxTreeCtrl`, so each row carries its own actions — Zoom to
+  selection, Edit, Show/hide and Delete on a feature, Zoom to selection, Move, Show/hide and
+  Delete on a body, and only Show/hide on the Origin and Bed rows, a separate non-selectable list
+  above the features — and the eye shows whether that row is hidden. A feature with nothing to
+  frame keeps a blank cell where Zoom to selection would be, so every icon stays in its column.
+- **Plates.** This is the one thing the tab does not follow. The canvas has a bed of its own at
+  the printer bed's home position, whichever plate Prepare has current, and a new document's
+  modeling origin is that bed's centre. A bed that followed the current plate would slide out
+  from under a design: the origin is fixed once per document, baked into every sketch plane and
+  saved in the recipe, while the current plate can change between visits. Commit to Plate does
+  not need it either, since the committed object is placed on an empty spot of the current
+  plate. What the canvas does read from the plate is moved onto its bed: the exclude areas, the
+  plate box the camera orbits about when nothing is picked (`GLCanvas3D::_current_plate_box`),
+  and the first view, which starts from Prepare's camera turned to the tab's iso view: the CAD
+  isometric from the front-right corner that Home returns to, not Prepare's front-left one.
 - **Viewport text.** The status line and the active tool's values are drawn by the canvas in
   its ImGui pass, so they go with the canvas: a top-level window over GL does not follow its
   frame and was left floating over other applications.
@@ -256,12 +327,12 @@ permanent row index, verbs that do not apply shown disabled **in place with thei
 rather than removed. The invariant is that a verb's row index is identical in every selection
 where it appears and that adding a verb never moves an existing one — the hand learns the
 position, so the menu is never re-sorted, compacted or adaptively ordered. Above the families
-sits one *flat* row, holding Rename and Color — what a selection is opened for most: its verbs are
-items of their own at the top of the menu rather than a family's submenu. It is appended after
-the eight, so it moved no existing index, and it reads the same from the viewport and from a row
-of the Bodies list.
+sits one *flat* row, holding Rename, Color and Zoom to selection — what a selection is opened for
+most: its verbs are items of their own at the top of the menu rather than a family's submenu. It
+is appended after the eight, so it moved no existing index, and it reads the same from the
+viewport and from a row of the Bodies list.
 
-An invariant across 92 verbs and 20 selection kinds does not survive by review, so the map
+An invariant across 93 verbs and 20 selection kinds does not survive by review, so the map
 exists once, as data: `scripts/CAD/tool_atlas.json` carries every verb with its row, key, icon,
 accepted selections, preconditions and refusal string, and `scripts/CAD/gen_offer_table.py`
 emits `src/slic3r/GUI/CAD/DesignOffer.hpp` from it. The header is checked in and never

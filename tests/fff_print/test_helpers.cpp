@@ -27,8 +27,6 @@
 
 #include "test_utils.hpp"
 
-using namespace std;
-
 namespace Slic3r { namespace Test {
 
 const std::unordered_map<TestMesh, const char*, TestMeshHash> mesh_names {

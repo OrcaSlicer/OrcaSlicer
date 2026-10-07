@@ -1752,8 +1752,8 @@ void ElegooPrintHostSendDialog::init() {
     }
 
     {
-        auto radioBoxA = new ::RadioBox(this);
-        auto radioBoxB = new ::RadioBox(this);
+        auto radioBoxA = new RadioBox(this);
+        auto radioBoxB = new RadioBox(this);
         if (m_BedType == BedType::btPC)
             radioBoxB->SetValue(true);
         else

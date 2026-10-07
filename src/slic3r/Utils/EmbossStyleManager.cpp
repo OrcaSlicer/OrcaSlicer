@@ -561,7 +561,6 @@ bool StyleManager::set_wx_font(const wxFont &wx_font, std::unique_ptr<FontFile> 
 // StylesSerializable
 namespace {
 
-using namespace Slic3r;
 using namespace Slic3r::GUI;
 using Section = std::map<std::string,std::string>;
 

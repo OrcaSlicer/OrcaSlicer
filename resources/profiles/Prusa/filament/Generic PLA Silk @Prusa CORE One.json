@@ -6,6 +6,9 @@
 	"from": "system",
 	"setting_id": "F9lNHyhZwZi7aD74",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pla"
+	],
 	"chamber_temperature": [
 		"20"
 	],

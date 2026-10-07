@@ -15,7 +15,7 @@
 #include "slic3r/GUI/StatusPanel.hpp"
 #include "slic3r/GUI/UpgradePanel.hpp"
 #include "slic3r/GUI/Widgets/SideTools.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/bookctrl.h>
 #include <wx/button.h>
@@ -56,6 +56,8 @@
 #include "slic3r/GUI/HMS.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

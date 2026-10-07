@@ -25,7 +25,7 @@
 #include "slic3r/GUI/Widgets/RadioBox.hpp"
 #include <cstdio>
 #include <map>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <cstdlib>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
@@ -90,6 +90,8 @@
 #define FILAMENT_OPTION_COLOUR wxColour("#D9D9D9")
 #define SELECT_ALL_OPTION_COLOUR wxColour("#009688")
 #define DEFAULT_PROMPT_TEXT_COLOUR wxColour("#ACACAC")
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -345,7 +347,7 @@ static std::string get_curr_timestmp()
     // return timestampString;
 }
 
-static void get_filament_compatible_printer(Preset* preset, vector<std::string>& printers)
+static void get_filament_compatible_printer(Preset* preset, std::vector<std::string>& printers)
 {
     auto compatible_printers = dynamic_cast<ConfigOptionStrings *>(preset->config.option("compatible_printers"));
     if (compatible_printers == nullptr) return;
@@ -1579,7 +1581,7 @@ void CreateFilamentPresetDialog::sort_printer_by_nozzle(std::vector<std::pair<st
 {
     std::unordered_map<std::string, float> nozzle_diameter = nozzle_diameter_map;
     std::sort(printer_name_to_filament_preset.begin(), printer_name_to_filament_preset.end(),
-              [&nozzle_diameter](const std::pair<string, T> &a, const std::pair<string, T> &b) {
+              [&nozzle_diameter](const std::pair<std::string, T> &a, const std::pair<std::string, T> &b) {
                   size_t nozzle_index_a = a.first.find(" nozzle");
                   size_t nozzle_index_b = b.first.find(" nozzle");
                   if (nozzle_index_a == std::string::npos || nozzle_index_b == std::string::npos) return a.first < b.first;
@@ -3141,7 +3143,7 @@ void CreatePrinterPresetDialog::set_current_visible_printer()
 
 wxArrayString CreatePrinterPresetDialog::printer_preset_sort_with_nozzle_diameter(const VendorProfile &vendor_profile, float nozzle_diameter)
 {
-    std::vector<pair<float, std::string>> preset_sort;
+    std::vector<std::pair<float, std::string>> preset_sort;
 
     auto get_nozzle_size_for_printer_model = [this](const std::string & model_name) -> size_t {
         auto iter = m_printer_name_to_preset.find(model_name);
@@ -4962,7 +4964,7 @@ wxBoxSizer *CreatePresetForPrinterDialog::create_selected_filament_preset_sizer(
 
     m_selected_printer->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
         wxString printer_name = m_selected_printer->GetStringSelection();
-        std::unordered_map<string, std::vector<std::shared_ptr<Preset>>>::iterator filament_iter = m_printer_compatible_filament_presets.find(into_u8(printer_name));
+        std::unordered_map<std::string, std::vector<std::shared_ptr<Preset>>>::iterator filament_iter = m_printer_compatible_filament_presets.find(into_u8(printer_name));
         if (m_printer_compatible_filament_presets.end() != filament_iter) {
             filament_choice_to_filament_preset.clear();
             wxArrayString filament_choices;

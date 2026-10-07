@@ -2,7 +2,6 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <vector>
-#include "slic3r/Utils/json_diff.hpp"
 
 
 #include "DevDefs.h"
@@ -86,11 +85,11 @@ public:
     std::vector<FlowRatioCalibResult>   GetFlowRatioResult() const {return m_flow_ratio_results; }
 
 protected:
-    void ExtrusionCalibSetParse(const json &jj);
-    void ExtrusionCalibSelectParse(const json &jj);
-    void ExtrusionCalibGetTableParse(const json &jj);
-    void ExtrusionCalibGetResultParse(const json &jj);
-    void FlowrateGetResultParse(const json &jj);
+    void ExtrusionCalibSetParse(const nlohmann::json &jj);
+    void ExtrusionCalibSelectParse(const nlohmann::json &jj);
+    void ExtrusionCalibGetTableParse(const nlohmann::json &jj);
+    void ExtrusionCalibGetResultParse(const nlohmann::json &jj);
+    void FlowrateGetResultParse(const nlohmann::json &jj);
 
 private:
     MachineObject* m_owner{nullptr};
@@ -119,11 +118,11 @@ private:
     bool                        m_calib_finished{false};
 
 public:
-    static void ParseCalibVersion(const json& j, DevCalib* system);
+    static void ParseCalibVersion(const nlohmann::json& j, DevCalib* system);
 
     static void ParseSupportNewAutoCalib(int flag, DevCalib* system);
 
-    static void ParseV1_0(const json& print_json, DevCalib* system, bool key_field_only);
+    static void ParseV1_0(const nlohmann::json& print_json, DevCalib* system, bool key_field_only);
 };
 
 } // namespace Slic3r

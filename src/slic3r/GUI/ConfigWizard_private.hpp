@@ -43,8 +43,6 @@
 #include <wx/types.h>
 
 
-namespace fs = boost::filesystem;
-
 namespace Slic3r {
 namespace GUI {
 
@@ -88,7 +86,7 @@ struct Bundle
 	// cache or its profile JSONs, whichever is usable.
 	// Returns false if not loaded. Reason for that is logged as boost::log error.
 	//BBS: set BBL as default
-	bool load(fs::path dir, const std::string &vendor_name, bool is_in_resources, bool is_bbl_bundle = false);
+	bool load(boost::filesystem::path dir, const std::string &vendor_name, bool is_in_resources, bool is_bbl_bundle = false);
 
 	const std::string& vendor_id() const { return vendor_profile->id; }
 };

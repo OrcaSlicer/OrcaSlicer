@@ -67,7 +67,7 @@ public:
 
     void on_script_message(const nlohmann::json& payload) override;
     void OnRequestPresets();
-    void OnExportData(const wxString& path, const wxString& name, json data);
+    void OnExportData(const wxString& path, const wxString& name, nlohmann::json data);
 
 protected:
     bool m_seq_top_layer_only_changed{false};

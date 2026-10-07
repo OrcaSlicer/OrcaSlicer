@@ -38,9 +38,6 @@
 #include "wx/private/markupparser.h"
 #endif // wxUSE_ACCESSIBILITY
 
-using Slic3r::GUI::from_u8;
-using Slic3r::GUI::into_u8;
-
 
 //-----------------------------------------------------------------------------
 // DataViewBitmapText

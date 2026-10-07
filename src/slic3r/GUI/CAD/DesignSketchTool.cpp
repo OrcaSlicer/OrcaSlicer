@@ -30,7 +30,7 @@
 #include <map>
 #include "libslic3r/TriangleMesh.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/Point.hpp"
 #include <vector>
@@ -53,6 +53,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstdlib>
+#include <iterator>
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -77,6 +78,7 @@ static bool   point_in_poly(const Vec2d& q, const std::vector<Vec2d>& poly);
 static bool   ray_triangle(const Vec3d& ro, const Vec3d& rd, const Vec3d& v0, const Vec3d& v1,
                            const Vec3d& v2, double& t);
 static double ray_segment_dist3(const Vec3d& ro, const Vec3d& rd, const Vec3d& a, const Vec3d& b);
+static double ray_axis_proj(const Linef3& ray, const Vec3d& anchor, const Vec3d& dir);
 
 // Project a world-space point to canvas screen pixels (device px, GL viewport units;
 // origin top-left after the GL y-flip). Mirrors GLCanvas3D's world->screen pattern:
@@ -3287,7 +3289,7 @@ std::vector<SketchEntity> DesignSketchTool::make_bspline(const std::vector<Vec2d
     return { e };
 }
 
-std::vector<Vec2d> DesignSketchTool::entity_polyline(const SketchEntity& e, bool& closed) const
+std::vector<Vec2d> DesignSketchTool::entity_polyline(const SketchEntity& e, bool& closed)
 {
     closed = false;
     switch (e.type) {
@@ -3474,18 +3476,19 @@ static double display_edge_tol(const TopoDS_Shape& shape)
 void DesignSketchTool::refresh_body_edges()
 {
     const size_t n = m_solid_bodies != nullptr ? m_solid_bodies->size() : 0;
+    bool rebuilt = n < m_body_edges_shape.size();   // a body went away
     m_body_edges.resize(n);
-    m_body_edges_key.resize(n, nullptr);
+    m_body_edges_shape.resize(n);
     m_body_edges_tol.resize(n, 0.0);
     for (size_t b = 0; b < n; ++b) {
-        const void* key = body_key(int(b));
-        if (key == m_body_edges_key[b] && key != nullptr)
+        if (is_current_shape(int(b), m_body_edges_shape[b]))
             continue;
-        m_body_edges_key[b] = key;
-        m_body_edges[b].clear();
-        if (key == nullptr)
-            continue;
+        rebuilt = rebuilt || !m_body_edges_shape[b].IsNull();   // a body sampled before was rebuilt
         const TopoDS_Shape& shape = (*m_solid_bodies)[b].shape;
+        m_body_edges_shape[b] = shape;
+        m_body_edges[b].clear();
+        if (shape.IsNull())
+            continue;
         m_body_edges_tol[b] = display_edge_tol(shape);
         try {
             m_body_edges[b] = GeometryEngine::display_edges(shape, m_body_edges_tol[b]);
@@ -3493,15 +3496,36 @@ void DesignSketchTool::refresh_body_edges()
             m_body_edges[b].clear();   // an unsampleable edge costs its body the lines, nothing else
         }
     }
+    // A pick expires once the body it was taken on is rebuilt, which renumbers its faces and
+    // edges. Judged by that body's shape, not by these lines: a recompute that refreshed no lines
+    // (adding a datum, say) may come before a pick on the bodies it built, and that pick holds.
+    // The hover is resolved again on the next mouse move, so any rebuild just drops it.
+    if (m_solid_sel != SolidSel::None && !is_current_shape(m_sel_body, m_sel_shape))
+        clear_solid_selection();
+    else if (rebuilt)
+        m_pre = SolidPick{};
+    // The face outlines of a rebuilt body let go of its shape, which may be a large import.
+    const auto stale = [this](const FaceHighlight& h) { return !is_current_shape(h.body, h.shape); };
+    if (stale(m_sel_hl)) m_sel_hl = FaceHighlight{};
+    if (stale(m_pre_hl)) m_pre_hl = FaceHighlight{};
+    m_hl_faces.erase(std::remove_if(m_hl_faces.begin(), m_hl_faces.end(), stale), m_hl_faces.end());
 }
 
-// The identity of a body's current shape. Face ids and sampled edges hold while it does.
-const void* DesignSketchTool::body_key(int body) const
+const TopoDS_Shape* DesignSketchTool::body_shape(int body) const
 {
     if (m_solid_bodies == nullptr || body < 0 || body >= int(m_solid_bodies->size()))
         return nullptr;
     const TopoDS_Shape& shape = (*m_solid_bodies)[body].shape;
-    return shape.IsNull() ? nullptr : shape.TShape().get();
+    return shape.IsNull() ? nullptr : &shape;
+}
+
+// Whether `sampled` is still the body's shape. The caches hold the shape itself rather than its
+// address, so the sampled TShape stays alive and no rebuilt body can be allocated in its place.
+// IsSame also compares the Location, which the sampled lines are in.
+bool DesignSketchTool::is_current_shape(int body, const TopoDS_Shape& sampled) const
+{
+    const TopoDS_Shape* shape = body_shape(body);
+    return shape != nullptr && sampled.IsSame(*shape);
 }
 
 // View-facing ribbons along a body's polylines (shape coordinates), `hw` either side of the line
@@ -3604,6 +3628,7 @@ void DesignSketchTool::clear_solid_selection()
 {
     m_solid_sel = SolidSel::None;
     m_sel_body = m_sel_face = m_sel_edge = -1;
+    m_sel_shape = TopoDS_Shape();
     m_sel_edge_pts.clear();
     m_sel_edges_more.clear();
     m_sel_edges_more_pts.clear();
@@ -3631,6 +3656,7 @@ void DesignSketchTool::select_body(int body)
         return;
     }
     m_sel_body  = body;
+    m_sel_shape = (*m_solid_bodies)[body].shape;
     m_sel_face  = m_sel_edge = -1;
     m_sel_edge_pts.clear();
     m_sel_edges_more.clear();
@@ -3642,7 +3668,7 @@ void DesignSketchTool::set_highlight_faces(const std::vector<std::pair<int, int>
 {
     std::map<int, std::vector<int>> by_body;
     for (const auto& [b, f] : faces)
-        if (body_key(b) != nullptr)
+        if (body_shape(b) != nullptr)
             by_body[b].push_back(f);
     // Reuse each body's entry, so re-sending the same faces resamples nothing.
     std::vector<FaceHighlight> next;
@@ -3664,13 +3690,16 @@ DesignSketchTool::FaceHighlight DesignSketchTool::make_face_highlight(int body, 
     std::sort(faces.begin(), faces.end());
     faces.erase(std::unique(faces.begin(), faces.end()), faces.end());
     h.faces = std::move(faces);
-    h.key   = body_key(body);
-    if (h.key == nullptr || h.faces.empty())
+    const TopoDS_Shape* shape = body_shape(body);
+    if (shape == nullptr)
+        return h;
+    h.shape = *shape;
+    if (h.faces.empty())
         return h;
     // Sampled at the body edges' tolerance; a whole body reuses its body edges.
-    const TopoDS_Shape&            shape  = (*m_solid_bodies)[body].shape;
-    const std::vector<TopoDS_Face> all    = GeometryEngine::faces_of(shape);
-    const bool                     cached = body < int(m_body_edges_key.size()) && m_body_edges_key[body] == h.key;
+    const std::vector<TopoDS_Face> all    = GeometryEngine::faces_of(*shape);
+    const bool                     cached = body < int(m_body_edges_shape.size())
+                                            && is_current_shape(body, m_body_edges_shape[body]);
     if (cached && h.faces.size() == all.size() && h.faces.front() == 0 && h.faces.back() == int(all.size()) - 1) {
         h.edges = m_body_edges[body];
         return h;
@@ -3682,7 +3711,7 @@ DesignSketchTool::FaceHighlight DesignSketchTool::make_face_highlight(int body, 
         if (f >= 0 && f < int(all.size()))
             builder.Add(picked, all[f]);
     try {
-        h.edges = GeometryEngine::display_edges(picked, cached ? m_body_edges_tol[body] : display_edge_tol(shape));
+        h.edges = GeometryEngine::display_edges(picked, cached ? m_body_edges_tol[body] : display_edge_tol(*shape));
     } catch (const Standard_Failure&) {
         h.edges.clear();   // an edge that cannot be sampled costs the outline, never the fill
     }
@@ -3692,12 +3721,13 @@ DesignSketchTool::FaceHighlight DesignSketchTool::make_face_highlight(int body, 
 std::vector<std::pair<int, int>> DesignSketchTool::picked_faces() const
 {
     std::vector<std::pair<int, int>> out;
-    if (body_key(m_sel_body) == nullptr)
+    const TopoDS_Shape* shape = body_shape(m_sel_body);
+    if (shape == nullptr)
         return out;
     if (m_solid_sel == SolidSel::Face && m_sel_face >= 0)
         out.emplace_back(m_sel_body, m_sel_face);
     else if (m_solid_sel == SolidSel::Whole)
-        for (int f = 0, n = GeometryEngine::face_count((*m_solid_bodies)[m_sel_body].shape); f < n; ++f)
+        for (int f = 0, n = GeometryEngine::face_count(*shape); f < n; ++f)
             out.emplace_back(m_sel_body, f);
     return out;
 }
@@ -3706,7 +3736,7 @@ std::vector<std::pair<int, int>> DesignSketchTool::selected_faces() const
 {
     std::vector<std::pair<int, int>> out = picked_faces();
     for (const FaceHighlight& h : m_hl_faces)
-        if (h.key != nullptr && h.key == body_key(h.body))
+        if (is_current_shape(h.body, h.shape))
             for (int f : h.faces)
                 out.emplace_back(h.body, f);
     std::sort(out.begin(), out.end());
@@ -3714,12 +3744,99 @@ std::vector<std::pair<int, int>> DesignSketchTool::selected_faces() const
     return out;
 }
 
+BoundingBoxf3 DesignSketchTool::faces_box(std::vector<std::pair<int, int>> faces) const
+{
+    // From the pick mesh: it is in world coordinates already, moved bodies and all.
+    BoundingBoxf3 box;
+    if (faces.empty() || m_solid_mesh == nullptr || m_solid_tri_face == nullptr || m_solid_tri_body == nullptr)
+        return box;
+    std::sort(faces.begin(), faces.end());
+    const indexed_triangle_set& its = m_solid_mesh->its;
+    const size_t n = std::min({ its.indices.size(), m_solid_tri_face->size(), m_solid_tri_body->size() });
+    for (size_t t = 0; t < n; ++t)
+        if (std::binary_search(faces.begin(), faces.end(), std::make_pair((*m_solid_tri_body)[t], (*m_solid_tri_face)[t])))
+            for (int i = 0; i < 3; ++i)
+                box.merge(its.vertices[its.indices[t][i]].cast<double>());
+    return box;
+}
+
+BoundingBoxf3 DesignSketchTool::sketch_box(const std::vector<SketchEntity>& entities, const SketchPlane& plane)
+{
+    BoundingBoxf3 box;
+    for (const SketchEntity& e : entities) {
+        bool closed = false;
+        for (const Vec2d& p : entity_polyline(e, closed))
+            box.merge(plane.to_world(p));
+    }
+    return box;
+}
+
+BoundingBoxf3 DesignSketchTool::selection_box() const
+{
+    // The selected faces, a whole body's included.
+    BoundingBoxf3 box = faces_box(selected_faces());
+    if (m_solid_sel == SolidSel::Edge) {
+        for (const Vec3d& p : m_sel_edge_pts)
+            box.merge(p);
+        for (const std::vector<Vec3d>& pts : m_sel_edges_more_pts)
+            for (const Vec3d& p : pts)
+                box.merge(p);
+    } else if (m_solid_sel == SolidSel::Vertex)
+        box.merge(m_sel_vertex_pt);
+    // A committed sketch's picked region with its holes; a stroke outside any region, the sketch.
+    if (m_display_pick >= 0)
+        for (const DisplaySketch& d : m_display_sketches)
+            if (d.feature == m_display_pick)
+                box.merge(sketch_box(m_display_pick_region >= 0 ? selected_loop_entities() : d.entities, d.plane));
+    if (m_active) {
+        for (int i : m_selection)
+            if (i >= 0 && i < int(m_entities.size()))
+                box.merge(sketch_box({ m_entities[i] }, m_plane));
+        for (const auto& [i, role] : m_point_sel)
+            if (i >= 0 && i < int(m_entities.size())) {
+                const SketchEntity& e = m_entities[i];
+                box.merge(m_plane.to_world(role == SketchPointRole::Center ? e.center :
+                                           role == SketchPointRole::P1     ? e.p1 : e.p0));
+            }
+    }
+    return box;
+}
+
+BoundingBoxf3 DesignSketchTool::fit_box(const GLVolumeCollection& volumes) const
+{
+    BoundingBoxf3 box = selection_box();
+    // Nothing selected: everything on show. A hidden body's volume is inactive.
+    if (!box.defined) {
+        for (const GLVolume* v : volumes.volumes)
+            if (v->is_active)
+                box.merge(v->transformed_bounding_box());
+        for (const DisplaySketch& d : m_display_sketches)
+            box.merge(sketch_box(d.entities, d.plane));
+        if (m_active)
+            box.merge(sketch_box(m_entities, m_plane));
+    }
+    pad_box(box);
+    return box;
+}
+
+void DesignSketchTool::pad_box(BoundingBoxf3& box)
+{
+    // A vertex has no size, nor has a sketch along its normal, and the camera cannot frame an
+    // extent it does not see. Every axis gets at least a small neighbourhood.
+    if (!box.defined)
+        return;
+    constexpr double min_extent = 10.;   // mm
+    const Vec3d grow = (Vec3d::Constant(min_extent) - box.size()).cwiseMax(0.) * 0.5;
+    box.min -= grow;
+    box.max += grow;
+}
+
 const DesignSketchTool::FaceHighlight& DesignSketchTool::cached_face_highlight(FaceHighlight& cache, int body,
                                                                                std::vector<int> faces) const
 {
     std::sort(faces.begin(), faces.end());
     faces.erase(std::unique(faces.begin(), faces.end()), faces.end());
-    if (cache.body != body || cache.faces != faces || cache.key != body_key(body))
+    if (cache.body != body || cache.faces != faces || !is_current_shape(body, cache.shape))
         cache = make_face_highlight(body, std::move(faces));
     return cache;
 }
@@ -3730,7 +3847,7 @@ const DesignSketchTool::FaceHighlight& DesignSketchTool::cached_face_highlight(F
 // version: the line alone, thinner and fainter.
 void DesignSketchTool::render_face_outline(const FaceHighlight& h, bool quiet)
 {
-    if (m_body_edges_hidden || h.key == nullptr || h.key != body_key(h.body) || !body_pickable(h.body))
+    if (m_body_edges_hidden || !is_current_shape(h.body, h.shape) || !body_pickable(h.body))
         return;   // hidden, or the body was rebuilt and these face ids are stale
 
     const Camera& cam = wxGetApp().plater()->get_camera();
@@ -4007,6 +4124,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     m_sel_edges_more_pts.clear();
 
     m_sel_body      = p.body;
+    m_sel_shape     = (*m_solid_bodies)[p.body].shape;   // resolve_solid_pick checked p.body
     m_sel_face      = p.face;
     m_sel_edge      = p.edge;
     m_sel_edge_pts  = std::move(p.edge_pts);
@@ -5284,7 +5402,148 @@ void DesignSketchTool::drag_rib_handle(GLCanvas3D& canvas, const wxMouseEvent& e
     if (on_rib_thickness_changed) on_rib_thickness_changed(m_rb_thickness);
 }
 
-// ---- Reference/base planes (Onshape-style default planes) -----------------------------
+// ---- Reference/base planes -------------------------------------------------------------
+namespace {
+// `text` in the stroke font, `height` tall and centred on the origin; `size` is its extent. With the
+// font, further down.
+std::vector<std::pair<Vec2d, Vec2d>> text_strokes(const std::string& text, double height, Vec2d& size);
+
+// One level of a BSP tree whose splitters are the planes themselves, in order: the painter's
+// algorithm made exact for polygons that cross. Pieces of plane k (and of any plane lying in it)
+// are in the splitter; every other piece is wholly on one side or is cut in two. Far side, then the
+// splitter's own pieces, then the near side is back to front. A piece is only cut when it has
+// corners strictly on both sides, so neither half can be degenerate.
+void paint_back_to_front(std::vector<PlanePiece>&& in, size_t k, const std::vector<SketchPlane>& planes, double eps,
+                         const Vec3d& eye, const Vec3d& forward, bool perspective, std::vector<PlanePiece>& out)
+{
+    if (in.empty())
+        return;
+    if (k == planes.size()) {   // not reached: every piece is in the splitter at its own plane's level
+        std::move(in.begin(), in.end(), std::back_inserter(out));
+        return;
+    }
+    // The square's own normal: SketchPlane::normal is reversed on XZ, and the side tests only need
+    // one consistent choice.
+    const Vec3d  n = planes[k].x_axis.cross(planes[k].y_axis).normalized();
+    const double d = n.dot(planes[k].origin);
+    std::vector<PlanePiece> front, back, on;
+    for (PlanePiece& piece : in) {
+        if (piece.plane == int(k)) {
+            on.push_back(std::move(piece));
+            continue;
+        }
+        std::vector<double> s;
+        int                 sides = 0;
+        for (const Vec3d& c : piece.corners) {
+            s.push_back(n.dot(c) - d);
+            sides |= s.back() > eps ? 1 : s.back() < -eps ? 2 : 0;
+        }
+        if (sides == 0)
+            on.push_back(std::move(piece));
+        else if (sides == 1)
+            front.push_back(std::move(piece));
+        else if (sides == 2)
+            back.push_back(std::move(piece));
+        else {
+            PlanePiece   f{ piece.plane, {} }, b{ piece.plane, {} };
+            const size_t m = piece.corners.size();
+            for (size_t i = 0; i < m; ++i) {
+                const size_t j = (i + 1) % m;
+                const Vec3d& a = piece.corners[i];
+                if (s[i] >= -eps) f.corners.push_back(a);
+                if (s[i] <= eps)  b.corners.push_back(a);
+                if ((s[i] > eps && s[j] < -eps) || (s[i] < -eps && s[j] > eps)) {
+                    const Vec3d x = a + (piece.corners[j] - a) * (s[i] / (s[i] - s[j]));
+                    f.corners.push_back(x);
+                    b.corners.push_back(x);
+                }
+            }
+            front.push_back(std::move(f));
+            back.push_back(std::move(b));
+        }
+    }
+    // An orthographic eye is at infinity behind the view direction. Camera::get_position() is a
+    // finite point there and can sit on the wrong side of a plane, so only the direction counts.
+    const bool eye_in_front = perspective ? n.dot(eye) - d > 0. : n.dot(forward) < 0.;
+    paint_back_to_front(std::move(eye_in_front ? back : front), k + 1, planes, eps, eye, forward, perspective, out);
+    std::move(on.begin(), on.end(), std::back_inserter(out));
+    paint_back_to_front(std::move(eye_in_front ? front : back), k + 1, planes, eps, eye, forward, perspective, out);
+}
+
+// A base square's name: its cap height, and where the text is centred in the square's frame — inset
+// from the frame's (+x, +y) corner, which lies by an axis toward its far end or at the outer corner,
+// away from the other two names.
+double label_height(double half) { return 0.30 * half; }
+Vec2d  label_centre(double half, const Vec2d& size) { return Vec2d::Constant(0.88 * half) - 0.5 * size; }
+
+// A datum's name is not in the stroke font: it is an ImGui chip anchored at this point of its square.
+Vec2d datum_label_anchor(double half) { return Vec2d(-0.8 * half, 0.84 * half); }
+
+bool is_base_plane(int base) { return base >= 0 && base < 3; }
+
+// The octant the base squares sit in. Each name is written facing x_axis x y_axis, which is +Z for
+// XY, -Y for XZ and +X for YZ: all three point into it, so a camera there looks into the corner the
+// squares form and reads every name, and from the front XY lies below the X axis rather than behind XZ.
+Vec3d reference_octant() { return Vec3d(1., -1., 1.); }
+} // namespace
+
+std::vector<PlanePiece> planes_back_to_front(const std::vector<SketchPlane>& planes, double half,
+                                             const Vec3d& eye, const Vec3d& forward, bool perspective)
+{
+    std::vector<PlanePiece> squares;
+    for (int i = 0; i < int(planes.size()); ++i) {
+        const SketchPlane& p = planes[i];
+        squares.push_back({ i, { p.to_world(Vec2d(-half, -half)), p.to_world(Vec2d(half, -half)),
+                                 p.to_world(Vec2d(half, half)),   p.to_world(Vec2d(-half, half)) } });
+    }
+    std::vector<PlanePiece> out;
+    paint_back_to_front(std::move(squares), 0, planes, 1e-6 * std::max(half, 1.), eye, forward, perspective, out);
+    return out;
+}
+
+SketchPlane reference_square(const SketchPlane& plane, int base, double half)
+{
+    SketchPlane square = plane;
+    if (is_base_plane(base)) {
+        const Vec3d o = reference_octant();
+        square.origin += (reference_square_gap(half) + half) * (plane.x_axis.dot(o) * plane.x_axis + plane.y_axis.dot(o) * plane.y_axis);
+    }
+    return square;
+}
+
+std::array<Vec3d, 4> reference_label_box(const SketchPlane& square, double half, const std::string& text)
+{
+    const double th = label_height(half);
+    Vec2d        size;
+    text_strokes(text, th, size);
+    const Vec2d c = label_centre(half, size);
+    const Vec2d r = 0.5 * size + Vec2d::Constant(0.15 * th);   // a margin round the strokes, to aim at
+    return { square.to_world(c + Vec2d(-r.x(), -r.y())), square.to_world(c + Vec2d(r.x(), -r.y())),
+             square.to_world(c + Vec2d(r.x(), r.y())), square.to_world(c + Vec2d(-r.x(), r.y())) };
+}
+
+int pick_reference_square(const std::vector<SketchPlane>& squares, double half, const Vec3d& from, const Vec3d& dir)
+{
+    int    best   = -1;
+    double best_t = std::numeric_limits<double>::max();
+    for (int i = 0; i < int(squares.size()); ++i) {
+        const SketchPlane& s  = squares[i];
+        const Vec3d        n  = s.x_axis.cross(s.y_axis);
+        const double       dn = n.dot(dir);
+        if (std::abs(dn) < 1e-12)
+            continue;   // the ray runs along the square
+        const double t = n.dot(s.origin - from) / dn;
+        if (t <= 0. || t >= best_t)
+            continue;   // behind the eye, or no nearer than one already hit
+        const Vec3d d = from + dir * t - s.origin;
+        if (std::abs(d.dot(s.x_axis)) <= half && std::abs(d.dot(s.y_axis)) <= half) {
+            best   = i;
+            best_t = t;
+        }
+    }
+    return best;
+}
+
 void DesignSketchTool::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                                      std::vector<std::string> labels)
 {
@@ -5304,117 +5563,237 @@ void DesignSketchTool::clear_base_pick()
     m_dbp_hover = -1;
 }
 
-// Reference planes sit INSIDE the bed. They used to be 0.6 * the bed's larger side, i.e. a square
-// 1.2x the plate, and three of them are drawn with depth testing off — so they painted over the
-// plate grid from edge to edge and the bed simply was not readable any more. "The planes hide the
-// bed", reported exactly that way. Small enough to leave the grid legible around them is also the
-// Onshape look this was reaching for: a modest square at the origin, not a tablecloth.
+// Sized from the bed, so the squares keep their size against the plate on screen: each is 0.16 of
+// the bed's larger side, about the share of the view Fusion's origin planes take at the default zoom.
+// Larger squares were reported as hiding the bed.
 double DesignSketchTool::dbp_half_extent() const
 {
-    double half = 75.0;
+    double half = 20.0;
     if (auto* pl = wxGetApp().plater()) {
         const BoundingBoxf bb = pl->build_volume().bounding_volume2d();
         const double w = bb.max.x() - bb.min.x(), d = bb.max.y() - bb.min.y();
-        if (w > 1.0 && d > 1.0) half = 0.3 * std::max(w, d);
+        if (w > 1.0 && d > 1.0) half = 0.08 * std::max(w, d);
     }
     return half;
 }
 
-// Draw the reference planes as large translucent labelled squares; the hovered one brightens.
+std::vector<SketchPlane> DesignSketchTool::dbp_squares(double half) const
+{
+    std::vector<SketchPlane> squares;
+    for (size_t i = 0; i < m_dbp_planes.size(); ++i)
+        squares.push_back(reference_square(m_dbp_planes[i], i < m_dbp_base.size() ? m_dbp_base[i] : -1, half));
+    return squares;
+}
+
+// Dash-dot half-axes from the origin into the squares' octant, out past them along the gaps between
+// them, and a disc on the origin. Both face the camera at a constant width on screen.
+void DesignSketchTool::render_reference_axes(const Vec3d& origin, double half)
+{
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d   vd  = cam.get_dir_forward();
+    const double  upp = 1.0 / std::max(cam.get_zoom(), 1e-6);   // world units per screen pixel
+    const double  len = 1.2 * (reference_square_gap(half) + 2.0 * half);
+    // A dash, then a dot, every kPeriod of the axis.
+    constexpr double kDash = 0.07, kDotFrom = 0.10, kDotTo = 0.115, kPeriod = 0.145;
+    const ColorRGBA  colours[3] = { ColorRGBA(0.92f, 0.28f, 0.28f, 1.0f), ColorRGBA(0.30f, 0.80f, 0.34f, 1.0f),
+                                    ColorRGBA(0.32f, 0.55f, 0.95f, 1.0f) };
+    for (int k = 0; k < 3; ++k) {
+        const Vec3d                     axis = Vec3d::Unit(k) * (len * reference_octant()[k]);
+        std::vector<std::vector<Vec3d>> strokes;
+        for (double t = 0.; t < 1.; t += kPeriod) {
+            strokes.push_back({ origin + axis * t, origin + axis * std::min(t + kDash, 1.) });
+            if (t + kDotFrom < 1.)
+                strokes.push_back({ origin + axis * (t + kDotFrom), origin + axis * std::min(t + kDotTo, 1.) });
+        }
+        GLModel::Geometry g;
+        append_ribbons(g, -1, strokes, vd, Vec3d::Zero(), 1.5 * upp);   // body -1: already world coordinates
+        if (g.is_empty())
+            continue;   // seen end-on
+        GLModel m;
+        m.init_from(std::move(g));
+        m.set_color(colours[k]);
+        m.render();
+    }
+
+    const Vec3d right = cam.get_dir_right(), up = cam.get_dir_up();
+    auto        disc  = [&](double radius_px, const ColorRGBA& colour) {
+        constexpr int     kSides = 24;
+        GLModel::Geometry g;
+        g.format = { EPT::Triangles, EVL::P3 };
+        g.add_vertex((Vec3f) origin.cast<float>());
+        for (int i = 0; i < kSides; ++i) {
+            const double a = 2. * M_PI * i / kSides;
+            g.add_vertex((Vec3f) (origin + (right * std::cos(a) + up * std::sin(a)) * (radius_px * upp)).cast<float>());
+        }
+        for (int i = 0; i < kSides; ++i)
+            g.add_triangle(0, 1 + i, 1 + (i + 1) % kSides);
+        GLModel m;
+        m.init_from(std::move(g));
+        m.set_color(colour);
+        m.render();
+    };
+    disc(6.0, ColorRGBA(0.30f, 0.30f, 0.32f, 1.0f));   // a dark ring round
+    disc(4.5, ColorRGBA(0.92f, 0.92f, 0.92f, 1.0f));   // a light centre
+}
+
+// The reference planes, as in Fusion: translucent squares with the hovered one grey and the selected
+// one solid, each base plane's name written in it, and the half-axes and origin under them. Depth
+// testing is off (they overlay the bed and any bodies), so draw order is the blend order: back to
+// front, piece by piece.
 void DesignSketchTool::render_base_pick()
 {
     if (!m_dbp_active || m_dbp_planes.empty()) return;
     using EPT = GLModel::Geometry::EPrimitiveType;
     using EVL = GLModel::Geometry::EVertexLayout;
-    const double H = dbp_half_extent();
-    // Onshape-ish per-plane tints: XY blue, XZ green, YZ red (keyed by base index 0/1/2; datums grey).
-    auto tint = [](int base, bool hot) -> ColorRGBA {
-        float a = hot ? 0.10f : 0.047f;   // base planes kept faint (reduced ~2/3 from 0.30/0.14)
-        if (base == 0) return ColorRGBA(0.30f, 0.55f, 0.95f, a);
-        if (base == 1) return ColorRGBA(0.35f, 0.80f, 0.45f, a);
-        if (base == 2) return ColorRGBA(0.92f, 0.42f, 0.42f, a);
-        return ColorRGBA(0.70f, 0.72f, 0.78f, a);
+    const double                   H        = dbp_half_extent();
+    const std::vector<SketchPlane> squares  = dbp_squares(H);
+    const int                      selected = selected_base ? selected_base() : -1;
+    auto base_of = [this](size_t i) { return i < m_dbp_base.size() ? m_dbp_base[i] : -1; };
+    enum class Look { Idle, Hover, Selected };
+    auto look = [&](size_t i) {
+        return base_of(i) >= 0 && base_of(i) == selected ? Look::Selected : int(i) == m_dbp_hover ? Look::Hover : Look::Idle;
     };
+    // Each base plane in the colour of the axis it is normal to: XY blue, XZ green, YZ red. A datum the
+    // Plane card offers as a base keeps a slate of its own, clear of the grey hover.
+    auto hue = [&](size_t i) {
+        switch (base_of(i)) {
+        case 0: return ColorRGBA(0.30f, 0.55f, 0.95f, 1.0f);
+        case 1: return ColorRGBA(0.35f, 0.80f, 0.45f, 1.0f);
+        case 2: return ColorRGBA(0.92f, 0.42f, 0.42f, 1.0f);
+        default: return ColorRGBA(0.55f, 0.60f, 0.72f, 1.0f);
+        }
+    };
+    // Where squares overlap on screen, two layers of alpha a blended in either order differ by only
+    // a^2 of their colour difference, so much fainter fills would hide which one is in front however
+    // well the pieces are sorted. The selected plane goes near solid in its own colour: a fixed
+    // selection colour would match one of the three.
+    auto fill = [&](size_t i) {
+        ColorRGBA c = look(i) == Look::Hover ? ColorRGBA(0.80f, 0.80f, 0.80f, 1.0f) : hue(i);
+        c.a(look(i) == Look::Selected ? 0.85f : look(i) == Look::Hover ? 0.45f : 0.50f);
+        return c;
+    };
+    auto ink = [&](size_t i) {
+        switch (look(i)) {
+        case Look::Selected: return ColorRGBA(0.20f, 0.25f, 0.35f, 1.0f);
+        case Look::Hover: return ColorRGBA(0.62f, 0.62f, 0.62f, 1.0f);
+        default: return hue(i);
+        }
+    };
+    const Camera& cam = wxGetApp().plater()->get_camera();
     glsafe(::glDisable(GL_DEPTH_TEST));
     glsafe(::glDisable(GL_CULL_FACE));
-    glsafe(::glEnable(GL_BLEND));                                // alpha is ignored without this
-    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    const SketchPlane saved_plane = m_plane;
-    for (size_t i = 0; i < m_dbp_planes.size(); ++i) {
-        const SketchPlane& p = m_dbp_planes[i];
-        const Vec3d q0 = p.to_world(Vec2d(-H, -H)), q1 = p.to_world(Vec2d(H, -H)),
-                    q2 = p.to_world(Vec2d(H, H)),   q3 = p.to_world(Vec2d(-H, H));
-        GLModel::Geometry quad; quad.format = { EPT::Triangles, EVL::P3 };
-        quad.add_vertex((Vec3f)q0.cast<float>()); quad.add_vertex((Vec3f)q1.cast<float>());
-        quad.add_vertex((Vec3f)q2.cast<float>()); quad.add_vertex((Vec3f)q3.cast<float>());
-        quad.add_triangle(0, 1, 2); quad.add_triangle(0, 2, 3);
-        GLModel m; m.init_from(std::move(quad));
-        const bool hot = (int(i) == m_dbp_hover);
-        const int  base = (i < m_dbp_base.size()) ? m_dbp_base[i] : -1;
-        m.set_color(tint(base, hot));
+    glsafe(::glEnable(GL_BLEND));   // alpha is ignored without this; destination alpha stays 1
+    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+
+    for (size_t i = 0; i < m_dbp_planes.size(); ++i)
+        if (is_base_plane(base_of(i))) {   // the base planes all pass through the modeling origin
+            render_reference_axes(m_dbp_planes[i].origin, H);
+            break;
+        }
+
+    const std::vector<PlanePiece> pieces = planes_back_to_front(squares, H, cam.get_position(), cam.get_dir_forward(),
+                                                                cam.get_type() == Camera::EType::Perspective);
+    const SketchPlane             saved_plane = m_plane;
+    for (size_t k = 0; k < pieces.size(); ++k) {
+        const PlanePiece& piece = pieces[k];
+        const size_t      i     = size_t(piece.plane);
+        GLModel::Geometry g;
+        g.format = { EPT::Triangles, EVL::P3 };
+        for (const Vec3d& q : piece.corners) g.add_vertex((Vec3f)q.cast<float>());
+        for (unsigned int c = 1; c + 1 < piece.corners.size(); ++c) g.add_triangle(0, c, c + 1);   // convex: a fan
+        GLModel m;
+        m.init_from(std::move(g));
+        m.set_color(fill(i));
         m.render();
 
-        // Label near the top-left corner, drawn in the plane (draw_text lifts through m_plane).
-        if (i < m_dbp_labels.size() && !m_dbp_labels[i].empty()) {
-            m_plane = p;
-            const double th = H * 0.10;
-            const ColorRGBA lc = tint(base, true); ColorRGBA lcs(lc.r(), lc.g(), lc.b(), 1.0f);
-            draw_text(m_line_model, m_dbp_labels[i], Vec2d(-H + th * 2.0, H - th * 1.6), th, lcs);
+        // A base plane's name goes down with its last piece, so a square in front tints it as it
+        // tints the fill.
+        if (!is_base_plane(base_of(i)) || i >= m_dbp_labels.size() || m_dbp_labels[i].empty()
+            || std::any_of(pieces.begin() + k + 1, pieces.end(), [&](const PlanePiece& p) { return p.plane == piece.plane; }))
+            continue;
+        const double th = label_height(H);
+        Vec2d        size;
+        std::vector<std::pair<Vec2d, Vec2d>> strokes = text_strokes(m_dbp_labels[i], th, size);
+        const Vec2d  c = label_centre(H, size);
+        for (auto& [a, b] : strokes) {
+            a += c;
+            b += c;
         }
+        m_plane = squares[i];   // draw_strokes lifts plane coordinates through m_plane
+        draw_strokes(m_line_model, strokes, 0.07 * th, ink(i));
     }
-    m_plane = saved_plane;   // draw_text renders each label immediately (draw_strokes self-renders)
+    for (size_t i = 0; i < m_dbp_planes.size() && i < m_dbp_labels.size(); ++i)
+        if (!is_base_plane(base_of(i)) && !m_dbp_labels[i].empty()) {
+            m_plane = squares[i];   // draw_text anchors through m_plane too
+            draw_text(m_line_model, m_dbp_labels[i], datum_label_anchor(H), H * 0.10, ink(i));
+        }
+    m_plane = saved_plane;
     glsafe(::glDisable(GL_BLEND));
 }
 
-// Ray-pick the reference planes: intersect the mouse ray with each plane, keep hits inside the
-// square, return the index of the nearest by |t|. -1 on miss.
+// The reference plane under the cursor, or -1. A plane's name wins over the squares: it is the part
+// of a plane a user aims at deliberately, and from the back the XZ square stands between the eye and
+// the XY name, so a ray pick alone reports "XZ plane selected" for a click on the word XY.
 int DesignSketchTool::hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent& evt) const
 {
     if (!m_dbp_active) return -1;
-    const double H = dbp_half_extent();
-
-    // THE LABEL WINS, and it has to. Each plane's name is a screen-space chip centred on its
-    // own in-plane anchor, and it is the one part of a base plane a user aims at deliberately —
-    // the quads are near-transparent and overlap everywhere. Ray-casting the quads alone made
-    // the labels pure decoration: on a fresh document at 1920x1060, clicking "XY" reported
-    // "XZ plane selected", because the XZ quad happens to sit in front at that pixel. Nothing
-    // about the click was ambiguous to the user; they clicked the word XY.
-    // Anchor and text height must track render_base_pick's, which is where they are drawn.
-    const Camera& cam = wxGetApp().plater()->get_camera();
-    const double  th  = H * 0.10;
-    const Vec2d   anchor(-H + th * 2.0, H - th * 1.6);
-    int lbest = -1; double lbest_d = 1e30;
-    for (size_t i = 0; i < m_dbp_planes.size(); ++i) {
-        if (i >= m_dbp_labels.size() || m_dbp_labels[i].empty()) continue;
-        const wxPoint sp = world_to_screen_px(cam, m_dbp_planes[i].to_world(anchor));
-        if (sp.x < 0 && sp.y < 0) continue;                    // behind the camera
-        const double dx = std::abs(double(evt.GetX() - sp.x));
-        const double dy = std::abs(double(evt.GetY() - sp.y));
-        // Chip half-extents in px, scaled like the label itself. Generous rather than tight:
-        // missing the text and silently selecting a different plane is the failure being fixed.
-        const double hw = (9.0 + 5.0 * double(m_dbp_labels[i].size())) * double(m_render_scale);
-        const double hh = 11.0 * double(m_render_scale);
-        if (dx > hw || dy > hh) continue;
-        const double d = dx * dx + dy * dy;                    // nearest label if chips overlap
+    const double                   H       = dbp_half_extent();
+    const std::vector<SketchPlane> squares = dbp_squares(H);
+    const Camera&                  cam     = wxGetApp().plater()->get_camera();
+    // As world_to_screen_px, but refusing a point behind the eye, which would come back mirrored.
+    const Eigen::Matrix4d      to_clip = cam.get_projection_matrix().matrix() * cam.get_view_matrix().matrix();
+    const std::array<int, 4>& vp      = cam.get_viewport();
+    auto to_screen = [&](const Vec3d& x, Vec2d& out) {
+        const Eigen::Vector4d clip = to_clip * x.homogeneous();
+        if (clip.w() <= 1e-9)
+            return false;
+        const Vec3d ndc = clip.head<3>() / clip.w();
+        out = Vec2d(vp[0] + (ndc.x() * 0.5 + 0.5) * vp[2], vp[1] + (1.0 - (ndc.y() * 0.5 + 0.5)) * vp[3]);
+        return true;
+    };
+    const Vec2d mouse(evt.GetX(), evt.GetY());
+    int         lbest = -1;
+    double      lbest_d = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < squares.size() && i < m_dbp_labels.size(); ++i) {
+        if (m_dbp_labels[i].empty()) continue;
+        Vec2d centre;
+        if (is_base_plane(i < m_dbp_base.size() ? m_dbp_base[i] : -1)) {
+            // The name lies in its square, so its box is hit as projected, turning with the plane.
+            const std::array<Vec3d, 4> box = reference_label_box(squares[i], H, m_dbp_labels[i]);
+            std::array<Vec2d, 4>       q;
+            bool                       seen = true;
+            for (size_t c = 0; c < 4 && seen; ++c) seen = to_screen(box[c], q[c]);
+            if (!seen) continue;
+            double area = 0.;
+            bool   left = true, right = true;   // the cursor on one side of every edge: inside
+            for (size_t c = 0; c < 4; ++c) {
+                const Vec2d& a = q[c];
+                const Vec2d& b = q[(c + 1) % 4];
+                const double s = (b.x() - a.x()) * (mouse.y() - a.y()) - (b.y() - a.y()) * (mouse.x() - a.x());
+                left  = left && s >= 0.;
+                right = right && s <= 0.;
+                area += a.x() * b.y() - b.x() * a.y();
+            }
+            if (std::abs(area) < 8. || !(left || right))
+                continue;   // edge-on, or outside
+            centre = 0.25 * (q[0] + q[1] + q[2] + q[3]);
+        } else {
+            // A datum's name is a screen chip. Generous rather than tight: missing the text and
+            // silently selecting a different plane is the failure this guards against.
+            if (!to_screen(squares[i].to_world(datum_label_anchor(H)), centre)) continue;
+            const double hw = (9.0 + 5.0 * double(m_dbp_labels[i].size())) * double(m_render_scale);
+            const double hh = 11.0 * double(m_render_scale);
+            if (std::abs(mouse.x() - centre.x()) > hw || std::abs(mouse.y() - centre.y()) > hh) continue;
+        }
+        const double d = (mouse - centre).squaredNorm();   // the nearest name if several hold the cursor
         if (d < lbest_d) { lbest_d = d; lbest = int(i); }
     }
     if (lbest >= 0) return lbest;
 
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
-    const Vec3d ro = r.a, rd = r.b - r.a;
-    int best = -1; double best_t = 1e30;
-    for (size_t i = 0; i < m_dbp_planes.size(); ++i) {
-        const SketchPlane& p = m_dbp_planes[i];
-        const double dn = rd.dot(p.normal);
-        if (std::abs(dn) < 1e-9) continue;                      // ray parallel to plane
-        const double t = (p.origin - ro).dot(p.normal) / dn;
-        if (t < 0) continue;                                    // behind the camera
-        const Vec3d hit = ro + rd * t;
-        const Vec3d d = hit - p.origin;
-        if (std::abs(d.dot(p.x_axis)) > H || std::abs(d.dot(p.y_axis)) > H) continue;
-        if (t < best_t) { best_t = t; best = int(i); }
-    }
-    return best;
+    return pick_reference_square(squares, H, r.a, r.b - r.a);
 }
 
 // ---- Move-body gizmo (M5) -------------------------------------------------------------
@@ -5429,6 +5808,10 @@ void DesignSketchTool::set_move_gizmo(int body, const Vec3d& pivot, const Transf
     m_mv_rot        = Eigen::Matrix3d::Identity();
     m_mv_drag       = -1;
     m_mv_radius     = std::max(body_radius, 0.0);
+    // The selection is held while the gizmo is up (see on_mouse_impl): no press half-way to a
+    // pick, and no hover outline promising a click that will not be taken.
+    m_pick_pending  = false;
+    m_pre           = SolidPick{};
 }
 
 // Gizmo arm length in world mm. Orca's Prepare gizmos size themselves from the selection's
@@ -5558,19 +5941,22 @@ bool DesignSketchTool::hit_test_move_arrow(GLCanvas3D& canvas, const wxMouseEven
     axis = best; return true;
 }
 
-// Skew-line closest point of the mouse ray to the axis line through the ORIGINAL centroid
-// -> signed offset along that axis (no clamp; a body can move either way).
-void DesignSketchTool::drag_move_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt, int axis)
+// Record how far along the arrow it was grabbed (NaN while the camera looks down the axis; the
+// first drag sample that projects stands in), so the body's centre does not snap to the grab.
+void DesignSketchTool::grab_move_arrow(int axis, const Linef3& ray)
 {
-    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
-    const Vec3d ro = r.a, rd = r.b - r.a;
-    const Vec3d axes[3] = { Vec3d::UnitX(), Vec3d::UnitY(), Vec3d::UnitZ() };
-    const Vec3d e = axes[axis];
-    const Vec3d w0 = m_mv_base - ro;
-    const double a = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
-    const double denom = a * c - b * b;
-    if (std::abs(denom) < 1e-7) return;             // camera ∥ axis: leave offset as-is
-    m_mv_offset[axis] = (b * ee - c * dd) / denom;
+    m_mv_drag       = axis;
+    m_mv_grab_along = ray_axis_proj(ray, m_mv_base + m_mv_offset, Vec3d::Unit(axis));
+}
+
+// Slide the body along the grabbed axis by the cursor's travel (no clamp; it can move either way).
+void DesignSketchTool::drag_move_arrow(const Linef3& ray)
+{
+    if (m_mv_drag < 0 || m_mv_drag > 2) return;
+    const double proj = ray_axis_proj(ray, m_mv_base + m_mv_offset, Vec3d::Unit(m_mv_drag));
+    if (std::isnan(proj)) return;                   // camera ∥ axis: leave offset as-is
+    if (std::isnan(m_mv_grab_along)) { m_mv_grab_along = proj; return; }
+    m_mv_offset[m_mv_drag] += proj - m_mv_grab_along;
     if (on_body_move_changed) on_body_move_changed(m_mv_body, compose_move_xform());
 }
 
@@ -5940,21 +6326,10 @@ int DesignSketchTool::hit_test_hole_handle(GLCanvas3D& canvas, const wxMouseEven
     return best;
 }
 
-// Skew-line closest point of the mouse ray to an axis (anchor + t*dir) -> signed distance along
-// dir. NaN when the camera is ~parallel to the axis (no meaningful projection).
 double DesignSketchTool::hole_axis_proj(GLCanvas3D& canvas, const wxMouseEvent& evt,
                                         const Vec3d& anchor, const Vec3d& dir) const
 {
-    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
-    const Vec3d ro = r.a, rd = r.b - r.a;
-    const Vec3d e = dir;
-    const Vec3d w0 = anchor - ro;
-    const double a = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
-    const double denom = a * c - b * b;
-    // Relative near-parallel guard: when the camera ray is ~along the axis (e.g. the depth axis in
-    // top view) denom collapses; a tiny absolute floor lets a huge, unstable projection through.
-    if (std::abs(denom) < 1e-4 * std::max(a * c, 1e-12)) return std::nan("");
-    return (b * ee - c * dd) / denom;
+    return ray_axis_proj(canvas.mouse_ray(Point(evt.GetX(), evt.GetY())), anchor, dir);
 }
 
 void DesignSketchTool::start_hole_drag(GLCanvas3D& canvas, const wxMouseEvent& evt, int which)
@@ -7361,9 +7736,9 @@ void DesignSketchTool::draw_strokes(GLModel& model, const std::vector<std::pair<
 }
 
 namespace {
-// Smooth single-stroke (Hershey-style) vector font for dimension labels. Glyphs
-// live in a 0..0.6 (x) by 0..1 (y) cell, baseline at y=0, cap height y=1; curved
-// digits are sampled as short segments so they read as rounded shapes, not blocks.
+// Smooth single-stroke (Hershey-style) vector font, for text lying in a plane: the reference planes'
+// names (render_base_pick). Glyphs live in a 0..0.6 (x) by 0..1 (y) cell, baseline at y=0, cap
+// height y=1; curved digits are sampled as short segments so they read as rounded shapes, not blocks.
 // `advance` is the pen step after the glyph.
 constexpr double kPi = 3.14159265358979323846;
 inline double rad(double deg) { return deg * kPi / 180.0; }
@@ -7473,6 +7848,36 @@ void glyph_strokes(char c, std::vector<std::pair<Vec2d, Vec2d>>& out, double& ad
         break;
     }
 }
+
+std::vector<std::pair<Vec2d, Vec2d>> text_strokes(const std::string& text, double height, Vec2d& size)
+{
+    std::vector<std::pair<Vec2d, Vec2d>> out;
+    double                               pen = 0.;
+    for (char c : text) {
+        std::vector<std::pair<Vec2d, Vec2d>> glyph;
+        double                               advance = 0.;
+        glyph_strokes(c, glyph, advance);
+        for (const auto& [a, b] : glyph)
+            out.emplace_back((a + Vec2d(pen, 0.)) * height, (b + Vec2d(pen, 0.)) * height);
+        pen += advance;
+    }
+    BoundingBoxf box;
+    for (const auto& [a, b] : out) {
+        box.merge(a);
+        box.merge(b);
+    }
+    if (!box.defined) {
+        size = Vec2d::Zero();
+        return out;
+    }
+    const Vec2d mid = box.center();
+    for (auto& [a, b] : out) {
+        a -= mid;
+        b -= mid;
+    }
+    size = box.size();
+    return out;
+}
 } // namespace
 
 void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane_center)
@@ -7533,8 +7938,9 @@ void DesignSketchTool::draw_text(GLModel& /*model*/, const std::string& s, const
                                  double /*height*/, const ColorRGBA& /*color*/)
 {
     // ponytail: all sketch labels now render as Measure-gizmo-style ImGui labels for visual
-    // parity with the Prepare/Preview tabs; the old vector-font path (glyph_strokes/draw_strokes
-    // for text) is retired. Leader lines/arrows still draw via draw_strokes at the call sites.
+    // parity with the Prepare/Preview tabs; the vector font (glyph_strokes/draw_strokes) is kept
+    // only for text lying in a plane, the reference planes' names. Leader lines/arrows still draw
+    // via draw_strokes at the call sites.
     //
     // The one label we do NOT draw is the one under an OPEN value field: the field is anchored
     // over it and carries the same number plus its title, so leaving the label in place shows
@@ -9097,7 +9503,10 @@ const ColorRGBA* DesignSketchTool::sketch_hl_color(int feature) const
 // forgotten by the next one. Cheap: three ints compared per frame.
 void DesignSketchTool::emit_step_hint()
 {
-    if (!on_step_changed) return;
+    // No session, no step. render() also runs while only the reference planes are up, and m_mode
+    // then holds the last session's tool (Polyline before the first), whose prompt used to replace
+    // the panel's own line — "click a reference plane" while Sketch waits for one.
+    if (!on_step_changed || !m_active) return;
     int step = 0, picks = 0;
     if (is_edit_op_mode()) {
         picks = (m_mode == Mode::Mirror) ? int(m_mirror_targets.size())
@@ -9271,7 +9680,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         render_datum_planes();
         render_mate_connectors();
         render_solid_highlight();
-        if (m_dbp_active) render_base_pick();
+        if (draws_reference_axes()) render_base_pick();   // the canvas drops the bed's triad on the same test
         if (m_dz_active) render_datum_gizmo();
         if (m_hx_active) render_helix_gizmo();
         if (m_rb_active) render_rib_gizmo();
@@ -9918,6 +10327,21 @@ static double ray_segment_dist3(const Vec3d& ro, const Vec3d& rd, const Vec3d& a
     return (pr - ps).norm();
 }
 
+// Skew-line closest point of the mouse ray to an axis (anchor + t*dir) -> signed distance along
+// dir. NaN when the camera is ~parallel to the axis (no meaningful projection).
+static double ray_axis_proj(const Linef3& ray, const Vec3d& anchor, const Vec3d& dir)
+{
+    const Vec3d ro = ray.a, rd = ray.vector();
+    const Vec3d e = dir;
+    const Vec3d w0 = anchor - ro;
+    const double a = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
+    const double denom = a * c - b * b;
+    // Relative near-parallel guard: when the camera ray is ~along the axis (e.g. the depth axis in
+    // top view) denom collapses; a tiny absolute floor lets a huge, unstable projection through.
+    if (std::abs(denom) < 1e-4 * std::max(a * c, 1e-12)) return std::nan("");
+    return (b * ee - c * dd) / denom;
+}
+
 // Screen-plane distance from p to a sketch entity, for click picking in Constrain
 // mode. Circles/arcs measure distance to the ring; points to their position.
 static double entity_pick_dist(const Vec2d& p, const SketchEntity& e)
@@ -10316,14 +10740,14 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
 // the offer was excluded in sketch mode wholesale so a right-click could end a polyline chain,
 // abandon an anchor or exit a tool. That made every sketch row in the atlas unreachable.
 // The honest test is not "which mode are we in" but "did the tool actually USE this right-click",
-// and only the tool knows. Wrapping on_mouse records that once, for every terminator, instead of
-// threading a flag through the twenty-odd sites that consume a RightDown.
+// and only the tool knows: take_right_click returns it for every terminator, from the
+// twenty-odd sites that consume a RightDown.
 // Right-click abandons the anchor a draw tool has down. With NOTHING down there is nothing to
 // abandon — and consuming the click anyway made the offer unreachable from every armed draw tool:
-// on_mouse records the consumption in m_right_consumed and DesignCanvas's RIGHT_UP handler
-// suppresses the menu whenever it is set, so right-click became a no-op that also hid the one door
-// to half the vocabulary (47 of 86 verbs have no shortcut). Measured on the rig: with Line armed,
-// two right-clicks in a row produced no menu and no tool change; only Escape freed it.
+// DesignCanvas's RIGHT_UP handler suppresses the menu whenever the tool used the click, so
+// right-click became a no-op that also hid the one door to half the vocabulary (47 of 86 verbs
+// have no shortcut). Measured on the rig: with Line armed, two right-clicks in a row produced no
+// menu and no tool change; only Escape freed it.
 // Same rule as xmh6, which said it for the selection: clearing nothing is not a gesture
 // terminator. ghcz.
 bool DesignSketchTool::right_abandon()
@@ -10335,12 +10759,24 @@ bool DesignSketchTool::right_abandon()
     return true;
 }
 
+// The camera follows Preferences > Control here as in Prepare, so no tool may take a gesture the
+// camera owns. A right press may start whatever drag action the right button is given, and
+// whether it did is known only at the release: ending a chain on the press made every pan or
+// orbit started there end the chain too. The press goes to the camera and is kept;
+// DesignCanvas's RIGHT_UP handler replays it through take_right_click when it was a click.
 bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
-    const bool consumed = on_mouse_impl(evt, canvas);
-    if (evt.RightDown())
-        m_right_consumed = consumed;
-    return consumed;
+    if (evt.RightDown()) {
+        m_right_press = evt;
+        return false;
+    }
+    return on_mouse_impl(evt, canvas);
+}
+
+bool DesignSketchTool::take_right_click(GLCanvas3D& canvas)
+{
+    auto press = std::exchange(m_right_press, {});
+    return press && on_mouse_impl(*press, canvas);
 }
 
 bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
@@ -10405,16 +10841,12 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             canvas.zoom_to_volumes();
             return true;
         }
-        // Visual Extrude gizmo (C5b): while the Extrude card is open the depth arrow is
-        // grabbable — drag changes the depth live; a click (no drag) on the arrow opens the
-        // inline depth editor. Intercept before the early no-LeftDown bailout so Dragging/
-        // LeftUp reach us; a LeftDown that misses the arrow falls through to solid/loop pick.
         // Move-body gizmo (M5): three world-axis arrows on the selected body. Drag an arrow to
         // translate live; a stationary click on it opens the inline offset editor; a right click
-        // exits move mode. A LeftDown that misses the arrows falls through to solid re-pick.
+        // opens the offer. Anything else is the camera's: see the end of this block.
         if (m_mv_active) {
             if (m_mv_drag >= 0 && evt.Dragging() && evt.LeftIsDown()) {
-                if (m_mv_drag < 3) drag_move_arrow(canvas, evt, m_mv_drag);
+                if (m_mv_drag < 3) drag_move_arrow(canvas.mouse_ray(Point(evt.GetX(), evt.GetY())));
                 else               drag_move_arc(canvas, evt, m_mv_drag - 3);
                 return true;
             }
@@ -10432,7 +10864,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             if (evt.LeftDown()) {
                 int axis = -1;
                 if (hit_test_move_arrow(canvas, evt, axis)) {   // translate arrows win over rings
-                    m_mv_drag = axis; m_mv_press_x = evt.GetX(); m_mv_press_y = evt.GetY();
+                    grab_move_arrow(axis, canvas.mouse_ray(Point(evt.GetX(), evt.GetY())));
+                    m_mv_press_x = evt.GetX(); m_mv_press_y = evt.GetY();
                     return true;
                 }
                 if (hit_test_move_arc(canvas, evt, axis)) {
@@ -10441,7 +10874,11 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                     double a0; if (arc_mouse_angle(canvas, evt, axis, a0)) m_mv_arc_a0 = a0;
                     return true;
                 }
+                // Off the gizmo a press only steers the camera: no pick, so the selection the
+                // Move acts on is held until it ends.
+                return false;
             }
+            if (evt.Moving()) return false;   // no hover outline: see set_move_gizmo
         }
         // Datum-plane resize gizmo (C3): while the Plane card is open the 4 edge handles are
         // grabbable — drag changes the u/v extent live. A LeftDown that misses falls through.
@@ -10500,6 +10937,10 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 if (h >= 0) return true;   // caller render()s on true -> hover repaints on software GL
             }
         }
+        // Visual Extrude gizmo (C5b): while the Extrude card is open the depth arrow is
+        // grabbable — drag changes the depth live; a click (no drag) on the arrow opens the
+        // inline depth editor. Intercept before the early no-LeftDown bailout so Dragging/
+        // LeftUp reach us; a LeftDown that misses the arrow falls through to solid/loop pick.
         if (m_ex_active) {
             if (m_ex_drag >= 0 && evt.Dragging() && evt.LeftIsDown()) {
                 drag_extrude_arrow(canvas, evt, m_ex_drag);
@@ -11289,9 +11730,9 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         if (evt.RightDown()) {
-            // Hand the click back (return false) so the offer opens: the m_right_consumed flag
-            // this return value feeds means "the tool USED this right-click", and a plain
-            // right-click in Select mode is not a gesture terminator.
+            // Hand the click back (return false) so the offer opens: take_right_click returns
+            // this value as "the tool USED this right-click", and a plain right-click in Select
+            // mode is not a gesture terminator.
             //
             // But do NOT drop the selection on the way out. The offer menu describes WHAT IS
             // SELECTED, so clearing first guaranteed it could only ever describe nothing: select

@@ -395,10 +395,10 @@ public:
     bool            m_show_state = {false};
     wxColour        m_colour;
     ScalableBitmap  m_ams_extruder;
-    string m_file_name;
+    std::string m_file_name;
     bool            m_ams_loading{ false };
     void            doRender(wxDC &dc);
-    AMSextruderImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos = wxDefaultPosition);
+    AMSextruderImage(wxWindow *parent, wxWindowID id, std::string file_name, const wxSize& size, const wxPoint &pos = wxDefaultPosition);
     ~AMSextruderImage();
 };
 
@@ -446,10 +446,10 @@ public:
     bool            m_show_state = {false};
     wxColour        m_colour;
     ScalableBitmap  m_switcher;
-    string m_file_name;
+    std::string m_file_name;
     // bool            m_ams_loading{ false };
     void            doRender(wxDC &dc);
-    SwitcherImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos = wxDefaultPosition);
+    SwitcherImage(wxWindow *parent, wxWindowID id, std::string file_name, const wxSize& size, const wxPoint &pos = wxDefaultPosition);
     ~SwitcherImage();
 };
 
@@ -458,7 +458,7 @@ class AMSextruder : public wxWindow
 {
 private:
     int    m_nozzle_num = -1;
-    string m_series_name;
+    std::string m_series_name;
 
 public:
     void TurnOn(wxColour col);
@@ -468,7 +468,7 @@ public:
     void msw_rescale();
     void has_ams(bool hams) {m_has_vams = hams; Refresh();};
     void no_ams_mode(bool mode) {m_none_ams_mode = mode; Refresh();};
-    bool updateNozzleNum(int nozzle_num, const std::string& series_name = string());
+    bool updateNozzleNum(int nozzle_num, const std::string& series_name = std::string());
 
     bool            m_none_ams_mode{true};
     bool            m_has_vams{false};

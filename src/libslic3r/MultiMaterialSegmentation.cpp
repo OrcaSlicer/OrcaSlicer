@@ -63,6 +63,7 @@ namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
 namespace Slic3r {
 using boost::polygon::voronoi_diagram;
+using VD = Geometry::VoronoiDiagram;
 
 static inline Point mk_point(const Voronoi::VD::vertex_type *point) { return {coord_t(point->x()), coord_t(point->y())}; }
 

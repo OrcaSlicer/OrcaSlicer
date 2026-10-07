@@ -18,8 +18,6 @@
 #include <utility>
 #include <vector>
 
-using json = nlohmann::json;
-
 namespace Slic3r {
 
 namespace {

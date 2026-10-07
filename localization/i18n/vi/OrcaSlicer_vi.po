@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -3553,8 +3553,8 @@ msgstr "Preset process bổ sung"
 msgid "Remove parameter"
 msgstr "Xóa tham số"
 
-msgid "to"
-msgstr "đến"
+msgid "Range"
+msgstr "Phạm vi"
 
 msgid "Add height range"
 msgstr "Thêm phạm vi chiều cao"
@@ -5766,9 +5766,6 @@ msgstr "tên tham số"
 
 msgid "layers"
 msgstr "lớp"
-
-msgid "Range"
-msgstr "Phạm vi"
 
 msgid "Empty string"
 msgstr "Chuỗi rỗng"
@@ -9272,8 +9269,9 @@ msgstr "Máy in đã kết nối là %s. Nó phải khớp với cài đặt s�
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Bạn có muốn đồng bộ thông tin máy in và tự động chuyển cài đặt sẵn không?"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "Dự án này chứa một mô hình được tạo trong tab Thiết kế và không có hình học nào khác. Hãy bật \"Tính năng CAD (thử nghiệm)\" trong Tùy chọn rồi khởi động lại để xem và chỉnh sửa nó; mô hình vẫn được giữ lại khi lưu dự án."
 
 msgid "The file does not contain any geometry data."
 msgstr "File không chứa bất kỳ dữ liệu hình học nào."
@@ -10401,8 +10399,9 @@ msgstr "Trong tab Thiết kế, vẽ đầu nối lắp ghép dưới dạng m�
 msgid "Auto-close sketch loops"
 msgstr "Tự động khép kín vòng phác thảo"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "Coi các điểm đầu mút phác thảo cách nhau trong phạm vi 0.001 mm là một điểm nối và hàn kín vòng. Tắt: chỉ các điểm đầu mút trùng khít mới được nối, nên một vòng có khe hở nhỏ sẽ hiển thị là hở thay vì được tự động khép kín. Được lưu cùng mỗi thiết kế; áp dụng cho các thiết kế bắt đầu sau khi thay đổi."
 
 # AI Translated
 msgid "Pan"
@@ -10877,18 +10876,6 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Hiện các cài đặt sẵn không tương thích/không được hỗ trợ trong danh sách thả xuống máy in và filament. Không thể chọn các cài đặt sẵn này."
 
 # AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Định tuyến các tác vụ in của máy in không phải Bambu qua các tác nhân plugin máy in thay vì luồng tải lên máy chủ in cổ điển.\n"
-"Khi tắt, OrcaSlicer sẽ dùng hành vi máy chủ in cũ."
-
-# AI Translated
 msgid "Experimental Features"
 msgstr "Tính năng thử nghiệm"
 
@@ -10903,6 +10890,18 @@ msgid ""
 msgstr ""
 "Cố gắng giữ lại các phần đã tô (màu/đường nối/support/fuzzy v.v.) sau khi thay đổi lưới của vật thể (như cắt/tải lại từ đĩa/đơn giản hóa/sửa v.v.)\n"
 "Rất thử nghiệm! Chậm và có thể tạo ra khuyết điểm."
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "Dùng tác nhân máy in thay cho máy chủ in"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Định tuyến các tác vụ in của máy in không phải Bambu qua các tác nhân plugin máy in thay vì luồng tải lên máy chủ in cổ điển.\n"
+"Khi tắt, OrcaSlicer sẽ dùng hành vi máy chủ in cũ."
 
 # AI Translated
 msgid "Allow Abnormal Storage"
@@ -11080,6 +11079,9 @@ msgstr "Trình tự filament lớp khác"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Vui lòng nhập giá trị lớp (>= 2)."
+
+msgid "to"
+msgstr "đến"
 
 msgid "Plate name"
 msgstr "Tên bản"
@@ -17201,6 +17203,14 @@ msgstr "Infill đối xứng trục Y"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Nếu model có hai phần đối xứng về trục Y, và bạn muốn các phần này có kết cấu đối xứng, vui lòng nhấp tùy chọn này trên một trong các phần."
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "Lấp đầy mặt trên của mẫu"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "Chọn tùy chọn này nếu bạn muốn lấp đầy hoàn toàn mặt trên của mẫu infill"
 
 msgid "Infill combination - Max layer height"
 msgstr "Kết hợp infill - Chiều cao lớp tối đa"
@@ -23767,6 +23777,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Không rõ mẫu filament. Một cài đặt sẵn filament ngẫu nhiên sẽ được dùng."
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "Ẩn các mặt phẳng tham chiếu và trục"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "Hiện các mặt phẳng tham chiếu và trục"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "Ẩn bàn in của máy in và lưới plate"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Hiện bàn in của máy in và lưới plate"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "Nhấn một mặt phẳng tham chiếu hoặc một mặt phẳng của khối để phác thảo lên đó — Esc để hủy"
+
+# AI Translated
 msgid "Construction"
 msgstr "Dựng hình"
 
@@ -23791,8 +23821,9 @@ msgstr "Đường tròn — nhấn tâm, rồi bán kính"
 msgid "Arc — click start, end, then a point"
 msgstr "Cung — nhấn điểm đầu, điểm cuối, rồi một điểm"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "Rãnh — hai đầu đường tâm, rồi độ rộng"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -23866,8 +23897,9 @@ msgstr "Đã hiện các trục toàn cục"
 msgid "World axes hidden"
 msgstr "Đã ẩn các trục toàn cục"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "Chế độ xem trục đo, đã vừa khung"
 
 # AI Translated
 msgid "Bed shown"
@@ -23878,34 +23910,12 @@ msgid "Bed hidden"
 msgstr "Đã ẩn bàn in"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "ĐẶC TRƯNG"
+msgid "Reference planes shown"
+msgstr "Đã hiện các mặt phẳng tham chiếu"
 
 # AI Translated
-msgid "Sketch"
-msgstr "Phác thảo"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Mặt phẳng phác thảo: %s — chọn một công cụ"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu trong khung nhìn, rồi chọn một công cụ phác thảo"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"Mặt phẳng phác thảo: %s.\n"
-"Chọn một công cụ, hoặc nhấn Menu để xem danh sách."
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ phác thảo."
+msgid "Reference planes hidden"
+msgstr "Đã ẩn các mặt phẳng tham chiếu"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -24091,8 +24101,9 @@ msgstr "Trục"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Trục chuẩn (hai điểm, pháp tuyến mặt, đường tâm hình trụ, hai mặt phẳng, dọc theo cạnh)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "Hệ tọa độ"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -24156,8 +24167,9 @@ msgstr "Lấy đối xứng cần một khối — hãy thêm hoặc nhập mộ
 msgid "Mate"
 msgstr "Lắp ghép"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Lắp ráp: căn chỉnh hai hệ tọa độ (cố định, phẳng, quay, trượt, trụ)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -24257,14 +24269,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "Chọn một bề mặt trụ (lỗ / mặt ngoài) hoặc một cạnh tròn để tạo ren"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Nhập STEP (khối đặc B-rep có thể chỉnh sửa)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Nhập lưới (STL/OBJ) thành khối đặc B-rep có thể chỉnh sửa"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "Ràng buộc phác thảo đã chọn"
 
@@ -24296,8 +24300,9 @@ msgstr "Nhấn điểm đầu, rồi điểm cuối — sau đó đặt độ d�
 msgid "Polyline"
 msgstr "Đa tuyến"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "Nhấn các điểm; nhấn điểm đầu tiên để khép vòng, nhấn chuột phải hoặc Enter để kết thúc chuỗi"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -24387,8 +24392,9 @@ msgstr "Nhấn tâm, rồi điểm đầu, rồi một điểm để đặt góc
 msgid "Slot"
 msgstr "Rãnh"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "Nhấn hai đầu đường tâm, rồi một điểm để đặt độ rộng"
 
 # AI Translated
 msgid "Arc slot"
@@ -24418,8 +24424,9 @@ msgstr "Nhấn tâm, đầu trục lớn, điểm trên trục nhỏ, rồi đi�
 msgid "Spline"
 msgstr "Spline"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "Nhấn các điểm điều khiển; nhấp đúp, nhấn chuột phải hoặc nhấn Enter để kết thúc"
 
 # AI Translated
 msgid "Click to place a point"
@@ -24473,15 +24480,17 @@ msgstr "Chọn một đường thẳng làm trục đối xứng, rồi các th�
 msgid "Trim"
 msgstr "Cắt tỉa"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "Nhấn một đoạn để cắt tỉa đến giao điểm gần nhất; Esc để thoát"
 
 # AI Translated
 msgid "Extend"
 msgstr "Kéo dài"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "Nhấn một đường thẳng hoặc cung để kéo dài đến thực thể gần nhất; Esc để thoát"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -24664,12 +24673,20 @@ msgid "New Design — clear the feature tree"
 msgstr "Thiết kế mới — xóa cây đặc trưng"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Nhập STEP (khối đặc B-rep có thể chỉnh sửa)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Nhập lưới (STL/OBJ) thành khối đặc B-rep có thể chỉnh sửa"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Xuất STEP…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Hiện bàn in của máy in và lưới plate"
+msgid "Create a new sketch"
+msgstr "Tạo một phác thảo mới"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -24683,20 +24700,25 @@ msgstr "Chế độ xem mặt cắt — ẩn một phần mô hình để nhìn 
 msgid "Flip Section — show the opposite half"
 msgstr "Lật mặt cắt — hiện nửa đối diện"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "Chọn cách lệnh Đưa lên plate gửi các khối"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "Đưa lên plate"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "Tất cả các khối trở thành một vật thể, mỗi khối là một phần, giữ nguyên vị trí tương đối giữa chúng"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "Đưa lên plate (theo từng khối)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "Mỗi khối trở thành một vật thể riêng, được đặt riêng rẽ"
 
 # AI Translated
 msgid "Width / X"
@@ -24705,6 +24727,10 @@ msgstr "Độ rộng / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Chiều cao / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Phác thảo"
 
 # AI Translated
 msgid "Distance X"
@@ -24908,8 +24934,9 @@ msgstr "Tròn"
 msgid "Direction"
 msgstr "Hướng"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "Tổng góc (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -25293,11 +25320,13 @@ msgstr "Trụ — các trục cộng tuyến; xoay tự do + trượt dọc tr�
 msgid "Kind"
 msgstr "Kiểu"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (cố định)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (di chuyển)"
 
 # AI Translated
 msgid "Angle °"
@@ -25334,6 +25363,10 @@ msgstr "(không có liên kết)"
 # AI Translated
 msgid "Value"
 msgstr "Giá trị"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "Chọn một công cụ, hoặc nhấn Menu để xem danh sách."
 
 # AI Translated
 msgid "Constraints"
@@ -25374,6 +25407,10 @@ msgid "Show / hide"
 msgstr "Hiện / ẩn"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "Thu phóng đến vùng chọn"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "Kiểm tra giao thoa — tìm các khối chồng lấn"
 
@@ -25394,14 +25431,17 @@ msgstr "Đã chọn khối %d — nhấn chuột phải để xem các thao tác
 msgid "Variables"
 msgstr "Biến"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "Thêm biến"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "Sửa biến"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "Xóa biến"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -25420,9 +25460,10 @@ msgstr "Đã cập nhật phác thảo"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Đã tạo phác thảo (%zu kích thước điều khiển) — chọn nó, rồi nhấn chuột phải để Đùn"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "Độ dài %.2f mm, góc %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -25443,6 +25484,10 @@ msgstr "Đã chọn vùng — nhấn chuột phải để Đùn, hoặc nhấp �
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Đã chọn phác thảo — nhấn chuột phải để Đùn, hoặc nhấp đúp để chỉnh sửa"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "Mặt đó không phẳng — hãy nhấn một mặt phẳng của khối hoặc một mặt phẳng tham chiếu"
 
 # AI Translated
 #, c-format, boost-format
@@ -25472,28 +25517,27 @@ msgstr "Khối %d: đã chọn mặt %d — nhấn chuột phải để đẩy/k
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Đã chọn mặt %d — nhấn chuột phải để đẩy/kéo nó, hoặc nhấn lần nữa để chọn cả khối"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
+msgstr[0] "Khối %d: đã chọn %zu cạnh — Shift+nhấn để thêm hoặc bỏ từng cạnh, Bo tròn/Vát cạnh sẽ hoàn thiện tất cả"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "Đã chọn %zu cạnh — Shift+nhấn để thêm hoặc bỏ từng cạnh, Bo tròn/Vát cạnh sẽ hoàn thiện tất cả"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Đã chọn mặt phẳng %s — nhấn chuột phải để mở các công cụ vẽ"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Khối %d: đã chọn cạnh %d — Shift+nhấn để thêm cạnh, hoặc nhấn lần nữa để chọn cả khối"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Đã chọn cạnh %d — Shift+nhấn để thêm cạnh, hoặc nhấn lần nữa để chọn cả khối"
 
 # AI Translated
 #, c-format, boost-format
@@ -25518,8 +25562,9 @@ msgstr "Đã thoát công cụ"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Đã giữ phác thảo — Xác nhận để áp dụng, Hủy để loại bỏ"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "Hãy chọn thứ cần xóa"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -25550,17 +25595,21 @@ msgstr "Đang chỉnh sửa: Phác thảo %d   ·   N = nhìn vuông góc với 
 msgid "OK — %zu triangles"
 msgstr "OK — %zu tam giác"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "Chỉnh sửa chữ — Enter để áp dụng, Esc để giữ nguyên như cũ"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "Nhập chữ — chữ hiện trong khung nhìn ngay khi bạn gõ; Enter để chèn, Esc để hủy"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "Chữ không thay đổi"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "Đã hủy chữ"
 
 # AI Translated
 msgid "Import SVG"
@@ -25586,9 +25635,10 @@ msgstr "Đang đọc STEP…"
 msgid "No solids found in STEP"
 msgstr "Không tìm thấy khối đặc nào trong STEP"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "Nhập STEP thất bại: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -25612,9 +25662,10 @@ msgstr "File lưới (*.stl;*.obj)|*.stl;*.obj|Tất cả file|*.*"
 msgid "Could not read the STL file"
 msgstr "Không thể đọc file STL"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "Không thể đọc file OBJ: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -25639,20 +25690,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Lưới lớn"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "Chuyển đổi lưới thất bại: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "Chuyển đổi lưới không tạo ra hình học nào"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "Lưới"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "Nhập lưới thất bại: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -25681,17 +25735,19 @@ msgstr " — kéo để đặt vị trí/kích thước, rồi Xác nhận"
 msgid "Insert canceled"
 msgstr "Đã hủy chèn"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Kéo một góc để co giãn, kéo tâm để di chuyển — Enter hoặc ✓ khi xong, Esc để loại bỏ"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Đã thêm phác thảo (mặt phẳng: %s) — chọn nó, rồi nhấn chuột phải để Đùn"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "Không thể dựng lại mô hình: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -25763,18 +25819,21 @@ msgstr "Hãy chọn một phác thảo có đường hở trước"
 msgid "Add at least one face to delete first"
 msgstr "Hãy thêm ít nhất một mặt cần xóa trước"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "Lắp ghép cần hai hệ tọa độ — hãy tạo chúng trước"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "Lắp ghép: A và B phải là hai hệ tọa độ khác nhau"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Lắp ghép bị từ chối"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "Kiểm tra giao thoa cần ít nhất hai khối"
 
 # AI Translated
 msgid "No interference found"
@@ -25785,35 +25844,42 @@ msgstr "Không tìm thấy giao thoa"
 msgid "Body %d"
 msgstr "Khối %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s %.2f mm³"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
+msgstr[0] "%zu cặp chồng lấn: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "Hãy chọn một khối để đo"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "Không thể đo khối này"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: khối bề mặt, diện tích bề mặt %.2f mm², không có thể tích — hãy làm dày để có thể tích"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: thể tích %.2f mm³, diện tích bề mặt %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Mảng cần một khối đặc — hãy thêm hoặc nhập một khối trước"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "Boolean cần hai khối — hãy thêm hoặc nhập khối thứ hai"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -25828,35 +25894,45 @@ msgstr "Mặt đã chọn (Khối %d)"
 msgid "Picked face"
 msgstr "Mặt đã chọn"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "không thể nối hình dạng mới vào khối"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "không thể cắt hình dạng mới khỏi khối"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "không thể lấy phần giao của các hình dạng"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "chưa có đặc trưng nào trong lịch sử tạo ra khối đặc"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "biên dạng phác thảo không phải là một vòng khép kín hoàn chỉnh"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "công cụ không chạm vào khối"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "một biểu thức dùng biến không tồn tại"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "một biểu thức chia cho không"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "hai biến được định nghĩa dựa vào nhau"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "một thao tác hình học đã thất bại"
 
 # AI Translated
 #, c-format, boost-format
@@ -25894,15 +25970,17 @@ msgstr "Kích thước — nhấn điểm thứ hai"
 msgid "Line — click the start point"
 msgstr "Đường thẳng — nhấn điểm đầu"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "Đường thẳng — nhấn điểm cuối; sau đó có thể nhập độ dài và góc"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Đa tuyến — nhấn điểm đầu tiên"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "Đa tuyến — nhấn điểm tiếp theo  ·  nhấn điểm đầu để khép kín  ·  nhấn chuột phải, nhấp đúp hoặc Enter để kết thúc chuỗi"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -25948,8 +26026,9 @@ msgstr "Hình chữ nhật bo góc — nhấn để đặt bán kính góc"
 msgid "Circle — click the center"
 msgstr "Đường tròn — nhấn tâm"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "Đường tròn — nhấn để đặt bán kính; sau đó có thể nhập giá trị"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -26075,18 +26154,21 @@ msgstr "Cung elip — nhấn vào vị trí cung kết thúc"
 msgid "Spline — click the first control point"
 msgstr "Spline — nhấn điểm điều khiển đầu tiên"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "Spline — nhấn điểm điều khiển tiếp theo  ·  nhấn chuột phải, nhấp đúp hoặc Enter để hoàn tất đường cong"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Điểm — nhấn để đặt một điểm; công cụ vẫn sẵn sàng để đặt thêm"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "Cắt tỉa — nhấn một đoạn tại chỗ nó cắt qua thực thể khác  ·  Esc để thoát"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "Kéo dài — nhấn một đường thẳng hoặc cung để kéo dài đến thực thể gần nhất  ·  Esc để thoát"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -26096,8 +26178,9 @@ msgstr "Bo tròn — nhấn đường thẳng thứ nhất trong hai đường g
 msgid "Fillet — click the second line"
 msgstr "Bo tròn — nhấn đường thẳng thứ hai"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Bo tròn — kéo mũi tên, hoặc nhấn vào con số để nhập bán kính  ·  Enter để áp dụng  ·  Esc để hủy"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -26107,63 +26190,74 @@ msgstr "Vát cạnh — nhấn đường thẳng thứ nhất trong hai đườn
 msgid "Chamfer — click the second line"
 msgstr "Vát cạnh — nhấn đường thẳng thứ hai"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Vát cạnh — kéo mũi tên, hoặc nhấn vào con số để nhập khoảng lùi  ·  Enter để áp dụng  ·  Esc để hủy"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "Dời song song — nhấn một đường cong; toàn bộ đường viền chứa nó sẽ được dời"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Dời song song — kéo mũi tên sang một trong hai phía, hoặc nhấn vào con số để nhập khoảng cách  ·  Enter để áp dụng  ·  Esc để hủy"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Lấy đối xứng — trước tiên nhấn ĐƯỜNG THẲNG làm trục đối xứng (có thể dùng đường dựng hình)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "Lấy đối xứng — đã đặt trục  ·  giờ hãy nhấn các thực thể cần lấy đối xứng  ·  Esc để hủy"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "Lấy đối xứng — đã đặt trục  ·  %d thực thể cần lấy đối xứng  ·  nhấn thực thể khác để thêm hoặc bỏ  ·  Enter để áp dụng"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Di chuyển — nhấn các thực thể cần di chuyển"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "Di chuyển — kéo tay nắm, hoặc nhấn vào con số để nhập khoảng cách  ·  Enter để áp dụng"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Xoay — nhấn các thực thể cần xoay"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "Xoay — kéo tay nắm, hoặc nhấn vào con số để nhập góc  ·  Enter để áp dụng"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Co giãn — nhấn các thực thể cần co giãn"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "Co giãn — kéo tay nắm, hoặc nhấn vào con số để nhập hệ số  ·  Enter để áp dụng"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Mảng — nhấn các thực thể cần lặp lại"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Mảng — kéo tay nắm để đặt bước, nhấn vào số lượng để nhập  ·  Enter để áp dụng"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Mảng tròn — nhấn các thực thể cần lặp lại"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Mảng tròn — kéo tay nắm để đặt góc quét, nhấn vào số lượng để nhập  ·  Enter để áp dụng"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Kéo một góc để co giãn, kéo tâm để di chuyển  ·  Enter hoặc ✓ khi xong, Esc để loại bỏ"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -26173,61 +26267,76 @@ msgstr "  ·  Esc để quay lại Chọn"
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  nhấn vào nhãn ràng buộc để xóa nó"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — khối đặc"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — khối bề mặt"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "Mặt phẳng %d của %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "Mặt trụ %d của %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "Mặt %d của %s"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
+msgstr[0] "%zu cạnh của %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "Cạnh thẳng %d của %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "Cạnh tròn %d của %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "Đỉnh của %s"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "Biên dạng phác thảo"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "Phác thảo — chưa chọn gì"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "Đường thẳng phác thảo"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "Đường cong phác thảo"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "Điểm phác thảo"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "%d thực thể phác thảo"
 
 # AI Translated
 msgid "select something first"
@@ -26290,8 +26399,9 @@ msgstr "Đã thêm mặt phẳng — hãy chọn nó làm mặt phẳng phác th
 msgid "Axis added"
 msgstr "Đã thêm trục"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "Đã thêm hệ tọa độ"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -26308,10 +26418,10 @@ msgstr "Thoát khuôn cần một mặt đã chọn — hãy nhấn một mặt 
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "Chưa có gì — hãy nhập STEP hoặc lưới từ thanh công cụ,\n"
-"hoặc nhấn một mặt phẳng tham chiếu rồi nhấn chuột phải vào nó để bắt đầu phác thảo."
+"hoặc nhấn Phác thảo rồi nhấn một mặt phẳng tham chiếu để bắt đầu phác thảo."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -26321,9 +26431,10 @@ msgstr "Chưa có khối đặc — hãy chọn một phác thảo rồi nhấn 
 msgid "Could not restore the CAD model from this project"
 msgstr "Không thể khôi phục mô hình CAD từ dự án này"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "Không thể khôi phục mô hình CAD: %s"
 
 # AI Translated
 #, c-format
@@ -26346,16 +26457,34 @@ msgstr "Chế độ xem mặt cắt — đang hiện nửa trên"
 msgid "Section view — showing the lower half"
 msgstr "Chế độ xem mặt cắt — đang hiện nửa dưới"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "Đang tìm các mặt của đặc trưng…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Hãy chọn một khối trước — nhấn vào nó trong khung nhìn hoặc trong danh sách Các khối"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "Mô hình đang được dựng lại — hãy thu phóng lại khi hoàn tất"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%s không có phần nào đang hiển thị để thu phóng tới"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Khối đó chưa có lưới hiển thị — hãy tính toán lại trước"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "Hãy chọn thứ cần thu phóng tới"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "Hãy hoàn tất hoặc hủy thao tác đang mở trước"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Hãy chọn một khối trước — nhấn vào nó trong khung nhìn hoặc trong danh sách Các khối"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -26382,12 +26511,10 @@ msgstr "Nhấn một mặt trên khối đặc, rồi nhấn F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Đã đặt lên mặt — khối được đặt nằm phẳng trên bàn in"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "Chỉnh sửa bị từ chối: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -26406,9 +26533,10 @@ msgstr "Khối này không có đặc trưng nào để xóa — hãy dùng Thi�
 msgid "feature %d"
 msgstr "đặc trưng %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "Đã xóa %s, đặc trưng tạo nên khối này — Ctrl+Z để khôi phục"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -26799,12 +26927,14 @@ msgstr "File STEP (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "Đã xuất STEP"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "Xuất STEP thất bại: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "Đưa lên plate (theo từng khối) — gửi mỗi khối sang Chuẩn bị thành một vật thể riêng"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -26818,18 +26948,35 @@ msgstr "Không có gì để đưa lên plate — hãy thêm một đặc trưng
 msgid "All bodies hidden — show one before committing"
 msgstr "Tất cả khối đều đang ẩn — hãy hiện một khối trước khi đưa lên plate"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
+msgstr[0] "%zu cạnh"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "Đường tâm E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "Đường thẳng E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Mặt phẳng phác thảo: %s — chọn một công cụ"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"Mặt phẳng phác thảo: %s.\n"
+"Chọn một công cụ, hoặc nhấn Menu để xem danh sách."
 
 # AI Translated
 msgid "Plane ready"
@@ -26839,8 +26986,9 @@ msgstr "Mặt phẳng đã sẵn sàng"
 msgid "Axis ready"
 msgstr "Trục đã sẵn sàng"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "Hệ tọa độ đã sẵn sàng"
 
 # AI Translated
 msgid "Helix ready"
@@ -26858,9 +27006,10 @@ msgstr "Phác thảo đã sẵn sàng"
 msgid "Mate ready"
 msgstr "Lắp ghép đã sẵn sàng"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "Không hợp lệ: %s"
 
 # AI Translated
 #, c-format
@@ -26942,110 +27091,139 @@ msgstr "Sửa biến"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Không thể xóa biến '%s' (có thể vẫn đang được tham chiếu bởi biểu thức của một đặc trưng): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "\"%s\" không phải là giá trị mà biểu thức có thể điều khiển"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "Không có liên kết cho trường đó"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "Giá trị phải lớn hơn không"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "Giá trị không được âm (bằng không nghĩa là trùng nhau)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "Không thể thỏa mãn kích thước đó — phác thảo bị thừa ràng buộc"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "%1% ràng buộc không thể tác động lên hình học này (đường cong elip hoặc spline, hoặc đường tròn có kích thước bằng không) và bị bỏ qua"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "Biên dạng này tự cắt hoặc gấp ngược lại chính nó tại dấu đỏ, nên không bao quanh một vùng duy nhất"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "Cạnh"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "Bán trục lớn"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "Bán trục nhỏ"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "Góc phải nằm trong khoảng 0° đến 360°"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "Bán trục lớn không được ngắn hơn bán trục nhỏ"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "Bán kính góc phải nhỏ hơn một nửa cạnh ngắn hơn"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "Rãnh quá rộng so với bán kính — độ rộng phải nhỏ hơn hai lần bán kính"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "Không thể thỏa mãn %1% — phác thảo bị thừa ràng buộc"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "Hai đường thẳng đó không gặp nhau tại một góc — hãy chọn hai đường thẳng có gặp nhau"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "Kích thước phải lớn hơn không"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Bo tròn: bán kính vượt quá độ dài một cạnh của góc, hoặc hai đường thẳng không gặp nhau tại một góc"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Vát cạnh: khoảng cách vượt quá độ dài một cạnh của góc, hoặc hai đường thẳng không gặp nhau tại một góc"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "Đã xóa %1% ràng buộc bị bo tròn/vát cạnh làm mất hiệu lực"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "Dời song song: elip hoặc spline không có đường song song cùng loại — hãy chọn đường thẳng, cung hoặc đường tròn"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "Hệ số co giãn phải lớn hơn không"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "Số bản sao"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "Số bản sao phải là số nguyên từ 2 trở lên"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "Phép biến đổi đã gỡ bỏ %1% ràng buộc"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "Các bản sao của mảng không bị ràng buộc — bộ giải đã từ chối mọi liên kết"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "nhấn chuột phải hoặc nhấp đúp để kết thúc, nhấn điểm đầu để khép kín"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "Kéo dài: nhấn một đường thẳng hoặc một cung có thể chạm tới một thực thể khác"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "Cắt tỉa: nhấn một đoạn tại chỗ nó cắt qua một thực thể khác"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "Nhấn Enter hoặc ✓ để áp dụng, Esc để loại bỏ"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "Chưa thể ghi kích thước cho thực thể đó — hãy nhấn một đường thẳng, một đường tròn, một cung, hoặc hai điểm"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "Nhấn điểm thứ hai, hoặc một đường thẳng để đo khoảng cách tới nó"
 
 # AI Translated
 msgid "Enter a number"
@@ -27081,8 +27259,12 @@ msgid "Sketch"
 msgstr "Phác thảo"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ vẽ"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "Hãy chọn một mặt phẳng của khối hoặc một mặt phẳng tham chiếu để phác thảo"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "Phác thảo trên mặt phẳng của khối hoặc mặt phẳng tham chiếu đang chọn, hoặc nhấn chọn sau đó"
 
 # AI Translated
 msgctxt "Design"
@@ -27104,9 +27286,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "Làm dày"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "Nối"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -27159,16 +27342,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "Làm dày bề mặt"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Làm dày bề mặt cần một khối bề mặt — hãy tạo một khối bằng công cụ Bề mặt trước"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "Lỗ"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -27184,8 +27365,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "Tách"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "Tách cần một khối đặc — hãy thêm hoặc nhập một khối trước"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -27231,8 +27413,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "Dời bề mặt"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Dời bề mặt cần một khối bề mặt — hãy tạo một khối bằng công cụ Bề mặt trước"
 
 # AI Translated
 msgctxt "Design"
@@ -27262,8 +27445,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "Mảng theo đường cong"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "Mảng theo đường cong cần một khối và một đường cong"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -27284,8 +27468,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "Căn theo"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "Căn chỉnh cần một khối — hãy thêm hoặc nhập một khối trước"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -27301,9 +27486,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "Trục"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "Hệ tọa độ"
 
 # AI Translated
 msgctxt "Design"
@@ -27319,9 +27505,10 @@ msgstr "Đo"
 msgid "Measure between the picked points, edges or faces"
 msgstr "Đo giữa các điểm, cạnh hoặc mặt đã chọn"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "Thể tích và diện tích bề mặt"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -27363,12 +27550,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "Xóa mặt"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "Màu"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "Đặt màu hiển thị của khối đã chọn"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "Thu phóng đến vùng chọn"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "Đưa vùng chọn vừa khung nhìn, giữ nguyên hướng nhìn"
 
 # AI Translated
 msgctxt "Design"
@@ -27407,9 +27605,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Hình chữ nhật theo góc"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "Hình chữ nhật theo tâm"
 
 # AI Translated
 msgctxt "Design"
@@ -27421,9 +27620,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "Hình chữ nhật bo góc"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "Đường tròn theo tâm"
 
 # AI Translated
 msgctxt "Design"
@@ -27445,9 +27645,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "Cung tiếp tuyến"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "Cung theo tâm"
 
 # AI Translated
 msgctxt "Design"
@@ -27479,48 +27680,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "Tam giác"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "Tam giác — nhấn tâm, rồi một đỉnh"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "Hình vuông"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "Hình vuông — nhấn tâm, rồi một đỉnh"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "Ngũ giác"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "Ngũ giác — nhấn tâm, rồi một đỉnh"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "Lục giác"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "Lục giác — nhấn tâm, rồi một đỉnh"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "Bát giác"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "Bát giác — nhấn tâm, rồi một đỉnh"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "Thập nhị giác"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "Thập nhị giác — nhấn tâm, rồi một đỉnh"
 
 # AI Translated
 msgctxt "Design"
@@ -27550,8 +27757,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "Chữ"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "Nhập chữ; chữ sẽ trở thành một đặc trưng Chữ trên mặt phẳng của phác thảo này, có thể chỉnh sửa sau"
 
 # AI Translated
 msgctxt "Design"
@@ -27668,27 +27876,34 @@ msgstr "Góc / khoảng cách…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "Nhập góc giữa hai đường thẳng, hoặc khoảng cách giữa hai đối tượng đã chọn"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "Nhập chữ cần chèn"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "Đậm"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "Nghiêng"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "Không thể dùng font này cho chữ — hãy chọn font khác"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "Nhập chữ để xem kích thước"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "Font này không có đường viền cho chữ này"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "Kích thước: %.1f × %.1f mm"
 
 # AI Translated
 msgid "Primitive"
@@ -27786,8 +28001,9 @@ msgstr "Biên dạng"
 msgid "Start new profile (for holes)"
 msgstr "Bắt đầu biên dạng mới (cho lỗ)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "Số đoạn"
 
 # AI Translated
 msgid "Sides"
@@ -27801,20 +28017,23 @@ msgstr "Nhấn vào khung vẽ để vẽ"
 msgid "Snap to grid"
 msgstr "Bám theo lưới"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "Bước lưới"
 
 # AI Translated
 msgid "Outer"
 msgstr "Ngoài"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "khép kín"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% điểm %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -27850,8 +28069,9 @@ msgstr[0] "%zu biên dạng khép kín"
 msgid "Draw a closed profile to enable"
 msgstr "Vẽ một biên dạng khép kín để bật"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "Xóa tất cả"
 
 # AI Translated
 msgid "Empty result"
@@ -31964,6 +32184,39 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ĐẶC TRƯNG"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu trong khung nhìn, rồi chọn một công cụ phác thảo"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ phác thảo."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Đã chọn mặt phẳng %s — nhấn chuột phải để mở các công cụ vẽ"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Chưa có gì — hãy nhập STEP hoặc lưới từ thanh công cụ,\n"
+#~ "hoặc nhấn một mặt phẳng tham chiếu rồi nhấn chuột phải vào nó để bắt đầu phác thảo."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Nhấn một mặt hoặc một mặt phẳng tham chiếu, rồi chọn một công cụ vẽ"
 
 #~ msgid "X"
 #~ msgstr "X"

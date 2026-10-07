@@ -93,7 +93,6 @@ using namespace libnest2d;
 using Item         = _Item<ExPolygon>;
 using Box          = _Box<Point>;
 using Circle       = _Circle<Point>;
-using Segment      = _Segment<Point>;
 using MultiPolygon = ExPolygons;
 
 // Summon the spatial indexing facilities from boost

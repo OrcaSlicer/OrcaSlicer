@@ -8,12 +8,16 @@
 	"filament_id": "OFDSrzZ8",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Prusa CORE One 0.6 nozzle"
+		"Prusa CORE One 0.6 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"nozzle_temperature": [
 		"210"
 	],
 	"slow_down_layer_time": [
 		"15"
+	],
+	"filament_cooling_final_speed": [
+		"1.5"
 	]
 }

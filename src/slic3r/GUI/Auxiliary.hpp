@@ -11,7 +11,7 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <string>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -246,7 +246,7 @@ public:
     void                                            create_folder(wxString name = wxEmptyString);
     std::string                                     replaceSpace(std::string s, std::string ts, std::string ns);
     void                                            on_import_file(wxCommandEvent &event);
-    void                                            Reload(wxString aux_path, std::map<std::string, std::vector<json>> paths);
+    void                                            Reload(wxString aux_path, std::map<std::string, std::vector<nlohmann::json>> paths);
 
     void update_all_panel();
     void update_all_cover();

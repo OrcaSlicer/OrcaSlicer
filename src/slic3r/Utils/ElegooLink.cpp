@@ -50,7 +50,6 @@
 #include "slic3r/GUI/BonjourDialog.hpp"
 #include <boost/asio/ip/address.hpp>
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 #define MAX_UPLOAD_PACKAGE_LENGTH 1048576 //(1024*1024)
 

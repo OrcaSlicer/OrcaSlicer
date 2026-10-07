@@ -1,10 +1,15 @@
 # clang-tidy configuration, enforced by the clang-tidy CI job on the lines a pull
-# request changes (scripts/clang_tidy_diff.py). Only missing includes are reported
-# for now: a file should include the header for every symbol it uses, not rely on
-# the precompiled header or another header's includes. Run with --fix to add them.
+# request changes (scripts/clang_tidy_diff.py). Two things are reported.
+# Missing includes: a file should include the header for every symbol it uses, not
+# rely on the precompiled header or another header's includes. Run with --fix to
+# add them.
+# Using-directives and using-declarations in the global namespace of a header:
+# they reach every file that includes the header, and a using-declaration also
+# makes the header look like the one to include for that name. Qualify the name
+# in the header, and put the using in the source files that want it.
 # Every check listed here gates pull requests, so enable a new one only once the
 # code it flags on touched lines is reasonable to fix in passing.
-Checks: '-*,misc-include-cleaner'
+Checks: '-*,misc-include-cleaner,google-global-names-in-headers'
 WarningsAsErrors: '*'
 CheckOptions:
   # Missing includes only. Builds without the precompiled header break on these.
