@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <wx/checkbox.h>
 #include <wx/colour.h>
 #include <wx/dc.h>
 #include <wx/dcclient.h>
@@ -153,13 +154,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         return button;
     };
 
+    auto* range_panel = new wxPanel(plot_panel);
+    auto* range_sizer = new wxBoxSizer(wxVERTICAL);
     auto* ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
-
     auto* apply_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto* fit_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto add_title = [plot_panel, ranges](const wxString& label) {
-        auto* title = new wxStaticText(plot_panel, wxID_ANY, label);
+    auto add_title = [range_panel, ranges](const wxString& label) {
+        auto* title = new wxStaticText(range_panel, wxID_ANY, label);
         title->SetFont(Label::Body_12);
         title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         ranges->Add(title);
@@ -171,13 +172,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     ranges->AddSpacer(0);
     const auto view_limits = m_model->view_limits();
     for (int axis = 0; axis < 2; ++axis) {
-        auto range_label = new wxStaticText(plot_panel, wxID_ANY, axis == 0 ? appearance.x_label : appearance.y_label);
+        auto range_label = new wxStaticText(range_panel, wxID_ANY, axis == 0 ? appearance.x_label : appearance.y_label);
         range_label->SetFont(Label::Body_12);
         range_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         ranges->Add(range_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
         for (int bound = 0; bound < 2; ++bound) {
             const int index = axis * 2 + bound;
-            auto* field = new TextInput(plot_panel, "", "", "", wxDefaultPosition, FromDIP(wxSize(78, -1)), wxTE_PROCESS_ENTER);
+            auto* field = new TextInput(range_panel, "", "", "", wxDefaultPosition, FromDIP(wxSize(78, -1)), wxTE_PROCESS_ENTER);
             auto* text = field->GetTextCtrl();
             text->SetFont(Label::Body_12);
             // Recompute the text size without the minimum retained from TextInput's default font.
@@ -205,7 +206,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
             // can silently replace invalid text on focus loss before Apply validates it.
             // The native Windows default height is twice the scrollbar height and would stretch the entire row.
             const wxSize arrow_size(FromDIP(18), field_size.y);
-            auto* arrows = new wxSpinButton(plot_panel, wxID_ANY, wxDefaultPosition, arrow_size, wxSP_VERTICAL);
+            auto* arrows = new wxSpinButton(range_panel, wxID_ANY, wxDefaultPosition, arrow_size, wxSP_VERTICAL);
             arrows->SetMinSize(arrow_size);
             arrows->SetRange(-1, 1);
             arrows->SetValue(0);
@@ -223,27 +224,46 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
             input->Add(arrows, 0, wxEXPAND | wxLEFT, FromDIP(2));
             ranges->Add(input, 1, wxEXPAND);
         }
-        ranges->Add(axis == 0 ? apply_btn_sizer : fit_btn_sizer, 0, wxEXPAND | wxLEFT, FromDIP(5));
+        if (axis == 0)
+            ranges->Add(apply_btn_sizer, 0, wxEXPAND | wxLEFT, FromDIP(5));
+        else
+            ranges->AddSpacer(0);
     }
 
-    auto* apply_range = make_button(plot_panel, _L("Apply"));
+    auto* apply_range = make_button(range_panel, _L("Apply"));
     apply_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { apply_chart_range(); });
     apply_btn_sizer->Add(apply_range, 1, wxEXPAND);
 
+    range_sizer->Add(ranges, 0, wxALIGN_LEFT);
+    m_range_status = new wxStaticText(range_panel, wxID_ANY, wxEmptyString);
+    m_range_status->SetFont(Label::Body_12);
+    m_range_status->SetForegroundColour(wxColour("#E14747"));
+    m_range_status->Hide();
+    range_sizer->Add(m_range_status, 0, wxEXPAND | wxTOP, FromDIP(8));
+    range_panel->SetSizer(range_sizer);
+    range_panel->Hide();
+
+    auto* view_actions = new wxBoxSizer(wxHORIZONTAL);
+    auto* show_range = new wxCheckBox(plot_panel, wxID_ANY, _L("Show range"));
+    show_range->SetFont(Label::Body_12);
+    show_range->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    show_range->SetValue(false);
+    show_range->Bind(wxEVT_CHECKBOX, [this, range_panel](wxCommandEvent& event) {
+        range_panel->Show(event.IsChecked());
+        // Reuse the content's size handler to update orientation and scrollbars.
+        m_content->SendSizeEvent();
+    });
+    view_actions->Add(show_range, 0, wxALIGN_CENTER_VERTICAL);
+    view_actions->AddStretchSpacer();
     auto* fit_range = make_button(plot_panel, _L("Fit curve"));
     fit_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
         update_preview();
         fit_chart();
     });
-    fit_btn_sizer->Add(fit_range, 1, wxEXPAND);
-
-    plot_sizer->Add(ranges, 0, wxALIGN_LEFT | wxTOP, FromDIP(8));
-    m_range_status = new wxStaticText(plot_panel, wxID_ANY, wxEmptyString);
-    m_range_status->SetFont(Label::Body_12);
-    m_range_status->SetForegroundColour(wxColour("#E14747"));
-    m_range_status->Hide();
-    plot_sizer->Add(m_range_status, 0, wxEXPAND | wxTOP, FromDIP(8));
+    view_actions->Add(fit_range, 0, wxLEFT, FromDIP(8));
+    plot_sizer->Add(view_actions, 0, wxEXPAND | wxTOP, FromDIP(8));
+    plot_sizer->Add(range_panel, 0, wxEXPAND | wxTOP, FromDIP(8));
 
     auto* grid_frame = new StaticBox(table_panel);
     grid_frame->SetCornerRadius(FromDIP(4));
@@ -347,17 +367,20 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     plot_panel->SetSizer(plot_sizer);
     table_panel->SetSizer(table_sizer);
     m_content->SetSizer(sizer);
-    m_content->Bind(wxEVT_SIZE, [this, editors, plot_panel, table_panel, help, help_text](wxSizeEvent& event) {
+    m_content->Bind(wxEVT_SIZE, [this, editors, plot_panel, help](wxSizeEvent& event) {
         event.Skip();
         if (m_layout_depth != 0) return;
         const int width = m_content->GetClientSize().x;
-        help->SetLabel(help_text);
+        // Wrap retains the original text. Resetting the label would leave it
+        // unwrapped when wxWidgets skips wrapping again at the same width.
         help->Wrap(std::max(FromDIP(240), width - FromDIP(20)));
-        const int required = plot_panel->GetSizer()->GetMinSize().x + table_panel->GetSizer()->GetMinSize().x + FromDIP(32);
-        const int orientation = width >= required ? wxHORIZONTAL : wxVERTICAL;
-        if (editors->GetOrientation() != orientation) {
-            editors->SetOrientation(orientation);
-            editors->GetItem(plot_panel)->SetFlag(wxEXPAND | (orientation == wxHORIZONTAL ? wxRIGHT : wxBOTTOM));
+        editors->SetOrientation(wxHORIZONTAL);
+        auto* plot_item = editors->GetItem(plot_panel);
+        plot_item->SetFlag(wxEXPAND | wxRIGHT);
+        // Use the sizer's minimum: it includes the 2:1 column proportions and gap.
+        if (width < editors->GetMinSize().x + FromDIP(20)) {
+            editors->SetOrientation(wxVERTICAL);
+            plot_item->SetFlag(wxEXPAND | wxBOTTOM);
         }
         layout_content();
     });
