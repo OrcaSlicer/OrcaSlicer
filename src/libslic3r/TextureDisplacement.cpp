@@ -2313,7 +2313,7 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         stats->triangles_budget  = result.triangles_budget;
         stats->budget_limited    = result.budget_limited;
     }
-    indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry);
+    indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry, &result.face_color);
     if (out.indices.empty())
         return mesh;
     if (flip_normals)
@@ -2334,6 +2334,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                 max_depth = std::max(max_depth, std::abs(layer.depth_mm));
             const float relief_tol = max_depth + paint_tol;
             std::vector<int> palette(out.indices.size(), -1);
+            const std::vector<int> &face_mask      = result.face_color;
+            const bool              have_face_mask = face_mask.size() == out.indices.size();
             tbb::parallel_for(tbb::blocked_range<size_t>(0, out.indices.size()), [&](const tbb::blocked_range<size_t> &r) {
                 for (size_t i = r.begin(); i < r.end(); ++i) {
                     const stl_triangle_vertex_indices &t = out.indices[i];
@@ -2349,8 +2351,19 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                     // reason; this path was the inconsistent one.
                     Vec3f       foot = centroid, base_n = Vec3f::UnitZ();
                     const float d2   = painted_closest(centroid, &foot, &base_n);
-                    if (!all_painted && d2 >= relief_tol * relief_tol)
+                    // Which faces may be coloured comes from the pipeline, which recorded it on the
+                    // refined mesh where the paint mask is exact, and carried it through the collapse,
+                    // the T-junction repair and the weld. Proximity cannot answer this: a displaced face
+                    // is no longer where its base was, so on a part thinner than the relief depth the
+                    // nearest painted surface to the *opposite* face is the painted one, and the texture
+                    // appeared there too. Only the position to sample at still comes from the base
+                    // surface, for the projection reason above.
+                    if (have_face_mask) {
+                        if (face_mask[i] == TextureBake::FACE_UNPAINTED)
+                            continue;
+                    } else if (!all_painted && d2 >= relief_tol * relief_tol) {
                         continue;
+                    }
                     palette[i] = sampler(foot, base_n);
                 }
             });
