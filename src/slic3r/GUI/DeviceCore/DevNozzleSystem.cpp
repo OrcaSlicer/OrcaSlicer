@@ -176,7 +176,9 @@ int DevNozzle::GetLogicExtruderId() const
 {
     int total_ext_count = GetTotalExtruderCount();
 
-    if (GUI::wxGetApp().preset_bundle->is_bbl_vendor()) {
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+                               GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor) {
         if (total_ext_count == 1) {
             return LOGIC_UNIQUE_EXTRUDER_ID;
         } else if (total_ext_count == 2) {
@@ -201,7 +203,9 @@ int DevNozzle::GetLogicExtruderId() const
 
 int DevNozzle::GetExtruderId() const
 {
-    if (GUI::wxGetApp().preset_bundle->is_bbl_vendor()) {
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+                               GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor) {
         int total_ext_count = GetTotalExtruderCount();
         if (total_ext_count == 1) {
             return MAIN_EXTRUDER_ID;

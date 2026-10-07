@@ -221,15 +221,18 @@ wxString DevAms::GetDisplayName() const
 
 int DevAms::GetSlotCount() const
 {
-    // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
-    auto ams_type = GetAmsType();
-    if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
-    {
-        return 4;
-    }
-    else if (ams_type == N3S)
-    {
-        return 1;
+    if (wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+        GUI::wxGetApp().preset_bundle->is_bbl_vendor()) {
+        // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
+        auto ams_type = GetAmsType();
+        if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
+        {
+            return 4;
+        }
+        else if (ams_type == N3S)
+        {
+            return 1;
+        }
     }
 
     return static_cast<int>(m_trays.size());

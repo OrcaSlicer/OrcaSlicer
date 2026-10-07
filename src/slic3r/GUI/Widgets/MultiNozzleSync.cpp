@@ -419,6 +419,14 @@ ExtruderBadge::ExtruderBadge(wxWindow* parent) : wxPanel(parent)
 
 void ExtruderBadge::SetExtruderInfo(int extruder_id, const std::string& diameter, const NozzleVolumeType& volume_type)
 {
+    // The badge renders exactly two extruders (left/right). A generic non-BBL printer with
+    // N > 2 can report an out-of-range id here (see MultiNozzleStatusTable::UpdateRackInfo);
+    // reject it rather than writing past the two-element lists.
+    if (extruder_id < 0 || extruder_id >= static_cast<int>(m_diameter_list.size())) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": out-of-range extruder_id " << extruder_id;
+        return;
+    }
+
     m_diameter_list[extruder_id] = diameter;
     m_volume_type_list[extruder_id] = volume_type;
 
