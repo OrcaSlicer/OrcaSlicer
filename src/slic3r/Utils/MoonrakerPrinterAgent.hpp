@@ -27,6 +27,9 @@ namespace Slic3r {
 class Http;
 
 bool moonraker_is_light_name(const std::string& name);
+// Direction encoded by a light name: +1 turns on, -1 turns off, 0 is an ambiguous toggle.
+// e.g. LIGHT_ON -> +1, LIGHT_OFF -> -1, LIGHT -> 0.
+int moonraker_light_name_direction(const std::string& name);
 
 class MoonrakerWebsocket
 {

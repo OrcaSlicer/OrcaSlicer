@@ -290,6 +290,27 @@ bool moonraker_is_light_name(const std::string& name)
     return lower_name.find("light") != std::string::npos;
 }
 
+int moonraker_light_name_direction(const std::string& name)
+{
+    std::string lower = name;
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    auto has_suffix = [&lower](const std::string& suffix) {
+        return lower.size() >= suffix.size() &&
+               lower.compare(lower.size() - suffix.size(), suffix.size(), suffix) == 0;
+    };
+
+    const bool off = has_suffix("_off") || has_suffix("_disable") || has_suffix("_stop") || has_suffix("_close");
+    const bool on  = has_suffix("_on") || has_suffix("_enable") || has_suffix("_start") || has_suffix("_open");
+
+    if (on && !off)
+        return 1;
+    if (off && !on)
+        return -1;
+    return 0;
+}
+
 MoonrakerPrinterAgent::MoonrakerPrinterAgent(std::string log_dir) : m_cloud_agent(nullptr) { (void) log_dir; }
 
 MoonrakerPrinterAgent::~MoonrakerPrinterAgent() { shutdown(); }
@@ -1402,12 +1423,28 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                     }
                 }
                 if (gcode.empty()) {
-                    for (const auto& object : available_objects) {
-                        const size_t prefix = object.rfind("gcode_macro ", 0) == 0 ? 12 : 0;
-                        if (prefix != 0 && object.size() > prefix && moonraker_is_light_name(object.substr(prefix))) {
-                            gcode = object.substr(prefix);
-                            break;
+                    // gcode_macro: a printer may expose a pair (e.g. LIGHT_ON / LIGHT_OFF).
+                    // Pick the macro whose name encodes the requested direction; only fall
+                    // back to an ambiguous toggle macro when no directional one exists.
+                    // available_objects is a sorted std::set, so without this LIGHT_OFF
+                    // (which sorts first) would be run for both directions.
+                    const int wanted = requested_light_on ? 1 : -1;
+                    auto find_light_macro = [&](int direction) -> std::string {
+                        for (const auto& object : available_objects) {
+                            const size_t prefix = object.rfind("gcode_macro ", 0) == 0 ? 12 : 0;
+                            if (prefix == 0 || object.size() <= prefix) {
+                                continue;
+                            }
+                            const std::string name = object.substr(prefix);
+                            if (moonraker_is_light_name(name) && moonraker_light_name_direction(name) == direction) {
+                                return name;
+                            }
                         }
+                        return {};
+                    };
+                    gcode = find_light_macro(wanted);
+                    if (gcode.empty()) {
+                        gcode = find_light_macro(0);
                     }
                 }
             }
@@ -1474,27 +1511,39 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             return BAMBU_NETWORK_SUCCESS;
         }
 
-        // Print control commands
-        if (cmd == "pause") {
-            auto connection = connection_snapshot();
-            enqueue_command([this, connection = std::move(connection)] {
-                post_print_action("pause", connection);
+        // Print control commands. post_print_action runs on the command queue, so a failure
+        // is reported on the message channel instead of the return value: returning success
+        // here would leave the UI showing a state the printer never entered.
+        auto post_control = [&](const char* action, const char* command_name) {
+            auto        connection = connection_snapshot();
+            std::string sequence_id;
+            if (json["print"].contains("sequence_id") && json["print"]["sequence_id"].is_string()) {
+                sequence_id = json["print"]["sequence_id"].get<std::string>();
+            }
+            const std::string dev = dev_id;
+            enqueue_command([this, dev, action = std::string(action), command_name = std::string(command_name),
+                             sequence_id = std::move(sequence_id), connection = std::move(connection)]() {
+                if (post_print_action(action, connection)) {
+                    return;
+                }
+                nlohmann::json response;
+                response["print"]["command"] = command_name;
+                if (!sequence_id.empty()) {
+                    response["print"]["sequence_id"] = sequence_id;
+                }
+                response["print"]["result"] = "failed";
+                dispatch_message(dev, response.dump());
             });
             return BAMBU_NETWORK_SUCCESS;
+        };
+        if (cmd == "pause") {
+            return post_control("pause", "pause");
         }
         if (cmd == "resume") {
-            auto connection = connection_snapshot();
-            enqueue_command([this, connection = std::move(connection)] {
-                post_print_action("resume", connection);
-            });
-            return BAMBU_NETWORK_SUCCESS;
+            return post_control("resume", "resume");
         }
         if (cmd == "stop") {
-            auto connection = connection_snapshot();
-            enqueue_command([this, connection = std::move(connection)] {
-                post_print_action("cancel", connection);
-            });
-            return BAMBU_NETWORK_SUCCESS;
+            return post_control("cancel", "stop");
         }
 
         // Bed temperature - UI sends "temp" field
