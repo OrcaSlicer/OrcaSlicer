@@ -77,7 +77,11 @@ class MockBroker
 public:
     // refuse_auth: answer every CONNECT with CONNACK rc 5 (not authorized) and
     // close, so the reconnect/refusal paths can be exercised.
-    explicit MockBroker(bool refuse_auth = false) : m_refuse_auth(refuse_auth), m_acceptor(m_io)
+    // stall_connack: accept the WebSocket upgrade and the CONNECT but never answer,
+    // so the client's synchronous handshake can be exercised against a peer that
+    // stops responding.
+    explicit MockBroker(bool refuse_auth = false, bool stall_connack = false)
+        : m_refuse_auth(refuse_auth), m_stall_connack(stall_connack), m_acceptor(m_io)
     {
         const tcp::endpoint endpoint(net::ip::make_address("127.0.0.1"), 0);
         m_acceptor.open(endpoint.protocol());
@@ -122,6 +126,20 @@ public:
         boost::system::error_code ec;
         m_stream->binary(true);
         m_stream->write(net::buffer(packet), ec); // a vanished client is not a test failure
+    }
+
+    // Write arbitrary bytes as one binary WebSocket message, without the topic
+    // filter push_report applies. Lets a test split a single MQTT packet across
+    // messages or coalesce several packets into one - the two framings the real
+    // OrcaSonar /mqtt proxy produces with its 8 KiB reads.
+    void push_raw(const std::string& bytes)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (!m_stream || !m_stream_ready)
+            return;
+        boost::system::error_code ec;
+        m_stream->binary(true);
+        m_stream->write(net::buffer(bytes), ec);
     }
 
     // Force-close the live client socket; the worker's read returns an error and
@@ -237,6 +255,8 @@ private:
                 write_packet(stream, {0x20, 0x02, 0x00, 0x05}); // CONNACK not authorized
                 return false;
             }
+            if (m_stall_connack)
+                return true; // accepted, never answered: the client's read blocks
             write_packet(stream, {0x20, 0x02, 0x00, 0x00}); // CONNACK accepted
             return true;
         }
@@ -364,6 +384,7 @@ private:
     }
 
     const bool                                   m_refuse_auth;
+    const bool                                   m_stall_connack;
     net::io_context                              m_io;
     tcp::acceptor                                m_acceptor;
     std::string                                  m_port;

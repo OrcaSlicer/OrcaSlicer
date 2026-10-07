@@ -28,6 +28,7 @@
 #include <cstdint>
 #include <mutex>
 #include <cstddef>
+#include <boost/system/error_code.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
 #include <boost/beast/websocket/stream_base.hpp>
 #include <ios>
@@ -53,6 +54,10 @@ struct OrcaMqttConnection::Connection {
     boost::asio::ip::tcp::resolver resolver;
     boost::asio::steady_timer keepalive_timer;
     boost::beast::flat_buffer read_buffer;
+    // Reassembly buffer for the MQTT byte stream: each WebSocket message carries an
+    // arbitrary byte range of that stream, so partial packets accumulate here until
+    // complete. Only the MQTT worker thread touches it.
+    std::string mqtt_rx;
     std::deque<std::shared_ptr<std::vector<uint8_t>>> outbound_packets;
     boost::system::error_code terminal_error;
     std::atomic_bool async_session_started{false};
@@ -80,6 +85,37 @@ template<class Conn> void expires_after(Conn& conn, std::chrono::seconds timeout
 template<class Conn> void expires_never(Conn& conn) {
     if (conn.wss)     boost::beast::get_lowest_layer(*conn.wss).expires_never();
     else if (conn.ws) boost::beast::get_lowest_layer(*conn.ws).expires_never();
+}
+
+// Total byte length of the MQTT packet starting at `offset` in `stream`. Returns
+// kMqttPacketIncomplete when the fixed header's remaining-length varint is not yet
+// complete, or kMqttPacketMalformed when it cannot be valid (more than four length
+// bytes, or a declared size past the sanity cap). The caller compares a real length
+// against the bytes available.
+constexpr std::size_t kMqttPacketIncomplete = 0;
+constexpr std::size_t kMqttPacketMalformed  = static_cast<std::size_t>(-1);
+// MQTT permits ~256 MiB; nothing this client receives is close, so a larger
+// declared length is treated as malformed rather than buffered.
+constexpr std::size_t kMqttMaxPacketBytes = 16 * 1024 * 1024;
+
+std::size_t mqtt_packet_length(const std::string& stream, std::size_t offset) {
+    if (offset >= stream.size())
+        return kMqttPacketIncomplete;
+    std::size_t multiplier = 1;
+    std::size_t remaining  = 0;
+    std::size_t i          = offset + 1;
+    for (int len_bytes = 0; len_bytes < 4; ++len_bytes) {
+        if (i >= stream.size())
+            return kMqttPacketIncomplete; // varint not complete yet
+        const std::uint8_t byte = static_cast<std::uint8_t>(stream[i++]);
+        remaining += static_cast<std::size_t>(byte & 0x7f) * multiplier;
+        if ((byte & 0x80) == 0) {
+            const std::size_t total = (i - offset) + remaining;
+            return total > kMqttMaxPacketBytes ? kMqttPacketMalformed : total;
+        }
+        multiplier *= 128;
+    }
+    return kMqttPacketMalformed; // more than four length bytes
 }
 } // namespace
 
@@ -424,15 +460,53 @@ void OrcaMqttConnection::start_async_read(const std::shared_ptr<Connection>& con
             conn->io_context.stop();
             return;
         }
-        const std::string packet = boost::beast::buffers_to_string(conn->read_buffer.data());
+        const std::string message = boost::beast::buffers_to_string(conn->read_buffer.data());
         conn->read_buffer.consume(conn->read_buffer.size());
-        handle_packet(packet);
+        feed_mqtt(*conn, message);
         start_async_read(conn);
     };
     if (conn->wss)
         conn->wss->async_read(conn->read_buffer, std::move(on_read));
     else if (conn->ws)
         conn->ws->async_read(conn->read_buffer, std::move(on_read));
+}
+
+bool OrcaMqttConnection::drain_mqtt_packets(std::string& stream, std::vector<std::string>& packets) {
+    std::size_t consumed = 0;
+    bool        ok       = true;
+    while (consumed < stream.size()) {
+        const std::size_t total = mqtt_packet_length(stream, consumed);
+        if (total == kMqttPacketIncomplete)
+            break; // wait for the rest of the stream
+        if (total == kMqttPacketMalformed) {
+            ok = false;
+            break;
+        }
+        if (consumed + total > stream.size())
+            break; // header complete, payload still arriving
+        packets.emplace_back(stream, consumed, total);
+        consumed += total;
+    }
+    if (consumed > 0)
+        stream.erase(0, consumed);
+    if (!ok)
+        stream.clear(); // drop the poisoned tail; the caller closes the connection
+    return ok;
+}
+
+void OrcaMqttConnection::feed_mqtt(Connection& conn, const std::string& bytes) {
+    conn.mqtt_rx.append(bytes);
+    std::vector<std::string> packets;
+    if (!drain_mqtt_packets(conn.mqtt_rx, packets)) {
+        // A malformed header can never resync; drop the session so the worker
+        // reconnects with a clean MQTT stream instead of buffering forever.
+        if (!stopping.load())
+            conn.terminal_error = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        conn.io_context.stop();
+        return;
+    }
+    for (const std::string& packet : packets)
+        handle_packet(packet);
 }
 
 void OrcaMqttConnection::schedule_keepalive(const std::shared_ptr<Connection>& conn) {
@@ -604,8 +678,9 @@ void OrcaMqttConnection::connect_and_read() {
         // disable it before starting the long-lived async WebSocket session.
         expires_never(*connection);
         const std::string connack = boost::beast::buffers_to_string(buffer.data());
-        // rc: 0 accepted, 1..5 refusal, -1 malformed/not a CONNACK.
-        const int rc = (connack.size() == 4 && static_cast<uint8_t>(connack[0]) == 0x20)
+        // rc: 0 accepted, 1..5 refusal, -1 not a CONNACK. A WebSocket message may
+        // carry more than the CONNACK; only its first four bytes are the CONNACK.
+        const int rc = (connack.size() >= 4 && static_cast<uint8_t>(connack[0]) == 0x20)
                            ? static_cast<int>(static_cast<uint8_t>(connack[3]))
                            : -1;
         m_last_connack_rc.store(rc);
@@ -624,6 +699,11 @@ void OrcaMqttConnection::connect_and_read() {
             throw std::runtime_error("Orca MQTT CONNECT refused rc=" + std::to_string(rc));
         }
 
+        // Any bytes the broker sent after the 4-byte CONNACK in the same message
+        // start the MQTT stream; keep them for the reassembler.
+        if (connack.size() > 4)
+            connection->mqtt_rx.assign(connack, 4, std::string::npos);
+
         // The subscription acknowledgement belongs to this MQTT session. Clear
         // the previous session's state before notifying the owner, because the
         // reconnect callback immediately queues the printer's initial requests.
@@ -636,6 +716,7 @@ void OrcaMqttConnection::connect_and_read() {
         notify_state(true);
         reconnect_delay_seconds.store(1); // a fresh CONNACK resets the backoff
         send_current_subscriptions(connection);
+        feed_mqtt(*connection, {}); // drain anything that rode in with the CONNACK
         start_async_read(connection);
         schedule_keepalive(connection);
     const std::size_t handlers_run = connection->io_context.run();
