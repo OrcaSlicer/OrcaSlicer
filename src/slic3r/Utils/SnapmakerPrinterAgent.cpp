@@ -222,13 +222,9 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (sync_mode != get_filament_sync_mode())
         return false;
 
-    std::string base_url;
-    std::string api_key;
-    {
-        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
-        base_url = device_info.base_url;
-        api_key  = device_info.api_key;
-    }
+    // Snapshot everything the fetch needs (URL, api key, TLS/CA): a reconnect can rewrite
+    // device_info meanwhile.
+    const ConnectionSettings connection = get_connection_settings();
 
     // Reserve under the same mutex shutdown() uses, so the flag and the count can't race.
     {
@@ -239,17 +235,18 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     }
 
     InFlightGuard guard{filament_fetch_in_flight};
-    std::thread([this, guard = std::move(guard), base_url, api_key]() {
+    std::thread([this, guard = std::move(guard), connection]() {
         try {
-            const std::string url = join_url(base_url, "/printer/objects/query?print_task_config&filament_detect");
+            const std::string url = join_url(connection.base_url, "/printer/objects/query?print_task_config&filament_detect");
 
             std::string response_body;
             bool success = false;
             std::string http_error;
 
             auto http = Http::get(url);
-            if (!api_key.empty()) {
-                http.header("X-Api-Key", api_key);
+            configure_http(http, connection);
+            if (!connection.api_key.empty()) {
+                http.header("X-Api-Key", connection.api_key);
             }
             http.timeout_connect(5)
                 .timeout_max(10)

@@ -21,6 +21,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/ssl/host_name_verification.hpp>
 #include <boost/asio/ssl/verify_mode.hpp>
 #include <boost/asio/ssl/stream_base.hpp>
 #include <boost/beast/core.hpp>
@@ -193,6 +194,10 @@ void MoonrakerWebsocket::tls_handshake(const std::string& host)
     if (!SSL_set_tlsext_host_name(tls_stream.native_handle(), host.c_str())) {
         throw std::runtime_error("Moonraker WSS: failed to set TLS server name");
     }
+
+    // verify_peer only validates the chain; also require the leaf certificate to match the
+    // host we asked for, otherwise any cert chaining to a trusted CA is accepted.
+    tls_stream.set_verify_callback(net::ssl::host_name_verification(host));
 
     tls_stream.handshake(net::ssl::stream_base::client);
 }
