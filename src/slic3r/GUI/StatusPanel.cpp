@@ -26,6 +26,7 @@
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/Widgets/ProgressBar.hpp"
 #include "libslic3r/calib.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <boost/log/trivial.hpp>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/CameraPopup.hpp"
@@ -3171,6 +3172,7 @@ void StatusPanel::update(MachineObject *obj)
     }
 
     update_temp_ctrl(obj);
+    check_extruder_count_mismatch(obj);
     update_misc_ctrl(obj);
 
     update_ams(obj);
@@ -3364,6 +3366,40 @@ void StatusPanel::show_printing_status(bool ctrl_area, bool temp_area)
         m_switch_cham_fan->Enable();*/
         m_switch_fan->Enable();
     }
+}
+
+void StatusPanel::check_extruder_count_mismatch(MachineObject* obj)
+{
+    if (!obj || !wxGetApp().preset_bundle)
+        return;
+
+    // The generic N-extruder layout and virtual-tray recognition are derived from the selected
+    // printer preset's nozzle_diameter count, while the connected device is authoritative for its
+    // own toolhead count. Warn once per change when they disagree, so a misconfigured preset is
+    // visible instead of silently producing wrong layout/mapping. (PR #15905 review, S5.)
+    if (wxGetApp().preset_bundle->is_bbl_vendor())
+        return;
+
+    auto* ext_system = obj->GetExtderSystem();
+    if (!ext_system)
+        return;
+
+    const int device_count = ext_system->GetTotalExtderCount();
+    const int preset_count = wxGetApp().preset_bundle->get_printer_extruder_count();
+    const std::string dev_id = obj->get_dev_id();
+    if (dev_id == m_last_mismatch_dev_id && device_count == m_last_mismatch_device_count &&
+        preset_count == m_last_mismatch_preset_count)
+        return;
+
+    m_last_mismatch_dev_id         = dev_id;
+    m_last_mismatch_device_count   = device_count;
+    m_last_mismatch_preset_count   = preset_count;
+    if (device_count != preset_count)
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": connected device reports " << device_count
+                                   << " toolhead(s) but the selected printer preset declares " << preset_count
+                                   << " nozzle_diameter entr" << (preset_count == 1 ? "y" : "ies")
+                                   << "; select a printer matching the device, otherwise the N-extruder layout and "
+                                   << "virtual-tray recognition may be wrong";
 }
 
 void StatusPanel::update_temp_ctrl(MachineObject *obj)

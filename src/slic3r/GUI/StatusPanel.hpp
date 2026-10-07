@@ -531,6 +531,11 @@ protected:
     std::vector<TempInput*> m_tempCtrl_nozzles;
     std::vector<int> m_temp_nozzle_timeouts;
 
+    // Last (dev_id, device toolhead count, preset nozzle count) we warned about, to avoid log spam.
+    std::string m_last_mismatch_dev_id;
+    int         m_last_mismatch_device_count{-1};
+    int         m_last_mismatch_preset_count{-1};
+
     TempInput *     m_tempCtrl_bed;
     int             m_temp_bed_timeout {0};
     TempInput *     m_tempCtrl_chamber;
@@ -826,6 +831,7 @@ protected:
     void update_cloud_subtask(MachineObject *obj);
     void update_sdcard_subtask(MachineObject *obj);
     void update_temp_ctrl(MachineObject *obj);
+    void check_extruder_count_mismatch(MachineObject* obj);
     void update_misc_ctrl(MachineObject *obj);
     void update_ams(MachineObject* obj);
     void update_rack(MachineObject* obj);
