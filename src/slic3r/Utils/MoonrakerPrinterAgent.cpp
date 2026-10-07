@@ -567,11 +567,13 @@ int MoonrakerPrinterAgent::set_user_selected_machine(std::string dev_id)
 
 int MoonrakerPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
+    // Moonraker has no cloud print path; report honestly instead of a false success
+    // (the LAN path goes through start_local_print).
     (void) params;
     (void) update_fn;
     (void) cancel_fn;
     (void) wait_fn;
-    return BAMBU_NETWORK_SUCCESS;
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 }
 
 int MoonrakerPrinterAgent::start_local_print_with_record(PrintParams      params,
@@ -579,11 +581,12 @@ int MoonrakerPrinterAgent::start_local_print_with_record(PrintParams      params
                                                          WasCancelledFn   cancel_fn,
                                                          OnWaitFn         wait_fn)
 {
+    // No record/cloud variant for Moonraker; the LAN path goes through start_local_print.
     (void) params;
     (void) update_fn;
     (void) cancel_fn;
     (void) wait_fn;
-    return BAMBU_NETWORK_SUCCESS;
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 }
 
 int MoonrakerPrinterAgent::start_send_gcode_to_sdcard(PrintParams      params,
@@ -695,10 +698,12 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
+    // Printing a file straight from the printer's storage is not implemented; say so
+    // instead of reporting success for a no-op.
     (void) params;
     (void) update_fn;
     (void) cancel_fn;
-    return BAMBU_NETWORK_SUCCESS;
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 }
 
 int MoonrakerPrinterAgent::set_on_ssdp_msg_fn(OnMsgArrivedFn fn)
@@ -1951,49 +1956,59 @@ bool MoonrakerPrinterAgent::fetch_webcam_info(const ConnectionSettings& connecti
     std::string webcam_name;
     CameraStreamMode stream_mode = CameraStreamMode::none;
     std::string error;
+    // A subclass may name its stream directly (e.g. a fixed webcam path with no
+    // /server/webcams/list entry); consult it before doing any HTTP.
+    const std::string override_url = webcam_stream_override(connection.base_url);
     try {
-        std::string response_body;
-        bool        success = false;
-        std::string http_error;
-
-        auto http = Http::get(join_url(connection.base_url, "/server/webcams/list"));
-        configure_http(http, connection);
-        if (!connection.api_key.empty()) {
-            http.header("X-Api-Key", connection.api_key);
-        }
-        http.timeout_connect(5)
-            .timeout_max(10)
-            .on_complete([&](std::string body, unsigned status_code) {
-                if (status_code == 200) {
-                    response_body = body;
-                    success       = true;
-                } else {
-                    http_error = "HTTP error: " + std::to_string(status_code);
-                }
-            })
-            .on_error([&](std::string body, std::string err, unsigned status_code) {
-                http_error = err;
-                if (status_code > 0) {
-                    http_error += " (HTTP " + std::to_string(status_code) + ")";
-                }
-            })
-            .perform_sync();
-
-        if (!success) {
-            error = http_error.empty() ? "Connection failed" : http_error;
+        if (!override_url.empty()) {
+            camera_url  = override_url;
+            stream_mode = (override_url.rfind("rtsp://", 0) == 0 || override_url.rfind("rtsps://", 0) == 0)
+                              ? CameraStreamMode::rtsp
+                              : CameraStreamMode::http;
         } else {
-            BOOST_LOG_TRIVIAL(info) << "[Moonraker Diagnostic] " << connection.base_url << ":" << response_body;
-            auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-            if (json.is_discarded()) {
-                error = "Invalid JSON response";
+            std::string response_body;
+            bool        success = false;
+            std::string http_error;
+
+            auto http = Http::get(join_url(connection.base_url, "/server/webcams/list"));
+            configure_http(http, connection);
+            if (!connection.api_key.empty()) {
+                http.header("X-Api-Key", connection.api_key);
+            }
+            http.timeout_connect(5)
+                .timeout_max(10)
+                .on_complete([&](std::string body, unsigned status_code) {
+                    if (status_code == 200) {
+                        response_body = body;
+                        success       = true;
+                    } else {
+                        http_error = "HTTP error: " + std::to_string(status_code);
+                    }
+                })
+                .on_error([&](std::string body, std::string err, unsigned status_code) {
+                    http_error = err;
+                    if (status_code > 0) {
+                        http_error += " (HTTP " + std::to_string(status_code) + ")";
+                    }
+                })
+                .perform_sync();
+
+            if (!success) {
+                error = http_error.empty() ? "Connection failed" : http_error;
             } else {
-                MoonrakerWebcamSelection selection;
-                if (moonraker_parse_webcam_list(json, connection.base_url, selection)) {
-                    camera_url  = selection.url;
-                    stream_mode = selection.mode;
-                    webcam_name = selection.name;
+                BOOST_LOG_TRIVIAL(info) << "[Moonraker Diagnostic] " << connection.base_url << ":" << response_body;
+                auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+                if (json.is_discarded()) {
+                    error = "Invalid JSON response";
                 } else {
-                    error = selection.error;
+                    MoonrakerWebcamSelection selection;
+                    if (moonraker_parse_webcam_list(json, connection.base_url, selection)) {
+                        camera_url  = selection.url;
+                        stream_mode = selection.mode;
+                        webcam_name = selection.name;
+                    } else {
+                        error = selection.error;
+                    }
                 }
             }
         }
@@ -2033,7 +2048,7 @@ bool MoonrakerPrinterAgent::post_print_action(const std::string& action,
     // /printer/gcode/script waits behind the gcode queue and can no-op while the
     // printer is busy (long move, heating, inside a macro).
     // note: empty JSON body avoids a body-less POST (curl would treat it as a
-    // streamed upload) - same reason start_print_file sends a body.
+    // streamed upload and fail).
     const std::string full_url = join_url(connection.base_url, "/printer/print/" + action);
     bool              success  = false;
     std::string       http_error;
@@ -3155,84 +3170,6 @@ int MoonrakerPrinterAgent::cancel_print(const std::string& dev_id)
 {
     (void) dev_id;
     return post_print_action("cancel") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
-}
-
-bool MoonrakerPrinterAgent::start_print_file(const ConnectionSettings& connection,
-                                             const std::string& filename,
-                                             std::string&       error_msg) const
-{
-    // Start the given file (path relative to the gcodes root). The filename is
-    // sent both as a query parameter and in the JSON body: Moonraker accepts
-    // either, and sending a body avoids a body-less POST (which curl would treat
-    // as a streamed upload and try to read via the file-read callback).
-    std::string url = join_url(connection.base_url, "/printer/print/start") +
-                      "?filename=" + Http::url_encode(filename);
-
-    nlohmann::json payload;
-    payload["filename"] = filename;
-
-    bool success = false;
-
-    auto http = Http::post(url);
-    configure_http(http, connection);
-    if (!connection.api_key.empty()) {
-        http.header("X-Api-Key", connection.api_key);
-    }
-    http.header("Content-Type", "application/json")
-        .set_post_body(payload.dump())
-        .timeout_connect(5)
-        .timeout_max(10)
-        .on_complete([&](std::string body, unsigned status) {
-            (void) body;
-            if (status == 200) {
-                success = true;
-            } else {
-                error_msg = "HTTP " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            (void) body;
-            error_msg = err;
-            if (status > 0) {
-                error_msg += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
-
-    if (success) {
-        return true;
-    }
-
-    // Moonraker holds the /printer/print/start response until the print actually
-    // begins, so a slow PRINT_START (heating, homing, bed mesh) can exceed our HTTP
-    // timeout even though the command was accepted and the print is starting. Don't
-    // report failure on the HTTP result alone: poll print_stats and treat a
-    // printing/paused state as success. print_stats.state flips to "printing" as soon
-    // as the file starts streaming, which is earlier than the held HTTP response.
-    BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: start print not confirmed over HTTP (" << error_msg
-                               << "); verifying print_stats state";
-    for (int attempt = 0; attempt < 10; ++attempt) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
-        nlohmann::json status;
-        std::string    query_err;
-        if (!query_printer_status(connection, status, query_err)) {
-            continue;
-        }
-
-        std::string state;
-        if (status.contains("print_stats") && status["print_stats"].contains("state") &&
-            status["print_stats"]["state"].is_string()) {
-            state = status["print_stats"]["state"].get<std::string>();
-        }
-        if (state == "printing" || state == "paused") {
-            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: print confirmed started (print_stats.state=" << state << ")";
-            return true;
-        }
-    }
-
-    BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: start print failed: " << error_msg << ", url: " << url;
-    return false;
 }
 
 void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id,

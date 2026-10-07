@@ -589,13 +589,19 @@ int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateS
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
+    // dispatch_start() moves out of `params`, so snapshot the diagnostic fields first;
+    // logging them after the call would print empty strings.
+    const bool        try_emmc_print = params.try_emmc_print;
+    const std::string dev_ip         = params.dev_ip;
+    const std::string dev_id         = params.dev_id;
+
     int result = dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
         BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
     if (result != 0) {
         BOOST_LOG_TRIVIAL(error) << "start_send_gcode_to_sdcard failed: result=" << result
-            << ", try_emmc_print=" << params.try_emmc_print
+            << ", try_emmc_print=" << try_emmc_print
             << ", legacy_mode=" << BBLNetworkPlugin::instance().use_legacy_network()
-            << ", dev_ip=" << params.dev_ip << ", dev_id=" << params.dev_id;
+            << ", dev_ip=" << dev_ip << ", dev_id=" << dev_id;
     }
     return result;
 }

@@ -101,6 +101,8 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
         std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
         if (shutting_down.load())
             return false;
+        if (filament_fetch_in_flight.load() > 0)
+            return true; // a fetch is already running; don't pile on
         filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
     }
 
@@ -157,42 +159,40 @@ bool QidiPrinterAgent::apply_box_mapping(const PrintParams& params) const
     // switch this gate to HasAms()/box_count instead.)
     const int         enable = params.task_use_ams ? 1 : 0;
     const std::string dev_id = get_connection_settings().dev_id;
-    if (!send_gcode(dev_id, "SAVE_VARIABLE VARIABLE=enable_box VALUE=" + std::to_string(enable))) {
-        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to set enable_box";
-        return false;
-    }
+
+    // Build one gcode/script request instead of N blocking HTTP calls: apply_box_mapping
+    // runs on the caller's (GUI) thread before the print starts, so per-tool round trips
+    // would freeze the UI.
+    std::string script = "SAVE_VARIABLE VARIABLE=enable_box VALUE=" + std::to_string(enable);
 
     // When the box isn't used this job, leave the existing value_t<tool> slot
     // assignments untouched (enable_box=0 is enough to disengage it).
-    if (!enable)
-        return true;
-
-    if (params.ams_mapping.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::apply_box_mapping: enable_box set but ams_mapping is empty";
-        return true;
-    }
-
-    // ams_mapping (v0) is a JSON array indexed by filament/tool; each value is the
-    // physical box slot (-1 = unmapped). Mirror it onto the printer's value_t<tool>
-    // variables: SAVE_VARIABLE VARIABLE=value_t<tool> VALUE='slot<n>'.
-    auto mapping = nlohmann::json::parse(params.ams_mapping, nullptr, /*allow_exceptions*/ false);
-    if (mapping.is_discarded() || !mapping.is_array()) {
-        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: invalid ams_mapping: " << params.ams_mapping;
-        return false;
-    }
-
-    for (size_t tool = 0; tool < mapping.size(); ++tool) {
-        if (!mapping[tool].is_number_integer())
-            continue;
-        const int slot = mapping[tool].get<int>();
-        if (slot < 0)
-            continue; // unmapped filament — skip
-        const std::string gcode = "SAVE_VARIABLE VARIABLE=value_t" + std::to_string(tool) +
-                                  " VALUE=\"'slot" + std::to_string(slot) + "'\"";
-        if (!send_gcode(dev_id, gcode)) {
-            BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to set value_t" << tool;
-            return false;
+    if (enable) {
+        if (params.ams_mapping.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::apply_box_mapping: enable_box set but ams_mapping is empty";
+        } else {
+            // ams_mapping (v0) is a JSON array indexed by filament/tool; each value is the
+            // physical box slot (-1 = unmapped). Mirror it onto value_t<tool>.
+            auto mapping = nlohmann::json::parse(params.ams_mapping, nullptr, /*allow_exceptions*/ false);
+            if (mapping.is_discarded() || !mapping.is_array()) {
+                BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: invalid ams_mapping: " << params.ams_mapping;
+                return false;
+            }
+            for (size_t tool = 0; tool < mapping.size(); ++tool) {
+                if (!mapping[tool].is_number_integer())
+                    continue;
+                const int slot = mapping[tool].get<int>();
+                if (slot < 0)
+                    continue; // unmapped filament — skip
+                script += "\nSAVE_VARIABLE VARIABLE=value_t" + std::to_string(tool) +
+                          " VALUE=\"'slot" + std::to_string(slot) + "'\"";
+            }
         }
+    }
+
+    if (!send_gcode(dev_id, script)) {
+        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to send box mapping";
+        return false;
     }
     return true;
 }
@@ -213,8 +213,9 @@ int QidiPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn
 
 int QidiPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
+    // A failed box mapping is a send failure, not an upload failure.
     if (!apply_box_mapping(params))
-        return BAMBU_NETWORK_ERR_PRINT_WR_UPLOAD_FTP_FAILED;
+        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     return MoonrakerPrinterAgent::start_local_print_with_record(std::move(params), update_fn, cancel_fn, wait_fn);
 }
 

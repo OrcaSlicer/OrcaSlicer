@@ -31,6 +31,33 @@ namespace Slic3r { class IPrinterAgent; }
 using namespace Slic3r;
 namespace py = pybind11;
 
+namespace {
+
+// Releases a promise on scope exit, so a throwing REQUIRE cannot leave a parked detached
+// thread (and any destructor that joins it) blocked forever.
+class ScopedPromiseRelease
+{
+public:
+    explicit ScopedPromiseRelease(std::shared_ptr<std::promise<void>> p) : m_p(std::move(p)) {}
+    ~ScopedPromiseRelease()
+    {
+        if (m_p) {
+            try {
+                m_p->set_value();
+            } catch (...) {
+                // promise already satisfied
+            }
+        }
+    }
+    ScopedPromiseRelease(const ScopedPromiseRelease&) = delete;
+    ScopedPromiseRelease& operator=(const ScopedPromiseRelease&) = delete;
+
+private:
+    std::shared_ptr<std::promise<void>> m_p;
+};
+
+} // namespace
+
 class MoonrakerParserProbe : public MoonrakerPrinterAgent
 {
 public:
@@ -202,25 +229,31 @@ TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited
     public:
         explicit RecordingAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
-        std::atomic<bool>  invoked{false};
-        std::promise<void> release_gate;
-        std::promise<void> done_promise;
+        // Shared so the detached proxy fetch never touches `this`: a throwing REQUIRE
+        // then cannot leave it dereferencing a destroyed agent.
+        std::shared_ptr<std::atomic<bool>>  invoked{std::make_shared<std::atomic<bool>>(false)};
+        std::shared_ptr<std::promise<void>> release_gate{std::make_shared<std::promise<void>>()};
+        std::shared_ptr<std::promise<void>> done_promise{std::make_shared<std::promise<void>>()};
 
         bool fetch_filament_info(std::string /*dev_id*/, FilamentSyncMode /*sync_mode*/ = FilamentSyncMode::pull) override
         {
-            std::thread([this]() {
-                invoked.store(true);
+            auto invoked_p      = invoked;
+            auto release_gate_p = release_gate;
+            auto done_promise_p = done_promise;
+            std::thread([invoked_p, release_gate_p, done_promise_p]() {
+                invoked_p->store(true);
                 // Block here until the test explicitly releases us, proving the caller
                 // (fetch_filament_info) does not wait for this to run.
-                release_gate.get_future().wait();
-                done_promise.set_value();
+                release_gate_p->get_future().wait();
+                done_promise_p->set_value();
             }).detach();
             return true;
         }
     };
 
     auto agent = std::make_shared<RecordingAgent>(std::string{});
-    auto done_future = agent->done_promise.get_future();
+    auto done_future = agent->done_promise->get_future();
+    ScopedPromiseRelease release_gate_guard{agent->release_gate};
 
     bool immediate_result = agent->fetch_filament_info("test-dev");
 
@@ -230,9 +263,9 @@ TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited
     REQUIRE(done_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
 
     // Now let the background call finish and confirm it actually ran (polymorphic dispatch).
-    agent->release_gate.set_value();
+    agent->release_gate->set_value();
     REQUIRE(done_future.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
-    REQUIRE(agent->invoked.load() == true);
+    REQUIRE(agent->invoked->load() == true);
 }
 
 namespace {
@@ -241,17 +274,33 @@ namespace {
 std::atomic<int>  g_deferred_fetch_running{0};
 std::atomic<bool> g_deferred_destroy_returned{false};
 
-// Joins on scope exit so a throwing REQUIRE does not std::terminate.
+// Releases the given gates, then joins on scope exit: so a throwing REQUIRE cannot leave
+// the thread blocked (deadlocking the join) or let it std::terminate.
 class ScopedJoiner
 {
 public:
-    explicit ScopedJoiner(std::thread& t) : m_thread(t) {}
-    ~ScopedJoiner() { if (m_thread.joinable()) m_thread.join(); }
+    ScopedJoiner(std::thread& t, std::shared_ptr<std::promise<void>> gate1, std::shared_ptr<std::promise<void>> gate2)
+        : m_thread(t), m_gates{std::move(gate1), std::move(gate2)}
+    {}
+    ~ScopedJoiner()
+    {
+        for (auto& gate : m_gates) {
+            if (gate) {
+                try {
+                    gate->set_value();
+                } catch (...) {
+                    // promise already satisfied
+                }
+            }
+        }
+        if (m_thread.joinable()) m_thread.join();
+    }
     ScopedJoiner(const ScopedJoiner&) = delete;
     ScopedJoiner& operator=(const ScopedJoiner&) = delete;
 
 private:
-    std::thread& m_thread;
+    std::thread&                        m_thread;
+    std::shared_ptr<std::promise<void>> m_gates[2];
 };
 
 // A fetch that parks before touching the in-flight counter, so teardown's wait can
@@ -265,6 +314,7 @@ public:
     std::shared_ptr<std::promise<void>> entered{std::make_shared<std::promise<void>>()};
     std::shared_ptr<std::promise<void>> allow_fetch{std::make_shared<std::promise<void>>()};
     std::shared_ptr<std::promise<void>> allow_finish{std::make_shared<std::promise<void>>()};
+    std::shared_ptr<std::promise<void>> running{std::make_shared<std::promise<void>>()};
 
     // Runs the callable on the command worker, which teardown joins.
     void post(std::function<void()> fn) { enqueue_command(std::move(fn)); }
@@ -275,12 +325,13 @@ public:
         auto entered_p      = entered;
         auto allow_fetch_p  = allow_fetch;
         auto allow_finish_p = allow_finish;
+        auto running_p      = running;
 
         entered_p->set_value();
         allow_fetch_p->get_future().wait();
 
         filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
-        std::thread([this, finish = std::move(allow_finish_p)] {
+        std::thread([this, finish = std::move(allow_finish_p), running = std::move(running_p)] {
             struct InFlightGuard
             {
                 MoonrakerPrinterAgent& owner;
@@ -288,6 +339,7 @@ public:
             } guard{*this};
 
             g_deferred_fetch_running.fetch_add(1, std::memory_order_relaxed);
+            running->set_value();
             finish->get_future().wait();
             g_deferred_fetch_running.fetch_sub(1, std::memory_order_relaxed);
         }).detach();
@@ -310,6 +362,12 @@ TEST_CASE("an agent's destruction waits for a fetch started by its worker during
     auto entered      = agent->entered;
     auto allow_fetch  = agent->allow_fetch;
     auto allow_finish = agent->allow_finish;
+    auto running      = agent->running;
+
+    // Safety net for the pre-destroyer failure paths: release both gates before the
+    // agent is destroyed (declared after it, so destroyed before it).
+    ScopedPromiseRelease release_finish{allow_finish};
+    ScopedPromiseRelease release_fetch{allow_fetch};
 
     // Park a fetch inside the command worker while the agent is still complete.
     agent->post([ptr = agent.get()] { ptr->fetch_filament_info("dev", FilamentSyncMode::pull); });
@@ -320,15 +378,13 @@ TEST_CASE("an agent's destruction waits for a fetch started by its worker during
         owned.reset();
         g_deferred_destroy_returned.store(true);
     });
-    ScopedJoiner join_destroyer{destroyer};
+    // Releases both gates before joining, so a failing REQUIRE cannot deadlock the join.
+    ScopedJoiner join_destroyer{destroyer, allow_fetch, allow_finish};
 
-    // Let teardown pass its wait; the worker has not reserved yet.
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    // Let the worker reserve the in-flight slot and spawn its fetch, then wait until it
+    // is genuinely parked (no polling).
     allow_fetch->set_value();
-
-    // Get the fetch actually in flight (parked on allow_finish).
-    for (int i = 0; i < 200 && g_deferred_fetch_running.load() == 0; ++i)
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    REQUIRE(running->get_future().wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     REQUIRE(g_deferred_fetch_running.load() == 1);
 
     // A correct teardown cannot return while the fetch is parked; give a buggy one time.

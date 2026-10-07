@@ -267,11 +267,6 @@ private:
                       const ConnectionSettings& connection,
                       OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 
-    // Start a print of a previously uploaded G-code file (path relative to the
-    // Moonraker gcodes root).
-    bool start_print_file(const ConnectionSettings& connection,
-                          const std::string& filename, std::string& error_msg) const;
-
     // Connection thread management
     void perform_connection_async(const std::string& dev_id,
                                    ConnectionSettings connection,

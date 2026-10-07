@@ -231,6 +231,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
         std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
         if (shutting_down.load())
             return false;
+        if (filament_fetch_in_flight.load() > 0)
+            return true; // a fetch is already running; don't pile on
         filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
     }
 
