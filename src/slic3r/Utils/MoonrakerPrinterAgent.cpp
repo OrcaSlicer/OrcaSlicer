@@ -12,6 +12,7 @@
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceCore/DevFirmware.h"
 #include "nlohmann/json.hpp"
+#include <atomic>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/case_conv.hpp>

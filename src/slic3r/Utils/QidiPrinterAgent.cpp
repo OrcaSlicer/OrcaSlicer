@@ -15,6 +15,7 @@
 #include <cctype>
 #include "libslic3r/Preset.hpp"
 #include <cstddef>
+#include <exception>
 #include <map>
 #include <mutex>
 #include <sstream>

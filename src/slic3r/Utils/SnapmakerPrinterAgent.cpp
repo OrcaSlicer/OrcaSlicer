@@ -11,6 +11,7 @@
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <cstdint>
+#include <exception>
 #include <mutex>
 #include <sstream>
 #include <thread>
