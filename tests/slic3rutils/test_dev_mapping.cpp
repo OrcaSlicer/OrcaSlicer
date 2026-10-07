@@ -173,6 +173,57 @@ TEST_CASE("Generic AMS tray index map uses cumulative lane counts", "[DevMapping
     CHECK(tray_index_map.at(9).second == 4);
 }
 
+TEST_CASE("Generic tray index map handles unequal per-unit slot counts", "[DevMapping]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // An "external" array must accompany "units" so vt_slot is reset (see the cumulative test above).
+    json filament = { {"units", json::array()}, {"external", json::array()} };
+    const std::vector<int> slot_counts = {4, 12};
+    for (int ams_id = 0; ams_id < static_cast<int>(slot_counts.size()); ++ams_id) {
+        json unit = { {"id", std::to_string(ams_id)}, {"extruder", ams_id}, {"slots", json::array()} };
+        for (int slot_id = 0; slot_id < slot_counts[ams_id]; ++slot_id)
+            unit["slots"].push_back({{"index", slot_id}, {"loaded", false}});
+        filament["units"].push_back(std::move(unit));
+    }
+
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+
+    const auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+    REQUIRE(tray_index_map.size() == 16);
+    // Unit 0 occupies global lanes 0..3; unit 1 continues at 4..15 because the counter advances
+    // by the reported tray count, not by a fixed four-slot stride.
+    CHECK(tray_index_map.at(0).first == 0);
+    CHECK(tray_index_map.at(0).second == 0);
+    CHECK(tray_index_map.at(3).first == 0);
+    CHECK(tray_index_map.at(3).second == 3);
+    CHECK(tray_index_map.at(4).first == 1);
+    CHECK(tray_index_map.at(4).second == 0);
+    CHECK(tray_index_map.at(15).first == 1);
+    CHECK(tray_index_map.at(15).second == 11);
+}
+
+TEST_CASE("A generic AMS unit reports its reported tray count", "[DevFilaSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    json filament = { {"units", json::array()}, {"external", json::array()} };
+    const std::vector<int> slot_counts = {8, 1};
+    for (int ams_id = 0; ams_id < static_cast<int>(slot_counts.size()); ++ams_id) {
+        json unit = { {"id", std::to_string(ams_id)}, {"extruder", ams_id}, {"slots", json::array()} };
+        for (int slot_id = 0; slot_id < slot_counts[ams_id]; ++slot_id)
+            unit["slots"].push_back({{"index", slot_id}, {"loaded", false}});
+        filament["units"].push_back(std::move(unit));
+    }
+
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+
+    // Non-Bambu units are not capped at the four-slot Bambu contract; the reported tray count wins.
+    const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+    REQUIRE(ams_list.at("0")->GetSlotCount() == 8);
+    REQUIRE(ams_list.at("1")->GetSlotCount() == 1);
+}
+
 TEST_CASE("Switch-bound AMS trays map to the left extruder", "[DevMapping]")
 {
     MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
