@@ -1,5 +1,9 @@
 #include "BBLNetworkPlugin.hpp"
 #include "NetworkAgent.hpp"
+#ifdef ORCA_BAMBU_NETWORK_BRIDGE
+#include "BambuBridge/Client.hpp"
+#include "BambuBridge/WinPipe.hpp"
+#endif
 
 #include <mutex>
 #include <boost/filesystem/path.hpp>
@@ -141,6 +145,27 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     library = using_backup ? (plugin_folder / versioned_name).string()
                            : resolve_library_path(version);
 
+#ifdef ORCA_BAMBU_NETWORK_BRIDGE
+    if (bridge_requested()) {
+        try {
+            // The helper loads the exact resolved DLL; all STL objects and real handles stay
+            // there. Existing BBL agents call native proxy functions through the usual table.
+            BambuBridge::Client::instance().start(boost::filesystem::absolute(library).string(), [](const std::string& error) {
+                BOOST_LOG_TRIVIAL(error) << "Bambu helper: " << error;
+            });
+            m_remote = true;
+            load_all_function_pointers();
+            m_network_abi = NetworkAbi::Current; // The helper handshake rejects every other ABI.
+            BOOST_LOG_TRIVIAL(info) << "Bambu networking is hosted in the experimental helper process";
+            return 0;
+        } catch (const std::exception& e) {
+            BambuBridge::Client::instance().stop();
+            set_load_error("Network helper failed to start", e.what(), library);
+            return -1;
+        }
+    }
+#endif
+
 #if defined(_MSC_VER) || defined(_WIN32)
     wchar_t lib_wstr[256];
     memset(lib_wstr, 0, sizeof(lib_wstr));
@@ -222,6 +247,11 @@ int BBLNetworkPlugin::unload()
     // DLL dereferences the old-DLL handle -> access violation.
     destroy_agent();
 
+#ifdef ORCA_BAMBU_NETWORK_BRIDGE
+    if (m_remote) BambuBridge::Client::instance().stop();
+#endif
+    m_remote = false;
+
     UnloadFTModule();
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -253,8 +283,20 @@ int BBLNetworkPlugin::unload()
     return 0;
 }
 
+bool BBLNetworkPlugin::bridge_requested()
+{
+#ifdef ORCA_BAMBU_NETWORK_BRIDGE
+    return GetEnvironmentVariableW(L"ORCA_BAMBU_HELPER", nullptr, 0) != 0;
+#else
+    return false;
+#endif
+}
+
 bool BBLNetworkPlugin::is_loaded() const
 {
+#ifdef ORCA_BAMBU_NETWORK_BRIDGE
+    if (m_remote) return BambuBridge::Client::instance().running();
+#endif
     return m_networking_module != nullptr;
 }
 
@@ -319,6 +361,7 @@ HMODULE BBLNetworkPlugin::get_source_module()
 void* BBLNetworkPlugin::get_source_module()
 #endif
 {
+    if (m_remote) return nullptr; // BambuSource streaming is not part of this experiment.
     if ((m_source_module) || (!m_networking_module))
         return m_source_module;
 
@@ -357,6 +400,9 @@ void* BBLNetworkPlugin::get_source_module()
 
 void* BBLNetworkPlugin::get_function(const char* name)
 {
+#ifdef ORCA_BAMBU_NETWORK_BRIDGE
+    if (m_remote) return BambuBridge::Client::instance().function(name);
+#endif
     void* function = nullptr;
 
     if (!m_networking_module)

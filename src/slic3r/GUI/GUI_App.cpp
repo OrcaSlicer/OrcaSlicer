@@ -1386,7 +1386,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
     // Determine OS type for plugin download (must be set per-request since global
     // extra headers are no longer initialised on this branch).
 #if defined(__WINDOWS__)
-    std::string os_type = (is_running_on_arm64() && !use_legacy_network_plugin()) ? "windows_arm" : "windows";
+    std::string os_type = (is_running_on_arm64() && !use_legacy_network_plugin() && !BBLNetworkPlugin::bridge_requested()) ? "windows_arm" : "windows";
 #elif defined(__APPLE__)
     std::string os_type = "macos";
 #elif defined(__linux__)
@@ -3921,7 +3921,7 @@ bool GUI_App::on_init_network(bool try_backup)
             if (check_networking_version()) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
                 auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
-                if (!bambu_source) {
+                if (!bambu_source && !BBLNetworkPlugin::instance().is_remote()) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
                     m_networking_compatible = false;
                     if (should_load_networking_plugin) {

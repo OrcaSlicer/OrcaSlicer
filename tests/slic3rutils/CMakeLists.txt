@@ -14,6 +14,7 @@ add_executable(${_TEST_NAME}_tests
     test_lazy.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
+    test_bambu_bridge.cpp
     test_network_versions.cpp
     test_orca_cloud_agent.cpp
     test_action_source.cpp
