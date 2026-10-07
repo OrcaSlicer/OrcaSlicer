@@ -360,7 +360,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
 		RETURN_COMPARE_NON_EQUAL(tpms_adaptive);
 		RETURN_COMPARE_NON_EQUAL(tpms_interior_density);
-		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, tpms_adaptive_gradient);
+		RETURN_COMPARE_NON_EQUAL(tpms_adaptive_gradient);
         RETURN_COMPARE_NON_EQUAL(smooth_factor);
         RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
         RETURN_COMPARE_NON_EQUAL(separated_infills);

@@ -40,10 +40,17 @@ public:
     TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
                     const std::function<void()> &throw_if_canceled);
 
-    // Radial coordinates of pt in unscaled coordinates towards the lobe it belongs to, and towards a neighbouring
-    // lobe near the side between them, with weights summing to 1. In the 2D modes, those of the two sections around
+    // Lobes blended near the sides between them, from a body or from each of the two sections around a point.
+    static constexpr size_t MaxMorph = 4;
+    using Radials                    = std::array<Radial, 2 * MaxMorph>;
+
+    // Without a body, as when the object is thinner than the grid cells.
+    bool empty() const { return m_bodies.empty(); }
+
+    // Radial coordinates of pt in unscaled coordinates towards the lobe it belongs to, and towards the neighbouring
+    // lobes near the sides between them, with weights summing to 1. In the 2D modes, those of the two sections around
     // pt. Returns their count.
-    size_t radial(const Vec3d &pt, std::array<Radial, 4> &out) const;
+    size_t radial(const Vec3d &pt, Radials &out) const;
 
     // Axis normal to the sections in the 2D modes, -1 in 3D.
     int axis() const { return m_axis; }

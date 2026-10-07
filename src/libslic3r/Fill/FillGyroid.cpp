@@ -337,10 +337,8 @@ void FillGyroid::_fill_surface_single(
     if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
         // Radians per mm of the regular pattern at a density.
         auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
-        BoundingBox bbox = expolygon.contour.bounding_box();
-        bbox.offset(scale_((params.multiline + 1) * this->spacing));
         polylines = make_adaptive_tpms({gyroid, frequency(params.density), frequency(params.tpms_interior_density), params.tpms_adaptive_gradient},
-                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
+                                       *this->tpms_radial_field, bb, this->z, params.layer_height, this->spacing, infill_angle);
     } else if (params.gyroid_optimized) {
         // Marching-squares path on the gyroid implicit field. Base period matches
         // the standard parametric path's wavelength: 2*pi * spacing / density_adj.

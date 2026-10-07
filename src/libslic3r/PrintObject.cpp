@@ -1277,7 +1277,7 @@ TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
     std::array<bool, size_t(TpmsAdaptiveMode::NormalZ) + 1> modes{};
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
         if (const PrintRegionConfig &config = this->printing_region(region_id).config();
-            config.sparse_infill_density > 0 && is_tpms_adaptive_pattern(config.sparse_infill_pattern))
+            config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_tpms_adaptive_pattern(config.sparse_infill_pattern))
             modes[size_t(config.tpms_adaptive.value)] = true;
     modes[size_t(TpmsAdaptiveMode::Disabled)] = false;
     if (std::find(modes.begin(), modes.end(), true) == modes.end() || m_layers.empty())
@@ -1292,9 +1292,14 @@ TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
     }
     if (!bbox.defined)
         return fields;
-    for (size_t mode = 0; mode < modes.size(); ++mode)
-        if (modes[mode])
-            fields[mode] = std::make_unique<TpmsRadialField>(slices, bbox, TpmsAdaptiveMode(mode), [this]() { m_print->throw_if_canceled(); });
+    for (size_t mode = 0; mode < modes.size(); ++mode) {
+        if (!modes[mode])
+            continue;
+        // Without a field, the infill falls back to the regular pattern.
+        auto field = std::make_unique<TpmsRadialField>(slices, bbox, TpmsAdaptiveMode(mode), [this]() { m_print->throw_if_canceled(); });
+        if (!field->empty())
+            fields[mode] = std::move(field);
+    }
     return fields;
 }
 

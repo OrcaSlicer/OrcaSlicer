@@ -40,14 +40,14 @@ TpmsRadialField radial_field(const ExPolygons &expolygons, double height, TpmsAd
 
 double radial(const TpmsRadialField &field, const Vec3d &pt)
 {
-    std::array<TpmsRadialField::Radial, 4> radials;
+    TpmsRadialField::Radials radials;
     field.radial(pt, radials);
     return radials[0].t;
 }
 
 Vec3d center(const TpmsRadialField &field, const Vec3d &pt)
 {
-    std::array<TpmsRadialField::Radial, 4> radials;
+    TpmsRadialField::Radials radials;
     field.radial(pt, radials);
     return radials[0].center;
 }
@@ -143,12 +143,74 @@ TEST_CASE("TPMS radial field grades every lobe of a body towards its own center"
         CHECK_THAT(radial(field, c + Vec3d(0., 0., 9.5)), WithinAbs(1., 2. * Tolerance));
     }
     // The side between the lobes is half way to the surface, where both patterns morph into each other.
-    std::array<TpmsRadialField::Radial, 4> radials;
+    TpmsRadialField::Radials radials;
     REQUIRE(field.radial(0.5 * (c1 + c2), radials) == 2);
     for (size_t i = 0; i < 2; ++i) {
         CHECK_THAT(radials[i].t, WithinAbs(0.5, 2. * Tolerance));
         CHECK_THAT(radials[i].weight, WithinAbs(0.5, 0.05));
     }
+}
+
+TEST_CASE("TPMS radial field blends the lobes meeting at a junction continuously", "[FillTpmsAdaptive]")
+{
+    // Three spheres of 10 mm united, their centers on a triangle of 16 mm sides: the necks meet at its middle.
+    const std::array<Vec3d, 3>          centers{Vec3d(10., 10., 10.), Vec3d(26., 10., 10.), Vec3d(18., 10. + 8. * std::sqrt(3.), 10.)};
+    std::vector<ExPolygons>             layers;
+    std::vector<TpmsRadialField::Slice> slices;
+    for (int i = 0; i < 100; ++i) {
+        const double z = 0.2 * i + 0.1, r = std::sqrt(std::max(0., 100. - sqr(z - 10.)));
+        Polygons     circles;
+        for (const Vec3d &c : centers) {
+            Polygon &circle = circles.emplace_back();
+            for (int k = 0; k < 90; ++k)
+                circle.points.push_back(Point::new_scale(c.x() + r * std::cos(k * 2. * PI / 90.), c.y() + r * std::sin(k * 2. * PI / 90.)));
+        }
+        layers.push_back(union_ex(circles));
+    }
+    for (int i = 0; i < 100; ++i)
+        slices.push_back({0.2 * i, 0.2 * (i + 1), &layers[i]});
+    const TpmsRadialField field(slices, get_extents(layers[50]), TpmsAdaptiveMode::Volumetric, [] {});
+
+    // Around the junction the nearest lobes swap, but the weight of every lobe changes smoothly.
+    const Vec3d junction  = (centers[0] + centers[1] + centers[2]) / 3.;
+    size_t      max_count = 0;
+    double      max_jump  = 0.;
+    double      max_error = 0.;
+    for (int row = 0; row <= 100; ++row) {
+        std::array<float, 3> previous{};
+        for (int step = 0; step <= 200; ++step) {
+            TpmsRadialField::Radials radials;
+            const size_t count = field.radial(junction + Vec3d(0.01 * step - 1., 0.02 * row - 1., 0.), radials);
+            max_count          = std::max(max_count, count);
+            std::array<float, 3> weights{};
+            for (size_t i = 0; i < count; ++i) {
+                auto nearest = std::min_element(centers.begin(), centers.end(), [&](const Vec3d &a, const Vec3d &b) {
+                    return (a - radials[i].center).norm() < (b - radials[i].center).norm();
+                });
+                weights[nearest - centers.begin()] += radials[i].weight;
+            }
+            max_error = std::max(max_error, std::abs(weights[0] + weights[1] + weights[2] - 1.));
+            if (step > 0)
+                for (size_t k = 0; k < 3; ++k)
+                    max_jump = std::max(max_jump, double(std::abs(weights[k] - previous[k])));
+            previous = weights;
+        }
+    }
+    CHECK(max_count == 3);
+    CHECK(max_error < 1e-5);
+    CHECK(max_jump < 0.05);
+}
+
+TEST_CASE("TPMS radial field is empty when the object is thinner than the grid cells", "[FillTpmsAdaptive]")
+{
+    // A 0.3 mm square bar between the nodes of a grid sized by a 200 mm bounding box, with cells of 0.5 mm or more.
+    const ExPolygons                    bar{rectangle(0.1, 0.1, 0.4, 0.4)};
+    std::vector<TpmsRadialField::Slice> slices;
+    for (int i = 0; i < 1000; ++i)
+        slices.push_back({0.2 * i, 0.2 * (i + 1), &bar});
+    const TpmsRadialField field(slices, BoundingBox(Point::new_scale(0., 0.), Point::new_scale(200., 200.)),
+                                TpmsAdaptiveMode::Volumetric, [] {});
+    CHECK(field.empty());
 }
 
 TEST_CASE("TPMS radial field in 2D grades every section normal to the axis on its own", "[FillTpmsAdaptive]")

@@ -270,13 +270,25 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                     return true;
             return false;
         };
+        // A peak joins the first lobe it sees without a neck, if it is as deep. The lobes are made one at a time,
+        // from the first remaining peak, testing the others in parallel.
         std::vector<std::vector<size_t>> ties;
-        for (size_t i : peaks) {
-            auto lobe = std::find_if(ties.begin(), ties.end(), [&](const std::vector<size_t> &t) { return !necked(t.front(), i); });
-            if (lobe == ties.end())
-                ties.push_back({i});
-            else if (std::sqrt(depth[i]) >= std::sqrt(depth[lobe->front()]) - 1.f)
-                lobe->push_back(i);
+        while (!peaks.empty()) {
+            const size_t      front = peaks.front();
+            std::vector<char> joins(peaks.size(), 0);
+            tbb::parallel_for(tbb::blocked_range<size_t>(1, peaks.size()), [&](const tbb::blocked_range<size_t> &range) {
+                for (size_t k = range.begin(); k < range.end(); ++k)
+                    if (!necked(front, peaks[k]))
+                        joins[k] = std::sqrt(depth[peaks[k]]) >= std::sqrt(depth[front]) - 1.f ? 1 : 2;
+            });
+            std::vector<size_t> &tied = ties.emplace_back(1, front);
+            std::vector<size_t>  remaining;
+            for (size_t k = 1; k < peaks.size(); ++k)
+                if (joins[k] == 0)
+                    remaining.push_back(peaks[k]);
+                else if (joins[k] == 1)
+                    tied.push_back(peaks[k]);
+            peaks = std::move(remaining);
         }
         m_bodies.push_back({m_lobes.size(), ties.size()});
         for (const std::vector<size_t> &tied : ties) {
@@ -295,72 +307,76 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
 
     // The reach of a lobe is the first exit along each direction from its center, smoothed over the directions.
     // It is shortened towards a neighbouring lobe, from where the point is nearer to the other lobe relative to their depths.
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_bodies.size()), [&](const tbb::blocked_range<size_t> &range) {
-        for (size_t id = range.begin(); id < range.end(); ++id) {
+    std::vector<int> lobe_body(m_lobes.size());
+    for (size_t id = 0; id < m_bodies.size(); ++id)
+        std::fill_n(lobe_body.begin() + m_bodies[id].first_lobe, m_bodies[id].lobes, int(id));
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_lobes.size()), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t l = range.begin(); l < range.end(); ++l) {
+            const int   id   = lobe_body[l];
             const Body &body = m_bodies[id];
-            for (size_t l = body.first_lobe; l < body.first_lobe + body.lobes; ++l) {
-                Lobe               &lobe = m_lobes[l];
-                const double        step = 0.5 * m_cell;
-                const int           rows = this->directions() / Azimuth;
-                std::vector<double> log_reach(this->directions());
-                auto                nearest_lobe = [&](const Vec3d &pt) {
-                    size_t nearest = l;
-                    for (size_t k = body.first_lobe; k < body.first_lobe + body.lobes; ++k)
-                        if ((pt - m_lobes[k].center).norm() / m_lobes[k].depth < (pt - m_lobes[nearest].center).norm() / m_lobes[nearest].depth)
-                            nearest = k;
-                    return nearest;
-                };
+            Lobe       &lobe = m_lobes[l];
+            // The other lobes of the body, by the distance from the center beyond which they may be nearer.
+            std::vector<std::pair<double, size_t>> others;
+            for (size_t k = body.first_lobe; k < body.first_lobe + body.lobes; ++k)
+                if (k != l)
+                    others.emplace_back((m_lobes[k].center - lobe.center).norm() / (1. + m_lobes[k].depth / lobe.depth), k);
+            std::sort(others.begin(), others.end());
+            auto nearer_lobe = [&](const Vec3d &pt, double r) {
+                for (auto it = others.begin(); it != others.end() && it->first < r; ++it)
+                    if ((pt - m_lobes[it->second].center).norm() / m_lobes[it->second].depth < r / lobe.depth)
+                        return true;
+                return false;
+            };
+            const double        step = 0.5 * m_cell;
+            const int           rows = this->directions() / Azimuth;
+            std::vector<double> log_reach(this->directions());
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < Azimuth; ++j) {
+                    const double azimuth = j * 2. * PI / Azimuth;
+                    Vec3d        dir     = Vec3d::Zero();
+                    if (m_axis < 0) {
+                        const double polar = (i + 0.5) * PI / Polar;
+                        dir = Vec3d(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
+                    } else {
+                        dir[(m_axis + 1) % 3] = std::cos(azimuth);
+                        dir[(m_axis + 2) % 3] = std::sin(azimuth);
+                    }
+                    double r     = 0.;
+                    double limit = InfD;
+                    for (;;) {
+                        const Vec3d          pt = lobe.center + (r + step) * dir;
+                        const std::ptrdiff_t n  = node_of(pt);
+                        if (n < 0 || depth[n] == 0.f || m_body[n] != id || r + step >= limit)
+                            break;
+                        if (limit == InfD && nearer_lobe(pt, r + step))
+                            limit = LobeReach * (r + step);
+                        r += step;
+                    }
+                    log_reach[i * Azimuth + j] = std::log(std::min(r + 0.5 * step, limit));
+                }
+            for (int pass = 0; pass < 2; ++pass) {
+                std::vector<double> smoothed(log_reach.size(), 0.);
                 for (int i = 0; i < rows; ++i)
                     for (int j = 0; j < Azimuth; ++j) {
-                        const double azimuth = j * 2. * PI / Azimuth;
-                        Vec3d        dir     = Vec3d::Zero();
-                        if (m_axis < 0) {
-                            const double polar = (i + 0.5) * PI / Polar;
-                            dir = Vec3d(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
-                        } else {
-                            dir[(m_axis + 1) % 3] = std::cos(azimuth);
-                            dir[(m_axis + 2) % 3] = std::sin(azimuth);
-                        }
-                        double r     = 0.;
-                        double       limit = InfD;
-                        for (;;) {
-                            const Vec3d          pt = lobe.center + (r + step) * dir;
-                            const std::ptrdiff_t n  = node_of(pt);
-                            if (n < 0 || depth[n] == 0.f || m_body[n] != int(id) || r + step >= limit)
-                                break;
-                            if (limit == InfD && body.lobes > 1 && nearest_lobe(pt) != l)
-                                limit = LobeReach * (r + step);
-                            r += step;
-                        }
-                        log_reach[i * Azimuth + j] = std::log(std::min(r + 0.5 * step, limit));
+                        for (int di = -1; di <= 1; ++di)
+                            for (int dj = -1; dj <= 1; ++dj)
+                                smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, rows - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
+                        smoothed[i * Azimuth + j] /= 9.;
                     }
-                for (int pass = 0; pass < 2; ++pass) {
-                    std::vector<double> smoothed(log_reach.size(), 0.);
-                    for (int i = 0; i < rows; ++i)
-                        for (int j = 0; j < Azimuth; ++j) {
-                            for (int di = -1; di <= 1; ++di)
-                                for (int dj = -1; dj <= 1; ++dj)
-                                    smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, rows - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
-                            smoothed[i * Azimuth + j] /= 9.;
-                        }
-                    log_reach = std::move(smoothed);
-                }
-                lobe.reach.resize(log_reach.size());
-                std::transform(log_reach.begin(), log_reach.end(), lobe.reach.begin(), [](double v) { return float(std::exp(v)); });
+                log_reach = std::move(smoothed);
             }
+            lobe.reach.resize(log_reach.size());
+            std::transform(log_reach.begin(), log_reach.end(), lobe.reach.begin(), [](double v) { return float(std::exp(v)); });
         }
         throw_if_canceled();
     });
 
     // Every other node belongs to its nearest body, within its section in the 2D modes.
-    std::deque<size_t> queue;
-    for (size_t i = 0; i < m_body.size(); ++i)
-        if (m_body[i] >= 0)
-            queue.push_back(i);
     if (m_axis >= 0) {
         std::vector<bool> has_body(m_size[m_axis], false);
-        for (size_t i : queue)
-            has_body[m_axis == 0 ? i % sy : m_axis == 1 ? i / sy % m_size.y() : i / sz] = true;
+        for (size_t i = 0; i < m_body.size(); ++i)
+            if (m_body[i] >= 0)
+                has_body[m_axis == 0 ? i % sy : m_axis == 1 ? i / sy % m_size.y() : i / sz] = true;
         m_section.assign(m_size[m_axis], -1);
         for (int k = 0; k < m_size[m_axis]; ++k)
             for (int d = 0; d < m_size[m_axis] && m_section[k] < 0; ++d)
@@ -369,6 +385,14 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                 else if (k + d < m_size[m_axis] && has_body[k + d])
                     m_section[k] = k + d;
     }
+    if (m_bodies.size() == 1) {
+        std::fill(m_body.begin(), m_body.end(), 0);
+        return;
+    }
+    std::deque<size_t> queue;
+    for (size_t i = 0; i < m_body.size(); ++i)
+        if (m_body[i] >= 0)
+            queue.push_back(i);
     while (!queue.empty()) {
         const size_t i = queue.front();
         queue.pop_front();
@@ -419,12 +443,9 @@ double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
     return r / reach;
 }
 
-size_t TpmsRadialField::radial(const Vec3d &pt, std::array<Radial, 4> &out) const
+size_t TpmsRadialField::radial(const Vec3d &pt, Radials &out) const
 {
-    if (m_bodies.empty()) {
-        out[0] = {pt, 1., 1.f};
-        return 1;
-    }
+    assert(!this->empty());
     Vec3i32 idx;
     for (int axis = 0; axis < 3; ++axis)
         idx[axis] = std::clamp<int>(int(std::lround((pt[axis] - m_origin[axis]) / m_cell)), 0, m_size[axis] - 1);
@@ -457,25 +478,35 @@ size_t TpmsRadialField::body_radial(size_t node, const Vec3d &pt, float weight, 
         return 1;
     }
 
-    // The two lobes nearest relative to their depth; morph between them near the side where they are as near.
-    size_t first = body.first_lobe, second = body.first_lobe + 1;
-    auto   distance = [this, &pt](size_t l) { return this->offset(pt, m_lobes[l].center).norm() / m_lobes[l].depth; };
-    if (distance(second) < distance(first))
-        std::swap(first, second);
-    for (size_t l = body.first_lobe + 2; l < body.first_lobe + body.lobes; ++l)
-        if (distance(l) < distance(first)) {
-            second = first;
-            first  = l;
-        } else if (distance(l) < distance(second))
-            second = l;
-    const double u      = std::clamp(0.5 - (distance(second) - distance(first)) / LobeMorph, 0., 1.);
-    const double s      = u * u * (3. - 2. * u);
-    const float  morph = float(s / (0.5 + s));
-    out[0]             = {m_lobes[first].center, radial(m_lobes[first], pt), weight * (1.f - morph)};
-    if (morph == 0.f)
-        return 1;
-    out[1] = {m_lobes[second].center, radial(m_lobes[second], pt), weight * morph};
-    return 2;
+    // The lobes nearest relative to their depth; they morph into each other near the sides where they are as near.
+    std::array<std::pair<double, size_t>, MaxMorph> nearest;
+    size_t                                          count = 0;
+    for (size_t l = body.first_lobe; l < body.first_lobe + body.lobes; ++l) {
+        const double d = this->offset(pt, m_lobes[l].center).norm() / m_lobes[l].depth;
+        if (count < MaxMorph)
+            nearest[count++] = {d, l};
+        else if (d < nearest.back().first)
+            nearest.back() = {d, l};
+        else
+            continue;
+        for (size_t k = count - 1; k > 0 && nearest[k].first < nearest[k - 1].first; --k)
+            std::swap(nearest[k], nearest[k - 1]);
+    }
+    std::array<double, MaxMorph> blend;
+    double                       total  = 0.;
+    size_t                       morphs = 0;
+    for (; morphs < count; ++morphs) {
+        const double u = 0.5 - (nearest[morphs].first - nearest[0].first) / LobeMorph;
+        if (u <= 0.)
+            break;
+        blend[morphs] = u * u * (3. - 2. * u);
+        total += blend[morphs];
+    }
+    for (size_t k = 0; k < morphs; ++k) {
+        const Lobe &lobe = m_lobes[nearest[k].second];
+        out[k]           = {lobe.center, radial(lobe, pt), float(weight * blend[k] / total)};
+    }
+    return morphs;
 }
 
 } // namespace Slic3r
@@ -514,7 +545,7 @@ struct AdaptiveTpmsField
         const double                           y  = unscaled(pt.y());
         const Vec3d                            obj(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z);
         const int                              axis = radial_field.axis();
-        std::array<TpmsRadialField::Radial, 4> radials;
+        TpmsRadialField::Radials               radials;
         const size_t                           count = radial_field.radial(obj, radials);
         float                                  value = 0.f;
         for (size_t i = 0; i < count; ++i) {

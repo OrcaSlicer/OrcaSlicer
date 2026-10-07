@@ -20,12 +20,13 @@ warped around the center of each lobe of a body so that its cell size follows th
 
 `TpmsRadialField` gives every point of an object the center of its lobe and a
 radial coordinate: 0 at the center, 1 at the surface along the ray from the
-center. `PrintObject::prepare_tpms_radial_field()` builds it in
+center. `PrintObject::prepare_tpms_radial_fields()` builds it in
 `bridge_over_infill()`, next to the adaptive cubic octree, because the anchoring
 infill generated there has to match the printed infill. A field is built for
 every mode a region uses, and is shared by the regions using that mode: the
 field depends on the geometry only, the densities are applied per region in the
-fill.
+fill. An object thinner than the grid cells has no body in the field; no field
+is kept then, and the infill falls back to the regular pattern.
 
 A regular 3D grid of cubic cells is rasterized from the `lslices` of the layers,
 so the field follows what is printed: negative volumes, the union of
@@ -40,31 +41,40 @@ capped at about a million nodes, with cells no smaller than 0.5 mm.
   axis). Two maxima are in separate lobes when the depth along the segment
   between them drops below 0.8 of the shallower one, like at the neck between
   two united spheres; maxima shallower than 0.3 of the deepest one are ignored.
+  A maximum joins the first lobe whose first maximum it sees without a neck.
+  The lobes are made one at a time, the remaining maxima tested against the
+  first one in parallel, as a plate has a whole plane of them.
   Where the depth ties along a line or a plane, as in a tall box, the lobe's
   center is the node nearest to the middle of the tied nodes, so the center is
   in the middle of the height and not a column.
 - A point belongs to the lobe it is nearest to relative to their depths, so the
   side between two lobes is nearer to the smaller one. Near that side, within a
-  tenth of that relative distance, the patterns of both lobes morph into each
-  other, so the lines stay continuous.
+  tenth of that relative distance, the patterns of the lobes morph into each
+  other, so the lines stay continuous. Every lobe in that range takes part, up
+  to four, so the morph is also continuous where three or four lobes meet.
 - The reach of a lobe is the distance from its center to the first exit along
   24 x 48 latitude-longitude directions, smoothed twice over neighbouring
   directions in log space. Towards a neighbouring lobe it stops at twice the
   distance to the side between them, so that side is graded half way, as deep
   as a neck is, rather than as sparse as the center or as dense as the surface.
+  Only the lobes whose centers are near enough to be nearer at the current
+  distance are compared along a ray, so many lobes, as in a perforated plate,
+  stay cheap.
   The radial coordinate of a point is its distance to the center over the reach
   in its direction. Behind a gap, as across the hole
   of a ring, the radial coordinate is above 1 and the infill keeps the surface
   density.
 - Every outside node belongs to its nearest body, so points near a surface find
-  their body without a search.
+  their body without a search. With a single body, all nodes belong to it.
 
 In the 2D modes, every plane of nodes normal to the axis is a field of its own:
 the distance transform skips the axis, bodies, lobes and the nearest body are
 found within the plane, and the reach is sampled on a circle of 48 directions.
 A point is looked up in the two planes around it, the weights of their lobes
 interpolated along the axis, so the grading does not step between planes; a
-plane without a body uses the nearest one that has one.
+plane without a body uses the nearest one that has one. The planes are a cell
+apart, not a layer: where the sections change abruptly, as at a step, the
+patterns of the two planes morph into each other over that cell.
 
 A distance to the nearest surface would be the obvious field, but no smooth map
 follows it. By the divergence theorem, the mean scale of a map over a body is
@@ -141,6 +151,9 @@ the layer.
   to their defaults, so they neither change the infill nor split fill batches.
 - `Layer::get_sparse_infill_max_void_area()` uses the sparser of the two
   densities, as the voids at the center are that large.
+- At a sparse infill density of 100% the sparse infill is turned into solid
+  infill, so there is nothing to grade: the options are hidden and no field is
+  built.
 - The adaptive options invalidate `posPrepareInfill`, which rebuilds the field
   and the anchoring infill.
 - An elongated body without a neck has one center, so its far ends are graded

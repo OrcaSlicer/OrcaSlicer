@@ -3579,8 +3579,8 @@ void PrintConfigDef::init_fff_params()
                         "object towards its center. The sparse infill density is used at the surface and the interior "
                         "density at the center.\n"
                         "3D: follows the shape of the object, including its top and bottom.\n"
-                        "Normal X, Y or Z: follows each section of the object normal to that axis, so the density "
-                        "does not change along it. Normal Z grades every layer on its own.");
+                        "Normal X, Y or Z: follows the sections of the object normal to that axis, so the density "
+                        "does not change along it.");
     def->enum_keys_map = &ConfigOptionEnum<TpmsAdaptiveMode>::get_enum_values();
     def->enum_values.push_back("disabled");
     def->enum_values.push_back("3d");
