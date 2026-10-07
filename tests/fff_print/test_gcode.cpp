@@ -41,3 +41,61 @@ TEST_CASE("Klipper object labels name each copy without the characters Klipper c
         CHECK(gcode.find("EXCLUDE_OBJECT_START NAME=" + instance_label + "\n") != std::string::npos);
     }
 }
+
+TEST_CASE("CONFIG_BLOCK tags initial extruder temperature and nozzle diameter for multi-extruder printers", "[GCode]")
+{
+    DynamicPrintConfig config = Test::multifilament_config(4, {
+        {"gcode_flavor", "klipper"},
+        {"nozzle_diameter", "0.4,0.4,0.4,0.8"},
+        {"nozzle_temperature_initial_layer", "200,205,210,240"},
+        {"cool_plate_temp_initial_layer", "50,55,60,70"},
+        {"filament_self_index", "1,2,3,4"}
+    });
+
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { {"extruder", "4"} } };
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{Test::cube(20.)}, print, model, config, &overrides);
+
+    const std::string gcode = Test::gcode(print);
+
+    // Verify CONFIG_BLOCK tags extruder 4 (index 3) values
+    CHECK(gcode.find("; nozzle_diameter = 0.8\n") != std::string::npos);
+    CHECK(gcode.find("; first_layer_temperature = 240\n") != std::string::npos);
+    CHECK(gcode.find("; first_layer_bed_temperature = 70\n") != std::string::npos);
+
+    // Verify the initial tag comes before the serialized vector
+    size_t initial_tag = gcode.find("; nozzle_diameter = 0.8\n");
+    size_t vector_tag  = gcode.find("; nozzle_diameter = 0.4,0.4,0.4,0.8\n");
+    REQUIRE(initial_tag != std::string::npos);
+    REQUIRE(vector_tag != std::string::npos);
+    CHECK(initial_tag < vector_tag);
+}
+
+TEST_CASE("CONFIG_BLOCK preserves initial extruder tags across by-object sequential printing", "[GCode]")
+{
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        {"gcode_flavor", "klipper"},
+        {"print_sequence", "by object"},
+        {"nozzle_diameter", "0.8,0.4"},
+        {"nozzle_temperature_initial_layer", "240,200"},
+        {"cool_plate_temp_initial_layer", "70,50"},
+        {"filament_self_index", "1,2"}
+    });
+
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { {"extruder", "1"} },
+        { {"extruder", "2"} }
+    };
+
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{Test::cube(20.), Test::cube(20.)}, print, model, config, &overrides);
+
+    const std::string gcode = Test::gcode(print);
+
+    CHECK(gcode.find("; nozzle_diameter = 0.8\n") != std::string::npos);
+    CHECK(gcode.find("; first_layer_temperature = 240\n") != std::string::npos);
+    CHECK(gcode.find("; first_layer_bed_temperature = 70\n") != std::string::npos);
+}
+

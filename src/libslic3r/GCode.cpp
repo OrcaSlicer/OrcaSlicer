@@ -3520,6 +3520,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         activate_chamber_temp_control |= m_config.activate_chamber_temp_control.get_at(extruder.id());
         max_chamber_temp = std::max(max_chamber_temp, m_config.chamber_temperature.get_at(extruder.id()));
     }
+
+    int initial_bed_temperature = (m_config.bed_temperature_formula.value == BedTempFormula::btfHighestTemp) ?
+                                  get_highest_bed_temperature(true, print) :
+                                  get_bed_temperature(initial_extruder_id, true, m_config.curr_bed_type);
+    int initial_nozzle_temperature = print.config().nozzle_temperature_initial_layer.get_at(initial_extruder_id);
+    double initial_nozzle_diameter = print.config().nozzle_diameter.get_at(initial_extruder_id);
     {
         BedType curr_bed_type = m_config.curr_bed_type;
 
@@ -3531,11 +3537,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         std::string first_layer_bed_temp_str;
         const ConfigOptionInts* first_bed_temp_opt = m_config.option<ConfigOptionInts>(get_bed_temp_1st_layer_key((BedType)curr_bed_type));
         const ConfigOptionInts* bed_temp_opt = m_config.option<ConfigOptionInts>(get_bed_temp_key((BedType)curr_bed_type));
-        int target_bed_temp = 0;
-        if (m_config.bed_temperature_formula == BedTempFormula::btfHighestTemp)
-            target_bed_temp = get_highest_bed_temperature(true, print);
-        else
-            target_bed_temp = get_bed_temperature(initial_extruder_id, true, curr_bed_type);
+        int target_bed_temp = initial_bed_temperature;
 
         this->placeholder_parser().set("bbl_bed_temperature_gcode", new ConfigOptionBool(false));
         this->placeholder_parser().set("bed_temperature_initial_layer", new ConfigOptionInts(*first_bed_temp_opt));
@@ -3723,12 +3725,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 file.write(full_config);
 
             // SoftFever: write compatiple image
-            int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
             file.write_format("; first_layer_bed_temperature = %d\n",
-                                first_layer_bed_temperature);
+                                initial_bed_temperature);
             file.write_format(
                 "; first_layer_temperature = %d\n",
-                print.config().nozzle_temperature_initial_layer.get_at(0));
+                initial_nozzle_temperature);
             file.write("; CONFIG_BLOCK_END\n\n");
         } else if (thumbnail_cb != nullptr) {
             // generate the thumbnails
@@ -4240,17 +4241,18 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // after the config block.
     if (!is_bbl_printers && !skip_config_block) {
         file.write("; CONFIG_BLOCK_START\n");
+
+        // SoftFever: write compatiple info
+        file.write_format("; first_layer_bed_temperature = %d\n", initial_bed_temperature);
+        file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
+        file.write_format("; first_layer_temperature = %d\n", initial_nozzle_temperature);
+        file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
+        file.write_format("; nozzle_diameter = %g\n", initial_nozzle_diameter);
+
         std::string full_config;
         append_full_config(print, full_config);
         if (!full_config.empty())
           file.write(full_config);
-
-        // SoftFever: write compatiple info
-        int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
-        file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
-        file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
-        file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
-        file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
 
           //SF TODO
 //        file.write_format("; variable_layer_height = %d\n", print.ad.adaptive_layer_height ? 1 : 0);
