@@ -133,6 +133,18 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         Refresh();
     });
     Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { finish_drag(); });
+    Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& event) {
+        if (!on_pan || event.ControlDown() || event.AltDown() || event.MetaDown()) {
+            event.Skip();
+            return;
+        }
+        if (m_dragged_point >= 0 || event.GetWheelDelta() <= 0 || event.GetWheelRotation() == 0) return;
+        const bool vertical = event.ShiftDown();
+        double steps = double(event.GetWheelRotation()) / event.GetWheelDelta();
+        // Wheel-up moves toward lower X; Shift+wheel-up moves toward higher Y.
+        if (!vertical && event.GetWheelAxis() != wxMOUSE_WHEEL_HORIZONTAL) steps = -steps;
+        on_pan(steps, vertical);
+    });
 }
 
 void CurveEditorPanel::set_data(const std::vector<double>& x, const std::vector<double>& y,
