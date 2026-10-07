@@ -24,3 +24,23 @@ TEST_CASE("CGAL and TriangleMesh conversions", "[MeshBoolean]") {
     
     REQUIRE(! MeshBoolean::cgal::does_self_intersect(M));
 }
+
+TEST_CASE("mcut difference cuts every disconnected component of the tool mesh", "[MeshBoolean]") {
+    TriangleMesh body = make_cube(30., 10., 10.);
+
+    // Separate through-holes, like the letters of an embossed text turned into an object.
+    const std::vector<float> xs = {3.f, 12.f, 21.f};
+    TriangleMesh             tool;
+    for (float x : xs) {
+        TriangleMesh letter = make_cube(4., 4., 20.);
+        letter.translate(Vec3f(x, 3.f, -5.f));
+        its_merge(tool.its, letter.its);
+    }
+
+    std::vector<TriangleMesh> result;
+    MeshBoolean::mcut::make_boolean(body, tool, result, "A_NOT_B");
+
+    REQUIRE(result.size() == 1);
+    const double expected = body.volume() - double(xs.size()) * 4. * 4. * 10.;
+    REQUIRE_THAT(result.front().volume(), Catch::Matchers::WithinRel(expected, 1e-3));
+}
