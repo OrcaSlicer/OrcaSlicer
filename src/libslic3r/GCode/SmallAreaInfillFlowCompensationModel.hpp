@@ -11,7 +11,6 @@ public:
     using CurveModel::CurveModel;
 
     const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const override;
-    Interpolator make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const override;
     CurveView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const override;
     CurveViewLimits view_limits() const override;
     CurveView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,

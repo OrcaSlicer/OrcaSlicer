@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
+#include "libslic3r/GCode/PchipInterpolatorHelper.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/Preset.hpp"
@@ -22,6 +23,35 @@
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
 using FlowModel = Slic3r::SmallAreaInfillFlowCompensationModel;
+
+namespace {
+
+class FixedInterpolationModel : public FlowModel
+{
+public:
+    Interpolator make_interpolator(const std::vector<double>&, const std::vector<double>&) const override
+    {
+        return [](double) { return 0.75; };
+    }
+};
+
+} // namespace
+
+TEST_CASE("Curve models default to PCHIP and allow derived interpolation overrides", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    const std::vector<double> x = {0, 1, 3}, y = {0, 0.8, 1};
+    FlowModel flow_model;
+    const CurveModel& base_model = flow_model;
+    const auto default_curve = base_model.make_interpolator(x, y);
+    const PchipInterpolatorHelper expected(x, y);
+    const double length = GENERATE(0.0, 0.25, 0.5, 1.0, 2.0, 3.0, 4.0);
+    CHECK_THAT(default_curve(length), WithinAbs(expected.interpolate(length), 1e-12));
+
+    FixedInterpolationModel fixed_model;
+    const CurveModel& overridden_model = fixed_model;
+    const auto overridden_curve = overridden_model.make_interpolator(x, y);
+    CHECK_THAT(overridden_curve(length), WithinAbs(0.75, 1e-12));
+}
 
 TEST_CASE("A curve model stays unchanged until accepted and clears its modified state when restored", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {

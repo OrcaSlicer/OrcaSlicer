@@ -52,7 +52,9 @@ public:
     const char* read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const;
     const char* read_view(const std::array<std::string, 4>& bounds, CurveView& view) const;
     virtual const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const = 0;
-    virtual Interpolator make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const = 0;
+    // Shared by previews and numeric consumers. Override the default PCHIP
+    // factory when a feature uses a different interpolation algorithm.
+    virtual Interpolator make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const;
     virtual CurveView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const = 0;
     virtual CurveViewLimits view_limits() const = 0;
     // Equal bounds lock an axis. Inverted bounds mean no move is possible in this viewport.
