@@ -4,11 +4,15 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <cmath>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensator.hpp"
+#include "libslic3r/GCode/PchipInterpolatorHelper.hpp"
+#include "libslic3r/CurveModel.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -58,6 +62,33 @@ TEST_CASE("Edited flow points drive the same interpolation as the graph preview"
     const double expected_factor = 0.2 + (1.0 - 0.2) * length / 10.0;
     CHECK_THAT(preview(length), WithinAbs(expected_factor, 1e-12));
     CHECK_THAT(compensator.modify_flow(length, extrusion, erSolidInfill), WithinAbs(extrusion * expected_factor, 1e-12));
+}
+
+TEST_CASE("Nonlinear flow curves use identical PCHIP interpolation in the preview and G-code", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel::Rows rows = {{"0", "0.2"}, {"2", "0.7"}, {"10", "1"}};
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = FlowModel::encode_rows(rows, {});
+    SmallAreaInfillFlowCompensator compensator(config);
+    FlowModel model;
+    const std::vector<double> x = {0, 2, 10}, y = {0.2, 0.7, 1};
+    const auto preview = model.make_interpolator(x, y);
+    const PchipInterpolatorHelper expected(x, y);
+    // At the first interval's midpoint a straight line gives 0.45; PCHIP must differ.
+    REQUIRE(std::abs(preview(1.0) - 0.45) > 1e-3);
+    const double length = GENERATE(0.1, 1.0, 2.0, 3.0, 5.0, 9.0, 10.0, 11.0);
+    const double extrusion = 3.0;
+    CHECK_THAT(preview(length), WithinAbs(expected.interpolate(length), 1e-12));
+    CHECK_THAT(compensator.modify_flow(length, extrusion, erSolidInfill), WithinAbs(extrusion * preview(length), 1e-12));
+}
+
+TEST_CASE("Constructing a flow compensator without parsed points remains an error", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    GCodeConfig config;
+    const bool empty_setting = GENERATE(false, true);
+    config.small_area_infill_flow_compensation_model.values =
+        empty_setting ? std::vector<std::string>{} : std::vector<std::string>{"0", " "};
+    REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), std::invalid_argument);
 }
 
 TEST_CASE("Flow compensation only changes eligible infill roles within the model range", "[SmallAreaInfillFlowCompensation]")
