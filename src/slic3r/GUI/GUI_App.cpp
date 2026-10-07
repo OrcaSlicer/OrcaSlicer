@@ -2367,8 +2367,14 @@ void GUI_App::init_networking_callbacks()
                                     obj->set_access_code("");
                                     text = wxString::Format(_L("Incorrect password"));
                                     wxGetApp().show_dialog(text);
+                                } else if (msg == "-1") {
+                                    text = format_wxstr(
+                                        _L("Connect %1% failed! [SN:%2%, code=%3%]\n"
+                                           "Check the printer or service/API endpoint, network access, credentials, and if applicable the TLS/CA certificate trust."),
+                                        from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
+                                    wxGetApp().show_dialog(text);
                                 } else {
-                                text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
+                                    text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
                                     wxGetApp().show_dialog(text);
                                 }
                                 event.SetInt(-1);
