@@ -601,19 +601,19 @@ int MoonrakerPrinterAgent::start_send_gcode_to_sdcard(PrintParams      params,
     if (update_fn)
         update_fn(PrintingStageCreate, 0, "Preparing...");
 
-    std::string filename = params.filename;
-    if (filename.empty()) {
-        filename = params.task_name;
+    // Name the uploaded copy after the file actually being sent (its basename), so the
+    // remote name matches the uploaded file rather than a synthesized .gcode name.
+    namespace fs = boost::filesystem;
+    const std::string local_path = params.filename;
+    std::string remote_name = fs::path(local_path.empty() ? params.task_name : local_path).filename().string();
+    if (!boost::iends_with(remote_name, ".gcode")) {
+        remote_name += ".gcode";
     }
-    if (!boost::iends_with(filename, ".gcode")) {
-        filename += ".gcode";
-    }
-
     // Sanitize filename to prevent path traversal attacks
-    std::string safe_filename = sanitize_filename(filename);
+    remote_name = sanitize_filename(remote_name);
 
     // Upload only, don't start print
-    if (!upload_gcode(params.filename, safe_filename, connection, update_fn, cancel_fn)) {
+    if (!upload_gcode(local_path, remote_name, connection, update_fn, cancel_fn)) {
         return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
     }
 
@@ -1185,14 +1185,19 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(const ConnectionSettin
             continue;
         }
 
-        // Extract lane index from the "lane" field (tool number, 0-based)
-        std::string lane_str = safe_json_string(lane_obj, "lane");
+        // Extract lane index from the "lane" field (tool number, 0-based). Some
+        // integrations report it as a number, others as a string; accept both.
         int lane_index = -1;
-        if (!lane_str.empty()) {
-            try {
-                lane_index = std::stoi(lane_str);
-            } catch (...) {
-                lane_index = -1;
+        if (lane_obj.contains("lane")) {
+            const auto& lane = lane_obj["lane"];
+            if (lane.is_number_integer()) {
+                lane_index = lane.get<int>();
+            } else if (lane.is_string()) {
+                try {
+                    lane_index = std::stoi(lane.get<std::string>());
+                } catch (...) {
+                    lane_index = -1;
+                }
             }
         }
 
@@ -1700,7 +1705,8 @@ float MoonrakerPrinterAgent::parse_nozzle_diameter(const nlohmann::json& respons
                     return std::stof(value.get<std::string>());
                 }
             } catch (...) {
-                return 0.0f;
+                // Malformed for this extruder; keep scanning the others instead of giving up.
+                continue;
             }
         }
     }
@@ -1997,7 +2003,8 @@ bool MoonrakerPrinterAgent::fetch_webcam_info(const ConnectionSettings& connecti
             if (!success) {
                 error = http_error.empty() ? "Connection failed" : http_error;
             } else {
-                BOOST_LOG_TRIVIAL(info) << "[Moonraker Diagnostic] " << connection.base_url << ":" << response_body;
+                BOOST_LOG_TRIVIAL(debug) << "[Moonraker Diagnostic] " << connection.base_url
+                                         << " webcams list: " << response_body.size() << " bytes";
                 auto json = nlohmann::json::parse(response_body, nullptr, false, true);
                 if (json.is_discarded()) {
                     error = "Invalid JSON response";
@@ -2844,7 +2851,8 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
 
     // Map Moonraker state to Bambu stage numbers
     int mc_print_stage = 0;
-    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("state")) {
+    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("state") &&
+        status_cache["print_stats"]["state"].is_string()) {
         std::string mr_state = status_cache["print_stats"]["state"].get<std::string>();
         if (mr_state == "printing")
             mc_print_stage = 1;
@@ -3153,24 +3161,6 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
     }
 
     return true;
-}
-
-int MoonrakerPrinterAgent::pause_print(const std::string& dev_id)
-{
-    (void) dev_id;
-    return post_print_action("pause") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
-}
-
-int MoonrakerPrinterAgent::resume_print(const std::string& dev_id)
-{
-    (void) dev_id;
-    return post_print_action("resume") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
-}
-
-int MoonrakerPrinterAgent::cancel_print(const std::string& dev_id)
-{
-    (void) dev_id;
-    return post_print_action("cancel") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
 }
 
 void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id,

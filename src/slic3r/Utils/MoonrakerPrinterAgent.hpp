@@ -257,11 +257,6 @@ private:
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
-    // Print control helpers
-    int pause_print(const std::string& dev_id);
-    int resume_print(const std::string& dev_id);
-    int cancel_print(const std::string& dev_id);
-
     // File upload
     bool upload_gcode(const std::string& local_path, const std::string& filename,
                       const ConnectionSettings& connection,
