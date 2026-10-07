@@ -31,6 +31,20 @@ bool moonraker_is_light_name(const std::string& name);
 // e.g. LIGHT_ON -> +1, LIGHT_OFF -> -1, LIGHT -> 0.
 int moonraker_light_name_direction(const std::string& name);
 
+struct MoonrakerWebcamSelection
+{
+    std::string      url;
+    CameraStreamMode mode = CameraStreamMode::none;
+    std::string      name;
+    std::string      error;  // set when no selectable webcam was found
+};
+
+// Selects a webcam from a parsed /server/webcams/list response (the top-level JSON or its
+// "result" value). Returns true and fills url/mode/name on success; on failure returns
+// false and sets error.
+bool moonraker_parse_webcam_list(const nlohmann::json& response, const std::string& base_url,
+                                 MoonrakerWebcamSelection& out);
+
 class MoonrakerWebsocket
 {
 public:
@@ -302,11 +316,12 @@ private:
     std::string        thumbnail_url;
     mutable std::string        webcam_stream_url;
     mutable CameraStreamMode   webcam_stream_mode = CameraStreamMode::none;
-    mutable uint64_t            webcam_info_last_lookup_ms = 0;
-    mutable uint64_t            webcam_info_generation = 0;
+    // Next time the status loop may look the webcam up again (steady_clock ms).
+    mutable std::atomic<uint64_t> webcam_info_next_attempt_ms{0};
     unsigned            thumbnail_lookup_attempts = 0;
 
-    static constexpr uint64_t WEBCAM_INFO_REFRESH_INTERVAL_MS = 1000;
+    static constexpr uint64_t WEBCAM_INFO_REFRESH_INTERVAL_MS = 30000;
+    static constexpr uint64_t WEBCAM_INFO_FAILURE_BACKOFF_MS  = 60000;
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection

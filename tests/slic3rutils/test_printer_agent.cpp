@@ -98,6 +98,70 @@ TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
     CHECK(moonraker_is_light_name("MODLELIGHT_SWITCH"));
 }
 
+TEST_CASE("Moonraker webcam selection skips disabled webcams and prefers the first enabled one",
+          "[unit][moonraker]")
+{
+    const auto response = nlohmann::json::parse(R"({
+        "result": { "webcams": [
+            { "name": "disabled", "enabled": false, "stream_url": "http://192.168.1.9:8080/stream" },
+            { "name": "enabled",  "enabled": true,  "stream_url": "http://192.168.1.9:8080/stream" }
+        ]}
+    })");
+
+    MoonrakerWebcamSelection selection;
+    REQUIRE(moonraker_parse_webcam_list(response, "http://192.168.1.9:7125", selection));
+    CHECK(selection.name == "enabled");
+    CHECK(selection.url == "http://192.168.1.9:8080/stream");
+    CHECK(selection.mode == CameraStreamMode::http);
+    CHECK(selection.error.empty());
+}
+
+TEST_CASE("Moonraker webcam selection resolves relative URLs, maps rtsp, and rejects other schemes",
+          "[unit][moonraker]")
+{
+    const auto relative = nlohmann::json::parse(R"({
+        "result": { "webcams": [ { "name": "cam", "snapshot_url": "/webcam/?action=snapshot" } ] }
+    })");
+    MoonrakerWebcamSelection rel;
+    REQUIRE(moonraker_parse_webcam_list(relative, "http://192.168.1.9:7125", rel));
+    // Relative URLs use the printer web root, without the Moonraker API port.
+    CHECK(rel.url == "http://192.168.1.9/webcam/?action=snapshot");
+    CHECK(rel.mode == CameraStreamMode::http_snapshot);
+
+    const auto rtsp = nlohmann::json::parse(R"({
+        "result": { "webcams": [ { "name": "cam", "stream_url": "rtsp://192.168.1.9:554/live" } ] }
+    })");
+    MoonrakerWebcamSelection rt;
+    REQUIRE(moonraker_parse_webcam_list(rtsp, "http://192.168.1.9:7125", rt));
+    CHECK(rt.mode == CameraStreamMode::rtsp);
+
+    const auto unsupported = nlohmann::json::parse(R"({
+        "result": { "webcams": [ { "name": "cam", "stream_url": "weird://host/x" } ] }
+    })");
+    MoonrakerWebcamSelection bad;
+    CHECK_FALSE(moonraker_parse_webcam_list(unsupported, "http://192.168.1.9:7125", bad));
+    CHECK(bad.error == "Unsupported webcam URL");
+}
+
+TEST_CASE("Moonraker webcam selection reports no webcam and malformed structure", "[unit][moonraker]")
+{
+    const auto empty = nlohmann::json::parse(R"({ "result": { "webcams": [] } })");
+    MoonrakerWebcamSelection none;
+    CHECK_FALSE(moonraker_parse_webcam_list(empty, "http://host:7125", none));
+    CHECK(none.error == "No enabled webcam");
+
+    const auto disabled_only = nlohmann::json::parse(R"({
+        "result": { "webcams": [ { "name": "disabled", "enabled": false, "stream_url": "http://host/stream" } ] }
+    })");
+    MoonrakerWebcamSelection off;
+    CHECK_FALSE(moonraker_parse_webcam_list(disabled_only, "http://host:7125", off));
+
+    const auto malformed = nlohmann::json::parse(R"({ "result": { "nope": 1 } })");
+    MoonrakerWebcamSelection shape;
+    CHECK_FALSE(moonraker_parse_webcam_list(malformed, "http://host:7125", shape));
+    CHECK(shape.error == "Unexpected JSON structure");
+}
+
 // ===========================================================================
 // UNIT - handle_request's not-supported default.
 // The agent is the only thing that knows what it can translate, so an untranslated
