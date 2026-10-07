@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <utility>
 #include <cstddef>
 
 namespace Slic3r::Voronoi {
@@ -26,6 +27,26 @@ class PoissonPointCloud : public PointCloudProvider {
 public:
     double spacing(double extrusion_spacing, double nominal_height, double density) const override;
     std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override;
+};
+
+// Signed distances in millimeters, negative inside the model. Smoothing is a
+// field-construction stage, independent of candidate selection and density.
+struct WallDistanceSample {
+    double distance;
+    double smoothed;
+};
+using WallDistanceSamples = std::function<std::vector<WallDistanceSample>(const std::vector<Vec3d> &)>;
+
+class WallDistancePointCloud : public PoissonPointCloud {
+public:
+    static constexpr double near_wall_distance = 2.;
+    explicit WallDistancePointCloud(WallDistanceSamples distance, double decay = 6.);
+    std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override;
+    // Relative local infill density, before cubing to obtain site intensity.
+    static double density_ratio(double distance, double sampled_mean, double decay = 6.);
+private:
+    WallDistanceSamples m_distance;
+    double m_decay;
 };
 
 // Owns ingestion and retirement, independently of the distribution and routing.

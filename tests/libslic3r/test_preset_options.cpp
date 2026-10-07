@@ -72,3 +72,35 @@ TEST_CASE("Every PrintObjectConfig field is registered in a preset key list", "[
     check_keys_are_in_a_preset(PrintObjectConfig::defaults().keys(), "PrintObjectConfig");
 }
 // clang-format on
+
+TEST_CASE("Print presets initialize and retain Voronoi decay and smoothing", "[Preset][Config]")
+{
+    DynamicPrintConfig config;
+    config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
+    REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(6., EPSILON));
+    REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(8., EPSILON));
+    config.set_deserialize_strict("voronoi_wall_decay", "0");
+    config.set_deserialize_strict("voronoi_smoothing_sigma", "12");
+    REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(0., EPSILON));
+    REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(12., EPSILON));
+}
+
+TEST_CASE("Legacy Voronoi selectors migrate without changing their distribution", "[Preset][Config]")
+{
+    for (const std::string value : {"uniform", "wall_distance"}) {
+        DynamicPrintConfig config;
+        config.set_deserialize_strict("voronoi_point_distribution", value);
+        PrintConfigDef::handle_legacy_composite(config);
+        REQUIRE_FALSE(config.has("voronoi_point_distribution"));
+        REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(value == "uniform" ? 0. : 6., EPSILON));
+        REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(value == "uniform" ? 0. : 2., EPSILON));
+    }
+}
+
+TEST_CASE("Print presets ignore the retired Voronoi interior centres option", "[Preset][Config]")
+{
+    DynamicPrintConfig config;
+    config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
+    config.set_deserialize_strict("voronoi_interior_centres", "1");
+    REQUIRE_FALSE(config.has("voronoi_interior_centres"));
+}

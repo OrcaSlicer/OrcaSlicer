@@ -9,6 +9,8 @@ namespace Slic3r {
 class FillVoronoi : public Fill
 {
 public:
+    void set_point_cloud(std::shared_ptr<const Voronoi::PointCloudProvider> provider)
+        { m_infill = VoronoiInfill(std::move(provider)); }
     Fill *clone() const override { return new FillVoronoi(*this); }
     bool no_sort() const override { return true; }
     bool is_self_crossing() override { return false; }

@@ -842,6 +842,13 @@ void PrintObject::infill()
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
 
+        // Build shared distance fields before workers start reporting completed
+        // layers. This also avoids workers waiting behind table initialization.
+        for (size_t region_id = 0; region_id < num_printing_regions(); ++region_id) {
+            const PrintRegionConfig &config = printing_region(region_id).config();
+            if (config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipVoronoi)
+                voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value);
+        }
         size_t completed_layers = 0;
         std::mutex progress_mutex;
         auto last_report = std::chrono::steady_clock::now();
@@ -1264,8 +1271,39 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
     return has_lightning_infill ? FillLightning::build_generator(std::as_const(*this), [this]() -> void { this->throw_if_canceled(); }) : FillLightning::GeneratorPtr();
 }
 
+std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma) const
+{
+    const int percent = is_step_done(posPrepareInfill) ? 35 : 25;
+    auto last_report = std::chrono::steady_clock::now();
+    auto last_stage = Voronoi::WallDistanceStage::Complete;
+    return m_voronoi_cloud_cache.get([this] {
+            std::vector<Voronoi::WallSlice> slices;
+            for (const Layer *layer : layers())
+                slices.push_back({layer->bottom_z(), layer->print_z, &layer->lslices});
+            return slices;
+        }, decay, sigma,
+        [this, percent, &last_report, &last_stage](Voronoi::WallDistanceStage stage, double fraction) {
+            m_print->throw_if_canceled();
+            const auto now = std::chrono::steady_clock::now();
+            if (stage == last_stage && fraction < 1. && now - last_report < std::chrono::milliseconds(250)) return;
+            std::string message;
+            switch (stage) {
+            case Voronoi::WallDistanceStage::Distance: message = L("Building Voronoi wall distances"); break;
+            case Voronoi::WallDistanceStage::Encoding: message = L("Encoding Voronoi wall distances"); break;
+            case Voronoi::WallDistanceStage::SmoothXY: message = L("Smoothing Voronoi wall distances (XY)"); break;
+            case Voronoi::WallDistanceStage::SmoothZ: message = L("Smoothing Voronoi wall distances (Z)"); break;
+            case Voronoi::WallDistanceStage::Complete: message = L("Finalizing Voronoi wall distances"); break;
+            default: return;
+            }
+            m_print->set_status(percent, message + " (" + std::to_string(int(100. * fraction)) + "%)");
+            last_report = now;
+            last_stage = stage;
+        });
+}
+
 void PrintObject::clear_layers()
 {
+    m_voronoi_cloud_cache.clear();
     if (!m_shared_object) {
         for (Layer *l : m_layers)
             delete l;
@@ -1582,7 +1620,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "lateral_lattice_angle_2"
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
-        } else if (opt_key == "sparse_infill_pattern"
+        } else if (opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma" || opt_key == "sparse_infill_pattern"
                    // Orca: Body centering now also determines bridge anchors during preparation.
                    // Invalidating preparation also invalidates infill, including top/bottom surfaces.
                    || opt_key == "center_of_surface_pattern"
@@ -1759,6 +1797,7 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posSlice) {
+        m_voronoi_cloud_cache.clear();
 		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
@@ -1783,6 +1822,7 @@ bool PrintObject::invalidate_all_steps()
     const bool inherited_invalidated = Inherited::invalidate_all_steps();
     const bool print_invalidated     = m_print->invalidate_all_steps();
     bool result = inherited_invalidated || print_invalidated;
+    m_voronoi_cloud_cache.clear();
 	// Then reset some of the depending values.
 	m_slicing_params.valid = false;
 	return result;

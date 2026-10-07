@@ -3570,6 +3570,28 @@ void PrintConfigDef::init_fff_params()
                         "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    // Retained only to migrate projects written by the original selector.
+    def = this->add("voronoi_point_distribution", coString);
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("voronoi_wall_decay", coFloat);
+    def->label = L("Voronoi wall proximity decay");
+    def->category = L("Strength");
+    def->tooltip = L("Distance over which Voronoi density decays away from walls. Zero gives a uniform base density; corner smoothing can still boost it locally. Set both decay and smoothing to zero for a uniform point cloud.");
+    def->sidetext = L("mm");
+    def->min = 0.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(6.));
+
+    def = this->add("voronoi_smoothing_sigma", coFloat);
+    def->label = L("Voronoi corner smoothing sigma");
+    def->category = L("Strength");
+    def->tooltip = L("Gaussian standard deviation for the wall-distance field. Larger values extend the corner density boost over a wider area. Zero disables smoothing. The filter extends to three times this distance.");
+    def->sidetext = L("mm");
+    def->min = 0.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(8.));
+
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
@@ -9429,6 +9451,15 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
 // Don't convert single options here, implement such conversion in PrintConfigDef::handle_legacy() instead.
 void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
 {
+    if (config.has("voronoi_point_distribution")) {
+        const bool uniform = config.opt_string("voronoi_point_distribution") == "uniform";
+        if (!config.has("voronoi_wall_decay"))
+            config.set_key_value("voronoi_wall_decay", new ConfigOptionFloat(uniform ? 0. : 6.));
+        if (!config.has("voronoi_smoothing_sigma"))
+            config.set_key_value("voronoi_smoothing_sigma", new ConfigOptionFloat(uniform ? 0. : 2.));
+        config.erase("voronoi_point_distribution");
+    }
+
     if (config.has("thumbnails")) {
         std::string extention;
         if (config.has("thumbnails_format")) {

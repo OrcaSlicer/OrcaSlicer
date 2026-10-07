@@ -1,18 +1,41 @@
 #include "VoronoiPointCloud.hpp"
+#include "../libslic3r.h"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <memory>
+#include <optional>
 #include <random>
 #include <stdexcept>
+#include <utility>
 #include <cstdint>
 
 namespace Slic3r::Voronoi {
 namespace {
+// Keep a small positive tail so an unbounded field continues to supply sites.
+constexpr double minimum_density_ratio = 0.01;
+constexpr double wall_falloff = 6.;
+const double maximum_density_ratio = minimum_density_ratio + (1. - minimum_density_ratio) *
+    std::exp(WallDistancePointCloud::near_wall_distance / wall_falloff);
+
 uint64_t mix(uint64_t value)
 {
     value += 0x9e3779b97f4a7c15ULL;
     value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
     value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
     return value ^ (value >> 31);
+}
+
+double site_draw(const Vec3d &point)
+{
+    uint64_t seed = 0x57414c4c434c4f55ULL;
+    for (int axis = 0; axis < 3; ++axis) {
+        uint64_t bits;
+        static_assert(sizeof(bits) == sizeof(double));
+        std::memcpy(&bits, &point[axis], sizeof(bits));
+        seed = mix(seed ^ bits);
+    }
+    return double(seed >> 11) * (1. / 9007199254740992.);
 }
 
 bool contains(const BoundingBoxf3 &outer, const BoundingBoxf3 &inner)
@@ -58,6 +81,48 @@ std::vector<Vec3d> PoissonPointCloud::points_in(const BoundingBoxf3 &box, double
                 }
             }
     return sites;
+}
+
+WallDistancePointCloud::WallDistancePointCloud(WallDistanceSamples distance, double decay)
+    : m_distance(std::move(distance)), m_decay(decay)
+{
+    if (!std::isfinite(decay) || decay < 0.) throw std::invalid_argument("Invalid Voronoi wall decay");
+}
+
+double WallDistancePointCloud::density_ratio(double distance, double sampled_mean, double decay)
+{
+    // The mean differs from a locally planar SDF near corners. Its magnitude
+    // gives both concave and convex corners the same preference.
+    // Flatten the unadjusted near-wall band first. Corner corrections may then
+    // raise density above the setting, bounded by zero effective depth.
+    const double depth = std::max(0., std::max(near_wall_distance, std::abs(distance)) -
+                                       std::abs(sampled_mean - distance));
+    if (decay == 0.) {
+        const double boost = std::min(near_wall_distance, std::abs(sampled_mean - distance));
+        return minimum_density_ratio + (1. - minimum_density_ratio) * std::exp(boost / wall_falloff);
+    }
+    if (depth >= near_wall_distance + 5. * decay) return minimum_density_ratio;
+    return std::min(maximum_density_ratio, minimum_density_ratio + (1. - minimum_density_ratio) *
+        std::exp(std::min(near_wall_distance / wall_falloff, -(depth - near_wall_distance) / decay)));
+}
+
+std::vector<Vec3d> WallDistancePointCloud::points_in(const BoundingBoxf3 &box, double spacing) const
+{
+    // A denser candidate field is necessary: rejection alone cannot increase
+    // density beyond that of the source field.
+    auto sites = PoissonPointCloud::points_in(box, spacing / maximum_density_ratio);
+    if (sites.empty()) return sites;
+    const auto distances = m_distance(sites);
+    if (distances.size() != sites.size()) throw std::invalid_argument("Invalid Voronoi distance samples");
+    std::vector<Vec3d> retained;
+    for (size_t i = 0; i < sites.size(); ++i) {
+        const double ratio = density_ratio(distances[i].distance, distances[i].smoothed, m_decay) / maximum_density_ratio;
+        // In isotropic Poisson foam, infill density scales with lambda^(1/3).
+        // Hash coordinates rather than traversal order to preserve the field.
+        const double draw = site_draw(sites[i]);
+        if (draw < ratio * ratio * ratio) retained.push_back(sites[i]);
+    }
+    return retained;
 }
 
 ActivePointCloud::ActivePointCloud(std::shared_ptr<const PointCloudProvider> provider) : m_provider(std::move(provider))
