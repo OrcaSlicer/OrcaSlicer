@@ -12,6 +12,7 @@
 #include <vector>
 #include <boost/algorithm/string/trim.hpp>
 #include "I18N.hpp"
+#include "GCode/PchipInterpolatorHelper.hpp"
 
 namespace Slic3r {
 namespace {
@@ -29,6 +30,12 @@ CurveModel::CurveModel(std::vector<std::string> parameters)
     : m_initial_parameters(std::move(parameters)), m_parameters(m_initial_parameters),
       m_serialized_parameters(serialize_parameters(m_parameters))
 {}
+
+CurveModel::Interpolator CurveModel::make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const
+{
+    if (x.empty() && y.empty()) return {};
+    return [model = PchipInterpolatorHelper(x, y)](double value) { return model.interpolate(value); };
+}
 
 void CurveModel::accept_rows(const Rows& rows)
 {

@@ -13,12 +13,11 @@
 #include <cstring>
 #include <cfloat>
 #include <ostream>
-#include <memory>
 #include <regex>
+#include <stdexcept>
 
 #include "../PrintConfig.hpp"
 #include "libslic3r/Exception.hpp"
-#include "libslic3r/GCode/PchipInterpolatorHelper.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/format.hpp"
@@ -65,7 +64,12 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
         if (const char* error = model.validate_points(eLengths, flowComps, error_row))
             throw Slic3r::InvalidArgument(std::string("Small Area Flow Compensation: ") + error);
 
-        flowModel = std::make_unique<PchipInterpolatorHelper>(eLengths, flowComps);
+        // An empty setting is skipped by GCode. A nonempty setting whose rows
+        // yield no points must still fail, rather than silently disable compensation.
+        if (eLengths.empty())
+            throw std::invalid_argument("Input vectors must have the same size and contain at least two points.");
+        // Use the same factory as the graph, including any feature-specific override.
+        flowModel = model.make_interpolator(eLengths, flowComps);
 
     } catch (std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "Error parsing small area infill compensation model: " << e.what();
@@ -77,14 +81,14 @@ SmallAreaInfillFlowCompensator::~SmallAreaInfillFlowCompensator() = default;
 
 double SmallAreaInfillFlowCompensator::flow_comp_model(const double line_length)
 {
-    if(flowModel == nullptr)
+    if (!flowModel)
         return 1.0;
 
     if (line_length == 0 || line_length > max_modified_length()) {
         return 1.0;
     }
 
-    return flowModel->interpolate(line_length);
+    return flowModel(line_length);
 }
 
 double SmallAreaInfillFlowCompensator::modify_flow(const double line_length, const double dE, const ExtrusionRole role)
