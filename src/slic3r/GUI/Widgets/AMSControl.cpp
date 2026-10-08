@@ -1168,10 +1168,13 @@ void AMSControl::UpdateAms(const std::string   &series_name,
         m_dev_id = dev_id;
         if (fresh){
             ClearAms();
-            if (m_total_ext_count == 1)
-                CreateAmsSingleNozzle(series_name, printer_type);
-            else if (m_total_ext_count == 2)
-                CreateAmsDoubleNozzle(series_name, printer_type);
+            bool is_bbl = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
+            if (is_bbl) {
+                if (m_total_ext_count == 1)
+                    CreateAmsSingleNozzle(series_name, printer_type);
+                else if (m_total_ext_count == 2)
+                    CreateAmsDoubleNozzle(series_name, printer_type);
+            }
             else
                 CreateAmsMultiNozzle(series_name, printer_type);
 
@@ -1283,7 +1286,9 @@ void AMSControl::AddAmsPreview(AMSinfo info, AMSModel type)
 {
     AMSPreview *ams_prv = nullptr;
 
-    if (m_total_ext_count > 2) {
+    // Match AddAms: the generic multi-nozzle layout's preview panel is the visible one at any
+    // extruder count, not only above two.
+    if (m_nozzle_book) {
         const int nozzle_id = std::clamp(info.nozzle_id, 0, m_total_ext_count - 1);
         auto &pane = m_nozzle_panes[nozzle_id];
         ams_prv = new AMSPreview(pane.preview_panel, wxID_ANY, info, type);
@@ -1461,7 +1466,10 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
 
 void AMSControl::AddAms(AMSinfo info, AMSPanelPos pos)
 {
-    if (m_total_ext_count > 2) {
+    // The generic multi-nozzle layout (non-Bambu vendors) owns the only visible book; a unit must
+    // land there for any extruder count. Keying off m_total_ext_count instead sent 1- and 2-extruder
+    // generic printers into the legacy simplebooks that CreateAmsMultiNozzle hides.
+    if (m_nozzle_book) {
         const int nozzle_id = std::clamp(info.nozzle_id, 0, m_total_ext_count - 1);
         auto &pane = m_nozzle_panes[nozzle_id];
         pane.item_ids.push_back(info.ams_id);
