@@ -33,7 +33,6 @@
 #include <NCollection_IndexedMap.hxx>
 #include <NCollection_List.hxx>
 #include <Poly_Triangulation.hxx>
-#include <gp_Ax2.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
 #include <BRepGProp.hxx>
@@ -53,6 +52,7 @@
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Shell.hxx>
+#include <TopoDS_Solid.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <ShapeUpgrade_UnifySameDomain.hxx>
 #include <array>
@@ -242,30 +242,6 @@ TopoDS_Shape GeometryEngine::mesh_to_brep(const indexed_triangle_set& its,
     }
     stats.faces_final = face_count(shape);
     return shape;
-}
-
-// ---- Primitive creation ----
-
-TopoDS_Solid GeometryEngine::make_primitive(const PrimitiveParams& params)
-{
-    switch (params.type) {
-    case PrimitiveType::Box:
-        return BRepPrimAPI_MakeBox(gp_Pnt(-params.box_w/2, -params.box_d/2, 0),
-                                   params.box_w, params.box_d, params.box_h).Solid();
-    case PrimitiveType::Cylinder:
-        return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,0), gp_Dir(0,0,1)),
-                                        params.cyl_radius, params.cyl_height).Solid();
-    case PrimitiveType::Sphere:
-        return BRepPrimAPI_MakeSphere(gp_Pnt(0,0,params.sph_radius), params.sph_radius).Solid();
-    case PrimitiveType::Cone:
-        return BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(0,0,0), gp_Dir(0,0,1)),
-                                    params.cone_r1, params.cone_r2, params.cone_height).Solid();
-    case PrimitiveType::Torus:
-        return BRepPrimAPI_MakeTorus(gp_Ax2(gp_Pnt(0,0,params.torus_r2), gp_Dir(0,0,1)),
-                                     params.torus_r1, params.torus_r2).Solid();
-    default:
-        return BRepPrimAPI_MakeBox(gp_Pnt(-10,-10,0), 20,20,20).Solid();
-    }
 }
 
 // ---- Face classification ----
@@ -543,19 +519,6 @@ GeometryEngine::MassProps GeometryEngine::mass_properties(const TopoDS_Shape& sh
         // leave valid = false
     }
     return p;
-}
-
-std::string GeometryEngine::primitive_name(PrimitiveType type)
-{
-    switch (type) {
-    // TRN Default name of an object created from the box primitive shape.
-    case PrimitiveType::Box:      return _u8L("Box");
-    case PrimitiveType::Cylinder: return _u8L("Cylinder");
-    case PrimitiveType::Sphere:   return _u8L("Sphere");
-    case PrimitiveType::Cone:     return _u8L("Cone");
-    case PrimitiveType::Torus:    return _u8L("Torus");
-    default:                      return _u8L("Unknown");
-    }
 }
 
 // ---- Topology accessors ----

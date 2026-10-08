@@ -6086,6 +6086,57 @@ TEST_CASE("A vendor updated over the air resolves against the library installed 
     }
 }
 
+TEST_CASE("The vendor and filament scans read the bundled vendors that ship as their cache alone", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     profiles = temp_dir.path() / "resources" / PRESET_PROFILES_DIR;
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    const std::string  lib(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    fs::create_directories(profiles / lib / "filament");
+    std::ofstream((profiles / (lib + ".json")).string())
+        << R"({"version":"1.0.0","name":")" << lib << R"(",)"
+        << R"("filament_list":[{"name":"Generic PLA","sub_path":"filament/generic_pla.json"}]})";
+    std::ofstream((profiles / lib / "filament" / "generic_pla.json").string())
+        << R"({"type":"filament","name":"Generic PLA","from":"system","instantiation":"false","filament_id":"GFL99"})";
+    fs::create_directories(profiles / "Acme" / "machine");
+    fs::create_directories(profiles / "Acme" / "filament");
+    std::ofstream((profiles / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme",)"
+        << R"("machine_model_list":[{"name":"Acme One","sub_path":"machine/model.json"}],)"
+        << R"("machine_list":[{"name":"Acme Printer","sub_path":"machine/printer.json"}],)"
+        << R"("filament_list":[{"name":"Acme PLA","sub_path":"filament/pla.json"}]})";
+    std::ofstream((profiles / "Acme" / "machine" / "model.json").string())
+        << R"({"type":"machine_model","name":"Acme One","nozzle_diameter":"0.4"})";
+    std::ofstream((profiles / "Acme" / "machine" / "printer.json").string())
+        << R"({"type":"machine","name":"Acme Printer","from":"system","instantiation":"true","printer_model":"Acme One","printer_variant":"0.4"})";
+    std::ofstream((profiles / "Acme" / "filament" / "pla.json").string())
+        << R"({"type":"filament","name":"Acme PLA","from":"system","instantiation":"true","inherits":"Generic PLA","filament_id":"P0000001"})";
+
+    auto installed = [](const PresetCollection &presets) {
+        return std::count_if(presets.get_presets().begin(), presets.get_presets().end(), [](const Preset &preset) { return !preset.is_default; });
+    };
+    auto scan = [&installed] {
+        std::vector<std::string> found;
+        PresetBundle             models;
+        models.load_system_models_from_json(ForwardCompatibilitySubstitutionRule::EnableSilent);
+        CHECK(installed(models.printers) + installed(models.prints) + installed(models.filaments) == 0);
+        for (const auto &[vendor_id, vendor] : models.vendors)
+            for (const VendorProfile::PrinterModel &model : vendor.models)
+                found.push_back(vendor_id + " model " + model.id);
+        PresetBundle filaments;
+        filaments.load_system_filaments_json(ForwardCompatibilitySubstitutionRule::EnableSilent);
+        CHECK(installed(filaments.printers) + installed(filaments.prints) == 0);
+        for (const Preset &preset : filaments.filaments.get_presets())
+            if (!preset.is_default)
+                found.push_back(preset.name + " " + preset.filament_id);
+        return found;
+    };
+    const std::vector<std::string> expected{"Acme model Acme One", "Acme PLA P0000001"};
+    REQUIRE(scan() == expected);
+    reduce_vendors_to_caches(profiles, {lib, "Acme"});
+    CHECK(scan() == expected);
+}
+
 namespace {
 
 // A default preset config for type, built the way PresetBundle builds its default presets.
