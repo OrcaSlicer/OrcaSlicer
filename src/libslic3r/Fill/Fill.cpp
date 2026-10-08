@@ -294,6 +294,8 @@ struct SurfaceFillParams
     size_t 			idx = 0;
 	// Infill speed setting for the effective extrusion role.
 	float role_speed = 0;
+	// Its volumetric alternative, used with enable_volumetric_speeds.
+	FloatOrPercent role_volumetric_flow;
 
     // Params for lattice infill angles
     float lateral_lattice_angle_1 = 0.f;
@@ -350,6 +352,8 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, bridge);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, extrusion_role);
 		RETURN_COMPARE_NON_EQUAL(role_speed);
+		RETURN_COMPARE_NON_EQUAL(role_volumetric_flow.value);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, role_volumetric_flow.percent);
         RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_1);
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
@@ -386,6 +390,7 @@ struct SurfaceFillParams
 				this->flow                    == rhs.flow                    &&
 				this->extrusion_role          == rhs.extrusion_role          &&
 				this->role_speed              == rhs.role_speed              &&
+				this->role_volumetric_flow    == rhs.role_volumetric_flow    &&
                 this->lateral_lattice_angle_1 == rhs.lateral_lattice_angle_1 &&
 				this->lateral_lattice_angle_2 == rhs.lateral_lattice_angle_2 &&
 				this->infill_lock_depth       == rhs.infill_lock_depth       &&
@@ -1062,16 +1067,23 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 					layerm.flow(extrusion_role, (surface.thickness == -1) ? layer.height : surface.thickness);
 
 				params.role_speed = 0;
-                if (params.extrusion_role == erBridgeInfill)
-                    params.role_speed = region_config.bridge_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erInternalBridgeInfill)
-                    params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erInternalInfill)
-                    params.role_speed = region_config.sparse_infill_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erTopSolidInfill)
-                    params.role_speed = region_config.top_surface_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erSolidInfill)
-                    params.role_speed = region_config.internal_solid_infill_speed.get_at(layer.get_extruder_id(params.extruder));
+                const size_t role_extruder_id = layer.get_extruder_id(params.extruder);
+                if (params.extrusion_role == erBridgeInfill) {
+                    params.role_speed = region_config.bridge_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.bridge_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erInternalBridgeInfill) {
+                    params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", role_extruder_id);
+                    params.role_volumetric_flow = region_config.internal_bridge_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erInternalInfill) {
+                    params.role_speed = region_config.sparse_infill_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.sparse_infill_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erTopSolidInfill) {
+                    params.role_speed = region_config.top_surface_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.top_surface_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erSolidInfill) {
+                    params.role_speed = region_config.internal_solid_infill_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.internal_solid_infill_volumetric_flow.get_at(role_extruder_id);
+                }
 				// Calculate flow spacing for infill pattern generation.
 		        if (surface.is_solid() || is_bridge) {
 		            params.spacing = params.flow.spacing();
