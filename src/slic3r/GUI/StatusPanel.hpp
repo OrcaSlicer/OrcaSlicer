@@ -168,6 +168,7 @@ public:
     void update(ExtruderState state, int idx);
 
     void msw_rescale();
+    void updateGenericSize();
     void setExtruderCount(int nozzle_num);
     void setGenericNozzleDisplay(bool enabled);
     void setExtruderUsed(std::string loc);

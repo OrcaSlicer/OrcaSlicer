@@ -638,6 +638,7 @@ void AMSControl::ClearAms() {
         for (auto &pane : m_nozzle_panes) {
             if (pane.preview_panel) pane.preview_panel->Destroy();
             if (pane.ams_book) pane.ams_book->Destroy();
+            if (pane.page) pane.page->Destroy();
         }
     }
     m_item_ids.assign(std::max(m_total_ext_count, 2), {});
@@ -1329,17 +1330,25 @@ void AMSControl::createAms(wxSimplebook* parent, int& idx, AMSinfo info, AMSPane
         // Above eight lanes, AmsItem is a fixed-minimum viewport over a wider
         // lane strip. Expand the viewport through its page's sizers rather
         // than propagating the strip's virtual width into the card/book.
+        // Reset back to the centered fixed layout for eight or fewer lanes so a
+        // later small unit is not left in expand mode.
         const bool generic_lane_layout = !wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor();
-        if (generic_lane_layout && info.cans.size() > 8) {
+        if (generic_lane_layout) {
             if (auto *page = parent->GetParent()) {
                 auto pane = std::find_if(m_nozzle_panes.begin(), m_nozzle_panes.end(),
                     [page](const NozzleAmsPane &candidate) { return candidate.page == page; });
-                if (pane != m_nozzle_panes.end()) {
-                    pane->ams_area->GetItem(pane->ams_book)->SetProportion(1);
-                    pane->ams_area->GetItem(pane->ams_book)->SetFlag(wxEXPAND);
-                    pane->page_sizer->GetItem(pane->ams_area)->SetFlag(wxEXPAND | wxTOP);
-                    m_sizer_ams_items->GetItem(m_nozzle_book)->SetFlag(wxEXPAND);
-                    m_sizer_body->GetItem(m_sizer_ams_items)->SetFlag(wxEXPAND);
+                if (pane != m_nozzle_panes.end() && m_nozzle_book) {
+                    const bool expand_viewport = info.cans.size() > 8;
+                    if (auto *book_item = pane->ams_area->GetItem(pane->ams_book)) {
+                        book_item->SetProportion(expand_viewport ? 1 : 0);
+                        book_item->SetFlag(expand_viewport ? wxEXPAND : wxALIGN_CENTER);
+                    }
+                    if (auto *area_item = pane->page_sizer->GetItem(pane->ams_area))
+                        area_item->SetFlag(expand_viewport ? (wxEXPAND | wxTOP) : (wxALIGN_CENTER | wxTOP));
+                    if (auto *nozzle_book_item = m_sizer_ams_items->GetItem(m_nozzle_book))
+                        nozzle_book_item->SetFlag(expand_viewport ? wxEXPAND : wxALIGN_CENTER);
+                    if (auto *items_item = m_sizer_body->GetItem(m_sizer_ams_items))
+                        items_item->SetFlag(expand_viewport ? wxEXPAND : wxALIGN_CENTER);
                     m_amswin->Layout();
                 }
             }

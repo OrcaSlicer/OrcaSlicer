@@ -144,10 +144,10 @@ The device-control widgets follow the same device-reported counts.
   `N3F_AMS`, `N3S_AMS`. A plain `AMS` maps to `GENERIC_AMS`.
 - On non-Bambu printers `use_generic_ams_layout()` routes `GENERIC_AMS` units through a variable-lane
   rendering that draws one lane per reported tray; Bambu keeps its fixed four-slot rendering.
-- `AMSControl` picks its layout by vendor: Bambu keeps the left/right presentation
-  (`CreateAmsSingleNozzle` for one toolhead, `CreateAmsDoubleNozzle` for two), while non-Bambu
-  printers use `CreateAmsMultiNozzle`, which builds one preview and one AMS simplebook per toolhead
-  for any count.
+- `AMSControl` picks its layout by toolhead count, not vendor: `CreateAmsSingleNozzle` for one
+  toolhead, `CreateAmsDoubleNozzle` for two, and `CreateAmsMultiNozzle` (one preview and one AMS
+  simplebook per toolhead) for three or more. A two-toolhead generic printer therefore keeps the
+  legacy left/right presentation; that is deliberate.
 - The status panel's `ExtruderImage` renders one per-toolhead state per nozzle and is resized to
   `GetTotalExtderCount()`. Non-Bambu printers choose the active toolhead through
   `m_generic_nozzle_selector` (shown when more than one toolhead exists); Bambu keeps its left/right
@@ -162,10 +162,14 @@ The device-control widgets follow the same device-reported counts.
 - **Extruder dialect invariants.** `device.extruder.state`'s count field must equal the length of
   `info[]`, and `info[]` must be ordered by extruder id with `id` equal to the array index: the
   parser places toolheads by array position while `GetExtderById()` indexes by id.
+- **One filament road per toolhead.** Each toolhead renders a single AMS filament road rather than an
+  independent per-toolhead road state. A generic scaffold that allowed the latter was removed as
+  unused; the one-extruder-per-toolhead road is the intended model.
 - **Preset/device agreement.** The generic layout and virtual-slot range derive their count from the
   selected printer preset. A printer preset must therefore declare the same number of
-  `nozzle_diameter` entries as the device has toolheads; a mismatch is surfaced because the sidebar
-  and extruder logic would otherwise disagree.
+  `nozzle_diameter` entries as the device has toolheads. A mismatch is surfaced only as a log warning
+  (`StatusPanel::check_extruder_count_mismatch()`), deliberately log-only, because the sidebar and
+  extruder logic would otherwise silently disagree.
 - **Bambu compatibility.** Bambu-specific presentation (left/right pair, fixed 4-slot units, fixed
   virtual ids, physical/logical inversion) is preserved behind the vendor check. Generic paths do
   not alter it.

@@ -877,7 +877,7 @@ void MultiNozzleStatusTable::UpdateRackInfo(std::weak_ptr<DevNozzleRack> rack)
             auto& nozzle = elem.second;
 
             int extruder_id{};
-            if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+            if (wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor()) {
                 extruder_id = nozzle.AtLeftExtruder() ? 0 : 1;
                 if (nozzle.AtRightExtruder())
                     has_right = true;

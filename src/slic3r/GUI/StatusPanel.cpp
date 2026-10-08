@@ -226,6 +226,8 @@ ExtruderImage::ExtruderImage(wxWindow* parent, wxWindowID id, int nozzle_num, co
     wxWindow::Create(parent, id, pos, wxSize(FromDIP(45), FromDIP(112)));
     SetBackgroundColour(*wxWHITE);
     m_nozzle_num = nozzle_num;
+    // Legacy Bambu single/dual page size. The generic (non-Bambu) grid grows
+    // past this when it holds more than two toolheads; see updateGenericSize().
     SetSize(wxSize(FromDIP(45), FromDIP(112)));
     SetMinSize(wxSize(FromDIP(45), FromDIP(112)));
     SetMaxSize(wxSize(FromDIP(45), FromDIP(112)));
@@ -298,6 +300,7 @@ void ExtruderImage::setExtruderCount(int nozzle_num)
 
     m_nozzle_num = normalized_count;
     m_multi_extruder_states.resize(static_cast<size_t>(m_nozzle_num), ExtruderState::EMPTY_LOAD);
+    updateGenericSize();
     Refresh();
 }
 
@@ -307,7 +310,35 @@ void ExtruderImage::setGenericNozzleDisplay(bool enabled)
         return;
 
     m_generic_nozzle_display = enabled;
+    updateGenericSize();
     Refresh();
+}
+
+void ExtruderImage::updateGenericSize()
+{
+    // The generic (non-Bambu) grid must stay legible for any toolhead count, so
+    // give it whole natural-size icons (24x62 DIP) and wrap into extra rows
+    // instead of squeezing everything into the fixed 45x112 Bambu page. doRender()
+    // balances the columns/rows inside the area we hand it, so sizing the page to
+    // a grid of natural-size cells keeps every icon at its full size.
+    // Bambu <=2 toolheads and generic <=2 toolheads keep the legacy page size.
+    wxSize size(FromDIP(45), FromDIP(112));
+    if (m_generic_nozzle_display && m_nozzle_num > 2) {
+        const wxSize icon = m_left_extruder_active_filled->GetBmpSize();
+        if (icon.x > 0 && icon.y > 0) {
+            // Fit as many columns as the fixed-width extruder panel (143 DIP) allows.
+            const int columns = std::max(1, std::min(m_nozzle_num, FromDIP(143) / icon.x));
+            const int rows    = (m_nozzle_num + columns - 1) / columns;
+            size = wxSize(columns * icon.x, rows * icon.y);
+        }
+    }
+
+    if (GetMinSize() == size && GetMaxSize() == size)
+        return;
+
+    SetMinSize(size);
+    SetMaxSize(size);
+    SetSize(size);
 }
 
 void ExtruderImage::setExtruderUsed(std::string loc)
@@ -352,6 +383,7 @@ void ExtruderImage::update(ExtruderState state, int idx) {
         return;
 
     m_multi_extruder_states[idx] = state;
+    Refresh();
 }
 
 void ExtruderImage::paintEvent(wxPaintEvent& evt)
@@ -1954,6 +1986,8 @@ void StatusBasePanel::ensure_nozzle_temp_controls(size_t count)
     if (!m_temp_nozzle_parent || !m_temp_nozzle_sizer)
         return;
 
+    // Widgets beyond the current toolhead count are intentionally retained
+    // (hidden, never destroyed) so a later count increase reuses them.
     bool changed = count != m_temp_nozzle_active_count;
     while (m_tempCtrl_nozzles.size() < count) {
         TempInput* temp_ctrl = create_nozzle_temp_control(m_temp_nozzle_parent, m_nozzle_temp_control_id);
@@ -3715,6 +3749,9 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
         ExtruderImage* image = m_extruderImage.front();
         image->setGenericNozzleDisplay(true);
         image->setExtruderCount(m_nozzle_num);
+        // Re-apply every update so a DPI change (which the setters above skip on
+        // steady state) still resizes the grid.
+        image->updateGenericSize();
 
         const int current_nozzle_id = extder_system->GetCurrentExtderId();
         const int selected_nozzle_id = current_nozzle_id >= 0 && current_nozzle_id < m_nozzle_num ? current_nozzle_id : -1;
@@ -3740,7 +3777,31 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
             m_generic_nozzle_selector->Enable();
     }
 
-    if (bbl_selector_was_shown != m_nozzle_btn_panel->IsShown() ||
+    // The generic >2 toolhead page is larger than the legacy 45x112 Bambu page,
+    // so drive the book's size from the page that is shown. The book is only
+    // given an explicit size while a >2 generic grid is shown (or to clear a
+    // previous one); a plain Bambu session leaves the book's natural 45x112
+    // best size untouched.
+    bool book_size_changed = false;
+    {
+        const bool generic_grid       = !is_bbl_vendor && m_nozzle_num > 2;
+        const bool book_has_explicit_size =
+            m_extruder_book->GetMinSize() != wxDefaultSize ||
+            m_extruder_book->GetMaxSize() != wxDefaultSize;
+        if (generic_grid || book_has_explicit_size) {
+            const wxSize legacy_size(FromDIP(45), FromDIP(112));
+            const wxSize wanted_size = generic_grid ? m_extruderImage.front()->GetMinSize() : legacy_size;
+            if (m_extruder_book->GetMinSize() != wanted_size ||
+                m_extruder_book->GetMaxSize() != wanted_size) {
+                m_extruder_book->SetMinSize(wanted_size);
+                m_extruder_book->SetMaxSize(wanted_size);
+                book_size_changed = true;
+            }
+        }
+    }
+
+    if (book_size_changed ||
+        bbl_selector_was_shown != m_nozzle_btn_panel->IsShown() ||
         generic_selector_was_shown != m_generic_nozzle_selector->IsShown())
         m_nozzle_btn_panel->GetParent()->Layout();
 
@@ -3870,6 +3931,16 @@ void StatusPanel::update_ams(MachineObject *obj)
         AMSinfo info;
         info.ams_id = ams->first;
         if (ams->second->IsExist() && info.parse_ams_info(obj, ams->second, obj->GetFilaSystem()->IsDetectRemainEnabled(), obj->is_support_ams_humidity)) {
+            // A non-Bambu unit reported as AMS_LITE but not matching the fixed
+            // four-lane AMS_LITE grid (e.g. a generic unit advertising a
+            // different slot count) has no fixed layout to render into and would
+            // show an empty card. Treat it as GENERIC_AMS so it uses the same
+            // variable-lane rendering. Bambu's fixed rendering is untouched.
+            if (info.ams_type == AMSModel::AMS_LITE &&
+                info.cans.size() != GENERIC_AMS_SLOT_NUM &&
+                (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor())) {
+                info.ams_type = AMSModel::GENERIC_AMS;
+            }
             ams_info.push_back(info);
         }
     }
@@ -3889,6 +3960,7 @@ void StatusPanel::update_ams(MachineObject *obj)
     const bool show_generic_nozzle_switch =
         obj->GetExtderSystem()->GetTotalExtderCount() > 2 &&
         !wxGetApp().preset_bundle->is_bbl_vendor();
+    const bool ams_nozzle_switch_was_shown = m_ams_nozzle_switch->IsShown();
     if (show_generic_nozzle_switch) {
         std::vector<wxString> nozzle_options;
         const int nozzle_count = obj->GetExtderSystem()->GetTotalExtderCount();
@@ -3903,7 +3975,8 @@ void StatusPanel::update_ams(MachineObject *obj)
     } else {
         m_ams_nozzle_switch->Hide();
     }
-    m_ams_nozzle_switch->GetParent()->Layout();
+    if (ams_nozzle_switch_was_shown != m_ams_nozzle_switch->IsShown())
+        m_ams_nozzle_switch->GetParent()->Layout();
     m_ams_control->UpdateAmsDryControl(obj);
 
     last_tray_exist_bits  = obj->tray_exist_bits;
@@ -5607,6 +5680,12 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
             m_generic_nozzle_selector->Disable();
         if (obj->GetCtrl()->command_select_extruder(nozzle_id) == 0)
         {
+            if (!is_bbl_vendor) {
+                // The command did not start; restore the previous selection and
+                // re-enable the selector so the user is not stuck.
+                m_generic_nozzle_selector->SetSelection(current_selection);
+                m_generic_nozzle_selector->Enable();
+            }
             return;
         }
     }
@@ -5735,11 +5814,16 @@ void StatusPanel::set_default()
     m_switch_cham_fan_timeout = 0;
     m_show_ams_group = false;
     m_show_filament_group = false;
-    m_generic_nozzle_selector->Hide();
+    if (m_generic_nozzle_selector)
+        m_generic_nozzle_selector->Hide();
     m_nozzle_btn_panel->Hide();
-    m_generic_nozzle_selector->Clear();
+    if (m_generic_nozzle_selector)
+        m_generic_nozzle_selector->Clear();
     m_generic_nozzle_selector_count = 0;
     m_extruder_book->SetSelection(0);
+    // Clear any generic >2 toolhead grid growth from a previous device.
+    m_extruder_book->SetMinSize(wxSize(FromDIP(45), FromDIP(112)));
+    m_extruder_book->SetMaxSize(wxSize(FromDIP(45), FromDIP(112)));
     m_nozzle_btn_panel->GetParent()->Layout();
     reset_printing_values();
 
@@ -5765,7 +5849,8 @@ void StatusPanel::set_default()
     m_ams_control->Reset();
     m_ams_rack_switch->updateState("left");
     m_ams_rack_switch->Hide();
-    m_ams_nozzle_switch->Hide();
+    if (m_ams_nozzle_switch)
+        m_ams_nozzle_switch->Hide();
     m_panel_nozzle_rack->Hide();
     m_scale_panel->Hide();
     m_filament_load_box->Hide();

@@ -808,8 +808,12 @@ bool MachineObject::is_extrusion_cali_finished()
 DevAmsTray *MachineObject::get_curr_tray()
 {
     const std::string& cur_ams_id = m_extder_system->GetCurrentAmsId();
-    if (cur_ams_id.compare(std::to_string(VIRTUAL_TRAY_MAIN_ID)) == 0) {
-        return &vt_slot[0];
+    if (devPrinterUtil::IsVirtualSlot(cur_ams_id)) {
+        for (auto& tray : vt_slot) {
+            if (tray.id == cur_ams_id)
+                return &tray;
+        }
+        return nullptr;
     }
 
     DevAms* curr_ams = get_curr_Ams();
@@ -2634,13 +2638,10 @@ void MachineObject::reset()
     json empty_j;
     print_json.diff2all_base_reset(empty_j);
 
-    for (auto i = 0; i < vt_slot.size(); i++) {
-        vt_slot[i].reset();
-
-        if (i == 1) {
-            vt_slot.erase(vt_slot.begin() + 1);
-        }
-    }
+    for (auto& tray : vt_slot)
+        tray.reset();
+    if (vt_slot.size() > 1)
+        vt_slot.erase(vt_slot.begin() + 1, vt_slot.end());
     // why: reset reuses MachineObject, so release its lazy subtask
     // before dropping the pointer to prevent reconnect leaks.
     if (subtask_) {

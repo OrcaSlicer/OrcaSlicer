@@ -37,6 +37,9 @@ namespace Slic3r {
 
 bool devPrinterUtil::IsVirtualSlot(int ams_id)
 {
+    // When the app or preset bundle is unavailable we cannot know the vendor's
+    // extruder count, so fall back deterministically to the fixed Bambu pair
+    // {255, 254} rather than guessing from an unknown generic layout.
     if (wxTheApp == nullptr || GUI::wxGetApp().preset_bundle == nullptr || GUI::wxGetApp().preset_bundle->is_bbl_vendor())
         return ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID;
 
@@ -46,6 +49,14 @@ bool devPrinterUtil::IsVirtualSlot(int ams_id)
 
 bool devPrinterUtil::IsVirtualSlot(const std::string& ams_id)
 {
+    // Strict: only a fully numeric string is a valid slot id. std::stoi alone
+    // would accept trailing garbage (e.g. "255abc" -> 255).
+    if (ams_id.empty())
+        return false;
+    for (char c : ams_id) {
+        if (c < '0' || c > '9')
+            return false;
+    }
     try {
         return IsVirtualSlot(std::stoi(ams_id));
     } catch (...) {
@@ -220,6 +231,11 @@ wxString DevAms::GetDisplayName() const
 
 int DevAms::GetSlotCount() const
 {
+    // N3S is a 1-slot Bambu contract, so report 1 regardless of whether the
+    // preset bundle is momentarily unavailable (m_trays.size() can be 0).
+    if (GetAmsType() == N3S)
+        return 1;
+
     if (wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
         GUI::wxGetApp().preset_bundle->is_bbl_vendor()) {
         // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
@@ -227,10 +243,6 @@ int DevAms::GetSlotCount() const
         if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
         {
             return 4;
-        }
-        else if (ams_type == N3S)
-        {
-            return 1;
         }
     }
 
@@ -1057,7 +1069,7 @@ void DevFilaSystemParser::ParseAgentFilament(const json& data, MachineObject* ob
             if (!e.is_object())
                 continue;
             const int  ext   = e.value("extruder", MAIN_EXTRUDER_ID);
-            if (ext < MAIN_EXTRUDER_ID || ext > VIRTUAL_TRAY_MAIN_ID)
+            if (ext < MAIN_EXTRUDER_ID || ext >= VIRTUAL_TRAY_MAIN_ID)
                 continue;
 
             const int  vt_id = VIRTUAL_TRAY_MAIN_ID - ext;
