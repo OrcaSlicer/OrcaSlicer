@@ -171,7 +171,7 @@ public:
     }
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
-    Color get_vertex_color(const PathVertex& vertex) const;
+    Color get_vertex_color(const PathVertex& vertex, size_t vertex_index) const;
 
     size_t get_extrusion_roles_count() const { return m_extrusion_roles.get_roles_count(); }
     std::vector<EGCodeExtrusionRole> get_extrusion_roles() const { return m_extrusion_roles.get_roles(); }
@@ -353,6 +353,7 @@ private:
     };
     Palette m_tool_colors;
     Palette m_color_print_colors;
+    std::vector<Color> m_gradient_colors;
     //
     // OpenGL shaders ids
     //
