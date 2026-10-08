@@ -724,9 +724,6 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
-// Verifies that when two objects with different heights and different layer heights are printed,
-// the extruder finishing earlier (short cube) receives M104 S0 upon completing its last layer,
-// while the taller object's extruder continues without being turned off early.
 TEST_CASE("Unused extruder turns off after its final layer on multi-object print", "[MultiFilament]")
 {
     // Object 1: tall cube (10mm) printed with Extruder 1 (T0) at 0.20mm layer height

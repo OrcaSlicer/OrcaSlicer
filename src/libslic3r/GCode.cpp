@@ -447,42 +447,30 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
     std::string OozePrevention::pre_toolchange(GCode& gcodegen)
     {
-        std::string gcode;
-
         unsigned int extruder_id = gcodegen.writer().filament()->id();
 
-       // Check if this tool will ever be used again in this print.
+        // Check if this tool will ever be used again in this print.
         bool is_last_use = false;
         if (gcodegen.m_print != nullptr && !gcodegen.m_print->tool_ordering().empty()) {
-            coordf_t cur_print_z = gcodegen.layer() ? gcodegen.layer()->print_z : 0.0;
-            is_last_use          = gcodegen.m_print->tool_ordering().is_last_extrusion_layer(cur_print_z, extruder_id);
+            coordf_t current_z = gcodegen.layer() ? gcodegen.layer()->print_z : gcodegen.writer().get_position().z();
+            is_last_use        = gcodegen.m_print->tool_ordering().is_last_extrusion_layer(current_z, extruder_id);
         }
 
-        if (is_last_use) {
-            gcode += gcodegen.writer().set_temperature(0, false, extruder_id);
-            gcode.pop_back();
-            gcode += " ;cooldown\n";
-            return gcode;
-        }
-
-        const auto& filament_idle_temp = gcodegen.config().idle_temperature;
-        if (filament_idle_temp.get_at(extruder_id) == 0) {
-            // There is no idle temperature defined in filament settings.
-            // Use the delta value from print config.
-            if (gcodegen.config().standby_temperature_delta.value != 0) {
-                // we assume that heating is always slower than cooling, so no need to block
-                gcode += gcodegen.writer().set_temperature
-                (this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false, extruder_id);
-                gcode.pop_back();
-                gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
+        int temp = 0;
+        if (!is_last_use) {
+            const auto& filament_idle_temp = gcodegen.config().idle_temperature;
+            if (filament_idle_temp.get_at(extruder_id) == 0) {
+                if (gcodegen.config().standby_temperature_delta.value == 0)
+                    return std::string();
+                temp = this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value;
+            } else {
+                temp = filament_idle_temp.get_at(extruder_id);
             }
-        } else {
-            // Use the value from filament settings. That one is absolute, not delta.
-            gcode += gcodegen.writer().set_temperature(filament_idle_temp.get_at(extruder_id), false, extruder_id);
-            gcode.pop_back();
-            gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
         }
 
+        std::string gcode = gcodegen.writer().set_temperature(temp, false, extruder_id);
+        gcode.pop_back();
+        gcode += " ;cooldown\n";
         return gcode;
     }
             

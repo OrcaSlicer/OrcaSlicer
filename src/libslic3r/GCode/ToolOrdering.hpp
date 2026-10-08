@@ -410,7 +410,7 @@ private:
     // which keeps every legacy per-object code path bit-identical (loops over an empty map are
     // no-ops; downstream emission falls through to the per-object branch).
     std::map<unsigned int, std::map<LayerTools::MixedSubLayerGroup::VolumeKey, std::vector<size_t>>> m_gradient_volume_layers;
-    // Map: extruder_id -> index of the last layer it is used on
+    // Map: extruder_id -> print_z (z coordinate) of the last layer it is used on
     std::map<unsigned int, coordf_t> m_last_layer_per_extruder;
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
