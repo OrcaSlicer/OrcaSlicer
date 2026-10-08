@@ -32,6 +32,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
 #include <cstdint>
+#include <initializer_list>
 #include <set>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -2687,6 +2688,46 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatsNullable{0});
+
+    def = this->add("enable_volumetric_speeds", coBool);
+    def->label = L("Volumetric speeds");
+    def->category = L("Speed");
+    def->tooltip = L("Set the speed of each feature as a volumetric flow (mm³/s) instead of a linear speed (mm/s). "
+                     "Each line is then printed at its feature's flow divided by the line's cross section, so lines of different "
+                     "width or height extrude the same flow. A volumetric speed expressed as a percentage is calculated on the "
+                     "filament's maximum volumetric speed, which still limits every speed.\n\n"
+                     "Small perimeter, overhang, ironing and travel speeds keep their own settings, applied over the resulting "
+                     "speeds. Calibration prints ignore this option.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Orca: named *_volumetric_flow because outer_wall_volumetric_speed is already a custom G-code placeholder.
+    struct VolumetricFlowDef { const char *key; const char *label; const char *full_label; double default_percent; };
+    for (const VolumetricFlowDef &flow : std::initializer_list<VolumetricFlowDef>{
+             {"initial_layer_volumetric_flow", L("First layer"), L("First layer volumetric speed"), 25},
+             {"initial_layer_infill_volumetric_flow", L("First layer infill"), L("First layer infill volumetric speed"), 50},
+             {"outer_wall_volumetric_flow", L("Outer wall"), L("Outer wall volumetric speed"), 50},
+             {"inner_wall_volumetric_flow", L("Inner wall"), L("Inner wall volumetric speed"), 100},
+             {"sparse_infill_volumetric_flow", L("Sparse infill"), L("Sparse infill volumetric speed"), 100},
+             {"internal_solid_infill_volumetric_flow", L("Internal solid infill"), L("Internal solid infill volumetric speed"), 100},
+             {"top_surface_volumetric_flow", L("Top surface"), L("Top surface volumetric speed"), 50},
+             {"gap_infill_volumetric_flow", L("Gap infill"), L("Gap infill volumetric speed"), 50},
+             {"support_volumetric_flow", L("Support"), L("Support volumetric speed"), 100},
+             {"support_interface_volumetric_flow", L("Support interface"), L("Support interface volumetric speed"), 50},
+             {"bridge_volumetric_flow", L("External"), L("External bridge volumetric speed"), 25},
+             {"internal_bridge_volumetric_flow", L("Internal"), L("Internal bridge volumetric speed"), 40}}) {
+        def = this->add(flow.key, coFloatsOrPercents);
+        def->label = flow.label;
+        def->full_label = flow.full_label;
+        def->category = L("Speed");
+        def->tooltip = L("Volumetric flow of this feature when volumetric speeds are enabled. If expressed as a percentage, "
+                         "it is calculated on the filament's maximum volumetric speed, which also limits it.");
+        def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+        def->min = 0.1;
+        def->mode = comAdvanced;
+        def->nullable = true;
+        def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(flow.default_percent, true)});
+    }
 
     def = this->add("wall_sequence", coEnum);
     def->label = L("Walls printing order");
@@ -10002,6 +10043,18 @@ std::set<std::string> print_options_with_variant = {
     "gap_infill_speed",
     "support_speed",
     "support_interface_speed",
+    "initial_layer_volumetric_flow", //coFloatsOrPercents
+    "initial_layer_infill_volumetric_flow",
+    "outer_wall_volumetric_flow",
+    "inner_wall_volumetric_flow",
+    "sparse_infill_volumetric_flow",
+    "internal_solid_infill_volumetric_flow",
+    "top_surface_volumetric_flow",
+    "gap_infill_volumetric_flow",
+    "support_volumetric_flow",
+    "support_interface_volumetric_flow",
+    "bridge_volumetric_flow",
+    "internal_bridge_volumetric_flow",
     "travel_speed",
     "travel_speed_z",
     "initial_layer_travel_speed",

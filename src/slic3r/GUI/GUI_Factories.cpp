@@ -119,7 +119,8 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"support_object_xy_distance", "",30}, {"bridge_no_support", "",31},{"max_bridge_length", "",32},{"support_critical_regions_only", "",33},{"support_remove_small_overhang","",34},
                     {"support_object_first_layer_gap","",35}
                     }},
-    { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
+    { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13},
+                   {"support_volumetric_flow", "",12}, {"support_interface_volumetric_flow", "",13}
                   }}
 };
 
@@ -181,18 +182,26 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"minimum_sparse_infill_area", "", 1}}},
      {L("Speed"),
       {{"outer_wall_speed", "", 1},
+       {"outer_wall_volumetric_flow", "", 1},
        {"inner_wall_speed", "", 2},
+       {"inner_wall_volumetric_flow", "", 2},
        {"sparse_infill_speed", "", 3},
+       {"sparse_infill_volumetric_flow", "", 3},
        {"top_surface_speed", "", 4},
+       {"top_surface_volumetric_flow", "", 4},
        {"internal_solid_infill_speed", "", 5},
+       {"internal_solid_infill_volumetric_flow", "", 5},
        {"enable_overhang_speed", "", 6},
        {"overhang_1_4_speed", "", 7},
        {"overhang_2_4_speed", "", 8},
        {"overhang_3_4_speed", "", 9},
        {"overhang_4_4_speed", "", 10},
        {"bridge_speed", "", 11},
+       {"bridge_volumetric_flow", "", 11},
        {"gap_infill_speed", "", 12},
-       {"internal_bridge_speed", "", 13}}}};
+       {"gap_infill_volumetric_flow", "", 12},
+       {"internal_bridge_speed", "", 13},
+       {"internal_bridge_volumetric_flow", "", 13}}}};
 
 std::vector<std::string> SettingsFactory::get_options(const bool is_part)
 {

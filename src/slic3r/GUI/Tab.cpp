@@ -3009,23 +3009,36 @@ void TabPrint::build()
         optgroup->append_single_option_line("ensure_vertical_shell_thickness", "strength_settings_advanced#ensure-vertical-shell-thickness");
 
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
+        // Orca: each speed below is followed by its volumetric alternative; ConfigManipulation shows one of the two.
+        optgroup = page->new_optgroup(L("Speed definition"), L"param_volumetric_speed", 15);
+        optgroup->append_single_option_line("enable_volumetric_speeds");
         optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
         optgroup->append_single_option_line("initial_layer_speed", "speed_settings_initial_layer_speed#initial-layer", 0);
+        optgroup->append_single_option_line("initial_layer_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer", 0);
         optgroup->append_single_option_line("initial_layer_infill_speed", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
+        optgroup->append_single_option_line("initial_layer_infill_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
         optgroup->append_single_option_line("initial_layer_travel_speed", "speed_settings_initial_layer_speed#initial-layer-travel-speed", 0);
         optgroup->append_single_option_line("slow_down_layers", "speed_settings_initial_layer_speed#number-of-slow-layers");
         optgroup = page->new_optgroup(L("Other layers speed"), L"param_speed", 15);
         optgroup->append_single_option_line("outer_wall_speed", "speed_settings_other_layers_speed#outer-wall", 0);
+        optgroup->append_single_option_line("outer_wall_volumetric_flow", "speed_settings_other_layers_speed#outer-wall", 0);
         optgroup->append_single_option_line("inner_wall_speed", "speed_settings_other_layers_speed#inner-wall", 0);
+        optgroup->append_single_option_line("inner_wall_volumetric_flow", "speed_settings_other_layers_speed#inner-wall", 0);
         optgroup->append_single_option_line("small_perimeter_speed", "speed_settings_other_layers_speed#small-perimeters", 0);
         optgroup->append_single_option_line("small_perimeter_threshold", "speed_settings_other_layers_speed#small-perimeters-threshold", 0);
         optgroup->append_single_option_line("sparse_infill_speed", "speed_settings_other_layers_speed#sparse-infill", 0);
+        optgroup->append_single_option_line("sparse_infill_volumetric_flow", "speed_settings_other_layers_speed#sparse-infill", 0);
         optgroup->append_single_option_line("internal_solid_infill_speed", "speed_settings_other_layers_speed#internal-solid-infill", 0);
+        optgroup->append_single_option_line("internal_solid_infill_volumetric_flow", "speed_settings_other_layers_speed#internal-solid-infill", 0);
         optgroup->append_single_option_line("top_surface_speed", "speed_settings_other_layers_speed#top-surface", 0);
+        optgroup->append_single_option_line("top_surface_volumetric_flow", "speed_settings_other_layers_speed#top-surface", 0);
         optgroup->append_single_option_line("gap_infill_speed", "speed_settings_other_layers_speed#gap-infill", 0);
+        optgroup->append_single_option_line("gap_infill_volumetric_flow", "speed_settings_other_layers_speed#gap-infill", 0);
         optgroup->append_single_option_line("ironing_speed", "speed_settings_other_layers_speed#ironing-speed");
         optgroup->append_single_option_line("support_speed", "speed_settings_other_layers_speed#support", 0);
+        optgroup->append_single_option_line("support_volumetric_flow", "speed_settings_other_layers_speed#support", 0);
         optgroup->append_single_option_line("support_interface_speed", "speed_settings_other_layers_speed#support-interface", 0);
+        optgroup->append_single_option_line("support_interface_volumetric_flow", "speed_settings_other_layers_speed#support-interface", 0);
         optgroup->append_single_option_line("small_support_perimeter_speed", "speed_settings_other_layers_speed#small-tree-support-perimeters", 0);
         optgroup->append_single_option_line("small_support_perimeter_threshold", "speed_settings_other_layers_speed#small-tree-support-perimeters-threshold", 0);
         optgroup = page->new_optgroup(L("Overhang speed"), L"param_overhang_speed", 15);
@@ -3043,6 +3056,10 @@ void TabPrint::build()
         line = { L("Bridge"), L("Set speed for external and internal bridges") };
         line.append_option(optgroup->get_option("bridge_speed", 0));
         line.append_option(optgroup->get_option("internal_bridge_speed", 0));
+        optgroup->append_line(line);
+        line = { L("Bridge"), L("Set volumetric speed for external and internal bridges") };
+        line.append_option(optgroup->get_option("bridge_volumetric_flow", 0));
+        line.append_option(optgroup->get_option("internal_bridge_volumetric_flow", 0));
         optgroup->append_line(line);
 
         optgroup = page->new_optgroup(L("Travel speed"), L"param_travel_speed", 15);
