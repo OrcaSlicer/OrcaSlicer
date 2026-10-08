@@ -159,9 +159,9 @@ public:
 	// On the first layer, extrude a brim around the future wipe tower first.
     WipeTower::ToolChangeResult tool_change(size_t new_tool);
 
-	// Fill the unfilled space with a sparse infill.
+	// Complete the layer, or generate its standalone smooth-timelapse wall without finalizing it.
 	// Call this method only if layer_finished() is false.
-	WipeTower::ToolChangeResult finish_layer();
+	WipeTower::ToolChangeResult finish_layer(bool timelapse_wall_only = false);
 
 	// Is the current layer finished?
 	bool 			 layer_finished() const {
@@ -277,6 +277,7 @@ private:
     float           m_bridging                  = 0.f;
     bool            m_sparse_layers_skipped     = false;
     bool            m_sparse_layers_combined    = false;
+    bool            m_enable_timelapse_print    = false;
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
@@ -439,11 +440,12 @@ private:
                                       bool                   extrude_perimeter);
 
     Polygon generate_support_cone_wall(
-        WipeTowerWriter2& writer, 
-		const WipeTower::box_coordinates& wt_box, 
-		double feedrate, 
-		bool infill_cone, 
-		float spacing);
+        WipeTowerWriter2& writer,
+		const WipeTower::box_coordinates& wt_box,
+		double feedrate,
+		bool infill_cone,
+		float spacing,
+        bool extrude_perimeter = true);
 
     Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
 
