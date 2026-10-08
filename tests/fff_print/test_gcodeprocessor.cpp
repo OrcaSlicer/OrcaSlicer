@@ -136,43 +136,21 @@ void process_squares(int squares, GCodeProcessorResult &result, bool virtual_mov
     process_gcode(gcode.str(), result);
 }
 
-enum class Labels { None, LabelObjects, Bambu, LabelObjectsAndBambu, Klipper, M486 };
-
-// The labels starting or ending an object in the order Orca writes them.
-std::string object_label(Labels labels, bool start, const std::string &name, int id)
-{
-    const std::string label_objects = std::string("; ") + (start ? "" : "stop ") + "printing object " + name + " id:" + std::to_string(id) + " copy 0\n";
-    const std::string bambu = std::string("; ") + (start ? "start" : "stop") + " printing object, unique label id: " + std::to_string(100 + id) + "\n";
-    switch (labels) {
-    case Labels::LabelObjects: return label_objects;
-    case Labels::Bambu: return bambu;
-    case Labels::LabelObjectsAndBambu: return label_objects + bambu;
-    case Labels::Klipper: return std::string(start ? "EXCLUDE_OBJECT_START" : "EXCLUDE_OBJECT_END") + " NAME=" + name + "_id_" + std::to_string(id) + "_copy_0\n";
-    case Labels::M486: return "M486 S" + std::to_string(start ? id : -1) + "\n";
-    default: return {};
-    }
-}
-
-// Objects A and B on the first layer and A again on the second, with A's brim before its label, as Orca writes it,
-// and its support inside. The skirt and the prime tower belong to neither.
-void process_two_objects(Labels labels, GCodeProcessorResult &result)
+// Objects A and B on the first layer and A again on the second, with A's brim and support. The skirt and the
+// prime tower belong to neither.
+void process_two_objects(GCodeProcessorResult &result)
 {
     std::ostringstream gcode;
     gcode << "M83\nG90\n"
           << "; CHANGE_LAYER\n; LAYER_HEIGHT: 0.2\nG1 Z0.2 F12000\n"
           << "; FEATURE: Skirt\nG1 X0 Y100 E5 F3000\n"
           << "; FEATURE: Brim\nG1 X8 Y8 F12000\nG1 X12 Y8 E1 F3000\n"
-          << object_label(labels, true, "A", 0)
           << "; FEATURE: Support\nG1 X10 Y20 F12000\nG1 X10 Y30 E1 F3000\n"
           << "; FEATURE: Outer wall\nG1 X10 Y10 F12000\nG1 X20 Y10 E1 F3000\n"
-          << object_label(labels, false, "A", 0) << object_label(labels, true, "B", 1)
           << "; FEATURE: Outer wall\nG1 X50 Y50 F12000\nG1 X60 Y50 E2 F3000\n"
-          << object_label(labels, false, "B", 1)
           << "; FEATURE: Prime tower\nG1 X80 Y80 F12000\nG1 X90 Y80 E1 F3000\n"
           << "; CHANGE_LAYER\n; LAYER_HEIGHT: 0.2\nG1 Z0.4 F12000\n"
-          << object_label(labels, true, "A", 0)
-          << "; FEATURE: Outer wall\nG1 X10 Y10 F12000\nG1 X20 Y10 E1 F3000\n"
-          << object_label(labels, false, "A", 0);
+          << "; FEATURE: Outer wall\nG1 X10 Y10 F12000\nG1 X20 Y10 E1 F3000\n";
     process_gcode(gcode.str(), result);
 }
 
@@ -347,59 +325,27 @@ TEST_CASE("Rewritten G-code that cannot be re-read keeps the moves and hides the
     CHECK(result.moves.back().gcode_id == exported_moves.back().gcode_id);
 }
 
-TEST_CASE("Each labeled object gets the center of mass of its part and of all it prints", "[GCodeProcessor]")
+TEST_CASE("The plate's center of mass takes every extrusion of G-code without a print behind it", "[GCodeProcessor]")
 {
-    struct Case
-    {
-        const char *name;
-        Labels      labels;
-    };
-    const auto test_case = GENERATE(values<Case>({
-        { "label objects", Labels::LabelObjects },
-        { "Bambu labels", Labels::Bambu },
-        { "both, as Bambu printers write them", Labels::LabelObjectsAndBambu },
-        { "Klipper exclude objects", Labels::Klipper },
-        { "Marlin and RepRapFirmware exclude objects", Labels::M486 },
-    }));
-    INFO(test_case.name);
     GCodeProcessorResult result;
-    process_two_objects(test_case.labels, result);
+    process_two_objects(result);
 
-    REQUIRE(result.object_masses.size() == 2);
-    const GCodeProcessorResult::ObjectMass &a = result.object_masses[0];
-    const GCodeProcessorResult::ObjectMass &b = result.object_masses[1];
-    CHECK_THAT((center_of(a.part) - weighted_center({ { 1., a_wall_0 }, { 1., a_wall_1 } })).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
-    REQUIRE(a.printed_up_to_layer.size() == 2);
-    CHECK_THAT((center_of(a.printed_up_to_layer[0]) - weighted_center({ { 1., a_brim }, { 1., a_support }, { 1., a_wall_0 } })).norm(),
-               Catch::Matchers::WithinAbs(0., 1e-5));
-    CHECK_THAT((center_of(a.printed_up_to_layer[1]) -
-                weighted_center({ { 1., a_brim }, { 1., a_support }, { 1., a_wall_0 }, { 1., a_wall_1 } })).norm(),
-               Catch::Matchers::WithinAbs(0., 1e-5));
-    CHECK_THAT((center_of(b.part) - b_wall).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
-    REQUIRE(b.printed_up_to_layer.size() == 1);
-    CHECK_THAT((center_of(b.printed_up_to_layer[0]) - b_wall).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
-}
-
-TEST_CASE("The plate's center of mass takes every object, labeled or not", "[GCodeProcessor]")
-{
-    const Labels labels = GENERATE(Labels::None, Labels::LabelObjects);
-    INFO((labels == Labels::None ? "no labels" : "label objects"));
-    GCodeProcessorResult result;
-    process_two_objects(labels, result);
-
-    CHECK(result.object_masses.size() == (labels == Labels::None ? 0 : 2));
+    CHECK(result.object_masses.empty());
+    CHECK(result.body_masses.empty());
     const GCodeProcessorResult::ObjectMass &plate = result.plate_mass;
     CHECK_THAT((center_of(plate.part) - weighted_center({ { 1., a_wall_0 }, { 2., b_wall }, { 1., a_wall_1 } })).norm(),
                Catch::Matchers::WithinAbs(0., 1e-5));
     REQUIRE(plate.printed_up_to_layer.size() == 2);
+    CHECK_THAT((center_of(plate.printed_up_to_layer.front()) -
+                weighted_center({ { 1., a_brim }, { 1., a_support }, { 1., a_wall_0 }, { 2., b_wall } })).norm(),
+               Catch::Matchers::WithinAbs(0., 1e-5));
     CHECK_THAT((center_of(plate.printed_up_to_layer.back()) -
                 weighted_center({ { 1., a_brim }, { 1., a_support }, { 1., a_wall_0 }, { 2., b_wall }, { 1., a_wall_1 } })).norm(),
                Catch::Matchers::WithinAbs(0., 1e-5));
 }
 
-TEST_CASE("Each sliced cube's center of mass is its center, and its brim lowers the printed one", "[GCodeProcessor]")
+TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers the plate's printed one", "[GCodeProcessor]")
 {
-    // "Label objects" without exclude objects, so copies are told apart by the copy number alone.
     const bool copies = GENERATE(false, true);
     INFO((copies ? "two copies of one cube" : "two cubes"));
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
@@ -426,10 +372,11 @@ TEST_CASE("Each sliced cube's center of mass is its center, and its brim lowers 
             CHECK_THAT(part.x(), Catch::Matchers::WithinAbs(center.x(), 0.5));
             CHECK_THAT(part.y(), Catch::Matchers::WithinAbs(center.y(), 0.5));
             CHECK_THAT(part.z(), Catch::Matchers::WithinAbs(center.z(), 1.));
-            const GCodeProcessorResult::ObjectMass::Sum &printed = mass->printed_up_to_layer.back();
-            CHECK(printed.mass > mass->part.mass);
-            CHECK(center_of(printed).z() < part.z());
+            CHECK_THAT(mass->printed_up_to_layer.back().mass, Catch::Matchers::WithinRel(mass->part.mass, 1e-9));
         }
+    const GCodeProcessorResult::ObjectMass &plate = result.plate_mass;
+    CHECK(plate.printed_up_to_layer.back().mass > plate.part.mass);
+    CHECK(center_of(plate.printed_up_to_layer.back()).z() < center_of(plate.part).z());
 }
 
 TEST_CASE("Each separate part of an assembly gets its center of mass, overlapping parts one", "[GCodeProcessor]")

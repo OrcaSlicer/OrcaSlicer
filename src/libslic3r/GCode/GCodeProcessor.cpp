@@ -2790,11 +2790,8 @@ void GCodeProcessor::register_commands()
         {"M400", [this](const GCodeReader::GCodeLine& line) { process_M400(line); }}, // BBS delay
         {"M401", [this](const GCodeReader::GCodeLine& line) { process_M401(line); }}, // Repetier: Store x, y and z position
         {"M402", [this](const GCodeReader::GCodeLine& line) { process_M402(line); }}, // Repetier: Go to stored position
-        {"M486", [this](const GCodeReader::GCodeLine& line) { process_M486(line); }}, // Label objects
         {"M566", [this](const GCodeReader::GCodeLine& line) { process_M566(line); }}, // Set allowable instantaneous speed change
         {"M702", [this](const GCodeReader::GCodeLine& line) { process_M702(line); }}, // Unload the current filament into the MK3 MMU2 unit at the end of print.
-        {"EXCLUDE_OBJECT_START", [this](const GCodeReader::GCodeLine& line) { process_EXCLUDE_OBJECT(line, true); }}, // Klipper object labels
-        {"EXCLUDE_OBJECT_END", [this](const GCodeReader::GCodeLine& line) { process_EXCLUDE_OBJECT(line, false); }},
         {"M1020", [this](const GCodeReader::GCodeLine& line) { process_M1020(line); }}, // Select Tool
 
 // ORCA: Add Pressure Advance visualization support
@@ -3707,11 +3704,7 @@ void GCodeProcessor::reset()
     m_g1_line_id = 0;
     m_layer_id = 0;
     m_cp_color.reset();
-    m_mass_label.clear();
-    m_mass_index = -1;
-    m_mass_indices.clear();
-    m_pending_brim = {};
-    m_body_locator = nullptr;
+    m_mass_locator = nullptr;
 
     m_producer = EProducer::Unknown;
 
@@ -4301,20 +4294,12 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // ; OBJECT_ID  start
     if (boost::starts_with(comment, " start printing object")) {
         m_object_label_id = get_object_label_id(comment);
-        set_mass_label(comment);
         return;
     }
 
-    // Written for any printer while "Label objects" is on.
-    if (boost::starts_with(comment, " printing object ")) {
-        set_mass_label(comment);
-        return;
-    }
-
-    // ; OBJECT_ID  end, also ending the label above
+    // ; OBJECT_ID  end
     if (boost::starts_with(comment, " stop printing object")) {
         m_object_label_id = -1;
-        set_mass_label({});
         return;
     }
 
@@ -7308,21 +7293,6 @@ void GCodeProcessorResult::ObjectMass::add(const Sum &sum, bool in_part, size_t 
     printed_up_to_layer[layer].add(sum);
 }
 
-void GCodeProcessorResult::ObjectMass::add(const ObjectMass &other)
-{
-    part.add(other.part);
-    if (printed_up_to_layer.size() < other.printed_up_to_layer.size())
-        printed_up_to_layer.resize(other.printed_up_to_layer.size());
-    for (size_t i = 0; i < other.printed_up_to_layer.size(); ++i)
-        printed_up_to_layer[i].add(other.printed_up_to_layer[i]);
-}
-
-void GCodeProcessor::set_mass_label(std::string_view label)
-{
-    m_mass_label = label;
-    m_mass_index = -1;
-}
-
 void GCodeProcessor::add_object_mass(int filament_id, float volume)
 {
     // Skirt, prime tower and custom G-code belong to no object.
@@ -7341,30 +7311,18 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const size_t                                layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
     m_result.plate_mass.add(sum, part, layer);
-    if (part && m_body_locator)
-        if (const int body = m_body_locator(nozzle); body >= 0) {
-            if (m_result.body_masses.size() <= size_t(body))
-                m_result.body_masses.resize(body + 1);
-            m_result.body_masses[body].add(sum, part, layer);
-        }
-
-    if (m_mass_label.empty()) {
-        if (role == erBrim)
-            m_pending_brim.add(sum, part, layer);
+    if (!part || !m_mass_locator)
         return;
-    }
-    if (m_mass_index < 0) {
-        const auto [it, inserted] = m_mass_indices.try_emplace(m_mass_label, m_result.object_masses.size());
-        if (inserted)
-            m_result.object_masses.emplace_back();
-        m_mass_index = int(it->second);
-    }
-    GCodeProcessorResult::ObjectMass &object = m_result.object_masses[m_mass_index];
-    if (!m_pending_brim.printed_up_to_layer.empty()) {
-        object.add(m_pending_brim);
-        m_pending_brim = {};
-    }
-    object.add(sum, part, layer);
+    const auto add = [&sum, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
+        if (index < 0)
+            return;
+        if (masses.size() <= size_t(index))
+            masses.resize(index + 1);
+        masses[index].add(sum, true, layer);
+    };
+    const MassLocation location = m_mass_locator(nozzle);
+    add(m_result.object_masses, location.object);
+    add(m_result.body_masses, location.body);
 }
 
 void GCodeProcessor::finalize_object_masses()
@@ -7378,22 +7336,6 @@ void GCodeProcessor::finalize_object_masses()
         accumulate(object);
     for (GCodeProcessorResult::ObjectMass &body : m_result.body_masses)
         accumulate(body);
-    m_pending_brim = {};
-}
-
-void GCodeProcessor::process_M486(const GCodeReader::GCodeLine &line)
-{
-    // S<n> starts object n and S-1 ends it; A names an object and T counts them.
-    float id = 0.f;
-    if (line.has_value('S', id))
-        set_mass_label(id >= 0.f ? "M486 S" + std::to_string(int(id)) : std::string());
-}
-
-void GCodeProcessor::process_EXCLUDE_OBJECT(const GCodeReader::GCodeLine &line, bool start)
-{
-    const std::string_view raw  = line.raw();
-    const size_t           name = raw.find("NAME=");
-    set_mass_label(start && name != std::string_view::npos ? raw.substr(name, raw.find_first_of(" \t;", name) - name) : std::string_view());
 }
 
 void GCodeProcessor::set_extrusion_role(ExtrusionRole role)

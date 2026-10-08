@@ -2591,12 +2591,14 @@ WipeTowerType GCode::wipe_tower_type()
     return WipeTowerType::Type2;
 }
 
-// Numbers the connected bodies of the object instances of several bodies and finds the one an extrusion lies in.
-static GCodeProcessor::BodyLocator body_locator(const Print &print)
+// Numbers the object instances and the connected bodies of the instances of several, and finds those an extrusion lies in.
+static GCodeProcessor::MassLocator mass_locator(const Print &print)
 {
     struct Object
     {
         const PrintObject    *object;
+        int                   first_instance;
+        // No bodies for an object of one.
         size_t                bodies_count;
         int                   first_body;
         std::vector<coordf_t> print_zs;
@@ -2605,29 +2607,35 @@ static GCodeProcessor::BodyLocator body_locator(const Print &print)
         std::vector<IslandLocator>       islands;
     };
     std::vector<Object> objects;
-    int                 bodies_total = 0;
+    int                 instances_total = 0;
+    int                 bodies_total    = 0;
     for (const PrintObject *object : print.objects()) {
-        // Assemblies only, as the Prepare tab counts them.
-        const ModelVolumePtrs &volumes = object->model_object()->volumes;
-        if (std::count_if(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_model_part(); }) < 2 &&
-            std::none_of(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_negative_volume(); }))
+        const auto layers = object->layers();
+        if (layers.empty())
             continue;
-        // The bodies separated infills found, if it needed them.
-        const auto       layers = object->layers();
-        size_t           count  = object->separated_body_bboxes().size();
+        // Bodies for assemblies only, as the Prepare tab counts them: those separated infills found, if it needed them.
+        const ModelVolumePtrs           &volumes = object->model_object()->volumes;
+        size_t                           count   = 0;
         std::vector<std::vector<size_t>> bodies;
-        if (count > 0 && std::all_of(layers.begin(), layers.end(), [](const Layer *l) { return l->lslices_separated_component_ids.size() == l->lslices.size(); }))
-            for (const Layer *layer : layers)
-                bodies.emplace_back(layer->lslices_separated_component_ids);
-        else {
-            std::vector<const ExPolygons *> islands;
-            for (const Layer *layer : layers)
-                islands.emplace_back(&layer->lslices);
-            bodies = connected_bodies(islands, count);
+        if (std::count_if(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_model_part(); }) > 1 ||
+            std::any_of(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_negative_volume(); })) {
+            count = object->separated_body_bboxes().size();
+            if (count > 0 && std::all_of(layers.begin(), layers.end(), [](const Layer *l) { return l->lslices_separated_component_ids.size() == l->lslices.size(); }))
+                for (const Layer *layer : layers)
+                    bodies.emplace_back(layer->lslices_separated_component_ids);
+            else {
+                std::vector<const ExPolygons *> islands;
+                for (const Layer *layer : layers)
+                    islands.emplace_back(&layer->lslices);
+                bodies = connected_bodies(islands, count);
+            }
         }
-        if (count < 2)
-            continue;
-        Object &o = objects.emplace_back(Object{ object, count, bodies_total, {}, std::move(bodies), {} });
+        if (count < 2) {
+            count = 0;
+            bodies.assign(layers.size(), {});
+        }
+        Object &o = objects.emplace_back(Object{ object, instances_total, count, bodies_total, {}, std::move(bodies), {} });
+        instances_total += int(object->instances().size());
         bodies_total += int(count * object->instances().size());
         for (const Layer *layer : layers) {
             o.print_zs.emplace_back(layer->print_z);
@@ -2641,22 +2649,23 @@ static GCodeProcessor::BodyLocator body_locator(const Print &print)
     {
         size_t object{ 0 }, instance{ 0 }, layer{ 0 }, island{ 0 };
     };
-    return [objects = std::move(objects), last = std::optional<Hit>()](const Vec3d &point) mutable -> int {
+    return [objects = std::move(objects), last = std::optional<Hit>()](const Vec3d &point) mutable -> GCodeProcessor::MassLocation {
         constexpr double z_tolerance = 0.002;
         const auto       local       = [&point, &objects](size_t object, size_t instance) {
             return Point(Point(scaled(point.x()), scaled(point.y())) - objects[object].object->instances()[instance].shift);
         };
-        const auto body = [&objects, &last](const Hit &hit) {
+        const auto location = [&objects, &last](const Hit &hit) {
             last            = hit;
             const Object &o = objects[hit.object];
-            return o.first_body + int(hit.instance * o.bodies_count + o.bodies[hit.layer][hit.island]);
+            return GCodeProcessor::MassLocation{ o.first_instance + int(hit.instance),
+                                                 o.bodies_count == 0 ? -1 : o.first_body + int(hit.instance * o.bodies_count + o.bodies[hit.layer][hit.island]) };
         };
         // Extrusions mostly follow each other on one island.
         if (last) {
             const Object &o = objects[last->object];
             if (std::abs(o.print_zs[last->layer] - point.z()) < z_tolerance &&
                 o.islands[last->layer].holds(last->island, local(last->object, last->instance)))
-                return body(*last);
+                return location(*last);
         }
         for (size_t object = 0; object < objects.size(); ++object) {
             const Object &o = objects[object];
@@ -2666,9 +2675,9 @@ static GCodeProcessor::BodyLocator body_locator(const Print &print)
             const size_t layer = size_t(z - o.print_zs.begin());
             for (size_t instance = 0; instance < o.object->instances().size(); ++instance)
                 if (const int island = o.islands[layer].find(local(object, instance)); island >= 0)
-                    return body({ object, instance, layer, size_t(island) });
+                    return location({ object, instance, layer, size_t(island) });
         }
-        return -1;
+        return {};
     };
 }
 
@@ -3194,7 +3203,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled,
                                    print.get_layered_nozzle_group_result());
-    m_processor.set_body_locator(body_locator(print));
+    m_processor.set_mass_locator(mass_locator(print));
     const bool is_bbl_printers = print.is_BBL_printer();
     const bool skip_config_block = print.config().gcode_skip_config_block;
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
@@ -3968,18 +3977,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     file.write_format("; EXECUTABLE_BLOCK_START\n");
-
-    // The object labels number the objects and their copies too, not only exclude objects.
-    size_t object_id = 0;
-    size_t unique_id = 0;
-    for (PrintObject *object : print.objects_mutable()) {
-        object->set_id(object_id++);
-        size_t inst_id = 0;
-        for (PrintInstance &inst : object->instances()) {
-            inst.unique_id = unique_id++;
-            inst.id        = inst_id++;
-        }
-    }
 
     // SoftFever
     if( m_enable_exclude_object)
@@ -10675,6 +10672,7 @@ std::string GCode::set_object_info(Print *print) {
         (gflavor != gcfKlipper && gflavor != gcfMarlinLegacy && gflavor != gcfMarlinFirmware && gflavor != gcfRepRapFirmware))
         return "";
     std::ostringstream gcode;
+    size_t object_id = 0;
     // Orca: check if we are in pa calib mode
     if (print->calib_mode() == CalibMode::Calib_PA_Pattern) {
         BoundingBoxf bbox_bed(print->config().printable_area.values);
@@ -10690,9 +10688,14 @@ std::string GCode::set_object_info(Print *print) {
     } else if (print->calib_mode() == CalibMode::Calib_PA_Line) {
         // PA_Line has only one object, no EXCLUDE_OBJECT_DEFINE needed
     } else {
+        size_t unique_id = 0;
         m_instance_names.clear();
         for (PrintObject* object : print->objects()) {
+            object->set_id(object_id++);
+            size_t inst_id = 0;
             for (PrintInstance& inst : object->instances()) {
+                inst.unique_id = unique_id++;
+                inst.id        = inst_id++;
                 // Outlines are in plate coordinates. On a belt printer that is the frame after
                 // the slicing rotation has been undone and before the G-code axis remap and
                 // machine-frame shear: where the object stands on the belt, which is what an

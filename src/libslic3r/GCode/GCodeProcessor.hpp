@@ -284,21 +284,19 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             };
             // The parts alone, without brim, raft and supports.
             Sum part;
-            // Everything printed up to each layer id, a body's own extrusions only, the others with brim, raft and supports.
+            // Everything printed up to each layer id, the plate's with brim, raft and supports.
             std::vector<Sum> printed_up_to_layer;
 
             // An extrusion on a layer, counted in the parts too when it belongs to them.
             void add(const Sum &sum, bool in_part, size_t layer);
-            void add(const ObjectMass &other);
         };
 
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
         ObjectMass plate_mass;
-        // One per object instance its G-code labels.
+        // One per object instance, and one per connected body of the instances of several, when the sliced objects were at hand.
         std::vector<ObjectMass> object_masses;
-        // One per connected body of the object instances of several, when the sliced objects were at hand.
         std::vector<ObjectMass> body_masses;
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
@@ -1129,8 +1127,13 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         };
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
-        // The connected body of an object instance of several that a point at an object layer's height lies in, or -1.
-        using BodyLocator = std::function<int(const Vec3d &point)>;
+        // The object instance and the connected body of an instance of several that a point lies in, -1 for none.
+        struct MassLocation
+        {
+            int object{ -1 };
+            int body{ -1 };
+        };
+        using MassLocator = std::function<MassLocation(const Vec3d &point)>;
 
     private:
         CommandProcessor m_command_processor;
@@ -1159,13 +1162,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool m_skippable{false};
         SkipType m_skippable_type{SkipType::stNone};
         int m_object_label_id{-1};
-        // Label of the object being printed, any kind, and its index in m_result.object_masses once it extrudes.
-        std::string m_mass_label;
-        int m_mass_index{-1};
-        std::map<std::string, size_t> m_mass_indices;
-        // A brim is printed before its object's label.
-        GCodeProcessorResult::ObjectMass m_pending_brim;
-        BodyLocator m_body_locator;
+        MassLocator m_mass_locator;
         float m_print_z{0.0f};
         std::vector<float> m_remaining_volume;
         ExtruderTemps m_filament_nozzle_temp;
@@ -1320,7 +1317,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
-        void set_body_locator(BodyLocator locator) { m_body_locator = std::move(locator); }
+        void set_mass_locator(MassLocator locator) { m_mass_locator = std::move(locator); }
         // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the
         // per-slot machine-limit resolution can follow the active nozzle. Null is fine (slot 0).
         void initialize_from_context(const std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase>& nozzle_group_result) {
@@ -1524,10 +1521,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // Unload the current filament into the MK3 MMU2 unit at the end of print.
         void process_M702(const GCodeReader::GCodeLine& line);
 
-        // Object labels of Marlin and RepRapFirmware (M486) and of Klipper (EXCLUDE_OBJECT_START / _END)
-        void process_M486(const GCodeReader::GCodeLine& line);
-        void process_EXCLUDE_OBJECT(const GCodeReader::GCodeLine& line, bool start);
-
         //Used for Elegoo printer to change tool head
         void process_M6211(const GCodeReader::GCodeLine& line);
         void process_elegoo_M6211(const GCodeReader::GCodeLine& line);
@@ -1580,7 +1573,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
         void add_object_mass(int filament_id, float volume);
-        void set_mass_label(std::string_view label);
         void finalize_object_masses();
 
         void set_extrusion_role(ExtrusionRole role);

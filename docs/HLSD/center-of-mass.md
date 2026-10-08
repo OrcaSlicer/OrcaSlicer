@@ -28,10 +28,10 @@ filament's density from the filament's selected preset, edits not yet saved incl
 the plater's own config holds the values of the filament edited last only. Preview has
 what will be printed, so its markers come from the toolpaths, whose mass depends on walls, infill
 and flow as well. There the solid markers are for what is printed up to the top layer the layer
-slider shows: for the plate and the objects with their brim, raft and supports, where the weight
-rests at that point of the print; for a body, its own extrusions. Each has a faded twin for the
-finished parts alone, without brim, raft and supports, so the slider shows the weight moving
-toward where it ends.
+slider shows: for the plate with brim, raft and supports, where the weight rests at that point of
+the print; for an object or a body, its own extrusions. Each has a faded twin for the finished
+parts alone, without brim, raft and supports, so the slider shows the weight moving toward where it
+ends.
 
 ## Prepare: from the meshes
 
@@ -83,28 +83,23 @@ as printed. Its mass sits at the middle of the segment, half the layer height be
 the center of the bead, in the frame of the stored moves: plate offset added, Z offset removed. Arcs
 are already split into segments by the processor. Walls, infill, top and bottom surfaces, ironing
 and gap fill make the parts. The brim and the support roles, the raft among them, count only in what
-is printed. The skirt, the prime tower and custom G-code belong to no object.
+the plate prints. The skirt, the prime tower and custom G-code count nowhere.
 
-The plate takes every extrusion, so it needs nothing more. The objects are told apart by the labels
-in the G-code: Bambu printers write `; start printing object, unique label id:`; "Label objects"
-writes `; printing object <name> id:<n> copy <m>`; exclude objects writes `EXCLUDE_OBJECT_START
-NAME=` for Klipper and `M486 S<n>` for Marlin and RepRapFirmware. Profiles turn these on and off in
-every combination, and the label written last before an object's first extrusion keys it, the
-writer emitting the exclude object and Bambu labels with that object's first move. A stop label of
-any kind ends the object. Orca writes an object's brim before its label, so a brim extruded outside
-any label goes to the next object that extrudes. G-code without labels shows the plate alone. The
-G-code export numbers the objects and their copies on every export, so the labels are unique.
+The plate takes every extrusion, so it needs nothing more. The objects and bodies need the sliced
+objects, which the G-code does not describe, so the G-code export hands the processor a locator
+built from the `Print`; G-code opened from a file, or from a project sliced earlier, has no `Print`
+behind it, and so shows the plate alone. Object labels would not do: profiles turn the four kinds
+Orca writes on and off in every combination, and none of them tells the bodies apart.
 
-The bodies need the sliced objects, which the G-code does not describe, so the G-code export hands
-the processor a locator built from the `Print`. For each assembly it takes the bodies
-`PrintObject::prepare_infill()` found for separated infills, or, when that option did not need them,
-links the islands (`Layer::lslices`) of neighboring layers into bodies with the same
-`connected_bodies()`. It numbers the bodies of every instance and, for each extrusion of a part,
-finds the layer printed at its height and the island holding it with an `IslandLocator`, the one
-`solid_bodies()` credits its regions with: by the island's box, widened by 1 mm for walls reaching
-past it, with a polygon test only where boxes overlap, and the nearest outline where none holds the
-point. The island found last is tried first, as extrusions mostly follow each other on one island. G-code opened from a file, or from a project sliced earlier, has no `Print` behind it, and so
-no bodies.
+The locator numbers the object instances and, for each assembly, the bodies of every instance. It
+takes the bodies `PrintObject::prepare_infill()` found for separated infills, or, when that option
+did not need them, links the islands (`Layer::lslices`) of neighboring layers into bodies with the
+same `connected_bodies()`. For each extrusion of a part, it finds the layer printed at its height and
+the island holding it with an `IslandLocator`, the one `solid_bodies()` credits its regions with: by
+the island's box, widened by 1 mm for walls reaching past it, with a polygon test only where boxes
+overlap, and the nearest outline where none holds the point. The island gives both the instance and
+the body. The island found last is tried first, as extrusions mostly follow each other on one
+island. Brim, raft and supports lie outside the islands, which is why they count in the plate only.
 
 Each mass holds the parts' total and, for each layer id, the running total of what is printed up to
 that layer, so the solid marker for any slider position is a single lookup. The layer ids are those
