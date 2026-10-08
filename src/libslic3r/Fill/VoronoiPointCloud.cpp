@@ -125,6 +125,17 @@ std::vector<Vec3d> WallDistancePointCloud::points_in(const BoundingBoxf3 &box, d
     return retained;
 }
 
+std::vector<double> WallDistancePointCloud::relative_density(const std::vector<Vec3d> &points) const
+{
+    const auto samples = m_distance(points);
+    if (samples.size() != points.size()) throw std::invalid_argument("Invalid Voronoi distance samples");
+    std::vector<double> ratios;
+    ratios.reserve(samples.size());
+    for (const auto &sample : samples)
+        ratios.push_back(sample.distance < 0. ? density_ratio(sample.distance, sample.smoothed, m_decay) : 2.);
+    return ratios;
+}
+
 ActivePointCloud::ActivePointCloud(std::shared_ptr<const PointCloudProvider> provider) : m_provider(std::move(provider))
 {
     if (!m_provider) throw std::invalid_argument("Missing Voronoi point-cloud provider");

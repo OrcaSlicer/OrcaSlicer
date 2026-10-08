@@ -79,3 +79,20 @@ values. Temporary filter borders extrapolate outward slopes; zero sigma reuses
 the original field. Tables are shared by smoothing width, and point providers
 retain their own decay setting. Reslicing clears the per-object cache.
 Construction and smoothing report phase progress and check cancellation.
+
+## Optional inner hull
+
+The hull threshold is a percentage of selected sparse infill density; zero
+disables it. For example, 20% at 25% infill removes local targets below 5%.
+The hull uses the same corner-adjusted density as the point cloud.
+
+Orca's marching squares extracts cavity contours, preserving nested holes.
+Samples at the bead's mid-plane and upper/lower faces define its swept skin
+and caps. A contour bead prints the hull wall; native solid Rectilinear fill
+covers remaining skin and caps using sparse-infill flow width and spacing.
+
+The cavity and skin are subtracted from ordinary walls and floors without
+changing control points. Hull paths join the existing group ordering; solid-fill
+islands retain their native sweep. Hull sections are reused across clipped
+regions. External perimeters and top/bottom shells are unchanged. Printable
+overhangs and vaulting are not enforced.

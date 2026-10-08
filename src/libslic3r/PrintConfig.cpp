@@ -3592,6 +3592,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(8.));
 
+    def = this->add("voronoi_hull_threshold", coPercent);
+    def->label = L("Voronoi inner hull density threshold");
+    def->category = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Remove infill where local density falls below this percentage of the selected sparse infill density, and enclose that void with a solid inner skin. For example, 20% with 25% sparse infill cuts below 5% local density. Zero disables the hull. Its shape follows the corner-adjusted distance field. This does not ensure a self-supporting roof.");
+    def->sidetext = "%";
+    def->min = 0.;
+    def->max = 100.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0.));
+
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");

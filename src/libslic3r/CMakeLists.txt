@@ -164,6 +164,8 @@ set(lisbslic3r_sources
     Fill/FillVoronoi.hpp
     Fill/VoronoiInfill.cpp
     Fill/VoronoiInfill.hpp
+    Fill/VoronoiHull.cpp
+    Fill/VoronoiHull.hpp
     Fill/VoronoiPointCloud.cpp
     Fill/VoronoiPointCloud.hpp
     Fill/VoronoiWallDistance.cpp

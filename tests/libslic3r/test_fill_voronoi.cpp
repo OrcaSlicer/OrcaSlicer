@@ -3,6 +3,7 @@
 #include "libslic3r/Fill/VoronoiInfill.hpp"
 #include "libslic3r/Fill/VoronoiRouting.hpp"
 #include "libslic3r/Fill/VoronoiWallDistance.hpp"
+#include "libslic3r/Fill/VoronoiHull.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/EdgeGrid.hpp"
 #include <algorithm>
@@ -1219,6 +1220,48 @@ TEST_CASE("Voronoi zero decay keeps a uniform base and permits corner boosts", "
     REQUIRE(cache.get(slices, 12., 0.) != plain);
     REQUIRE(loads == 1);
     REQUIRE_THROWS_AS(Cloud({}, -1.), std::invalid_argument);
+}
+
+TEST_CASE("Voronoi density thresholds extract enclosed voids and preserve model holes", "[FillVoronoi]")
+{
+    const auto outer = rectangle(-50., -50., 50., 50.);
+    ExPolygon outline = outer;
+    outline.holes.push_back(rectangle(-10., -10., 10., 10.).contour);
+    outline.holes.back().reverse();
+    const ExPolygons profiles {outline};
+    auto table = std::make_shared<Voronoi::CubicWallDistance>(std::vector<Voronoi::WallSlice>{{0., 100., &profiles}}, 0.);
+    Voronoi::WallDistancePointCloud field([table](const auto &p) { return table->sample_fields(p); });
+    REQUIRE(Voronoi::density_void(field, outer.contour.bounding_box(), 50., 0.).empty());
+    REQUIRE(Voronoi::density_void(Voronoi::PoissonPointCloud(), outer.contour.bounding_box(), 50., 1.).empty());
+    const auto cavity = Voronoi::density_void(field, outer.contour.bounding_box(), 50., 0.5);
+    REQUIRE_FALSE(cavity.empty());
+    REQUIRE(intersection_ex(cavity, ExPolygons{rectangle(-9., -9., 9., 9.)}).empty());
+    REQUIRE(diff_ex(ExPolygons{rectangle(20., 20., 25., 25.)}, cavity).empty());
+    REQUIRE(diff_ex(cavity, ExPolygons{outline}).empty());
+    const auto larger = Voronoi::density_void(field, outer.contour.bounding_box(), 50., 0.7);
+    REQUIRE(diff_ex(cavity, larger).empty());
+}
+
+TEST_CASE("Voronoi hull skins enclose walls and close emerging and disappearing voids", "[FillVoronoi]")
+{
+    Voronoi::WallDistancePointCloud field([](const auto &points) {
+        std::vector<Voronoi::WallDistanceSample> samples;
+        for (const auto &p : points) {
+            const double d = -std::min({20. - std::abs(p.x()), 20. - std::abs(p.y()), p.z(), 20. - p.z()});
+            samples.push_back({d, d});
+        }
+        return samples;
+    });
+    const auto bounds = rectangle(-20., -20., 20., 20.).contour.bounding_box();
+    const auto wall = Voronoi::hull_section(field, bounds, 10., 1., 0.45, 0.5);
+    REQUIRE_FALSE(wall.cavity.empty());
+    REQUIRE_FALSE(wall.skin.empty());
+    REQUIRE(intersection_ex(wall.skin, ExPolygons{rectangle(-10., -10., 10., 10.)}).empty());
+    REQUIRE_FALSE(intersection_ex(wall.skin, ExPolygons{rectangle(13.9, -5., 14.1, 5.)}).empty());
+    for (double z : {6.2, 13.8}) {
+        const auto cap = Voronoi::hull_section(field, bounds, z, 1., 0.45, 0.5);
+        REQUIRE(diff_ex(ExPolygons{rectangle(-5., -5., 5., 5.)}, cap.skin).empty());
+    }
 }
 
 TEST_CASE("Voronoi distance construction reports progress through completion", "[FillVoronoi]")

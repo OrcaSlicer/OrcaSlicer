@@ -800,6 +800,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid);
     toggle_line("voronoi_wall_decay", have_infill && pattern == ipVoronoi);
     toggle_line("voronoi_smoothing_sigma", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_hull_threshold", have_infill && pattern == ipVoronoi);
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {

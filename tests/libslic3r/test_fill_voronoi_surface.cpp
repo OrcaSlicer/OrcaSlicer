@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
 #include <array>
+#include <algorithm>
+#include <cmath>
+#include <vector>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -27,7 +30,7 @@ TEST_CASE("Voronoi routes whole native floor zigzags from the previous path endp
     const Point start = original[1].front().first_point();
     Voronoi::Layer layer;
     layer.bands = bands;
-    const auto ordered = filler.fill_paths(std::move(layer), params, start);
+    const auto ordered = Voronoi::order_groups(filler.fill_paths(std::move(layer), params), start);
     REQUIRE(ordered.size() == original.size());
     for (size_t i = 0; i < ordered.size(); ++i) {
         const auto &expected = original[std::array<size_t, 3>{1, 2, 0}[i]];
@@ -66,7 +69,7 @@ TEST_CASE("Voronoi mixes native odd and even floor zigzags between wall trails",
     Voronoi::Layer layer;
     layer.bands.push_back(band);
     layer.walls = {Polyline(exit + Point::new_scale(0., 50.), exit), Polyline(start, entry)};
-    const auto ordered = filler.fill_paths(std::move(layer), params, start);
+    const auto ordered = Voronoi::order_groups(filler.fill_paths(std::move(layer), params), start);
     REQUIRE(ordered.size() == 3);
     REQUIRE(ordered[0].reversible);
     REQUIRE_FALSE(ordered[1].reversible);
@@ -259,4 +262,122 @@ TEST_CASE("Voronoi wall distribution reduces material through native extrusion",
     REQUIRE(thinned.total_volume() < original.total_volume());
     biased.fill_surface_extrusion(&surface, params, repeat.entities);
     REQUIRE_THAT(repeat.total_volume(), Catch::Matchers::WithinAbs(thinned.total_volume(), EPSILON));
+}
+
+TEST_CASE("Voronoi inner hull removes interior paths and prints a continuous skin", "[FillVoronoi]")
+{
+    const ExPolygons outlines {ExPolygon{Point::new_scale(-25., -25.), Point::new_scale(25., -25.),
+                                        Point::new_scale(25., 25.), Point::new_scale(-25., 25.)}};
+    auto table = std::make_shared<Voronoi::CubicWallDistance>(std::vector<Voronoi::WallSlice>{{0., 50., &outlines}}, 0.);
+    size_t samples = 0;
+    auto cloud = std::make_shared<Voronoi::WallDistancePointCloud>([table, &samples](const auto &p) {
+        samples += p.size();
+        return table->sample_fields(p);
+    });
+    FillParams params;
+    params.density = 0.25f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    FillVoronoi baseline, hollow;
+    for (auto *filler : {&baseline, &hollow}) {
+        filler->set_point_cloud(cloud);
+        filler->set_bounding_box(outlines.front().contour.bounding_box());
+        filler->spacing = params.flow.spacing();
+        filler->angle = 0.f;
+        filler->z = 25.;
+        filler->layer_id = 125;
+    }
+    const Surface surface(stInternal, outlines.front());
+    const auto original = baseline.fill_surface(&surface, params);
+    REQUIRE(hollow.fill_surface(&surface, params) == original);
+    hollow.set_hull_threshold(0.5);
+    const auto paths = hollow.fill_surface(&surface, params);
+    const size_t before_repeat = samples;
+    REQUIRE(hollow.fill_surface(&surface, params) == paths);
+    REQUIRE(samples == before_repeat);
+    const auto hull = Voronoi::hull_section(*cloud, hollow.bounding_box, 24.9, 0.2, params.flow.width(), 0.5);
+    REQUIRE_FALSE(paths.empty());
+    REQUIRE(intersection_pl(paths, offset_ex(hull.cavity, -float(scale_(0.05)))).empty());
+    bool closed = false;
+    for (const auto &path : paths) if (path.first_point() == path.last_point()) closed = true;
+    REQUIRE(closed);
+    ExtrusionEntityCollection output;
+    hollow.fill_surface_extrusion(&surface, params, output.entities);
+    const auto deposited = output.polygons_covered_by_width();
+    double total = 0., missing = 0.;
+    for (const auto &p : hull.skin) total += p.area();
+    for (const auto &p : diff_ex(hull.skin, deposited)) missing += p.area();
+    REQUIRE(missing / total < 0.02);
+    const auto replacement = std::make_shared<Voronoi::PoissonPointCloud>();
+    hollow.set_point_cloud(replacement);
+    baseline.set_point_cloud(replacement);
+    baseline.set_hull_threshold(0.5);
+    REQUIRE(hollow.fill_surface(&surface, params) == baseline.fill_surface(&surface, params));
+    REQUIRE_FALSE(hollow.fill_surface(&surface, params) == paths);
+    const auto flattened = output.flatten();
+    for (const auto *entity : flattened.entities) {
+        const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+        REQUIRE(path != nullptr);
+        REQUIRE_THAT(path->mm3_per_mm, Catch::Matchers::WithinAbs(params.flow.mm3_per_mm(), 1e-9));
+    }
+}
+
+TEST_CASE("Voronoi hull floors and ceilings receive native solid fill", "[FillVoronoi]")
+{
+    auto cloud = std::make_shared<Voronoi::WallDistancePointCloud>([](const auto &points) {
+        std::vector<Voronoi::WallDistanceSample> samples;
+        for (const auto &p : points) {
+            const double d = -std::min({20. - std::abs(p.x()), 20. - std::abs(p.y()), p.z(), 20. - p.z()});
+            samples.push_back({d, d});
+        }
+        return samples;
+    });
+    const ExPolygon outline{Point::new_scale(-20., -20.), Point::new_scale(20., -20.),
+                            Point::new_scale(20., 20.), Point::new_scale(-20., 20.)};
+    FillParams params;
+    params.density = 0.25f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    for (double z : {6.3, 13.9}) {
+        FillVoronoi filler;
+        filler.set_point_cloud(cloud);
+        filler.set_hull_threshold(0.5);
+        filler.set_bounding_box(outline.contour.bounding_box());
+        filler.spacing = params.flow.spacing();
+        filler.angle = 0.f;
+        filler.z = z;
+        filler.layer_id = size_t(z / 0.2);
+        const Surface surface(stInternal, outline);
+        ExtrusionEntityCollection output;
+        filler.fill_surface_extrusion(&surface, params, output.entities);
+        const ExPolygon center{Point::new_scale(-5., -5.), Point::new_scale(5., -5.),
+                                Point::new_scale(5., 5.), Point::new_scale(-5., 5.)};
+        const auto missing = diff_ex(ExPolygons{center}, output.polygons_covered_by_width());
+        REQUIRE(missing.empty());
+    }
+}
+
+TEST_CASE("Independent Voronoi hull loops can route through an intervening wall", "[FillVoronoi]")
+{
+    const auto box = [](double x) {
+        return ExPolygon{Point::new_scale(x, 0.), Point::new_scale(x + 10., 0.),
+                         Point::new_scale(x + 10., 10.), Point::new_scale(x, 10.)};
+    };
+    Voronoi::HullSection hull{{box(0.), box(30.)}, {}};
+    const ExPolygon region{Point::new_scale(-5., -5.), Point::new_scale(45., -5.),
+                           Point::new_scale(45., 15.), Point::new_scale(-5., 15.)};
+    FillParams params;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    FillVoronoi filler;
+    filler.set_bounding_box(region.contour.bounding_box());
+    auto groups = filler.fill_hull(hull, region, params);
+    REQUIRE(groups.size() == 2);
+    const Point start = groups[0].paths.front().first_point();
+    const Point next = groups[1].paths.front().first_point();
+    const Polyline wall(start + Point::new_scale(0., 1.), next);
+    groups.push_back({Polylines{wall}, true});
+    const auto ordered = Voronoi::order_groups(std::move(groups), start);
+    REQUIRE(ordered[0].paths.front().first_point() == start);
+    REQUIRE(ordered[1].paths.front().points == wall.points);
+    REQUIRE(ordered[2].paths.front().first_point() == next);
 }

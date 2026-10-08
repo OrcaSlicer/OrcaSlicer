@@ -79,6 +79,10 @@ TEST_CASE("Print presets initialize and retain Voronoi decay and smoothing", "[P
     config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
     REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(6., EPSILON));
     REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(8., EPSILON));
+    REQUIRE(config.has("voronoi_hull_threshold"));
+    REQUIRE_THAT(config.option("voronoi_hull_threshold")->getFloat(), Catch::Matchers::WithinAbs(0., EPSILON));
+    config.set_deserialize_strict("voronoi_hull_threshold", "20%");
+    REQUIRE_THAT(config.option("voronoi_hull_threshold")->getFloat(), Catch::Matchers::WithinAbs(20., EPSILON));
     config.set_deserialize_strict("voronoi_wall_decay", "0");
     config.set_deserialize_strict("voronoi_smoothing_sigma", "12");
     REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(0., EPSILON));
