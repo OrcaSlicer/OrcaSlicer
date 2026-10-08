@@ -53,6 +53,8 @@ public:
     const char* read_view(const std::array<std::string, 4>& bounds, CurveView& view) const;
     // Translate the viewport as a whole, stopping at its limits without changing scale.
     CurveView panned_view(const CurveView& view, double x_offset, double y_offset) const;
+    // Scale one axis around an anchor expressed as a fraction of its visible interval.
+    CurveView zoomed_view(const CurveView& view, double factor, double anchor, bool vertical) const;
     virtual const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const = 0;
     // Shared by previews and numeric consumers. Override the default PCHIP
     // factory when a feature uses a different interpolation algorithm.

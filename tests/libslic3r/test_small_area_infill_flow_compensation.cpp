@@ -394,6 +394,113 @@ TEST_CASE("Panning an invalid curve view leaves its bounds unchanged", "[SmallAr
     CHECK_THAT(panned.max_y, WithinAbs(view.max_y, 1e-12));
 }
 
+TEST_CASE("Zooming curve views preserves the cursor anchor and model values", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewZooming]")
+{
+    const std::vector<std::string> parameters = {"0,0", "\n10,1"};
+    FlowModel model(parameters);
+    const CurveView view = {100, 200, 0, 1};
+    const bool vertical = GENERATE(false, true);
+    const double factor = GENERATE(0.5, 1.5, std::pow(1.1, -0.25));
+    const double anchor = GENERATE(0.0, 0.25, 0.75, 1.0);
+    const auto zoomed = model.zoomed_view(view, factor, anchor, vertical);
+    REQUIRE(model.validate_view(zoomed) == nullptr);
+    const double minimum = vertical ? view.min_y : view.min_x;
+    const double span = vertical ? view.max_y - view.min_y : view.max_x - view.min_x;
+    const double zoomed_minimum = vertical ? zoomed.min_y : zoomed.min_x;
+    const double zoomed_span = vertical ? zoomed.max_y - zoomed.min_y : zoomed.max_x - zoomed.min_x;
+    CHECK_THAT(zoomed_span, WithinAbs(span * factor, 1e-10));
+    CHECK_THAT(zoomed_minimum + zoomed_span * anchor, WithinAbs(minimum + span * anchor, 1e-10));
+    CHECK_THAT(vertical ? zoomed.min_x : zoomed.min_y, WithinAbs(vertical ? view.min_x : view.min_y, 1e-12));
+    CHECK_THAT(vertical ? zoomed.max_x : zoomed.max_y, WithinAbs(vertical ? view.max_x : view.max_y, 1e-12));
+    CHECK(model.parameters() == parameters);
+    CHECK(model.serialized_parameters() == CurveModel::serialize_parameters(parameters));
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Zooming near curve boundaries shifts the interval to keep its requested scale", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewZooming]")
+{
+    FlowModel model;
+    const CurveView view = {0, 10, 1, 2};
+    const bool vertical = GENERATE(false, true);
+    const double anchor = GENERATE(0.0, 0.5, 1.0);
+    const auto zoomed = model.zoomed_view(view, 2, anchor, vertical);
+    REQUIRE(model.validate_view(zoomed) == nullptr);
+    if (vertical) {
+        CHECK_THAT(zoomed.min_y, WithinAbs(0.0, 1e-12));
+        CHECK_THAT(zoomed.max_y, WithinAbs(2.0, 1e-12));
+        CHECK_THAT(zoomed.min_x, WithinAbs(view.min_x, 1e-12));
+        CHECK_THAT(zoomed.max_x, WithinAbs(view.max_x, 1e-12));
+    } else {
+        CHECK_THAT(zoomed.min_x, WithinAbs(0.0, 1e-12));
+        CHECK_THAT(zoomed.max_x, WithinAbs(20.0, 1e-12));
+        CHECK_THAT(zoomed.min_y, WithinAbs(view.min_y, 1e-12));
+        CHECK_THAT(zoomed.max_y, WithinAbs(view.max_y, 1e-12));
+    }
+}
+
+TEST_CASE("Zooming curve views stops at minimum and maximum spans", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewZooming]")
+{
+    FlowModel model;
+    const auto limits = model.view_limits();
+    const std::vector<CurveView> views = {{0, 10, 0, 1}, {0, 0.001, 0, 0.001}, {999.999, 1000, 1.999, 2}, limits.bounds};
+    const auto view = GENERATE_COPY(from_range(views));
+    REQUIRE(model.validate_view(view) == nullptr);
+    const bool vertical = GENERATE(false, true);
+    const double factor = GENERATE(std::numeric_limits<double>::min(), std::numeric_limits<double>::max());
+    const double anchor = GENERATE(0.0, 0.5, 1.0);
+    const auto zoomed = model.zoomed_view(view, factor, anchor, vertical);
+    REQUIRE(model.validate_view(zoomed) == nullptr);
+    const double span = vertical ? zoomed.max_y - zoomed.min_y : zoomed.max_x - zoomed.min_x;
+    const double maximum_span = vertical ? limits.bounds.max_y - limits.bounds.min_y : limits.bounds.max_x - limits.bounds.min_x;
+    CHECK_THAT(span, WithinAbs(factor < 1 ? limits.minimum_span : maximum_span, 1e-10));
+    CHECK_THAT(vertical ? zoomed.min_x : zoomed.min_y, WithinAbs(vertical ? view.min_x : view.min_y, 1e-12));
+    CHECK_THAT(vertical ? zoomed.max_x : zoomed.max_y, WithinAbs(vertical ? view.max_x : view.max_y, 1e-12));
+}
+
+TEST_CASE("Zooming in and out around the same cursor anchor restores the curve view", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewZooming]")
+{
+    FlowModel model;
+    const CurveView view = {100, 200, -0.25, 0.25};
+    const bool vertical = GENERATE(false, true);
+    const double anchor = GENERATE(0.0, 0.25, 0.75, 1.0);
+    const auto restored = model.zoomed_view(model.zoomed_view(view, 0.5, anchor, vertical), 2, anchor, vertical);
+    CHECK_THAT(restored.min_x, WithinAbs(view.min_x, 1e-10));
+    CHECK_THAT(restored.max_x, WithinAbs(view.max_x, 1e-10));
+    CHECK_THAT(restored.min_y, WithinAbs(view.min_y, 1e-10));
+    CHECK_THAT(restored.max_y, WithinAbs(view.max_y, 1e-10));
+}
+
+TEST_CASE("Invalid or neutral zoom requests leave curve bounds unchanged", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewZooming]")
+{
+    FlowModel model;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double infinity = std::numeric_limits<double>::infinity();
+    const std::vector<std::array<double, 2>> requests = {{1, 0.5}, {0, 0.5}, {-1, 0.5}, {nan, 0.5}, {infinity, 0.5},
+                                                      {0.5, -0.1}, {0.5, 1.1}, {0.5, nan}, {0.5, infinity}};
+    const auto request = GENERATE_COPY(from_range(requests));
+    const CurveView view = {999.999, 1000, 1.999, 2};
+    const bool vertical = GENERATE(false, true);
+    const auto zoomed = model.zoomed_view(view, request[0], request[1], vertical);
+    CHECK_THAT(zoomed.min_x, WithinAbs(view.min_x, 1e-12));
+    CHECK_THAT(zoomed.max_x, WithinAbs(view.max_x, 1e-12));
+    CHECK_THAT(zoomed.min_y, WithinAbs(view.min_y, 1e-12));
+    CHECK_THAT(zoomed.max_y, WithinAbs(view.max_y, 1e-12));
+}
+
+TEST_CASE("Zooming invalid curve views leaves their bounds unchanged", "[SmallAreaInfillFlowCompensation][CurveModel][CurveViewZooming]")
+{
+    FlowModel model;
+    const std::vector<CurveView> views = {{-1, 10, 0, 1}, {0, 1001, 0, 1}, {0, 10, 1, 0}, {0, 0.0001, 0, 1}};
+    const auto view = GENERATE_COPY(from_range(views));
+    REQUIRE(model.validate_view(view) != nullptr);
+    const bool vertical = GENERATE(false, true);
+    const auto zoomed = model.zoomed_view(view, 0.5, 0.5, vertical);
+    CHECK_THAT(zoomed.min_x, WithinAbs(view.min_x, 1e-12));
+    CHECK_THAT(zoomed.max_x, WithinAbs(view.max_x, 1e-12));
+    CHECK_THAT(zoomed.min_y, WithinAbs(view.min_y, 1e-12));
+    CHECK_THAT(zoomed.max_y, WithinAbs(view.max_y, 1e-12));
+}
+
 TEST_CASE("Reading invalid visible bounds preserves the current viewport", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {
     FlowModel model;

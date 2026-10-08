@@ -133,6 +133,25 @@ CurveView CurveModel::panned_view(const CurveView& view, double x_offset, double
     return validate_view(panned) ? view : panned;
 }
 
+CurveView CurveModel::zoomed_view(const CurveView& view, double factor, double anchor, bool vertical) const
+{
+    if (validate_view(view) || !std::isfinite(factor) || factor <= 0.0 ||
+        !std::isfinite(anchor) || anchor < 0.0 || anchor > 1.0 || factor == 1.0) return view;
+    const auto limits = view_limits();
+    const double lower = vertical ? limits.bounds.min_y : limits.bounds.min_x;
+    const double upper = vertical ? limits.bounds.max_y : limits.bounds.max_x;
+    CurveView zoomed = view;
+    double& minimum = vertical ? zoomed.min_y : zoomed.min_x;
+    double& maximum = vertical ? zoomed.max_y : zoomed.max_x;
+    const double span = maximum - minimum;
+    const double new_span = std::clamp(span * factor, limits.minimum_span, upper - lower);
+    if (new_span == span) return view;
+    const double position = minimum + span * anchor;
+    minimum = std::clamp(position - new_span * anchor, lower, upper - new_span);
+    maximum = std::min(upper, minimum + new_span);
+    return validate_view(zoomed) ? view : zoomed;
+}
+
 const char* CurveModel::read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const
 {
     x.clear();

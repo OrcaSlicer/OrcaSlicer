@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <iomanip>
 #include <limits>
@@ -131,14 +132,22 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_grid->MakeCellVisible(row, 0);
     };
     m_chart->on_move = [this](int row, double x, double y) { move_point(row, x, y); };
-    m_chart->on_pan = [this](double steps, bool vertical) {
+    auto change_view = [this](const CurveEditorView& view) {
+        const auto& current = m_chart->view();
+        if (view.min_x == current.min_x && view.max_x == current.max_x &&
+            view.min_y == current.min_y && view.max_y == current.max_y) return;
+        m_chart->set_view(view);
+        sync_chart_range();
+    };
+    m_chart->on_pan = [this, change_view](double steps, bool vertical) {
         const auto& view = m_chart->view();
         const double offset = steps * (vertical ? view.max_y - view.min_y : view.max_x - view.min_x) * 0.1;
-        const auto panned = m_model->panned_view(view, vertical ? 0.0 : offset, vertical ? offset : 0.0);
-        if (panned.min_x == view.min_x && panned.max_x == view.max_x &&
-            panned.min_y == view.min_y && panned.max_y == view.max_y) return;
-        m_chart->set_view(panned);
-        sync_chart_range();
+        change_view(m_model->panned_view(view, vertical ? 0.0 : offset, vertical ? offset : 0.0));
+    };
+    m_chart->on_zoom = [this, change_view](double steps, bool vertical, double anchor) {
+        // Bound the exponent so large wheel events cannot overflow the scale factor.
+        const double factor = std::pow(1.1, -std::clamp(steps, -1000.0, 1000.0));
+        change_view(m_model->zoomed_view(m_chart->view(), factor, anchor, vertical));
     };
     Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) { m_chart->finish_drag(); event.Skip(); });
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& event) { m_chart->finish_drag(); event.Skip(); }, wxID_CANCEL);
@@ -430,6 +439,7 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->on_select = {};
     m_chart->on_move = {};
     m_chart->on_pan = {};
+    m_chart->on_zoom = {};
 }
 
 void CurveEditorDialog::finish_edit()
@@ -525,10 +535,13 @@ void CurveEditorDialog::sync_chart_range()
 {
     const auto& view = m_chart->view();
     const double values[] = {view.min_x, view.max_x, view.min_y, view.max_y};
-    for (int i = 0; i < 4; ++i)
-        m_range_fields[i]->GetTextCtrl()->ChangeValue(wxString::FromUTF8(format_number(values[i])));
-    m_range_status->Hide();
-    layout_content();
+    for (int i = 0; i < 4; ++i) {
+        auto* text = m_range_fields[i]->GetTextCtrl();
+        const wxString value = wxString::FromUTF8(format_number(values[i]));
+        if (text->GetValue() != value) text->ChangeValue(value);
+    }
+    // Only a visibility change needs layout; wheel navigation must not resize sibling controls.
+    if (m_range_status->Hide()) layout_content();
 }
 
 void CurveEditorDialog::fit_chart()
