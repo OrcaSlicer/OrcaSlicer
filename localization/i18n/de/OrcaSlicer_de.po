@@ -38261,11 +38261,11 @@ msgstr "Ganze Kurve zeigen."
 
 # AI Translated
 msgid "Add point"
-msgstr "Ergänzen"
+msgstr "Punkt hinzufügen"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Entfernen"
+msgstr "Punkt entfernen"
 
 # AI Translated
 msgid "Reset to defaults"

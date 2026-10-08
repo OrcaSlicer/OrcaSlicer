@@ -40696,11 +40696,11 @@ msgstr "Toon de hele curve."
 
 # AI Translated
 msgid "Add point"
-msgstr "Toevoegen"
+msgstr "Punt toevoegen"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Verwijderen"
+msgstr "Punt verwijderen"
 
 # AI Translated
 msgid "Reset to defaults"

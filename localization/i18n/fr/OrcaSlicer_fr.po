@@ -37695,11 +37695,11 @@ msgstr "Voir toute la courbe."
 
 # AI Translated
 msgid "Add point"
-msgstr "Ajouter"
+msgstr "Ajouter un point"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Supprimer"
+msgstr "Supprimer un point"
 
 # AI Translated
 msgid "Reset to defaults"

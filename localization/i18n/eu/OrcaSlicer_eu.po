@@ -38016,11 +38016,11 @@ msgstr "Erakutsi kurba osoa."
 
 # AI Translated
 msgid "Add point"
-msgstr "Gehitu"
+msgstr "Gehitu puntua"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Kendu"
+msgstr "Kendu puntua"
 
 # AI Translated
 msgid "Reset to defaults"

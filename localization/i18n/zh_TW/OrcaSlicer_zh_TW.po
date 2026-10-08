@@ -39911,7 +39911,7 @@ msgstr "新增點"
 
 # AI Translated
 msgid "Remove point"
-msgstr "刪除點"
+msgstr "移除點"
 
 # AI Translated
 msgid "Reset to defaults"

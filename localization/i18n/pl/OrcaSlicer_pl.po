@@ -39093,13 +39093,11 @@ msgstr "Cała krzywa"
 msgid "Show the full curve."
 msgstr "Pokaż całą krzywą."
 
-# AI Translated
 msgid "Add point"
-msgstr "Dodaj"
+msgstr "Dodaj punkt"
 
-# AI Translated
 msgid "Remove point"
-msgstr "Usuń"
+msgstr "Usuń punkt"
 
 # AI Translated
 msgid "Reset to defaults"

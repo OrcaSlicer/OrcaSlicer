@@ -40914,11 +40914,11 @@ msgstr "Visa hela kurvan."
 
 # AI Translated
 msgid "Add point"
-msgstr "Lägg till"
+msgstr "Lägg till punkt"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Ta bort"
+msgstr "Ta bort punkt"
 
 # AI Translated
 msgid "Reset to defaults"

@@ -38130,11 +38130,11 @@ msgstr "Показать всю кривую."
 
 # AI Translated
 msgid "Add point"
-msgstr "Добавить"
+msgstr "Добавить точку"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Удалить"
+msgstr "Удалить точку"
 
 # AI Translated
 msgid "Reset to defaults"

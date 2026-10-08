@@ -39015,11 +39015,11 @@ msgstr "전체 곡선을 표시합니다."
 
 # AI Translated
 msgid "Add point"
-msgstr "점 추가"
+msgstr "지점 추가"
 
 # AI Translated
 msgid "Remove point"
-msgstr "점 삭제"
+msgstr "지점 제거"
 
 # AI Translated
 msgid "Reset to defaults"
