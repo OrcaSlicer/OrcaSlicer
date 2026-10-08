@@ -11,6 +11,8 @@
 #include "Widgets/TextInput.hpp"
 
 class wxGrid;
+class wxCheckBox;
+class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
 class wxScrolledWindow;
@@ -49,6 +51,8 @@ private:
     wxScrolledWindow* m_content;
     CurveEditorPanel* m_chart;
     wxGrid* m_grid;
+    wxPanel* m_table_panel;
+    wxCheckBox* m_show_table;
     wxStaticText* m_status;
     TextInput* m_range_fields[4];
     wxStaticText* m_range_status;
