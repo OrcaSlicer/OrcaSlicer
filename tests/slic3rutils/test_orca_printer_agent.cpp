@@ -32,8 +32,6 @@ struct Probe : OrcaPrinterAgent {
     using OrcaPrinterAgent::build_gcode_file_payload;
     using OrcaPrinterAgent::prepare_outgoing_request;
     using OrcaPrinterAgent::parse_files_list_reply;
-    using OrcaPrinterAgent::parse_thumbnail_path;
-    using OrcaPrinterAgent::encode_file_path;
     using OrcaPrinterAgent::parse_files_metadata_reply;
     using OrcaPrinterAgent::try_consume_files_reply;
 };
@@ -252,44 +250,6 @@ TEST_CASE("OrcaPrinterAgent::try_consume_files_reply ignores reports it did not 
     CHECK_FALSE(agent.try_consume_files_reply("dev-1", R"({"print": {"command": "push_status"}})"));
     CHECK_FALSE(agent.try_consume_files_reply("dev-1", R"({"files": {"command": "list"}})"));  // no sequence_id
     CHECK_FALSE(agent.try_consume_files_reply("dev-1", R"({"files": {"command": "list", "sequence_id": "999"}})"));  // not pending
-}
-
-TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path picks the largest width", "[OrcaPrinterAgent]") {
-    const std::string path = Probe::parse_thumbnail_path(R"({
-        "result": [
-            {"width": 32, "height": 32, "thumbnail_path": ".thumbs/foo.gcode-32x32.png"},
-            {"width": 300, "height": 300, "thumbnail_path": ".thumbs/foo.gcode-300x300.png"},
-            {"width": 100, "height": 100, "thumbnail_path": ".thumbs/foo.gcode-100x100.png"}
-        ]
-    })");
-    CHECK(path == ".thumbs/foo.gcode-300x300.png");
-}
-
-TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path accepts both key spellings", "[OrcaPrinterAgent]") {
-    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 32, "relative_path": ".thumbs/old.png"}]})") == ".thumbs/old.png");
-    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 32, "thumbnail_path": ".thumbs/new.png"}]})") == ".thumbs/new.png");
-}
-
-TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path handles an empty result", "[OrcaPrinterAgent]") {
-    CHECK(Probe::parse_thumbnail_path(R"({"result": []})").empty());
-}
-
-TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path rejects malformed JSON", "[OrcaPrinterAgent]") {
-    CHECK(Probe::parse_thumbnail_path("not json").empty());
-    CHECK(Probe::parse_thumbnail_path(R"({"result": "nope"})").empty());
-}
-
-TEST_CASE("OrcaPrinterAgent::parse_thumbnail_path skips an entry without a path", "[OrcaPrinterAgent]") {
-    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 300, "height": 300}]})").empty());
-    CHECK(Probe::parse_thumbnail_path(R"({"result": [{"width": 300, "thumbnail_path": 7}]})").empty());
-}
-
-TEST_CASE("OrcaPrinterAgent::encode_file_path preserves separators and encodes segments", "[OrcaPrinterAgent]") {
-    CHECK(Probe::encode_file_path("foo.gcode") == "foo.gcode");                          // flat path
-    CHECK(Probe::encode_file_path("sub/foo.gcode") == "sub/foo.gcode");                  // '/' kept as separator
-    CHECK(Probe::encode_file_path("a/b/c.gcode") == "a/b/c.gcode");
-    CHECK(Probe::encode_file_path("sub dir/my file #1.gcode") == "sub%20dir/my%20file%20%231.gcode");
-    CHECK(Probe::encode_file_path("design+part.gcode") == "design%2Bpart.gcode");
 }
 
 TEST_CASE("OrcaPrinterAgent::parse_files_metadata_reply parses the metadata fields", "[OrcaPrinterAgent]") {

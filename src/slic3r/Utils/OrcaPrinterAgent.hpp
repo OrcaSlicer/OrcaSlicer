@@ -177,10 +177,6 @@ protected:
     // back to the name and size/modified default to 0. protected static for the Probe.
     static std::vector<PrinterFileEntry> parse_files_list_reply(const std::string& payload);
 
-    // Pick the widest thumbnail path from OrcaSonar's /server/files/thumbnails
-    // reply (the array is smallest-first). Empty when none carry a path.
-    static std::string parse_thumbnail_path(const std::string& body);
-
     // Pure JSON -> metadata normalization for the files.metadata MQTT reply. Missing
     // or malformed fields default to 0. protected static for the Probe.
     static PrinterFileMetadata parse_files_metadata_reply(const std::string& payload);
@@ -197,9 +193,6 @@ protected:
     // when it matched, so the caller does not forward it to the machine-state sink.
     bool try_consume_files_reply(const std::string& dev_id, const std::string& payload);
 
-    // Percent-encode each '/'-separated segment for a Moonraker URL while keeping
-    // the separators intact. protected static for the test Probe.
-    static std::string encode_file_path(const std::string& path);
     // Test hook: the ws:// URL connect_printer built for the current LAN session ("" if none).
     std::string lan_connection_target() const;
     // Shared post-connect sequence: SUBSCRIBE, then pushing.start, pushall,

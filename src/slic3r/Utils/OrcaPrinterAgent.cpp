@@ -1964,39 +1964,6 @@ int OrcaPrinterAgent::list_printer_files(const std::string& dev_id, PrinterFileL
         });
 }
 
-// Pure pick of the widest thumbnail path from Moonraker's /server/files/thumbnails
-// reply. The `result` array is ordered smallest-first, so the largest `width` is
-// chosen. The key was renamed across Moonraker versions; both spellings are accepted.
-// Malformed replies and entries without a usable path yield an empty string.
-std::string OrcaPrinterAgent::parse_thumbnail_path(const std::string& body)
-{
-    const nlohmann::json envelope = nlohmann::json::parse(body, nullptr, false);
-    if (envelope.is_discarded() || !envelope.is_object())
-        return {};
-
-    const auto result_it = envelope.find("result");
-    if (result_it == envelope.end() || !result_it->is_array())
-        return {};
-
-    std::string path;
-    int         best_width = -1;
-    for (const auto& item : *result_it) {
-        if (!item.is_object())
-            continue;
-
-        const char* key = item.contains("thumbnail_path") ? "thumbnail_path" : "relative_path";
-        if (!item.contains(key) || !item[key].is_string())
-            continue;
-
-        const int width = (item.contains("width") && item["width"].is_number()) ? item["width"].get<int>() : 0;
-        if (width > best_width) {
-            best_width = width;
-            path       = item[key].get<std::string>();
-        }
-    }
-    return path;
-}
-
 // Pure normalization of the files.metadata MQTT reply: the `files` object's
 // estimated_time (seconds), filament_total (mm) and filament_weight_total (grams;
 // OrcaSonar currently reports only filament_total). A malformed reply or any
@@ -2028,27 +1995,7 @@ PrinterFileMetadata OrcaPrinterAgent::parse_files_metadata_reply(const std::stri
     return meta;
 }
 
-// Percent-encode each '/'-separated segment, leaving the separators themselves
-// intact so the caller keeps the directory structure of a gcodes-relative path.
-std::string OrcaPrinterAgent::encode_file_path(const std::string& path)
-{
-    std::string encoded;
-    size_t      segment_start = 0;
-    while (segment_start <= path.size()) {
-        const size_t segment_end = path.find('/', segment_start);
-        if (!encoded.empty() || segment_start > 0)
-            encoded += '/';
-        encoded += Http::url_encode(path.substr(segment_start, segment_end - segment_start));
-        if (segment_end == std::string::npos)
-            break;
-        segment_start = segment_end + 1;
-    }
-    return encoded;
-}
-
-// Fetch one file's embedded thumbnail: first resolve its path via the thumbnails
-// listing, then download the image bytes. Mirrors list_printer_files for the
-// connection snapshot and off-thread marshalling; the worker captures no `this`.
+// Fetch one file's thumbnail over HTTP; the worker captures no `this`.
 int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
 {
     std::string   origin;
@@ -2081,9 +2028,8 @@ int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, cons
         std::string image;
         int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
 
-        std::string thumb_body;
-        bool        listed = false;
-        auto http = Http::get(origin + "/server/files/thumbnails?filename=" + Http::url_encode(path));
+        std::string url = origin + "/files/thumbnail?root=gcodes&path=" + Http::url_encode(path);
+        auto              http = Http::get(url);
         http.tls_verify(use_ssl);
         if (!ca_file.empty())
             http.ca_file(ca_file);
@@ -2091,46 +2037,18 @@ int OrcaPrinterAgent::get_printer_file_thumbnail(const std::string& dev_id, cons
             .timeout_max(15)
             .on_complete([&](std::string b, unsigned status) {
                 if (status == 200) {
-                    thumb_body = std::move(b);
-                    listed     = true;
+                    image = std::move(b);
                 }
+                result = BAMBU_NETWORK_SUCCESS;
             })
             .on_error([&](std::string, std::string err, unsigned status) {
-                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail list request failed status=" << status << " err=" << err;
+                if (status == 404) {
+                    result = BAMBU_NETWORK_SUCCESS;
+                    return;
+                }
+                BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail fetch failed status=" << status << " err=" << err;
             })
             .perform_sync();
-
-        if (listed) {
-            if (nlohmann::json::parse(thumb_body, nullptr, false).is_discarded()) {
-                result = BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
-            } else {
-                const std::string thumb_path = parse_thumbnail_path(thumb_body);
-                if (thumb_path.empty()) {
-                    // No embedded thumbnail: a success the caller caches.
-                    result = BAMBU_NETWORK_SUCCESS;
-                } else {
-                    // The returned path is relative to the gcodes root, served at
-                    // /server/files/gcodes; an explicit gcodes/ prefix is served at /server/files.
-                    const std::string root = thumb_path.rfind("gcodes/", 0) == 0 ? "/server/files/" : "/server/files/gcodes/";
-                    auto image_http = Http::get(origin + root + encode_file_path(thumb_path));
-                    image_http.tls_verify(use_ssl);
-                    if (!ca_file.empty())
-                        image_http.ca_file(ca_file);
-                    image_http.timeout_connect(5)
-                        .timeout_max(15)
-                        .on_complete([&](std::string b, unsigned status) {
-                            if (status == 200) {
-                                image  = std::move(b);
-                                result = BAMBU_NETWORK_SUCCESS;
-                            }
-                        })
-                        .on_error([&](std::string, std::string err, unsigned status) {
-                            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: thumbnail fetch failed status=" << status << " err=" << err;
-                        })
-                        .perform_sync();
-                }
-            }
-        }
 
         if (!callback)
             return;
