@@ -3894,6 +3894,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                         maps.erase(j);
                     }
                 }
+            }
+            if (is_placeholder) {
+                // Orca: an empty AMS slot is a placeholder, not a filament - never synthesize a
+                // preset for it. Kept here only to keep index alignment with ams_infos; the sync
+                // drops it so no filament slot is created or retained for an empty tray.
+                ams_filament_presets.push_back("");
+                ams_filament_colors.push_back("");
+                ams_filament_color_types.push_back("");
+                ams_multi_color_filment.push_back({});
+            } else if (use_map) {
                 ams_filament_presets.push_back("Generic PLA");//for unknow matieral
                 auto default_unknown_color = "#CECECE";
                 ams_filament_colors.push_back(default_unknown_color);
@@ -3902,12 +3912,6 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     filament_multi_color.push_back(default_unknown_color);
                 }
                 ams_multi_color_filment.push_back(filament_multi_color);
-            } else if (is_placeholder) {
-                // Orca: push placeholders to keep index alignment with ams_infos
-                ams_filament_presets.push_back("");
-                ams_filament_colors.push_back("");
-                ams_filament_color_types.push_back("");
-                ams_multi_color_filment.push_back({});
             }
             continue;
         }
@@ -4271,6 +4275,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
+                } else if (i < ams_infos.size() && ams_infos[i].is_placeholder) {
+                    // Orca: an empty AMS slot is a placeholder, not a filament, so drop it instead of
+                    // keeping or filling a slot for it. The device AMS panel still shows the empty tray.
+                    continue;
                 } else if (i < exist_presets.size()) {
                     // Empty tray or beyond tray count: keep existing filament
                     result_colors.push_back(exist_colors[i]);
@@ -4295,8 +4303,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             filament_color_type->values = result_color_types;
             this->filament_presets      = result_presets;
             ams_multi_color_filment     = result_multi_colors;
-            filament_map->values.resize(total, 1);
-            filament_volume_map->values.resize(total, static_cast<int>(NozzleVolumeType::nvtStandard));
+            filament_map->values.resize(result_presets.size(), 1);
+            filament_volume_map->values.resize(result_presets.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
         } else {
             // BBL: existing wholesale replace
             filament_color->values = ams_filament_colors;
