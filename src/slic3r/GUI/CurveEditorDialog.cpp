@@ -38,6 +38,8 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#include "KeyChord.hpp"
+#include "MsgDialog.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
@@ -273,7 +275,33 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     });
     view_actions->Add(show_range, 0, wxALIGN_CENTER_VERTICAL);
     view_actions->AddStretchSpacer();
-    auto* fit_range = make_button(plot_panel, _L("Fit curve"));
+    auto make_icon_button = [plot_panel](const wxString& name, const wxString& icon) {
+        auto* button = new Button(plot_panel, wxEmptyString, icon, 0, 16);
+        button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+        button->SetIconSpacing(0);
+        button->SetName(name);
+        return button;
+    };
+    const wxString ctrl = wxString::FromUTF8(KeyChord::modifier_name(wxMOD_CONTROL));
+    const wxString shift = wxString::FromUTF8(KeyChord::modifier_name(wxMOD_SHIFT));
+    const wxString controls_help = wxString::Format(
+        _L("Drag a point to move it, or edit its values in the table.\n\n"
+           "Mouse wheel: move horizontally.\n"
+           "%s + mouse wheel: move vertically.\n"
+           "%s + mouse wheel: zoom horizontally.\n"
+           "%s + %s + mouse wheel: zoom vertically.\n\n"
+           "Show range: enter exact bounds and press Enter or Apply.\n"
+           "Fit curve: show the full curve.\n"
+           "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift);
+    auto* help_button = make_icon_button(_L("Graph controls"), "thermal_question");
+    help_button->SetToolTip(controls_help);
+    help_button->Bind(wxEVT_BUTTON, [this, controls_help](wxCommandEvent&) {
+        MessageDialog dialog(this, controls_help, _L("Graph controls"), wxOK | wxICON_INFORMATION);
+        dialog.ShowModal();
+    });
+    view_actions->Add(help_button, 0, wxLEFT, FromDIP(8));
+    auto* fit_range = make_icon_button(_L("Fit curve"), "design_zoom");
+    fit_range->SetToolTip(_L("Fit curve") + "\n" + _L("Show the full curve."));
     fit_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
         update_preview();
