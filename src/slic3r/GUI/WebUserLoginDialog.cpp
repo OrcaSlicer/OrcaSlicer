@@ -1,17 +1,40 @@
 #include "WebUserLoginDialog.hpp"
 
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include "slic3r/GUI/HttpServer.hpp"
+#include <memory>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GUI.hpp"
+#include <exception>
+#include <boost/filesystem/path.hpp>
+#include "libslic3r/Utils.hpp"
 #include <string.h>
+#include "CloudProvider.hpp"
 #include "I18N.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r_version.h"
 
+#include <string>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/log.h>
+#include <wx/msgdlg.h>
+#include <wx/app.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
@@ -29,7 +52,6 @@
 #include <sstream>
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/HyperLink.hpp> // ORCA
-using namespace std;
 
 using namespace nlohmann;
 

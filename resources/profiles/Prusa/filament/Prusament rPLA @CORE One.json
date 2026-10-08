@@ -1,11 +1,15 @@
 {
 	"type": "filament",
 	"name": "Prusament rPLA @CORE One",
+	"renamed_from": "Prusament rPLA CORE One;Prusament rPLA @CORE One MMU3;Prusament rPLA CORE One MMU3",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "Bw6H4vFnq7YExyLd",
 	"filament_id": "OFWRITFw",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pla"
+	],
 	"chamber_temperature": [
 		"20"
 	],
@@ -18,7 +22,10 @@
 		"Prusa CORE One 0.4 nozzle",
 		"Prusa CORE One 0.5 nozzle",
 		"Prusa CORE One HF 0.4 nozzle",
-		"Prusa CORE One HF 0.5 nozzle"
+		"Prusa CORE One HF 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"40"
@@ -81,7 +88,7 @@
 		"60"
 	],
 	"idle_temperature": [
-		"150"
+		"170"
 	],
 	"nozzle_temperature": [
 		"205"

@@ -4,16 +4,24 @@
 #include "libslic3r/miniz_extension.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
 #include "PluginAuditManager.hpp"
 #include "PythonInterpreter.hpp"
 
+#include <exception>
+#include <miniz.h>
 #include <nlohmann/json.hpp>
 
 #include <chrono>
 #include <filesystem>
+#include <string>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <utility>
 #include <algorithm>
 #include <cctype>

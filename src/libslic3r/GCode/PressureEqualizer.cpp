@@ -1,17 +1,27 @@
+#include <cassert>
+#include <cstdlib>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cctype>
+#include <cmath>
+#include <array>
 #include <iostream>
+#include <math.h>
+#include <limits>
 #include <memory.h>
 #include <cstring>
 #include <cfloat>
 #include <algorithm>
+#include <string>
 
-#include "../libslic3r.h"
 #include "../PrintConfig.hpp"
-#include "../LocalesUtils.hpp"
 #include "../GCode.hpp"
 
 #include "PressureEqualizer.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Exception.hpp"
 #include "fast_float/fast_float.h"
 #include "GCodeWriter.hpp"
+#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 

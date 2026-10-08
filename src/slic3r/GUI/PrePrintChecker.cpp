@@ -1,7 +1,21 @@
 #include "PrePrintChecker.hpp"
-#include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#include <algorithm>
+#include <functional>
 #include <set>
+#include <string>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/wx.h>
+#include <wx/colour.h>
+#include <vector>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/utils.h>
+
+class wxWindow;
 
 
 namespace Slic3r { namespace GUI {

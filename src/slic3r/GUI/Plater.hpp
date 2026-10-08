@@ -1,14 +1,39 @@
 #ifndef slic3r_Plater_hpp_
 #define slic3r_Plater_hpp_
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <map>
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <functional>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include <atomic>
 #include <memory>
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include <string>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/arrstr.h>
 #include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
 // BBS
 #include <wx/notebook.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Selection.hpp"
 
@@ -83,7 +108,6 @@ class PlaterPresetComboBox;
 class PartPlateList;
 class SyncNozzleAndAmsDialog;
 class FinishSyncAmsDialog;
-using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 
 class Plater;
 enum class ActionButtonType : int;
@@ -92,12 +116,8 @@ enum class ActionButtonType : int;
 // (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
 inline constexpr int kSidebarContextMenuFilamentId = -2;
 
-#define EVT_PUBLISHING_START        1
-#define EVT_PUBLISHING_STOP         2
-
 //BBS: add EVT_SLICING_UPDATE declare here
 wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
-wxDECLARE_EVENT(EVT_PUBLISH,        wxCommandEvent);
 wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG,        wxCommandEvent);
 
 // Explanation of int param
@@ -120,7 +140,7 @@ wxDECLARE_EVENT(EVT_NOTICE_CHILDE_SIZE_CHANGED, SimpleEvent);
 wxDECLARE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 using ColorEvent = Event<wxColour>;
 wxDECLARE_EVENT(EVT_ADD_CUSTOM_FILAMENT, ColorEvent);
-const wxString DEFAULT_PROJECT_NAME = "Untitled";
+const wxString DEFAULT_PROJECT_NAME = L("Untitled");
 
 class SidebarProps
 {
@@ -304,7 +324,6 @@ private:
 class Plater: public wxPanel
 {
 public:
-    using fs_path = boost::filesystem::path;
 
     Plater(wxWindow *parent, MainFrame *main_frame);
     Plater(Plater &&) = delete;
@@ -319,6 +338,7 @@ public:
     bool is_presets_dirty() const;
     void set_plater_dirty(bool is_dirty);
     void update_project_dirty_from_presets();
+    void normalize_bed_types(bool printer_setting_changed);
     int  save_project_if_dirty(const wxString& reason);
     void reset_project_dirty_after_save();
     void reset_project_dirty_initial_presets();
@@ -351,8 +371,8 @@ public:
     // BBS: check snapshot
     bool up_to_date(bool saved, bool backup);
 
-    bool open_3mf_file(const fs::path &file_path);
-    int  get_3mf_file_count(std::vector<fs::path> paths);
+    bool open_3mf_file(const boost::filesystem::path &file_path);
+    int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
     bool add_model(bool imperial_units = false, std::string fname = "");
@@ -546,7 +566,6 @@ public:
     int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
 
     //BBS
-    void publish_project();
 
     void reload_from_disk();
     void replace_with_stl();
@@ -581,7 +600,6 @@ public:
     void send_calibration_job_finished(wxCommandEvent &evt);
     void print_job_finished(wxCommandEvent &evt);
     void send_job_finished(wxCommandEvent& evt);
-    void publish_job_finished(wxCommandEvent& evt);
     void open_platesettings_dialog(wxCommandEvent& evt);
     void open_filament_map_setting_dialog(wxCommandEvent &evt);
     void on_change_color_mode(SimpleEvent& evt);
@@ -692,7 +710,6 @@ public:
     int get_send_calibration_finished_event();
     int get_print_finished_event();
     int get_send_finished_event();
-    int get_publish_finished_event();
 
     void set_current_canvas_as_dirty();
     void unbind_canvas_event_handlers();
@@ -817,7 +834,6 @@ public:
     //BBS: show object info
     void show_object_info();
     //BBS
-    bool show_publish_dialog(bool show = true);
     //BBS: post process string object exception strings by warning types
     void post_process_string_object_exception(StringObjectException &err);
     void update_objects_position_when_select_preset(const std::function<void()> &select_prest);

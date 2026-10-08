@@ -1,5 +1,12 @@
 #include "Extruder.hpp"
+#include "Exception.hpp"
 #include "PrintConfig.hpp"
+#include <vector>
+#include "libslic3r.h"
+#include <cassert>
+#include <algorithm>
+#include <cmath>
+#include "Config.hpp"
 
 namespace Slic3r {
 

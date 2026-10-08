@@ -332,7 +332,9 @@ indices: pages come and go per printer and per feature flag.
   pages depending on the printer and on `use_printer_agents`; a removed page stays registered but is
   not prebuilt (its `LazyPage::in_book()` is false).
 - Plugin pages are appended by `PluginPages::initialize` (`plugin/host/PluginPages.hpp`) with
-  namespaced ids (`plugin.<plugin_key>.<name>`) that cannot collide with `TAB_ID_*`.
+  namespaced ids (`plugin.<plugin_key>.<name>`) that cannot collide with `TAB_ID_*`. Each is a
+  `LazyPage<PluginPage>` with order −1, destroyed when its capability goes away.
+  → [Deferred construction](#deferred-construction-lazy-lazypage-stagedbuild-idlescheduler)
 
 ### Preset tabs
 
@@ -403,9 +405,13 @@ page object to insert and remove by pointer). `LazyPage(parent, name, order, fac
 factory is `new Panel(parent)`. Its `Show(true)` builds the panel the first time (only once the
 top-level frame is shown — `MainFrame::Show` completes the start page on the frame's first show) and
 forwards later shows/hides to the panel, so the panel's own `Show()` override stays its activation
-hook. A panel built while its page is hidden stays hidden, and `when_built` gives it the dark-UI pass
-the frame ran before it existed (`apply_dark_ui_to_lazy_panel`). `pending()` is true only while the page
-is in the book.
+hook. The build runs before the placeholder's own `wxPanel::Show(true)`, so an on-demand build creates
+its controls in a hidden window as a prebuild does: on MSW each control created or moved inside a
+shown window re-clips and repaints its shown siblings, which made a large panel's first show take
+seconds. A lazy panel's constructor therefore runs off screen (except the start page's) and must not
+rely on `IsShownOnScreen()`. A panel built while its page is hidden stays hidden, and `when_built`
+gives it the dark-UI pass the frame ran before it existed (`apply_dark_ui_to_lazy_panel`).
+`pending()` is true only while the page is in the book.
 
 ### Staged construction: StagedBuild
 
@@ -529,6 +535,32 @@ the main frame does nothing to a panel after creating it.
   m_idle.add(m_diff_dialog);
   ```
   Cite: `IdleScheduler::tick`, `docs/HLSD/deferred-page-construction.md`.
+- **Rule:** A lazy page that can be destroyed while the main frame lives takes a negative order and
+  stays out of `m_lazy_pages`.
+  **Why:** `m_lazy_pages` and `PrebuildQueue` hold raw `LazyBase*` and nothing removes one
+  (`PrebuildQueue` has only `add` and `clear`). The queue calls `pending()` on every task each slice,
+  and `prebuild_pages_when_idle` reads every entry of `m_lazy_pages`, so a page destroyed while still
+  listed can be read after it is freed. A page only taken out of the book is fine: it stays registered
+  and its `pending()` is false (`MainFrame::show_device`).
+  ```cpp
+  // Right (PluginPages::create_page): order -1, and no m_lazy_pages.push_back
+  auto* page = new GUI::LazyPage<PluginPage>(m_parent, name, -1, [capability](wxWindow* parent) {
+      return new PluginPage(parent, capability);
+  });
+  ```
+  Cite: `PluginPages::create_page`, `PluginPages::remove_page`.
+- **Rule:** Remove several lazy pages from a book left to right.
+  **Why:** removing the selected page selects and shows the page before it
+  (`references/controls-dataview.md` §Book controls), and showing an unbuilt `LazyPage` while the frame
+  is shown builds it. In any other order the page before the selected one can be one removed next,
+  built only to be destroyed; left to right it is one that stays (unless the selected page is the
+  book's first).
+  ```cpp
+  // Right (PluginPages::shutdown): m_order is the tabs' left-to-right order
+  for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
+      remove_page(id);
+  ```
+  Cite: `PluginPages::shutdown`, `PluginPages::relayout`, `PluginPages::on_plugin_deregister`.
 
 ## Plater and Sidebar
 
@@ -613,8 +645,10 @@ Spacing constants come from `SidebarProps` (`Plater.hpp`): `TitlebarMargin()`, `
 
 ### Docking
 
-`Plater::priv` owns `AuiMgr m_aui_mgr` (a `wxAuiManager` subclass whose `CreateFloatingFrame` returns a
-themed `FloatFrame : wxAuiFloatingFrame`), managing the plater. Panes: `"sidebar"` (left, no close
+Docks are `AuiMgr`s (`AuiMgr.hpp`), a `wxAuiManager` subclass carrying Orca's dock art, theme and
+Wayland rule (`references/webview-gl-aui-media.md`). `Plater::priv` owns `m_aui_mgr`, managing the
+plater; the Design tab owns its own for its sidebar (`DesignPanel::m_aui`, layout in
+`design_window_layout`). Plater panes: `"sidebar"` (left, no close
 button, not top/bottom dockable), `"main"` (`CenterPane()`, the `panel_3d`), `"uv_editor"` (right,
 hidden until the texture-displacement gizmo shows it), plus dynamic dock panes. The default perspective
 is saved right after `AddPane`; the app-config `window_layout` is applied with

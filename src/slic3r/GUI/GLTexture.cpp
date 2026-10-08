@@ -12,8 +12,22 @@
 #include "GUI.hpp"
 #include "GLModel.hpp"
 
+#include <cassert>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <cstddef>
+#include <cstring>
+#include <cstdint>
+#include <array>
 #include <glad/gl.h>
 
+#include <utility>
+#include <wx/app.h>
+#include <string>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include "libslic3r/Point.hpp"
 #include <wx/image.h>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -21,6 +35,9 @@
 #include <vector>
 #include <algorithm>
 #include <thread>
+#include <wx/string.h>
+#include <wx/types.h>
+#include <wx/intl.h>
 #include "FileHelp.hpp"
 #define STB_DXT_IMPLEMENTATION
 #include "stb_dxt/stb_dxt.h"
@@ -29,7 +46,6 @@
 #include "nanosvg/nanosvgrast.h"
 
 #include "libslic3r/Utils.hpp"
-#include "GUI_App.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>

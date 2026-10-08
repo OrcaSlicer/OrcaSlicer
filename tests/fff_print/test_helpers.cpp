@@ -1,21 +1,31 @@
 #include "test_helpers.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/Format/OBJ.hpp"
-#include "libslic3r/Format/STL.hpp"
 
+#include <algorithm>
 #include <cstdlib>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <initializer_list>
+#include "libslic3r/Point.hpp"
+#include <fstream>
+#include <ios>
+#include <iterator>
+#include <set>
 #include <string>
 
 #include <boost/filesystem.hpp>
 #include <libslic3r/ModelArrange.hpp>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "test_utils.hpp"
-
-using namespace std;
 
 namespace Slic3r { namespace Test {
 
@@ -319,13 +329,13 @@ void init_and_process_print(std::initializer_list<TriangleMesh> meshes, Slic3r::
 	print.process();
 }
 
-std::string gcode(Print & print)
+std::string gcode(Print & print, GCodeProcessorResult* result)
 {
     ScopedTemporaryFile temp(".gcode");
     print.set_status_silent();
     print.process();
-    print.export_gcode(temp.string(), nullptr, nullptr);
-    std::ifstream t(temp.string());
+    print.export_gcode(temp.string(), result, nullptr);
+    std::ifstream t(temp.string(), std::ios::binary);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 	return str;
 }
@@ -475,6 +485,8 @@ std::vector<std::string> role_sequence(const std::string &gcode, const std::vect
 } } // namespace Slic3r::Test
 
 #include <catch2/catch_all.hpp>
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Model.hpp"
 
 SCENARIO("init_print functionality", "[test_helpers]") {
 	GIVEN("A default config") {

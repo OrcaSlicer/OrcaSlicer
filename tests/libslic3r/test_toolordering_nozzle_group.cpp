@@ -1,5 +1,9 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/FilamentGroupUtils.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -11,12 +15,18 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCode/ToolOrderUtils.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include <cstddef>
 #include <map>
+#include <memory>
 #include <set>
 #include <unordered_map>
 #include <vector>
 
 #include <boost/filesystem.hpp>
+#include "libslic3r/Point.hpp"
 
 // H2C/A2L multi-nozzle filament grouping core.
 //
@@ -508,6 +518,22 @@ TEST_CASE("Print config-index resolvers pick per-filament Hybrid slots", "[Print
         REQUIRE(print.get_nozzle_config_index(1, 0) == 1);
         REQUIRE(print.get_nozzle_config_index(2, 0) == 1); // extruder slot, not the High Flow slot
     }
+}
+
+TEST_CASE("Regrouping or rewriting the filament maps changes the config-index generation", "[Print][H2C]")
+{
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, DynamicPrintConfig::full_print_config());
+
+    size_t generation = print.config_index_generation();
+    print.set_nozzle_group_result(nullptr);
+    REQUIRE(print.config_index_generation() != generation);
+
+    generation = print.config_index_generation();
+    print.update_filament_maps_to_config({1}, {(int) nvtStandard}, {0});
+    REQUIRE(print.config_index_generation() != generation);
 }
 
 TEST_CASE("Re-applying an unchanged config after slicing keeps the result valid", "[Print][H2C]")

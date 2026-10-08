@@ -1,13 +1,24 @@
 #ifndef slic3r_GUI_ReleaseNote_hpp_
 #define slic3r_GUI_ReleaseNote_hpp_
 
+#include "slic3r/GUI/Plater.hpp"
+#include <string>
+#include <vector>
+#include <wx/simplebook.h>
+#include <wx/toplevel.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/webrequest.h>
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/timer.h>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -20,10 +31,8 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 #include <wx/event.h>
-#include <wx/hyperlink.h>
 #include <wx/richtext/richtextctrl.h>
 
 #include "AmsMappingPopup.hpp"

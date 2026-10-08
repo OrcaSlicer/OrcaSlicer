@@ -1,8 +1,8 @@
 #include <nlohmann/json.hpp>
+#include <string>
 #include "DevFilaSystem.h"
 
 #include "slic3r/GUI/DeviceManager.hpp"// TODO: remove this include
-#include "DevUtil.h"
 
 using namespace nlohmann;
 namespace Slic3r

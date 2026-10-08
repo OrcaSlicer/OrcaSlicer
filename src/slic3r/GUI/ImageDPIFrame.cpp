@@ -1,19 +1,23 @@
 #include "ImageDPIFrame.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
-#include "Tab.hpp"
-#include "PartPlate.hpp"
-#include "I18N.hpp"
 #include "MainFrame.hpp"
 #include <chrono>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/stattext.h>
+#include <wx/timer.h>
+#include <wx/window.h>
 #include "wxExtensions.hpp"
-
-using namespace Slic3r;
-using namespace Slic3r::GUI;
 
 namespace Slic3r { namespace GUI {
 #define ANIMATION_REFRESH_INTERVAL 20

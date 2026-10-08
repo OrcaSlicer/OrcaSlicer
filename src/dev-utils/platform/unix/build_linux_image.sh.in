@@ -118,9 +118,13 @@ bundle_dependency_closure() {
     # (scripts/check_appimage_libs.sh).
     local -a search_dirs=("$dst_dir")
 
-    while [ ${#queue[@]} -gt 0 ]; do
-        target="${queue[0]}"
-        queue=("${queue[@]:1}")
+    # Walked with a read index rather than by reslicing the array: "${queue[@]:1}" rebuilds the whole
+    # queue on every pop, so draining it costs O(n^2). At the ~5k entries this bundle reaches that was
+    # ~22 s of the image build spent copying an array around.
+    local head=0
+    while [ "$head" -lt ${#queue[@]} ]; do
+        target="${queue[$head]}"
+        head=$((head + 1))
 
         if [ ! -e "$target" ] || ! appimage_is_elf_file "$target"; then
             continue

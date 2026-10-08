@@ -2,13 +2,35 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Point.hpp"
+#include <iterator>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <limits>
+#include "libslic3r/Model.hpp"
 #include <map>
+#include <memory>
+#include <math.h>
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
@@ -1671,24 +1693,32 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     // and the outlines of branches that run close to each other merge into one. Rounding the branches
     // before those outlines are built moves them apart, which breaks the merged outlines up into
     // separate loops - many more of them, each needing its own travel move.
+    // A micron change of the cube moves the loop count of a single slice by several percent, so the
+    // shapes of a few nearly equal cubes are added up.
     auto shape_for = [](const std::string &smooth_factor) {
-        Print print;
-        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
-                                            {{"sparse_infill_pattern", "lightning"},
-                                             {"sparse_infill_density", "50%"},
-                                             {"fill_multiline", 2},
-                                             {"sparse_infill_smooth_factor", smooth_factor},
-                                             {"layer_height", 0.2}});
-        return sparse_infill_shape(print);
+        SparseInfillShape sum;
+        for (const double size : {20., 20.001, 20.002, 20.003}) {
+            Print print;
+            Slic3r::Test::init_and_process_print({Slic3r::Test::cube(size)}, print,
+                                                {{"sparse_infill_pattern", "lightning"},
+                                                 {"sparse_infill_density", "50%"},
+                                                 {"fill_multiline", 2},
+                                                 {"sparse_infill_smooth_factor", smooth_factor},
+                                                 {"layer_height", 0.2}});
+            const SparseInfillShape shape = sparse_infill_shape(print);
+            sum.path_count += shape.path_count;
+            sum.point_count += shape.point_count;
+            sum.sharp_turns += shape.sharp_turns;
+        }
+        return sum;
     };
 
     const SparseInfillShape sharp  = shape_for("0%");
     const SparseInfillShape smooth = shape_for("100%");
 
     REQUIRE(sharp.path_count > 0);
-    // The loop count varies by a loop or two between platforms and between runs, so this is not an
-    // exact comparison. Smoothing should leave it about where it was; uncapping the smoothing
-    // reach, the regression this guards against, adds about 10%.
+    // Smoothing should leave the loop count about where it was; uncapping the smoothing reach, the
+    // regression this guards against, adds about 10%.
     const size_t allowed_extra = sharp.path_count / 50; // 2%
     REQUIRE(smooth.path_count <= sharp.path_count + allowed_extra);
     // The outlines are still rounded.

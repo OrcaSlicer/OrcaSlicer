@@ -1,15 +1,43 @@
 {
 	"type": "process",
 	"name": "0.06 High Quality @Snapmaker U1 (0.2 nozzle)",
+	"renamed_from": "0.06 High Quality Snapmaker U1 (0.2 nozzle);0.06 High Quality @Snapmaker U1 (0.2 High Flow nozzle);0.06 High Quality Snapmaker U1 (0.2 High Flow nozzle)",
 	"inherits": "fdm_process_U1_0.06_nozzle_0.2",
 	"from": "system",
 	"setting_id": "3SCofR6VrVyo3vJp",
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. So, it results in minimal layer lines and much higher printing quality, but much longer printing time.",
-	"default_acceleration": "4000",
+	"default_acceleration": [
+		"4000",
+		"4000",
+		"4000",
+		"4000",
+		"4000",
+		"4000",
+		"4000",
+		"4000"
+	],
 	"elefant_foot_compensation": "0.15",
-	"outer_wall_acceleration": "2000",
-	"outer_wall_speed": "60",
+	"outer_wall_acceleration": [
+		"2000",
+		"2000",
+		"2000",
+		"2000",
+		"2000",
+		"2000",
+		"2000",
+		"2000"
+	],
+	"outer_wall_speed": [
+		"60",
+		"500",
+		"60",
+		"500",
+		"60",
+		"500",
+		"60",
+		"500"
+	],
 	"sparse_infill_pattern": "gyroid",
 	"compatible_printers": [
 		"Snapmaker U1 (0.2 nozzle)"
@@ -20,10 +48,69 @@
 	"prime_tower_brim_width": "5",
 	"prime_tower_width": "30",
 	"prime_volume": "13.5",
-	"slowdown_for_curled_perimeters": "0",
+	"slowdown_for_curled_perimeters": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
 	"standby_temperature_delta": "-150",
 	"support_type": "tree(auto)",
 	"wipe_tower_extra_rib_length": "8",
 	"wipe_tower_extra_spacing": "120%",
-	"wipe_tower_wall_type": "rib"
+	"wipe_tower_wall_type": "rib",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"2",
+		"2",
+		"3",
+		"3",
+		"4",
+		"4"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"internal_solid_infill_speed": [
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600"
+	],
+	"inner_wall_speed": [
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600"
+	],
+	"sparse_infill_speed": [
+		"100",
+		"600",
+		"100",
+		"600",
+		"100",
+		"600",
+		"100",
+		"600"
+	]
 }

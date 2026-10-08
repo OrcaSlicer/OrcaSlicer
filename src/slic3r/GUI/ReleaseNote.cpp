@@ -1,21 +1,46 @@
 #include "ReleaseNote.hpp"
 #include "I18N.hpp"
 
+#include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/StaticBox.hpp"
 #include "Widgets/WebView.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <boost/nowide/fstream.hpp>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <vector>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <md4c/src/md4c.h>
+#include <wx/image.h>
+#include <wx/datetime.h>
+#include <utility>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include <boost/bind/bind.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
 #include <wx/regex.h>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
@@ -24,14 +49,34 @@
 #include <miniz.h>
 #include <algorithm>
 #include <cctype>
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/simplebook.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
+#include <wx/tglbtn.h>
+#include <wx/webrequest.h>
+#include <wx/timer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
 #include "../Utils/Http.hpp"
 #include "md4c/src/md4c-html.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <boost/filesystem.hpp>
+
+using json = nlohmann::json;
+
+namespace Slic3r::GUI { class Plater; }
 
 namespace Slic3r { namespace GUI {
 
@@ -1771,7 +1816,10 @@ void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
     m_input_printer_name->GetTextCtrl()->SetLabelText(m_obj->get_dev_name());
 
     std::string img_str = DevPrinterConfigUtil::get_printer_connect_help_img(m_obj->printer_type);
-    auto diagram_bmp = create_scaled_bitmap(img_str + "_en", this, 198);
+    if (img_str.empty()) { img_str = "input_access_code_x1"; }
+
+    std::string language = wxGetApp().app_config->get("language");
+    auto diagram_bmp = create_scaled_bitmap(img_str + (language == "zh_CN" ? "_cn" : "_en"), this, 198);
     m_img_help->SetBitmap(diagram_bmp);
 
 

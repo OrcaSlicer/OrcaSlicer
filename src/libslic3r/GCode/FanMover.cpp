@@ -1,10 +1,25 @@
 #include "FanMover.hpp"
 
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "GCodeReader.hpp"
 
+#include <cstddef>
+#include <cerrno>
+#include <cstdlib>
+#include <algorithm>
+#include <cstdint>
+#include <cmath>
+#include <cassert>
+#include <cctype>
 #include <iomanip>
 /*
+#include <ios>
+#include <list>
+#include <iterator>
 #include <memory.h>
+#include <sstream>
 #include <string.h>
 #include <float.h>
 
@@ -14,6 +29,10 @@
 #include "Print.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <string_view>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 */
 
 

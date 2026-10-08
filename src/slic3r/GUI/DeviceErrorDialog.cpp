@@ -7,8 +7,28 @@
 #include "ReleaseNote.hpp"
 #include "wxExtensions.hpp"
 
+#include <unordered_set>
+#include <string>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <boost/log/trivial.hpp>
+#include <wx/image.h>
+#include <utility>
+#include <vector>
+#include "slic3r/GUI/Monitor.hpp"
 #include <wx/mstream.h>
 #include <wx/dcmemory.h>
+#include <wx/statbmp.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/webrequest.h>
+#include <wx/timer.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r {
 namespace GUI
@@ -348,7 +368,7 @@ wxString DeviceErrorDialog::parse_error_level(int error_code)
     }
 }
 
-static const std::unordered_set<string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
+static const std::unordered_set<std::string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
 wxString DeviceErrorDialog::show_error_code(int error_code)
 {
     if (m_error_code == error_code) { return wxEmptyString;}

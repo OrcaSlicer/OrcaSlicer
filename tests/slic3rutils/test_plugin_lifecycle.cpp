@@ -1,13 +1,18 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
-#include <libslic3r/Utils.hpp>
+#include <memory>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "plugin_test_utils.hpp"
 
 #include <boost/filesystem.hpp>
@@ -17,8 +22,10 @@
 #include <condition_variable>
 #include <fstream>
 #include <mutex>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;

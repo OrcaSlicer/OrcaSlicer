@@ -1,6 +1,7 @@
 #ifndef slic3r_PresetCacheFormat_hpp_
 #define slic3r_PresetCacheFormat_hpp_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -14,6 +15,9 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
+
+namespace cereal { class BinaryInputArchive; }
+namespace cereal { class BinaryOutputArchive; }
 
 namespace Slic3r {
 
@@ -164,6 +168,11 @@ public:
     // beside the cache at all) accepts whatever is cached.
     static bool load(const std::string& path, const std::string& expected_vendor_name,
                      const Semver& expected_vendor_version, VendorCacheData& data);
+
+    // Read only the vendor's own profile, under the same checks as load(),
+    // without deserializing its presets.
+    static bool load_vendor_profile(const std::string& path, const std::string& expected_vendor_name,
+                                    const Semver& expected_vendor_version, VendorProfile& vendor);
 
     // Read the profile version a cache was stamped with, without deserializing
     // its presets. Empty if the file is unreadable, not a cache this build

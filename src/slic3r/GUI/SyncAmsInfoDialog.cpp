@@ -1,23 +1,64 @@
 #include "SyncAmsInfoDialog.hpp"
 
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <algorithm>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/SelectMachine.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Utils.hpp"
+#include <string>
+#include "slic3r/GUI/BBLStatusBarPrint.hpp"
+#include <nlohmann/json.hpp>
+#include <cassert>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include <map>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "libslic3r/Thread.hpp"
+#include <memory>
+#include <boost/filesystem/path.hpp>
+#include <numeric>
+#include "slic3r/GUI/BitmapCache.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/BaseTransparentDPIFrame.hpp"
 #include <thread>
+#include <vector>
+#include <wx/anybutton.h>
+#include <wx/animate.h>
+#include <wx/busycursor.h>
+#include <wx/chartype.h>
+#include <wx/arrstr.h>
 #include <wx/event.h>
+#include <wx/image.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
-#include "Tab.hpp"
 #include "PartPlate.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/TextInput.hpp"
 #include "Notebook.hpp"
-#include "Jobs/BoostThreadWorker.hpp"
-#include "Jobs/PlaterWorker.hpp"
 #include <chrono>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/tglbtn.h>
+#include <wx/timer.h>
+#include <wx/wxcrt.h>
 #include "Widgets/Label.hpp"
-#include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "CapsuleButton.hpp"
@@ -31,9 +72,20 @@
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
 #include "FilamentBitmapUtils.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
-using namespace Slic3r;
-using namespace Slic3r::GUI;
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 #define OK_BUTTON_SIZE wxSize(FromDIP(90), FromDIP(24))
 #define CANCEL_BUTTON_SIZE wxSize(FromDIP(58), FromDIP(24))
@@ -1174,7 +1226,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
         for (auto it = m_materialList.begin(); it != m_materialList.end(); it++) {
-            wxString ams_id  = "Ext";
+            wxString ams_id  = _L("Ext");
             wxColour ams_col = wxColour(0xCE, 0xCE, 0xCE);
             it->second->item->set_ams_info(ams_col, ams_id, true); // sync_ams_mapping_result
         }
@@ -1194,7 +1246,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 wxColour ams_col;
 
                 if (f->tray_id == VIRTUAL_TRAY_MAIN_ID || f->tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
-                    ams_id = "Ext";
+                    ams_id = _L("Ext");
                 }
 
                 else if (f->tray_id >= 0) {
@@ -1513,30 +1565,30 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
         if (nozzle_volume_type_opt) {
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType) (nozzle_volume_type_opt->get_at(used_extruders[i]));
             if (nozzle_volume_type == NozzleVolumeType::nvtStandard) {
-                used_extruders_flow[used_extruders[i]] = "Standard";
+                used_extruders_flow[used_extruders[i]] = L("Standard");
             } else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
-                used_extruders_flow[used_extruders[i]] = "TPU High Flow";
+                used_extruders_flow[used_extruders[i]] = L("TPU High Flow");
             } else if (nozzle_volume_type == NozzleVolumeType::nvtE3DHighFlow) {
-                used_extruders_flow[used_extruders[i]] = "E3D High Flow";
+                used_extruders_flow[used_extruders[i]] = L("E3D High Flow");
             } else {
-                used_extruders_flow[used_extruders[i]] = "High Flow";
+                used_extruders_flow[used_extruders[i]] = L("High Flow");
             }
         }
     }
 
-    vector<int> map_extruders = {1, 0};
+    std::vector<int> map_extruders = {1, 0};
 
     // The default two extruders are left, right, but the order of the extruders on the machine is right, left.
     std::vector<std::string> flow_type_of_machine;
     for (auto it = data.GetExtruders().begin(); it != data.GetExtruders().end(); it++) {
         if (it->GetNozzleFlowType() == NozzleFlowType::H_FLOW) {
-            flow_type_of_machine.push_back("High Flow");
+            flow_type_of_machine.push_back(L("High Flow"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::S_FLOW) {
-            flow_type_of_machine.push_back("Standard");
+            flow_type_of_machine.push_back(L("Standard"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::U_FLOW) {
-            flow_type_of_machine.push_back("TPU High Flow");
+            flow_type_of_machine.push_back(L("TPU High Flow"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::E_FLOW) {
-            flow_type_of_machine.push_back("E3D High Flow");
+            flow_type_of_machine.push_back(L("E3D High Flow"));
         }
     }
 
@@ -1558,7 +1610,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
                     error_message = wxString::Format(_L("The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "
                                                         "Please make sure the nozzle installed matches with settings in printer, "
                                                         "then set the corresponding printer preset while slicing."),
-                                                     pos, flow_type_of_machine[target_machine_nozzle_id], used_extruders_flow[it->first]);
+                                                     pos, _L(flow_type_of_machine[target_machine_nozzle_id]), _L(used_extruders_flow[it->first]));
                     return false;
                 }
             }
@@ -1624,7 +1676,7 @@ void SyncAmsInfoDialog::stripWhiteSpace(std::string &str)
 {
     if (str == "") { return; }
 
-    string::iterator cur_it;
+    std::string::iterator cur_it;
     cur_it = str.begin();
 
     while (cur_it != str.end()) {
@@ -2009,7 +2061,7 @@ void SyncAmsInfoDialog::on_refresh(wxCommandEvent &event)
 void SyncAmsInfoDialog::on_set_finish_mapping(wxCommandEvent &evt)
 {
     auto selection_data     = evt.GetString();
-    auto selection_data_arr = wxSplit(selection_data.ToStdString(), '|');
+    auto selection_data_arr = wxSplit(selection_data, '|');
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 

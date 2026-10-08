@@ -9,10 +9,19 @@
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include <cctype>
+#include <exception>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <chrono>
 #include <libslic3r/Utils.hpp>
 
 #include <slic3r/GUI/NotificationManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
+#include "slic3r/GUI/PluginSource.hpp"
+#include "slic3r/GUI/PluginStatus.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include "slic3r/GUI/PluginSort.hpp"
 #include <slic3r/GUI/format.hpp>
 
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -25,13 +34,18 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include <wx/busycursor.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
+#include <wx/gdicmn.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
 
@@ -251,25 +265,25 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
     available_actions.can_toggle                   = !is_loading && (has_local || available_actions.toggle_installs_cloud_plugin);
 
     auto add_action = [&available_actions](const char* id, const char* label, bool enabled = true, bool danger = false) {
-        available_actions.context_actions.push_back(PluginContextAction{id, label, enabled, danger});
+        available_actions.context_actions.push_back(PluginContextAction{id, _u8L(label), enabled, danger});
     };
 
     // Owned cloud plugins fall through to the local delete: it removes the installed package only.
     // Deleting a plugin from the cloud is a plugin hub operation and is never offered here.
     if (is_cloud && !is_orphaned && !is_mine) {
-        add_action("unsubscribe_plugin", "Unsubscribe", true, true);
+        add_action("unsubscribe_plugin", L("Unsubscribe"), true, true);
     } else if (has_local) {
-        add_action("delete_plugin", "Delete", true, true);
+        add_action("delete_plugin", L("Delete"), true, true);
     }
 
-    add_action("open_folder", "Show in folder", has_local);
+    add_action("open_folder", L("Show in folder"), has_local);
 
     if (!is_orphaned) {
         if (is_cloud) {
-            add_action("reinstall_plugin", "Reinstall");
+            add_action("reinstall_plugin", L("Reinstall"));
         } else {
-            add_action("reload_plugin", "Reload");
-            add_action("clear_cache_reload_plugin", "Delete cache and reload");
+            add_action("reload_plugin", L("Reload"));
+            add_action("clear_cache_reload_plugin", L("Delete cache and reload"));
         }
     }
 
@@ -797,7 +811,7 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
 
     if (!available_actions.can_toggle) {
         if (dialog_item.unauthorized && available_actions.toggle_installs_cloud_plugin == false && row_data.has_local_package() == false) {
-            const std::string install_error = "Unauthorized cloud plugins cannot be installed.";
+            const std::string install_error = _u8L("Unauthorized cloud plugins cannot be installed.");
             manager.set_plugin_error(plugin_key, install_error);
             show_status(from_u8(install_error), "warn");
         }
@@ -1057,7 +1071,7 @@ void PluginsDialog::run_script_plugin_capability(const std::string& plugin_key, 
     ExecutionResult result;
 
     auto complete_with_error = [this, &manager, &plugin_key](const std::string& plugin_error, const wxString& status_message) {
-        const std::string normalized_error = plugin_error.empty() ? "Script plugin failed." : plugin_error;
+        const std::string normalized_error = plugin_error.empty() ? _u8L("Script plugin failed.") : plugin_error;
         if (!manager.set_plugin_error(plugin_key, normalized_error))
             BOOST_LOG_TRIVIAL(warning) << "Failed to record plugin error. plugin_key=" << plugin_key;
 
@@ -1248,34 +1262,34 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
                 if (clear_cache) {
                     PluginDescriptor descriptor;
                     if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
-                        return {false, "Plugin not found."};
+                        return {false, _u8L("Plugin not found.")};
 
                     boost::filesystem::path resolved_root;
                     std::string                  resolve_error;
                     if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
-                                                     "Refusing to clear a plugin cache outside the local plugin directory.",
+                                                     _u8L("Refusing to clear a plugin cache outside the local plugin directory."),
                                                      resolved_root, resolve_error))
                         return {false, resolve_error};
                     cache_dir = resolved_root / "__whl_extracted__";
                 }
 
                 if (!manager.unload_plugin(plugin_key))
-                    return {false, "Failed to unload plugin."};
+                    return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
                     boost::system::error_code ec;
                     boost::filesystem::remove_all(cache_dir, ec);
                     if (ec)
-                        return {false, "Failed to clear plugin cache: " + ec.message()};
+                        return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
                 }
 
                 manager.load_plugin(plugin_key, false);
                 std::string error;
                 if (!manager.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error) || !manager.is_plugin_loaded(plugin_key))
-                    return {false, error.empty() ? "Plugin failed to load." : error};
+                    return {false, error.empty() ? _u8L("Plugin failed to load.") : error};
 
                 if (!was_loaded && !manager.unload_plugin(plugin_key))
-                    return {false, "Plugin reloaded, but failed to restore the inactive state."};
+                    return {false, _u8L("Plugin reloaded, but failed to restore the inactive state.")};
 
                 return {true, {}};
             },
@@ -1283,7 +1297,7 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
     } catch (const std::exception& ex) {
         reload_result = {false, ex.what()};
     } catch (...) {
-        reload_result = {false, "Unknown plugin reload error."};
+        reload_result = {false, _u8L("Unknown plugin reload error.")};
     }
 
     if (!reload_result.first) {
@@ -1330,14 +1344,14 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
                     manager.load_plugin(plugin_key);
                     std::string error;
                     if (!manager.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error) || !manager.is_plugin_loaded(plugin_key))
-                        return {false, error.empty() ? "Plugin failed to load." : error};
+                        return {false, error.empty() ? _u8L("Plugin failed to load.") : error};
                     return {true, {}};
                 },
                 _L("Reloading plugin"), _L("Reloading plugin"));
         } catch (const std::exception& ex) {
             reload_result = {false, ex.what()};
         } catch (...) {
-            reload_result = {false, "Unknown plugin reload error."};
+            reload_result = {false, _u8L("Unknown plugin reload error.")};
         }
 
         if (!reload_result.first) {

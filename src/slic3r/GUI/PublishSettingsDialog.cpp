@@ -14,6 +14,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/StateColor.hpp"
+#include "Widgets/SwitchButton.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
@@ -22,7 +23,27 @@
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
+#include <wx/colour.h>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <vector>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/TabCtrl.hpp"
 #include <wx/display.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/tglbtn.h>
+#include <wx/treebase.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/textctrl.h>
+#include <wx/stattext.h>
+#include <wx/geometry.h>
 #include <wx/utils.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcmemory.h>
@@ -844,34 +865,25 @@ void PublishSettingsDialog::build_option_model()
     };
 
     // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
-    // Printer group), from the printer tab's "Extruder"/"Extruder N" pages. One inner tab per
-    // extruder (e.g. "Left Extruder"/"Right Extruder" via Tab::translate_category), each holding
-    // that extruder's Retraction and Z-Hop rows with per-extruder "#N" values.
+    // Printer group), from the printer tab's "Extruder" page. One inner tab per extruder (named
+    // as on the printer tab's switch, e.g. "Left Extruder"/"Right Extruder" via
+    // Tab::translate_category), each holding that extruder's Retraction and Z-Hop rows with
+    // per-extruder "#N" values.
     {
         size_t g = section_group_for(Section::Printer);
         std::set<std::string> printer_added;
         for (Tab* tab : wxGetApp().tabs_list) {
-            if (tab->m_type != Preset::TYPE_PRINTER)
+            // The page's controls edit the extruder chosen on the printer tab's switch, so its
+            // option list is read once per extruder.
+            auto*       printer_tab = dynamic_cast<TabPrinter*>(tab);
+            const Page* page        = printer_tab ? printer_tab->extruder_page() : nullptr;
+            if (page == nullptr)
                 continue;
-            for (const PageShp& page : tab->m_pages) {
-                if (!page->title().StartsWith("Extruder"))
-                    continue;
-                // The extruder index of this page: its options are appended with the same
-                // "#N" opt_index (opt.second.second), so derive the tab's index from the first
-                // allowlisted option; skip the page when none is found (defensive).
-                int extruder_idx = -1;
-                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
-                        continue;
-                    for (const auto& opt : optgroup->opt_map())
-                        if (extruder_idx < 0)
-                            extruder_idx = opt.second.second;
-                    if (extruder_idx >= 0)
-                        break;
-                }
-                if (extruder_idx < 0)
-                    continue;
-                const wxString page_title = Tab::translate_category(page->title(), tab->m_type);
+            const size_t extruders_count = printer_tab->m_extruders_count;
+            for (size_t extruder_idx = 0; extruder_idx < extruders_count; ++extruder_idx) {
+                const wxString page_title = Tab::translate_category(extruders_count > 1 ? wxString::Format("Extruder %d", int(extruder_idx + 1)) : wxString("Extruder"), tab->m_type);
+                // Retraction and Z-Hop values are stored per variant column, not per extruder.
+                const int variant_index = printer_tab->extruder_variant_index(int(extruder_idx));
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
                     // Allowlist on the untranslated optgroup title; the "Retraction when
                     // switching material" group is intentionally skipped.
@@ -879,17 +891,17 @@ void PublishSettingsDialog::build_option_model()
                         continue;
                     const wxString subcategory = _(optgroup->title);
                     for (const auto& opt : optgroup->opt_map()) {
-                        const std::string& opt_id   = opt.first;
                         const std::string& pure_key = opt.second.first;
                         // Rows are keyed by the full per-extruder "#N" opt_id so each extruder
                         // tab publishes its own value; GetPublishedKeys() emits the checked rows
                         // as-is.
+                        const std::string opt_id = pure_key + "#" + std::to_string(variant_index);
                         if (!printer_added.insert(opt_id).second)
                             continue;
                         wxString label, value, unit;
                         if (!option_text(opt_id, pure_key, label, value, unit))
                             continue;
-                        size_t cat_index = category_index_for(page_title, Section::Printer, g, size_t(extruder_idx));
+                        size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx);
                         size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
                         add_row_ui(opt_id, label, value, unit, cat_index, sub_index);
                     }
@@ -1078,6 +1090,10 @@ void PublishSettingsDialog::build_option_model()
     for (SectionGroup& section : m_sections)
         if (!section.categories.empty())
             section.tabs->SelectItem(0);
+    // Orca: the Printer section shows its extruders on the same switch as the printer tab's Extruder page.
+    for (size_t s = 0; s < m_sections.size(); ++s)
+        if (m_sections[s].kind == Section::Printer && m_sections[s].categories.size() > 1)
+            setup_variant_switch(s);
     if (!m_sections.empty()) {
         m_outer_tabs->SelectItem(0);
         show_outer_page(0);
@@ -1610,6 +1626,8 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
         section.selected_mixed = -1;
     }
     section.selected_inner = inner_index;
+    if (section.variant_switch != nullptr)
+        section.variant_switch->SetSelection(inner_index); // fires its event, which ignores the shown page
     Category& category     = m_categories[section.categories[inner_index]];
     category.page->Show();
     category.scroll->FitInside();
@@ -1617,6 +1635,32 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
     if (section.mixed_tabs != nullptr)
         section.mixed_tabs->Unselect();
     section.page_host_sizer->Layout();
+}
+
+void PublishSettingsDialog::setup_variant_switch(size_t section_index)
+{
+    SectionGroup& section = m_sections[section_index];
+    std::vector<wxString> titles;
+    for (size_t category : section.categories)
+        titles.push_back(m_categories[category].title);
+
+    section.variant_switch = new MultiSwitchButton(section.page);
+    section.variant_switch->SetFitToOptions();
+    section.variant_switch->SetOptions(titles);
+    section.variant_switch->SetSelection(section.selected_inner);
+    section.variant_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this, section_index](wxCommandEvent& evt) {
+        evt.Skip();
+        // The hidden tab strip stays the selection model; its event shows the page.
+        SectionGroup& sec = m_sections[section_index];
+        if (evt.GetInt() != sec.selected_inner)
+            sec.tabs->SelectItem(evt.GetInt());
+    });
+
+    // The switch takes the place of the tab strip, centered like on the printer tab.
+    wxSizer* page_sizer = section.page->GetSizer();
+    page_sizer->Insert(1, section.variant_switch, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(4));
+    section.tabs->Hide();
+    section.page->Layout();
 }
 
 void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_index)
@@ -2164,6 +2208,13 @@ void PublishSettingsDialog::refresh_tab_indicators()
         for (size_t i = 0; i < section.categories.size(); ++i) {
             const bool on = category_has_selection(m_categories[section.categories[i]]);
             section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+            // The switch has no indicator dot; mark its option text instead.
+            if (section.variant_switch != nullptr) {
+                const wxString& title = m_categories[section.categories[i]].title;
+                const wxString  text  = on ? title + wxString(" ") + wxString(wxUniChar(0x2022)) : title;
+                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(i)) != text)
+                    section.variant_switch->SetOptionText(static_cast<unsigned int>(i), text);
+            }
             any = any || on;
         }
         if (section.mixed_tabs != nullptr)
@@ -2228,6 +2279,8 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         section.tabs->Rescale();
         if (section.mixed_tabs != nullptr)
             section.mixed_tabs->Rescale();
+        if (section.variant_switch != nullptr)
+            section.variant_switch->Rescale();
     }
 
     // Refresh the per-row Color chips at the new DPI (they carry the slot number too).

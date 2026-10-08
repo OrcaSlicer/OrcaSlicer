@@ -1,13 +1,25 @@
 #ifndef slic3r_GUI_SendToSDcard_hpp_
 #define slic3r_GUI_SendToSDcard_hpp_
 
+#include <string>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include <vector>
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <wx/datetime.h>
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <cstddef>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -20,7 +32,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 #include <wx/srchctrl.h>
 

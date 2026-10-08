@@ -1,7 +1,11 @@
 #pragma once
 
-#include "Callbacks.hpp"
+#include "libslic3r/Point.hpp"
 #include "TriMesh.hpp"
+#include <array>
+#include <cstddef>
+#include <vector>
+#include <functional>
 
 namespace Slic3r { namespace tex2color {
 
@@ -12,9 +16,6 @@ typedef std::array<std::size_t, 3> Color;  // RGB: [R, G, B] 0~255
 typedef std::vector<Color> ColorList;
 typedef std::array<double, 3> ColorDouble;
 typedef std::array<std::size_t, 3> RGB;
-
-// Function pointer type that points to a specific color-difference function based on the chosen method.
-using DistanceFunction = double (*)(const Color&, const Color&);
 
 // Color space used for computing color differences.
 enum struct ColorDifferenceMethod : std::size_t {

@@ -4,11 +4,31 @@
 #include "DevNozzleSystem.h"
 #include "DevUtil.h"
 
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PrintConfig.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include <string>
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <cassert>
+#include <memory>
+#include <map>
+#include <vector>
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include <utility>
+#include <exception>
+#include <unordered_map>
+#include <optional>
+#include <cmath>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {
@@ -406,7 +426,7 @@ void DevNozzleSystem::ClearNozzles()
 
 // ---- parsing ----------------------------------------------------------------------------------------
 
-static unordered_map<string, NozzleFlowType> _str2_nozzle_flow_type = {
+static std::unordered_map<std::string, NozzleFlowType> _str2_nozzle_flow_type = {
     {"S", NozzleFlowType::S_FLOW},
     {"H", NozzleFlowType::H_FLOW},
     {"A", NozzleFlowType::S_FLOW},
@@ -416,7 +436,7 @@ static unordered_map<string, NozzleFlowType> _str2_nozzle_flow_type = {
     {"B", NozzleFlowType::E_FLOW}, // E3D High Flow -> nvtE3DHighFlow
 };
 
-static unordered_map<string, NozzleType> _str2_nozzle_type = {
+static std::unordered_map<std::string, NozzleType> _str2_nozzle_type = {
     {"00", NozzleType::ntStainlessSteel},
     {"01", NozzleType::ntHardenedSteel},
     {"05", NozzleType::ntTungstenCarbide}

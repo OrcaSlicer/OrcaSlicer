@@ -1,4 +1,15 @@
+#include "libslic3r/CommonDefs.hpp"
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <unordered_map>
+#include <optional>
+#include <string>
+#include <vector>
 #include "DevExtruderSystem.h"
 #include "DevNozzleSystem.h"
 #include "DevFilaSystem.h" // complete type for GetFilaSystem()->GetTrayIndexMap() in GetBackupAmsSlotInGroup
