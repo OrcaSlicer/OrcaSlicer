@@ -3632,6 +3632,8 @@ void PartPlate::update_slice_result_valid_state(bool valid)
 //update current slice context into backgroud slicing process
 void PartPlate::update_slice_context(BackgroundSlicingProcess & process)
 {
+	//this callback outlives the call, so it is dropped again in PartPlateList::clear() and
+	//PartPlateList::delete_plate() before the plate is destroyed
 	auto statuscb = [this](const Slic3r::PrintBase::SlicingStatus& status) {
 		Slic3r::SlicingStatusEvent *event = new Slic3r::SlicingStatusEvent(EVT_SLICING_UPDATE, 0, status);
 		//BBS: GUI refactor: add plate info befor message
@@ -4603,7 +4605,14 @@ void PartPlateList::clear(bool delete_plates, bool release_print_list, bool exce
 		else
 			plate->clear();
 		if (delete_plates)
+		{
+			//the slicing status callback installed by update_slice_context() captures the plate, so drop it
+			//while the Print is still alive: the prints are only released below, after this loop, and are
+			//not released at all when release_print_list is false.
+			if (Print* print = plate->fff_print())
+				print->set_status_default();
 			delete plate;
+		}
 	}
 
 	if (delete_plates)
@@ -4946,6 +4955,10 @@ int PartPlateList::delete_plate(int index)
 	//destroy the print object
 	int print_index;
 	plate->get_print(nullptr, nullptr, &print_index);
+	//the slicing status callback installed by update_slice_context() captures the plate, and destroy_print()
+	//frees the Print, so drop the callback here, the last point where both are still alive.
+	if (Print* print = plate->fff_print())
+		print->set_status_default();
 	destroy_print(print_index);
 
 	delete plate;
