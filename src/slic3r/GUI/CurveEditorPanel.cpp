@@ -134,13 +134,22 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     });
     Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { finish_drag(); });
     Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& event) {
-        if (!on_pan || event.ControlDown() || event.AltDown() || event.MetaDown()) {
+        const bool zoom = event.ControlDown();
+        if (event.AltDown() || event.MetaDown() || (zoom ? !on_zoom : !on_pan)) {
             event.Skip();
             return;
         }
         if (m_dragged_point >= 0 || event.GetWheelDelta() <= 0 || event.GetWheelRotation() == 0) return;
         const bool vertical = event.ShiftDown();
         double steps = double(event.GetWheelRotation()) / event.GetWheelDelta();
+        if (zoom) {
+            const wxRect plot = chart_rect();
+            const wxPoint position = event.GetPosition();
+            const double anchor = vertical ? 1.0 - double(position.y - plot.y) / plot.height :
+                                             double(position.x - plot.x) / plot.width;
+            on_zoom(steps, vertical, std::clamp(anchor, 0.0, 1.0));
+            return;
+        }
         // Wheel-up moves toward lower X; Shift+wheel-up moves toward higher Y.
         if (!vertical && event.GetWheelAxis() != wxMOUSE_WHEEL_HORIZONTAL) steps = -steps;
         on_pan(steps, vertical);

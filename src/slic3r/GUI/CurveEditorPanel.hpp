@@ -38,6 +38,7 @@ public:
     std::function<void(int)> on_select;
     std::function<void(int, double, double)> on_move;
     std::function<void(double, bool)> on_pan;
+    std::function<void(double, bool, double)> on_zoom;
 
 private:
     wxRect chart_rect() const;
