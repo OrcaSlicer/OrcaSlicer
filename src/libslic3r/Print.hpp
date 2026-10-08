@@ -246,9 +246,9 @@ struct PrintInstance
     // SoftFever
     // 
     // instance id
-    size_t               id;
+    size_t               id{0};
     // Orca: unique id used by marlin/rrf cancel object feature
-    size_t               unique_id;
+    size_t               unique_id{0};
 
     //BBS: instance_shift is too large because of multi-plate, apply without plate offset.
     Point shift_without_plate_offset() const;
@@ -632,7 +632,7 @@ private:
     // SoftFever
     // 
     // object id
-    size_t               m_id;
+    size_t               m_id{0};
     void apply_conical_overhang();
 
  public:

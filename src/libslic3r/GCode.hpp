@@ -301,6 +301,7 @@ public:
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 
+    void assign_object_label_ids(Print &print);
     // SoftFever
     std::string set_object_info(Print* print);
 
@@ -717,7 +718,7 @@ private:
     
     bool m_enable_exclude_object;
     std::vector<size_t> m_label_objects_ids;
-    // Object label names by instance, built on first use from the ids set_object_info() assigns.
+    // Object label names by instance, built on first use from the ids assign_object_label_ids() assigns.
     std::unordered_map<const PrintInstance*, std::string> m_instance_names;
     const std::string& instance_name(const PrintInstance &instance);
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);

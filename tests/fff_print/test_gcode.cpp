@@ -41,3 +41,28 @@ TEST_CASE("Klipper object labels name each copy without the characters Klipper c
         CHECK(gcode.find("EXCLUDE_OBJECT_START NAME=" + instance_label + "\n") != std::string::npos);
     }
 }
+
+TEST_CASE("Object label comments number each object and copy with or without exclude object", "[GCode]")
+{
+    // repetier has no exclude-object commands, so set_object_info() writes nothing for it.
+    const auto [flavor, exclude_object] = GENERATE(table<std::string, std::string>({
+        {"marlin2", "0"},
+        {"klipper", "0"},
+        {"klipper", "1"},
+        {"repetier", "1"},
+    }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"gcode_flavor", flavor}, {"exclude_object", exclude_object}, {"gcode_label_objects", "1"}});
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{Test::cube(20.), Test::cube(20.)}, print, model, config, nullptr, false, 2);
+    arrange_objects(model, BoundingBox{Point::new_scale(0., 0.), Point::new_scale(500., 500.)},
+                    ArrangeParams{scaled(min_object_distance(config))});
+    print.apply(model, config);
+
+    const std::string gcode = Test::gcode(print);
+    for (const char *label : {"id:0 copy 0", "id:0 copy 1", "id:1 copy 0", "id:1 copy 1"}) {
+        INFO(flavor << ", exclude_object " << exclude_object << ": " << label);
+        CHECK(gcode.find("; printing object object.stl " + std::string(label) + "\n") != std::string::npos);
+    }
+}
