@@ -561,7 +561,7 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
         echo "Building up to ${DEPS_JOBS} dependencies at a time, ${CMAKE_BUILD_PARALLEL_LEVEL} jobs each: up to $(( DEPS_JOBS * CMAKE_BUILD_PARALLEL_LEVEL )) compile jobs at once."
     fi
 
-    print_and_run cmake --build deps/$BUILD_DIR -j${DEPS_JOBS}
+    print_and_run cmake --build deps/$BUILD_DIR -j"${DEPS_JOBS}"
 
     if [[ -n "${DEPS_PARALLEL}" ]] ; then
         # Give the whole -j back to the OrcaSlicer build below.
