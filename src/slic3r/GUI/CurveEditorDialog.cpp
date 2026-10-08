@@ -110,14 +110,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_content->SetScrollRate(FromDIP(10), FromDIP(10));
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     auto* help = new wxStaticText(m_content, wxID_ANY, help_text);
-    help->SetFont(Label::Body_12);
-    help->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    help->SetFont(Label::Body_14);
+    help->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
     help->Wrap(FromDIP(880));
     sizer->Add(help, 0, wxEXPAND | wxALL, FromDIP(10));
 
     auto* editors = new wxBoxSizer(wxHORIZONTAL);
     auto* plot_panel = new wxPanel(m_content);
-    auto* table_panel = new wxPanel(m_content);
+    auto* table_panel = m_table_panel = new wxPanel(m_content);
     auto* plot_sizer = new wxBoxSizer(wxVERTICAL);
     auto* table_sizer = new wxBoxSizer(wxVERTICAL);
     editors->Add(plot_panel, 2, wxEXPAND | wxRIGHT, FromDIP(12));
@@ -274,6 +274,17 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_content->SendSizeEvent();
     });
     view_actions->Add(show_range, 0, wxALIGN_CENTER_VERTICAL);
+    m_show_table = new wxCheckBox(plot_panel, wxID_ANY, _L("Show table"));
+    m_show_table->SetFont(Label::Body_12);
+    m_show_table->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    m_show_table->SetValue(true);
+    m_show_table->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+        finish_edit();
+        update_preview();
+        m_table_panel->Show(event.IsChecked());
+        m_content->SendSizeEvent();
+    });
+    view_actions->Add(m_show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
     view_actions->AddStretchSpacer();
     auto make_icon_button = [plot_panel](const wxString& name, const wxString& icon) {
         auto* button = new Button(plot_panel, wxEmptyString, icon, 0, 16);
@@ -291,6 +302,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
            "%s + mouse wheel: zoom horizontally.\n"
            "%s + %s + mouse wheel: zoom vertically.\n\n"
            "Show range: enter exact bounds and press Enter or Apply.\n"
+           "Show table: show or hide the point values and editing buttons.\n"
            "Fit curve: show the full curve.\n"
            "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift);
     auto* help_button = make_icon_button(_L("Graph controls"), "thermal_question");
@@ -422,9 +434,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         help->Wrap(std::max(FromDIP(240), width - FromDIP(20)));
         editors->SetOrientation(wxHORIZONTAL);
         auto* plot_item = editors->GetItem(plot_panel);
-        plot_item->SetFlag(wxEXPAND | wxRIGHT);
+        plot_item->SetFlag(m_table_panel->IsShown() ? wxEXPAND | wxRIGHT : wxEXPAND);
         // Use the sizer's minimum: it includes the 2:1 column proportions and gap.
-        if (width < editors->GetMinSize().x + FromDIP(20)) {
+        if (m_table_panel->IsShown() && width < editors->GetMinSize().x + FromDIP(20)) {
             editors->SetOrientation(wxVERTICAL);
             plot_item->SetFlag(wxEXPAND | wxBOTTOM);
         }
@@ -510,6 +522,12 @@ bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>&
     m_status->SetLabel(error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error);
     m_status->Wrap(FromDIP(260));
     m_status->Show(!m_status->GetLabel().empty());
+    if (!error.empty() && !m_table_panel->IsShown()) {
+        // Keep invalid point values and their explanation accessible for correction.
+        m_table_panel->Show();
+        m_show_table->SetValue(true);
+        m_content->SendSizeEvent();
+    }
     layout_content();
     return error.empty();
 }
@@ -624,8 +642,11 @@ void CurveEditorDialog::layout_content()
     if (guard.IsInside()) return;
     // Sizers force size events even when geometry is unchanged. Relayout only
     // the content: laying out the dialog here re-enters its child's size handler.
+    const int width = m_content->GetClientSize().x;
     m_content->Layout();
     m_content->FitInside();
+    // Scrollbars can change the available width. Rewrap after the current layout completes.
+    if (width != m_content->GetClientSize().x) m_content->SendSizeEvent(wxSEND_EVENT_POST);
 }
 
 } // namespace Slic3r::GUI
