@@ -59,11 +59,22 @@ struct Octrees
     }
 };
 
-// Calculate line spacing for
-// 1) adaptive cubic infill
-// 2) adaptive internal support cubic infill
-// Returns zero for a particular infill type if no such infill is to be generated.
-std::pair<double, double>       adaptive_fill_line_spacing(const PrintObject &print_object);
+// Orca: The octrees of each line spacing the regions of an object fill with.
+struct RegionOctrees
+{
+    std::vector<Octrees> sets;
+    // Index into sets for each region, -1 for a region without adaptive or support cubic infill.
+    std::vector<int>     region_set;
+
+    const Octrees *region(size_t region_id) const
+    {
+        return region_id < region_set.size() && region_set[region_id] >= 0 ? &sets[region_set[region_id]] : nullptr;
+    }
+};
+
+// Line spacing of the adaptive or support cubic infill of each region of the object,
+// zero for a region that generates no such infill.
+std::vector<double>             adaptive_fill_line_spacing(const PrintObject &print_object);
 
 // Rotation of the octree to stand on one of its corners.
 Eigen::Quaterniond              transform_to_world();

@@ -1780,7 +1780,7 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
     // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr, nullptr),
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
                                               shrink(to_polygons(layer.lslices), scale_(3.)));
     REQUIRE_FALSE(anchors.empty());
     double max_distance = 0.;
@@ -1792,8 +1792,9 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     CHECK(unscale<double>(max_distance) <= config.opt_float("resolution"));
 }
 
-// Orca: Slices the meshes as the parts of one object, where they are.
-static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::vector<TriangleMesh> &parts)
+// Orca: Slices the meshes as the parts of one object, where they are, with modifiers of their own config.
+static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::vector<TriangleMesh> &parts,
+                          const std::vector<std::pair<TriangleMesh, DynamicPrintConfig>> &modifiers = {})
 {
     config.set_deserialize_strict({{"layer_height", 0.2},
                                    {"initial_layer_print_height", 0.2},
@@ -1804,6 +1805,8 @@ static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::ve
     Slic3r::Test::init_print({parts.front()}, print, model, config, nullptr, false);
     for (size_t i = 1; i < parts.size(); ++ i)
         model.objects.front()->add_volume(TriangleMesh(parts[i]), ModelVolumeType::MODEL_PART, false);
+    for (const auto &[mesh, modifier_config] : modifiers)
+        model.objects.front()->add_volume(TriangleMesh(mesh), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(modifier_config);
     print.apply(model, config);
     print.process();
     return print;
@@ -1987,4 +1990,34 @@ TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][
     const std::pair<double, double> unmatched = frame_and_pillar_unmatched(config);
     CHECK(unmatched.first < 0.02);
     CHECK(unmatched.second < 0.02);
+}
+
+TEST_CASE("Adaptive infill of a modifier leaves the density of the other regions", "[Fill][Regression]")
+{
+    const std::string pattern = GENERATE("adaptivecubic", "supportcubic");
+    CAPTURE(pattern);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "15%"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0}});
+    TriangleMesh bodies = make_cube(30, 30, 6), second = make_cube(30, 30, 6);
+    second.translate(40, 0, 0);
+    bodies.merge(second);
+    // Orca: A denser modifier over the right half of the second body.
+    TriangleMesh modifier = make_cube(20, 40, 10);
+    modifier.translate(55, -5, -2);
+    DynamicPrintConfig dense = config;
+    dense.set_deserialize_strict({{"sparse_infill_density", "60%"}});
+    Print print, print_sparse, print_dense;
+    slice_parts(print, config, {bodies}, {{modifier, dense}});
+    slice_parts(print_sparse, config, {bodies});
+    slice_parts(print_dense, dense, {bodies});
+
+    // Orca: Bed regions 3 mm inside the walls and the modifier, away from the links along them.
+    auto rect = [](double x0, double y0, double x1, double y1) {
+        return Polygon({Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1), Point::new_scale(x0, y1)});
+    };
+    CHECK(unmatched_between_prints(print, print_sparse, erInternalInfill, {rect(3, 3, 27, 27), rect(43, 3, 52, 27)}) < 0.02);
+    CHECK(unmatched_between_prints(print, print_dense, erInternalInfill, {rect(58, 3, 67, 27)}) < 0.02);
 }
