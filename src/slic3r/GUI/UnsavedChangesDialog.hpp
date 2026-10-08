@@ -24,6 +24,7 @@
 #include "wxExtensions.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/ScrolledWindow.hpp"
 #include "Lazy.hpp"
 
@@ -438,8 +439,8 @@ class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
     wxBoxSizer*             m_presets_sizer     { nullptr };
     wxStaticText*           m_top_info_line     { nullptr };
     wxStaticText*           m_bottom_info_line  { nullptr };
-    wxCheckBox*             m_show_all_presets  { nullptr };
-    wxCheckBox*             m_use_for_transfer  { nullptr };
+    LabeledCheckBox*        m_show_all_presets  { nullptr };
+    LabeledCheckBox*        m_use_for_transfer  { nullptr };
     wxBoxSizer*             m_buttons           { nullptr };
     wxBoxSizer*             m_edit_sizer        { nullptr };
 
