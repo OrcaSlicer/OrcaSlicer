@@ -176,6 +176,7 @@ UVEditorCanvas::UVEditorCanvas(wxWindow *parent)
     Bind(wxEVT_MIDDLE_DOWN, &UVEditorCanvas::on_mouse, this);
     Bind(wxEVT_MIDDLE_UP, &UVEditorCanvas::on_mouse, this);
     Bind(wxEVT_MOTION, &UVEditorCanvas::on_mouse, this);
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, &UVEditorCanvas::on_capture_lost, this);
     Bind(wxEVT_MOUSEWHEEL, &UVEditorCanvas::on_mouse, this);
     Bind(wxEVT_LEAVE_WINDOW, &UVEditorCanvas::on_leave, this);
     Bind(wxEVT_KEY_DOWN, &UVEditorCanvas::on_key, this);
@@ -727,8 +728,45 @@ void UVEditorCanvas::end_gesture()
     m_rot_raw_deg       = 0.f;
     m_rot_applied_deg   = 0.f;
     m_modal_scale_accum = 1.f;
+    drop_mouse();
+}
+
+void UVEditorCanvas::cancel_gesture()
+{
+    // Undo what the gesture already applied live, as the Esc path does, and commit nothing.
+    if (m_on_island_edit) {
+        if (m_gesture == Gesture::RotateIslandModal && m_rot_applied_deg != 0.f)
+            m_on_island_edit(m_selected_island, Vec2f::Zero(), -m_rot_applied_deg, 1.f, false);
+        if (m_gesture == Gesture::ScaleIslandModal && m_modal_scale_accum != 1.f)
+            m_on_island_edit(m_selected_island, Vec2f::Zero(), 0.f, 1.f / m_modal_scale_accum, false);
+    }
+
+    m_gesture           = Gesture::None;
+    m_rot_raw_deg       = 0.f;
+    m_rot_applied_deg   = 0.f;
+    m_modal_scale_accum = 1.f;
+    m_vertex_edit_moved = false;
+}
+
+void UVEditorCanvas::grab_mouse()
+{
+    if (!HasCapture())
+        CaptureMouse();
+}
+
+void UVEditorCanvas::drop_mouse()
+{
     if (HasCapture())
         ReleaseMouse();
+}
+
+// The capture was taken from us (a dialog opened, another application grabbed the pointer). wx
+// requires this to cancel the gesture: no commit, no Skip(), and no ReleaseMouse() - the capture is
+// already gone, and releasing it again would unbalance the stack.
+void UVEditorCanvas::on_capture_lost(wxMouseCaptureLostEvent &)
+{
+    cancel_gesture();
+    Refresh();
 }
 
 void UVEditorCanvas::on_key(wxKeyEvent &evt)
@@ -909,7 +947,7 @@ void UVEditorCanvas::on_mouse(wxMouseEvent &evt)
             }
             m_gesture = (m_selected_island >= 0) ? Gesture::MoveIsland : Gesture::Pan;
         }
-        CaptureMouse();
+        grab_mouse();
         Refresh();
     } else if (type == wxEVT_RIGHT_DOWN && m_selected_island >= 0 && m_select_mode == SelectMode::Island) {
         const Vec2f rel      = screen_to_uv(pos) - island_centroid(m_selected_island);
@@ -919,12 +957,16 @@ void UVEditorCanvas::on_mouse(wxMouseEvent &evt)
         m_rot_base_deg       = island_rotation_deg(m_selected_island);
         m_rot_display_deg    = m_rot_base_deg;
         m_gesture_last_angle = std::atan2(rel.y(), rel.x());
-        CaptureMouse();
+        grab_mouse();
     } else if (type == wxEVT_MIDDLE_DOWN) {
         m_gesture      = Gesture::Pan;
         m_drag_last_px = pos;
-        CaptureMouse();
+        grab_mouse();
     } else if (type == wxEVT_LEFT_UP || type == wxEVT_RIGHT_UP || type == wxEVT_MIDDLE_UP) {
+        // The drag is over either way. A modal R/S keeps running until a click confirms it, but it
+        // tracks the pointer over this canvas and needs no capture to do so, so the capture goes back
+        // here rather than waiting for that click - which may never come.
+        drop_mouse();
         if (m_gesture != Gesture::RotateIslandModal && m_gesture != Gesture::ScaleIslandModal) {
             end_gesture();
             Refresh();
