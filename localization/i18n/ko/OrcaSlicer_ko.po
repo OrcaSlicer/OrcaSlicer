@@ -38944,3 +38944,145 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+msgid "Visible range"
+msgstr "표시 범위"
+
+# AI Translated
+msgid "Minimum"
+msgstr "최소"
+
+# AI Translated
+msgid "Maximum"
+msgstr "최대"
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "그래프 표시 범위만 바꾸며 모델 값은 유지합니다. Enter 또는 ‘적용’으로 갱신합니다."
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "허용 범위: %s ~ %s."
+
+# AI Translated
+msgid "Show range"
+msgstr "범위 표시"
+
+# AI Translated
+msgid "Show table"
+msgstr "표 표시"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"점을 끌어 옮기거나 표에서 값을 수정하세요.\n"
+"\n"
+"마우스 휠: 가로 이동.\n"
+"%s + 휠: 세로 이동.\n"
+"%s + 휠: 가로 확대/축소.\n"
+"%s + %s + 휠: 세로 확대/축소.\n"
+"\n"
+"범위 표시: 경계값 입력 후 Enter 또는 ‘적용’을 누르세요.\n"
+"표 표시: 점 값의 표시 여부를 바꿉니다.\n"
+"보기 초기화: 전체 곡선을 표시합니다.\n"
+"기본값 복원: 모델의 기본 점을 복원합니다."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "그래프 조작"
+
+# AI Translated
+msgid "Reset View"
+msgstr "보기 초기화"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "전체 곡선을 표시합니다."
+
+# AI Translated
+msgid "Add point"
+msgstr "점 추가"
+
+# AI Translated
+msgid "Remove point"
+msgstr "점 삭제"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "기본값 복원"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "표의 %d행: "
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"그래프의 점을 끌거나 표에서 압출 길이와 압출량 보정 계수를 수정하세요.\n"
+"길이와 계수는 이전 값보다 커야 합니다. 첫 길이는 0, 마지막 계수는 1이어야 합니다."
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "압출 길이"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "압출량 보정 계수"
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "유한한 경계값을 입력하세요. 최솟값은 최댓값보다 작아야 합니다."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "표시 범위가 허용 한계를 벗어났습니다."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "표시 범위가 너무 작습니다."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "각 셀에 유한한 수를 입력하세요."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "모델에는 점이 두 개 이상 필요합니다."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "첫 압출 길이는 0이어야 합니다."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "압출 길이는 이전 값보다 커야 합니다."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "압출량 보정 계수는 이전 값보다 커야 합니다."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "마지막 압출량 보정 계수는 1이어야 합니다."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "모델이 비어 있습니다. 압출량 보상이 적용되지 않습니다."
+

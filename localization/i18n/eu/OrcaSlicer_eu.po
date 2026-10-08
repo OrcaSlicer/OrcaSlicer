@@ -37945,3 +37945,151 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+msgid "Visible range"
+msgstr "Ikus-eremua"
+
+# AI Translated
+msgid "Minimum"
+msgstr "Min."
+
+# AI Translated
+msgid "Maximum"
+msgstr "Max."
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Grafikoaren eremua bakarrik aldatzen du, ez eredua. Sakatu Enter edo «Aplikatu» eguneratzeko."
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "Mugak: %s eta %s."
+
+# AI Translated
+msgid "Show range"
+msgstr "Eremua"
+
+# AI Translated
+msgid "Show table"
+msgstr "Taula"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Arrastatu puntua edo editatu balioak taulan.\n"
+"\n"
+"Saguaren gurpila: mugitu horizontalean.\n"
+"%s + gurpila: mugitu bertikalean.\n"
+"%s + gurpila: zoom horizontala.\n"
+"%s + %s + gurpila: zoom bertikala.\n"
+"\n"
+"Eremua: sartu muga zehatzak, sakatu Enter edo «Aplikatu».\n"
+"Taula: erakutsi edo ezkutatu puntuen balioak.\n"
+"Ikuspegi osoa: erakutsi kurba osoa.\n"
+"Lehenetsiak: leheneratu ereduaren puntu lehenetsiak."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "Grafiko-kontrol"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Ikuspegi osoa"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Erakutsi kurba osoa."
+
+# AI Translated
+msgid "Add point"
+msgstr "Gehitu"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Kendu"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "Lehenetsiak"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "Taulako %d. errenkada: "
+
+# AI Translated
+# Needs human review: Check idiomatic wording for finite bounds and strictly increasing values.
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Arrastatu grafikoko puntuak edo editatu estrusio-luzera eta fluxu-zuzenketa faktorea taulan.\n"
+"Luzerek eta faktoreek zorrozki handitu behar dute. Lehen luzera 0 eta azken faktorea 1 izan behar dira."
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "Estrusio-luzera"
+
+# AI Translated
+# Needs human review: Check idiomatic wording for finite bounds and strictly increasing values.
+msgid "Flow correction factor"
+msgstr "Fluxu-zuzenketa fakt."
+
+# AI Translated
+# Needs human review: Check idiomatic wording for finite bounds and strictly increasing values.
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Sartu muga finituak: min. max. baino txikiagoa."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Ikus-eremua baimendutako mugetatik kanpo dago."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Ikus-eremua txikiegia da."
+
+# AI Translated
+# Needs human review: Check idiomatic wording for finite bounds and strictly increasing values.
+msgid "Enter a finite number in each cell."
+msgstr "Zenbaki finituak gelaxka guztietan."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "Ereduak gutxienez bi puntu izan behar ditu."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "Lehen estrusio-luzera: 0 behar da."
+
+# AI Translated
+# Needs human review: Check idiomatic wording for finite bounds and strictly increasing values.
+msgid "Extrusion lengths must strictly increase."
+msgstr "Estrusio-luzerak zorrozki gorakorrak."
+
+# AI Translated
+# Needs human review: Check idiomatic wording for finite bounds and strictly increasing values.
+msgid "Flow correction factors must strictly increase."
+msgstr "Fluxu-zuzenketa faktoreak zorrozki gorakorrak."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Azken fluxu-zuzenketa faktorea: 1 behar da."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Eredua hutsik dago. Ez da fluxu-konpentsaziorik egingo."
+
