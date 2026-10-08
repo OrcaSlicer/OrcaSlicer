@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -4042,6 +4042,9 @@ msgstr ""
 msgid "You need to select the material type and color first."
 msgstr ""
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr ""
@@ -5775,7 +5778,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -6612,6 +6615,22 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
+msgstr ""
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
 msgstr ""
 
 #, c-format, boost-format
@@ -10182,6 +10201,12 @@ msgid "Cancel Timelapse & Print"
 msgstr ""
 
 msgid "Clean Up"
+msgstr ""
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
 msgstr ""
 
 msgid "Preparing print job"
@@ -23590,165 +23615,6 @@ msgstr ""
 msgid "Size: %.1f × %.1f mm"
 msgstr ""
 
-msgid "Primitive"
-msgstr ""
-
-msgid "Empty mesh generated"
-msgstr ""
-
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr ""
-
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr ""
-
-msgid "Width (X)"
-msgstr ""
-
-msgid "Depth (Y)"
-msgstr ""
-
-msgid "Height (Z)"
-msgstr ""
-
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr ""
-
-msgid "Top R"
-msgstr ""
-
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr ""
-
-msgid "Minor R"
-msgstr ""
-
-msgid "All edges"
-msgstr ""
-
-msgid "Top edges"
-msgstr ""
-
-msgid "Bottom edges"
-msgstr ""
-
-msgid "Lateral edges"
-msgstr ""
-
-msgid "Mesh resolution"
-msgstr ""
-
-msgid "Add Shape"
-msgstr ""
-
-msgid "No outer profile"
-msgstr ""
-
-msgid "Failed to make outer face"
-msgstr ""
-
-msgid "Failed to build face with holes"
-msgstr ""
-
-msgid "Revolve failed"
-msgstr ""
-
-msgid "Profile"
-msgstr ""
-
-msgid "Start new profile (for holes)"
-msgstr ""
-
-msgid "Segments"
-msgstr ""
-
-msgid "Sides"
-msgstr ""
-
-msgid "Click on canvas to draw"
-msgstr ""
-
-msgid "Snap to grid"
-msgstr ""
-
-msgid "Grid step"
-msgstr ""
-
-msgid "Outer"
-msgstr ""
-
-msgid "closed"
-msgstr ""
-
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr ""
-
-msgid "XY (Top)"
-msgstr ""
-
-msgid "XZ (Front)"
-msgstr ""
-
-msgid "YZ (Side)"
-msgstr ""
-
-msgid "Revolve deg"
-msgstr ""
-
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr ""
-
-msgid "Pocket (cut)"
-msgstr ""
-
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Draw a closed profile to enable"
-msgstr ""
-
-msgid "Clear all"
-msgstr ""
-
-msgid "Empty result"
-msgstr ""
-
-#, boost-format
-msgid "Extrude: %1%"
-msgstr ""
-
-#, boost-format
-msgid "Revolve: %1%"
-msgstr ""
-
-msgid "No object selected"
-msgstr ""
-
-msgid "Face failed"
-msgstr ""
-
-msgid "Face with holes failed"
-msgstr ""
-
-msgid "Tool mesh empty"
-msgstr ""
-
-msgid "Pocket added (negative volume)"
-msgstr ""
-
-#, boost-format
-msgid "Pocket: %1%"
-msgstr ""
-
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr ""
@@ -26334,6 +26200,9 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "An error occurred loading %s"
+msgstr ""
+
+msgid "/"
 msgstr ""
 
 #, boost-format

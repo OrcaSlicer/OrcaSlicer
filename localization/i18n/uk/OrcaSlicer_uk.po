@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -4298,6 +4298,9 @@ msgstr "Ви впевнені, що хочете видалити інформа
 msgid "You need to select the material type and color first."
 msgstr "Спочатку потрібно вибрати тип матеріалу та колір."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Будь ласка введіть коректне значення (K в %.1f~%.1f)"
@@ -6209,7 +6212,7 @@ msgid "Size:"
 msgstr "Розмір:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Виявлено конфлікти шляхів G-code на шарі %d, Z = %.2lf мм. Будь ласка, рознесіть конфліктуючі обʼєкти далі один від одного (%s <-> %s)."
 
@@ -7099,6 +7102,22 @@ msgstr "Файл .gcode.3mf не містить даних G-code. Будь ла
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Файл '%s' втрачений! Завантажте його знову."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11217,6 +11236,12 @@ msgstr "Скасувати таймлапс і друкувати"
 # AI Translated
 msgid "Clean Up"
 msgstr "Очистити"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Підготовка завдання для друку"
@@ -27230,216 +27255,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Розмір: %.1f × %.1f мм"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Примітив"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Згенеровано порожню сітку"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Паралелепіпед"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Швидкий вибір:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Ширина (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Глибина (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Висота (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "Нижній R"
-
-# AI Translated
-msgid "Top R"
-msgstr "Верхній R"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "Великий R"
-
-# AI Translated
-msgid "Minor R"
-msgstr "Малий R"
-
-# AI Translated
-msgid "All edges"
-msgstr "Усі ребра"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Верхні ребра"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Нижні ребра"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Бічні ребра"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Роздільна здатність сітки"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Додати форму"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Немає зовнішнього профілю"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Не вдалося створити зовнішню грань"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Не вдалося побудувати грань з отворами"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "Не вдалося виконати обертання"
-
-# AI Translated
-msgid "Profile"
-msgstr "Профіль"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Почати новий профіль (для отворів)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Сегменти"
-
-# AI Translated
-msgid "Sides"
-msgstr "Сторони"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Клацніть на полотні, щоб малювати"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Привʼязка до сітки"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Крок сітки"
-
-# AI Translated
-msgid "Outer"
-msgstr "Зовнішній"
-
-# AI Translated
-msgid "closed"
-msgstr "замкнений"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2% (точок: %3%) %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (Верх)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (Перед)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (Бік)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Обертання, °"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "0 — видавлювання, >0 — обертання"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Кишеня (вирізання)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu замкнений профіль"
-msgstr[1] "%zu замкнені профілі"
-msgstr[2] "%zu замкнених профілів"
-msgstr[3] "%zu замкненого профілю"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Намалюйте замкнений профіль, щоб увімкнути"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Очистити все"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Порожній результат"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Видавлювання: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Обертання: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Не вибрано обʼєкт"
-
-# AI Translated
-msgid "Face failed"
-msgstr "Не вдалося створити грань"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "Не вдалося створити грань з отворами"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "Сітка інструмента порожня"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Кишеню додано (відʼємний обʼєм)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Кишеня: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30832,6 +30647,9 @@ msgstr "Увімкнути інструменти розробника"
 msgid "An error occurred loading %s"
 msgstr "Помилка під час завантаження %s"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -31515,6 +31333,211 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Примітив"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Згенеровано порожню сітку"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Паралелепіпед"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Швидкий вибір:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Ширина (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Глибина (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Висота (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "Нижній R"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "Верхній R"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "Великий R"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "Малий R"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Усі ребра"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Верхні ребра"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Нижні ребра"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Бічні ребра"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Роздільна здатність сітки"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Додати форму"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Немає зовнішнього профілю"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Не вдалося створити зовнішню грань"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Не вдалося побудувати грань з отворами"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "Не вдалося виконати обертання"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Профіль"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Почати новий профіль (для отворів)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Сегменти"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Сторони"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Клацніть на полотні, щоб малювати"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Привʼязка до сітки"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Крок сітки"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Зовнішній"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "замкнений"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2% (точок: %3%) %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (Верх)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (Перед)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (Бік)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Обертання, °"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "0 — видавлювання, >0 — обертання"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Кишеня (вирізання)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu замкнений профіль"
+#~ msgstr[1] "%zu замкнені профілі"
+#~ msgstr[2] "%zu замкнених профілів"
+#~ msgstr[3] "%zu замкненого профілю"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Намалюйте замкнений профіль, щоб увімкнути"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Очистити все"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Порожній результат"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Видавлювання: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Обертання: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Не вибрано обʼєкт"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "Не вдалося створити грань"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "Не вдалося створити грань з отворами"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "Сітка інструмента порожня"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Кишеню додано (відʼємний обʼєм)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Кишеня: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32594,9 +32617,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "Помилка під час завантаження "
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

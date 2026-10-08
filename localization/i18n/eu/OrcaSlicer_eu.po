@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -4218,6 +4218,9 @@ msgstr "Ziur zaude filamentuaren informazioa garbitu nahi duzula?"
 msgid "You need to select the material type and color first."
 msgstr "Lehenik eta behin, material-mota eta kolorea hautatu behar dituzu."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Mesedez, sartu baliozko balio bat (K in %.1f~%.1f)"
@@ -6063,7 +6066,7 @@ msgstr "Bolumena:"
 msgid "Size:"
 msgstr "Tamaina:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-code ibilbideen gatazkak aurkitu dira %d geruzan, Z = %.2lf mm. Urrundu gehiago gatazkan dauden objektuak (%s <-> %s)."
 
@@ -6926,6 +6929,22 @@ msgstr ".gcode.3mf fitxategiak ez du G-code daturik. Mesedez, xerratu OrcaSlicer
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "'%s' fitxategia galdu da! Deskargatu berriro."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -10885,6 +10904,12 @@ msgstr "Utzi timelapsea eta inprimatu"
 # AI Translated
 msgid "Clean Up"
 msgstr "Garbitu"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Inprimatze-lana prestatzen"
@@ -26270,214 +26295,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Tamaina: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Oinarrizko geometria"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Sare hutsa sortu da"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Kutxa"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Azkar:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Zabalera (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Sakonera (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Altuera (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "Beheko R"
-
-# AI Translated
-msgid "Top R"
-msgstr "Goiko R"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "R nagusia"
-
-# AI Translated
-msgid "Minor R"
-msgstr "R txikia"
-
-# AI Translated
-msgid "All edges"
-msgstr "Ertz guztiak"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Goiko ertzak"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Beheko ertzak"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Alboko ertzak"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Sarearen bereizmena"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Gehitu forma"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Ez dago kanpoko profilik"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Ezin izan da kanpoko aurpegia sortu"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Ezin izan da zuloak dituen aurpegia eraiki"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "Erreboluzioak huts egin du"
-
-# AI Translated
-msgid "Profile"
-msgstr "Profila"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Hasi profil berri bat (zuloetarako)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Segmentuak"
-
-# AI Translated
-msgid "Sides"
-msgstr "Aldeak"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Egin klik mihisean marrazteko"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Atxiki saretara"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Sareta-urratsa"
-
-# AI Translated
-msgid "Outer"
-msgstr "Kanpokoa"
-
-# AI Translated
-msgid "closed"
-msgstr "itxita"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% puntu %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (Goikoa)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (Aurrekoa)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (Albokoa)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Erreboluzio-graduak"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "Ezarri 0 estruitzeko, >0 erreboluzionatzeko"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Poltsa (ebaki)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu profil itxi"
-msgstr[1] "%zu profil itxi"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Marraztu profil itxi bat gaitzeko"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Garbitu dena"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Emaitza hutsa"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Estrusioa: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Erreboluzioa: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Ez dago objekturik hautatuta"
-
-# AI Translated
-msgid "Face failed"
-msgstr "Aurpegiak huts egin du"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "Zuloak dituen aurpegiak huts egin du"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "Tresnaren sarea hutsik dago"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Poltsa gehitu da (bolumen negatiboa)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Poltsa: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Txertatu"
@@ -29870,6 +29687,9 @@ msgstr "Gaitu garapen-tresnak"
 msgid "An error occurred loading %s"
 msgstr "Errore bat gertatu da %s kargatzean"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -30548,6 +30368,209 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Oinarrizko geometria"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Sare hutsa sortu da"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Kutxa"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Azkar:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Zabalera (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Sakonera (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Altuera (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "Beheko R"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "Goiko R"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "R nagusia"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "R txikia"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Ertz guztiak"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Goiko ertzak"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Beheko ertzak"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Alboko ertzak"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Sarearen bereizmena"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Gehitu forma"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Ez dago kanpoko profilik"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Ezin izan da kanpoko aurpegia sortu"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Ezin izan da zuloak dituen aurpegia eraiki"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "Erreboluzioak huts egin du"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Profila"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Hasi profil berri bat (zuloetarako)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Segmentuak"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Aldeak"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Egin klik mihisean marrazteko"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Atxiki saretara"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Sareta-urratsa"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Kanpokoa"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "itxita"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% puntu %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (Goikoa)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (Aurrekoa)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (Albokoa)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Erreboluzio-graduak"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "Ezarri 0 estruitzeko, >0 erreboluzionatzeko"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Poltsa (ebaki)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu profil itxi"
+#~ msgstr[1] "%zu profil itxi"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Marraztu profil itxi bat gaitzeko"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Garbitu dena"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Emaitza hutsa"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Estrusioa: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Erreboluzioa: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Ez dago objekturik hautatuta"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "Aurpegiak huts egin du"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "Zuloak dituen aurpegiak huts egin du"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "Tresnaren sarea hutsik dago"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Poltsa gehitu da (bolumen negatiboa)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Poltsa: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -31607,9 +31630,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "Errore bat gertatu da hau kargatzean: "
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

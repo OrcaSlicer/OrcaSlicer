@@ -1160,7 +1160,8 @@ void GUI_App::post_init()
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
             this->handle_http_error(status, body, event.provider);
         });
-        m_agent->start_discovery(true, false);
+        if (should_start_ssdp_discovery())
+            m_agent->start_discovery(true, false);
     }
 
     //update the plugin tips
@@ -4135,6 +4136,18 @@ std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) cons
     return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
 }
 
+bool GUI_App::should_start_ssdp_discovery()
+{
+    // Non-Orca agents (BBL, plugins) keep their own discovery; OrcaSonar only scans in the
+    // background when one of its machines is already configured, otherwise the popup drives it.
+    const std::string agent_id = resolve_printer_agent_id(
+        preset_bundle ? preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent")
+                      : std::string());
+    if (agent_id != ORCA_PRINTER_AGENT_ID)
+        return true;
+    return m_device_manager && !m_device_manager->get_my_machine_list(ORCA_PRINTER_AGENT_ID).empty();
+}
+
 std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
 {
     return picked_id == resolve_printer_agent_id("") ? std::string() : picked_id;
@@ -4206,7 +4219,8 @@ void GUI_App::switch_printer_agent()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
 
     // Start discovery so Python agents can populate the device list via SSDP callback
-    m_agent->start_discovery(true, false);
+    if (should_start_ssdp_discovery())
+        m_agent->start_discovery(true, false);
 
     // Auto-switch MachineObject (new agent has empty device_info, so always re-select)
     select_machine(effective_agent_id);

@@ -3808,7 +3808,11 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
         auto  ams_name             = ams.opt_string("tray_name", 0u);
         auto  filament_changed     = !ams.has("filament_changed") || ams.opt_bool("filament_changed");
         auto  filament_multi_color = ams.opt<ConfigOptionStrings>("filament_multi_colour")->values;
-        if (filament_id.empty()) {
+        auto  filament_type        = ams.opt_string("filament_type", 0u);
+        auto  is_placeholder       = ams.has("filament_slot_placeholder") && ams.opt_bool("filament_slot_placeholder", 0u);
+        // A printer-set tray carries a material type but no preset id; resolve it to the
+        // matching Generic preset so it is not dropped and the combo array keeps aligning.
+        if (filament_id.empty() && (is_placeholder || filament_type.empty())) {
             continue;
         }
         if (!filament_changed && this->filament_presets.size() > combox_info.ams_filament_presets.size()) {
@@ -3818,16 +3822,48 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
             combox_info.ams_names.push_back(ams_name);
             continue;
         }
-        auto iter = std::find_if(filaments.begin(), filaments.end(),
-                                 [this, &filament_id](auto &f) { return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
-        warn_ambiguous_filament_id_match(filaments, iter, filament_id);
+        auto iter = filaments.end();
+        if (!filament_id.empty()) {
+            iter = std::find_if(filaments.begin(), filaments.end(),
+                                [this, &filament_id](auto &f) { return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
+            warn_ambiguous_filament_id_match(filaments, iter, filament_id);
+        }
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
-            auto filament_type = ams.opt_string("filament_type", 0u);
             if (!filament_type.empty()) {
+                auto original_type = filament_type;
                 filament_type = "Generic " + filament_type;
                 iter          = std::find_if(filaments.begin(), filaments.end(),
                                     [&filament_type](auto &f) { return f.is_compatible && f.is_system && boost::algorithm::starts_with(f.name, filament_type); });
+                if (iter == filaments.end()) {
+                    // Similarity fallback: find a generic preset whose filament_type
+                    // appears as a whole word in the AMS type (e.g. "ASA" in "ASA Sparkle").
+                    auto upper_type = boost::to_upper_copy(original_type);
+                    auto contains_word = [](const std::string& haystack, const std::string& needle) {
+                        auto pos = haystack.find(needle);
+                        while (pos != std::string::npos) {
+                            bool start_ok = (pos == 0 || !std::isalnum(static_cast<unsigned char>(haystack[pos - 1])));
+                            bool end_ok   = (pos + needle.size() >= haystack.size() ||
+                                             !std::isalnum(static_cast<unsigned char>(haystack[pos + needle.size()])));
+                            if (start_ok && end_ok)
+                                return true;
+                            pos = haystack.find(needle, pos + 1);
+                        }
+                        return false;
+                    };
+                    // Find the longest-matching preset type to prefer e.g. "PA-CF" over "PA".
+                    size_t best_len = 0;
+                    for (auto it = filaments.begin(); it != filaments.end(); ++it) {
+                        if (!it->is_compatible || !it->is_system || !boost::algorithm::starts_with(it->name, "Generic "))
+                            continue;
+                        auto preset_type = boost::to_upper_copy(it->config.opt_string("filament_type", 0u));
+                        if (preset_type.size() > best_len && contains_word(upper_type, preset_type)) {
+                            iter = it;
+                            best_len = preset_type.size();
+                            filament_type = "Generic " + it->config.opt_string("filament_type", 0u);
+                        }
+                    }
+                }
             }
             if (iter == filaments.end()) {
                 // Prefer old selection
@@ -3838,7 +3874,11 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
                     combox_info.ams_names.push_back(ams_name);
                     continue;
                 }
-                iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) { return f.is_compatible && f.is_system; });
+                iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) {
+                    return f.is_compatible && f.is_system && boost::algorithm::starts_with(f.name, "Generic ");
+                });
+                if (iter == filaments.end())
+                    iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) { return f.is_compatible && f.is_system; });
                 if (iter == filaments.end())
                     continue;
             }
@@ -3876,6 +3916,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     for (auto &entry : filament_ams_list) {
         auto & ams = entry.second;
         auto filament_id = ams.opt_string("filament_id", 0u);
+        const bool printer_set_tray = filament_id.empty();
         auto filament_color = ams.opt_string("filament_colour", 0u);
         auto filament_color_type = ams.opt_string("filament_colour_type", 0u);
         auto filament_changed = !ams.has("filament_changed") || ams.opt_bool("filament_changed");
@@ -3888,42 +3929,58 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_array_maps.push_back(temp);
         index++;
         if (filament_id.empty()) {
-            if (use_map) {
-                for (int j = maps.size() - 1; j >= 0; j--) {
-                    if (maps[j].slot_id == slot_id && maps[j].ams_id == ams_id) {
-                        maps.erase(j);
+            // A tray written by the printer UI carries a material type but no
+            // OrcaSlicer preset id. Resolve it to the matching Generic preset with
+            // the tray's own color instead of dropping it (direct sync) or forcing
+            // "Generic PLA" (mapping sync). Placeholders and typeless trays keep
+            // the previous behavior.
+            const auto tray_type = ams.opt_string("filament_type", 0u);
+            if (is_placeholder || tray_type.empty()) {
+                if (use_map) {
+                    for (int j = maps.size() - 1; j >= 0; j--) {
+                        if (maps[j].slot_id == slot_id && maps[j].ams_id == ams_id) {
+                            maps.erase(j);
+                        }
                     }
+                    ams_filament_presets.push_back("Generic PLA");//for unknow matieral
+                    auto default_unknown_color = "#CECECE";
+                    ams_filament_colors.push_back(default_unknown_color);
+                    ams_filament_color_types.push_back("1");
+                    if (filament_multi_color.size() == 0) {
+                        filament_multi_color.push_back(default_unknown_color);
+                    }
+                    ams_multi_color_filment.push_back(filament_multi_color);
+                } else if (is_placeholder) {
+                    // Orca: push placeholders to keep index alignment with ams_infos
+                    ams_filament_presets.push_back("");
+                    ams_filament_colors.push_back("");
+                    ams_filament_color_types.push_back("");
+                    ams_multi_color_filment.push_back({});
                 }
-                ams_filament_presets.push_back("Generic PLA");//for unknow matieral
-                auto default_unknown_color = "#CECECE";
-                ams_filament_colors.push_back(default_unknown_color);
-                ams_filament_color_types.push_back("1");
-                if (filament_multi_color.size() == 0) {
-                    filament_multi_color.push_back(default_unknown_color);
-                }
-                ams_multi_color_filment.push_back(filament_multi_color);
-            } else if (is_placeholder) {
-                // Orca: push placeholders to keep index alignment with ams_infos
-                ams_filament_presets.push_back("");
-                ams_filament_colors.push_back("");
-                ams_filament_color_types.push_back("");
-                ams_multi_color_filment.push_back({});
+                continue;
             }
-            continue;
         }
         if (!filament_changed && this->filament_presets.size() > ams_filament_presets.size()) {
             ams_filament_presets.push_back(this->filament_presets[ams_filament_presets.size()]);
             ams_filament_colors.push_back(filament_color);
             ams_filament_color_types.push_back(filament_color_type);
             ams_multi_color_filment.push_back(filament_multi_color);
+            ams_infos.back().valid = true;
             continue;
         }
         bool has_type = false;
         auto filament_type = ams.opt_string("filament_type", 0u);
-        auto iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
-            has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
-            return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
-        warn_ambiguous_filament_id_match(filaments, iter, filament_id);
+        auto iter = filaments.end();
+        if (!filament_id.empty()) {
+            iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
+                has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
+                return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
+            warn_ambiguous_filament_id_match(filaments, iter, filament_id);
+        } else {
+            // The material type is the only identity a printer-set tray carries.
+            has_type = std::any_of(filaments.begin(), filaments.end(), [&filament_type](auto &f) {
+                return f.is_compatible && f.config.opt_string("filament_type", 0u) == filament_type; });
+        }
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {
@@ -3963,6 +4020,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     }
                 }
             }
+            const bool resolved_by_material_type = printer_set_tray && iter != filaments.end();
             if (iter == filaments.end()) {
                 // Prefer old selection
                 if (ams_filament_presets.size() < this->filament_presets.size()) {
@@ -3970,6 +4028,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     ams_filament_colors.push_back(filament_color);
                     ams_filament_color_types.push_back(filament_color_type);
                     ams_multi_color_filment.push_back(filament_multi_color);
+                    ams_infos.back().valid = true;
                     unknowns.emplace_back(&ams, has_type ? L("The filament may not be compatible with the current machine settings. Generic filament presets will be used.") :
                                                            L("The filament model is unknown. Still using the previous filament preset."));
                     continue;
@@ -3985,7 +4044,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 if (iter == filaments.end())
                     continue;
             }
-            unknowns.emplace_back(&ams, boost::algorithm::starts_with(iter->name, filament_type) ?
+            if (!resolved_by_material_type)
+                unknowns.emplace_back(&ams, boost::algorithm::starts_with(iter->name, filament_type) ?
                                             (has_type ? L("The filament may not be compatible with the current machine settings. Generic filament presets will be used.") :
                                                         L("The filament model is unknown. Generic filament presets will be used.")) :
                                             (has_type ? L("The filament may not be compatible with the current machine settings. A random filament preset will be used.") :
@@ -3996,6 +4056,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_filament_colors.push_back(filament_color);
         ams_filament_color_types.push_back(filament_color_type);
         ams_multi_color_filment.push_back(filament_multi_color);
+        ams_infos.back().valid = true;
     }
     if (ams_filament_presets.empty())
         return 0;
@@ -4435,9 +4496,21 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     return filament_infos;
 }
 
-// ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
-// printer_type: "Bambu Lab X2D", nozzle_diameter_str: "0.4 nozzle" => printer_name: "Bambu Lab X2D 0.4 nozzle". If the printer name does
-// not follow this pattern, the function may not work correctly.
+std::string PresetBundle::get_printer_model_display_name(const std::string &model_id) const
+{
+    if (model_id.empty())
+        return {};
+    for (const auto &vendor_entry : vendors) {
+        for (const auto &model : vendor_entry.second.models) {
+            if (model.model_id == model_id)
+                return model.name;
+        }
+    }
+    return {};
+}
+
+// ORCA TODO: this assumes printer names follow "<printer_model> <nozzle_diameter>", e.g.
+// "Bambu Lab X2D 0.4 nozzle". Other naming schemes may not resolve correctly.
 std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only)
 {
     std::set<std::string> printer_names;
@@ -4459,7 +4532,9 @@ std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle
         if (printer_it->name.find(nozzle_diameter_str) != std::string::npos) printer_names.insert(printer_it->name);
     }
 
-    assert(printer_names.size() == 1);
+    // No match is normal for a connected machine the user has not installed; only an
+    // ambiguous match is a bug (the caller assumes one preset per model and nozzle).
+    assert(printer_names.size() <= 1);
 
     for (auto& printer_name : printer_names) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " printer name: " << printer_name;
@@ -4472,8 +4547,8 @@ std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::
                                                                     const std::string &nozzle_diameter_str,
                                                                     bool               include_user_presets)
 {
-    // Printer model plus nozzle diameter is expected to resolve to a single system printer preset;
-    // get_printer_names_by_printer_type_and_nozzle asserts as much in debug builds.
+    // Printer model plus nozzle diameter normally resolves to a single system printer preset.
+    // Zero matches is normal for a connected machine the user never installed.
     const std::set<std::string> printer_names = get_printer_names_by_printer_type_and_nozzle(printer_type, nozzle_diameter_str);
     const Preset *printer = printer_names.empty() ? nullptr : printers.find_preset(*printer_names.begin());
     if (printer == nullptr)

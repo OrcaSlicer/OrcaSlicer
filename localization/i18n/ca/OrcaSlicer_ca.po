@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4426,6 +4426,9 @@ msgstr "Estàs segur que vols esborrar la informació del filament?"
 msgid "You need to select the material type and color first."
 msgstr "Primer heu de seleccionar el tipus de material i el color."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Introduïu un valor vàlid (K a %.1f~%.1f)"
@@ -6297,7 +6300,7 @@ msgid "Size:"
 msgstr "Mida:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes de G-code a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -7176,6 +7179,22 @@ msgstr "El fitxer .gcode.3mf no conté dades de G-code. Lamineu-lo amb Orca Slic
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "L'arxiu '%s' s'ha perdut! Si us plau, descarregueu-lo de nou."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11264,6 +11283,12 @@ msgstr "Cancel·lar el timelapse i imprimir"
 # AI Translated
 msgid "Clean Up"
 msgstr "Netejar"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Preparant el treball d'impressió"
@@ -27128,214 +27153,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Mida: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Primitiva"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "S'ha generat una malla buida"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Caixa"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Ràpid:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Amplada (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Profunditat (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Alçada (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "R inferior"
-
-# AI Translated
-msgid "Top R"
-msgstr "R superior"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "R major"
-
-# AI Translated
-msgid "Minor R"
-msgstr "R menor"
-
-# AI Translated
-msgid "All edges"
-msgstr "Totes les arestes"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Arestes superiors"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Arestes inferiors"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Arestes laterals"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Resolució de la malla"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Afegir forma"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "No hi ha cap perfil exterior"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "No s'ha pogut crear la cara exterior"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "No s'ha pogut construir la cara amb forats"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "La revolució ha fallat"
-
-# AI Translated
-msgid "Profile"
-msgstr "Perfil"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Començar un perfil nou (per a forats)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Segments"
-
-# AI Translated
-msgid "Sides"
-msgstr "Costats"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Feu clic al llenç per dibuixar"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Ajustar a la graella"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Pas de la graella"
-
-# AI Translated
-msgid "Outer"
-msgstr "Exterior"
-
-# AI Translated
-msgid "closed"
-msgstr "tancat"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% punts %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (Superior)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (Frontal)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (Lateral)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Graus de revolució"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "Establiu 0 per a extrusió, >0 per a revolució"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Cavitat (tall)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu perfil tancat"
-msgstr[1] "%zu perfils tancats"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Dibuixeu un perfil tancat per activar-ho"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Esborrar-ho tot"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Resultat buit"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Extrusió: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Revolució: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "No hi ha cap objecte seleccionat"
-
-# AI Translated
-msgid "Face failed"
-msgstr "No s'ha pogut crear la cara"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "No s'ha pogut crear la cara amb forats"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "La malla de l'eina és buida"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Cavitat afegida (volum negatiu)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Cavitat: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30727,6 +30544,9 @@ msgstr "Activar les eines de desenvolupament"
 msgid "An error occurred loading %s"
 msgstr "S'ha produït un error en carregar %s"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -31406,6 +31226,209 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Primitiva"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "S'ha generat una malla buida"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Caixa"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Ràpid:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Amplada (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Profunditat (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Alçada (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "R inferior"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "R superior"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "R major"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "R menor"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Totes les arestes"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Arestes superiors"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Arestes inferiors"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Arestes laterals"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Resolució de la malla"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Afegir forma"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "No hi ha cap perfil exterior"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "No s'ha pogut crear la cara exterior"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "No s'ha pogut construir la cara amb forats"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "La revolució ha fallat"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Perfil"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Començar un perfil nou (per a forats)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Segments"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Costats"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Feu clic al llenç per dibuixar"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Ajustar a la graella"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Pas de la graella"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Exterior"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "tancat"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% punts %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (Superior)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (Frontal)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (Lateral)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Graus de revolució"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "Establiu 0 per a extrusió, >0 per a revolució"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Cavitat (tall)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu perfil tancat"
+#~ msgstr[1] "%zu perfils tancats"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Dibuixeu un perfil tancat per activar-ho"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Esborrar-ho tot"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Resultat buit"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Extrusió: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Revolució: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "No hi ha cap objecte seleccionat"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "No s'ha pogut crear la cara"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "No s'ha pogut crear la cara amb forats"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "La malla de l'eina és buida"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Cavitat afegida (volum negatiu)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Cavitat: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32462,9 +32485,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "S'ha produït un error en carregar "
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

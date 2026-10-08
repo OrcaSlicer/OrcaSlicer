@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -4343,6 +4343,9 @@ msgstr "Ar jūs tikrai norite išvalyti gijos informaciją?"
 msgid "You need to select the material type and color first."
 msgstr "Pradžioje jums reikia pasirinkti medžiagos tipą ir spalvą."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Įveskite tinkamą reikšmę (K %.1f~%.1f)"
@@ -6219,7 +6222,7 @@ msgid "Size:"
 msgstr "Dydis:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Rasta G-code trajektorijų konfliktų %d sluoksnyje, Z = %.2lfmm. Prašome labiau atskirti konfliktuojančius objektus (%s <-> %s)."
 
@@ -7103,6 +7106,22 @@ msgstr "Failas „.gcode.3mf“ neturi G-code duomenų. Supjaustykite jį su „
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Failas „%s“ nerastas! Atsisiųskite jį iš naujo."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11133,6 +11152,12 @@ msgstr "Atšaukti intervalinį fotografavimą ir spausdinti"
 # AI Translated
 msgid "Clean Up"
 msgstr "Išvalyti"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Spausdinimo užduoties rengimas"
@@ -26734,215 +26759,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Dydis: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Primityvas"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Sugeneruotas tuščias poligoninis tinklas"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Dėžė"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Greitai:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Plotis (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Gylis (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Aukštis (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "Apat. R"
-
-# AI Translated
-msgid "Top R"
-msgstr "Viršut. R"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "Didysis R"
-
-# AI Translated
-msgid "Minor R"
-msgstr "Mažasis R"
-
-# AI Translated
-msgid "All edges"
-msgstr "Visos briaunos"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Viršutinės briaunos"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Apatinės briaunos"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Šoninės briaunos"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Tinklelio raiška"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Pridėti formą"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Nėra išorinio profilio"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Nepavyko sukurti išorinio paviršiaus"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Nepavyko sukurti paviršiaus su skylėmis"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "Apsukimas nepavyko"
-
-# AI Translated
-msgid "Profile"
-msgstr "Profilis"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Pradėti naują profilį (skylėms)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Segmentai"
-
-# AI Translated
-msgid "Sides"
-msgstr "Kraštinės"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Spustelėkite drobėje, kad pieštumėte"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Pritraukti prie tinklelio"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Tinklelio žingsnis"
-
-# AI Translated
-msgid "Outer"
-msgstr "Išorinis"
-
-# AI Translated
-msgid "closed"
-msgstr "uždaras"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% tšk. %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (viršus)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (priekis)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (šonas)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Apsukimo kampas"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "0 – išspaudimas, >0 – apsukimas"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Įduba (pjūvis)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu uždaras profilis"
-msgstr[1] "%zu uždari profiliai"
-msgstr[2] "%zu uždarų profilių"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Nubrėžkite uždarą profilį, kad įjungtumėte"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Išvalyti viską"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Tuščias rezultatas"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Išspaudimas: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Apsukimas: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Nepasirinktas joks objektas"
-
-# AI Translated
-msgid "Face failed"
-msgstr "Nepavyko sukurti paviršiaus"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "Nepavyko sukurti paviršiaus su skylėmis"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "Įrankio tinklelis tuščias"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Įduba pridėta (neigiamas tūris)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Įduba: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30337,6 +30153,10 @@ msgid "An error occurred loading %s"
 msgstr "Įvyko klaida įkeliant %s"
 
 # AI Translated
+msgid "/"
+msgstr "/"
+
+# AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
 msgstr "Įkelti %1%: %2%"
@@ -31015,6 +30835,210 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Primityvas"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Sugeneruotas tuščias poligoninis tinklas"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Dėžė"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Greitai:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Plotis (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Gylis (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Aukštis (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "Apat. R"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "Viršut. R"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "Didysis R"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "Mažasis R"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Visos briaunos"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Viršutinės briaunos"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Apatinės briaunos"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Šoninės briaunos"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Tinklelio raiška"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Pridėti formą"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Nėra išorinio profilio"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Nepavyko sukurti išorinio paviršiaus"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Nepavyko sukurti paviršiaus su skylėmis"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "Apsukimas nepavyko"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Profilis"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Pradėti naują profilį (skylėms)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Segmentai"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Kraštinės"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Spustelėkite drobėje, kad pieštumėte"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Pritraukti prie tinklelio"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Tinklelio žingsnis"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Išorinis"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "uždaras"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% tšk. %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (viršus)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (priekis)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (šonas)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Apsukimo kampas"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "0 – išspaudimas, >0 – apsukimas"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Įduba (pjūvis)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu uždaras profilis"
+#~ msgstr[1] "%zu uždari profiliai"
+#~ msgstr[2] "%zu uždarų profilių"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Nubrėžkite uždarą profilį, kad įjungtumėte"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Išvalyti viską"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Tuščias rezultatas"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Išspaudimas: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Apsukimas: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Nepasirinktas joks objektas"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "Nepavyko sukurti paviršiaus"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "Nepavyko sukurti paviršiaus su skylėmis"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "Įrankio tinklelis tuščias"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Įduba pridėta (neigiamas tūris)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Įduba: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32076,10 +32100,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "Įvyko klaida įkeliant "
-
-# AI Translated
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

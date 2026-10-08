@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4352,6 +4352,9 @@ msgstr "フィラメント情報をクリアしてもよろしいですか？"
 msgid "You need to select the material type and color first."
 msgstr "まず材料タイプと色を選択してください。"
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "有効な値を入力してください（Kは%.1f～%.1f）"
@@ -6230,7 +6233,7 @@ msgstr "ボリューム"
 msgid "Size:"
 msgstr "サイズ:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "レイヤー%d、Z = %.2lfmmでG-codeパスの衝突が検出されました。衝突するオブジェクトをもっと離してください（%s <-> %s）。"
 
@@ -7098,6 +7101,22 @@ msgstr ".gcode.3mfファイルにG-codeデータが含まれていません。Or
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "ファイル %s が見つかりませんでした、もう一度ダウンロードしてください。"
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11170,6 +11189,12 @@ msgstr "タイムラプスを中止して印刷"
 # AI Translated
 msgid "Clean Up"
 msgstr "整理する"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "造形タスクを準備"
@@ -27396,213 +27421,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "サイズ: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "プリミティブ"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "空のメッシュが生成されました"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "ボックス"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "クイック:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "幅 (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "奥行き (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "高さ (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "底面半径"
-
-# AI Translated
-msgid "Top R"
-msgstr "上面半径"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "大半径"
-
-# AI Translated
-msgid "Minor R"
-msgstr "小半径"
-
-# AI Translated
-msgid "All edges"
-msgstr "すべてのエッジ"
-
-# AI Translated
-msgid "Top edges"
-msgstr "上面のエッジ"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "底面のエッジ"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "側面のエッジ"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "メッシュ分解能"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "形状を追加"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "外側のプロファイルがありません"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "外側の面を作成できませんでした"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "穴のある面を作成できませんでした"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "回転押し出しに失敗しました"
-
-# AI Translated
-msgid "Profile"
-msgstr "プロファイル"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "新しいプロファイルを開始 (穴用)"
-
-# AI Translated
-msgid "Segments"
-msgstr "セグメント数"
-
-# AI Translated
-msgid "Sides"
-msgstr "辺数"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "キャンバスをクリックして描画"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "グリッドにスナップ"
-
-# AI Translated
-msgid "Grid step"
-msgstr "グリッド間隔"
-
-# AI Translated
-msgid "Outer"
-msgstr "外側"
-
-# AI Translated
-msgid "closed"
-msgstr "閉じています"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% 点 %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (上面)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (正面)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (側面)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "回転押し出し角度"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "0で押し出し、0より大きい値で回転押し出し"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "ポケット (カット)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu個の閉じたプロファイル"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "有効にするには閉じたプロファイルを描画してください"
-
-# AI Translated
-msgid "Clear all"
-msgstr "すべてクリア"
-
-# AI Translated
-msgid "Empty result"
-msgstr "結果が空です"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "押し出し: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "回転押し出し: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "オブジェクトが選択されていません"
-
-# AI Translated
-msgid "Face failed"
-msgstr "面の作成に失敗しました"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "穴のある面の作成に失敗しました"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "ツールメッシュが空です"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "ポケットを追加しました (マイナスボリューム)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "ポケット: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30986,6 +30804,9 @@ msgstr "開発者ツールを有効化"
 msgid "An error occurred loading %s"
 msgstr "%s の読み込み中にエラーが発生しました"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -31676,6 +31497,208 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "プリミティブ"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "空のメッシュが生成されました"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "ボックス"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "クイック:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "幅 (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "奥行き (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "高さ (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "底面半径"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "上面半径"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "大半径"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "小半径"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "すべてのエッジ"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "上面のエッジ"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "底面のエッジ"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "側面のエッジ"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "メッシュ分解能"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "形状を追加"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "外側のプロファイルがありません"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "外側の面を作成できませんでした"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "穴のある面を作成できませんでした"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "回転押し出しに失敗しました"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "プロファイル"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "新しいプロファイルを開始 (穴用)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "セグメント数"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "辺数"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "キャンバスをクリックして描画"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "グリッドにスナップ"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "グリッド間隔"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "外側"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "閉じています"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% 点 %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (上面)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (正面)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (側面)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "回転押し出し角度"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "0で押し出し、0より大きい値で回転押し出し"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "ポケット (カット)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu個の閉じたプロファイル"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "有効にするには閉じたプロファイルを描画してください"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "すべてクリア"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "結果が空です"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "押し出し: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "回転押し出し: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "オブジェクトが選択されていません"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "面の作成に失敗しました"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "穴のある面の作成に失敗しました"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "ツールメッシュが空です"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "ポケットを追加しました (マイナスボリューム)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "ポケット: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32758,9 +32781,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "読み込み中にエラーが発生しました: "
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

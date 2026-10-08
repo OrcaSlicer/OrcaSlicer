@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -4290,6 +4290,9 @@ msgstr "您確認要清除線材資訊嗎？"
 msgid "You need to select the material type and color first."
 msgstr "您需要先選擇線材類型和顏色。"
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "請輸入有效的數值 (K於 %.1f~%.1f 之間)"
@@ -6169,7 +6172,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -7037,6 +7040,22 @@ msgstr ".gcode.3mf 檔案不包含 G-code 資料。請使用 OrcaSlicer 切片�
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "檔案 %s 遺失，請重新下載。"
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11050,6 +11069,12 @@ msgstr "取消縮時攝影並列印"
 # AI Translated
 msgid "Clean Up"
 msgstr "清理"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "正在準備列印作業"
@@ -26534,213 +26559,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "尺寸：%.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "標準模型"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "產生了空的網格"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "長方體"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "快速："
-
-# AI Translated
-msgid "Width (X)"
-msgstr "寬度 (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "深度 (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "高度 (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "底部半徑"
-
-# AI Translated
-msgid "Top R"
-msgstr "頂部半徑"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "主半徑"
-
-# AI Translated
-msgid "Minor R"
-msgstr "次半徑"
-
-# AI Translated
-msgid "All edges"
-msgstr "所有邊"
-
-# AI Translated
-msgid "Top edges"
-msgstr "頂部邊"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "底部邊"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "側邊"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "網格解析度"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "新增形狀"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "沒有外輪廓"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "無法建立外部面"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "無法建立帶孔的面"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "迴轉失敗"
-
-# AI Translated
-msgid "Profile"
-msgstr "輪廓"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "開始新輪廓（用於孔洞）"
-
-# AI Translated
-msgid "Segments"
-msgstr "段數"
-
-# AI Translated
-msgid "Sides"
-msgstr "邊數"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "在畫布上點選以繪製"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "貼齊格線"
-
-# AI Translated
-msgid "Grid step"
-msgstr "格線間距"
-
-# AI Translated
-msgid "Outer"
-msgstr "外輪廓"
-
-# AI Translated
-msgid "closed"
-msgstr "已封閉"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%：%3% 個點 %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY（頂部）"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ（前面）"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ（側面）"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "迴轉角度"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "設為 0 表示擠出，大於 0 表示迴轉"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "挖槽（切除）"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu 個封閉輪廓"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "請繪製封閉輪廓以啟用"
-
-# AI Translated
-msgid "Clear all"
-msgstr "全部清除"
-
-# AI Translated
-msgid "Empty result"
-msgstr "結果為空"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "擠出：%1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "迴轉：%1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "未選取物件"
-
-# AI Translated
-msgid "Face failed"
-msgstr "建立面失敗"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "建立帶孔的面失敗"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "工具網格為空"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "已新增挖槽（負體積）"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "挖槽：%1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30138,6 +29956,10 @@ msgid "An error occurred loading %s"
 msgstr "載入 %s 時發生錯誤"
 
 # AI Translated
+msgid "/"
+msgstr "/"
+
+# AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
 msgstr "將 %1% 載入至%2%"
@@ -30836,6 +30658,208 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "標準模型"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "產生了空的網格"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "長方體"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "快速："
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "寬度 (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "深度 (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "高度 (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "底部半徑"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "頂部半徑"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "主半徑"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "次半徑"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "所有邊"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "頂部邊"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "底部邊"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "側邊"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "網格解析度"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "新增形狀"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "沒有外輪廓"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "無法建立外部面"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "無法建立帶孔的面"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "迴轉失敗"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "輪廓"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "開始新輪廓（用於孔洞）"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "段數"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "邊數"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "在畫布上點選以繪製"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "貼齊格線"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "格線間距"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "外輪廓"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "已封閉"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%：%3% 個點 %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY（頂部）"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ（前面）"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ（側面）"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "迴轉角度"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "設為 0 表示擠出，大於 0 表示迴轉"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "挖槽（切除）"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu 個封閉輪廓"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "請繪製封閉輪廓以啟用"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "全部清除"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "結果為空"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "擠出：%1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "迴轉：%1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "未選取物件"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "建立面失敗"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "建立帶孔的面失敗"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "工具網格為空"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "已新增挖槽（負體積）"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "挖槽：%1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -31889,10 +31913,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "載入時發生錯誤： "
-
-# AI Translated
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

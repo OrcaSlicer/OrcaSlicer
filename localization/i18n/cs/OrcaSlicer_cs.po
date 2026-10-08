@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -4384,6 +4384,9 @@ msgstr "Opravdu chcete vymazat informace o filamentu?"
 msgid "You need to select the material type and color first."
 msgstr "Nejprve musíte vybrat typ materiálu a barvu."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Zadejte platnou hodnotu (K v rozsahu %.1f~%.1f)"
@@ -6266,7 +6269,7 @@ msgid "Size:"
 msgstr "Velikost:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Byly nalezeny konflikty drah G-code ve vrstvě %d, Z = %.2lf mm. Oddělte prosím konfliktní objekty více od sebe (%s <-> %s)."
 
@@ -7155,6 +7158,22 @@ msgstr "Soubor .gcode.3mf neobsahuje žádná G-code data. Prosím, rozřežte m
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Soubor '%s' byl ztracen! Stáhněte jej prosím znovu."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11228,6 +11247,12 @@ msgstr "Zrušit časosběr a tisknout"
 # AI Translated
 msgid "Clean Up"
 msgstr "Vyčistit"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Příprava tiskové úlohy"
@@ -27136,215 +27161,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Velikost: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Primitiv"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Byla vygenerována prázdná síť"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Kvádr"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Rychle:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Šířka (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Hloubka (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Výška (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "Spodní R"
-
-# AI Translated
-msgid "Top R"
-msgstr "Horní R"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "Hlavní R"
-
-# AI Translated
-msgid "Minor R"
-msgstr "Vedlejší R"
-
-# AI Translated
-msgid "All edges"
-msgstr "Všechny hrany"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Horní hrany"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Spodní hrany"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Boční hrany"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Rozlišení sítě"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Přidat tvar"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Chybí vnější profil"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Nepodařilo se vytvořit vnější plochu"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Nepodařilo se vytvořit plochu s otvory"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "Rotace selhala"
-
-# AI Translated
-msgid "Profile"
-msgstr "Profil"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Začít nový profil (pro otvory)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Segmenty"
-
-# AI Translated
-msgid "Sides"
-msgstr "Strany"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Kreslete kliknutím na plátno"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Přichytit k mřížce"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Krok mřížky"
-
-# AI Translated
-msgid "Outer"
-msgstr "Vnější"
-
-# AI Translated
-msgid "closed"
-msgstr "uzavřený"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% b. %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (horní)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (přední)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (boční)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Rotace (°)"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "0 = vysunutí, >0 = rotace"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Kapsa (řez)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu uzavřený profil"
-msgstr[1] "%zu uzavřené profily"
-msgstr[2] "%zu uzavřených profilů"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Pro aktivaci nakreslete uzavřený profil"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Vymazat vše"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Prázdný výsledek"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Vysunutí: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Rotace: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Není vybrán žádný objekt"
-
-# AI Translated
-msgid "Face failed"
-msgstr "Vytvoření plochy selhalo"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "Vytvoření plochy s otvory selhalo"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "Síť nástroje je prázdná"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Kapsa přidána (záporný objem)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Kapsa: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30738,6 +30554,10 @@ msgid "An error occurred loading %s"
 msgstr "Při načítání %s došlo k chybě"
 
 # AI Translated
+msgid "/"
+msgstr "/"
+
+# AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
 msgstr "Načíst %1% do: %2%"
@@ -31417,6 +31237,210 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Primitiv"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Byla vygenerována prázdná síť"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Kvádr"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Rychle:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Šířka (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Hloubka (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Výška (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "Spodní R"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "Horní R"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "Hlavní R"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "Vedlejší R"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Všechny hrany"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Horní hrany"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Spodní hrany"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Boční hrany"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Rozlišení sítě"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Přidat tvar"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Chybí vnější profil"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Nepodařilo se vytvořit vnější plochu"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Nepodařilo se vytvořit plochu s otvory"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "Rotace selhala"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Profil"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Začít nový profil (pro otvory)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Segmenty"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Strany"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Kreslete kliknutím na plátno"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Přichytit k mřížce"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Krok mřížky"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Vnější"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "uzavřený"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% b. %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (horní)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (přední)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (boční)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Rotace (°)"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "0 = vysunutí, >0 = rotace"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Kapsa (řez)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu uzavřený profil"
+#~ msgstr[1] "%zu uzavřené profily"
+#~ msgstr[2] "%zu uzavřených profilů"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Pro aktivaci nakreslete uzavřený profil"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Vymazat vše"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Prázdný výsledek"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Vysunutí: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Rotace: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Není vybrán žádný objekt"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "Vytvoření plochy selhalo"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "Vytvoření plochy s otvory selhalo"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "Síť nástroje je prázdná"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Kapsa přidána (záporný objem)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Kapsa: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32478,10 +32502,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "Při načítání došlo k chybě: "
-
-# AI Translated
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cassert>
@@ -8,6 +9,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/app.h>
 #include <wx/colour.h>
 #include <string>
 #include <wx/string.h>
@@ -19,6 +21,7 @@
 #include <utility>
 #include "DevFilaSystem.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp" // ORCA_PRINTER_AGENT_ID
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
@@ -61,6 +64,15 @@ void DevAmsTray::UpdateColorFromStr(const std::string& color)
     }
 }
 
+void DevAmsTray::UpdateEmptyState(bool material_fields_present, bool classify_empty)
+{
+    const auto is_zero_or_empty = [](const std::string& value) {
+        return value.empty() || std::all_of(value.begin(), value.end(), [](char c) { return c == '0'; });
+    };
+    is_empty = material_fields_present && classify_empty && setting_id.empty() && m_fila_type.empty() &&
+               is_zero_or_empty(color) && is_zero_or_empty(tag_uid);
+}
+
 void DevAmsTray::reset()
 {
     tag_uid             = "";
@@ -82,6 +94,7 @@ void DevAmsTray::reset()
     k                   = 0.0f;
     n                   = 0.0f;
     is_bbl              = false;
+    is_empty            = false;
     hold_count          = 0;
     remain              = 0;
 }
@@ -681,7 +694,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 //std::string type            = (*tray_it)["tray_type"].get<std::string>();
                                 std::string type = MachineObject::setting_id_to_type(curr_tray->setting_id, (*tray_it)["tray_type"].get<std::string>());
                                 // curr_tray->setting_id is our OF id; GFS00/GFS01 are the printer's own support-filament ids.
-                                auto* agent = GUI::wxGetApp().getAgent();
+                                auto* agent = wxTheApp != nullptr ? GUI::wxGetApp().getAgent() : nullptr;
                                 const std::string printer_filament_id = agent ? agent->from_orca_filament_id(curr_tray->setting_id) : curr_tray->setting_id;
                                 if (printer_filament_id == "GFS00")
                                 {
@@ -781,6 +794,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 curr_tray->remain = -1;
                             }
+                            curr_tray->UpdateEmptyState(tray_it->contains("tray_info_idx") && tray_it->contains("tray_type"),
+                                                        obj->printer_agent_id == ORCA_PRINTER_AGENT_ID);
                             // The tray objects are reused across status updates. Reset this
                             // state when a previously empty slot receives a filament again.
                             curr_tray->is_slot_placeholder = tray_it->contains("tray_slot_placeholder");

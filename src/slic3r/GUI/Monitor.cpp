@@ -44,7 +44,7 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "MediaPlayCtrl.h"
-#include "MediaFilePanel.h"
+#include "StoragePanel.h"
 #include "Plater.hpp"
 #include "BindDialog.hpp"
 
@@ -202,9 +202,9 @@ void MonitorPanel::init_tabpanel()
     m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF"));
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
         auto page = m_tabpanel->GetCurrentPage();
-        if (page == m_media_file_panel) {
+        if (page == m_storage_panel) {
             auto title = m_tabpanel->GetPageText(m_tabpanel->GetSelection());
-            m_media_file_panel->SwitchStorage(title == _L("Storage"));
+            m_storage_panel->SwitchStorage(title == _L("Storage"));
         }
         // The first page is selected while the panel is built off screen.
         if (page->IsShownOnScreen())
@@ -218,8 +218,8 @@ void MonitorPanel::init_tabpanel()
     add_build_steps_of(*m_status_info_panel);
     m_tabpanel->AddPage(m_status_info_panel, _L("Status"), true);
     add_build_step([this] {
-        m_media_file_panel = new MediaFilePanel(m_tabpanel);
-        m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
+        m_storage_panel = new StoragePanel(m_tabpanel);
+        m_tabpanel->AddPage(m_storage_panel, _L("Storage"), false);
     });
     add_build_step([this] {
         m_upgrade_panel = new UpgradePanel(m_tabpanel);
@@ -268,7 +268,8 @@ void MonitorPanel::on_sys_color_changed()
 {
     m_status_info_panel->on_sys_color_changed();
     m_upgrade_panel->on_sys_color_changed();
-    m_media_file_panel->Rescale();
+    m_storage_panel->on_sys_color_changed();
+    m_storage_panel->Rescale();
 }
 
 void MonitorPanel::msw_rescale()
@@ -280,7 +281,7 @@ void MonitorPanel::msw_rescale()
     m_tabpanel->Rescale();
     //m_status_add_machine_panel->msw_rescale();
     m_status_info_panel->msw_rescale();
-    m_media_file_panel->Rescale();
+    m_storage_panel->Rescale();
     m_upgrade_panel->msw_rescale();
     m_hms_panel->msw_rescale();
 
@@ -427,8 +428,8 @@ void MonitorPanel::update_all()
         }
     } else if (current_page == m_upgrade_panel) {
         m_upgrade_panel->update(obj);
-    } else if (current_page == m_media_file_panel) {
-        m_media_file_panel->UpdateByObj(obj);
+    } else if (current_page == m_storage_panel) {
+        m_storage_panel->UpdateByObj(obj);
     }
 
     if (current_page == m_hms_panel || (obj->GetHMS()->GetHMSItems().size() != m_hms_panel->temp_hms_list.size())) {

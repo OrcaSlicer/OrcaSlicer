@@ -101,6 +101,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
         Caninfo info;
         // tray is exists
         if (it != ams->GetTrays().end() && it->second->is_exists) {
+            info.is_empty = it->second->is_empty;
             if (it->second->is_tray_info_ready()) {
                 info.can_id        = it->second->id;
                 info.ctype         = it->second->ctype;
@@ -168,6 +169,7 @@ void AMSinfo::parse_ext_info(MachineObject* obj, DevAmsTray tray) {
     this->ams_type = AMSModel::EXT_AMS;
     Caninfo info;
     info.can_id = std::to_string(0);
+    info.is_empty = tray.is_empty;
     this->cans.clear();
 
     if (tray.id == std::to_string(VIRTUAL_TRAY_MAIN_ID))
@@ -1130,9 +1132,9 @@ void AMSLib::render_lite_text(wxDC& dc)
     dc.SetTextForeground(temp_text_colour);
 
     auto libsize = GetSize();
-    if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND
+    if (!m_info.is_empty && (m_info.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND
         || m_info.material_state == AMSCanType::AMS_CAN_TYPE_BRAND
-        || m_info.material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL) {
+        || m_info.material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL)) {
 
         if (m_info.material_name.empty()) {
             auto tsize = dc.GetMultiLineTextExtent("?");
@@ -1180,8 +1182,8 @@ void AMSLib::render_lite_text(wxDC& dc)
         }
     }
 
-    if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY) {
-        auto tsize = dc.GetMultiLineTextExtent("/");
+    if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY || m_info.is_empty) {
+        auto tsize = dc.GetMultiLineTextExtent(_L("/"));
         auto pot = wxPoint((libsize.x - tsize.x) / 2 + FromDIP(2), (libsize.y - tsize.y) / 2 + FromDIP(3));
         dc.DrawText("/", pot);
     }
@@ -1189,8 +1191,12 @@ void AMSLib::render_lite_text(wxDC& dc)
 
 void AMSLib::render_generic_text(wxDC &dc)
 {
-    bool show_k_value = true;
-    if (m_info.material_name.empty()) {
+    // K/N is Bambu firmware's flow-dynamics calibration; agents with no printer-side
+    // records (OrcaSonar, Moonraker) must not show a synthesized value.
+    const bool k_supported = !m_obj || m_obj->supports_extrusion_cali();
+    const bool show_kn = m_show_kn && k_supported;
+    bool show_k_value = k_supported;
+    if (!k_supported || m_info.material_name.empty()) {
         show_k_value = false;
     }
     else if (m_info.cali_idx == -1 || (m_obj && (CalibUtils::get_selected_calib_idx(m_obj->pa_calib_tab, m_info.cali_idx) == -1))) {
@@ -1231,9 +1237,9 @@ void AMSLib::render_generic_text(wxDC &dc)
     }
 
     auto libsize = GetSize();
-    if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND
+    if (!m_info.is_empty && (m_info.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND
         || m_info.material_state == AMSCanType::AMS_CAN_TYPE_BRAND
-        || m_info.material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL) {
+        || m_info.material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL)) {
 
         if (m_info.material_name.empty() /*&&  m_info.material_state != AMSCanType::AMS_CAN_TYPE_VIRTUAL*/) {
             auto tsize = dc.GetMultiLineTextExtent("?");
@@ -1271,7 +1277,7 @@ void AMSLib::render_generic_text(wxDC &dc)
                 auto line_top_tsize = dc.GetMultiLineTextExtent(line_top);
                 auto line_bottom_tsize = dc.GetMultiLineTextExtent(line_bottom);
 
-                if (!m_show_kn) {
+                if (!show_kn) {
                     auto pot_top = wxPoint((libsize.x - line_top_tsize.x) / 2, (libsize.y - line_top_tsize.y) / 2 - line_top_tsize.y + FromDIP(6));
                     dc.DrawText(line_top, pot_top);
 
@@ -1302,7 +1308,7 @@ void AMSLib::render_generic_text(wxDC &dc)
 
         //draw k&n
         if (m_obj && show_k_value) {
-            if (m_show_kn) {
+            if (show_kn) {
                 wxString str_k = wxString::Format("K %1.3f", m_info.k);
                 wxString str_n = wxString::Format("N %1.3f", m_info.n);
                 dc.SetFont(::Label::Body_11);
@@ -1313,7 +1319,7 @@ void AMSLib::render_generic_text(wxDC &dc)
         }
     }
 
-    if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY) {
+    if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY || m_info.is_empty) {
         auto tsize = dc.GetMultiLineTextExtent(_L("Empty"));
         auto pot = wxPoint((libsize.x - tsize.x) / 2, (libsize.y - tsize.y) / 2 + FromDIP(3));
         dc.DrawText(_L("Empty"), pot);
@@ -2810,7 +2816,7 @@ void AMSPreview::doRender(wxDC &dc)
                 }
                 else {
                     wxRect rect(left, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, AMS_ITEM_CUBE_SIZE.x, AMS_ITEM_CUBE_SIZE.y);
-                    if (iter->material_state == AMSCanType::AMS_CAN_TYPE_EMPTY) {
+                    if (iter->material_state == AMSCanType::AMS_CAN_TYPE_EMPTY || iter->is_empty) {
                         dc.SetPen(wxPen(wxColor(0, 0, 0)));
                         dc.DrawLine(rect.GetRight() - FromDIP(1), rect.GetTop() + FromDIP(1), rect.GetLeft() + FromDIP(1), rect.GetBottom() - FromDIP(1));
                     }

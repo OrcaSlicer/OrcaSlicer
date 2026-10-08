@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -4377,6 +4377,9 @@ msgstr "정말 필라멘트 정보를 삭제하시겠습니까?"
 msgid "You need to select the material type and color first."
 msgstr "재료 유형과 색상을 먼저 선택해야 합니다."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "유효한 값을 입력하세요 (%.1f~%.1f 사이의 K)"
@@ -6264,7 +6267,7 @@ msgid "Size:"
 msgstr "크기:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "레이어 %d, Z = %.2lf mm에서 G-code 경로 충돌이 발견되었습니다. 충돌하는 객체를 더 멀리 분리하세요 (%s <-> %s)."
 
@@ -7143,6 +7146,22 @@ msgstr ".gcode.3mf 파일에는 G-code 데이터가 없습니다. OrcaSlicer에�
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "'%s' 파일이 손실되었습니다! 다시 다운로드하세요."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11312,6 +11331,12 @@ msgstr "타임랩스 취소 후 출력"
 # AI Translated
 msgid "Clean Up"
 msgstr "정리"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "출력 작업 준비 중"
@@ -27413,213 +27438,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "크기: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "기본 모델"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "빈 메시가 생성되었습니다"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "상자"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "빠른 선택:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "너비 (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "깊이 (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "높이 (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "하단 R"
-
-# AI Translated
-msgid "Top R"
-msgstr "상단 R"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "주 R"
-
-# AI Translated
-msgid "Minor R"
-msgstr "부 R"
-
-# AI Translated
-msgid "All edges"
-msgstr "모든 모서리"
-
-# AI Translated
-msgid "Top edges"
-msgstr "상단 모서리"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "하단 모서리"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "측면 모서리"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "메시 해상도"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "형상 추가"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "외곽 프로파일 없음"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "외곽 면을 만들지 못했습니다"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "구멍이 있는 면을 만들지 못했습니다"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "회전 실패"
-
-# AI Translated
-msgid "Profile"
-msgstr "프로파일"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "새 프로파일 시작(구멍용)"
-
-# AI Translated
-msgid "Segments"
-msgstr "세그먼트 수"
-
-# AI Translated
-msgid "Sides"
-msgstr "변 수"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "캔버스를 클릭하여 그리기"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "격자에 스냅"
-
-# AI Translated
-msgid "Grid step"
-msgstr "격자 간격"
-
-# AI Translated
-msgid "Outer"
-msgstr "외곽"
-
-# AI Translated
-msgid "closed"
-msgstr "닫힘"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: 점 %3%개 %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (위)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (앞)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (측면)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "회전 각도"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "돌출은 0, 회전은 0보다 큰 값으로 설정"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "포켓(잘라내기)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu개의 닫힌 프로파일"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "활성화하려면 닫힌 프로파일을 그리십시오"
-
-# AI Translated
-msgid "Clear all"
-msgstr "모두 지우기"
-
-# AI Translated
-msgid "Empty result"
-msgstr "결과가 비어 있음"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "돌출: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "회전: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "선택한 객체 없음"
-
-# AI Translated
-msgid "Face failed"
-msgstr "면 생성 실패"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "구멍이 있는 면 생성 실패"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "도구 메시가 비어 있음"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "포켓 추가됨(비우기 부품)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "포켓: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -31004,6 +30822,9 @@ msgstr "개발자 도구 사용"
 msgid "An error occurred loading %s"
 msgstr "%s 로드 중 오류가 발생했습니다"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -31685,6 +31506,208 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "기본 모델"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "빈 메시가 생성되었습니다"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "상자"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "빠른 선택:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "너비 (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "깊이 (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "높이 (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "하단 R"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "상단 R"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "주 R"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "부 R"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "모든 모서리"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "상단 모서리"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "하단 모서리"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "측면 모서리"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "메시 해상도"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "형상 추가"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "외곽 프로파일 없음"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "외곽 면을 만들지 못했습니다"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "구멍이 있는 면을 만들지 못했습니다"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "회전 실패"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "프로파일"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "새 프로파일 시작(구멍용)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "세그먼트 수"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "변 수"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "캔버스를 클릭하여 그리기"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "격자에 스냅"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "격자 간격"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "외곽"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "닫힘"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: 점 %3%개 %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (위)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (앞)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (측면)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "회전 각도"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "돌출은 0, 회전은 0보다 큰 값으로 설정"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "포켓(잘라내기)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu개의 닫힌 프로파일"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "활성화하려면 닫힌 프로파일을 그리십시오"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "모두 지우기"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "결과가 비어 있음"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "돌출: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "회전: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "선택한 객체 없음"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "면 생성 실패"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "구멍이 있는 면 생성 실패"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "도구 메시가 비어 있음"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "포켓 추가됨(비우기 부품)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "포켓: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32748,9 +32771,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "로드 중 오류가 발생했습니다: "
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

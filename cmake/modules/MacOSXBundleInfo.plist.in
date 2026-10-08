@@ -131,6 +131,13 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>OrcaSlicer uses your local network to discover and connect to printers.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_octoprint._tcp</string>
+		<string>_http._tcp</string>
+	</array>
 	<key>NSAppTransportSecurity</key>  
 	<dict>
 		<!-- Disable App Transport Security. Resolves https://github.com/OrcaSlicer/OrcaSlicer/issues/791 -->

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -4438,6 +4438,9 @@ msgstr "Czy na pewno usunąć informacje o filamentach?"
 msgid "You need to select the material type and color first."
 msgstr "Najpierw należy wybrać rodzaj i kolor filamentu."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Proszę podać prawidłową wartość (K w zakresie %.1f~%.1f)"
@@ -6338,7 +6341,7 @@ msgstr "Objętość:"
 msgid "Size:"
 msgstr "Rozmiar:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Wykryto konflikty ścieżek G-code na warstwie %d, Z = %.2lfmm. Proszę oddalić od siebie obiekty będące w konflikcie (%s <-> %s)."
 
@@ -7234,6 +7237,22 @@ msgstr "Plik .gcode.3mf nie zawiera danych G-code. Proszę poddać go obróbce w
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Plik „%s” został utracony! Proszę pobrać go ponownie."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11412,6 +11431,12 @@ msgstr "Anuluj timelapse i drukuj"
 # AI Translated
 msgid "Clean Up"
 msgstr "Wyczyść"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Przygotowywanie zadania do druku"
@@ -27481,215 +27506,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Rozmiar: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Prymityw"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Wygenerowano pustą siatkę"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Prostopadłościan"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Szybki wybór:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Szerokość (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Głębokość (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Wysokość (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "R dolny"
-
-# AI Translated
-msgid "Top R"
-msgstr "R górny"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "R większy"
-
-# AI Translated
-msgid "Minor R"
-msgstr "R mniejszy"
-
-# AI Translated
-msgid "All edges"
-msgstr "Wszystkie krawędzie"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Górne krawędzie"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Dolne krawędzie"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Boczne krawędzie"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Rozdzielczość siatki"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Dodaj kształt"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Brak profilu zewnętrznego"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Nie udało się utworzyć powierzchni zewnętrznej"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Nie udało się zbudować powierzchni z otworami"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "Obrót nie powiódł się"
-
-# AI Translated
-msgid "Profile"
-msgstr "Profil"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Rozpocznij nowy profil (dla otworów)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Segmenty"
-
-# AI Translated
-msgid "Sides"
-msgstr "Boki"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Kliknij w widoku, aby rysować"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Przyciągaj do siatki"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Krok siatki"
-
-# AI Translated
-msgid "Outer"
-msgstr "Zewnętrzny"
-
-# AI Translated
-msgid "closed"
-msgstr "zamknięty"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% pkt %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (góra)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (przód)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (bok)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Obrót (°)"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "Ustaw 0 dla wyciągnięcia, >0 dla obrotu"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Kieszeń (wycięcie)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu zamknięty profil"
-msgstr[1] "%zu zamknięte profile"
-msgstr[2] "%zu zamkniętych profili"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Narysuj zamknięty profil, aby włączyć"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Wyczyść wszystko"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Pusty wynik"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Wyciągnięcie: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Obrót: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Nie wybrano obiektu"
-
-# AI Translated
-msgid "Face failed"
-msgstr "Nie udało się utworzyć powierzchni"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "Nie udało się utworzyć powierzchni z otworami"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "Siatka narzędzia jest pusta"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Dodano kieszeń (objętość ujemna)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Kieszeń: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30988,6 +30804,9 @@ msgstr "Włącz narzędzia deweloperskie"
 msgid "An error occurred loading %s"
 msgstr "Wystąpił błąd podczas ładowania %s"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -31666,6 +31485,210 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Prymityw"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Wygenerowano pustą siatkę"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Prostopadłościan"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Szybki wybór:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Szerokość (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Głębokość (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Wysokość (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "R dolny"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "R górny"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "R większy"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "R mniejszy"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Wszystkie krawędzie"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Górne krawędzie"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Dolne krawędzie"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Boczne krawędzie"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Rozdzielczość siatki"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Dodaj kształt"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Brak profilu zewnętrznego"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Nie udało się utworzyć powierzchni zewnętrznej"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Nie udało się zbudować powierzchni z otworami"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "Obrót nie powiódł się"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Profil"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Rozpocznij nowy profil (dla otworów)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Segmenty"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Boki"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Kliknij w widoku, aby rysować"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Przyciągaj do siatki"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Krok siatki"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Zewnętrzny"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "zamknięty"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% pkt %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (góra)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (przód)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (bok)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Obrót (°)"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "Ustaw 0 dla wyciągnięcia, >0 dla obrotu"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Kieszeń (wycięcie)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu zamknięty profil"
+#~ msgstr[1] "%zu zamknięte profile"
+#~ msgstr[2] "%zu zamkniętych profili"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Narysuj zamknięty profil, aby włączyć"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Wyczyść wszystko"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Pusty wynik"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Wyciągnięcie: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Obrót: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Nie wybrano obiektu"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "Nie udało się utworzyć powierzchni"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "Nie udało się utworzyć powierzchni z otworami"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "Siatka narzędzia jest pusta"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Dodano kieszeń (objętość ujemna)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Kieszeń: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32697,9 +32720,6 @@ msgstr ""
 
 #~ msgid "An error occurred loading "
 #~ msgstr "Wystąpił błąd podczas ładowania"
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

@@ -221,24 +221,38 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
         SetSelecting(false);
     });
 
-    auto onShowHide = [this](auto &e) {
-        e.Skip();
-        if (auto w = dynamic_cast<wxWindow *>(e.GetEventObject()); !w || w->IsBeingDeleted())
-            return;
-        CallAfter([this] {
-            auto fs = m_image_grid ? m_image_grid->GetFileSystem() : nullptr;
-            if (fs) IsShownOnScreen() ? fs->Start() : fs->Stop();
-        });
-    };
-    Bind(wxEVT_SHOW, onShowHide);
-    parent->GetParent()->Bind(wxEVT_SHOW, onShowHide);
+    Bind(wxEVT_SHOW, &MediaFilePanel::on_show_hide, this);
+    // A Device sub-tab switch hides the page container (StoragePanel); a main tab
+    // switch hides MonitorPanel inside LazyPage. Neither event reaches the other,
+    // so watch every ancestor below the top-level frame.
+    for (wxWindow* w = GetParent(); w && !w->IsTopLevel(); w = w->GetParent()) {
+        w->Bind(wxEVT_SHOW, &MediaFilePanel::on_show_hide, this);
+        m_show_hosts.push_back(w);
+    }
 
     m_lan_user = "bblp";
 }
 
 MediaFilePanel::~MediaFilePanel()
 {
+    Unbind(wxEVT_SHOW, &MediaFilePanel::on_show_hide, this);
+    for (wxWindow* w : m_show_hosts)
+        if (w && !w->IsBeingDeleted())
+            w->Unbind(wxEVT_SHOW, &MediaFilePanel::on_show_hide, this);
+    m_show_hosts.clear();
+
     UpdateByObj(nullptr);
+}
+
+void MediaFilePanel::on_show_hide(wxShowEvent& e)
+{
+    e.Skip();
+    if (auto w = dynamic_cast<wxWindow*>(e.GetEventObject()); !w || w->IsBeingDeleted())
+        return;
+    CallAfter([this] {
+        auto fs = m_image_grid ? m_image_grid->GetFileSystem() : nullptr;
+        if (fs) IsShownOnScreen() ? fs->Start() : fs->Stop();
+    });
 }
 
 void MediaFilePanel::UpdateByObj(MachineObject* obj)

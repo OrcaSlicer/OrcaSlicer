@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4357,6 +4357,9 @@ msgstr "Biztosan törölni szeretnéd a filament adatait?"
 msgid "You need to select the material type and color first."
 msgstr "Először ki kell választanod az anyagtípust és a színt."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
 msgstr "Adj meg érvényes értéket (K tartomány: %.1f~%.1f)"
@@ -6233,7 +6236,7 @@ msgid "Size:"
 msgstr "Méret:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-code útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -7118,6 +7121,22 @@ msgstr "A .gcode.3mf fájl nem tartalmaz G-code adatot. Szeleteld újra Orca Sli
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "A(z) '%s' fájl elveszett! Kérlek, töltsd le újra."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -11178,6 +11197,12 @@ msgstr "Timelapse megszakítása és nyomtatás"
 # AI Translated
 msgid "Clean Up"
 msgstr "Tisztítás"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Nyomtatási feladat előkészítése"
@@ -27001,214 +27026,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Méret: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Primitív"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Üres háló jött létre"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Téglatest"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Gyors:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Szélesség (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Mélység (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Magasság (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "Alsó R"
-
-# AI Translated
-msgid "Top R"
-msgstr "Felső R"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "Fő R"
-
-# AI Translated
-msgid "Minor R"
-msgstr "Cső R"
-
-# AI Translated
-msgid "All edges"
-msgstr "Minden él"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Felső élek"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Alsó élek"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Oldalélek"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Hálófelbontás"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Alakzat hozzáadása"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Nincs külső profil"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Nem sikerült létrehozni a külső lapot"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Nem sikerült létrehozni a lyukas lapot"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "A körbeforgatás sikertelen"
-
-# AI Translated
-msgid "Profile"
-msgstr "Profil"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Új profil kezdése (lyukakhoz)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Szakaszok"
-
-# AI Translated
-msgid "Sides"
-msgstr "Oldalak"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Kattints a vászonra a rajzoláshoz"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Rácshoz illesztés"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Rács lépésköze"
-
-# AI Translated
-msgid "Outer"
-msgstr "Külső"
-
-# AI Translated
-msgid "closed"
-msgstr "zárt"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% pont %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (felülnézet)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (elölnézet)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (oldalnézet)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Körbeforgatás (°)"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "0: extrudálás, >0: körbeforgatás"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Zseb (vágás)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu zárt profil"
-msgstr[1] "%zu zárt profil"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Az engedélyezéshez rajzolj egy zárt profilt"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Összes törlése"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Üres eredmény"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Extrudálás: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Körbeforgatás: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Nincs kijelölt objektum"
-
-# AI Translated
-msgid "Face failed"
-msgstr "A lap létrehozása sikertelen"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "A lyukas lap létrehozása sikertelen"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "A szerszámháló üres"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Zseb hozzáadva (negatív térfogat)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Zseb: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30601,6 +30418,10 @@ msgid "An error occurred loading %s"
 msgstr "Hiba történt a(z) %s betöltésekor"
 
 # AI Translated
+msgid "/"
+msgstr "/"
+
+# AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
 msgstr "%1% betöltése ide: %2%"
@@ -31280,6 +31101,209 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Primitív"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Üres háló jött létre"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Téglatest"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Gyors:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Szélesség (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Mélység (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Magasság (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "Alsó R"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "Felső R"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "Fő R"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "Cső R"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Minden él"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Felső élek"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Alsó élek"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Oldalélek"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Hálófelbontás"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Alakzat hozzáadása"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Nincs külső profil"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Nem sikerült létrehozni a külső lapot"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Nem sikerült létrehozni a lyukas lapot"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "A körbeforgatás sikertelen"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Profil"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Új profil kezdése (lyukakhoz)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Szakaszok"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Oldalak"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Kattints a vászonra a rajzoláshoz"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Rácshoz illesztés"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Rács lépésköze"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Külső"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "zárt"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% pont %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (felülnézet)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (elölnézet)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (oldalnézet)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Körbeforgatás (°)"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "0: extrudálás, >0: körbeforgatás"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Zseb (vágás)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu zárt profil"
+#~ msgstr[1] "%zu zárt profil"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Az engedélyezéshez rajzolj egy zárt profilt"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Összes törlése"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Üres eredmény"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Extrudálás: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Körbeforgatás: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Nincs kijelölt objektum"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "A lap létrehozása sikertelen"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "A lyukas lap létrehozása sikertelen"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "A szerszámháló üres"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Zseb hozzáadva (negatív térfogat)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Zseb: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -32335,10 +32359,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "Hiba történt a betöltés során: "
-
-# AI Translated
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

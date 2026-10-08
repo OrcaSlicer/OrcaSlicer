@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4719,6 +4719,9 @@ msgstr "Weet u zeker dat u de filamentinformatie wilt wissen?"
 msgid "You need to select the material type and color first."
 msgstr "U moet eerst het materiaaltype en de kleur selecteren."
 
+msgid "The minimum temperature cannot be greater than the maximum temperature."
+msgstr ""
+
 # AI Translated
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
@@ -6743,7 +6746,7 @@ msgid "Size:"
 msgstr "Maat:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Er zijn conflicten tussen G-code-paden gevonden op laag %d, Z = %.2lfmm. Plaats de conflicterende objecten verder uit elkaar (%s <-> %s)."
 
@@ -7682,6 +7685,22 @@ msgstr "Het .gcode.3mf-bestand bevat geen G-code-gegevens. Slice het met Orca Sl
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
 msgstr "Bestand '%s' is verloren gegaan! Download het opnieuw."
+
+msgid "gcodes"
+msgstr ""
+
+msgid "Failed to delete the file from printer."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to print the file '%s' from printer?"
+msgstr ""
+
+msgid "Print file"
+msgstr ""
+
+msgid "Failed to start the print job."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -12027,6 +12046,12 @@ msgstr "Timelapse annuleren en printen"
 # AI Translated
 msgid "Clean Up"
 msgstr "Opruimen"
+
+msgid "AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."
+msgstr ""
+
+msgid "A filament used by this print has no AMS mapping. Assign it before printing."
+msgstr ""
 
 msgid "Preparing print job"
 msgstr "Print opdracht voorbereiden"
@@ -28929,214 +28954,6 @@ msgid "Size: %.1f × %.1f mm"
 msgstr "Grootte: %.1f × %.1f mm"
 
 # AI Translated
-msgid "Primitive"
-msgstr "Primitief"
-
-# AI Translated
-msgid "Empty mesh generated"
-msgstr "Lege mesh gegenereerd"
-
-# AI Translated
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr "Blok"
-
-# AI Translated
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr "Snel:"
-
-# AI Translated
-msgid "Width (X)"
-msgstr "Breedte (X)"
-
-# AI Translated
-msgid "Depth (Y)"
-msgstr "Diepte (Y)"
-
-# AI Translated
-msgid "Height (Z)"
-msgstr "Hoogte (Z)"
-
-# AI Translated
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr "R onder"
-
-# AI Translated
-msgid "Top R"
-msgstr "R boven"
-
-# AI Translated
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr "Grote R"
-
-# AI Translated
-msgid "Minor R"
-msgstr "Kleine R"
-
-# AI Translated
-msgid "All edges"
-msgstr "Alle randen"
-
-# AI Translated
-msgid "Top edges"
-msgstr "Bovenranden"
-
-# AI Translated
-msgid "Bottom edges"
-msgstr "Onderranden"
-
-# AI Translated
-msgid "Lateral edges"
-msgstr "Zijranden"
-
-# AI Translated
-msgid "Mesh resolution"
-msgstr "Meshresolutie"
-
-# AI Translated
-msgid "Add Shape"
-msgstr "Vorm toevoegen"
-
-# AI Translated
-msgid "No outer profile"
-msgstr "Geen buitenprofiel"
-
-# AI Translated
-msgid "Failed to make outer face"
-msgstr "Kan het buitenvlak niet maken"
-
-# AI Translated
-msgid "Failed to build face with holes"
-msgstr "Kan het vlak met gaten niet opbouwen"
-
-# AI Translated
-msgid "Revolve failed"
-msgstr "Wentelen mislukt"
-
-# AI Translated
-msgid "Profile"
-msgstr "Profiel"
-
-# AI Translated
-msgid "Start new profile (for holes)"
-msgstr "Nieuw profiel beginnen (voor gaten)"
-
-# AI Translated
-msgid "Segments"
-msgstr "Segmenten"
-
-# AI Translated
-msgid "Sides"
-msgstr "Zijden"
-
-# AI Translated
-msgid "Click on canvas to draw"
-msgstr "Klik op het canvas om te tekenen"
-
-# AI Translated
-msgid "Snap to grid"
-msgstr "Uitlijnen op raster"
-
-# AI Translated
-msgid "Grid step"
-msgstr "Rasterstap"
-
-# AI Translated
-msgid "Outer"
-msgstr "Buiten"
-
-# AI Translated
-msgid "closed"
-msgstr "gesloten"
-
-# AI Translated
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr "%1% %2%: %3% punten %4%"
-
-# AI Translated
-msgid "XY (Top)"
-msgstr "XY (boven)"
-
-# AI Translated
-msgid "XZ (Front)"
-msgstr "XZ (voor)"
-
-# AI Translated
-msgid "YZ (Side)"
-msgstr "YZ (zijkant)"
-
-# AI Translated
-msgid "Revolve deg"
-msgstr "Wentelhoek (°)"
-
-# AI Translated
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr "Zet op 0 om te extruderen, >0 om te wentelen"
-
-# AI Translated
-msgid "Pocket (cut)"
-msgstr "Uitsparing (snijden)"
-
-# AI Translated
-#, c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] "%zu gesloten profiel"
-msgstr[1] "%zu gesloten profielen"
-
-# AI Translated
-msgid "Draw a closed profile to enable"
-msgstr "Teken een gesloten profiel om dit in te schakelen"
-
-# AI Translated
-msgid "Clear all"
-msgstr "Alles wissen"
-
-# AI Translated
-msgid "Empty result"
-msgstr "Leeg resultaat"
-
-# AI Translated
-#, boost-format
-msgid "Extrude: %1%"
-msgstr "Extruderen: %1%"
-
-# AI Translated
-#, boost-format
-msgid "Revolve: %1%"
-msgstr "Wentelen: %1%"
-
-# AI Translated
-msgid "No object selected"
-msgstr "Geen object geselecteerd"
-
-# AI Translated
-msgid "Face failed"
-msgstr "Vlak mislukt"
-
-# AI Translated
-msgid "Face with holes failed"
-msgstr "Vlak met gaten mislukt"
-
-# AI Translated
-msgid "Tool mesh empty"
-msgstr "Gereedschapsmesh leeg"
-
-# AI Translated
-msgid "Pocket added (negative volume)"
-msgstr "Uitsparing toegevoegd (negatief volume)"
-
-# AI Translated
-#, boost-format
-msgid "Pocket: %1%"
-msgstr "Uitsparing: %1%"
-
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -32534,6 +32351,9 @@ msgstr "Ontwikkelaarstools inschakelen"
 msgid "An error occurred loading %s"
 msgstr "Er is een fout opgetreden bij het laden van %s"
 
+msgid "/"
+msgstr "/"
+
 # AI Translated
 #, boost-format
 msgid "Load %1% to %2%"
@@ -33213,6 +33033,209 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "Primitive"
+#~ msgstr "Primitief"
+
+# AI Translated
+#~ msgid "Empty mesh generated"
+#~ msgstr "Lege mesh gegenereerd"
+
+# AI Translated
+#~ msgid "Box"
+#~ msgstr "Blok"
+
+# AI Translated
+#~ msgid "Quick:"
+#~ msgstr "Snel:"
+
+# AI Translated
+#~ msgid "Width (X)"
+#~ msgstr "Breedte (X)"
+
+# AI Translated
+#~ msgid "Depth (Y)"
+#~ msgstr "Diepte (Y)"
+
+# AI Translated
+#~ msgid "Height (Z)"
+#~ msgstr "Hoogte (Z)"
+
+# AI Translated
+#~ msgid "Bottom R"
+#~ msgstr "R onder"
+
+# AI Translated
+#~ msgid "Top R"
+#~ msgstr "R boven"
+
+# AI Translated
+#~ msgid "Major R"
+#~ msgstr "Grote R"
+
+# AI Translated
+#~ msgid "Minor R"
+#~ msgstr "Kleine R"
+
+# AI Translated
+#~ msgid "All edges"
+#~ msgstr "Alle randen"
+
+# AI Translated
+#~ msgid "Top edges"
+#~ msgstr "Bovenranden"
+
+# AI Translated
+#~ msgid "Bottom edges"
+#~ msgstr "Onderranden"
+
+# AI Translated
+#~ msgid "Lateral edges"
+#~ msgstr "Zijranden"
+
+# AI Translated
+#~ msgid "Mesh resolution"
+#~ msgstr "Meshresolutie"
+
+# AI Translated
+#~ msgid "Add Shape"
+#~ msgstr "Vorm toevoegen"
+
+# AI Translated
+#~ msgid "No outer profile"
+#~ msgstr "Geen buitenprofiel"
+
+# AI Translated
+#~ msgid "Failed to make outer face"
+#~ msgstr "Kan het buitenvlak niet maken"
+
+# AI Translated
+#~ msgid "Failed to build face with holes"
+#~ msgstr "Kan het vlak met gaten niet opbouwen"
+
+# AI Translated
+#~ msgid "Revolve failed"
+#~ msgstr "Wentelen mislukt"
+
+# AI Translated
+#~ msgid "Profile"
+#~ msgstr "Profiel"
+
+# AI Translated
+#~ msgid "Start new profile (for holes)"
+#~ msgstr "Nieuw profiel beginnen (voor gaten)"
+
+# AI Translated
+#~ msgid "Segments"
+#~ msgstr "Segmenten"
+
+# AI Translated
+#~ msgid "Sides"
+#~ msgstr "Zijden"
+
+# AI Translated
+#~ msgid "Click on canvas to draw"
+#~ msgstr "Klik op het canvas om te tekenen"
+
+# AI Translated
+#~ msgid "Snap to grid"
+#~ msgstr "Uitlijnen op raster"
+
+# AI Translated
+#~ msgid "Grid step"
+#~ msgstr "Rasterstap"
+
+# AI Translated
+#~ msgid "Outer"
+#~ msgstr "Buiten"
+
+# AI Translated
+#~ msgid "closed"
+#~ msgstr "gesloten"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% %2%: %3% points %4%"
+#~ msgstr "%1% %2%: %3% punten %4%"
+
+# AI Translated
+#~ msgid "XY (Top)"
+#~ msgstr "XY (boven)"
+
+# AI Translated
+#~ msgid "XZ (Front)"
+#~ msgstr "XZ (voor)"
+
+# AI Translated
+#~ msgid "YZ (Side)"
+#~ msgstr "YZ (zijkant)"
+
+# AI Translated
+#~ msgid "Revolve deg"
+#~ msgstr "Wentelhoek (°)"
+
+# AI Translated
+#~ msgid "Set to 0 for extrude, >0 for revolve"
+#~ msgstr "Zet op 0 om te extruderen, >0 om te wentelen"
+
+# AI Translated
+#~ msgid "Pocket (cut)"
+#~ msgstr "Uitsparing (snijden)"
+
+# AI Translated
+#, c-format
+#~ msgid "%zu closed profile"
+#~ msgid_plural "%zu closed profiles"
+#~ msgstr[0] "%zu gesloten profiel"
+#~ msgstr[1] "%zu gesloten profielen"
+
+# AI Translated
+#~ msgid "Draw a closed profile to enable"
+#~ msgstr "Teken een gesloten profiel om dit in te schakelen"
+
+# AI Translated
+#~ msgid "Clear all"
+#~ msgstr "Alles wissen"
+
+# AI Translated
+#~ msgid "Empty result"
+#~ msgstr "Leeg resultaat"
+
+# AI Translated
+#, boost-format
+#~ msgid "Extrude: %1%"
+#~ msgstr "Extruderen: %1%"
+
+# AI Translated
+#, boost-format
+#~ msgid "Revolve: %1%"
+#~ msgstr "Wentelen: %1%"
+
+# AI Translated
+#~ msgid "No object selected"
+#~ msgstr "Geen object geselecteerd"
+
+# AI Translated
+#~ msgid "Face failed"
+#~ msgstr "Vlak mislukt"
+
+# AI Translated
+#~ msgid "Face with holes failed"
+#~ msgstr "Vlak met gaten mislukt"
+
+# AI Translated
+#~ msgid "Tool mesh empty"
+#~ msgstr "Gereedschapsmesh leeg"
+
+# AI Translated
+#~ msgid "Pocket added (negative volume)"
+#~ msgstr "Uitsparing toegevoegd (negatief volume)"
+
+# AI Translated
+#, boost-format
+#~ msgid "Pocket: %1%"
+#~ msgstr "Uitsparing: %1%"
 
 # AI Translated
 #~ msgid "(Experimental) Use printer agents instead of print hosts"
@@ -34332,9 +34355,6 @@ msgstr ""
 # AI Translated
 #~ msgid "An error occurred loading "
 #~ msgstr "Er is een fout opgetreden bij het laden van "
-
-#~ msgid "/"
-#~ msgstr "/"
 
 # AI Translated
 #, c-format, boost-format

@@ -23,6 +23,7 @@
 
 #include "Widgets/StateColor.hpp"
 #include "wxExtensions.hpp"
+#include "Printer/IFileGridModel.h"
 
 class Button;
 class Label;
@@ -43,6 +44,8 @@ public:
     ImageGrid(wxWindow * parent);
 
     void SetFileSystem(boost::shared_ptr<PrinterFileSystem> file_sys);
+
+    void SetModel(boost::shared_ptr<IFileGridModel> model);
 
     void SetStatus(ScalableBitmap const & icon, wxString const &msg);
 
@@ -76,9 +79,12 @@ protected:
 
     std::pair<int, size_t> HitTest(wxPoint const &pt);
 
+    // True when the hover bar shows a second action next to Delete.
+    bool hasSecondAction(const FileGridCard &card) const;
+
 protected:
 
-    void changedEvent(wxCommandEvent& evt);
+    void onModelChange(FileGridChange change);
 
     void paintEvent(wxPaintEvent& evt);
 
@@ -117,6 +123,7 @@ protected:
 
 private:
     boost::shared_ptr<PrinterFileSystem> m_file_sys;
+    boost::shared_ptr<IFileGridModel>     m_model;
     ScalableBitmap m_status_icon;
     wxString m_status_msg;
 
