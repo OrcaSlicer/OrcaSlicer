@@ -1057,6 +1057,25 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
         }
 
+        // Tool selection is printer-specific G-code. Moonraker forwards the
+        // conventional T<index> command to Klipper, where the printer can
+        // implement logical selection or a physical toolhead attach macro.
+        if (cmd == "select_extruder") {
+            if (!json["print"].contains("extruder_index") || !json["print"]["extruder_index"].is_number_integer()) {
+                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: select_extruder missing integer extruder_index, full json: " << json_str;
+                return BAMBU_NETWORK_ERR_INVALID_RESULT;
+            }
+
+            const int extruder_idx = json["print"]["extruder_index"].get<int>();
+            if (extruder_idx < 0) {
+                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: select_extruder received negative extruder_index: " << extruder_idx;
+                return BAMBU_NETWORK_ERR_INVALID_RESULT;
+            }
+
+            send_gcode_async(dev_id, "T" + std::to_string(extruder_idx));
+            return BAMBU_NETWORK_SUCCESS;
+        }
+
         if (cmd == "home") {
             send_gcode_async(dev_id, "G28");
             return BAMBU_NETWORK_SUCCESS;
@@ -1153,7 +1172,7 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
                                                  nlohmann::json&    status,
                                                  std::string&       error) const
 {
-    std::string url = join_url(base_url, "/printer/objects/query?print_stats&virtual_sdcard&extruder&heater_bed&fan");
+    std::string url = join_url(base_url, "/printer/objects/query?print_stats&virtual_sdcard&toolhead&extruder&heater_bed&fan");
 
     std::string response_body;
     bool        success = false;
@@ -1566,11 +1585,12 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                 }
 
                 for (const auto& name : this->available_objects) {
-                    if (name == "extruder" || name.rfind("extruder", 0) == 0) {
+                    const bool is_main_extruder = name == "extruder";
+                    const bool is_additional_extruder =
+                        name.rfind("extruder", 0) == 0 && name.size() > 8 &&
+                        std::all_of(name.begin() + 8, name.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
+                    if (is_main_extruder || is_additional_extruder) {
                         subscribe_objects.insert(name);
-                        if (name == "extruder") {
-                            break;
-                        }
                     }
                 }
             } else {
@@ -1864,6 +1884,81 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         if (extruder->contains("target") && (*extruder)["target"].is_number()) {
             payload["print"]["nozzle_target_temper"] = (*extruder)["target"].get<float>();
         }
+    }
+
+    // MachineObject::parse_new_info() only parses device.extruder when the four
+    // legacy new-protocol fields are present. Moonraker has no equivalents, so
+    // empty values act as compatibility markers without enabling any features.
+    std::map<int, const nlohmann::json*> extruder_status;
+    for (const auto& item : status_cache.items()) {
+        int extruder_id = -1;
+        if (item.key() == "extruder") {
+            extruder_id = 0;
+        } else if (item.key().rfind("extruder", 0) == 0 && item.key().size() > 8 &&
+                   std::all_of(item.key().begin() + 8, item.key().end(), [](unsigned char c) { return std::isdigit(c) != 0; })) {
+            try {
+                extruder_id = std::stoi(item.key().substr(8));
+            } catch (...) {
+                extruder_id = -1;
+            }
+        }
+        if (extruder_id >= 0 && item.value().is_object()) {
+            extruder_status.emplace(extruder_id, &item.value());
+        }
+    }
+
+    if (!extruder_status.empty()) {
+        auto& device_extruder = payload["print"]["device"]["extruder"];
+
+        int current_extruder_id = 0;
+        if (status_cache.contains("toolhead") && status_cache["toolhead"].is_object() &&
+            status_cache["toolhead"].contains("extruder") && status_cache["toolhead"]["extruder"].is_string()) {
+            const std::string active_extruder = status_cache["toolhead"]["extruder"].get<std::string>();
+            if (active_extruder != "extruder" && active_extruder.rfind("extruder", 0) == 0 && active_extruder.size() > 8 &&
+                std::all_of(active_extruder.begin() + 8, active_extruder.end(), [](unsigned char c) { return std::isdigit(c) != 0; })) {
+                try {
+                    const int parsed_id = std::stoi(active_extruder.substr(8));
+                    if (parsed_id >= 0 && parsed_id < 16 && extruder_status.count(parsed_id) != 0) {
+                        current_extruder_id = parsed_id;
+                    }
+                } catch (...) {
+                    // Keep the main extruder as the fallback for malformed status data.
+                }
+            }
+        }
+
+        const int extruder_count = std::min<int>(static_cast<int>(extruder_status.size()), 0xF);
+        device_extruder["state"] = extruder_count | (current_extruder_id << 4);
+        device_extruder["info"] = nlohmann::json::array();
+
+        auto encoded_temperature = [](const nlohmann::json& status, const char* key) {
+            if (!status.contains(key) || !status[key].is_number()) {
+                return 0;
+            }
+            const double temperature = status[key].get<double>();
+            return std::clamp(static_cast<int>(temperature + 0.5), 0, 65535);
+        };
+
+        for (const auto& [extruder_id, status] : extruder_status) {
+            const int current_temperature = encoded_temperature(*status, "temperature");
+            const int target_temperature  = encoded_temperature(*status, "target");
+            device_extruder["info"].push_back({
+                {"id", extruder_id},
+                {"filam_bak", nlohmann::json::array()},
+                {"info", 1 << 3}, // The configured Moonraker extruder has a toolhead.
+                {"temp", current_temperature | (target_temperature << 16)},
+                {"spre", 0},
+                {"snow", 0},
+                {"star", 0},
+                {"stat", 0},
+                {"hnow", 0},
+            });
+        }
+
+        payload["print"]["cfg"]  = "";
+        payload["print"]["fun"]  = "";
+        payload["print"]["aux"]  = "";
+        payload["print"]["stat"] = "";
     }
 
     if (status_cache.contains("heater_bed") && status_cache["heater_bed"].is_object()) {

@@ -349,7 +349,7 @@ public:
     DevAmsTray* GetAmsTray(const std::string& ams_id, const std::string& tray_id) const;
     void        CollectAmsColors(std::vector<wxColour>& ams_colors) const;
 
-    // Map a linear tray index -> {ams_id, slot_id}. Includes the two virtual (external-spool) trays,
+    // Map a linear tray index -> {ams_id, slot_id}. Includes virtual external-spool trays,
     // N3S single-slot units, and the A2L/N9 AMS-Lite-mixed layout (trays 24-27).
     std::map<int, DevAmsSlotId> GetTrayIndexMap();
 

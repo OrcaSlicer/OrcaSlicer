@@ -3,6 +3,8 @@
 // makes std::byte a competing candidate (otherwise the Windows COM headers pulled in via
 // DeviceManager.hpp error with an ambiguous `byte`). wx/timer.h must precede DeviceManager.hpp,
 // which includes DeviceErrorDialog.hpp (uses wxTimerEvent) before its own wx/timer.h include.
+#include <string>
+#include <utility>
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
@@ -17,6 +19,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "libslic3r/ProjectTask.hpp"
 #include <vector>
+#include <set>
 #include <catch2/catch_message.hpp>
 
 #include <catch2/catch_all.hpp>
@@ -63,6 +66,162 @@ TEST_CASE("AMS tray placeholder state follows the latest status", "[DevFilaSyste
     DevFilaSystemParser::ParseV1_0(loaded_slot, &obj, obj.GetFilaSystem().get(), false);
 
     CHECK_FALSE(tray->is_slot_placeholder);
+}
+
+TEST_CASE("Agent filament slots preserve every extruder and AMS binding", "[DevFilaSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    const json filament = json::parse(R"({
+        "units": [
+            { "id": "0", "extruder": 0, "slots": [
+                { "index": 0, "loaded": true, "material": "PLA", "color": "FF5733FF" },
+                { "index": 1, "loaded": true, "material": "PLA", "color": "33C1FFFF" },
+                { "index": 2, "loaded": true, "material": "PLA", "color": "8D33FFFF" },
+                { "index": 3, "loaded": false, "material": "",    "color": "00000000" }
+            ] },
+            { "id": "1", "extruder": 1, "slots": [
+                { "index": 0, "loaded": true, "material": "ASA", "color": "33C1FFFF" },
+                { "index": 1, "loaded": true, "material": "ASA", "color": "8D33FFFF" },
+                { "index": 2, "loaded": true, "material": "ASA", "color": "FF5733FF" },
+                { "index": 3, "loaded": false, "material": "",    "color": "00000000" }
+            ] },
+            { "id": "2", "extruder": 2, "slots": [
+                { "index": 0, "loaded": true, "material": "ABS", "color": "8D33FFFF" },
+                { "index": 1, "loaded": true, "material": "ABS", "color": "FF5733FF" },
+                { "index": 2, "loaded": true, "material": "ABS", "color": "33C1FFFF" },
+                { "index": 3, "loaded": false, "material": "",    "color": "00000000" }
+            ] },
+            { "id": "3", "extruder": 3, "slots": [
+                { "index": 0, "loaded": true, "material": "PETG", "color": "FF5733FF" },
+                { "index": 1, "loaded": true, "material": "PETG", "color": "33C1FFFF" },
+                { "index": 2, "loaded": true, "material": "PETG", "color": "8D33FFFF" },
+                { "index": 3, "loaded": false, "material": "",    "color": "00000000" }
+            ] }
+        ],
+        "external": [
+            { "extruder": 3, "loaded": true, "material": "PETG", "preset_id": "P3" },
+            { "extruder": 0, "loaded": true, "material": "PLA",  "preset_id": "P0" },
+            { "extruder": 2, "loaded": false, "material": "ABS", "preset_id": "P2" },
+            { "extruder": 1, "loaded": true, "material": "ASA",  "preset_id": "P1" }
+        ]
+    })");
+
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+
+    REQUIRE(obj.vt_slot.size() == 4);
+    CHECK(obj.vt_slot[0].id == "255");
+    CHECK(obj.vt_slot[1].id == "254");
+    CHECK(obj.vt_slot[2].id == "253");
+    CHECK(obj.vt_slot[3].id == "252");
+    CHECK(obj.vt_slot[0].setting_id == "P0");
+    CHECK(obj.vt_slot[1].setting_id == "P1");
+    CHECK(obj.vt_slot[2].setting_id == "P2");
+    CHECK(obj.vt_slot[3].setting_id == "P3");
+
+    REQUIRE(obj.GetFilaSystem()->GetAmsCount() == 4);
+    for (int extruder = 0; extruder < 4; ++extruder) {
+        const auto& ams = obj.GetFilaSystem()->GetAmsList().at(std::to_string(extruder));
+        CHECK(ams->GetExtruderId() == extruder);
+        CHECK(ams->GetBindedExtruderSet() == std::set<int>{extruder});
+        REQUIRE(ams->GetTrays().size() == 4);
+        CHECK(ams->GetTrays().at("0")->color != ams->GetTrays().at("1")->color);
+        CHECK(ams->GetTrays().at("1")->color != ams->GetTrays().at("2")->color);
+        CHECK_FALSE(ams->GetTrays().at("3")->is_exists);
+    }
+
+    CHECK(obj.contains_tray("253", "0"));
+    CHECK(obj.get_tray("253", "0").setting_id == "P2");
+    CHECK(obj.GetFilaSystem()->GetExtruderIdByAmsId("253") == 2);
+
+    const auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+    REQUIRE(tray_index_map.count(252) == 1);
+    CHECK(tray_index_map.at(252).first == 252);
+    CHECK(tray_index_map.at(252).second == 0);
+}
+
+TEST_CASE("Generic AMS tray index map uses cumulative lane counts", "[DevMapping]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // A well-formed generic payload pairs "units" with "external". An empty external array resets
+    // vt_slot, clearing the default virtual tray (255) MachineObject's constructor seeds; otherwise
+    // that phantom external tray lands in GetTrayIndexMap and inflates the map size.
+    json filament = { {"units", json::array()}, {"external", json::array()} };
+    for (int ams_id = 0; ams_id < 2; ++ams_id) {
+        json unit = {
+            {"id", std::to_string(ams_id)},
+            {"extruder", ams_id},
+            {"slots", json::array()}
+        };
+        for (int slot_id = 0; slot_id < 5; ++slot_id)
+            unit["slots"].push_back({{"index", slot_id}, {"loaded", false}});
+        filament["units"].push_back(std::move(unit));
+    }
+
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+
+    const auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+    REQUIRE(tray_index_map.size() == 10);
+    CHECK(tray_index_map.at(0).first == 0);
+    CHECK(tray_index_map.at(0).second == 0);
+    CHECK(tray_index_map.at(4).first == 0);
+    CHECK(tray_index_map.at(4).second == 4);
+    CHECK(tray_index_map.at(5).first == 1);
+    CHECK(tray_index_map.at(5).second == 0);
+    CHECK(tray_index_map.at(9).first == 1);
+    CHECK(tray_index_map.at(9).second == 4);
+}
+
+TEST_CASE("Generic tray index map handles unequal per-unit slot counts", "[DevMapping]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // An "external" array must accompany "units" so vt_slot is reset (see the cumulative test above).
+    json filament = { {"units", json::array()}, {"external", json::array()} };
+    const std::vector<int> slot_counts = {4, 12};
+    for (int ams_id = 0; ams_id < static_cast<int>(slot_counts.size()); ++ams_id) {
+        json unit = { {"id", std::to_string(ams_id)}, {"extruder", ams_id}, {"slots", json::array()} };
+        for (int slot_id = 0; slot_id < slot_counts[ams_id]; ++slot_id)
+            unit["slots"].push_back({{"index", slot_id}, {"loaded", false}});
+        filament["units"].push_back(std::move(unit));
+    }
+
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+
+    const auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+    REQUIRE(tray_index_map.size() == 16);
+    // Unit 0 occupies global lanes 0..3; unit 1 continues at 4..15 because the counter advances
+    // by the reported tray count, not by a fixed four-slot stride.
+    CHECK(tray_index_map.at(0).first == 0);
+    CHECK(tray_index_map.at(0).second == 0);
+    CHECK(tray_index_map.at(3).first == 0);
+    CHECK(tray_index_map.at(3).second == 3);
+    CHECK(tray_index_map.at(4).first == 1);
+    CHECK(tray_index_map.at(4).second == 0);
+    CHECK(tray_index_map.at(15).first == 1);
+    CHECK(tray_index_map.at(15).second == 11);
+}
+
+TEST_CASE("A generic AMS unit reports its reported tray count", "[DevFilaSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    json filament = { {"units", json::array()}, {"external", json::array()} };
+    const std::vector<int> slot_counts = {8, 1};
+    for (int ams_id = 0; ams_id < static_cast<int>(slot_counts.size()); ++ams_id) {
+        json unit = { {"id", std::to_string(ams_id)}, {"extruder", ams_id}, {"slots", json::array()} };
+        for (int slot_id = 0; slot_id < slot_counts[ams_id]; ++slot_id)
+            unit["slots"].push_back({{"index", slot_id}, {"loaded", false}});
+        filament["units"].push_back(std::move(unit));
+    }
+
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+
+    // Non-Bambu units are not capped at the four-slot Bambu contract; the reported tray count wins.
+    const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+    REQUIRE(ams_list.at("0")->GetSlotCount() == 8);
+    REQUIRE(ams_list.at("1")->GetSlotCount() == 1);
 }
 
 TEST_CASE("Switch-bound AMS trays map to the left extruder", "[DevMapping]")

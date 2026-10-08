@@ -42,6 +42,7 @@
 #include <boost/log/trivial.hpp>
 #include <wx/timer.h>
 #include <wx/sizer.h>
+#include <wx/scrolwin.h>
 
 #include "CalibUtils.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -76,6 +77,48 @@ namespace Slic3r { namespace GUI {
 //#define AMS_SINGLE_CAN_SIZE wxSize(FromDIP(78), 144)
 #define AMS_CANS_WINDOW_SIZE wxSize(FromDIP(264), FromDIP(174))
 #define AMS_SINGLE_CAN_SIZE wxSize(FromDIP(78), FromDIP(174))
+
+int generic_ams_layout_width(wxWindow *window, int lane_count)
+{
+    const int base_width = window->FromDIP(264);
+    const int lane_width = window->FromDIP(52);
+    const int lane_gap = window->FromDIP(4);
+    if (lane_count <= 4)
+        return base_width;
+
+    // Lane centers are distributed as width * (index + 1) / (count + 1).
+    // Keep at least one card width plus the requested gap between centers.
+    return std::max(base_width, (lane_count + 1) * (lane_width + lane_gap));
+}
+
+std::vector<int> generic_ams_lane_centers(int lane_count, int width)
+{
+    std::vector<int> centers;
+    if (lane_count <= 0)
+        return centers;
+
+    centers.reserve(lane_count);
+    for (int lane = 0; lane < lane_count; ++lane)
+        centers.push_back(width * (lane + 1) / (lane_count + 1));
+    return centers;
+}
+
+int generic_ams_preview_width(wxWindow *window, int lane_count)
+{
+    const int base_width = window->FromDIP(52);
+    const int lane_width = window->FromDIP(9);
+    const int lane_gap = window->FromDIP(4);
+    if (lane_count <= 0)
+        return base_width;
+
+    return std::max(base_width, lane_count * lane_width + (lane_count + 1) * lane_gap);
+}
+
+bool use_generic_ams_layout(AMSModel model)
+{
+    return model == AMSModel::GENERIC_AMS &&
+           (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor());
+}
 bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, bool humidity_flag)
 {
     if (!ams) return false;
@@ -170,10 +213,14 @@ void AMSinfo::parse_ext_info(MachineObject* obj, DevAmsTray tray) {
     info.can_id = std::to_string(0);
     this->cans.clear();
 
-    if (tray.id == std::to_string(VIRTUAL_TRAY_MAIN_ID))
+    try {
+        const int virtual_tray_id = std::stoi(tray.id);
+        if (virtual_tray_id >= 0 && virtual_tray_id <= VIRTUAL_TRAY_MAIN_ID)
+            this->nozzle_id = VIRTUAL_TRAY_MAIN_ID - virtual_tray_id;
+    }
+    catch (...) {
         this->nozzle_id = 0;
-    else if (tray.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID))
-        this->nozzle_id = 1;
+    }
 
     if (tray.is_tray_info_ready()) {
         info.ctype = tray.ctype;
@@ -856,7 +903,11 @@ AMSextruder::AMSextruder(wxWindow *parent, wxWindowID id, int nozzle_num, const 
 
 void AMSextruder::TurnOff()
 {
-    m_left_extruder->TurnOff();
+    if (m_left_extruder) m_left_extruder->TurnOff();
+    if (m_right_extruder) m_right_extruder->TurnOff();
+    for (auto *extruder : m_nozzle_extruders) {
+        if (extruder) extruder->TurnOff();
+    }
 }
 
 void AMSextruder::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, int nozzle_num)
@@ -882,7 +933,7 @@ void AMSextruder::OnAmsLoading(bool load, int nozzle_id, wxColour col /*= AMS_CO
         m_left_extruder->OnAmsLoading(load, col);
         if (load) m_current_colur_deputy = col;
     }
-    else if (m_nozzle_num > 1){
+    else if (m_nozzle_num == 2){
         if (nozzle_id == MAIN_EXTRUDER_ID) {
             m_right_extruder->OnAmsLoading(load, col);
             if (m_current_colur != col){
@@ -896,6 +947,15 @@ void AMSextruder::OnAmsLoading(bool load, int nozzle_id, wxColour col /*= AMS_CO
             }
         }
     }
+    else if (m_nozzle_num > 2) {
+        if (nozzle_id >= 0 && nozzle_id < static_cast<int>(m_nozzle_extruders.size())) {
+            m_nozzle_extruders[nozzle_id]->OnAmsLoading(load, col);
+            if (load) m_current_colur = col;
+        }
+    }
+    else {
+        // Generic N Nozzles
+    }
 }
 
 /*return true if something is updated*/
@@ -905,12 +965,26 @@ bool AMSextruder::updateNozzleNum(int nozzle_num, const std::string& series_name
     m_series_name = series_name;
     m_nozzle_num = nozzle_num;
     this->DestroyChildren();
+    m_left_extruder = nullptr;
+    m_right_extruder = nullptr;
+    m_nozzle_extruders.clear();
 
-    m_right_extruder = new AMSextruderImage(this, wxID_ANY, "right_nozzle", AMS_EXTRUDER_DOUBLE_NOZZLE_BITMAP_SIZE);
+    m_bitmap_sizer = new wxBoxSizer(wxHORIZONTAL);
+    if (m_nozzle_num == 1) {
+        if (MachineObject::is_series_n(m_series_name)) {
+            m_left_extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_n", AMS_EXTRUDER_SINGLE_NOZZLE_N_SIZE);
+        } else if (MachineObject::is_series_x(m_series_name) || MachineObject::is_series_p(m_series_name)) {
+            m_left_extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_xp", AMS_EXTRUDER_SINGLE_NOZZLE_XP_SIZE);
+        } else {
+            m_left_extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_xp", AMS_EXTRUDER_SINGLE_NOZZLE_XP_SIZE);
+        }
 
-    wxBoxSizer* m_bitmap_sizer = new wxBoxSizer(wxHORIZONTAL);
-    if (m_nozzle_num >= 2)
+        m_left_extruder->setShowState(true);
+        m_bitmap_sizer->Add(m_left_extruder, 0, wxALIGN_LEFT | wxALIGN_TOP, 0);
+    }
+    else if (m_nozzle_num == 2)
     {
+        m_right_extruder = new AMSextruderImage(this, wxID_ANY, "right_nozzle", AMS_EXTRUDER_DOUBLE_NOZZLE_BITMAP_SIZE);
         m_left_extruder = new AMSextruderImage(this, wxID_ANY, "left_nozzle", AMS_EXTRUDER_DOUBLE_NOZZLE_BITMAP_SIZE);
         m_left_extruder->setShowState(true);
         m_right_extruder->setShowState(true);
@@ -918,25 +992,17 @@ bool AMSextruder::updateNozzleNum(int nozzle_num, const std::string& series_name
         m_bitmap_sizer->Add(m_right_extruder, 0, wxLEFT | wxALIGN_TOP, FromDIP(2));
         m_bitmap_sizer->AddSpacer(2);
     }
+    else if (m_nozzle_num > 2) {
+        for (int nozzle_id = 0; nozzle_id < m_nozzle_num; ++nozzle_id) {
+            auto *extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_n", AMS_EXTRUDER_SINGLE_NOZZLE_N_SIZE);
+            extruder->setShowState(true);
+            m_nozzle_extruders.push_back(extruder);
+            m_bitmap_sizer->Add(extruder, 0, wxALIGN_LEFT | wxALIGN_TOP, 0);
+        }
+    }
     else
     {
-        if (MachineObject::is_series_n(m_series_name))
-        {
-            m_left_extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_n", AMS_EXTRUDER_SINGLE_NOZZLE_N_SIZE);
-        }
-        else if(MachineObject::is_series_x(m_series_name) || MachineObject::is_series_p(m_series_name))
-        {
-            m_left_extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_xp", AMS_EXTRUDER_SINGLE_NOZZLE_XP_SIZE);
-        }
-        else
-        {
-            m_left_extruder = new AMSextruderImage(this, wxID_ANY, "single_nozzle_xp", AMS_EXTRUDER_SINGLE_NOZZLE_XP_SIZE);
-        }
-
-        m_left_extruder->setShowState(true);
-        m_right_extruder->setShowState(false);
-        m_bitmap_sizer->Add(m_left_extruder, 0, wxALIGN_LEFT | wxALIGN_TOP, 0);
-        m_bitmap_sizer->Add(m_right_extruder, 0, wxLEFT | wxALIGN_TOP, FromDIP(3));
+        // Generic N Nozzles
     }
 
     SetSizer(m_bitmap_sizer);
@@ -951,6 +1017,9 @@ void AMSextruder::msw_rescale()
     //m_amsSextruder->msw_rescale();
     if (m_left_extruder) m_left_extruder->msw_rescale();
     if (m_right_extruder) m_right_extruder->msw_rescale();
+    for (auto *extruder : m_nozzle_extruders) {
+        if (extruder) extruder->msw_rescale();
+    }
     Layout();
     Update();
     Refresh();
@@ -2123,7 +2192,10 @@ AMSRoadUpPart::AMSRoadUpPart(wxWindow* parent, wxWindowID id, AMSinfo info, AMSM
     m_ams_model = model;
 
     if (m_ams_model == AMSModel::GENERIC_AMS){
-        create(parent, id, pos, wxSize(FromDIP(264), FromDIP(34)));
+        const int width = use_generic_ams_layout(m_ams_model)
+            ? generic_ams_layout_width(this, static_cast<int>(m_amsinfo.cans.size()))
+            : FromDIP(264);
+        create(parent, id, pos, wxSize(width, FromDIP(34)));
     }
     else{
         create(parent, id, pos, wxSize(FromDIP(78), FromDIP(34)));
@@ -2234,6 +2306,38 @@ void AMSRoadUpPart::doRender(wxDC& dc)
     //dc.SetPen(wxPen(m_road_def_color, 2, wxPENSTYLE_SOLID));
     dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
     dc.SetBrush(wxBrush(*wxTRANSPARENT_BRUSH));
+
+    if (use_generic_ams_layout(m_ams_model)) {
+        const int lane_count = static_cast<int>(m_amsinfo.cans.size());
+        if (lane_count <= 0)
+            return;
+
+        const auto lane_centers = generic_ams_lane_centers(lane_count, size.x);
+        const int height = FromDIP(21);
+        for (const int lane_center : lane_centers)
+            dc.DrawLine(lane_center, 0, lane_center, height);
+
+        if (lane_centers.size() > 1)
+            dc.DrawLine(lane_centers.front(), height, lane_centers.back(), height);
+        dc.DrawLine(size.x / 2, height, size.x / 2, size.y);
+
+        if (m_load_step != AMSPassRoadSTEP::AMS_ROAD_STEP_NONE &&
+            m_load_slot_index >= 0 && m_load_slot_index < lane_count) {
+            const int lane_center = lane_centers[m_load_slot_index];
+            dc.SetPen(wxPen(_get_diff_clr(this, m_amsinfo.cans[m_load_slot_index].material_colour), 4, wxPENSTYLE_SOLID));
+            dc.DrawLine(lane_center, 0, lane_center, height);
+            dc.DrawLine(std::min(lane_center, size.x / 2), height,
+                        std::max(lane_center, size.x / 2), height);
+            if (m_load_step == AMSPassRoadSTEP::AMS_ROAD_STEP_2 ||
+                m_load_step == AMSPassRoadSTEP::AMS_ROAD_STEP_3)
+                dc.DrawLine(size.x / 2, height, size.x / 2, size.y);
+        }
+
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(wxColour(194, 194, 194)));
+        dc.DrawRectangle(size.x / 2 - FromDIP(14), height - FromDIP(5), FromDIP(28), FromDIP(10));
+        return;
+    }
 
     if ((m_ams_model == N3S_AMS || m_ams_model == EXT_AMS) && m_amsinfo.cans.size() != 4){
         dc.DrawLine(((float)size.x / 2), (0), ((float)size.x / 2), (size.y));
@@ -2360,6 +2464,45 @@ void AMSRoadDownPart::UpdateRight(int nozzle_num, AMSRoadShowMode mode)
     Refresh();
 }
 
+void AMSRoadDownPart::SetNozzleCount(int nozzle_num)
+{
+    const int new_nozzle_num = std::max(1, nozzle_num);
+    if (m_nozzle_num == new_nozzle_num &&
+        (new_nozzle_num <= 2 || static_cast<int>(m_generic_road_states.size()) == new_nozzle_num)) {
+        return;
+    }
+
+    m_nozzle_num = new_nozzle_num;
+    if (m_nozzle_num > 2)
+        m_generic_road_states.resize(m_nozzle_num);
+    else
+        m_generic_road_states.clear();
+    Refresh();
+}
+
+void AMSRoadDownPart::SetSingleSideLayout(bool enabled, AMSPanelPos pos)
+{
+    if (m_single_side_layout == enabled && m_single_side_pos == pos)
+        return;
+
+    m_single_side_layout = enabled;
+    m_single_side_pos = pos;
+    Refresh();
+}
+
+void AMSRoadDownPart::UpdateNozzle(int nozzle_id, AMSRoadShowMode mode)
+{
+    if (nozzle_id < 0) return;
+    if (nozzle_id >= static_cast<int>(m_generic_road_states.size()))
+        m_generic_road_states.resize(nozzle_id + 1);
+
+    auto &state = m_generic_road_states[nozzle_id];
+    if (state.mode == mode && m_nozzle_num > 2) return;
+    state.mode = mode;
+    m_nozzle_num = std::max(m_nozzle_num, nozzle_id + 1);
+    Refresh();
+}
+
 void AMSRoadDownPart::OnVamsLoading(bool load, wxColour col /*= AMS_CONTROL_GRAY500*/)
 {
     /*m_vams_loading = load;
@@ -2386,6 +2529,17 @@ void AMSRoadDownPart::SetPassRoadColour(bool left, wxColour col)
         m_road_color[MAIN_EXTRUDER_ID] = col;
     }
 
+    Refresh();
+}
+
+void AMSRoadDownPart::SetPassRoadColour(int nozzle_id, wxColour col)
+{
+    if (nozzle_id < 0) return;
+    if (nozzle_id >= static_cast<int>(m_generic_road_states.size()))
+        m_generic_road_states.resize(nozzle_id + 1);
+
+    if (m_generic_road_states[nozzle_id].road_color == col) return;
+    m_generic_road_states[nozzle_id].road_color = col;
     Refresh();
 }
 
@@ -2433,8 +2587,34 @@ void AMSRoadDownPart::doRender(wxDC& dc)
     /*if (m_road_color.Alpha() == 0) { dc.SetPen(wxPen(*wxWHITE, m_passroad_width, wxPENSTYLE_SOLID)); }
     else { dc.SetPen(wxPen(m_road_color, m_passroad_width, wxPENSTYLE_SOLID)); }*/
     dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
+
+    if (m_nozzle_num > 2) {
+        const int nozzle_count = std::min(m_nozzle_num, static_cast<int>(m_generic_road_states.size()));
+        for (int nozzle_id = 0; nozzle_id < nozzle_count; ++nozzle_id) {
+            const auto &state = m_generic_road_states[nozzle_id];
+            if (state.mode == AMSRoadShowMode::AMS_ROAD_MODE_NONE) continue;
+
+            const int x = size.x * (nozzle_id + 1) / (nozzle_count + 1);
+            dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
+            dc.DrawLine(x, size.y / 2, x, size.y);
+
+            if (state.road_length > 0 &&
+                (state.pass_road_step == AMSPassRoadSTEP::AMS_ROAD_STEP_2 ||
+                 state.pass_road_step == AMSPassRoadSTEP::AMS_ROAD_STEP_3)) {
+                dc.SetPen(wxPen(_get_diff_clr(this, state.road_color), 4, wxPENSTYLE_SOLID));
+                dc.DrawLine(x - FromDIP(state.road_length), size.y / 2, x, size.y / 2);
+            }
+        }
+        return;
+    }
+
     auto xpos = left_nozzle_pos.x;
-    if (m_left_rode_mode == AMSRoadShowMode::AMS_ROAD_MODE_NONE || m_right_rode_mode == AMSRoadShowMode::AMS_ROAD_MODE_NONE){
+    if (m_single_side_layout) {
+        dc.DrawLine(size.x / 2, 0, size.x / 2, size.y);
+    }
+    else if (
+        (m_left_rode_mode == AMSRoadShowMode::AMS_ROAD_MODE_NONE ||
+         m_right_rode_mode == AMSRoadShowMode::AMS_ROAD_MODE_NONE)){
         auto length = 50;
         if (m_left_rode_mode == AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE || m_right_rode_mode == AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE)
             length = -13;
@@ -2465,6 +2645,9 @@ void AMSRoadDownPart::doRender(wxDC& dc)
         case AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE:
             dc.DrawLine(left_nozzle_pos.x, 0, left_nozzle_pos.x, size.y);
             break;
+        case AMSRoadShowMode::AMS_ROAD_MODE_GENERIC:
+            // Generic N-lane geometry is intentionally left unimplemented.
+            break;
         default:
             break;
         }
@@ -2492,23 +2675,41 @@ void AMSRoadDownPart::doRender(wxDC& dc)
             dc.DrawLine(left_nozzle_pos.x, (size.y / 2), left_nozzle_pos.x + FromDIP(145), (size.y / 2));
             dc.DrawLine(left_nozzle_pos.x + FromDIP(145), 0, left_nozzle_pos.x + FromDIP(145), (size.y / 2));
             break;
+        case AMSRoadShowMode::AMS_ROAD_MODE_GENERIC:
+            // Generic N-lane geometry is intentionally left unimplemented.
+            break;
         default:
             break;
         }
     }
 
+    if (m_single_side_layout) {
+        if (m_pass_road_left_step == AMSPassRoadSTEP::AMS_ROAD_STEP_2 ||
+            m_pass_road_left_step == AMSPassRoadSTEP::AMS_ROAD_STEP_3) {
+            dc.SetPen(wxPen(_get_diff_clr(this, m_road_color[1]), 4, wxPENSTYLE_SOLID));
+            dc.DrawLine(size.x / 2, 0, size.x / 2, size.y);
+        }
+        return;
+    }
+
     if (m_right_rode_mode != AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE){
-        if (m_nozzle_num == 2) {
+        if (m_nozzle_num == 1) {
+            if (m_right_rode_mode != AMSRoadShowMode::AMS_ROAD_MODE_NONE && m_left_rode_mode != AMSRoadShowMode::AMS_ROAD_MODE_NONE) {
+                dc.DrawLine((left_nozzle_pos.x), (size.y / 2), (right_nozzle_pos.x), (size.y / 2));
+            }
+            const auto &nozzle_pos = m_single_side_layout && m_single_side_pos == AMSPanelPos::RIGHT_PANEL
+                ? right_nozzle_pos
+                : left_nozzle_pos;
+            dc.DrawLine(nozzle_pos.x, (size.y / 2), nozzle_pos.x, (size.y));
+        }
+        else if (m_nozzle_num == 2) {
             /*dc.DrawLine(FromDIP(left_nozzle_pos.x), FromDIP(size.y / 2), FromDIP(left_nozzle_pos.x), FromDIP(size.y));
             dc.DrawLine(FromDIP(right_nozzle_pos.x), FromDIP(size.y / 2), FromDIP(right_nozzle_pos.x), FromDIP(size.y));*/
             dc.DrawLine((left_nozzle_pos.x), (size.y / 2), (left_nozzle_pos.x), (size.y));
             dc.DrawLine((right_nozzle_pos.x), (size.y / 2), (right_nozzle_pos.x), (size.y));
         }
         else {
-            if (m_right_rode_mode != AMSRoadShowMode::AMS_ROAD_MODE_NONE && m_left_rode_mode != AMSRoadShowMode::AMS_ROAD_MODE_NONE) {
-                dc.DrawLine((left_nozzle_pos.x), (size.y / 2), (right_nozzle_pos.x), (size.y / 2));
-            }
-            dc.DrawLine((left_nozzle_pos.x), (size.y / 2), (left_nozzle_pos.x), (size.y));
+            // Generic N Nozzles
         }
     }
 
@@ -2533,9 +2734,15 @@ void AMSRoadDownPart::doRender(wxDC& dc)
                  dc.DrawLine(xpos, size.y / 2, xpos, size.y);*/
                 int x   = left_nozzle_pos.x;
                 int len = m_right_road_length;
-                if (m_nozzle_num == 2) {
+                if (m_nozzle_num == 1) {
+                    // Keep the single-nozzle path anchored at the left nozzle.
+                }
+                else if (m_nozzle_num == 2) {
                     x   = right_nozzle_pos.x;
                     len = len - 14;
+                }
+                else {
+                    // Generic N Nozzles
                 }
                 dc.DrawLine(((x)), (size.y / 2), x + FromDIP(len), (size.y / 2));
                 dc.DrawLine(x + FromDIP(len), (0), x + FromDIP(len), (size.y / 2));
@@ -2544,9 +2751,15 @@ void AMSRoadDownPart::doRender(wxDC& dc)
             else{
                 int x = left_nozzle_pos.x;
                 int len = m_right_road_length;
-                if (m_nozzle_num == 2) {
+                if (m_nozzle_num == 1) {
+                    // Keep the single-nozzle path anchored at the left nozzle.
+                }
+                else if (m_nozzle_num == 2) {
                     x = right_nozzle_pos.x;
                     len = len - 14;
+                }
+                else {
+                    // Generic N Nozzles
                 }
                 dc.DrawLine(((x)), (size.y / 2), x + FromDIP(len), (size.y / 2));
                 dc.DrawLine(x + FromDIP(len), (0), x + FromDIP(len), (size.y / 2));
@@ -2571,7 +2784,7 @@ void AMSRoadDownPart::doRender(wxDC& dc)
 }
 
 void AMSRoadDownPart::UpdatePassRoad(AMSPanelPos pos, int len, AMSPassRoadSTEP step) {
-    if (m_nozzle_num >= 2){
+    if (m_nozzle_num == 2){
         if (pos == AMSPanelPos::LEFT_PANEL){
             if (m_left_road_length == len && m_pass_road_left_step == step){ return; }
             m_left_road_length = len;;
@@ -2583,7 +2796,7 @@ void AMSRoadDownPart::UpdatePassRoad(AMSPanelPos pos, int len, AMSPassRoadSTEP s
             m_pass_road_right_step = step;
         }
     }
-    else{
+    else if (m_nozzle_num == 1){
         if (pos == AMSPanelPos::LEFT_PANEL) {
             if (m_left_road_length == len && m_pass_road_left_step == step && m_right_road_length == -1) { return; }
             m_left_road_length = len;
@@ -2597,6 +2810,22 @@ void AMSRoadDownPart::UpdatePassRoad(AMSPanelPos pos, int len, AMSPassRoadSTEP s
             m_pass_road_right_step = step;
         }
     }
+    else {
+        // Generic N Nozzles
+    }
+    Refresh();
+}
+
+void AMSRoadDownPart::UpdatePassRoad(int nozzle_id, int len, AMSPassRoadSTEP step)
+{
+    if (nozzle_id < 0) return;
+    if (nozzle_id >= static_cast<int>(m_generic_road_states.size()))
+        m_generic_road_states.resize(nozzle_id + 1);
+
+    auto &state = m_generic_road_states[nozzle_id];
+    if (state.road_length == len && state.pass_road_step == step) return;
+    state.road_length = len;
+    state.pass_road_step = step;
     Refresh();
 }
 
@@ -2615,7 +2844,10 @@ AMSPreview::AMSPreview(wxWindow* parent, wxWindowID id, AMSinfo amsinfo, AMSMode
 {
     wxWindow::Create(parent, id, pos);
     if (itemType == AMSModel::GENERIC_AMS || itemType == AMSModel::AMS_LITE || itemType == AMSModel::N3F_AMS) {
-        create(parent, id, pos, AMS_PREV_FOUR_SIZE);
+        if (itemType == AMSModel::GENERIC_AMS && use_generic_ams_layout(itemType))
+            create(parent, id, pos, wxSize(generic_ams_preview_width(this, static_cast<int>(amsinfo.cans.size())), AMS_PREV_FOUR_SIZE.y));
+        else
+            create(parent, id, pos, AMS_PREV_FOUR_SIZE);
     }
     else {
         create(parent, id, pos, AMS_PREV_SINGLE_SIZE);
@@ -2650,7 +2882,13 @@ void AMSPreview::UpdateInfo(AMSinfo amsinfo)
     m_amsinfo = amsinfo;
     m_ams_item_type = amsinfo.ams_type;
 
-    if (m_ams_item_type == AMSModel::GENERIC_AMS || m_ams_item_type == AMSModel::AMS_LITE || m_ams_item_type == AMSModel::N3F_AMS) {
+    if (m_ams_item_type == AMSModel::GENERIC_AMS && use_generic_ams_layout(m_ams_item_type)) {
+        const wxSize generic_size(generic_ams_preview_width(this, static_cast<int>(m_amsinfo.cans.size())), AMS_PREV_FOUR_SIZE.y);
+        SetSize(generic_size);
+        SetMinSize(generic_size);
+        SetMaxSize(generic_size);
+    }
+    else if (m_ams_item_type == AMSModel::GENERIC_AMS || m_ams_item_type == AMSModel::AMS_LITE || m_ams_item_type == AMSModel::N3F_AMS) {
         SetMinSize(AMS_PREV_FOUR_SIZE);
         SetMaxSize(AMS_PREV_FOUR_SIZE);
     } else {
@@ -2758,8 +2996,41 @@ void AMSPreview::doRender(wxDC &dc)
     dc.DrawRoundedRectangle(0, 0, size.x, size.y, FromDIP(3));
 
     auto left = 0;
-    //four slot
-    if (m_ams_item_type != AMSModel::EXT_AMS && m_ams_item_type != AMSModel::N3S_AMS){
+    // Generic AMS previews use the same normalized lane centers as the card row and connector.
+    if (m_ams_item_type == AMSModel::GENERIC_AMS && use_generic_ams_layout(m_ams_item_type)) {
+        const int lane_count = static_cast<int>(m_amsinfo.cans.size());
+        const auto lane_centers = generic_ams_lane_centers(lane_count, size.x);
+        const int cube_width = FromDIP(9);
+        const int cube_height = FromDIP(14);
+
+        for (int lane = 0; lane < lane_count; ++lane) {
+            const Caninfo &can = m_amsinfo.cans[lane];
+            const int cube_left = lane_centers[lane] - cube_width / 2;
+            const int cube_top = (size.y - cube_height) / 2;
+            wxRect rect(cube_left, cube_top, cube_width, cube_height);
+
+            if (can.material_colour.Alpha() == 0) {
+                if (wxGetApp().dark_mode())
+                    dc.DrawBitmap(m_ts_bitmap_cube_dark.bmp(), cube_left - FromDIP(1), (size.y - m_ts_bitmap_cube_dark.GetBmpHeight()) / 2);
+                else
+                    dc.DrawBitmap(m_ts_bitmap_cube.bmp(), cube_left - FromDIP(1), (size.y - m_ts_bitmap_cube.GetBmpHeight()) / 2);
+            }
+            else if (can.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY) {
+                dc.SetPen(wxPen(wxColor(0, 0, 0)));
+                dc.DrawLine(rect.GetRight() - FromDIP(1), rect.GetTop() + FromDIP(1),
+                            rect.GetLeft() + FromDIP(1), rect.GetBottom() - FromDIP(1));
+            }
+            else {
+                wxColour color = can.material_colour;
+                change_the_opacity(color);
+                dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
+                dc.SetBrush(wxBrush(color));
+                dc.DrawRoundedRectangle(rect, 2);
+            }
+        }
+    }
+    // four slot
+    else if (m_ams_item_type != AMSModel::EXT_AMS && m_ams_item_type != AMSModel::N3S_AMS){
         left =  FromDIP(8);
         for (std::vector<Caninfo>::iterator iter = m_amsinfo.cans.begin(); iter != m_amsinfo.cans.end(); iter++) {
 
@@ -3158,10 +3429,19 @@ AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos
     m_panel_pos = pos;
 
     if (m_ams_model == AMSModel::GENERIC_AMS){
-        wxWindow::Create(parent, wxID_ANY, wxDefaultPosition, AMS_CANS_WINDOW_SIZE);
-        SetSize(AMS_CANS_WINDOW_SIZE);
-        SetMinSize(AMS_CANS_WINDOW_SIZE);
-        SetMaxSize(AMS_CANS_WINDOW_SIZE);
+        const int lane_count = static_cast<int>(m_info.cans.size());
+        const int width = use_generic_ams_layout(m_ams_model) && lane_count <= 8
+            ? generic_ams_layout_width(this, lane_count)
+            : FromDIP(264);
+        const wxSize generic_size(width, FromDIP(174));
+        wxWindow::Create(parent, wxID_ANY, wxDefaultPosition, generic_size);
+        SetSize(generic_size);
+        SetMinSize(generic_size);
+        // For large lane counts the card is a viewport, not the lane strip. Let
+        // its parent allocate the available width; the scrolled child retains
+        // the wider virtual content size.
+        if (!(use_generic_ams_layout(m_ams_model) && lane_count > 8))
+            SetMaxSize(generic_size);
     }
     else{
         wxWindow::Create(parent, wxID_ANY, wxDefaultPosition, AMS_SINGLE_CAN_SIZE);
@@ -3187,12 +3467,43 @@ void AmsItem::create(wxWindow *parent)
     if (m_ams_model != AMSModel::AMS_LITE) {
         sizer_can = new wxBoxSizer(wxHORIZONTAL);
         sizer_item = new wxBoxSizer(wxVERTICAL);
-        auto it = m_info.cans.begin();
-        for (; it != m_info.cans.end(); it++) {
-            AddCan(*it, m_can_count, m_info.cans.size(), sizer_can);
+        const bool generic_layout = use_generic_ams_layout(m_ams_model);
+        const int lane_count = static_cast<int>(m_info.cans.size());
+        const int content_width = generic_layout ? generic_ams_layout_width(this, lane_count) : 0;
+        const bool scroll_lanes = generic_layout && lane_count > 8;
+        const auto lane_centers = generic_layout
+            ? generic_ams_lane_centers(lane_count, content_width)
+            : std::vector<int>();
+
+        m_can_parent = this;
+        if (scroll_lanes) {
+            m_can_scroll = new wxScrolledWindow(this, wxID_ANY);
+            m_can_scroll->SetScrollRate(FromDIP(10), 0);
+            m_can_scroll->SetMinSize(wxSize(FromDIP(264), FromDIP(143)));
+            m_can_scroll->SetBackgroundColour(StateColor::darkModeColorFor(AMS_CONTROL_DEF_LIB_BK_COLOUR));
+            m_can_scroll_sizer = new wxBoxSizer(wxVERTICAL);
+            m_can_scroll->SetSizer(m_can_scroll_sizer);
+            m_can_parent = m_can_scroll;
+        }
+
+        int previous_right = 0;
+        for (int can_index = 0; can_index < lane_count; ++can_index) {
+            if (generic_layout) {
+                const int left = lane_centers[can_index] - FromDIP(26);
+                sizer_can->AddSpacer(std::max(0, left - previous_right));
+                AddCan(m_info.cans[can_index], m_can_count, m_info.cans.size(), sizer_can);
+                previous_right = left + FromDIP(52);
+            }
+            else {
+                AddCan(m_info.cans[can_index], m_can_count, m_info.cans.size(), sizer_can);
+            }
             m_can_count++;
         }
-        it = m_info.cans.begin();
+        if (generic_layout)
+            sizer_can->AddSpacer(std::max(0, content_width - previous_right));
+        if (generic_layout)
+            sizer_can->SetMinSize(wxSize(content_width, -1));
+
         //auto        road_panel = new wxWindow(this, wxID_ANY);
         //auto        road_panel = new wxPanel(this, wxID_ANY);
         //road_panel->SetSize(AMS_CAN_ROAD_SIZE);
@@ -3207,11 +3518,18 @@ void AmsItem::create(wxWindow *parent)
                 sizer_item->Add(m_ext_image, 0, wxALIGN_CENTER, 0);
             }
         }
-        m_panel_road = new AMSRoadUpPart(this, wxID_ANY, m_info, m_ams_model);
+        m_panel_road = new AMSRoadUpPart(m_can_parent, wxID_ANY, m_info, m_ams_model);
 
-        sizer_item->Add(sizer_can, 0, wxALIGN_CENTER_HORIZONTAL, 0);
-        //sizer_item->Add(m_panel_road, 0, wxALIGN_CENTER_HORIZONTAL, 0);
-        sizer_item->Add(m_panel_road, 1, wxEXPAND);
+        if (scroll_lanes) {
+            m_can_scroll_sizer->Add(sizer_can, 0, wxALIGN_LEFT, 0);
+            m_can_scroll_sizer->Add(m_panel_road, 0, wxALIGN_LEFT, 0);
+            sizer_item->Add(m_can_scroll, 1, wxEXPAND);
+        }
+        else {
+            sizer_item->Add(sizer_can, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+            //sizer_item->Add(m_panel_road, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+            sizer_item->Add(m_panel_road, 1, wxEXPAND);
+        }
 
         SetSizer(sizer_item);
     }
@@ -3235,13 +3553,17 @@ void AmsItem::create(wxWindow *parent)
 
     Layout();
     Fit();
+    if (m_can_scroll) {
+        m_can_scroll->Layout();
+        m_can_scroll->FitInside();
+    }
     Thaw();
     //Refresh();
 }
 
 void AmsItem::AddCan(Caninfo caninfo, int canindex, int maxcan, wxBoxSizer* sizer)
 {
-    auto        amscan = new wxWindow(this, wxID_ANY);
+    auto        amscan = new wxWindow(m_can_parent ? m_can_parent : this, wxID_ANY);
 
     amscan->SetSize(wxSize(FromDIP(52), FromDIP(109)));
     amscan->SetMinSize(wxSize(FromDIP(52), FromDIP(109)));
@@ -3322,7 +3644,8 @@ void AmsItem::AddCan(Caninfo caninfo, int canindex, int maxcan, wxBoxSizer* size
     amscan->Layout();
     amscan->Fit();
 
-    sizer->Add(amscan, 0, wxUP | wxLEFT | wxRIGHT, FromDIP(5));
+    const int margin = use_generic_ams_layout(m_ams_model) ? 0 : FromDIP(5);
+    sizer->Add(amscan, 0, wxUP | wxLEFT | wxRIGHT, margin);
 
     m_can_lib_list[caninfo.can_id] = m_panel_lib;
     //m_can_road_list[caninfo.can_id] = m_panel_road;
@@ -3447,6 +3770,10 @@ void AmsItem::UpdateInfo(AMSinfo info)
     }
 
     Layout();
+    if (m_can_scroll) {
+        m_can_scroll->Layout();
+        m_can_scroll->FitInside();
+    }
 }
 
 void AmsItem::SetDefSelectCan()

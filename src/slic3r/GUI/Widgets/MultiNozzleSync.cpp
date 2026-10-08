@@ -420,6 +420,14 @@ ExtruderBadge::ExtruderBadge(wxWindow* parent) : wxPanel(parent)
 
 void ExtruderBadge::SetExtruderInfo(int extruder_id, const std::string& diameter, const NozzleVolumeType& volume_type)
 {
+    // The badge renders exactly two extruders (left/right). A generic non-BBL printer with
+    // N > 2 can report an out-of-range id here (see MultiNozzleStatusTable::UpdateRackInfo);
+    // reject it rather than writing past the two-element lists.
+    if (extruder_id < 0 || extruder_id >= static_cast<int>(m_diameter_list.size())) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": out-of-range extruder_id " << extruder_id;
+        return;
+    }
+
     m_diameter_list[extruder_id] = diameter;
     m_volume_type_list[extruder_id] = volume_type;
 
@@ -867,14 +875,21 @@ void MultiNozzleStatusTable::UpdateRackInfo(std::weak_ptr<DevNozzleRack> rack)
         bool has_right = false;
         for (auto& elem : nozzles_in_extruder) {
             auto& nozzle = elem.second;
-            int extruder_id = nozzle.AtLeftExtruder() ? 0 : 1;
-            if (nozzle.AtRightExtruder())
-                has_right = true;
+
+            int extruder_id{};
+            if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+                extruder_id = nozzle.AtLeftExtruder() ? 0 : 1;
+                if (nozzle.AtRightExtruder())
+                    has_right = true;
+            }
+            else
+                extruder_id = nozzle.GetExtruderId();
 
             NozzleVolumeType volume_type = DevNozzle::ToNozzleVolumeType(nozzle.m_nozzle_flow);
 
             m_badge->SetExtruderInfo(extruder_id, format_diameter_to_str(nozzle.GetNozzleDiameter()), volume_type);
         }
+        // TODO: Update for N extruders
         m_badge->SetExtruderValid(has_right);
     }
 }

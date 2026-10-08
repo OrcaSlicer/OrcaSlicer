@@ -65,6 +65,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <wx/app.h>
 #include <wx/colour.h>
 #include <tuple>
 #include <wx/dir.h>
@@ -1274,19 +1275,24 @@ int MachineObject::get_bed_temperature_limit()
 
 bool MachineObject::is_filament_installed()
 {
-    if (m_extder_system->GetTotalExtderCount() > 0) {
-        // right//or single
-        auto ext = m_extder_system->m_extders[MAIN_EXTRUDER_ID];
-        if (ext.m_ext_has_filament) {
+    // if (m_extder_system->GetTotalExtderCount() > 0) {
+    //     // right//or single
+    //     auto ext = m_extder_system->m_extders[MAIN_EXTRUDER_ID];
+    //     if (ext.m_ext_has_filament) {
+    //         return true;
+    //     }
+    // }
+    // /*left*/
+    // if (m_extder_system->GetTotalExtderCount() > 1) {
+    //     auto ext = m_extder_system->m_extders[DEPUTY_EXTRUDER_ID];
+    //     if (ext.m_ext_has_filament) {
+    //         return true;
+    //     }
+    // }
+
+    for (auto& ext : m_extder_system->m_extders) {
+        if (ext.m_ext_has_filament)
             return true;
-        }
-    }
-    /*left*/
-    if (m_extder_system->GetTotalExtderCount() > 1) {
-        auto ext = m_extder_system->m_extders[DEPUTY_EXTRUDER_ID];
-        if (ext.m_ext_has_filament) {
-            return true;
-        }
     }
     return false;
 }
@@ -5263,16 +5269,17 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
 
 bool MachineObject::contains_tray(const std::string &ams_id, const std::string &tray_id) const
 {
-    if (ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
-
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr && GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor && ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR)
         return m_fila_system->GetAmsTray(ams_id, tray_id) != nullptr;
-    } else {
+
+    if (!is_bbl_vendor || ams_id == VIRTUAL_AMS_MAIN_ID_STR || ams_id == VIRTUAL_AMS_DEPUTY_ID_STR) {
         for (const auto& tray : vt_slot) {
-            if (tray.id == ams_id) { return true; }
+            if (tray.id == ams_id) return true;
         }
     }
 
-    return false;
+    return !is_bbl_vendor && m_fila_system->GetAmsTray(ams_id, tray_id) != nullptr;
 }
 
 DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string &tray_id) const
@@ -5282,13 +5289,19 @@ DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string 
         return DevAmsTray(tray_id);
     }
 
-    if (ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr && GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor && ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
         auto tray = m_fila_system->GetAmsTray(ams_id, tray_id);
-        if (tray) { return *tray;};
+        if (tray) return *tray;
     }
-    else {
+    else if (!is_bbl_vendor || ams_id == VIRTUAL_AMS_MAIN_ID_STR || ams_id == VIRTUAL_AMS_DEPUTY_ID_STR) {
         for (const auto &tray : vt_slot) {
-            if (tray.id == ams_id) { return tray; }
+            if (tray.id == ams_id) return tray;
+        }
+
+        if (!is_bbl_vendor) {
+            auto tray = m_fila_system->GetAmsTray(ams_id, tray_id);
+            if (tray) return *tray;
         }
     }
 

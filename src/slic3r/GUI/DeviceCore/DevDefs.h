@@ -163,8 +163,8 @@ public:
     ~devPrinterUtil() = delete;
 
 public:
-    static bool IsVirtualSlot(int ams_id) { return (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID);}
-    static bool IsVirtualSlot(const std::string& ams_id) { return (ams_id == VIRTUAL_AMS_MAIN_ID_STR || ams_id == VIRTUAL_AMS_DEPUTY_ID_STR); }
+    static bool IsVirtualSlot(int ams_id);
+    static bool IsVirtualSlot(const std::string& ams_id);
 };
 
 namespace GUI
