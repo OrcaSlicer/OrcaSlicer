@@ -38059,3 +38059,145 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+# AI Translated
+msgid "Visible range"
+msgstr "Диапазон"
+
+# AI Translated
+msgid "Minimum"
+msgstr "Минимум"
+
+# AI Translated
+msgid "Maximum"
+msgstr "Макс."
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Меняет лишь диапазон графика, не значения модели. Для обновления нажмите Enter или «Применить»."
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "Допустимо: от %s до %s."
+
+# AI Translated
+msgid "Show range"
+msgstr "Диапазон"
+
+# AI Translated
+msgid "Show table"
+msgstr "Таблица"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Перетащите точку или измените значения в таблице.\n"
+"\n"
+"Колесо мыши: сдвиг по горизонтали.\n"
+"%s + колесо мыши: сдвиг по вертикали.\n"
+"%s + колесо мыши: масштаб по горизонтали.\n"
+"%s + %s + колесо мыши: масштаб по вертикали.\n"
+"\n"
+"Диапазон: задайте границы и нажмите Enter или «Применить».\n"
+"Таблица: показать или скрыть значения точек.\n"
+"Сброс вида: показать всю кривую.\n"
+"По умолчанию: вернуть исходные точки модели."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "График: помощь"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Сброс вида"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Показать всю кривую."
+
+# AI Translated
+msgid "Add point"
+msgstr "Добавить"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Удалить"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "По умолчанию"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "Строка таблицы %d: "
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Перетаскивайте точки графика или меняйте длину экструзии и коэф. коррекции потока в таблице.\n"
+"Длины и коэффициенты должны строго возрастать. Первая длина — 0, последний коэффициент — 1."
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "Длина экструзии"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "Коэф. коррекции потока"
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Введите конечные границы: минимум меньше максимума."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Границы видимого диапазона вне допустимых пределов."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Видимый диапазон слишком мал."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "Конечное число в каждой ячейке."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "В модели должно быть не менее двух точек."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "Первая длина экструзии должна быть 0."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "Длины экструзии должны строго возрастать."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "Коэф. коррекции потока должны строго расти."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Последний коэф. коррекции потока равен 1."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Модель пуста. Компенсация потока не применяется."
+

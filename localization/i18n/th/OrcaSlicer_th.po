@@ -38416,3 +38416,151 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+msgid "Visible range"
+msgstr "ช่วงที่เห็น"
+
+# AI Translated
+msgid "Minimum"
+msgstr "ต่ำสุด"
+
+# AI Translated
+msgid "Maximum"
+msgstr "สูงสุด"
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "เปลี่ยนเฉพาะช่วงกราฟ ไม่เปลี่ยนค่าแบบจำลอง กด Enter หรือ “ใช้” เพื่ออัปเดต"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "ช่วงที่อนุญาต: %s–%s."
+
+# AI Translated
+msgid "Show range"
+msgstr "แสดงช่วง"
+
+# AI Translated
+msgid "Show table"
+msgstr "แสดงตาราง"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"ลากจุดเพื่อย้าย หรือแก้ค่าในตาราง\n"
+"\n"
+"ล้อเมาส์: เลื่อนแนวนอน\n"
+"%s + ล้อเมาส์: เลื่อนแนวตั้ง\n"
+"%s + ล้อเมาส์: ซูมแนวนอน\n"
+"%s + %s + ล้อเมาส์: ซูมแนวตั้ง\n"
+"\n"
+"แสดงช่วง: ใส่ขอบเขตที่แน่นอน แล้วกด Enter หรือ “ใช้”\n"
+"แสดงตาราง: แสดงหรือซ่อนค่าจุด\n"
+"คืนมุมมอง: แสดงเส้นโค้งทั้งหมด\n"
+"คืนค่าเริ่มต้น: คืนจุดเริ่มต้นของแบบจำลอง"
+
+# AI Translated
+msgid "Graph controls"
+msgstr "ควบคุมกราฟ"
+
+# AI Translated
+msgid "Reset View"
+msgstr "คืนมุมมอง"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "แสดงเส้นโค้งทั้งหมด"
+
+# AI Translated
+msgid "Add point"
+msgstr "เพิ่มจุด"
+
+# AI Translated
+msgid "Remove point"
+msgstr "ลบจุด"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "คืนค่าเริ่มต้น"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "แถวตาราง %d: "
+
+# AI Translated
+# Needs human review: Check the mathematical wording for finite values and strictly increasing points.
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"ลากจุดบนกราฟ หรือแก้ความยาวการอัดรีดและตัวคูณแก้ไขการไหลในตาราง\n"
+"ความยาวและตัวคูณต้องเพิ่มขึ้นทุกจุด ความยาวแรกต้องเป็น 0 และตัวคูณสุดท้ายต้องเป็น 1"
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "ความยาวการอัดรีด"
+
+# AI Translated
+# Needs human review: Check the mathematical wording for finite values and strictly increasing points.
+msgid "Flow correction factor"
+msgstr "ตัวคูณแก้ไขการไหล"
+
+# AI Translated
+# Needs human review: Check the mathematical wording for finite values and strictly increasing points.
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "ใส่ขอบเขตค่าจำกัด โดยค่าต่ำสุดน้อยกว่าค่าสูงสุด"
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "ช่วงที่เห็นอยู่นอกขอบเขตที่อนุญาต"
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "ช่วงที่เห็นเล็กเกินไป"
+
+# AI Translated
+# Needs human review: Check the mathematical wording for finite values and strictly increasing points.
+msgid "Enter a finite number in each cell."
+msgstr "ใส่จำนวนที่มีค่าจำกัดในทุกช่อง"
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "แบบจำลองต้องมีอย่างน้อยสองจุด"
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "ความยาวการอัดรีดแรกต้องเป็น 0"
+
+# AI Translated
+# Needs human review: Check the mathematical wording for finite values and strictly increasing points.
+msgid "Extrusion lengths must strictly increase."
+msgstr "ความยาวการอัดรีดต้องเพิ่มขึ้นทุกจุด"
+
+# AI Translated
+# Needs human review: Check the mathematical wording for finite values and strictly increasing points.
+msgid "Flow correction factors must strictly increase."
+msgstr "ตัวคูณแก้ไขการไหลต้องเพิ่มขึ้นทุกจุด"
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "ตัวคูณแก้ไขการไหลสุดท้ายต้องเป็น 1"
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "แบบจำลองว่าง จะไม่ชดเชยการไหล"
+

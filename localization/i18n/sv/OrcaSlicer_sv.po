@@ -40843,3 +40843,145 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+msgid "Visible range"
+msgstr "Grafintervall"
+
+# AI Translated
+msgid "Minimum"
+msgstr "Min."
+
+# AI Translated
+msgid "Maximum"
+msgstr "Max."
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Ändrar bara grafens intervall, inte modellen. Tryck Enter eller ”Applicera” för att uppdatera."
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "Tillåtet: %s till %s."
+
+# AI Translated
+msgid "Show range"
+msgstr "Intervall"
+
+# AI Translated
+msgid "Show table"
+msgstr "Tabell"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Dra en punkt eller redigera dess värden i tabellen.\n"
+"\n"
+"Mushjul: flytta horisontellt.\n"
+"%s + mushjul: flytta vertikalt.\n"
+"%s + mushjul: zooma horisontellt.\n"
+"%s + %s + mushjul: zooma vertikalt.\n"
+"\n"
+"Intervall: ange exakta gränser, tryck Enter eller ”Applicera”.\n"
+"Tabell: visa eller dölj punktvärden.\n"
+"Hela kurvan: visa hela kurvan.\n"
+"Standardpunkter: återställ modellens standardpunkter."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "Grafkontroller"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Hela kurvan"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Visa hela kurvan."
+
+# AI Translated
+msgid "Add point"
+msgstr "Lägg till"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Ta bort"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "Standardpunkter"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "Tabellrad %d: "
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Dra punkter i grafen eller redigera extruderad längd och flödeskorr. faktor i tabellen.\n"
+"Längder och faktorer måste öka strikt. Första längden måste vara 0 och sista faktorn 1."
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "Extruderad längd"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "Flödeskorr. faktor"
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Ange ändliga gränser: minimum mindre än maximum."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Synligt intervall går utanför tillåtna gränser."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Synligt intervall är för litet."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "Ange ett ändligt tal i varje cell."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "Modellen måste ha minst två punkter."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "Första extruderade längden ska vara 0."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "Extruderade längder måste öka strikt."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "Flödeskorr. faktorer måste öka strikt."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Sista flödeskorr. faktorn måste vara 1."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Modellen är tom. Ingen flödeskompensation används."
+
