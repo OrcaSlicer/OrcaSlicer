@@ -473,7 +473,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         gcode += " ;cooldown\n";
         return gcode;
     }
-            
+
     std::string OozePrevention::post_toolchange(GCode& gcodegen)
     {
         return (gcodegen.config().standby_temperature_delta.value != 0) ?
