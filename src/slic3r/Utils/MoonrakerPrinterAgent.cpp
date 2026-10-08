@@ -641,12 +641,11 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
         return true;
     }
 
-    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
+    // Fall back to the Happy Hare `mmu` object for HH builds that do not publish lane_data
     if (fetch_hh_filament_info(trays, max_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        build_ams_payload_grouped(trays);
         return true;
     }
 
@@ -1004,48 +1003,41 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         return false;
     }
 
-    // Parse gate data
+    // Parse gate data. Every gate becomes a lane so empty/unknown gates surface
+    // as empty AMS slots rather than vanishing. HH is single-extruder, so all
+    // lanes belong to feed group 0.
     trays.clear();
-    max_lane_index = 0;
 
     for (int gate_idx = 0; gate_idx < num_gates; ++gate_idx) {
         // Check gate_status: -1 = unknown, 0 = empty, 1 or 2 = available
         int status = safe_array_int(gate_status, gate_idx);
-        if (status <= 0) {
-            continue;  // Skip unknown or empty gates
-        }
-
-        // Extract gate data
         std::string material = safe_array_string(gate_material, gate_idx);
         std::string color = safe_array_string(gate_color, gate_idx);
         int nozzle_temp = safe_array_int(gate_temperature, gate_idx);
 
-        // Skip if no material type (empty gate)
-        if (material.empty()) {
-            continue;
-        }
-
         AmsTrayData tray;
         tray.slot_index = gate_idx;
-        tray.tray_type = material;
-        tray.tray_color = color;
-        tray.nozzle_temp = nozzle_temp;
-        tray.bed_temp = 0;  // HH doesn't provide bed temp in gate arrays
-        tray.has_filament = true;
+        tray.extruder_id = 0;
 
-        auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        if (status > 0 && !material.empty()) {
+            tray.tray_type = material;
+            tray.tray_color = color;
+            tray.nozzle_temp = nozzle_temp;
+            tray.bed_temp = 0;  // HH doesn't provide bed temp in gate arrays
+            tray.has_filament = true;
 
-        max_lane_index = std::max(max_lane_index, gate_idx);
+            auto* bundle = GUI::wxGetApp().preset_bundle;
+            tray.tray_info_idx = bundle
+                ? bundle->filaments.filament_id_by_type(tray.tray_type)
+                : map_filament_type_to_generic_id(tray.tray_type);
+        } else {
+            tray.has_filament = false;
+        }
+
         trays.push_back(tray);
     }
 
-    if (trays.empty()) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_hh_filament_info: No valid HH gates found";
-        return false;
-    }
+    max_lane_index = num_gates - 1;
 
     return true;
 }
