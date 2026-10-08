@@ -30,6 +30,10 @@ public:
     // ignoring every navigation. A panel that gets true here recreates its view on first Show().
     static bool NeedsRecreateOnShow();
 
+    // Runtime version of the linked WebKitGTK, for gating the Linux DMA-BUF
+    // renderer workaround. Returns false on non-GTK builds.
+    static bool WebKitAtLeast(int major, int minor);
+
     static void RecreateAll();
 };
 

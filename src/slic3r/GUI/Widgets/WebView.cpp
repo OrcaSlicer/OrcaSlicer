@@ -69,6 +69,10 @@ webkit_web_view_run_javascript_finish                (WebKitWebView             
 						      GError                    **error);
 WEBKIT_API void
 webkit_javascript_result_unref              (WebKitJavascriptResult *js_result);
+WEBKIT_API unsigned int
+webkit_get_major_version                    (void);
+WEBKIT_API unsigned int
+webkit_get_minor_version                    (void);
 }
 #endif
 
@@ -401,6 +405,21 @@ bool WebView::NeedsRecreateOnShow()
     return false;
 #endif
 }
+
+bool WebView::WebKitAtLeast(int major, int minor)
+{
+#if defined(__linux__)
+    const unsigned int running_major = webkit_get_major_version();
+    if (running_major != static_cast<unsigned int>(major))
+        return running_major > static_cast<unsigned int>(major);
+    return webkit_get_minor_version() >= static_cast<unsigned int>(minor);
+#else
+    (void) major;
+    (void) minor;
+    return false;
+#endif
+}
+
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
 {

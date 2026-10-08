@@ -61,8 +61,10 @@ available; GTK2/WebKit1 is an opt-out configuration the GUI does not support.
 11. A web host that re-themes in place handles `EVT_WEBVIEW_RECREATED` without `Skip()`; one that
     needs a reload lets it through. §[Orca wrapper](#orca-webview-wrapper-widgetswebview)
 12. Keep `WebViewWebKit`'s destructor removing the `"wx"` handler. §[Orca wrapper](#orca-webview-wrapper-widgetswebview)
-13. Do not widen `WEBKIT_DISABLE_COMPOSITING_MODE` beyond Orca's default-path XWayland case, and never
-    make a page's progress depend only on a C++→JS callback. §[WebKitGTK on Linux](#webkitgtk-on-linux-sessions)
+13. Do not widen `WEBKIT_DISABLE_COMPOSITING_MODE` beyond Orca's default-path XWayland case. Disable the
+    WebKit DMA-BUF renderer only for the NVIDIA proprietary driver on native Wayland (GNOME/gtk#8056), and
+    never make a page's progress depend only on a C++→JS callback.
+    §[WebKitGTK on Linux](#webkitgtk-on-linux-sessions)
 14. GL attribute lists: legacy `int[]` lists end with `0` and spell out `WX_GL_RGBA` and
     `WX_GL_DOUBLEBUFFER`; `wxGLAttributes`/`wxGLContextAttrs` end with `EndList()`; MSAA is requested
     explicitly. §[wxGLCanvas](#wxglcanvas-and-wxglcontext)
@@ -598,6 +600,25 @@ Runtime backend detection elsewhere uses Orca's `is_running_on_wayland()` / `is_
   ```
   Cite: c12912e0df (`src/OrcaSlicer.cpp`; `resources/web/guide/0/load.js` `OnInit`
   `setTimeout("JumpToTarget()", …)`), 9446030079 (the `GDK_BACKEND=x11` opt-in branch).
+
+**DMA-BUF renderer / explicit sync (NVIDIA + Wayland).**
+- **Rule:** On the Wayland default path, set `WEBKIT_DISABLE_DMABUF_RENDERER=1` non-replacing, gated to
+  `__linux__` + native Wayland (not the forced-X11 fallback) + `/proc/driver/nvidia/version` +
+  `WebView::WebKitAtLeast(2, 46)`. The version gate uses the runtime `webkit_get_major_version()` /
+  `webkit_get_minor_version()` getters (no GTK init needed), not a compile-time macro, and 2.46 is the
+  oldest release with a confirmed crash report — narrower gates (e.g. 2.54) would miss 2.46–2.52 victims.
+  **Why:** WebKitGTK's DMA-BUF renderer arms `linux-drm-syncobj-v1` on the toplevel surface; GTK3 then
+  commits its first shared-memory frame without an acquire point, and KWin/Mutter reject the commit with
+  `Error 71 (Protocol error)` — GDK turns that into `_exit(1)` before Orca logs anything. The defect is
+  GTK3's `gdk_wayland_window_attach_image()` (GNOME/gtk#8056); WebKit only triggers it, the NVIDIA
+  proprietary driver has no implicit-sync fallback (Mesa tolerates it), and no upstream fix or PR exists.
+  This is a different variable from `WEBKIT_DISABLE_COMPOSITING_MODE` and does not replace it.
+  ```cpp
+  // Wayland default path, before GTK init
+  if (!x11_backend && wayland && ::access("/proc/driver/nvidia/version", F_OK) == 0 &&
+      WebView::WebKitAtLeast(2, 46))
+      ::setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1", /* replace */ false);
+  ```
 
 ## wxGLCanvas and wxGLContext
 

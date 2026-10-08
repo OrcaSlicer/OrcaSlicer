@@ -165,6 +165,7 @@ using json = nlohmann::json;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+    #include "slic3r/GUI/Widgets/WebView.hpp"
     // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
     // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
     // in CMakeLists).
@@ -1155,6 +1156,12 @@ int CLI::run(int argc, char **argv)
     // unset preserves WebKit hardware acceleration on Device / Setup
     // Wizard / login / store. The default path still applies it on
     // XWayland sessions as a conservative fallback for older WebKit.
+    //
+    // The default path also disables WebKit's DMA-BUF renderer when the
+    // NVIDIA proprietary driver is in use on native Wayland. That is a
+    // separate switch from compositing and is needed because GTK3 commits
+    // a shared-memory frame onto an explicit-sync surface (GNOME/gtk#8056),
+    // which KWin/Mutter reject with "Error 71 (Protocol error)".
     // ------------------------------------------------------------------
     {
         const char* gdk_backend = ::getenv("GDK_BACKEND");
@@ -1217,6 +1224,34 @@ int CLI::run(int argc, char **argv)
                     ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
                 }
             }
+
+            // WebKitGTK's DMA-BUF renderer arms explicit sync
+            // (linux-drm-syncobj-v1) on the toplevel Wayland surface. If the
+            // first painted frame is a shared-memory buffer, GTK3's
+            // gdk_wayland_window_attach_image() commits it without an acquire
+            // point, and compositors that enforce the protocol (KWin, Mutter)
+            // terminate the client with "Error 71 (Protocol error)" before the
+            // app can log anything (GNOME/gtk#8056). NVIDIA's proprietary
+            // driver has no implicit-sync fallback, so the crash only happens
+            // there; Mesa tolerates the missing point. Scope the workaround to
+            // NVIDIA on native Wayland, on WebKitGTK >= 2.46 (the oldest release
+            // with a confirmed report; the DMA-BUF renderer predates it).
+            // Non-replacing, so a user who does not hit the bug can opt back in
+            // with WEBKIT_DISABLE_DMABUF_RENDERER=0.
+            #if defined(__linux__)
+            {
+                const char* gdk_backend_wk = ::getenv("GDK_BACKEND");
+                // The EGL-less fallback above may have just forced X11.
+                const bool x11_backend_wk = gdk_backend_wk && boost::starts_with(gdk_backend_wk, "x11");
+                const char* wayland_env_dmabuf = ::getenv("WAYLAND_DISPLAY");
+                if (!x11_backend_wk && wayland_env_dmabuf && *wayland_env_dmabuf &&
+                    ::access("/proc/driver/nvidia/version", F_OK) == 0 &&
+                    WebView::WebKitAtLeast(2, 46)) {
+                    BOOST_LOG_TRIVIAL(info) << "NVIDIA proprietary driver on Wayland: disabling the WebKit DMA-BUF renderer (GNOME/gtk#8056 workaround).";
+                    ::setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1", /* replace */ false);
+                }
+            }
+            #endif
 
             // XInitThreads is needed before GStreamer may use Xlib. On
             // native Wayland without DISPLAY, GStreamer uses waylandsink
