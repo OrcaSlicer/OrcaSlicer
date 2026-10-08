@@ -6,6 +6,7 @@ usage: python scripts/orca_profile_tool.py <command> [options]
 
 commands:
   check            validate the whole tree -- what CI runs
+  fix-variant      resize the variant arrays check rejects
   generate-id      write the filament_id / setting_id each profile's identity implies
   normalize        rewrite profile files into their canonical shape
   trim             delete profile files no <vendor>.json list references
@@ -89,6 +90,7 @@ parent in the OFL map. filament_vendor / filament_type resolve the same way.
 """
 
 import argparse
+import functools
 import json
 import os
 import posixpath
@@ -138,7 +140,13 @@ PROFILE_SUBDIRS = ("filament", "process", "machine")
 PROFILE_TYPES = ("machine_model", "process", "filament", "machine")
 
 # Data files that sit under a vendor bundle but are not presets: no name, no type.
-NON_PROFILE_FILES = {"filaments_color_codes.json", "cli_config.json"}
+NON_PROFILE_FILES = {
+    "filaments_color_codes.json",
+    "cli_config.json",
+    "filament_id_map.json",
+    "filament_name_map.json",
+    "support_recommended_params.json",
+}
 
 # Mirror PrintConfigDef::handle_legacy's ignore set in PrintConfig.cpp; a test
 # checks parity. Used by normalize and check. Active options and
@@ -172,6 +180,99 @@ CONFLICT_KEYS = [
 VECTOR_KEYS = {
     "filament_type",
 }
+
+PRINT_CONFIG_CPP = os.path.normpath(
+    os.path.join(SCRIPTS_DIR, "..", "src", "libslic3r", "PrintConfig.cpp"))
+
+
+@functools.lru_cache(maxsize=None)
+def _variant_scheme():
+    """Per config preset type: the key listing the preset's own variants, and the
+    stride of every key sized by it.
+
+    Read from the four variant key sets in PrintConfig.cpp, the std::set
+    initializers DynamicPrintConfig::get_parameter_size sizes by, so membership is
+    the engine's own and not guessable from names. Each holds one value per variant;
+    printer_options_with_variant_2, the machine_max_* limits, holds a (normal,
+    silent) pair per variant, stride 2.
+    """
+    with open(PRINT_CONFIG_CPP, encoding="utf-8") as f:
+        source = f.read()
+
+    def members(name):
+        match = re.search(r"std::set<std::string>\s+" + name + r"\s*=\s*\{(.*?)\};",
+                          source, re.DOTALL)
+        if match is None:
+            raise RuntimeError(f"{PRINT_CONFIG_CPP} no longer defines {name}")
+        # An initializer can carry a commented-out entry (filament_extruder_id).
+        body = re.sub(r"//[^\n]*|/\*.*?\*/", "", match.group(1), flags=re.DOTALL)
+        return sorted(set(re.findall(r'"([^"\n]+)"', body)))
+
+    return {
+        "machine": ("printer_extruder_variant", {
+            **dict.fromkeys(members("printer_options_with_variant_1"), 1),
+            **dict.fromkeys(members("printer_options_with_variant_2"), 2)}),
+        "process": ("print_extruder_variant",
+                    dict.fromkeys(members("print_options_with_variant"), 1)),
+        "filament": ("filament_extruder_variant",
+                     dict.fromkeys(members("filament_options_with_variant"), 1)),
+    }
+
+
+@functools.lru_cache(maxsize=None)
+def _variant_names():
+    """The parts a variant string is built from, read from PrintConfig.cpp.
+
+    A variant is selected by exact string compare of "<extruder type> <nozzle volume
+    type>", so what is legal is the two enum maps the engine builds that string from,
+    not the list of strings some profile happens to ship. Returns (extruder types,
+    writable volume types, variant-name rewrites, extruder_type rewrites): the volume
+    types minus RUNTIME_VOLUME_TYPES, and the spellings PrintConfigDef::handle_legacy
+    rewrites in the six variant keys. The loader still accepts such a spelling, but a
+    profile must write the enum name, so the rewrite only names that name in the error;
+    it is read rather than restated because it belongs to the engine too.
+    """
+    with open(PRINT_CONFIG_CPP, encoding="utf-8") as f:
+        source = f.read()
+
+    def enum_map(name):
+        match = re.search(r"t_config_enum_values\s+" + name + r"\s*=\s*\{(.*?)\};",
+                          source, re.DOTALL)
+        if match is None:
+            raise RuntimeError(f"{PRINT_CONFIG_CPP} no longer defines {name}")
+        body = re.sub(r"//[^\n]*|/\*.*?\*/", "", match.group(1), flags=re.DOTALL)
+        return set(re.findall(r'"([^"\n]+)"', body))
+
+    def rewrites(anchor):
+        """The (old, new) ReplaceString pairs of handle_legacy's branch for one key.
+
+        An absent branch means the loader rewrites nothing, which is a defined answer
+        rather than a broken parse: every legacy name is then reported as unknown.
+        """
+        match = re.search(r'opt_key == "' + anchor + r'"\s*\)\s*\{(.*?)\}',
+                          source, re.DOTALL)
+        return ({} if match is None else
+                dict(re.findall(r'ReplaceString\(value,\s*"([^"]+)",\s*"([^"]+)"\)',
+                                match.group(1))))
+
+    return (enum_map("s_keys_map_ExtruderType"),
+            enum_map("s_keys_map_NozzleVolumeType") - RUNTIME_VOLUME_TYPES,
+            rewrites("extruder_variant_list"),
+            rewrites("extruder_type"))
+
+
+# What a preset that writes no variant layout takes: the default extruder_type and
+# nozzle volume type (PrintConfig.cpp defaults for extruder_type and
+# default_nozzle_volume_type), one such variant per extruder on a machine
+# (extend_extruder_variant) and a single one on a process or filament.
+DEFAULT_EXTRUDER_TYPE = "Direct Drive"
+DEFAULT_NOZZLE_VOLUME_TYPE = "Standard"
+DEFAULT_VARIANT = f"{DEFAULT_EXTRUDER_TYPE} {DEFAULT_NOZZLE_VOLUME_TYPE}"
+
+# A nozzle volume type the engine computes for a hybrid extruder at runtime, and no
+# profile ever writes: s_keys_map_NozzleVolumeType carries it for the several
+# sub-nozzles of one extruder, which no single variant string can name.
+RUNTIME_VOLUME_TYPES = {"Hybrid"}
 
 OF_ID_RE = re.compile(r"^OF[0-9A-Za-z]{6}$")
 # Filament name = preset base name: strip the first "@..." suffix. The space before
@@ -431,6 +532,7 @@ def resolve_filament_field(name, field, filaments, ofl_filaments, seen=None, in_
     the same hop semantics as resolve_filament_id: own value, else walk
     `inherits` in the vendor map with OFL base-bundle fallback. Values are list
     options — the first element counts; "" when the chain never defines one.
+    Templates pulled in by `include` are not consulted: none states either field.
     """
     if seen is None:
         seen = set()
@@ -881,8 +983,8 @@ def _vendor_json_files(vendor_path):
 def check_preset_name_uniqueness(profiles_dir, vendor):
     """No two profiles in a bundle may share a type and a name, indexed or not.
 
-    The loader resolves "inherits" through a per-type map of the bundle's profiles
-    (PresetBundle.cpp load_subfiles), and std::map::emplace keeps the first
+    The loader resolves "inherits" and "include" through per-type maps of the bundle's
+    profiles (PresetBundle.cpp load_subfiles), and std::map::emplace keeps the first
     insertion: a second file claiming the name is silently dropped, and which one
     wins is nothing but index order. An unindexed twin counts too - it is one
     sub_path edit away from deciding that silently.
@@ -1241,6 +1343,482 @@ def check_vector_type_keys(profiles_dir, vendor):
     return error_count
 
 
+@functools.lru_cache(maxsize=None)
+def load_vendor_configs(profiles_dir, vendor):
+    """name -> (tree-relative file, data) per config preset type, from the bundle's
+    index lists - the per-kind maps the loader resolves inherits and include in.
+
+    Cached because every vendor's filaments may reach OrcaFilamentLibrary. Unreadable
+    files are check_name_consistency's to report; when two indexed files claim one
+    name the first wins, as std::map::emplace keeps the first insertion.
+    """
+    configs = {sub: {} for sub in PROFILE_SUBDIRS}
+    try:
+        index = load_json(os.path.join(str(profiles_dir), vendor + ".json"))
+    except (OSError, ValueError):
+        return configs
+    for section in PROFILE_TYPES:
+        for entry in index.get(section + "_list", []):
+            sub_path = entry.get("sub_path", "")
+            try:
+                data = load_json(os.path.join(str(profiles_dir), vendor, sub_path))
+            except (OSError, ValueError):
+                continue
+            if isinstance(data, dict) and data.get("type") in configs and data.get("name"):
+                configs[data["type"]].setdefault(data["name"], (f"{vendor}/{sub_path}", data))
+    return configs
+
+
+def compose_config(name, presets, ofl_presets, cache, in_ofl=False, seen=frozenset()):
+    """A preset's config as the loader composes it: the parent's composed config,
+    then each `include` in the order listed, then its own keys - later layers win.
+
+    Each key maps to (value, path): the value as the winning file wrote it, width
+    included, and the tree-relative files it passes through on the way to this
+    preset, from that file down to this one. `inherits` resolves in the bundle
+    first, then in OrcaFilamentLibrary (filaments only) and stays there once it
+    enters; `include` never leaves the includer's bundle. A name that resolves to
+    nothing, or a cycle, contributes nothing - the loader's own error paths leave
+    the preset without it too.
+    """
+    if (in_ofl, name) in cache:
+        return cache[(in_ofl, name)]
+    bundle = ofl_presets if in_ofl else presets
+    if name not in bundle and not in_ofl and name in ofl_presets:
+        bundle, in_ofl = ofl_presets, True
+    if name not in bundle or name in seen:
+        return {}
+    seen = seen | {name}
+    rel, data = bundle[name]
+    config = {}
+    if data.get("inherits"):
+        config.update(
+            compose_config(data["inherits"], presets, ofl_presets, cache, in_ofl, seen))
+    include = data.get("include") or []
+    for included in ([include] if isinstance(include, str) else include):
+        if included in bundle:
+            config.update(compose_config(included, presets, ofl_presets, cache, in_ofl, seen))
+    config = {key: (value, path + (rel,)) for key, (value, path) in config.items()}
+    config.update((key, (value, (rel,))) for key, value in data.items())
+    cache[(in_ofl, name)] = config
+    return config
+
+
+def _as_list(value):
+    return value if isinstance(value, list) else [value]
+
+
+def _per_extruder(values, i):
+    """Entry i of a per-extruder vector, padded the way the loader pads: by its first value."""
+    return values[i] if i < len(values) else values[0]
+
+
+def _check_printer_layout(rel, config):
+    """A machine's extruder_variant_list, printer_extruder_variant, printer_extruder_id,
+    extruder_type and default_nozzle_volume_type agree with each other, the loader's
+    defaults standing in for whatever the composed config leaves out.
+
+    A machine that writes none of the three list keys takes one default variant
+    "Direct Drive Standard" per extruder, so there is nothing to check. Otherwise
+    printer_extruder_variant is extruder_variant_list flattened extruder-major and
+    printer_extruder_id gives each of its entries its 1-based extruder (extruder 1
+    everywhere when absent); every variant starts with its extruder's extruder_type
+    ("Direct Drive" when absent); the default_nozzle_volume_type ("Standard" when
+    absent) is one the extruder lists. A list without the pair leaves the loader on
+    the default single variant; a pair without the list gives the sidebar no variant
+    switch, and with single_extruder_multi_material off the loader replaces it with
+    one default variant per extruder. Returns (errors, warnings).
+    """
+    menu = config.get("extruder_variant_list")
+    variant = config.get("printer_extruder_variant")
+    if menu is None and variant is None:
+        return 0, 0
+    errors = warnings = 0
+    extruders = len(_as_list(config.get("nozzle_diameter", [""])))
+    types = _as_list(config.get("extruder_type", [DEFAULT_EXTRUDER_TYPE]))
+    volume_types = _as_list(config.get("default_nozzle_volume_type", [DEFAULT_NOZZLE_VOLUME_TYPE]))
+    semm_off = str(_as_list(config.get("single_extruder_multi_material", ["1"]))[0]) \
+        .lower() in ("0", "false")
+    flat, ids = [], []
+    if menu is not None:
+        menu = _as_list(menu)
+        if len(menu) != extruders:
+            print_error(f"{rel}: extruder_variant_list has {len(menu)} entries for {extruders} "
+                        f"extruder(s) (nozzle_diameter); it holds one entry per extruder")
+            errors += 1
+        for i, entry in enumerate(menu):
+            variants = entry.split(",")
+            flat += variants
+            ids += [str(i + 1)] * len(variants)
+            extruder_type = _per_extruder(types, i)
+            if not all(v.startswith(extruder_type + " ") for v in variants):
+                print_error(f'{rel}: extruder_variant_list entry {i + 1} "{entry}" holds a '
+                            f"variant that does not start with extruder {i + 1}'s "
+                            f'extruder_type "{extruder_type}"')
+                errors += 1
+            if f"{extruder_type} {_per_extruder(volume_types, i)}" not in variants:
+                print_error(f'{rel}: default_nozzle_volume_type "{_per_extruder(volume_types, i)}" is '
+                            f'not a nozzle volume type extruder {i + 1} lists ("{entry}")')
+                errors += 1
+    if variant is not None:
+        variant = _as_list(variant)
+        written_ids = config.get("printer_extruder_id")
+        pair_ids = ["1"] * len(variant) if written_ids is None else _as_list(written_ids)
+        if len(pair_ids) != len(variant):
+            print_error(f"{rel}: printer_extruder_id has {len(pair_ids)} entries for the "
+                        f"{len(variant)} entries of printer_extruder_variant")
+            errors += 1
+    if menu is not None and variant is not None:
+        if variant != flat:
+            print_error(f"{rel}: printer_extruder_variant {json.dumps(variant)} is not "
+                        f"extruder_variant_list flattened extruder-major {json.dumps(flat)}")
+            errors += 1
+        elif pair_ids != ids:
+            print_error(f"{rel}: printer_extruder_id {json.dumps(pair_ids)}"
+                        f"{' (absent, so extruder 1 everywhere)' if written_ids is None else ''} "
+                        f"does not give each entry of printer_extruder_variant its 1-based "
+                        f"extruder {json.dumps(ids)}")
+            errors += 1
+    elif menu is not None:
+        if len(flat) > 1:
+            print_error(f"{rel}: extruder_variant_list offers {len(flat)} variants but the "
+                        f"preset writes no printer_extruder_variant/printer_extruder_id, so the "
+                        f'loader sizes every variant array to the single default variant '
+                        f'"{DEFAULT_VARIANT}" and no other variant has a value; write the pair')
+            errors += 1
+    else:
+        crowded = [i for i in dict.fromkeys(pair_ids) if pair_ids.count(i) > 1]
+        if crowded:
+            print_error(f"{rel}: printer_extruder_variant lists several variants for extruder "
+                        f"{crowded[0]} but the preset writes no extruder_variant_list, so the "
+                        f"sidebar offers no variant switch and the extra variants are unreachable")
+            errors += 1
+        elif semm_off and variant != [DEFAULT_VARIANT] * extruders:
+            print_warning(f"{rel}: with single_extruder_multi_material off the loader replaces "
+                          f"printer_extruder_variant {json.dumps(variant)} by one "
+                          f'"{DEFAULT_VARIANT}" per extruder, because extruder_variant_list is '
+                          f"absent; write the list or drop the pair")
+            warnings += 1
+    return errors, warnings
+
+
+def _variant_length(ptype, config):
+    """(variant length, reason) of a config as compose_config gives it, after
+    inherits and include.
+
+    The variant length is the length of the preset's *_extruder_variant list. A
+    machine without one has the variants its extruder_variant_list offers, and
+    without that list one default "Direct Drive Standard" variant per extruder
+    (len(nozzle_diameter)) - the list's default in extend_extruder_variant. A process
+    or filament without its list has the single default variant. The reason says
+    which of these gave the length, and is empty when the list is written.
+    """
+    list_key = _variant_scheme()[ptype][0]
+    if list_key in config:
+        return len(_as_list(config[list_key][0])), ""
+    if ptype != "machine":
+        return 1, f"no {list_key}, so the single default variant"
+    if "extruder_variant_list" in config:
+        menu = _as_list(config["extruder_variant_list"][0])
+        return (sum(len(entry.split(",")) for entry in menu),
+                f"no {list_key}, so the variants extruder_variant_list offers")
+    extruders = len(_as_list(config["nozzle_diameter"][0])) if "nozzle_diameter" in config else 1
+    return extruders, f"no {list_key}, so one default variant per extruder"
+
+
+def _variant_presets(profiles_dir, vendor):
+    """Yield (ptype, rel, data, config, variant length, reason) for every machine,
+    process and filament preset of the bundle, bases included: data as its file
+    holds it, config as compose_config gives it, and the variant length and reason
+    as _variant_length does.
+    """
+    presets = load_vendor_configs(profiles_dir, vendor)
+    library = {} if vendor == OFL else load_vendor_configs(profiles_dir, OFL)["filament"]
+    for ptype in _variant_scheme():
+        ofl_presets = library if ptype == "filament" else {}
+        cache = {}
+        for name, (rel, data) in sorted(presets[ptype].items(), key=lambda item: item[1][0]):
+            config = compose_config(name, presets[ptype], ofl_presets, cache)
+            yield (ptype, rel, data, config, *_variant_length(ptype, config))
+
+
+def indexed_sub_paths(profiles_dir, vendor):
+    """The sub_paths a bundle's index lists, normalized, or None with no index.
+
+    The loader reads what <vendor>.json references and nothing else, so a file no list
+    names never loads and its contents are not worth judging; "filament/./X.json"
+    names the same file as "filament/X.json". A bundle with no readable index is
+    check_name_consistency's to report. Returns a set of sub_paths, or None.
+    """
+    try:
+        library = load_json(os.path.join(profiles_dir, vendor + ".json"))
+    except (ValueError, OSError):
+        return None
+    listed = set()
+    for section in PROFILE_TYPES:
+        for entry in library.get(section + "_list", []):
+            if entry.get("sub_path"):
+                listed.add(posixpath.normpath(entry["sub_path"].replace("\\", "/")))
+    return listed
+
+
+def _variant_entries(key, value):
+    """(where, variant string) of every entry of a variant list key, as the loader
+    reads it: extruder_variant_list holds one ","-joined menu per extruder, the other
+    three one variant per array entry."""
+    if key == "extruder_variant_list":
+        return [(f"extruder {i}", variant)
+                for i, entry in enumerate(_as_list(value), 1)
+                for variant in str(entry).split(",")]
+    return [(f"entry {i}", str(variant))
+            for i, variant in enumerate(_as_list(value), 1)]
+
+
+def _check_variant_string(rel, key, where, variant):
+    """Report one variant string that is not "<extruder type> <nozzle volume type>"
+    in the engine's enum names. Returns the error count, 0 or 1.
+
+    Legality is the two enum maps _variant_names reads, in every bundle: a variant
+    outside them is dead - nothing selects it, nothing rejects it, and it still counts
+    toward the variant length every array is sized by, so the values tuned for it
+    silently never reach the G-code. A legacy name the loader rewrites in these keys
+    is an error too, naming the enum name to write instead.
+    """
+    extruder_types, volume_types, legacy, _extruder_legacy = _variant_names()
+
+    if not variant:
+        print_error(f"{rel}: {key} {where} is empty; every entry names one variant, "
+                    f'"<extruder type> <nozzle volume type>"')
+        return 1
+    # Longest first, so an extruder type that is a prefix of another cannot win.
+    extruder = next((t for t in sorted(extruder_types, key=len, reverse=True)
+                     if variant.startswith(t + " ")), None)
+    if extruder is None:
+        # "DirectDrive" is rewritten in extruder_type alone, so a variant string
+        # carrying it is dead.
+        print_error(f'{rel}: {key} {where} holds "{variant}", which no extruder can '
+                    f"select: it does not start with an extruder type the enum has "
+                    f'({", ".join(sorted(extruder_types))}); a variant is '
+                    f'"<extruder type> <nozzle volume type>"')
+        return 1
+    volume = variant[len(extruder) + 1:]
+    if volume in volume_types:
+        return 0
+    if volume in legacy:
+        print_error(f'{rel}: {key} {where} holds the legacy variant "{variant}"; the '
+                    f'loader still rewrites "{volume}" to "{legacy[volume]}", but a '
+                    f'profile writes the enum name: "{extruder} {legacy[volume]}"')
+    elif volume in RUNTIME_VOLUME_TYPES:
+        print_error(f'{rel}: {key} {where} holds "{variant}", which no extruder can '
+                    f"select: Hybrid names the sub-nozzles of one hybrid extruder at "
+                    f"runtime, never a nozzle volume type a profile writes")
+    else:
+        print_error(f'{rel}: {key} {where} holds "{variant}", which no extruder can '
+                    f'select: "{volume}" is not a nozzle volume type the enum has '
+                    f'({", ".join(sorted(volume_types))}), so nothing selects the variant '
+                    f"and the values tuned for it never reach the G-code")
+    return 1
+
+
+def _variant_repeats(data):
+    """One message per variant a preset's own lists name twice.
+
+    The lookup returns the first equal string, so a repeat is a variant nothing
+    selects, and the value written beside it sits at an index no extruder reads. A
+    process's variant is the (extruder id, variant) pair, so one string on two
+    extruders is two pairs rather than a repeat; with print_extruder_id absent or
+    short every pair reads as extruder 1, which check_variant_arrays warns about once
+    per preset instead.
+    """
+    messages = []
+    if "filament_extruder_variant" in data:
+        variants = [str(v) for v in _as_list(data["filament_extruder_variant"])]
+        messages += [
+            f'filament_extruder_variant lists "{v}" {variants.count(v)} times; a '
+            f"filament's variants are matched by exact string, so the repeat is a "
+            f"variant nothing selects and its value sits at an index no extruder reads"
+            for v in sorted({v for v in variants if variants.count(v) > 1})]
+    if "extruder_variant_list" in data:
+        for i, entry in enumerate(_as_list(data["extruder_variant_list"]), 1):
+            variants = str(entry).split(",")
+            messages += [
+                f'extruder_variant_list extruder {i} lists "{v}" '
+                f"{variants.count(v)} times; the sidebar offers it once, so the repeat "
+                f"is a variant nothing selects and the arrays hold a value no extruder "
+                f"reads"
+                for v in sorted({v for v in variants if variants.count(v) > 1})]
+    if "print_extruder_variant" in data and "print_extruder_id" in data:
+        ids = _as_list(data["print_extruder_id"])
+        variants = _as_list(data["print_extruder_variant"])
+        if len(ids) == len(variants):
+            pairs = [(str(i), str(v)) for i, v in zip(ids, variants)]
+            messages += [
+                f'print_extruder_variant lists the pair (extruder {i}, "{v}") '
+                f"{pairs.count((i, v))} times; a variant is found by that pair, so the "
+                f"repeat is unreachable"
+                for i, v in sorted({p for p in pairs if pairs.count(p) > 1})]
+    return messages
+
+
+def _check_variant_seed(rel, option, value, allowed, legacy, runtime=frozenset()):
+    """Report the values of an enum option a variant string is composed from.
+
+    extruder_type and the nozzle volume type (nozzle_volume_type, seeded by
+    default_nozzle_volume_type) are the two halves of every variant string, and all
+    three are enum options: an unknown value fails the validator's load of the whole
+    bundle, while the app silently loads the option's default instead, which is worth
+    naming precisely here. A legacy name the loader rewrites, and a name in `runtime`
+    the engine computes for itself, are errors too. Returns the error count.
+    """
+    errors = 0
+    for name in ([] if value is None else _as_list(value)):
+        name = str(name)
+        if name in allowed:
+            continue
+        if name in legacy:
+            print_error(f'{rel}: {option} spells the legacy name "{name}"; the loader '
+                        f'still rewrites it to "{legacy[name]}", but a profile writes the '
+                        f"enum name")
+        elif name in runtime:
+            print_error(f'{rel}: {option} names "{name}", which the engine computes '
+                        f"for a hybrid extruder at runtime; no profile writes it")
+        else:
+            print_error(f'{rel}: {option} "{name}" is not one of '
+                        f'({", ".join(sorted(allowed))}); the option is an enum, so an '
+                        f"unknown value fails loading the whole bundle in the validator "
+                        f"and silently becomes the default in the app")
+        errors += 1
+    return errors
+
+
+def check_variant_names(profiles_dir, vendor):
+    """Every variant string and extruder or nozzle volume type a preset writes is an
+    enum name the engine has.
+
+    check_variant_arrays judges how many values a variant key holds; this judges what
+    the variants are called, the other half of the same scheme. It reads the four list
+    keys, extruder_type, nozzle_volume_type and default_nozzle_volume_type of every
+    preset the bundle's index references - bases included, since a base's list is what
+    sizes its children's arrays - and reports as errors, in every bundle alike:
+
+      * a variant string the two enums cannot build (dead variant), a legacy spelling
+        the loader still rewrites in these keys included (_check_variant_string);
+      * a variant list naming one variant twice: the lookup returns the first equal
+        string, so the repeat is unreachable. A filament list takes variant strings, a
+        menu takes them per extruder, and a process takes (extruder id, variant) pairs,
+        where one string on two extruders is two pairs, not a repeat;
+      * an extruder_type, nozzle_volume_type or default_nozzle_volume_type that is not
+        an enum name a profile writes (_check_variant_seed).
+
+    Key/value types elsewhere are check_vector_type_keys' and the validator's; a file
+    no list references is skipped, check_index_coverage having reported it. Returns
+    the error count.
+    """
+    extruder_types, volume_types, legacy, extruder_legacy = _variant_names()
+    errors = 0
+    listed = indexed_sub_paths(profiles_dir, vendor)
+    if listed is None:
+        return 0
+    vendor_dir = os.path.join(profiles_dir, vendor)
+
+    for path, _sub in iter_profile_files(vendor_dir):
+        if os.path.basename(path) in NON_PROFILE_FILES:
+            continue
+        sub_path = posixpath.normpath(
+            os.path.relpath(path, vendor_dir).replace(os.sep, "/"))
+        if sub_path not in listed:
+            continue
+        try:
+            data = load_json(path)
+        except (ValueError, OSError):
+            # Parse failures are reported by the checks that walk the same files.
+            continue
+        if not isinstance(data, dict):
+            continue
+        rel = f"{vendor}/{sub_path}"
+
+        for key in ("extruder_variant_list", "printer_extruder_variant",
+                    "print_extruder_variant", "filament_extruder_variant"):
+            if key in data:
+                for where, variant in _variant_entries(key, data[key]):
+                    errors += _check_variant_string(rel, key, where, variant)
+
+        # A list naming one variant twice, and the two enum values a variant string is
+        # composed from.
+        for message in _variant_repeats(data):
+            print_error(f"{rel}: {message}")
+            errors += 1
+        errors += _check_variant_seed(rel, "extruder_type", data.get("extruder_type"),
+                                      extruder_types, extruder_legacy)
+        for option in ("nozzle_volume_type", "default_nozzle_volume_type"):
+            errors += _check_variant_seed(rel, option, data.get(option), volume_types,
+                                          legacy, RUNTIME_VOLUME_TYPES)
+    return errors
+
+
+def check_variant_arrays(profiles_dir, vendor, strict=False):
+    """Every variant array an instantiated preset writes is exactly its
+    variant length x stride wide, and a printer's variant layout keys agree.
+
+    Only instantiated presets are judged, each at the variant length of its composed
+    config (_variant_length's); a base is not, since what it writes counts only where
+    it reaches a preset that does not override it. A full-width array holds one
+    value per variant; any other width is an error, one value included and whatever
+    the values. A key the preset does not write takes what reaches it - the default,
+    or an array it inherits or includes - which the loader sizes to the preset, and
+    is not checked. With strict, every instantiated preset also holds each key that
+    reaches it at its own width, so a preset with other variants than the file its
+    array comes from restates the array. The machine_max_* limits hold
+    a (normal, silent) pair per variant. A process that lists variants pairs each
+    with its extruder id (extruder 1 everywhere when absent); a machine's layout keys
+    are held to _check_printer_layout, which reports a printer_extruder_id that does
+    not fit a written printer_extruder_variant, as the process check below does for
+    print_extruder_id. Returns (errors, warnings).
+    """
+    errors = warnings = 0
+    for ptype, rel, data, config, variant_length, reason in _variant_presets(profiles_dir,
+                                                                             vendor):
+        if data.get("instantiation") != "true":
+            continue
+        list_key, strides = _variant_scheme()[ptype]
+        listed = list_key in config
+        for key, stride in sorted(strides.items()):
+            if key not in config or (listed and key in ("printer_extruder_id",
+                                                         "print_extruder_id")):
+                continue
+            if key not in data and not strict:
+                continue
+            value, path = config[key]
+            width, need = len(_as_list(value)), variant_length * stride
+            if width == need:
+                continue
+            print_error(f'{rel}: "{key}" has {width} values for variant length {variant_length}'
+                        f"{' (' + reason + ')' if reason else ''} at stride {stride}, "
+                        f"which takes {need}"
+                        f"{'' if key in data else ' (it comes from ' + path[0] + ')'}")
+            errors += 1
+        config = {key: value for key, (value, _path) in config.items()}
+        if ptype == "machine":
+            new_errors, new_warnings = _check_printer_layout(rel, config)
+            errors += new_errors
+            warnings += new_warnings
+        elif ptype == "process" and listed:
+            variants = _as_list(config[list_key])
+            if "print_extruder_id" in config:
+                ids = _as_list(config["print_extruder_id"])
+                if len(ids) != variant_length:
+                    print_error(f"{rel}: print_extruder_id has {len(ids)} entries for the "
+                                f"{variant_length} entries of print_extruder_variant; the two "
+                                f"list the (extruder id, variant) pairs, one per entry")
+                    errors += 1
+            elif len(set(variants)) < len(variants):
+                print_warning(f"{rel}: print_extruder_variant repeats a variant but "
+                              f"print_extruder_id is absent, so every entry defaults to "
+                              f"extruder 1 and the repeated variant is unreachable")
+                warnings += 1
+    return errors, warnings
+
+
 def check_conflict_keys(profiles_dir, vendor):
     """A renamed option and its old spelling must not co-exist in one profile.
 
@@ -1281,11 +1859,11 @@ def check_normalized(profiles_dir, vendor):
 
     Those two commands define a profile file's canonical shape - identifying keys
     first, keys the slicer no longer reads gone, filament options that are vectors
-    written as vectors - and a <vendor>.json's canonical lists, ordered parents-first
-    so the loader resolves every "inherits" in one pass. Running them over a
-    contributed bundle has to be a no-op; where it would not be, the file that was
-    reviewed is not the file that ships, and the next maintainer to run normalize
-    carries an unrelated diff into their own change.
+    written as vectors - and a <vendor>.json's canonical lists, ordered
+    dependencies-first so the loader resolves every "inherits" and "include" in one
+    pass. Running them over a contributed bundle has to be a no-op; where it would
+    not be, the file that was reviewed is not the file that ships, and the next
+    maintainer to run normalize carries an unrelated diff into their own change.
 
     It asks the normalize and update-index sections below rather than restating what
     they do, because a second definition of normal is free to drift from the one that
@@ -1341,8 +1919,11 @@ def check_normalized(profiles_dir, vendor):
 # check
 # ---------------------------------------------------------------------------
 
-def check_profiles(profiles_dir=PROFILES_DIR, vendors=None):
+def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, strict=False):
     """Validate the whole profile tree. Returns the error count.
+
+    strict holds every preset's inherited and included variant arrays to its
+    own width too (check_variant_arrays).
 
     The per-vendor checks honour `vendors`; the setting_id and filament_id checks are
     cross-vendor properties a narrowed run cannot answer, so they always cover the
@@ -1382,6 +1963,10 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None):
         warnings_found += new_warnings
 
         errors_found += check_vector_type_keys(profiles_dir, vendor)
+        errors_found += check_variant_names(profiles_dir, vendor)
+        new_errors, new_warnings = check_variant_arrays(profiles_dir, vendor, strict)
+        errors_found += new_errors
+        warnings_found += new_warnings
         errors_found += check_filament_id_length(profiles_dir, vendor)
 
         new_errors, gaps = check_index_coverage(profiles_dir, vendor)
@@ -1484,6 +2069,49 @@ def delete_key_line(text, key, old_value=None):
     if m:
         return text[:m.start()] + text[m.end():], 1
     return text, 0
+
+
+_JSON_WS = re.compile(r"[ \t\r\n]*")
+
+
+def _json_members(text):
+    """(key, key start, value start, value end) of each member of the top-level
+    JSON object in text, in file order."""
+    decoder = json.JSONDecoder()
+    members = []
+    i = _JSON_WS.match(text, text.index("{") + 1).end()
+    while text[i] != "}":
+        key_start = i
+        key, i = decoder.raw_decode(text, i)
+        i = _JSON_WS.match(text, _JSON_WS.match(text, i).end() + 1).end()  # past the ':'
+        _value, end = decoder.raw_decode(text, i)
+        members.append((key, key_start, i, end))
+        i = _JSON_WS.match(text, end).end()
+        i = _JSON_WS.match(text, i + (text[i] == ",")).end()
+    return members
+
+
+def set_array_value(text, key, values):
+    """Write values as the "key" array, byte-preserving the rest.
+
+    An existing array keeps its one-line or one-value-per-line layout; a preset
+    without the key gets it as its last member, one value per line, in the file's
+    own indentation and line ending. Returns (text, 1).
+    """
+    items = [json.dumps(v, ensure_ascii=False) for v in values]
+    members = _json_members(text)
+    for name, _key_start, start, end in reversed(members):  # json.load keeps the last
+        if name == key:
+            m = re.fullmatch(r"\[(\r?\n)([ \t]*).*(\r?\n)([ \t]*)\]", text[start:end], re.DOTALL)
+            array = ("[" + ", ".join(items) + "]" if m is None else
+                     "[" + m[1] + ("," + m[1]).join(m[2] + item for item in items)
+                     + m[3] + m[4] + "]")
+            return text[:start] + array + text[end:], 1
+    _name, key_start, _start, end = members[-1]
+    indent = text[text.rfind("\n", 0, key_start) + 1:key_start]
+    nl = "\r\n" if "\r\n" in text else "\n"
+    array = "[" + nl + ("," + nl).join(indent * 2 + item for item in items) + nl + indent + "]"
+    return text[:end] + "," + nl + indent + json.dumps(key) + ": " + array + text[end:], 1
 
 
 def insert_filament_id(text, new_id):
@@ -1901,6 +2529,21 @@ def create_ordered_profile(profile, priority_fields):
 # The keys that identify a preset, hoisted to the top of every rewritten file.
 NORMALIZE_FIELD_ORDER = ("type", "name", "renamed_from", "inherits", "from",
                    "setting_id", "filament_id", "instantiation")
+
+
+def identity_block_misplaced(keys):
+    """The identifying keys are not a correctly ordered prefix of `keys`.
+
+    create_ordered_profile hoists them, so this is the one part of the canonical
+    shape a rewrite is guaranteed to change. Without asking, normalize would only
+    ever apply the hoist as a side effect of some other rule firing, which leaves
+    a file that breaks this rule reported as already normalized.
+    """
+    present = [k for k in keys if k in NORMALIZE_FIELD_ORDER]
+    return (keys[:len(present)] != present
+            or present != [k for k in NORMALIZE_FIELD_ORDER if k in keys])
+
+
 # Settings a filament profile must not pin: they belong to the process.
 FILAMENT_DROP_FIELDS = ("initial_layer_print_speed", "outer_wall_speed",
                         "inner_wall_speed", "infill_speed", "top_surface_speed",
@@ -1959,6 +2602,11 @@ def _normalize_profile(data, sub):
             if field in data:
                 del data[field]
                 changes.append(f"remove {field}")
+
+    # Last, because it describes the file as written rather than its contents, and
+    # create_ordered_profile does the hoisting when the file is written.
+    if identity_block_misplaced(list(data)):
+        changes.append("put the identifying keys first")
 
     return changes
 
@@ -2028,9 +2676,9 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
     cli_config.json carry no "type" - all of them stay. A file that cannot be parsed
     is reported and kept: never delete what could not be read.
 
-    An unindexed file that some surviving profile names in "inherits" is kept too,
-    and reported, UNLESS an indexed profile already carries that name: "inherits" is
-    resolved by preset name, so the indexed one is the parent every child actually
+    An unindexed file that some surviving profile names in "inherits" or "include" is
+    kept too, and reported, UNLESS an indexed profile already carries that name: both
+    are resolved by preset name, so the indexed one is the parent every child actually
     gets, and the unindexed file is a stale copy the loader never reaches. Where no
     indexed profile provides the name the inheriting preset really is broken, and
     deleting the file would destroy the only record of the settings it was written
@@ -2063,7 +2711,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
                     listed.add(posixpath.normpath(sub_path.replace("\\", "/")))
 
         candidates = {}    # path -> profile, for every unindexed preset
-        inherited = set()  # every name the files that stay claim as a parent
+        inherited = set()  # every name the files that stay claim as a parent or include
         provided = {}      # name -> sub_path, for the profiles the loader can see
         for sub in subs:
             for path in _walk_json(os.path.join(vendor_dir, sub)):
@@ -2078,8 +2726,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
                 if not isinstance(profile, dict):
                     continue
                 if sub_path in listed or profile.get("type") not in PROFILE_TYPES:
-                    if profile.get("inherits"):
-                        inherited.add(profile["inherits"])
+                    inherited.update(profile_dependencies(profile))
                     if sub_path in listed and profile.get("name"):
                         provided[profile["name"]] = sub_path
                     continue
@@ -2098,8 +2745,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
             for path, profile in rescued.items():
                 del candidates[path]
                 kept[path] = profile
-                if profile.get("inherits"):
-                    inherited.add(profile["inherits"])
+                inherited.update(profile_dependencies(profile))
 
         for path in sorted(kept):
             print_warning(f"{_rel(path, profiles_dir)}: not indexed by {vendor}.json but "
@@ -2136,40 +2782,48 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
 # update-index
 # ---------------------------------------------------------------------------
 
-def topological_sort(profiles):
-    """Order index entries parents-first, so the loader resolves inherits in one pass.
+def profile_dependencies(profile):
+    """The names a profile needs loaded before it: its parent and every include."""
+    include = profile.get("include") or []
+    if isinstance(include, str):
+        include = [include]
+    return [name for name in [profile.get("inherits"), *include] if name]
 
-    Entries whose parent is not in the same section keep their own (sorted) order at
-    the end; the loader finds those parents through the base bundle instead.
+
+def topological_sort(profiles):
+    """Order index entries dependencies-first, so the loader resolves every
+    "inherits" and "include" in one pass.
+
+    Entries that neither depend on nor are depended on by another in the same section
+    go at the end in name order; the loader finds their parents, if any, through the
+    base bundle instead. Every entry on a dependency cycle, which no order can satisfy,
+    goes there too.
     """
     graph = defaultdict(list)
     in_degree = defaultdict(int)
     by_name = {p["name"]: p for p in profiles}
     all_names = set(by_name)
 
-    placed = set()
     for profile in profiles:
-        parent = profile.get("inherits")
         child = profile["name"]
-        if parent in all_names:
-            graph[parent].append(child)
-            in_degree[child] += 1
-            in_degree.setdefault(parent, 0)
-            placed.add(child)
-            placed.add(parent)
+        for parent in profile_dependencies(profile):
+            if parent in all_names:
+                graph[parent].append(child)
+                in_degree[child] += 1
+                in_degree.setdefault(parent, 0)
 
     queue = sorted(name for name, degree in in_degree.items() if degree == 0)
     result = []
     while queue:
         current = queue.pop(0)
         result.append(by_name[current])
-        placed.add(current)
         for child in sorted(graph[current]):
             in_degree[child] -= 1
             if in_degree[child] == 0:
                 queue.append(child)
 
-    result.extend(by_name[name] for name in sorted(all_names - placed))
+    ordered = {p["name"] for p in result}
+    result.extend(by_name[name] for name in sorted(all_names - ordered))
     return result
 
 
@@ -2219,15 +2873,15 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
                 "name": name,
                 "sub_path": os.path.relpath(path, vendor_dir).replace(os.sep, "/"),
             }
-            if profile.get("inherits"):
-                entry["inherits"] = profile["inherits"]
+            for key in ("inherits", "include"):
+                if profile.get(key):
+                    entry[key] = profile[key]
             by_name[name].append(entry["sub_path"])
             entries.append(entry)
 
-        sorted_entries = topological_sort(entries)
-        for entry in sorted_entries:
-            entry.pop("inherits", None)  # ordering input only, not part of the index
-        sections[profile_type + "_list"] = sorted_entries
+        # inherits/include were ordering input only; the index holds name and sub_path
+        sections[profile_type + "_list"] = [{"name": e["name"], "sub_path": e["sub_path"]}
+                                            for e in topological_sort(entries)]
 
     for rel, found in sorted(unplaceable.items()):
         problems.append(f'{rel}: type {found!r} is not one of {list(PROFILE_TYPES)}, so it '
@@ -2292,6 +2946,128 @@ def update_profile_indexes(profiles_dir=PROFILES_DIR, vendors=None, profile_type
 
 
 # ---------------------------------------------------------------------------
+# fix-variant
+# ---------------------------------------------------------------------------
+
+# The members of the variant sets that name the variants rather than hold values.
+VARIANT_LAYOUT_KEYS = {"printer_extruder_variant", "printer_extruder_id", "print_extruder_variant",
+                       "print_extruder_id", "filament_extruder_variant"}
+
+
+def _fit_width(values, need, stride):
+    """values cut to need, or padded by repeating the last value - the last
+    (normal, silent) pair at stride 2, after dropping a trailing half pair; a lone
+    value fills every entry, normal and silent alike."""
+    if len(values) > need:
+        return values[:need]
+    if len(values) == 1:
+        return values * need
+    values = values[:len(values) - len(values) % stride]
+    return values + values[-stride:] * ((need - len(values)) // stride)
+
+
+def fix_variant_arrays(profiles_dir=PROFILES_DIR, vendors=None, dry_run=False, strict=False):
+    """Resize every variant array check_variant_arrays rejects to its
+    width: extra values are dropped, missing ones repeat the last. The variant lists
+    and extruder ids are layout, not values, and are left to check.
+
+    An array an instantiated preset writes is resized in place, to the preset's
+    width; bases are left alone and no key is added. With strict, a key that then
+    reaches an instantiated preset at another width is written, resized, into the
+    most general file on the way down to the preset whose own width it fits and whose
+    instantiated presets taking it all need that width - a base only the presets with
+    a variant list inherit, say - else into the preset's own file. Presets of every bundle count towards that agreement; only
+    files of `vendors` are touched. Returns (files changed, errors).
+    """
+    profiles_dir = str(profiles_dir)
+    names = list_vendor_names(profiles_dir)
+    scope = set(vendors or names)
+    files = {rel: data for vendor in names
+             for configs in load_vendor_configs(profiles_dir, vendor).values()
+             for rel, data in configs.values()}
+    verb = "would " if dry_run else ""
+    changed, errors = set(), 0
+
+    def fit(rel, key, values, need, stride):
+        fitted = _fit_width(values, need, stride)
+        if not fitted:
+            print_error(f'{rel}: "{key}" cannot be resized from {len(values)} to {need} values')
+        return fitted
+
+    # Each preset's own arrays first, then (strict) what reaches the presets; a write
+    # into a preset hands its children a new source, which the next pass judges. The
+    # in-memory configs take each write so a dry run sees it too.
+    for _ in range(8):
+        own = {}  # file -> its own variant length
+        users = defaultdict(list)  # (file, key) -> [(value, path, need, stride)]
+        writes = defaultdict(dict)  # file -> {key: values}
+        for vendor in names:
+            for ptype, rel, data, config, variant_length, _reason in _variant_presets(
+                    profiles_dir, vendor):
+                own[rel] = variant_length
+                instantiated = data.get("instantiation") == "true"
+                for key, stride in _variant_scheme()[ptype][1].items():
+                    if key not in config or key in VARIANT_LAYOUT_KEYS:
+                        continue
+                    value, path = config[key]
+                    values, need = _as_list(value), variant_length * stride
+                    if key in data:
+                        if len(values) != need and instantiated and vendor in scope:
+                            fitted = fit(rel, key, values, need, stride)
+                            if fitted:
+                                writes[rel][key] = fitted
+                            else:
+                                errors += 1
+                    elif strict and instantiated:
+                        users[(path[0], key)].append((values, path, need, stride))
+        if not writes and strict:
+            for (_source, key), group in users.items():
+                for values, path, need, stride in group:
+                    if len(values) == need or path[-1].split("/")[0] not in scope:
+                        continue
+                    target = next((f for f in path if f.split("/")[0] in scope
+                                   and own[f] * stride == need
+                                   and all(n == need for _v, p, n, _s in group if f in p)),
+                                  path[-1])
+                    fitted = fit(path[-1], key, values, need, stride)
+                    if fitted:
+                        writes[target][key] = fitted
+                    else:
+                        errors += 1
+        if not writes or errors:
+            break
+        for rel, arrays in sorted(writes.items()):
+            def apply(text, _arrays=arrays):
+                for key, values in _arrays.items():
+                    text, _n = set_array_value(text, key, values)
+                return text, len(_arrays)
+
+            try:
+                data = _edit_profile(os.path.join(profiles_dir, *rel.split("/")), apply, dry_run,
+                                     "variant array resize")
+            except (OSError, RuntimeError, ValueError) as e:
+                print_error(str(e))
+                errors += 1
+                continue
+            print_info(f"{verb}resize {rel}: " + ", ".join(
+                f"{key} {len(_as_list(files[rel][key])) if key in files[rel] else 'added'}"
+                f" -> {len(values)}" for key, values in arrays.items()))
+            files[rel].update(arrays)
+            changed.add(rel)
+            if any(data.get(key) != values for key, values in arrays.items()):
+                print_error(f"{rel}: the variant array resize did not take effect")
+                errors += 1
+        if errors:
+            break
+    else:
+        print_error("variant array resize did not settle; run check")
+        errors += 1
+    load_vendor_configs.cache_clear()  # its configs took the writes above
+    print_success(f"{len(changed)} profile(s) {'would be ' if dry_run else ''}resized")
+    return len(changed), errors
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -2308,6 +3084,10 @@ examples:
       preview exactly that; writes nothing
   orca_profile_tool.py generate-id --setting-id --vendor Elegoo
       setting_id only, and only in that bundle
+  orca_profile_tool.py fix-variant --vendor Snapmaker --dry-run
+      preview resizing the variant arrays check rejects in that bundle
+  orca_profile_tool.py check --strict --vendor BBL
+      also hold every preset's inherited variant arrays to its own width
 
 after adding, renaming or deleting profile files, run in this order:
   normalize -> update-index -> generate-id -> check
@@ -2356,18 +3136,38 @@ def build_parser():
             name, parents=parents, help=help_text, description=description,
             allow_abbrev=False, formatter_class=argparse.RawDescriptionHelpFormatter)
 
+    strict_opt = argparse.ArgumentParser(add_help=False)
+    strict_opt.add_argument("--strict", action="store_true",
+                            help="also hold every preset's inherited and included variant "
+                                 "arrays to its own width")
+
     add(
-        "check", [vendor_opt, profiles_opt],
+        "check", [vendor_opt, strict_opt, profiles_opt],
         "validate the whole profile tree -- what CI runs",
         "Validate the whole profile tree: preset name uniqueness, index coverage\n"
         "both ways, compatible_printers, default-material references, obsolete,\n"
-        "conflicting and vector-typed keys, filament_id length, that normalize and\n"
-        "update-index would leave every bundle alone, and the tree-wide setting_id\n"
-        "and filament_id state. Exits nonzero on errors.\n"
+        "conflicting and vector-typed keys, variant names and variant array widths,\n"
+        "filament_id length, that normalize and update-index would leave every\n"
+        "bundle alone, and the tree-wide setting_id and filament_id state. Exits\n"
+        "nonzero on errors.\n"
         "\n"
         "--vendor narrows the per-vendor checks only: setting_id uniqueness and the\n"
         "filament_id state are cross-vendor properties a narrowed run cannot answer,\n"
         "so they always cover the whole tree.")
+
+    add("fix-variant", [vendor_opt, strict_opt, dry_run_opt, profiles_opt],
+        "resize the variant arrays check rejects",
+        "Resize every variant array that check reports as the wrong width\n"
+        "in the selectable preset that writes it: extra values are dropped, missing\n"
+        "ones repeat the last value (the last normal/silent pair for machine_max_*).\n"
+        "Bases are left alone and no key is added. The variant lists and extruder\n"
+        "ids are left to check. Byte-preserving apart from the arrays it writes.\n"
+        "\n"
+        "--strict then also writes each key that reaches a preset at another width:\n"
+        "into the most general file on the way down to the preset that has the\n"
+        "preset's width and whose presets all agree, else into the preset itself.\n"
+        "Presets of every bundle count towards that agreement; --vendor limits the\n"
+        "files written.")
 
     generate_cmd = add(
         "generate-id", [vendor_opt, dry_run_opt, profiles_opt],
@@ -2412,7 +3212,8 @@ def build_parser():
     add("update-index", [vendor_opt, type_opt, dry_run_opt, profiles_opt],
         "regenerate the *_list sections of <vendor>.json",
         "Rebuild the *_list sections of each <vendor>.json from the files on disk,\n"
-        "ordered parents-first so the loader resolves inherits in one pass.\n"
+        "ordered dependencies-first so the loader resolves inherits and include\n"
+        "in one pass.\n"
         "\n"
         "A profile is indexed under the section its own \"type\" names, so run\n"
         "normalize first: it is what writes a missing type. Two files claiming one\n"
@@ -2447,14 +3248,17 @@ def main(argv=None):
     profile_types = tuple(getattr(args, "profile_type", []) or ()) or None
 
     if args.command == "check":
-        errors = check_profiles(profiles_dir, vendors)
+        errors = check_profiles(profiles_dir, vendors, strict=args.strict)
         return 1 if errors else 0
 
     if args.command == "generate-id":
         return run_generate_id(profiles_dir, vendors, args.filament_id, args.setting_id,
                                args.dry_run)
 
-    if args.command == "normalize":
+    if args.command == "fix-variant":
+        _changed, errors = fix_variant_arrays(profiles_dir, vendors, dry_run=args.dry_run,
+                                               strict=args.strict)
+    elif args.command == "normalize":
         _changed, errors = normalize_profiles(profiles_dir, vendors, profile_types,
                                         force=args.force, dry_run=args.dry_run)
     elif args.command == "trim":

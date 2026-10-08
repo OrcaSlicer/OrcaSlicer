@@ -8,10 +8,36 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <cstddef>
+#include <limits>
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <optional>
+#include "libslic3r/TriangleSelector.hpp"
+#include <algorithm>
+#include <imgui.h>
+#include <cereal/archives/binary.hpp>
+#include <utility>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <wx/dataview.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
 namespace Slic3r {
 namespace GUI {
 

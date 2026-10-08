@@ -6,6 +6,13 @@
 #include "wx/cmdline.h"
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
+#include <wx/setup.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <functional>
+#include <wx/dialog.h>
+#include <wx/accel.h>
 #include <wx/webview.h>
 
 #if wxUSE_WEBVIEW_EDGE
@@ -24,6 +31,7 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 #include <wx/timer.h>
+#include "Lazy.hpp"
 
 
 namespace Slic3r {
@@ -33,7 +41,7 @@ class NetworkAgent;
 namespace GUI {
 
 
-class WebViewPanel : public wxPanel
+class WebViewPanel : public wxPanel, public LazyInstance<WebViewPanel>
 {
 public:
     WebViewPanel(wxWindow *parent);
@@ -105,9 +113,15 @@ public:
     int  get_model_mall_detail_url(std::string *url, std::string id);
 
     void update_mode();
+
+    bool Show(bool show = true) override;
 private:
+    void create_browser();
+    void reset_browser();
 
     wxWebView* m_browser;
+    wxString m_home_url;
+    bool m_reset_on_show{false};
     wxButton *  m_button_stop;
     wxTextCtrl *m_url;
 #if !BBL_RELEASE_TO_PUBLIC

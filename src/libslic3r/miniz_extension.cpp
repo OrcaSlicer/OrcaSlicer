@@ -1,8 +1,19 @@
+#include <cstddef>
+#include <cstdio>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <exception>
 #include <cstdint>
 
 #include "miniz_extension.hpp"
 #include "Utils.hpp"
+
+#include <boost/filesystem.hpp>
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <miniz.h>
+#include <stdio.h>
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
 #include "boost/nowide/cstdio.hpp"
@@ -113,6 +124,66 @@ std::string decode_archive_entry_path(mz_zip_archive *zip, const mz_zip_archive_
     std::string extra(1024, 0);
     const size_t extra_size = mz_zip_reader_get_extra(zip, stat.m_file_index, extra.data(), extra.size());
     return decode_zip_unicode_path_extra_field(extra.substr(0, extra_size > 0 ? extra_size - 1 : 0), stat.m_filename);
+}
+
+bool extract_archive_confined(const std::string &zip_path_utf8, const std::string &dest_dir)
+{
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+
+    if (!open_zip_reader(&archive, zip_path_utf8)) {
+        BOOST_LOG_TRIVIAL(error) << "Unable to open zip reader for " << zip_path_utf8;
+        return false;
+    }
+
+    const mz_uint num_entries = mz_zip_reader_get_num_files(&archive);
+    mz_zip_archive_file_stat stat;
+
+    // Validate every entry first so an archive with a single escaping entry leaves no partial output behind.
+    const boost::filesystem::path root(dest_dir);
+    for (mz_uint i = 0; i < num_entries; ++i) {
+        if (mz_zip_reader_file_stat(&archive, i, &stat) && !is_path_within_root(stat.m_filename, root)) {
+            BOOST_LOG_TRIVIAL(error) << "Unzip: rejecting " << zip_path_utf8 << ", entry " << stat.m_filename << " resolves outside " << dest_dir;
+            close_zip_reader(&archive);
+            return false;
+        }
+    }
+
+    for (mz_uint i = 0; i < num_entries; ++i) {
+        if (!mz_zip_reader_file_stat(&archive, i, &stat)) {
+            BOOST_LOG_TRIVIAL(warning) << "Unzip: read file stat failed";
+            continue;
+        }
+        const std::string dest_file = dest_dir + "/" + stat.m_filename;
+        try {
+            if (stat.m_is_directory) {
+                const boost::filesystem::path dest_path(dest_file);
+                if (!boost::filesystem::exists(dest_path))
+                    boost::filesystem::create_directories(dest_path);
+                continue;
+            }
+            if (stat.m_uncomp_size == 0) {
+                BOOST_LOG_TRIVIAL(warning) << "Unzip: invalid size for file " << stat.m_filename;
+                continue;
+            }
+            // Replace a symlink at the destination rather than writing through it.
+            const boost::filesystem::path dest_path(dest_file);
+            if (boost::filesystem::is_symlink(boost::filesystem::symlink_status(dest_path)))
+                boost::filesystem::remove(dest_path);
+            if (!mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0)) {
+                BOOST_LOG_TRIVIAL(error) << "Unzip: extract file " << stat.m_filename << " to dest " << dest_file << " failed";
+                close_zip_reader(&archive);
+                return false;
+            }
+            BOOST_LOG_TRIVIAL(info) << "Unzip: successfully extract file " << stat.m_file_index << " to " << dest_file;
+        } catch (const std::exception &e) {
+            close_zip_reader(&archive);
+            BOOST_LOG_TRIVIAL(error) << "Unzip: archive read exception: " << e.what();
+            return false;
+        }
+    }
+    close_zip_reader(&archive);
+    return true;
 }
 
 MZ_Archive::MZ_Archive()

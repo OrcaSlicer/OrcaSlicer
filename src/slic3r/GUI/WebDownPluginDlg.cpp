@@ -1,6 +1,11 @@
 #include "WebDownPluginDlg.hpp"
 #include "ConfigWizard.hpp"
 
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
+#include <nlohmann/json.hpp>
+#include <exception>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -8,10 +13,17 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r_version.h"
 
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
@@ -38,9 +50,7 @@ DownPluginFrame::DownPluginFrame(GUI_App *pGUI) : wxDialog((wxWindow *) (pGUI->m
 
     // set the frame icon
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
-    wxString TargetUrl    = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/6/index.html").make_preferred().string());
-
-    TargetUrl = "file://" + TargetUrl;
+    wxString TargetUrl    = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/6/index.html");
 
     // Create the webview
     m_browser = WebView::CreateWebView(this, TargetUrl);

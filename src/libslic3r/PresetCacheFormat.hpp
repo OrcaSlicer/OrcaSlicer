@@ -1,6 +1,7 @@
 #ifndef slic3r_PresetCacheFormat_hpp_
 #define slic3r_PresetCacheFormat_hpp_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -14,6 +15,9 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
+
+namespace cereal { class BinaryInputArchive; }
+namespace cereal { class BinaryOutputArchive; }
 
 namespace Slic3r {
 
@@ -107,12 +111,13 @@ void load_config(cereal::BinaryInputArchive& ar, DynamicPrintConfig& config, con
 // comes after.
 void skip_config(cereal::BinaryInputArchive& ar, const CacheDictionary& dict);
 
-// One preset as its JSON subfile states it: the config diff, the name of the
-// preset it inherits, and the parse metadata — everything the parse phase of
-// load_vendor_configs_from_json extracts and nothing it derives. Inheritance
-// is resolved when the entry is installed, against whatever filament library
-// is loaded then, so a cache carries no other vendor's values and no other
-// vendor's update can make it stale.
+// One preset as its JSON subfile states it: the config diff, the names of the
+// preset it inherits and the presets it includes, and the parse metadata —
+// everything PresetBundle::parse_vendor_json extracts and
+// nothing it derives. Inheritance and includes are resolved when the entry is
+// installed, against whatever filament library is loaded then, so a cache
+// carries no other vendor's values and no other vendor's update can make it
+// stale.
 // Written and read by visit_entry in PresetCacheFormat.cpp, which lists every
 // field below in this order — once, for the save, the load and the name peek alike.
 struct CachedPreset
@@ -121,6 +126,7 @@ struct CachedPreset
     std::string              sub_path;       // path under the vendor's directory
     DynamicPrintConfig       config_src;     // the preset's own diff, nothing inherited
     std::string              inherits;
+    std::vector<std::string> includes;       // layered under config_src, in this order
     std::string              description;
     std::string              instantiation;  // "true"/"false" as stated; anything else was already counted as a parse error
     std::string              setting_id;
@@ -162,6 +168,11 @@ public:
     // beside the cache at all) accepts whatever is cached.
     static bool load(const std::string& path, const std::string& expected_vendor_name,
                      const Semver& expected_vendor_version, VendorCacheData& data);
+
+    // Read only the vendor's own profile, under the same checks as load(),
+    // without deserializing its presets.
+    static bool load_vendor_profile(const std::string& path, const std::string& expected_vendor_name,
+                                    const Semver& expected_vendor_version, VendorProfile& vendor);
 
     // Read the profile version a cache was stamped with, without deserializing
     // its presets. Empty if the file is unreadable, not a cache this build

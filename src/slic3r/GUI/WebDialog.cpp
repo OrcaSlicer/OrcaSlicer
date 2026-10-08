@@ -3,9 +3,15 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/WebHosting.hpp"
 
+#include <string>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <wx/chartype.h>
 #include <wx/event.h>
 
 #include <utility>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
 

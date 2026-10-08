@@ -1,19 +1,30 @@
 #ifndef slic3r_GUI_ObjectList_hpp_
 #define slic3r_GUI_ObjectList_hpp_
 
+#include <cstdint>
+#include <cstddef>
+#include <functional>
 #include <map>
+#include <string>
+#include <utility>
 #include <vector>
 #include <set>
 
+#include <wx/arrstr.h>
 #include <wx/bitmap.h>
 #include <wx/dataview.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/menu.h>
+#include <wx/string.h>
+#include <wx/window.h>
 
 #include "Event.hpp"
-#include "wxExtensions.hpp"
 #include "ObjectDataViewModel.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
+
+class wxBitmap;
 
 class wxBoxSizer;
 class wxBitmapComboBox;
@@ -304,6 +315,8 @@ public:
     void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type);
     void                load_shape_object(const std::string &type_name);
     void                load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center = true);
+    // One object holding one part per mesh; the parts keep their placement relative to each other.
+    void                load_mesh_object(const std::vector<std::pair<const TriangleMesh*, wxString>> &parts, const wxString &name, bool center = true);
     // BBS
     void                switch_to_object_process();
     bool                del_object(const int obj_idx, bool refresh_immediately = true);
@@ -430,7 +443,12 @@ public:
 #if 0 // ORCA: disabled alongside definition in GUI_ObjectList.cpp (see #if 0 block there)
     void change_part_type();
 #endif
-	void set_volume_type(ModelVolumeType new_type);
+	// preserve_ps_subtype = true: when new_type is PRECISE_SEAM_CENTER, volumes that are
+	//   already Precise Seam keep their existing subtype (LEFT/RIGHT/etc.). Used by the
+	//   generic "Change type → Precise Seam" entry where CENTER is a default fallback.
+	// preserve_ps_subtype = false: no preservation — target type is applied verbatim. Used
+	//   by the "Precise Seam Type" subtype picker where the user explicitly wants CENTER.
+	void set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true);
     ModelVolumeType get_selected_volume_type();
 
     void last_volume_is_deleted(const int obj_idx);

@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFgbpcy9",
-	"setting_id": "dWhysRiE5GrAGyME",
 	"name": "Generic TPU @Artillery",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "Artillery Generic TPU",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "dWhysRiE5GrAGyME",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"
 	],

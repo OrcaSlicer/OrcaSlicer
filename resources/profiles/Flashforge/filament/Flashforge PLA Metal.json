@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "UD5i0ijsirfieUvb",
 	"filament_id": "OFAebKg8",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Metal"
 	],

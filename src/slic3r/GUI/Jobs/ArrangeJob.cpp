@@ -13,8 +13,30 @@
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 
 #include "libnest2d/common.hpp"
+#include "libslic3r/Arrange.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <vector>
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <set>
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <cassert>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <numeric>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include <optional>
 
 #define SAVE_ARRANGE_POLY 0
 
@@ -505,7 +527,7 @@ void ArrangeJob::check_unprintable()
 #endif
             if (it->poly.area() < 0.001) {
                 auto msg = (boost::format(
-                    _utf8("Object %s has zero size and can't be arranged."))
+                    _u8L("Object %s has zero size and can't be arranged."))
                     % _utf8(it->name)).str();
                 m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
                     NotificationManager::NotificationLevel::WarningNotificationLevel, msg);
@@ -696,6 +718,13 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
 
         ap.apply();
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":arrange m_unprintable: name: %4%, bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
+    }
+
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "arranged";
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
     }
 
     m_plater->update();

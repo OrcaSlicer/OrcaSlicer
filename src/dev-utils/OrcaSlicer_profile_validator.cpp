@@ -8,6 +8,28 @@
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvg/nanosvgrast.h"
 
+#include <vector>
+#include <boost/filesystem/path.hpp>
+#include <map>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
+#include "libslic3r/CustomGCode.hpp"
+#include <iterator>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/log/core/record_view.hpp>
+#include <boost/log/expressions/message.hpp>
+#include <cstddef>
+#include <exception>
+#include "libslic3r/PlaceholderParser.hpp"
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/errors.hpp>
+
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
@@ -20,6 +42,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Utils.hpp"
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/core.hpp>
@@ -32,7 +55,12 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <set>
 #include <string>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/STEP.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 namespace po = boost::program_options;
@@ -160,37 +188,62 @@ Vec2d place_wipe_tower(DynamicPrintConfig &cfg, const Vec2d &center)
     return rigid ? move : Vec2d::Zero();
 }
 
-// Slice one cube that switches from filament 1 to filament 2 partway up, so exactly one
-// filament change fires, then export. The change drives the printer's own change_filament_gcode: on a
-// single-nozzle machine it rides the AMS prime tower (append_tcr), on a multi-nozzle machine it routes
-// through the nozzle swap (set_extruder / append_tcr2) - the engine picks the path from the printer's
-// topology, so one model covers both. An undefined placeholder in any shipped custom g-code throws
-// Slic3r::PlaceholderParserError from export.
-std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl)
+// Slice cubes that switch from filament 1 to filament 2 partway up, so a filament change fires, then
+// export. The change drives the printer's own change_filament_gcode: on a single-nozzle machine it rides
+// the AMS prime tower (append_tcr), on a multi-nozzle machine it routes through the nozzle swap
+// (set_extruder / append_tcr2) - the engine picks the path from the printer's topology, so one model
+// covers both. The layer-by-layer slice also pauses at z 2 and runs the template custom g-code at z 7, so
+// machine_pause_gcode and template_custom_gcode expand, and turns clumping detection on for a printer that
+// ships wrapping_detection_gcode. The by-object slice prints two cubes in turn without a prime tower:
+// printing_by_object_gcode fires before the second one, and the filament change goes through set_extruder.
+// Either way the output file name is built after export, which expands filename_format with the final
+// print statistics. An undefined placeholder in any shipped custom g-code throws
+// Slic3r::PlaceholderParserError.
+std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl, bool by_object)
 {
-    const Vec2d center   = printable_area_center(cfg);
-    const Vec2d cube_min = center - Vec2d(5., 5.) + place_wipe_tower(cfg, center);
-    TriangleMesh m = make_cube(10, 10, 10);
-    m.translate(static_cast<float>(cube_min.x()), static_cast<float>(cube_min.y()), 0.f);
+    const Vec2d        center = printable_area_center(cfg);
+    std::vector<Vec2d> cube_mins;
+    if (by_object) {
+        // By-object printing fires the hook only without a wipe tower, and rules out clumping detection and
+        // smooth timelapse. No skirt, so the two cubes' own skirts cannot overlap.
+        cfg.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
+        cfg.set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
+        cfg.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
+        cfg.set_key_value("skirt_loops", new ConfigOptionInt(0));
+        cube_mins = {center + Vec2d(-20., -5.), center + Vec2d(10., -5.)};
+    } else {
+        // Clumping detection changes the tower footprint, so turn it on before placing the tower.
+        if (!cfg.opt_string("wrapping_detection_gcode").empty())
+            cfg.set_key_value("enable_wrapping_detection", new ConfigOptionBool(true));
+        cube_mins = {center - Vec2d(5., 5.) + place_wipe_tower(cfg, center)};
+    }
 
     Model  model;
     Print  print;
-    ModelObject *obj = model.add_object();
-    obj->name = "cube"; // populates [input_filename_base] the way a loaded model does
-    obj->add_volume(m);
-    obj->add_instance();
-    // Filament 2 is used only above z=4, so the upper layers carry a single filament change.
-    DynamicPrintConfig range_config;
-    range_config.set_key_value("extruder",     new ConfigOptionInt(2));
-    // Every range must carry a layer_height; use the process's own so a fine nozzle (e.g. 0.15 mm
-    // printing ~0.1 mm layers) isn't forced to a height its extrusion width can't support - that
-    // trips Flow::with_spacing.
-    range_config.set_key_value("layer_height", new ConfigOptionFloat(cfg.opt_float("layer_height")));
-    obj->layer_config_ranges[{4.0, 10.0}].assign_config(std::move(range_config));
-
     print.is_BBL_printer() = is_bbl;
-    obj->ensure_on_bed();
-    print.auto_assign_extruders(obj);
+    for (const Vec2d &cube_min : cube_mins) {
+        TriangleMesh m = make_cube(10, 10, 10);
+        m.translate(static_cast<float>(cube_min.x()), static_cast<float>(cube_min.y()), 0.f);
+        ModelObject *obj = model.add_object();
+        obj->name = "cube"; // populates [input_filename_base] the way a loaded model does
+        obj->add_volume(m);
+        obj->add_instance();
+        // Filament 2 is used only above z=4, so the upper layers carry a single filament change.
+        DynamicPrintConfig range_config;
+        range_config.set_key_value("extruder",     new ConfigOptionInt(2));
+        // Every range must carry a layer_height; use the process's own so a fine nozzle (e.g. 0.15 mm
+        // printing ~0.1 mm layers) isn't forced to a height its extrusion width can't support - that
+        // trips Flow::with_spacing.
+        range_config.set_key_value("layer_height", new ConfigOptionFloat(cfg.opt_float("layer_height")));
+        obj->layer_config_ranges[{4.0, 10.0}].assign_config(std::move(range_config));
+        obj->ensure_on_bed();
+        print.auto_assign_extruders(obj);
+    }
+    // Custom g-codes per print_z apply to layer-by-layer printing only (ToolOrdering::assign_custom_gcodes).
+    if (!by_object)
+        model.plates_custom_gcodes[model.curr_plate_index].gcodes = {{2., CustomGCode::PausePrint, 1, "", ""},
+                                                                     {7., CustomGCode::Template, 1, "", ""}};
     print.apply(model, cfg);
     print.validate();
 
@@ -205,6 +258,7 @@ std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl)
     in.close();
     boost::system::error_code ec;
     fs::remove(tmp, ec);
+    print.output_filename(); // names the export as the app does, expanding filename_format
     return out;
 }
 
@@ -264,18 +318,125 @@ void install_slice_context_log_sink()
     logging::core::get()->add_sink(sink);
 }
 
+// Size the filament slots for the current selection and build the config every slice uses.
+DynamicPrintConfig slice_config(PresetBundle &bundle)
+{
+    // Grow to a 2nd filament so the cube can change colour; never shrink a multi-nozzle printer
+    // below its nozzle count, or full_config()'s flush-volume matrix no longer matches validate().
+    const size_t nozzles = bundle.printers.get_selected_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size();
+    bundle.set_num_filaments((unsigned int) std::max<size_t>(2, nozzles));
+
+    // Mirror the app's manual filament->nozzle assignment for a multi-nozzle BBL printer: put each
+    // filament on its own nozzle and pin the map (fmmManual) so full_config() collapses every filament to
+    // the variant of the nozzle it actually prints from, and the engine keeps that assignment instead of
+    // auto-remapping it during process(). Without this the synthetic 2nd filament keeps nozzle 1's variant
+    // while the auto map moves it to nozzle 2 - harmless, but on the one printer whose nozzles differ in
+    // type (Direct Drive + Bowden) the mismatched lookup spams [error] lines. Single-nozzle and non-BBL
+    // printers keep the default map (their toolchange rides the AMS/tool-changer path unchanged).
+    const bool pin_filament_map = bundle.is_bbl_vendor() && nozzles > 1;
+    auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
+    if (pin_filament_map) {
+        for (size_t i = 0; i < fmap.size(); ++i)
+            fmap[i] = int(i % nozzles) + 1;
+    }
+
+    // A fresh printer selection uses its declared nozzle volumes, just like the
+    // app. Otherwise a high-flow preset is silently sliced with Standard tuning.
+    bundle.reset_default_nozzle_volume_type();
+    bundle.project_config.option<ConfigOptionInts>("filament_volume_map", true)->values =
+        bundle.get_default_nozzle_volume_types_for_filaments(fmap);
+
+    DynamicPrintConfig cfg = bundle.full_config();
+    cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(true)); // force a purge tower so the change is detectable
+    // The map above drives full_config()'s per-filament variant collapse; fmmManual on the sliced config
+    // stops process() from auto-remapping filaments back onto a different nozzle (which would re-introduce
+    // the variant mismatch this pinning avoids).
+    if (pin_filament_map)
+        cfg.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+
+    // full_config() grows filament_extruder_variant to one entry per filament, but because the synthetic
+    // 2nd filament is a duplicate of the first (set_num_filaments copies the same preset), it leaves
+    // filament_self_index at size 1. That makes update_values_to_printer_extruders_for_multiple_filaments
+    // fail to resolve the 2nd filament's variant - a benign fallback that spams [error] lines. A real
+    // 2-colour project ships filament_self_index = 1,2,...; mirror that so the sweep log stays clean. The
+    // slice output is unaffected: the duplicated filament's per-variant values are identical to the first.
+    if (auto *variants = cfg.option<ConfigOptionStrings>("filament_extruder_variant")) {
+        auto &self_index = cfg.option<ConfigOptionInts>("filament_self_index", true)->values;
+        if (self_index.size() != variants->size()) {
+            self_index.resize(variants->size());
+            for (size_t i = 0; i < self_index.size(); ++i)
+                self_index[i] = int(i) + 1;
+        }
+    }
+    return cfg;
+}
+
+// Slice the current selection and log any failure against `what` (the printer, and the extra preset if
+// any). With an outdir, the g-code is also saved there as "<file_base>.gcode". Returns the g-code, or an
+// empty string on failure.
+std::string slice_selection(PresetBundle &bundle, const std::string &what, bool by_object, const std::string &outdir, const std::string &file_base)
+{
+    try {
+        const std::string out = slice_two_color_cube_and_export(slice_config(bundle), bundle.is_bbl_vendor(), by_object);
+        if (!outdir.empty() && !out.empty())
+            save_string_file(fs::path(outdir) / (file_base + ".gcode"), out);
+        if (out.empty() || out.find("G1") == std::string::npos) {
+            BOOST_LOG_TRIVIAL(error) << what << " produced no g-code";
+            return {};
+        }
+        return out;
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(error) << what << " failed to slice: " << ex.what();
+        return {};
+    }
+}
+
+// The templates a preset carries, as (key, text): every non-empty *_gcode text, and filename_format. Each
+// value of a per-variant key counts, though a slice expands only the values of the variants its printer uses.
+using Templates = std::set<std::pair<std::string, std::string>>;
+Templates preset_templates(const DynamicPrintConfig &cfg)
+{
+    Templates out;
+    for (const std::string &key : cfg.keys()) {
+        if (key != "filename_format" && !boost::algorithm::ends_with(key, "_gcode"))
+            continue;
+        const ConfigOption *opt = cfg.option(key);
+        if (opt->type() == coString) {
+            if (const std::string &text = static_cast<const ConfigOptionString *>(opt)->value; !text.empty())
+                out.emplace(key, text);
+        } else if (opt->type() == coStrings) {
+            for (const std::string &text : static_cast<const ConfigOptionStrings *>(opt)->values)
+                if (!text.empty())
+                    out.emplace(key, text);
+        }
+    }
+    return out;
+}
+
 // Slice-and-export a two-colour cube through every shipped printer (optionally scoped to one vendor via
 // -v). Unlike the static reference/placeholder checks, this expands every custom *_gcode - including
 // change_filament_gcode at the one filament change - against the printer's fully-resolved config, so
-// undefined-placeholder / invalid-flow bugs surface here. Reports every offending printer and returns 1
-// if any failed, 0 otherwise. When outdir is non-empty, each printer's g-code is also written there as
-// "<vendor>__<printer>.gcode" for manual inspection. The sweep is SEQUENTIAL by necessity:
-// Print::process() keeps process-global state, so slicing printers concurrently in one process races
-// even with per-slice Model+Print. Load in validation mode so the vendors are read straight from the -p
-// profiles dir (no data_dir/system tree) and -v scoping is honoured for free.
+// undefined-placeholder / invalid-flow bugs surface here. PlaceholderParser::check_inactive_branches is
+// set for the sweep, so the names in {if} branches a slice does not take must resolve too.
+//
+// Each printer is sliced with its own default process and filament. Every other compatible system
+// process and filament whose templates (filename_format, filament_start_gcode, ...) no slice has expanded
+// yet is then sliced once on that printer - a filament that compatible_prints limits to another process
+// with that process - so each template text shipped in any system preset is expanded once. That check runs on the first compatible printer the sweep reaches only, in that printer's hook
+// contexts: a value-dependent error on another printer, or a hook call site there that sets fewer
+// variables (a multi-nozzle tool change, say), is not covered. The first printer shipping each
+// printing_by_object_gcode also slices two cubes by object, the only way that hook fires.
+//
+// Reports every failure and returns 1 if any slice failed, 0 otherwise. When outdir is non-empty, each
+// g-code is also written there as "<vendor>__<printer>[__<preset>].gcode" for manual inspection. The
+// sweep is SEQUENTIAL by necessity: Print::process() keeps process-global state, so slicing printers
+// concurrently in one process races even with per-slice Model+Print. Load in validation mode so the
+// vendors are read straight from the -p profiles dir (no data_dir/system tree) and -v scoping is honoured
+// for free.
 int slice_all_printers(const std::string &vendor, const std::string &outdir)
 {
     install_slice_context_log_sink();
+    PlaceholderParser::check_inactive_branches = true;
 
     if (!outdir.empty()) {
         boost::system::error_code ec;
@@ -323,7 +484,16 @@ int slice_all_printers(const std::string &vendor, const std::string &outdir)
     std::cout << "Slicing " << printers.size() << " printer preset(s)"
               << (vendor.empty() ? "" : " for vendor " + vendor) << "..." << std::endl;
 
-    int failures = 0;
+    Templates covered; // the process and filament templates some slice has expanded
+    auto cover = [&covered](const Preset &preset) {
+        const Templates templates = preset_templates(preset.config);
+        covered.insert(templates.begin(), templates.end());
+    };
+    auto is_covered = [&covered](const Preset &preset) {
+        const Templates templates = preset_templates(preset.config);
+        return std::includes(covered.begin(), covered.end(), templates.begin(), templates.end());
+    };
+    int failures = 0, extra_processes = 0, extra_filaments = 0, by_object_slices = 0;
     for (const auto &[vendor_name, printer] : printers) {
         g_slice_context = vendor_name + " / " + printer; // tag every engine log line from this slice
         const bool selected = bundle.printers.select_preset_by_name(printer, /*force=*/true);
@@ -347,76 +517,115 @@ int slice_all_printers(const std::string &vendor, const std::string &outdir)
             continue;
         }
 
-        // Grow to a 2nd filament so the cube can change colour; never shrink a multi-nozzle printer
-        // below its nozzle count, or full_config()'s flush-volume matrix no longer matches validate().
-        const size_t nozzles = bundle.printers.get_selected_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size();
-        bundle.set_num_filaments((unsigned int) std::max<size_t>(2, nozzles));
-
-        // Mirror the app's manual filament->nozzle assignment for a multi-nozzle BBL printer: put each
-        // filament on its own nozzle and pin the map (fmmManual) so full_config() collapses every filament to
-        // the variant of the nozzle it actually prints from, and the engine keeps that assignment instead of
-        // auto-remapping it during process(). Without this the synthetic 2nd filament keeps nozzle 1's variant
-        // while the auto map moves it to nozzle 2 - harmless, but on the one printer whose nozzles differ in
-        // type (Direct Drive + Bowden) the mismatched lookup spams [error] lines. Single-nozzle and non-BBL
-        // printers keep the default map (their toolchange rides the AMS/tool-changer path unchanged).
-        const bool pin_filament_map = bundle.is_bbl_vendor() && nozzles > 1;
-        if (pin_filament_map) {
-            auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
-            for (size_t i = 0; i < fmap.size(); ++i)
-                fmap[i] = int(i % nozzles) + 1;
-        }
-
-        DynamicPrintConfig cfg = bundle.full_config();
-        cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(true)); // force a purge tower so the change is detectable
-        // The map above drives full_config()'s per-filament variant collapse; fmmManual on the sliced config
-        // stops process() from auto-remapping filaments back onto a different nozzle (which would re-introduce
-        // the variant mismatch this pinning avoids).
-        if (pin_filament_map)
-            cfg.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
-
-        // full_config() grows filament_extruder_variant to one entry per filament, but because the synthetic
-        // 2nd filament is a duplicate of the first (set_num_filaments copies the same preset), it leaves
-        // filament_self_index at size 1. That makes update_values_to_printer_extruders_for_multiple_filaments
-        // fail to resolve the 2nd filament's variant - a benign fallback that spams [error] lines. A real
-        // 2-colour project ships filament_self_index = 1,2,...; mirror that so the sweep log stays clean. The
-        // slice output is unaffected: the duplicated filament's per-variant values are identical to the first.
-        if (auto *variants = cfg.option<ConfigOptionStrings>("filament_extruder_variant")) {
-            auto &self_index = cfg.option<ConfigOptionInts>("filament_self_index", true)->values;
-            if (self_index.size() != variants->size()) {
-                self_index.resize(variants->size());
-                for (size_t i = 0; i < self_index.size(); ++i)
-                    self_index[i] = int(i) + 1;
-            }
-        }
-
-        try {
-            const std::string out = slice_two_color_cube_and_export(cfg, bundle.is_bbl_vendor());
-            if (!outdir.empty() && !out.empty()) {
-                const fs::path f = fs::path(outdir) / (sanitize_filename(vendor_name) + "__" + sanitize_filename(printer) + ".gcode");
-                save_string_file(f, out);
-            }
-            if (out.empty() || out.find("G1") == std::string::npos) {
-                BOOST_LOG_TRIVIAL(error) << "Printer \"" << printer << "\" produced no g-code";
-                ++failures;
-            } else if (out.find("CP TOOLCHANGE START") == std::string::npos) {
-                // The filament change never rode the tower, so change_filament_gcode was not exercised.
-                BOOST_LOG_TRIVIAL(error) << "Printer \"" << printer
-                    << "\" sliced but the filament change never fired (no CP TOOLCHANGE START)";
-                ++failures;
-            }
-        } catch (const std::exception &ex) {
-            BOOST_LOG_TRIVIAL(error) << "Printer \"" << printer << "\" failed to slice: " << ex.what();
+        const std::string print_name    = bundle.prints.get_selected_preset_name();
+        const std::string filament_name = bundle.filaments.get_selected_preset_name();
+        const std::string what          = "Printer \"" + printer + "\"";
+        const std::string file_base     = sanitize_filename(vendor_name) + "__" + sanitize_filename(printer);
+        if (const std::string out = slice_selection(bundle, what, false, outdir, file_base); out.empty())
+            ++failures;
+        else if (out.find("CP TOOLCHANGE START") == std::string::npos) {
+            // The filament change never rode the tower, so change_filament_gcode was not exercised.
+            BOOST_LOG_TRIVIAL(error) << what << " sliced but the filament change never fired (no CP TOOLCHANGE START)";
             ++failures;
         }
+        cover(bundle.prints.get_selected_preset());
+        cover(bundle.filaments.get_selected_preset());
+
+        const std::string &by_object_gcode = bundle.printers.get_selected_preset().config.opt_string("printing_by_object_gcode");
+        if (!by_object_gcode.empty() && covered.emplace("printing_by_object_gcode", by_object_gcode).second) {
+            ++by_object_slices;
+            g_slice_context = vendor_name + " / " + printer + " / by object";
+            if (slice_selection(bundle, what + " printing by object", true, outdir, file_base + "__by_object").empty())
+                ++failures;
+        }
+
+        // The first process of this printer that compatible_prints lets an otherwise incompatible filament
+        // use, judged as update_compatible() would with that process selected; empty if there is none.
+        const PresetWithVendorProfile printer_with_vendor = bundle.printers.get_edited_preset_with_vendor_profile();
+        auto limiting_process = [&bundle, &printer_with_vendor](const Preset &filament) -> std::string {
+            const auto *processes = filament.config.option<ConfigOptionStrings>("compatible_prints");
+            if (processes == nullptr || processes->values.empty())
+                return {};
+            const PresetWithVendorProfile filament_with_vendor = bundle.filaments.get_preset_with_vendor_profile(filament);
+            if (!is_compatible_with_printer(filament_with_vendor, printer_with_vendor))
+                return {};
+            for (const std::string &name : processes->values)
+                if (const Preset *process = bundle.prints.find_preset(name);
+                    process != nullptr && process->is_visible && process->is_compatible &&
+                    is_compatible_with_print(filament_with_vendor, bundle.prints.get_preset_with_vendor_profile(*process), printer_with_vendor))
+                    return name;
+            return {};
+        };
+        // The compatibility flags are still this printer's, from update_compatible() above, which judged the
+        // filaments against the printer's own process. A hidden preset cannot be selected, so it is counted,
+        // not sliced.
+        std::vector<std::pair<const Preset *, std::string>> extras; // (extra preset, process to slice it with)
+        size_t                                              hidden = 0;
+        for (const PresetCollection *presets : {&bundle.prints, &bundle.filaments})
+            for (const Preset &preset : presets->get_presets()) {
+                if (!preset.is_system || preset.is_default)
+                    continue;
+                std::string process;
+                if (preset.is_compatible)
+                    process = preset.type == Preset::TYPE_PRINT ? preset.name : print_name;
+                else if (preset.type == Preset::TYPE_FILAMENT)
+                    process = limiting_process(preset);
+                if (process.empty() || is_covered(preset))
+                    continue;
+                if (preset.is_visible)
+                    extras.emplace_back(&preset, process);
+                else
+                    ++hidden;
+            }
+        if (hidden > 0)
+            BOOST_LOG_TRIVIAL(warning) << "Printer \"" << printer << "\": " << hidden
+                << " compatible system preset(s) with unexpanded templates are hidden and were not sliced";
+
+        // Each extra slice swaps one preset into the printer's own selection. update_compatible() is not
+        // run again: it could swap filament slots. The filament change is not required to ride the tower
+        // here (a vase-mode process has none): the printer's own slice above already expanded its hooks.
+        for (const auto &[preset, process] : extras) {
+            if (is_covered(*preset))
+                continue; // an earlier extra slice expanded the same texts
+            const bool         is_print = preset->type == Preset::TYPE_PRINT;
+            const std::string &filament = is_print ? filament_name : preset->name;
+            std::string        extra    = std::string(is_print ? "process" : "filament") + " \"" + preset->name + "\"";
+            if (!is_print && process != print_name)
+                extra += " and process \"" + process + "\"";
+            g_slice_context = vendor_name + " / " + printer + " / " + extra;
+            if (is_print)
+                ++extra_processes;
+            else
+                ++extra_filaments;
+            cover(*preset);
+            bundle.prints.select_preset_by_name(process, /*force=*/true);
+            bundle.filaments.select_preset_by_name(filament, /*force=*/true);
+            bundle.filament_presets.assign(1, bundle.filaments.get_selected_preset_name());
+            bundle.update_multi_material_filament_presets();
+            // select_preset_by_name() falls back to another preset, and still returns true, when it cannot select this one.
+            if (bundle.prints.get_selected_preset_name() != process || bundle.filaments.get_selected_preset_name() != filament) {
+                BOOST_LOG_TRIVIAL(error) << what << " could not select " << extra;
+                ++failures;
+                continue;
+            }
+            if (slice_selection(bundle, what + " with " + extra, false, outdir, file_base + "__" + sanitize_filename(preset->name)).empty())
+                ++failures;
+        }
+        // Leave the printer's own selection for the next printer to start from, as without the extra slices.
+        bundle.prints.select_preset_by_name(print_name, /*force=*/true);
+        bundle.filaments.select_preset_by_name(filament_name, /*force=*/true);
     }
     g_slice_context.clear();
 
+    const int slices = int(printers.size()) + extra_processes + extra_filaments + by_object_slices;
+    std::cout << "Sliced " << printers.size() << " printer preset(s), " << extra_processes << " more process preset(s), "
+              << extra_filaments << " more filament preset(s) and " << by_object_slices << " printer(s) by object" << std::endl;
     if (failures > 0) {
-        std::cout << failures << " of " << printers.size() << " printer preset(s) failed to slice" << std::endl;
+        std::cout << failures << " of " << slices << " slice(s) failed" << std::endl;
         std::cout << "Validation failed" << std::endl;
         return 1;
     }
-    std::cout << "All " << printers.size() << " printer preset(s) sliced successfully" << std::endl;
+    std::cout << "All " << slices << " slice(s) succeeded" << std::endl;
     std::cout << "Validation completed successfully" << std::endl;
     return 0;
 }
@@ -435,8 +644,8 @@ int main(int argc, char* argv[])
 #endif
     ("vendor,v", po::value<std::string>()->default_value(""), "Vendor name. Optional, all profiles present in the folder will be validated if not specified")
     ("generate_presets,g", po::value<bool>()->default_value(false), "Generate user presets for mock test")
-    ("slice,s", po::bool_switch()->default_value(false), "Slice a two-colour cube through every printer to expand all custom g-code (catches placeholder/flow errors that static checks miss). Off unless this flag is present.")
-    ("outdir,o", po::value<std::string>()->default_value(""), "With -s, also save each printer's g-code to this folder (as <vendor>__<printer>.gcode) for manual inspection. Optional.")
+    ("slice,s", po::bool_switch()->default_value(false), "Slice a two-colour cube through every printer, and through every other system process and filament preset whose templates no printer's own slice expands, so every custom g-code and filename_format shipped is expanded, names in {if} branches not taken included (catches placeholder/flow errors that static checks miss). Off unless this flag is present.")
+    ("outdir,o", po::value<std::string>()->default_value(""), "With -s, also save each slice's g-code to this folder (as <vendor>__<printer>[__<preset>].gcode) for manual inspection. Optional.")
     ("check_filament_subtypes,f", po::bool_switch()->default_value(true), "Also flag printers with duplicate (ambiguous) filament subtypes. Off unless this flag is present.")
     ("log_level,l", po::value<int>()->default_value(2), "Log level. Optional, default is 2 (warning). Higher values produce more detailed logs.");
     // clang-format on

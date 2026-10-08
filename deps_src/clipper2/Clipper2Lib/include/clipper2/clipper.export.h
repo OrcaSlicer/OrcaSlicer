@@ -19,17 +19,17 @@
 
 The path structures used extensively in other parts of this library are all
 based on std::vector classes. Since C++ classes can't be accessed by other
-languages, these paths are exported here as very simple array structures
-(either of int64_t or double) that can be parsed by just about any
+languages, these paths are exported here as very simple array structures 
+(either of int64_t or double) that can be parsed by just about any 
 programming language.
 
 These 2D paths are defined by series of x and y coordinates together with an
 optional user-defined 'z' value (see Z-values below). Hence, a vertex refers
-to a single x and y coordinate (+/- a user-defined value). Data structures
-have names with suffixes that indicate the array type (either int64_t or
-double). For example, the data structure CPath64 contains an array of int64_t
-values, whereas the data structure CPathD contains an array of double.
-Where documentation omits the type suffix (eg CPath), it is referring to an
+to a single x and y coordinate (+/- a user-defined value). Data structures 
+have names with suffixes that indicate the array type (either int64_t or 
+double). For example, the data structure CPath64 contains an array of int64_t 
+values, whereas the data structure CPathD contains an array of double. 
+Where documentation omits the type suffix (eg CPath), it is referring to an 
 array whose data type could be either int64_t or double.
 
 For conciseness, the following letters are used in the diagrams below:
@@ -39,10 +39,10 @@ A: Number of elements in an array
 
 
 CPath64 and CPathD:
-These are arrays of either int64_t or double values. Apart from
-the first two elements, these arrays are a series of vertices
-that together define a path. The very first element contains the
-number of vertices (N) in the path, while second element should
+These are arrays of either int64_t or double values. Apart from 
+the first two elements, these arrays are a series of vertices 
+that together define a path. The very first element contains the 
+number of vertices (N) in the path, while second element should 
 contain a 0 value.
 _______________________________________________________________
 | counters | vertex1      | vertex2      | ... | vertexN      |
@@ -52,9 +52,9 @@ _______________________________________________________________
 
 CPaths64 and CPathsD:
 These are also arrays of either int64_t or double values that
-contain any number of consecutive CPath structures. However,
+contain any number of consecutive CPath structures. However, 
 preceding the first path is a pair of values. The first value
-contains the length of the entire array structure (A), and the
+contains the length of the entire array structure (A), and the 
 second contains the number (ie count) of contained paths (C).
   Memory allocation for CPaths64 = A * sizeof(int64_t)
   Memory allocation for CPathsD  = A * sizeof(double)
@@ -65,12 +65,12 @@ __________________________________________
 
 
 CPolytree64 and CPolytreeD:
-The entire polytree structure is an array of int64_t or double. The
-first element in the array indicates the array's total length (A).
-The second element indicates the number (C) of CPolyPath structures
+The entire polytree structure is an array of int64_t or double. The 
+first element in the array indicates the array's total length (A). 
+The second element indicates the number (C) of CPolyPath structures 
 that are the TOP LEVEL CPolyPath in the polytree, and these top
-level CPolyPath immediately follow these first two array elements.
-These top level CPolyPath structures may, in turn, contain nested
+level CPolyPath immediately follow these first two array elements. 
+These top level CPolyPath structures may, in turn, contain nested 
 CPolyPath children, and these collectively make a tree structure.
 _________________________________________________________
 | counters | CPolyPath1 | CPolyPath2 | ... | CPolyPathC |
@@ -116,13 +116,10 @@ the four vertices that define the two segments that are intersecting.
 #include "clipper2/clipper.engine.h"
 #include "clipper2/clipper.offset.h"
 #include "clipper2/clipper.rectclip.h"
+#include "clipper2/clipper.triangulation.h"
 #include <cstdlib>
 
-#ifdef USINGZ
-namespace Clipper2Lib_Z {
-#else
 namespace Clipper2Lib {
-#endif
 
 typedef int64_t* CPath64;
 typedef int64_t* CPaths64;
@@ -254,9 +251,9 @@ ZCallback64 dllCallback64 = nullptr;
 ZCallbackD  dllCallbackD  = nullptr;
 
 constexpr int EXPORT_VERTEX_DIMENSIONALITY = 3;
-#else
+#else    
 constexpr int EXPORT_VERTEX_DIMENSIONALITY  = 2;
-#endif
+#endif 
 
 template <typename T>
 static void GetPathCountAndCPathsArrayLen(const Paths<T>& paths,
@@ -396,7 +393,7 @@ static Path<T> ConvertCPathToPathT(T* path)
 #ifdef USINGZ
       z_type z = Reinterpret<z_type>(*v++);
       result.emplace_back(x, y, z);
-#else
+#else  
       result.emplace_back(x, y);
 #endif
   }
@@ -414,7 +411,7 @@ static Paths<T> ConvertCPathsToPathsT(T* paths)
   for (size_t i = 0; i < cnt; ++i)
   {
     size_t cnt2 = static_cast<size_t>(*v);
-    v += 2;
+    v += 2; 
     Path<T> path;
     path.reserve(cnt2);
     for (size_t j = 0; j < cnt2; ++j)
@@ -447,7 +444,7 @@ static Path64 ConvertCPathDToPath64WithScale(const CPathD path, double scale)
 #ifdef USINGZ
         z_type z = Reinterpret<z_type>(*v++);
         result.emplace_back(x, y, z);
-#else
+#else  
         result.emplace_back(x, y);
 #endif
     }
@@ -492,7 +489,7 @@ static void CreateCPolyPath64(const PolyPath64* pp, int64_t*& v)
   {
     *v++ = pt.x;
     *v++ = pt.y;
-#ifdef USINGZ
+#ifdef USINGZ   
     * v++ = Reinterpret<int64_t>(pt.z); // raw memory copy
 #endif
   }
@@ -508,7 +505,7 @@ static void CreateCPolyPathD(const PolyPathD* pp, double*& v)
   {
     *v++ = pt.x;
     *v++ = pt.y;
-#ifdef USINGZ
+#ifdef USINGZ   
     * v++ = Reinterpret<double>(pt.z); // raw memory copy
 #endif
   }
@@ -814,6 +811,24 @@ EXTERN_DLL_EXPORT CPaths64 MinkowskiDiff64(const CPath64& cpattern, const CPath6
   Path64 pattern = ConvertCPathToPathT(cpattern);
   Paths64 solution = MinkowskiDiff(pattern, path, is_closed);
   return CreateCPathsFromPathsT(solution);
+}
+
+EXTERN_DLL_EXPORT CPaths64 Triangulate64(const CPaths64 paths, bool use_delaunay)
+{
+  Paths64 pp = ConvertCPathsToPathsT(paths);
+  Paths64 sol;
+  if (Triangulate(pp, sol, use_delaunay) != TriangulateResult::success) return nullptr;
+  return CreateCPathsFromPathsT(sol);
+}
+
+EXTERN_DLL_EXPORT CPathsD TriangulateD(const CPathsD paths, int decimal_precison, bool use_delaunay)
+{
+  if (decimal_precison < -8 || decimal_precison > 8) return nullptr;
+  const double scale = std::pow(10, decimal_precison);
+  Paths64 pp = ConvertCPathsDToPaths64(paths, scale);
+  Paths64 sol;
+  if (Triangulate(pp, sol, use_delaunay) != TriangulateResult::success) return nullptr;
+  return CreateCPathsDFromPaths64(sol, 1 / scale);
 }
 
 #ifdef USINGZ

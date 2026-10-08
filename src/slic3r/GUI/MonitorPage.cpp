@@ -1,4 +1,10 @@
 #include "MonitorPage.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

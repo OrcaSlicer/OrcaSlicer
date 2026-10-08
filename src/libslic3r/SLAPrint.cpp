@@ -1,17 +1,40 @@
 #include "SLAPrint.hpp"
+#include "PrintConfig.hpp"
+#include "SLA/SupportTree.hpp"
+#include "SLA/Pad.hpp"
+#include "Point.hpp"
+#include "Model.hpp"
+#include "ObjectID.hpp"
+#include "Config.hpp"
+#include "PrintBase.hpp"
+#include "SLA/SupportPoint.hpp"
+#include "ExPolygon.hpp"
+#include "SLA/Hollowing.hpp"
 #include "SLAPrintSteps.hpp"
 
-#include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include "MTUtils.hpp"
 #include "Thread.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
 
+#include <mutex>
+#include <Eigen/Geometry>
+#include <cassert>
+#include <algorithm>
+#include <set>
+#include <cstddef>
+#include <array>
+#include <cmath>
+#include <exception>
 #include <unordered_set>
 #include <numeric>
 
 #include <tbb/parallel_for.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 // #define SLAPRINT_DO_BENCHMARK
 
@@ -20,6 +43,9 @@
 #endif
 
 #include "I18N.hpp"
+#include "PlaceholderParser.hpp"
+
+namespace Slic3r { class Polygon; }
 
 //! macro used to mark string used at localization,
 //! return same string

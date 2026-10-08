@@ -1,5 +1,16 @@
 #include "MultiPoint.hpp"
 #include "BoundingBox.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
+#include <cmath>
+#include "Line.hpp"
+#include <limits>
+#include <cstddef>
+#include <utility>
+#include <cassert>
+#include <vector>
+#include <cstdlib>
+#include <algorithm>
 
 namespace Slic3r {
 

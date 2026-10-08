@@ -1,10 +1,13 @@
 {
 	"type": "filament",
-	"setting_id": "hQByQ7FIhAiytli8",
 	"name": "Generic TPU @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic TPU @System",
+	"from": "system",
+	"setting_id": "hQByQ7FIhAiytli8",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

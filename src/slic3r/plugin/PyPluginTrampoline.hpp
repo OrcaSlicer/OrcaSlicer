@@ -1,17 +1,22 @@
 #ifndef slic3r_PyPluginTrampoline_hpp_
 #define slic3r_PyPluginTrampoline_hpp_
 
+#include "libslic3r/LifecycleEvents.hpp"
 #include <pybind11/embed.h>
 
 #include <boost/log/trivial.hpp>
 
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 #include "PythonPluginInterface.hpp"
 #include "PythonInterpreter.hpp"
 #include "PluginFsUtils.hpp"
 #include "PluginAuditManager.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/gil.h>
+#include <pybind11/pytypes.h>
 
 // Trampoline variants of pybind11's override macros. Every C++->Python plugin call crosses a
 // trampoline method, so this single boundary is where we (1) log the full Python traceback and
@@ -131,6 +136,11 @@ public:
     void on_cancelled() override
     {
         ORCA_PY_OVERRIDE_AUDITED([] {}, PYBIND11_OVERRIDE, void, Base, on_cancelled);
+    }
+
+    void on_lifecycle_event(LifecycleEvent event, const LifecycleEventContext& ctx) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED([] {}, PYBIND11_OVERRIDE, void, Base, on_lifecycle_event, event, ctx);
     }
 };
 

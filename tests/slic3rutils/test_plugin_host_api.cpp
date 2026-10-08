@@ -1,20 +1,34 @@
 #include <catch2/catch_all.hpp>
 
+#include <cstddef>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 #include <slic3r/GUI/DockPanel.hpp>
 #include <slic3r/GUI/AuiPaneLayout.hpp>
 #include <slic3r/GUI/Widgets/WebHosting.hpp>
-#include <slic3r/plugin/PythonPluginBridge.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include "plugin_test_utils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
 #include <string>
+
+#include <wx/string.h>
+#include <wx/uri.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <pybind11/detail/common.h>
 
 namespace py = pybind11;
 
@@ -210,21 +224,31 @@ TEST_CASE("A reloaded plugin page is recognised by its base URL, fragment aside"
 {
     using namespace Slic3r::GUI::web_hosting;
 
-    // A resources path holding a space, which the web view reports escaped.
+    // A resources path holding a space, which the web view may report escaped differently.
     const Slic3r::ScopedResourcesDir resources("web content check");
 
     // The swapped-in page, then after an in-page anchor and a reload.
     CHECK(is_content_url(content_base_url()));
     CHECK(is_content_url(content_base_url() + "#tab2"));
-    wxString escaped = content_base_url();
-    escaped.Replace(" ", "%20");
-    REQUIRE(escaped != content_base_url());
-    CHECK(is_content_url(escaped));
-    CHECK(is_content_url(escaped + "#tab2"));
+    const wxString unescaped = wxURI::Unescape(content_base_url());
+    REQUIRE(unescaped != content_base_url());
+    CHECK(is_content_url(unescaped));
+    CHECK(is_content_url(unescaped + "#tab2"));
     // A page the plugin linked to keeps its own URL and must be left alone.
     CHECK_FALSE(is_content_url(content_base_url() + "guide.html"));
     CHECK_FALSE(is_content_url("https://example.com/"));
     CHECK_FALSE(is_content_url(""));
+}
+
+TEST_CASE("A reloaded plugin page is recognised when the resources path holds a '#'", "[PluginHost]")
+{
+    using namespace Slic3r::GUI::web_hosting;
+
+    const Slic3r::ScopedResourcesDir resources("web#content check");
+
+    CHECK(is_content_url(content_base_url()));
+    CHECK(is_content_url(content_base_url() + "#tab2"));
+    CHECK_FALSE(is_content_url(content_base_url() + "guide.html"));
 }
 
 TEST_CASE("Plugin host API exposes model geometry and structure to Python", "[PluginHost][Python]")

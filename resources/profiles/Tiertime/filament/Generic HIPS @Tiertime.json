@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic HIPS @Tiertime",
-	"inherits": "fdm_filament_hips",
 	"renamed_from": "Tiertime Generic HIPS",
+	"inherits": "fdm_filament_hips",
 	"from": "system",
 	"setting_id": "3Vm99hmTMTFPKNGk",
 	"filament_id": "OFsFon5l",

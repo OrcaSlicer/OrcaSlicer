@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA HF @Prusa MINIIS",
-	"inherits": "Generic ASA HF @Prusa base",
 	"renamed_from": "Prusa Generic ASA HF @MINIIS;Prusa Generic ASA HF MINIIS",
+	"inherits": "Generic ASA HF @Prusa base",
 	"from": "system",
 	"setting_id": "zzMFtHrjmImnj77f",
 	"instantiation": "true",
