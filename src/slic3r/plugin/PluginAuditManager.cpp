@@ -11,6 +11,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
+#include <iterator>
 #include <cctype>
 #include <cstdlib>
 #include <future>
@@ -144,29 +145,28 @@ static bool is_fs_category(AuditEventCategory category)
 // Path safety
 // ---------------------------------------------------------------------------
 
+// weakly_canonical resolves symlinks but does NOT require the path to exist: it canonicalizes
+// the prefix that exists and appends the non-existing tail lexically. Falls back to an absolute,
+// lexically normal path when even that fails.
+static boost::filesystem::path canonical_or_normal(const boost::filesystem::path& path)
+{
+    namespace fs = boost::filesystem;
+    boost::system::error_code ec;
+    fs::path canon = fs::weakly_canonical(path, ec);
+    if (ec) {
+        canon = fs::absolute(path, ec).lexically_normal();
+        if (ec)
+            canon = path;
+    }
+    return canon;
+}
+
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
     namespace fs = boost::filesystem;
 
-    boost::system::error_code ec;
-
-    // Canonicalize both paths.  weakly_canonical resolves symlinks but does
-    // NOT require the path to exist — it canonicalizes the prefix that exists
-    // and appends the non-existing tail lexically.
-    fs::path canon_candidate = fs::weakly_canonical(candidate, ec);
-    if (ec) {
-        // Fall back to lexically_normal + absolute
-        canon_candidate = fs::absolute(candidate, ec).lexically_normal();
-        if (ec)
-            canon_candidate = candidate;
-    }
-
-    fs::path canon_root = fs::weakly_canonical(allowed_root, ec);
-    if (ec) {
-        canon_root = fs::absolute(allowed_root, ec).lexically_normal();
-        if (ec)
-            canon_root = allowed_root;
-    }
+    fs::path canon_candidate = canonical_or_normal(candidate);
+    fs::path canon_root      = canonical_or_normal(allowed_root);
 
     // Component-wise comparison: the root must be a prefix of candidate,
     // and the next component must not be ".." or missing.
@@ -354,19 +354,34 @@ bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& c
 {
     namespace fs = boost::filesystem;
 
-    boost::system::error_code ec;
-    fs::path canon = fs::weakly_canonical(candidate, ec);
-    if (ec) {
-        canon = fs::absolute(candidate, ec).lexically_normal();
-        if (ec)
-            canon = candidate;
-    }
+    fs::path canon = canonical_or_normal(candidate);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_denied_path_keywords.empty())
         return false;
 
-    for (const auto& component : canon) {
+    // Only the part of the path the plugin chose is judged. The components of the allowed root it
+    // sits in are the host's (on Linux the data directory is ~/.config/OrcaSlicer), so a keyword
+    // there must not deny everything underneath; a keyword below the root still does, which keeps
+    // resources_dir()/cert/... unreachable.
+    fs::path below = canon;
+    size_t   depth = 0;
+    auto     consider = [&](const AllowedRoot& root) {
+        if (!is_inside_allowed_root(canon, root.path))
+            return;
+        const fs::path canon_root = canonical_or_normal(root.path);
+        const size_t   root_depth = static_cast<size_t>(std::distance(canon_root.begin(), canon_root.end()));
+        if (root_depth > depth) {
+            depth = root_depth;
+            below = canon.lexically_relative(canon_root);
+        }
+    };
+    for (const auto& root : m_scoped_allowed_roots)
+        consider(root);
+    for (const auto& root : m_global_allowed_roots)
+        consider(root);
+
+    for (const auto& component : below) {
         std::string name = component.string();
         if (name.empty())
             continue;

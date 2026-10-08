@@ -253,6 +253,44 @@ TEST_CASE("Plugin audit denies secret/certificate/config-like paths by keyword",
     }
 }
 
+TEST_CASE("Plugin audit keyword deny ignores the allowed root's own path", "[audit]")
+{
+    seed_denied_names();
+    seed_denied_keywords();
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    // The data directory of a Linux install: its own path carries the "conf" keyword.
+    const fs::path root = fs::temp_directory_path() / "plugin-audit-xdg" / ".config" / "OrcaSlicer";
+    mgr.add_global_allowed_root(root.string());
+
+    SECTION("a plain file below the root is not denied by the root's components")
+    {
+        CHECK_FALSE(mgr.is_denied_path_keyword(root / "log" / "debug.log"));
+        CHECK_FALSE(mgr.is_denied_path_keyword(root / "orca_plugins" / "plugin_data" / "key" / "state.json"));
+    }
+
+    SECTION("a keyword below the root still denies")
+    {
+        CHECK(mgr.is_denied_path_keyword(root / "cert" / "ca.pem"));
+        CHECK(mgr.is_denied_path_keyword(root / "plugin" / "secrets" / "token.txt"));
+        CHECK(mgr.is_denied_path_keyword(root / "plugin.conf"));
+    }
+
+    SECTION("a keyword in a path outside every root still denies")
+    {
+        CHECK(mgr.is_denied_path_keyword(fs::path("/elsewhere/.config/app/file.txt")));
+    }
+
+    SECTION("inside a plugin context the log is readable and the app config stays blocked")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        CHECK(mgr.check_open((root / "log" / "debug.log").string(), "r").allowed);
+        AuditDecision decision = mgr.check_open((root / (SLIC3R_APP_KEY ".conf")).string(), "r");
+        CHECK_FALSE(decision.allowed);
+        CHECK(decision.reason == "denied filename");
+    }
+}
+
 TEST_CASE("Plugin audit is_denied_path combines the filename and keyword registries", "[audit]")
 {
     seed_denied_names();
