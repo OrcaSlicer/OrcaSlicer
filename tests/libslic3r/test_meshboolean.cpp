@@ -33,8 +33,8 @@ TEST_CASE("mcut difference handles source splits between cuts", "[MeshBoolean]")
     TriangleMesh tool;
 
     // First cut splits the source into two disconnected components.
-    TriangleMesh slab = make_cube(2., 10., 20.);
-    slab.translate(Vec3f(14.f, 0.f, -5.f));
+    TriangleMesh slab = make_cube(2., 12., 20.);
+    slab.translate(Vec3f(14.f, -1.f, -5.f));
     its_merge(tool.its, slab.its);
 
     // These cuts must still be applied after the source has been split.
