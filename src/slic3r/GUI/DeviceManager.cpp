@@ -4114,25 +4114,28 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
 
                                 for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
-                                    auto vslot = parse_vt_tray(it.value().get<json>());
+                                    try {
+                                        const auto tray_json = it.value().get<json>();
+                                        if (!tray_json.is_object() || !tray_json.contains("id") || !tray_json["id"].is_string())
+                                            continue;
 
-                                    if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
-                                        auto it = std::next(vt_slot.begin(), 0);
-                                        if (it != vt_slot.end()) {
-                                            vt_slot[0] = vslot;
+                                        const auto tray_id_str = tray_json["id"].get<std::string>();
+                                        int tray_id = 0;
+                                        const auto result = std::from_chars(tray_id_str.data(), tray_id_str.data() + tray_id_str.size(), tray_id);
+                                        if (result.ec != std::errc{} || result.ptr != tray_id_str.data() + tray_id_str.size()
+                                            || tray_id < 0 || tray_id > VIRTUAL_TRAY_MAIN_ID)
+                                            continue;
+
+                                        auto vslot = parse_vt_tray(tray_json);
+                                        const auto index = static_cast<std::vector<DevAmsTray>::size_type>(VIRTUAL_TRAY_MAIN_ID - tray_id);
+                                        while (vt_slot.size() <= index) {
+                                            const int placeholder_id = VIRTUAL_TRAY_MAIN_ID - static_cast<int>(vt_slot.size());
+                                            vt_slot.emplace_back(std::to_string(placeholder_id));
                                         }
-                                        else {
-                                            vt_slot.push_back(vslot);
-                                        }
+                                        vt_slot[index] = vslot;
                                     }
-                                    else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-                                        auto it = std::next(vt_slot.begin(), 1);
-                                        if (it != vt_slot.end()) {
-                                            vt_slot[1] = vslot;
-                                        }
-                                        else {
-                                            vt_slot.push_back(vslot);
-                                        }
+                                    catch (...) {
+                                        continue;
                                     }
                                 }
 
