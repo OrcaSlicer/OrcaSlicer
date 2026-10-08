@@ -671,6 +671,12 @@ void AMSControl::restore_legacy_ams_layout()
     m_down_road->SetNozzleCount(m_total_ext_count);
 }
 
+bool AMSControl::use_multi_nozzle_layout() const
+{
+    const bool is_bbl = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
+    return is_bbl ? m_total_ext_count > 2 : m_nozzle_book != nullptr;
+}
+
 void AMSControl::CreateAmsMultiNozzle(const std::string &series_name, const std::string &printer_type) {
     const size_t pane_count = static_cast<size_t>(std::max(m_total_ext_count, 0));
     m_nozzle_panes.resize(pane_count);
@@ -1286,9 +1292,9 @@ void AMSControl::AddAmsPreview(AMSinfo info, AMSModel type)
 {
     AMSPreview *ams_prv = nullptr;
 
-    // Match AddAms: the generic multi-nozzle layout's preview panel is the visible one at any
-    // extruder count, not only above two.
-    if (m_nozzle_book) {
+    // Match AddAms: the generic multi-nozzle layout's preview panel is the visible one for
+    // non-Bambu vendors at any extruder count, not only above two.
+    if (use_multi_nozzle_layout()) {
         const int nozzle_id = std::clamp(info.nozzle_id, 0, m_total_ext_count - 1);
         auto &pane = m_nozzle_panes[nozzle_id];
         ams_prv = new AMSPreview(pane.preview_panel, wxID_ANY, info, type);
@@ -1469,7 +1475,7 @@ void AMSControl::AddAms(AMSinfo info, AMSPanelPos pos)
     // The generic multi-nozzle layout (non-Bambu vendors) owns the only visible book; a unit must
     // land there for any extruder count. Keying off m_total_ext_count instead sent 1- and 2-extruder
     // generic printers into the legacy simplebooks that CreateAmsMultiNozzle hides.
-    if (m_nozzle_book) {
+    if (use_multi_nozzle_layout()) {
         const int nozzle_id = std::clamp(info.nozzle_id, 0, m_total_ext_count - 1);
         auto &pane = m_nozzle_panes[nozzle_id];
         pane.item_ids.push_back(info.ams_id);
@@ -1523,7 +1529,7 @@ void AMSControl::AddAms(std::vector<AMSinfo> single_info, const std::string &ser
      if (single_info.size() <= 0){
         return;
     }
-    if (m_total_ext_count > 2) {
+    if (use_multi_nozzle_layout()) {
         const int nozzle_id = std::clamp(single_info.front().nozzle_id, 0, m_total_ext_count - 1);
         auto &pane = m_nozzle_panes[nozzle_id];
         for (const auto &info : single_info) {
@@ -1591,7 +1597,7 @@ void AMSControl::AddAms(std::vector<AMSinfo> single_info, const std::string &ser
 void AMSControl::AddAmsPreview(std::vector<AMSinfo>single_info, AMSPanelPos pos) {
     if (single_info.size() <= 0) return;
 
-    if (m_total_ext_count > 2) {
+    if (use_multi_nozzle_layout()) {
         const int nozzle_id = std::clamp(single_info.front().nozzle_id, 0, m_total_ext_count - 1);
         auto &pane = m_nozzle_panes[nozzle_id];
         for (const auto &info : single_info) {
@@ -1672,7 +1678,7 @@ void AMSControl::SelectNozzle(int nozzle_id)
 
 void AMSControl::SwitchAms(std::string ams_id)
 {
-    if (m_total_ext_count > 2) {
+    if (use_multi_nozzle_layout()) {
         NozzleAmsPane *pane = nullptr;
         int nozzle_id = -1;
         for (int index = 0; index < static_cast<int>(m_nozzle_panes.size()); ++index) {
@@ -1877,7 +1883,7 @@ void AMSControl::SetExtruder(bool on_off, int nozzle_id, std::string ams_id, std
     AmsItem *item = nullptr;
     if (m_ams_item_list.find(ams_id) != m_ams_item_list.end()) { item = m_ams_item_list[ams_id]; }
 
-    if (m_total_ext_count > 2) {
+    if (use_multi_nozzle_layout()) {
         if (nozzle_id < 0 || nozzle_id >= static_cast<int>(m_nozzle_panes.size()))
             return;
 
@@ -2016,7 +2022,7 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
         return;
     }
 
-    if (m_total_ext_count > 2) {
+    if (use_multi_nozzle_layout()) {
         const int nozzle_id = std::clamp(ams->get_nozzle_id(), 0, m_total_ext_count - 1);
         if (nozzle_id >= static_cast<int>(m_nozzle_panes.size()))
             return;

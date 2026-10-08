@@ -256,6 +256,11 @@ public:
 private:
     std::string get_filament_id(const std::string& ams_id, const std::string& can_id);
 
+    // True when AMS units are laid out on the generic multi-nozzle book. Bambu
+    // printers keep the legacy count-based single/double-nozzle layout at any
+    // extruder count; other vendors use the book created for them.
+    bool use_multi_nozzle_layout() const;
+
 public:
     std::string m_current_select;
 };
