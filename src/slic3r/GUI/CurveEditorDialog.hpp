@@ -11,7 +11,6 @@
 #include "Widgets/TextInput.hpp"
 
 class wxGrid;
-class wxCheckBox;
 class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
@@ -54,7 +53,6 @@ private:
     wxGrid* m_grid;
     wxPanel* m_table_panel;
     wxPanel* m_actions_panel;
-    wxCheckBox* m_show_table;
     wxStaticText* m_status;
     TextInput* m_range_fields[4];
     wxStaticText* m_range_status;

@@ -5,6 +5,7 @@
 #include <vector>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
+#include <wx/recguard.h>
 #include <wx/string.h>
 #include "libslic3r/CurveModel.hpp"
 
@@ -37,15 +38,22 @@ public:
     std::function<void()> before_drag;
     std::function<void(int)> on_select;
     std::function<void(int, double, double)> on_move;
+    // Offset in model units; true selects the Y axis.
     std::function<void(double, bool)> on_pan;
     std::function<void(double, bool, double)> on_zoom;
 
 private:
+    struct PlotMargins {
+        wxSize size;
+        int left;
+        int right;
+    };
     wxRect chart_rect() const;
     wxPoint chart_point(double x, double y, const wxRect& plot) const;
     bool point_visible(double x, double y) const;
     int hit_test(const wxPoint& position) const;
     void drag_point(const wxPoint& position);
+    void zoom_view(double steps, bool vertical, const wxPoint& position);
     void paint_chart();
 
     CurveEditorAppearance m_appearance;
@@ -61,6 +69,8 @@ private:
     wxPoint m_drag_previous;
     double m_drag_x = 0.0;
     double m_drag_y = 0.0;
+    mutable std::optional<PlotMargins> m_zoom_margins;
+    wxRecursionGuardFlag m_zoom_depth = 0;
 };
 
 } // namespace Slic3r::GUI
