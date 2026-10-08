@@ -1167,16 +1167,10 @@ void AMSControl::UpdateAms(const std::string   &series_name,
         m_dev_id = dev_id;
         if (fresh){
             ClearAms();
-            // Keep the established Bambu left/right AMS presentation. Generic N-nozzle
-            // tabs are for non-Bambu printers; the current checkout exposes this behavior
-            // through PresetBundle::is_bbl_vendor().
-            const bool is_bbl_behavior = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
-            if (is_bbl_behavior) {
-                if (m_total_ext_count == 1)
-                    CreateAmsSingleNozzle(series_name, printer_type);
-                else if (m_total_ext_count == 2)
-                    CreateAmsDoubleNozzle(series_name, printer_type);
-            }
+            if (m_total_ext_count == 1)
+                CreateAmsSingleNozzle(series_name, printer_type);
+            else if (m_total_ext_count == 2)
+                CreateAmsDoubleNozzle(series_name, printer_type);
             else
                 CreateAmsMultiNozzle(series_name, printer_type);
 

@@ -2467,16 +2467,9 @@ void AMSRoadDownPart::UpdateRight(int nozzle_num, AMSRoadShowMode mode)
 void AMSRoadDownPart::SetNozzleCount(int nozzle_num)
 {
     const int new_nozzle_num = std::max(1, nozzle_num);
-    if (m_nozzle_num == new_nozzle_num &&
-        (new_nozzle_num <= 2 || static_cast<int>(m_generic_road_states.size()) == new_nozzle_num)) {
-        return;
-    }
+    if (m_nozzle_num == new_nozzle_num) return;
 
     m_nozzle_num = new_nozzle_num;
-    if (m_nozzle_num > 2)
-        m_generic_road_states.resize(m_nozzle_num);
-    else
-        m_generic_road_states.clear();
     Refresh();
 }
 
@@ -2487,19 +2480,6 @@ void AMSRoadDownPart::SetSingleSideLayout(bool enabled, AMSPanelPos pos)
 
     m_single_side_layout = enabled;
     m_single_side_pos = pos;
-    Refresh();
-}
-
-void AMSRoadDownPart::UpdateNozzle(int nozzle_id, AMSRoadShowMode mode)
-{
-    if (nozzle_id < 0) return;
-    if (nozzle_id >= static_cast<int>(m_generic_road_states.size()))
-        m_generic_road_states.resize(nozzle_id + 1);
-
-    auto &state = m_generic_road_states[nozzle_id];
-    if (state.mode == mode && m_nozzle_num > 2) return;
-    state.mode = mode;
-    m_nozzle_num = std::max(m_nozzle_num, nozzle_id + 1);
     Refresh();
 }
 
@@ -2529,17 +2509,6 @@ void AMSRoadDownPart::SetPassRoadColour(bool left, wxColour col)
         m_road_color[MAIN_EXTRUDER_ID] = col;
     }
 
-    Refresh();
-}
-
-void AMSRoadDownPart::SetPassRoadColour(int nozzle_id, wxColour col)
-{
-    if (nozzle_id < 0) return;
-    if (nozzle_id >= static_cast<int>(m_generic_road_states.size()))
-        m_generic_road_states.resize(nozzle_id + 1);
-
-    if (m_generic_road_states[nozzle_id].road_color == col) return;
-    m_generic_road_states[nozzle_id].road_color = col;
     Refresh();
 }
 
@@ -2587,26 +2556,6 @@ void AMSRoadDownPart::doRender(wxDC& dc)
     /*if (m_road_color.Alpha() == 0) { dc.SetPen(wxPen(*wxWHITE, m_passroad_width, wxPENSTYLE_SOLID)); }
     else { dc.SetPen(wxPen(m_road_color, m_passroad_width, wxPENSTYLE_SOLID)); }*/
     dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
-
-    if (m_nozzle_num > 2) {
-        const int nozzle_count = std::min(m_nozzle_num, static_cast<int>(m_generic_road_states.size()));
-        for (int nozzle_id = 0; nozzle_id < nozzle_count; ++nozzle_id) {
-            const auto &state = m_generic_road_states[nozzle_id];
-            if (state.mode == AMSRoadShowMode::AMS_ROAD_MODE_NONE) continue;
-
-            const int x = size.x * (nozzle_id + 1) / (nozzle_count + 1);
-            dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
-            dc.DrawLine(x, size.y / 2, x, size.y);
-
-            if (state.road_length > 0 &&
-                (state.pass_road_step == AMSPassRoadSTEP::AMS_ROAD_STEP_2 ||
-                 state.pass_road_step == AMSPassRoadSTEP::AMS_ROAD_STEP_3)) {
-                dc.SetPen(wxPen(_get_diff_clr(this, state.road_color), 4, wxPENSTYLE_SOLID));
-                dc.DrawLine(x - FromDIP(state.road_length), size.y / 2, x, size.y / 2);
-            }
-        }
-        return;
-    }
 
     auto xpos = left_nozzle_pos.x;
     if (m_single_side_layout) {
@@ -2813,19 +2762,6 @@ void AMSRoadDownPart::UpdatePassRoad(AMSPanelPos pos, int len, AMSPassRoadSTEP s
     else {
         // Generic N Nozzles
     }
-    Refresh();
-}
-
-void AMSRoadDownPart::UpdatePassRoad(int nozzle_id, int len, AMSPassRoadSTEP step)
-{
-    if (nozzle_id < 0) return;
-    if (nozzle_id >= static_cast<int>(m_generic_road_states.size()))
-        m_generic_road_states.resize(nozzle_id + 1);
-
-    auto &state = m_generic_road_states[nozzle_id];
-    if (state.road_length == len && state.pass_road_step == step) return;
-    state.road_length = len;
-    state.pass_road_step = step;
     Refresh();
 }
 

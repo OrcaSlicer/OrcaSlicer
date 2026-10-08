@@ -686,14 +686,11 @@ public:
     void UpdateRight(int nozzle_num, AMSRoadShowMode mode);
     void SetNozzleCount(int nozzle_num);
     void SetSingleSideLayout(bool enabled, AMSPanelPos pos = AMSPanelPos::LEFT_PANEL);
-    void UpdateNozzle(int nozzle_id, AMSRoadShowMode mode);
 
     void OnVamsLoading(bool load, wxColour col = AMS_CONTROL_GRAY500);
     void SetPassRoadColour(bool left, wxColour col);
-    void SetPassRoadColour(int nozzle_id, wxColour col);
     void SetShowMode(AMSRoadShowMode left_mode, AMSRoadShowMode right_mode);
     void UpdatePassRoad(AMSPanelPos pos, int len, AMSPassRoadSTEP step);
-    void UpdatePassRoad(int nozzle_id, int len, AMSPassRoadSTEP step);
 
     void paintEvent(wxPaintEvent& evt);
     void render(wxDC& dc);
@@ -715,15 +712,6 @@ private:
     AMSPassRoadSTEP m_pass_road_right_step = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
 
     std::map<int, wxColour> m_road_color;
-
-    struct GenericRoadState
-    {
-        AMSRoadShowMode mode{AMSRoadShowMode::AMS_ROAD_MODE_NONE};
-        int road_length{-1};
-        AMSPassRoadSTEP pass_road_step{AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
-        wxColour road_color{AMS_CONTROL_GRAY500};
-    };
-    std::vector<GenericRoadState> m_generic_road_states;
 };
 
 /*************************************************
