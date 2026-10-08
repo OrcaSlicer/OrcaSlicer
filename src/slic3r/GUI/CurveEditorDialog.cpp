@@ -534,7 +534,7 @@ bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>&
     const char* message = m_model->read_points(read_rows(), x, y, error_row);
     wxString error = message == nullptr ? wxString() : _L(message);
     if (!error.empty() && error_row >= 0)
-        error = wxString::Format(_L("Row %d: "), error_row + 1) + error;
+        error = wxString::Format(_L("Table row %d: "), error_row + 1) + error;
     const char* empty_message = m_model->empty_message();
     m_status->SetLabel(error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error);
     // Reset the cached wrap width after replacing the message.
