@@ -145,9 +145,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_chart->set_view(view);
         sync_chart_range();
     };
-    m_chart->on_pan = [this, change_view](double steps, bool vertical) {
+    m_chart->on_pan = [this, change_view](double offset, bool vertical) {
         const auto& view = m_chart->view();
-        const double offset = steps * (vertical ? view.max_y - view.min_y : view.max_x - view.min_x) * 0.1;
         change_view(m_model->panned_view(view, vertical ? 0.0 : offset, vertical ? offset : 0.0));
     };
     m_chart->on_zoom = [this, change_view](double steps, bool vertical, double anchor) {
@@ -278,17 +277,17 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_content->SendSizeEvent();
     });
     view_actions->Add(show_range, 0, wxALIGN_CENTER_VERTICAL);
-    m_show_table = new wxCheckBox(plot_panel, wxID_ANY, _L("Show table"));
-    m_show_table->SetFont(Label::Body_12);
-    m_show_table->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-    m_show_table->SetValue(true);
-    m_show_table->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    auto* show_table = new wxCheckBox(plot_panel, wxID_ANY, _L("Show table"));
+    show_table->SetFont(Label::Body_12);
+    show_table->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    show_table->SetValue(true);
+    show_table->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
         finish_edit();
         update_preview();
         m_table_panel->Show(event.IsChecked());
         m_content->SendSizeEvent();
     });
-    view_actions->Add(m_show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
+    view_actions->Add(show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
     auto make_action_button = [this](const wxString& label, const wxString& icon) {
         auto* button = new Button(m_actions_panel, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
@@ -424,11 +423,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         layout_actions();
     });
 
-    m_status = new wxStaticText(table_panel, wxID_ANY, wxEmptyString);
+    m_status = new wxStaticText(plot_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+                              wxST_WRAP | wxST_NO_AUTORESIZE);
+    m_status->SetMinSize(wxSize(1, -1));
     m_status->SetFont(Label::Body_12);
     m_status->SetForegroundColour(wxColour("#E14747"));
     m_status->Hide();
-    table_sizer->Add(m_status, 0, wxEXPAND | wxTOP, FromDIP(8));
+    plot_sizer->Insert(1, m_status, 0, wxEXPAND | wxTOP, FromDIP(6));
 
     plot_panel->SetSizer(plot_sizer);
     table_panel->SetSizer(table_sizer);
@@ -536,14 +537,9 @@ bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>&
         error = wxString::Format(_L("Row %d: "), error_row + 1) + error;
     const char* empty_message = m_model->empty_message();
     m_status->SetLabel(error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error);
-    m_status->Wrap(FromDIP(260));
+    // Reset the cached wrap width after replacing the message.
+    m_status->Wrap(-1);
     m_status->Show(!m_status->GetLabel().empty());
-    if (!error.empty() && !m_table_panel->IsShown()) {
-        // Keep invalid point values and their explanation accessible for correction.
-        m_table_panel->Show();
-        m_show_table->SetValue(true);
-        m_content->SendSizeEvent();
-    }
     layout_content();
     return error.empty();
 }

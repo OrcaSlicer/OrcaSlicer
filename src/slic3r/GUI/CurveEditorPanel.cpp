@@ -15,6 +15,7 @@
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
 #include <wx/peninfobase.h>
+#include <wx/recguard.h>
 #include <wx/string.h>
 #include "libslic3r/CurveModel.hpp"
 #include "GUI_App.hpp"
@@ -143,17 +144,43 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         const bool vertical = event.ShiftDown();
         double steps = double(event.GetWheelRotation()) / event.GetWheelDelta();
         if (zoom) {
-            const wxRect plot = chart_rect();
-            const wxPoint position = event.GetPosition();
-            const double anchor = vertical ? 1.0 - double(position.y - plot.y) / plot.height :
-                                             double(position.x - plot.x) / plot.width;
-            on_zoom(steps, vertical, std::clamp(anchor, 0.0, 1.0));
+            zoom_view(steps, vertical, event.GetPosition());
             return;
         }
         // Wheel-up moves toward lower X; Shift+wheel-up moves toward higher Y.
         if (!vertical && event.GetWheelAxis() != wxMOUSE_WHEEL_HORIZONTAL) steps = -steps;
-        on_pan(steps, vertical);
+        const double span = vertical ? m_view.max_y - m_view.min_y : m_view.max_x - m_view.min_x;
+        on_pan(steps * span * 0.1, vertical);
     });
+}
+
+void CurveEditorPanel::zoom_view(double steps, bool vertical, const wxPoint& position)
+{
+    wxRecursionGuard guard(m_zoom_depth);
+    if (guard.IsInside()) return;
+    auto anchor_at = [vertical, &position](const wxRect& plot) {
+        const double anchor = vertical ? 1.0 - double(position.y - plot.y) / plot.height :
+                                         double(position.x - plot.x) / plot.width;
+        return std::clamp(anchor, 0.0, 1.0);
+    };
+    const double anchor = anchor_at(chart_rect());
+    const double minimum = vertical ? m_view.min_y : m_view.min_x;
+    const double span = vertical ? m_view.max_y - m_view.min_y : m_view.max_x - m_view.min_x;
+    const double value = minimum + span * anchor;
+    on_zoom(steps, vertical, anchor);
+    if (!on_pan) return;
+
+    // New tick labels can change the plot margins. Pan within the model's limits
+    // until the original value is back under the cursor, to half-pixel precision.
+    for (int attempt = 0; attempt < 8; ++attempt) {
+        const wxRect plot = chart_rect();
+        const double current_minimum = vertical ? m_view.min_y : m_view.min_x;
+        const double current_span = vertical ? m_view.max_y - m_view.min_y : m_view.max_x - m_view.min_x;
+        const double offset = value - (current_minimum + current_span * anchor_at(plot));
+        if (std::abs(offset) <= current_span * 0.5 / (vertical ? plot.height : plot.width)) break;
+        on_pan(offset, vertical);
+        if (current_minimum == (vertical ? m_view.min_y : m_view.min_x)) break;
+    }
 }
 
 void CurveEditorPanel::set_data(const std::vector<double>& x, const std::vector<double>& y,
@@ -175,6 +202,7 @@ void CurveEditorPanel::set_data(const std::vector<double>& x, const std::vector<
 void CurveEditorPanel::set_view(const CurveEditorView& view)
 {
     wxCHECK_RET(CurveModel::valid_view(view), "Invalid curve viewport");
+    if (m_zoom_depth == 0) m_zoom_margins.reset();
     finish_drag();
     m_view = view;
     m_hovered_point = -1;
@@ -220,6 +248,7 @@ wxRect CurveEditorPanel::chart_rect() const
     wxClientDC dc(const_cast<CurveEditorPanel*>(this));
     dc.SetFont(GetFont());
     const wxSize size = GetClientSize();
+    if (m_zoom_margins && m_zoom_margins->size != size) m_zoom_margins.reset();
     const int gap = FromDIP(8);
     const int top = dc.GetCharHeight() + gap + dc.GetCharHeight() / 2;
     const int bottom = 2 * dc.GetCharHeight() + 3 * gap;
@@ -228,11 +257,16 @@ wxRect CurveEditorPanel::chart_rect() const
     for (const auto& tick : axis_ticks(m_view.min_y, m_view.max_y, height, dc, false, gap))
         label_width = std::max(label_width, dc.GetTextExtent(tick.label).x);
     int left = label_width + 2 * gap + FromDIP(4);
+    if (m_zoom_margins) left = std::max(left, m_zoom_margins->left);
     int x_label_width = dc.GetTextExtent(wxString::Format("%.6g", m_view.max_x)).x;
     for (const auto& tick : axis_ticks(m_view.min_x, m_view.max_x, std::max(1, size.x - left), dc, true, gap))
         x_label_width = std::max(x_label_width, dc.GetTextExtent(tick.label).x);
-    const int right = x_label_width / 2 + gap;
+    int right = x_label_width / 2 + gap;
+    if (m_zoom_margins) right = std::max(right, m_zoom_margins->right);
     left = std::max(left, right);
+    // Retain enough room for every label seen during zoom, so correcting the
+    // cursor anchor cannot oscillate between two different plot margins.
+    if (m_zoom_depth != 0 || m_zoom_margins) m_zoom_margins = PlotMargins{size, left, right};
     return wxRect(left, top, std::max(1, size.x - left - right), height);
 }
 
