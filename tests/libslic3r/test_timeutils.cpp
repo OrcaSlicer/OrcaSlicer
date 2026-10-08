@@ -9,8 +9,6 @@
 #include <locale>
 #include <string>
 
-using namespace Slic3r;
-
 static void test_time_fmt(Slic3r::Utils::TimeFormat fmt) {
     using namespace Slic3r::Utils;
     time_t t = get_current_time_utc();

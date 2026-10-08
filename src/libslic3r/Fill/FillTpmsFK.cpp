@@ -122,8 +122,6 @@ Polylines get_polylines(const ScalarField& sf, const double tolerance = SCALED_E
 
 namespace Slic3r {
 
-using namespace std;
-
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,
                                       const std::pair<float, Point>& direction,

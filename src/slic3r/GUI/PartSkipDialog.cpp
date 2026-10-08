@@ -86,7 +86,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 {
     std::time_t       t = std::time(0);
     std::stringstream buf;
-    buf << put_time(std::localtime(&t), "%a_%b_%d_%H_%M_%S/");
+    buf << std::put_time(std::localtime(&t), "%a_%b_%d_%H_%M_%S/");
     m_timestamp = buf.str();
 
     SetBackgroundColour(*wxWHITE);
@@ -402,7 +402,7 @@ std::string PartSkipDialog::create_tmp_path()
     return tmp_path;
 }
 
-bool PartSkipDialog::is_local_file_existed(const std::vector<string> &local_paths)
+bool PartSkipDialog::is_local_file_existed(const std::vector<std::string> &local_paths)
 {
     for (auto path : local_paths) {
         if (!std::filesystem::exists(path)) { return false; }
@@ -703,8 +703,8 @@ void PartSkipDialog::InitDialogUI()
     m_parts_state.clear();
     m_parts_name.clear();
 
-    string pick_img   = m_local_paths[0];
-    string slice_info = m_local_paths[2];
+    std::string pick_img   = m_local_paths[0];
+    std::string slice_info = m_local_paths[2];
 
     m_switch_drag_btn->SetIcon("canvas_drag");
     m_switch_drag_btn->SetBackgroundColor(*wxWHITE);

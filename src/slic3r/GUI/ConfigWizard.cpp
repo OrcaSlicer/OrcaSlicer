@@ -95,7 +95,6 @@ namespace GUI {
 
 
 using Config::Snapshot;
-using Config::SnapshotDB;
 
 
 // Configuration data structures extensions needed for the wizard

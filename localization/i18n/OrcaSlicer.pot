@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 13:42+0800\n"
+"POT-Creation-Date: 2026-10-08 11:08+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3168,7 +3168,7 @@ msgstr ""
 msgid "Remove parameter"
 msgstr ""
 
-msgid "to"
+msgid "Range"
 msgstr ""
 
 msgid "Add height range"
@@ -5065,9 +5065,6 @@ msgid "parameter name"
 msgstr ""
 
 msgid "layers"
-msgstr ""
-
-msgid "Range"
 msgstr ""
 
 msgid "Empty string"
@@ -9662,6 +9659,9 @@ msgid "Other layer filament sequence"
 msgstr ""
 
 msgid "Please input layer value (>= 2)."
+msgstr ""
+
+msgid "to"
 msgstr ""
 
 msgid "Plate name"
@@ -20452,6 +20452,21 @@ msgstr ""
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
 
+msgid "Hide reference planes and axes"
+msgstr ""
+
+msgid "Show reference planes and axes"
+msgstr ""
+
+msgid "Hide the printer bed and its plate grid"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr ""
+
 msgid "Construction"
 msgstr ""
 
@@ -20537,26 +20552,10 @@ msgstr ""
 msgid "Bed hidden"
 msgstr ""
 
-msgid "FEATURES"
+msgid "Reference planes shown"
 msgstr ""
 
-msgid "Sketch"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr ""
-
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-
-msgid "Click a face or a reference plane, then a sketch tool."
+msgid "Reference planes hidden"
 msgstr ""
 
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -20822,12 +20821,6 @@ msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
 msgstr ""
 
 msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr ""
-
-msgid "Import STEP (editable B-rep solid)"
-msgstr ""
-
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
 msgstr ""
 
 msgid "Constrain selected sketch"
@@ -21142,10 +21135,16 @@ msgstr ""
 msgid "New Design — clear the feature tree"
 msgstr ""
 
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
 msgid "Export STEP…"
 msgstr ""
 
-msgid "Show the printer bed and its plate grid"
+msgid "Create a new sketch"
 msgstr ""
 
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -21176,6 +21175,9 @@ msgid "Width / X"
 msgstr ""
 
 msgid "Height / Y"
+msgstr ""
+
+msgid "Sketch"
 msgstr ""
 
 msgid "Distance X"
@@ -21656,6 +21658,9 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
+msgid "Pick a tool, or press Menu for the list."
+msgstr ""
+
 msgid "Constraints"
 msgstr ""
 
@@ -21683,6 +21688,9 @@ msgid "Move down"
 msgstr ""
 
 msgid "Show / hide"
+msgstr ""
+
+msgid "Zoom to selection"
 msgstr ""
 
 msgid "Check interference — find overlapping bodies"
@@ -21742,6 +21750,9 @@ msgstr ""
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr ""
 
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid "Body %d: vertex selected — click again for the whole body"
 msgstr ""
@@ -21782,10 +21793,6 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "%s plane selected — right-click for the drawing tools"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -21842,7 +21849,7 @@ msgstr ""
 msgid "Text unchanged"
 msgstr ""
 
-msgid "Text cancelled"
+msgid "Text canceled"
 msgstr ""
 
 msgid "Import SVG"
@@ -22462,7 +22469,7 @@ msgstr ""
 
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -22494,10 +22501,23 @@ msgstr ""
 msgid "Finding the feature's faces…"
 msgstr ""
 
-msgid "Select a body first — click it in the viewport or the Bodies list"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s has nothing on show to zoom to"
 msgstr ""
 
 msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Select something to zoom to"
+msgstr ""
+
+msgid "Finish or cancel what is open first"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
 msgstr ""
 
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -22517,9 +22537,6 @@ msgid "Click a face on the solid, then press F"
 msgstr ""
 
 msgid "Placed on face — body laid flat on the bed"
-msgstr ""
-
-msgid "Finish or cancel what is open first"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -22870,6 +22887,16 @@ msgstr ""
 msgid "Line E%d"
 msgstr ""
 
+#, possible-c-format, possible-boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
 msgid "Plane ready"
 msgstr ""
 
@@ -23086,7 +23113,10 @@ msgctxt "Design"
 msgid "Sketch"
 msgstr ""
 
-msgid "Click a face or a reference plane, then pick a drawing tool"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr ""
+
+msgid "Sketch on the selected flat face or plane, or click one next"
 msgstr ""
 
 msgctxt "Design"
@@ -23154,9 +23184,6 @@ msgstr ""
 
 msgctxt "Design"
 msgid "Hole"
-msgstr ""
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
 msgstr ""
 
 msgctxt "Design"
@@ -23319,6 +23346,13 @@ msgid "Color"
 msgstr ""
 
 msgid "Set the selected body's display color"
+msgstr ""
+
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Frame the selection in the view, keeping the view direction"
 msgstr ""
 
 msgctxt "Design"
@@ -23583,165 +23617,6 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
-
-msgid "Primitive"
-msgstr ""
-
-msgid "Empty mesh generated"
-msgstr ""
-
-#. TRN Default name of an object created from the box primitive shape.
-msgid "Box"
-msgstr ""
-
-#. TRN Primitive gizmo: label in front of the preset cube size buttons
-msgid "Quick:"
-msgstr ""
-
-msgid "Width (X)"
-msgstr ""
-
-msgid "Depth (Y)"
-msgstr ""
-
-msgid "Height (Z)"
-msgstr ""
-
-#. TRN Primitive gizmo: bottom radius of a cone ("Top R" is the top radius)
-msgid "Bottom R"
-msgstr ""
-
-msgid "Top R"
-msgstr ""
-
-#. TRN Primitive gizmo: major radius of a torus ("Minor R" is the tube radius)
-msgid "Major R"
-msgstr ""
-
-msgid "Minor R"
-msgstr ""
-
-msgid "All edges"
-msgstr ""
-
-msgid "Top edges"
-msgstr ""
-
-msgid "Bottom edges"
-msgstr ""
-
-msgid "Lateral edges"
-msgstr ""
-
-msgid "Mesh resolution"
-msgstr ""
-
-msgid "Add Shape"
-msgstr ""
-
-msgid "No outer profile"
-msgstr ""
-
-msgid "Failed to make outer face"
-msgstr ""
-
-msgid "Failed to build face with holes"
-msgstr ""
-
-msgid "Revolve failed"
-msgstr ""
-
-msgid "Profile"
-msgstr ""
-
-msgid "Start new profile (for holes)"
-msgstr ""
-
-msgid "Segments"
-msgstr ""
-
-msgid "Sides"
-msgstr ""
-
-msgid "Click on canvas to draw"
-msgstr ""
-
-msgid "Snap to grid"
-msgstr ""
-
-msgid "Grid step"
-msgstr ""
-
-msgid "Outer"
-msgstr ""
-
-msgid "closed"
-msgstr ""
-
-#. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
-#, possible-boost-format
-msgid "%1% %2%: %3% points %4%"
-msgstr ""
-
-msgid "XY (Top)"
-msgstr ""
-
-msgid "XZ (Front)"
-msgstr ""
-
-msgid "YZ (Side)"
-msgstr ""
-
-msgid "Revolve deg"
-msgstr ""
-
-msgid "Set to 0 for extrude, >0 for revolve"
-msgstr ""
-
-msgid "Pocket (cut)"
-msgstr ""
-
-#, possible-c-format
-msgid "%zu closed profile"
-msgid_plural "%zu closed profiles"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Draw a closed profile to enable"
-msgstr ""
-
-msgid "Clear all"
-msgstr ""
-
-msgid "Empty result"
-msgstr ""
-
-#, possible-boost-format
-msgid "Extrude: %1%"
-msgstr ""
-
-#, possible-boost-format
-msgid "Revolve: %1%"
-msgstr ""
-
-msgid "No object selected"
-msgstr ""
-
-msgid "Face failed"
-msgstr ""
-
-msgid "Face with holes failed"
-msgstr ""
-
-msgid "Tool mesh empty"
-msgstr ""
-
-msgid "Pocket added (negative volume)"
-msgstr ""
-
-#, possible-boost-format
-msgid "Pocket: %1%"
 msgstr ""
 
 msgctxt "Keyboard Shortcut"

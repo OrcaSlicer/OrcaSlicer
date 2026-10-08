@@ -58,7 +58,7 @@
 #include <CGAL/boost/graph/copy_face_graph.h>
 #include <CGAL/boost/graph/Face_filtered_graph.h>
 // For parameterize_lscm()
-#include <CGAL/Polygon_mesh_processing/border.h>
+#include <CGAL/boost/graph/border.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/detect_features.h>
 #include <CGAL/Surface_mesh_parameterization/Error_code.h>
@@ -145,7 +145,7 @@ void self_union(TriangleMesh& mesh)
 namespace cgal {
 
 namespace CGALProc    = CGAL::Polygon_mesh_processing;
-namespace CGALParams  = CGAL::Polygon_mesh_processing::parameters;
+namespace CGALParams  = CGAL::parameters;
 
 using EpecKernel = CGAL::Exact_predicates_exact_constructions_kernel;
 using EpicKernel = CGAL::Exact_predicates_inexact_constructions_kernel;
@@ -515,7 +515,7 @@ void segment(CGALMesh& src, std::vector<CGALMesh>& dst, double smoothing_alpha =
         typedef boost::graph_traits<_EpicMesh>::halfedge_descriptor      halfedge_descriptor;
         typedef boost::graph_traits<_EpicMesh>::vertex_descriptor        vertex_descriptor;
         std::vector<halfedge_descriptor> border_cycles;
-        CGAL::Polygon_mesh_processing::extract_boundary_cycles(out, std::back_inserter(border_cycles));
+        CGAL::extract_boundary_cycles(out, std::back_inserter(border_cycles));
         for (halfedge_descriptor h : border_cycles)
         {
             std::vector<face_descriptor>  patch_facets;
@@ -660,7 +660,6 @@ bool empty(const CGALMesh &mesh)
 
 bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string* error)
 {
-    using namespace CGAL;
     namespace PMP = CGAL::Polygon_mesh_processing;
 
     if (mesh.empty())
@@ -706,7 +705,7 @@ bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string
             using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
 
             std::vector<halfedge_descriptor> borders;
-            PMP::extract_boundary_cycles(cgal_mesh, std::back_inserter(borders));
+            CGAL::extract_boundary_cycles(cgal_mesh, std::back_inserter(borders));
 
             for (halfedge_descriptor h : borders) {
                 PMP::triangulate_and_refine_hole(cgal_mesh, h);

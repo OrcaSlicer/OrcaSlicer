@@ -1135,7 +1135,6 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
 
 void SeamPlacer::calculate_candidates_visibility(const PrintObject *po,
                                                  const SeamPlacerImpl::GlobalModelInfo &global_model_info) {
-  using namespace SeamPlacerImpl;
 
   std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
   tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),

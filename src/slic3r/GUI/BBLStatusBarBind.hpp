@@ -80,10 +80,6 @@ private:
     CancelFn m_cancel_cb_fina;
 };
 
-namespace GUI {
-using Slic3r::BBLStatusBarBind;
-}
-
 } // namespace Slic3r
 
 #endif // BBLSTATUSBAR_HPP

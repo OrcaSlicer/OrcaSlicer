@@ -16,7 +16,6 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
 
-#include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include "libslic3r/Config.hpp"
 #include <cstddef>
@@ -31,8 +30,6 @@
 #include <vector>
 #include <utility>
 #include <catch2/matchers/catch_matchers_vector.hpp>
-
-namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 
@@ -536,6 +533,110 @@ SCENARIO("update_diff_values_to_child_config keeps a child's values on variants 
                                                       Slic3r::printer_options_with_variant_2);
             THEN("only the first extruder's variants take the child's value") {
                 REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,0.8,0.8");
+            }
+        }
+    }
+}
+
+SCENARIO("update_non_diff_values_to_base_config keeps a project's changed values on variants it does not list",
+         "[Config][Variant]") {
+    std::set<std::string> no_keys;
+    auto variants = [](std::initializer_list<std::string> names) { return new Slic3r::ConfigOptionStrings(names); };
+
+    GIVEN("A filament base with three variants") {
+        Slic3r::DynamicPrintConfig base;
+        base.set_key_value("filament_extruder_variant",
+            variants({"Direct Drive Standard", "Bowden Standard", "Direct Drive High Flow"}));
+        base.set_deserialize_strict("nozzle_temperature", "220,220,220");
+
+        WHEN("the project was saved when the base had only its first variant") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("filament_extruder_variant", variants({"Direct Drive Standard"}));
+            project.set_deserialize_strict("nozzle_temperature", "199");
+
+            AND_WHEN("the project lists the value as changed") {
+                project.update_non_diff_values_to_base_config(base, project.keys(), {"nozzle_temperature"}, "", "filament_extruder_variant",
+                                                              Slic3r::filament_options_with_variant, no_keys);
+                THEN("the project's value applies to every variant") {
+                    REQUIRE(project.opt_serialize("nozzle_temperature") == "199,199,199");
+                }
+            }
+            AND_WHEN("the project does not list the value as changed") {
+                project.update_non_diff_values_to_base_config(base, project.keys(), {}, "", "filament_extruder_variant",
+                                                              Slic3r::filament_options_with_variant, no_keys);
+                THEN("the base's values replace it") {
+                    REQUIRE(project.opt_serialize("nozzle_temperature") == "220,220,220");
+                }
+            }
+        }
+        WHEN("the project lists every variant, in another order") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("filament_extruder_variant",
+                variants({"Bowden Standard", "Direct Drive High Flow", "Direct Drive Standard"}));
+            project.set_deserialize_strict("nozzle_temperature", "190,205,199");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"nozzle_temperature"}, "", "filament_extruder_variant",
+                                                          Slic3r::filament_options_with_variant, no_keys);
+            THEN("each variant keeps its own value") {
+                REQUIRE(project.opt_serialize("nozzle_temperature") == "199,190,205");
+            }
+        }
+        WHEN("the project lists no variants") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_deserialize_strict("nozzle_temperature", "199");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"nozzle_temperature"}, "", "filament_extruder_variant",
+                                                          Slic3r::filament_options_with_variant, no_keys);
+            THEN("the project's value applies to every variant") {
+                REQUIRE(project.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+    }
+
+    GIVEN("A two-extruder printer base with two variants per extruder") {
+        Slic3r::DynamicPrintConfig base;
+        base.set_key_value("printer_extruder_variant",
+            variants({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+        base.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 1, 2, 2}));
+        base.set_deserialize_strict("retraction_length", "0.8,0.8,0.8,0.8");
+
+        WHEN("the project lists only the Standard variant of each extruder") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            project.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            project.set_deserialize_strict("retraction_length", "1.1,2.2");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"retraction_length"}, "printer_extruder_id", "printer_extruder_variant",
+                                                          Slic3r::printer_options_with_variant_1,
+                                                          Slic3r::printer_options_with_variant_2);
+            THEN("each extruder's High Flow variant takes that extruder's value") {
+                REQUIRE(project.opt_serialize("retraction_length") == "1.1,1.1,2.2,2.2");
+            }
+        }
+        WHEN("the project lists only the Standard variant of each extruder, and the variant lists as changed") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            project.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            project.set_deserialize_strict("machine_max_speed_x", "300,100,400,150");
+            base.set_deserialize_strict("machine_max_speed_x", "500,200,500,200,500,200,500,200");
+            project.update_non_diff_values_to_base_config(base, project.keys(),
+                                                          {"machine_max_speed_x", "printer_extruder_id", "printer_extruder_variant"},
+                                                          "printer_extruder_id", "printer_extruder_variant",
+                                                          Slic3r::printer_options_with_variant_1,
+                                                          Slic3r::printer_options_with_variant_2);
+            THEN("the variant lists are the base's") {
+                REQUIRE(project.opt_serialize("printer_extruder_variant") == base.opt_serialize("printer_extruder_variant"));
+                REQUIRE(project.opt_serialize("printer_extruder_id") == "1,1,2,2");
+            }
+            THEN("each extruder's High Flow variant takes that extruder's pair of limits") {
+                REQUIRE(project.opt_serialize("machine_max_speed_x") == "300,100,300,100,400,150,400,150");
+            }
+        }
+        WHEN("the project lists no variants") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_deserialize_strict("retraction_length", "1.1");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"retraction_length"}, "printer_extruder_id", "printer_extruder_variant",
+                                                          Slic3r::printer_options_with_variant_1,
+                                                          Slic3r::printer_options_with_variant_2);
+            THEN("only the first extruder's variants take the project's value") {
+                REQUIRE(project.opt_serialize("retraction_length") == "1.1,1.1,0.8,0.8");
             }
         }
     }

@@ -37,6 +37,7 @@ namespace Slic3r { class DynamicPrintConfig; }
 class TextInput;
 class StaticLine;
 class CheckBox;
+class MultiSwitchButton;
 
 namespace Slic3r { namespace GUI {
 
@@ -195,6 +196,10 @@ private:
         ScalableBitmap icon_bmp;      // tab icon next to the title; rescaled on DPI change
         wxPanel* page{nullptr};
         TabCtrl* tabs{nullptr};
+        // Printer section with several extruders: the extruder switch shown instead of `tabs`, the
+        // same MultiSwitchButton (and option names) as the printer tab's Extruder page. One option
+        // per entry of `categories`, named by its title; `tabs` stays as the hidden selection model.
+        MultiSwitchButton* variant_switch{nullptr};
         // Second tab strip, below the main one, listing only the mixed-color filament slots.
         // Present on the Material section only (null elsewhere).
         TabCtrl* mixed_tabs{nullptr};
@@ -277,6 +282,8 @@ private:
     bool row_is_visible(const Row& row) const;
     void apply_visibility();
     void bind_tab_events();
+    // Replaces a section's inner tab strip with a variant switch (see SectionGroup::variant_switch).
+    void setup_variant_switch(size_t section_index);
 
     TabCtrl* m_outer_tabs{nullptr};
     wxPanel* m_outer_host{nullptr};

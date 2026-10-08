@@ -404,7 +404,6 @@ std::string debug_out_path(const char *name, ...)
 }
 
 namespace logging = boost::log;
-namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
@@ -892,7 +891,6 @@ int copy_file_linux_read_write(int infile, int outfile, uintmax_t file_size)
 // and only features supported by Linux 3.10 (on our build server with CentOS 7) are kept, namely sendfile with ranges and statx() are not supported.
 bool copy_file_linux(const boost::filesystem::path &from, const boost::filesystem::path &to, boost::system::error_code &ec)
 {
-	using namespace boost::filesystem;
 
 	struct fd_wrapper
 	{

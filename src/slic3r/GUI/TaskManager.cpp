@@ -20,7 +20,6 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 using namespace nlohmann;
 

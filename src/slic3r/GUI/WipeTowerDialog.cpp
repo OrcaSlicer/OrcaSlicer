@@ -38,10 +38,11 @@
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/Jobs/SendJob.hpp"
-#include "slic3r/Utils/json_diff.hpp"
 #include <boost/filesystem.hpp>
+
+using json = nlohmann::json;
 
 class wxWindow;
 

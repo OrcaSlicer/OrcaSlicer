@@ -20,7 +20,6 @@
 #include <set>
 #include <utility>
 #include "DevFilaSystem.h"
-#include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp" // ORCA_PRINTER_AGENT_ID
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
@@ -174,7 +173,7 @@ DevAms::~DevAms()
     m_trays.clear();
 }
 
-static unordered_map<int, wxString> s_ams_display_formats = {
+static std::unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},

@@ -45,6 +45,8 @@
 #include "../Utils/MacDarkMode.hpp"
 #endif
 
+using json = nlohmann::json;
+
 namespace Slic3r {
 namespace GUI {
 

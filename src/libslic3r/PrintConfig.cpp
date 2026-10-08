@@ -10030,6 +10030,13 @@ static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned i
             printer_extruder_variant_opt->values.insert(printer_extruder_variant_opt->values.end(), variants_list.begin(), variants_list.end());
         }
     }
+
+    // 3. Size the machine limits to the rebuilt variants, padded with their first value like the other variant keys.
+    // They are not extruder option keys, so the resize loop in set_num_extruders skips them.
+    const auto &defaults = FullPrintConfig::defaults();
+    for (const std::string &key : printer_options_with_variant_2)
+        if (auto *opt = config.option<ConfigOptionFloats>(key))
+            opt->resize(config.get_parameter_size(key, num_extruders), defaults.option(key));
 }
 
 void DynamicPrintConfig::set_num_extruders(unsigned int num_extruders)
@@ -10822,6 +10829,22 @@ void normalize_filament_values_to_variants(DynamicPrintConfig &config)
     }
 }
 
+void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs)
+{
+    for (const std::string &key : filament_dev_options) {
+        if (std::none_of(filament_configs.begin(), filament_configs.end(), [&key](const DynamicPrintConfig *filament) { return filament->has(key); }))
+            continue;
+        const ConfigOption *default_value = print_config_def.get(key)->default_value.get();
+        auto *dst = static_cast<ConfigOptionVectorBase *>(config.option(key, true));
+        dst->clear();
+        for (const DynamicPrintConfig *filament : filament_configs) {
+            const auto *src = static_cast<const ConfigOptionVectorBase *>(filament->has(key) ? filament->option(key) : default_value);
+            if (!src->empty())
+                dst->append(src);
+        }
+    }
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11520,12 +11543,18 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
     int cur_variant_count = cur_extruder_variants.size();
     int target_variant_count = target_extruder_variants.size();
 
+    // A base variant this config does not list (the base gained it after the config was saved, or the
+    // config lists none) takes this config's first variant of the same extruder, as a user preset's
+    // values do in update_diff_values_to_child_config. Left unmatched, the base's value would silently
+    // replace the user's.
     variant_index.resize(target_variant_count, -1);
     if (cur_variant_count == 0) {
         // Defensive: target_variant_count may be 0 if the preset doesn't carry extruder_variant_name.
         // In that case keep variant_index empty and let the downstream size checks produce a useful error.
         if (!variant_index.empty())
-            variant_index[0] = 0;
+            // This config's one value belongs to the extruder of the base's first variant.
+            variant_index = map_variant_indices(target_extruder_variants, target_extruder_ids, {},
+                                                target_extruder_ids.empty() ? std::vector<int>() : std::vector<int>{target_extruder_ids[0]});
     }
     else if ((cur_extruder_ids.size() > 0) && cur_variant_count != cur_extruder_ids.size()){
         //should not happen
@@ -11538,18 +11567,7 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
              %extruder_variant_name %target_variant_count %extruder_id_name %target_extruder_ids.size();
     }
     else {
-        for (int i = 0; i < target_variant_count; i++)
-        {
-            for (int j = 0; j < cur_variant_count; j++)
-            {
-                if ((target_extruder_variants[i] == cur_extruder_variants[j])
-                    &&(target_extruder_ids.empty() || (target_extruder_ids[i] == cur_extruder_ids[j])))
-                {
-                    variant_index[i] = j;
-                    break;
-                }
-            }
-        }
+        variant_index = map_variant_indices(target_extruder_variants, target_extruder_ids, cur_extruder_variants, cur_extruder_ids);
     }
 
     for (auto& opt : keys) {
@@ -11573,6 +11591,13 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     // authoritative for its own extruder count, so skip the merge for this key.
                     if (cur_variant_count > target_variant_count)
                         continue;
+
+                    // The variant lists are the base's layout itself, which every other value is
+                    // carried onto: a variant this config lacks keeps its own name and id.
+                    if (opt == extruder_id_name || opt == extruder_variant_name) {
+                        opt_src->set(opt_target);
+                        continue;
+                    }
 
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
