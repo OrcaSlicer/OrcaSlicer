@@ -733,11 +733,18 @@ void AMSControl::CreateAmsMultiNozzle(const std::string &series_name, const std:
         pane.ams_book = new wxSimplebook(pane.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
         pane.ams_book->SetMinSize(wxSize(FromDIP(264), -1));
         pane.ams_book->SetBackgroundColour(StateColor::darkModeColorFor(AMS_CONTROL_DEF_BLOCK_BK_COLOUR));
+        // wxALIGN_CENTER does not centre horizontally inside a HORIZONTAL sizer, so a book wider
+        // than pane.ams_area's own minimum would sit at ams_area's left edge and overflow to the
+        // right, shifting the whole card column off the shared down-road connector axis. A pair of
+        // stretch spacers keeps the book centred on the pane (and thus on the connector) at any
+        // book width; ams_area is expanded below so the spacers have room to work with.
         pane.ams_area = new wxBoxSizer(wxHORIZONTAL);
+        pane.ams_area->AddStretchSpacer(1);
         pane.ams_area->Add(pane.ams_book, 0, wxALIGN_CENTER, 0);
+        pane.ams_area->AddStretchSpacer(1);
 
         pane.page_sizer->Add(pane.preview_panel, 0, wxALIGN_CENTER | wxTOP, FromDIP(5));
-        pane.page_sizer->Add(pane.ams_area, 0, wxALIGN_CENTER | wxTOP, FromDIP(10));
+        pane.page_sizer->Add(pane.ams_area, 0, wxEXPAND | wxTOP, FromDIP(10));
 
         m_nozzle_book->AddPage(pane.page, wxEmptyString, nozzle_id == 0);
     }
@@ -1354,8 +1361,14 @@ void AMSControl::createAms(wxSimplebook* parent, int& idx, AMSinfo info, AMSPane
                         book_item->SetProportion(expand_viewport ? 1 : 0);
                         book_item->SetFlag(expand_viewport ? wxEXPAND : wxALIGN_CENTER);
                     }
+                    // Keep the centring spacers (items 0 and 2) elastic only in the centred layout;
+                    // in the >8-lane viewport they must collapse so the book can fill ams_area.
+                    if (auto *lead = pane->ams_area->GetItem(static_cast<size_t>(0)))
+                        lead->SetProportion(expand_viewport ? 0 : 1);
+                    if (auto *trail = pane->ams_area->GetItem(static_cast<size_t>(2)))
+                        trail->SetProportion(expand_viewport ? 0 : 1);
                     if (auto *area_item = pane->page_sizer->GetItem(pane->ams_area))
-                        area_item->SetFlag(expand_viewport ? (wxEXPAND | wxTOP) : (wxALIGN_CENTER | wxTOP));
+                        area_item->SetFlag(wxEXPAND | wxTOP);
                     if (auto *nozzle_book_item = m_sizer_ams_items->GetItem(m_nozzle_book))
                         nozzle_book_item->SetFlag(expand_viewport ? wxEXPAND : wxALIGN_CENTER);
                     if (auto *items_item = m_sizer_body->GetItem(m_sizer_ams_items))
@@ -1411,8 +1424,13 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
     wxPanel* book_panel = new wxPanel(parent);
     wxBoxSizer* book_sizer = new wxBoxSizer(wxHORIZONTAL);
     book_panel->SetBackgroundColour(StateColor::darkModeColorFor(AMS_CONTROL_DEF_LIB_BK_COLOUR));
-    book_panel->SetSize(AMS_PANEL_SIZE);
-    book_panel->SetMinSize(AMS_PANEL_SIZE);
+    // Size the page to the AMS book it becomes, not to the legacy fixed width: an AMS card is
+    // added directly as the book page (so it always spans the book), while a single external
+    // spool is wrapped here. Matching the book keeps the Ext card centred on the same axis as
+    // the AMS cards and the shared down-road connector anchored below them.
+    const wxSize book_panel_size(std::max(parent->GetMinSize().x, AMS_PANEL_SIZE.x), AMS_PANEL_SIZE.y);
+    book_panel->SetSize(book_panel_size);
+    book_panel->SetMinSize(book_panel_size);
 
     AmsItem* ams1 = nullptr, * ams2 = nullptr;
     ams1 = new AmsItem(book_panel, infos[0], infos[0].ams_type, pos);
@@ -1440,9 +1458,12 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
                 book_sizer->Add(ams1, 0, wxLEFT, (book_panel->GetSize().x - ams1->GetSize().x) / 2);
             }
             else if (pos == AMSPanelPos::SINGLE_PANEL) {
-                book_sizer->AddStretchSpacer(1);
-                book_sizer->Add(ams1, 0, wxALIGN_CENTER_VERTICAL, 0);
-                book_sizer->AddStretchSpacer(1);
+                // Centre the single external-spool card explicitly, using the same fixed-margin
+                // technique as the Lite-EXT branch above. Two stretch spacers centred the card
+                // against the wrapper's own width rather than the AMS book, which left the card
+                // (and the connector drawn below it) off the book/connector axis.
+                book_sizer->Add(ams1, 0, wxLEFT,
+                                std::max(0, (book_panel_size.x - ams1->GetSize().x) / 2));
             }
             else{
                 auto ext_image = new AMSExtImage(book_panel, pos, m_total_ext_count, false);
