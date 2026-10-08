@@ -38808,11 +38808,11 @@ msgstr "Mostra la corba sencera."
 
 # AI Translated
 msgid "Add point"
-msgstr "Afegeix"
+msgstr "Afegir un punt"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Elimina"
+msgstr "Eliminar un punt"
 
 # AI Translated
 msgid "Reset to defaults"

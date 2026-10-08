@@ -38675,11 +38675,11 @@ msgstr "Teljes görbe látszik."
 
 # AI Translated
 msgid "Add point"
-msgstr "Hozzáadás"
+msgstr "Pont hozzáadása"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Pont törlése"
+msgstr "Pont eltávolítása"
 
 # AI Translated
 msgid "Reset to defaults"

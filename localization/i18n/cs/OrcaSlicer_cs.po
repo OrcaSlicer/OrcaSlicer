@@ -38936,11 +38936,11 @@ msgstr "Ukázat celou křivku."
 
 # AI Translated
 msgid "Add point"
-msgstr "Přidat"
+msgstr "Přidat bod"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Odebrat bod"
+msgstr "Odstranit bod"
 
 # AI Translated
 msgid "Reset to defaults"

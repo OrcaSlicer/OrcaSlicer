@@ -38573,11 +38573,11 @@ msgstr "Tüm eğriyi göster."
 
 # AI Translated
 msgid "Add point"
-msgstr "Ekle"
+msgstr "Nokta ekle"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Nokta sil"
+msgstr "Noktayı kaldır"
 
 # AI Translated
 msgid "Reset to defaults"

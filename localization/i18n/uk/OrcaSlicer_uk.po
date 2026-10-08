@@ -39139,11 +39139,11 @@ msgstr "Показати всю криву."
 
 # AI Translated
 msgid "Add point"
-msgstr "Додати"
+msgstr "Додати точку"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Видалити"
+msgstr "Вилучити точку"
 
 # AI Translated
 msgid "Reset to defaults"

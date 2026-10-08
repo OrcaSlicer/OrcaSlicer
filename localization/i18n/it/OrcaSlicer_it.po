@@ -38510,11 +38510,11 @@ msgstr "Vedi tutta la curva."
 
 # AI Translated
 msgid "Add point"
-msgstr "Aggiungi"
+msgstr "Aggiungi punto"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Rimuovi"
+msgstr "Rimuovi punto"
 
 # AI Translated
 msgid "Reset to defaults"

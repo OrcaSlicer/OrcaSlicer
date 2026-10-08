@@ -38498,11 +38498,11 @@ msgstr "Rodyti visą kreivę."
 
 # AI Translated
 msgid "Add point"
-msgstr "Pridėti"
+msgstr "Pridėti tašką"
 
 # AI Translated
 msgid "Remove point"
-msgstr "Pašalinti"
+msgstr "Pašalinti tašką"
 
 # AI Translated
 msgid "Reset to defaults"
