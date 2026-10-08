@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include <string>
 #include <wx/hyperlink.h>
 
 #include "Jobs/ProgressIndicator.hpp"

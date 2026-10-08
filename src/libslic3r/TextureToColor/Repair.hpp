@@ -24,8 +24,6 @@
 
 namespace Slic3r { namespace tex2color {
 
-namespace PMP = CGAL::Polygon_mesh_processing;
-
 // Default upper bound on the number of half-edges in any single boundary cycle
 // that CloseBoundariesAndRepairManifoldness will attempt to triangulate. The
 // cost of triangulate_hole grows non-linearly with cycle length, so this caps
@@ -61,6 +59,7 @@ struct BoundaryEdgeStats
 // any pre-processing (e.g. stitch_borders) needed for the count to be meaningful.
 inline BoundaryEdgeStats ComputeBoundaryEdgeStats(const cgalutils::CGALMesh& cgal_mesh)
 {
+    namespace PMP = CGAL::Polygon_mesh_processing;
     using CGALMesh = cgalutils::CGALMesh;
     using HalfedgeDescriptor = boost::graph_traits<CGALMesh>::halfedge_descriptor;
 
@@ -87,6 +86,7 @@ inline BoundaryEdgeStats ComputeBoundaryEdgeStats(const cgalutils::CGALMesh& cga
 // boundary statistics; entering this function always triggers triangulation.
 inline void CloseBoundariesAndRepairManifoldness(cgalutils::CGALMesh& cgal_mesh)
 {
+    namespace PMP = CGAL::Polygon_mesh_processing;
     using CGALMesh = cgalutils::CGALMesh;
     using HalfedgeDescriptor = boost::graph_traits<CGALMesh>::halfedge_descriptor;
     using FaceDescriptor = boost::graph_traits<CGALMesh>::face_descriptor;
@@ -112,6 +112,7 @@ inline bool RepairMesh(const TriMesh& mesh,
                        AlgoCancelCallback cancel_callback = nullptr,
                        const RepairSetting& setting = RepairSetting{})
 {
+    namespace PMP = CGAL::Polygon_mesh_processing;
     using Clock = std::chrono::steady_clock;
     auto elapsed_ms = [](Clock::time_point t0) {
         return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - t0).count();

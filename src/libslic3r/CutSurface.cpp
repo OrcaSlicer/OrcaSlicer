@@ -2589,7 +2589,6 @@ void priv::create_face_types(FaceTypeMap           &map,
 }
 
 #include <CGAL/Polygon_mesh_processing/clip.h>
-#include <CGAL/Polygon_mesh_processing/corefinement.h>
 bool priv::clip_cut(SurfacePatch &cut, CutMesh clipper)
 {
     CutMesh& tm = cut.mesh; 

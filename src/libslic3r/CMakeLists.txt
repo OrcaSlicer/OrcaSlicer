@@ -261,8 +261,6 @@ set(lisbslic3r_sources
     GCode/PreciseSeam.cpp
     GCode/PreciseSeam.hpp
     GCode/PreciseSeamInternal.hpp
-    #GCodeSender.cpp
-    #GCodeSender.hpp
     GCode/SmallAreaInfillFlowCompensator.cpp
     GCode/SmallAreaInfillFlowCompensator.hpp
     GCode/SpiralVase.cpp
@@ -447,7 +445,6 @@ set(lisbslic3r_sources
     SLA/SupportTreeBuildsteps.hpp
     SLA/SupportTree.cpp
     SLA/SupportTree.hpp
-    #SLA/SupportTreeIGL.cpp
     SLA/SupportTreeMesher.cpp
     SLA/SupportTreeMesher.hpp
     SlicesToTriangleMesh.cpp

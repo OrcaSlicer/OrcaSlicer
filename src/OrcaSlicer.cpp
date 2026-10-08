@@ -4094,6 +4094,8 @@ int CLI::run(int argc, char **argv)
             flush_and_exit(CLI_MIXED_FILAMENT_INVALID);
         }
     }
+    if (filament_count > 0)
+        resize_mixed_filament_metadata(m_print_config, size_t(filament_count), size_t(filament_count));
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 

@@ -3593,24 +3593,6 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
-// Preserve metadata only for existing colour slots; new slots get false/empty defaults.
-static void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count)
-{
-    auto resize = [old_slot_count, new_slot_count](auto *opt) {
-        if (opt) {
-            opt->values.resize(std::min(old_slot_count, opt->values.size()));
-            opt->values.resize(new_slot_count);
-        }
-    };
-    resize(config.option<ConfigOptionBools>("filament_is_mixed"));
-    resize(config.option<ConfigOptionStrings>("filament_mixed_components"));
-    resize(config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"));
-    resize(config.option<ConfigOptionBools>("filament_mixed_gradient"));
-    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_range"));
-    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"));
-    resize(config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"));
-}
-
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
     unsigned old_filament_count = this->filament_presets.size();

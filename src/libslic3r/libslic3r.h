@@ -432,8 +432,6 @@ inline IntegerOnly<I, I> fast_round_up(double a)
     return a == 0.49999999999999994 ? I(0) : I(floor(a + 0.5));
 }
 
-template<class T> using SamePair = std::pair<T, T>;
-
 } // namespace Slic3r
 
 #endif

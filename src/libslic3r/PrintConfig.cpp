@@ -10845,6 +10845,21 @@ void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<cons
     }
 }
 
+void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count)
+{
+    auto resize = [old_slot_count, new_slot_count](auto *opt) {
+        opt->values.resize(std::min(old_slot_count, opt->values.size()));
+        opt->values.resize(new_slot_count);
+    };
+    resize(config.option<ConfigOptionBools>("filament_is_mixed", true));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_components", true));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios", true));
+    resize(config.option<ConfigOptionBools>("filament_mixed_gradient", true));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_range", true));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_curve", true));
+    resize(config.option<ConfigOptionBools>("filament_mixed_gradient_per_part", true));
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single

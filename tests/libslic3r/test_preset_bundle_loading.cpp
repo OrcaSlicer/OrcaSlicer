@@ -24,7 +24,6 @@
 
 #include "test_utils.hpp"
 
-#include <algorithm>
 #include <iostream>
 #include <initializer_list>
 #include <vector>
