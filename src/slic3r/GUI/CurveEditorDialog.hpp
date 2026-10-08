@@ -45,6 +45,7 @@ private:
     void step_chart_range(int field, int direction);
     void sync_chart_range();
     void layout_content();
+    void layout_actions();
 
     CurveEditorAppearance m_appearance;
     std::unique_ptr<CurveModel> m_model;
@@ -52,6 +53,7 @@ private:
     CurveEditorPanel* m_chart;
     wxGrid* m_grid;
     wxPanel* m_table_panel;
+    wxPanel* m_actions_panel;
     wxCheckBox* m_show_table;
     wxStaticText* m_status;
     TextInput* m_range_fields[4];
