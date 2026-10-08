@@ -455,9 +455,16 @@ public:
     virtual CameraStreamMode get_camera_stream_mode() const { return CameraStreamMode::none; }
 
     /**
-     * Refresh filament info from the printer synchronously.
-     * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
-     * Populates the MachineObject's DevFilaSystem with fetched filament data.
+     * Refresh filament info from the printer.
+     *
+     * When called with FilamentSyncMode::pull (which requires get_filament_sync_mode() to
+     * return pull) this is a blocking, synchronous call: when it returns true the MachineObject's
+     * DevFilaSystem has already been populated and the caller may read it immediately.
+     *
+     * When called with FilamentSyncMode::subscription — by an implementation's own status loop —
+     * the refresh may be performed asynchronously: a true return then means the refresh was
+     * scheduled (or is already in flight), and DevFilaSystem is updated later on the main thread.
+     * Callers must not assume the data is ready on return.
      */
     virtual bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) { return false; }
 

@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 #include <cctype>
+#include <cmath>
 #include "libslic3r/Preset.hpp"
 #include <cstddef>
 #include <exception>
@@ -57,7 +58,21 @@ struct InFlightGuard
 int read_int_or(const nlohmann::json& obj, const std::string& key, int fallback)
 {
     auto it = obj.find(key);
-    return (it != obj.end() && it->is_number_integer()) ? it->get<int>() : fallback;
+    if (it == obj.end()) {
+        return fallback;
+    }
+    if (it->is_number_integer()) {
+        return it->get<int>();
+    }
+    // Firmware may report an integral field as a JSON float (e.g. 2.0). Accept it only when it
+    // has no fractional part, so a genuinely fractional value falls back instead of truncating.
+    if (it->is_number_float()) {
+        const double value = it->get<double>();
+        if (value == std::floor(value)) {
+            return static_cast<int>(value);
+        }
+    }
+    return fallback;
 }
 
 } // anonymous namespace
@@ -95,18 +110,11 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
         model_name = device_info.model_name;
     }
 
-    // Reserve under the same mutex shutdown() uses, so the flag and the count can't race.
-    {
-        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
-        if (shutting_down.load())
-            return false;
-        if (filament_fetch_in_flight.load() > 0)
-            return true; // a fetch is already running; don't pile on
-        filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    InFlightGuard guard{*this};
-    std::thread([this, guard = std::move(guard), connection = std::move(connection), model_id, model_name]() mutable {
+    // One implementation for both modes; only where it runs differs. pull is the documented
+    // blocking contract (the GUI thread reads DevFilaSystem right after the call), so it runs
+    // on the caller with the payload applied inline. subscription runs on a background thread
+    // so the status loop is not stalled, and the payload is marshalled back to the main thread.
+    auto work = [this, connection = std::move(connection), model_id, model_name](bool apply_inline) -> bool {
         try {
             std::string error;
 
@@ -134,18 +142,57 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
             int box_count = 0;
             if (!fetch_slot_info(connection, dict, series_id, trays, box_count, error)) {
                 BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
-                return;
+                return false;
             }
 
-            // 4. Build the AMS payload
-            build_ams_payload(box_count, box_count * 4 - 1, trays);
+            // 4. Build the AMS payload, resolving preset-dependent ids on the main thread.
+            auto resolve_ids = [](std::vector<AmsTrayData>& resolved_trays) {
+                auto* bundle = GUI::wxGetApp().preset_bundle;
+                if (!bundle) {
+                    return; // keep the Qidi-specific ids computed from device data
+                }
+                for (auto& tray : resolved_trays) {
+                    if (!tray.has_filament) {
+                        continue;
+                    }
+                    if (!tray.tray_info_idx.empty() && has_visible_base_preset(bundle->filaments, tray.tray_info_idx)) {
+                        continue;
+                    }
+                    tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                }
+            };
+            build_ams_payload(box_count, box_count * 4 - 1, trays, apply_inline, resolve_ids);
+            return true;
         } catch (const std::exception& e) {
             // why: an exception escaping a detached thread is std::terminate, and firmware
             // JSON is untrusted; mirror run_command_worker and swallow it here.
             BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: unhandled exception: " << e.what();
+            return false;
         } catch (...) {
             BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: unhandled exception";
+            return false;
         }
+    };
+
+    if (sync_mode == FilamentSyncMode::pull) {
+        return work(/*apply_inline=*/true);
+    }
+
+    // Subscription: fire-and-forget. A `true` return means the refresh was scheduled (or is
+    // already running), not that DevFilaSystem has been updated. Reserve under the same mutex
+    // shutdown() uses, so the flag and the count can't race.
+    {
+        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
+        if (shutting_down.load())
+            return false;
+        if (filament_fetch_in_flight.load() > 0)
+            return true; // a fetch is already running; don't pile on
+        filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    InFlightGuard guard{*this};
+    std::thread([work = std::move(work), guard = std::move(guard)]() mutable {
+        work(/*apply_inline=*/false);
     }).detach();
     return true;
 }
@@ -198,31 +245,12 @@ bool QidiPrinterAgent::apply_box_mapping(const PrintParams& params) const
 
 int QidiPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
+    // Only the LAN print path is implemented by the Moonraker base; the box config is emitted
+    // here, before the print starts. The cloud/record/sdcard variants inherited from the base
+    // deliberately return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED without side effects.
     if (!apply_box_mapping(params))
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     return MoonrakerPrinterAgent::start_local_print(std::move(params), update_fn, cancel_fn);
-}
-
-int QidiPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
-{
-    if (!apply_box_mapping(params))
-        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
-    return MoonrakerPrinterAgent::start_print(std::move(params), update_fn, cancel_fn, wait_fn);
-}
-
-int QidiPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
-{
-    // A failed box mapping is a send failure, not an upload failure.
-    if (!apply_box_mapping(params))
-        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
-    return MoonrakerPrinterAgent::start_local_print_with_record(std::move(params), update_fn, cancel_fn, wait_fn);
-}
-
-int QidiPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
-{
-    if (!apply_box_mapping(params))
-        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
-    return MoonrakerPrinterAgent::start_sdcard_print(std::move(params), update_fn, cancel_fn);
 }
 
 bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
@@ -321,16 +349,9 @@ bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
             }
             tray.tray_type = normalize_filament_type(filament_name);
 
-            // Try Qidi-specific setting ID first; fall back to visible preset by type
-            std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);
-            auto* bundle = GUI::wxGetApp().preset_bundle;
-            if (!bundle) {
-                tray.tray_info_idx = setting_id;
-            } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
-                tray.tray_info_idx = setting_id;
-            } else {
-                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
-            }
+            // Qidi-specific setting id derived from device data only; the preset-dependent
+            // fallback runs on the main thread in the resolve hook passed to build_ams_payload.
+            tray.tray_info_idx = build_setting_id(filament_type, vendor_type, tray.tray_type);
 
             // Look up color from dictionary
             auto color_it = dict.colors.find(color_index);

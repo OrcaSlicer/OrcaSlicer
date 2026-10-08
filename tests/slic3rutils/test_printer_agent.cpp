@@ -10,7 +10,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <pybind11/pytypes.h>
 #include <catch2/catch_message.hpp>
-#include "catch2/catch_approx.hpp"
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
@@ -66,7 +65,7 @@ public:
     explicit MoonrakerParserProbe(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 };
 
-TEST_CASE("Moonraker parses nozzle diameter from configfile settings", "[unit][moonraker]")
+TEST_CASE("Moonraker parses nozzle diameter from configfile settings", "[MoonrakerPrinterAgent]")
 {
     const auto response = nlohmann::json::parse(R"({
         "result": {
@@ -82,10 +81,10 @@ TEST_CASE("Moonraker parses nozzle diameter from configfile settings", "[unit][m
         }
     })");
 
-    CHECK(MoonrakerParserProbe::parse_nozzle_diameter(response) == Catch::Approx(0.6f));
+    CHECK_THAT(MoonrakerParserProbe::parse_nozzle_diameter(response), Catch::Matchers::WithinAbs(0.6f, 1e-4f));
 }
 
-TEST_CASE("Moonraker parses nozzle diameter from raw config and tolerates missing data", "[unit][moonraker]")
+TEST_CASE("Moonraker parses nozzle diameter from raw config and tolerates missing data", "[MoonrakerPrinterAgent]")
 {
     const auto raw_config_response = nlohmann::json::parse(R"({
         "result": {
@@ -102,12 +101,12 @@ TEST_CASE("Moonraker parses nozzle diameter from raw config and tolerates missin
     })");
     const auto missing_response = nlohmann::json::object();
 
-    CHECK(MoonrakerParserProbe::parse_nozzle_diameter(raw_config_response) == Catch::Approx(0.8f));
-    CHECK(MoonrakerParserProbe::parse_nozzle_diameter(missing_response) == 0.0f);
+    CHECK_THAT(MoonrakerParserProbe::parse_nozzle_diameter(raw_config_response), Catch::Matchers::WithinAbs(0.8f, 1e-4f));
+    CHECK_THAT(MoonrakerParserProbe::parse_nozzle_diameter(missing_response), Catch::Matchers::WithinAbs(0.0f, 1e-6f));
 }
 
 // why: an agent without a Bambu-dialect translation must refuse these commands before any network or wx path.
-TEST_CASE("unit: default AMS commands report not supported", "[unit][moonraker]")
+TEST_CASE("default AMS commands report not supported", "[MoonrakerPrinterAgent]")
 {
     MoonrakerPrinterAgent agent("");
 
@@ -116,7 +115,7 @@ TEST_CASE("unit: default AMS commands report not supported", "[unit][moonraker]"
     CHECK(agent.command_ams_select_tray("dev", "123", 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
 }
 
-TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
+TEST_CASE("Moonraker light name matching", "[MoonrakerPrinterAgent]")
 {
     CHECK(moonraker_is_light_name("caselight"));
     CHECK(moonraker_is_light_name("LED_STRIP"));
@@ -126,7 +125,7 @@ TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
 }
 
 TEST_CASE("Moonraker webcam selection skips disabled webcams and prefers the first enabled one",
-          "[unit][moonraker]")
+          "[MoonrakerPrinterAgent]")
 {
     const auto response = nlohmann::json::parse(R"({
         "result": { "webcams": [
@@ -144,7 +143,7 @@ TEST_CASE("Moonraker webcam selection skips disabled webcams and prefers the fir
 }
 
 TEST_CASE("Moonraker webcam selection resolves relative URLs, maps rtsp, and rejects other schemes",
-          "[unit][moonraker]")
+          "[MoonrakerPrinterAgent]")
 {
     const auto relative = nlohmann::json::parse(R"({
         "result": { "webcams": [ { "name": "cam", "snapshot_url": "/webcam/?action=snapshot" } ] }
@@ -170,7 +169,7 @@ TEST_CASE("Moonraker webcam selection resolves relative URLs, maps rtsp, and rej
     CHECK(bad.error == "Unsupported webcam URL");
 }
 
-TEST_CASE("Moonraker webcam selection reports no webcam and malformed structure", "[unit][moonraker]")
+TEST_CASE("Moonraker webcam selection reports no webcam and malformed structure", "[MoonrakerPrinterAgent]")
 {
     const auto empty = nlohmann::json::parse(R"({ "result": { "webcams": [] } })");
     MoonrakerWebcamSelection none;
@@ -198,7 +197,7 @@ TEST_CASE("Moonraker webcam selection reports no webcam and malformed structure"
 // roughly once a second, so it must stay a success or it would raise a dialog on a
 // timer. Only branches that touch neither the network nor wx are exercised.
 // ===========================================================================
-TEST_CASE("unit: Moonraker reports untranslated commands as not supported", "[unit][moonraker]")
+TEST_CASE("Moonraker reports untranslated commands as not supported", "[MoonrakerPrinterAgent]")
 {
     MoonrakerPrinterAgent agent("");
 
@@ -217,12 +216,13 @@ TEST_CASE("unit: Moonraker reports untranslated commands as not supported", "[un
     CHECK(agent.send_message("dev", "{not json", 0, 0) == BAMBU_NETWORK_ERR_INVALID_RESULT);
 }
 
-// why: IPrinterAgent::fetch_filament_info is the single virtual hook derived agents override
-// (MoonrakerPrinterAgent's own override is synchronous, but QidiPrinterAgent's override is
-// fire-and-forget: it spawns a detached thread and returns immediately). QidiPrinterAgent is
-// `final`, so this probes the same contract with a controllable double instead.
-TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited on by the caller",
-          "[unit][moonraker]")
+// why: IPrinterAgent::fetch_filament_info is the single virtual hook derived agents override.
+// Pull-mode overrides must be synchronous (the caller reads DevFilaSystem as soon as it
+// returns), but subscription overrides may be fire-and-forget: QidiPrinterAgent/Snapmaker
+// spawn a detached thread when asked for subscription updates. QidiPrinterAgent is `final`,
+// so this probes the subscription contract with a controllable double instead.
+TEST_CASE("a fire-and-forget subscription fetch is not waited on by the caller",
+          "[MoonrakerPrinterAgent]")
 {
     class RecordingAgent : public Slic3r::MoonrakerPrinterAgent
     {
@@ -235,8 +235,12 @@ TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited
         std::shared_ptr<std::promise<void>> release_gate{std::make_shared<std::promise<void>>()};
         std::shared_ptr<std::promise<void>> done_promise{std::make_shared<std::promise<void>>()};
 
-        bool fetch_filament_info(std::string /*dev_id*/, FilamentSyncMode /*sync_mode*/ = FilamentSyncMode::pull) override
+        bool fetch_filament_info(std::string /*dev_id*/, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override
         {
+            // Only the subscription path is allowed to be fire-and-forget.
+            if (sync_mode != FilamentSyncMode::subscription)
+                return true;
+
             auto invoked_p      = invoked;
             auto release_gate_p = release_gate;
             auto done_promise_p = done_promise;
@@ -255,7 +259,7 @@ TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited
     auto done_future = agent->done_promise->get_future();
     ScopedPromiseRelease release_gate_guard{agent->release_gate};
 
-    bool immediate_result = agent->fetch_filament_info("test-dev");
+    bool immediate_result = agent->fetch_filament_info("test-dev", FilamentSyncMode::subscription);
 
     // fetch_filament_info must return before its background work completes — prove
     // it by confirming the background call is still blocked on the gate right now.
@@ -353,7 +357,7 @@ public:
 // The command worker parks a fetch before it reserves the in-flight slot, forcing
 // the "wait already observed zero" interleaving deterministically.
 TEST_CASE("an agent's destruction waits for a fetch started by its worker during teardown",
-          "[unit][moonraker][Regression]")
+          "[MoonrakerPrinterAgent][Regression]")
 {
     g_deferred_fetch_running.store(0);
     g_deferred_destroy_returned.store(false);
@@ -409,7 +413,7 @@ TEST_CASE("an agent's destruction waits for a fetch started by its worker during
 // Confirms a duplicate agent id is rejected so a plugin cannot shadow a built-in
 // or previously registered agent.
 // ===========================================================================
-TEST_CASE("unit: printer-agent registry register / lookup / duplicate-reject", "[registry][unit]")
+TEST_CASE("printer-agent registry register / lookup / duplicate-reject", "[PrinterAgent]")
 {
     // why: the registry is process-global state shared by the test binary, and
     // Catch2 may run cases in any order. Use an id that cannot collide with
@@ -453,7 +457,7 @@ TEST_CASE("unit: printer-agent registry register / lookup / duplicate-reject", "
 // fails to load the codecs needed for the filesystem encoding. The shared helper
 // points PyConfig.home at the python/ runtime staged next to the test executable.
 
-TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Python]")
+TEST_CASE("orca.printer_agent binding surface", "[integration][Python]")
 {
     py::module_ orca = import_orca_module();
 
@@ -504,7 +508,7 @@ TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Pyth
 // them in the lightweight embedded-interpreter test catches binding breakage
 // before the plugin-loader test needs to run.
 // ===========================================================================
-TEST_CASE("integration: orca plugin-registration API surface + discovery-context guards", "[integration][Python]")
+TEST_CASE("orca plugin-registration API surface + discovery-context guards", "[integration][Python]")
 {
     py::module_ orca = import_orca_module();
 

@@ -15,7 +15,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
-#include <functional>
 
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -164,8 +163,19 @@ protected:
         int         nozzle_temp = 0;     // Optional
     };
 
-    // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    // Build ams JSON and call parser.
+    // apply_inline: when true the MachineObject mutation runs on the calling thread, which
+    // must therefore be the main thread; when false it is deferred through queue_on_main_fn.
+    // Pull-mode fetches run synchronously on the GUI thread and are read back immediately, so
+    // they pass true to avoid the deferred mutation landing after the caller's read.
+    //
+    // resolve_tray_ids: optional hook that runs as part of the commit, i.e. on the main thread.
+    // Agents that would otherwise resolve tray_info_idx against GUI-owned preset state on a
+    // background fetch thread must do it here to avoid racing the GUI. It must not capture
+    // `this` (the commit may outlive the agent).
+    using ResolveAmsTrayIdsFn = std::function<void(std::vector<AmsTrayData>&)>;
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays, bool apply_inline = false,
+                           ResolveAmsTrayIdsFn resolve_tray_ids = {});
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const PrinterConnectionParams& params);
@@ -267,9 +277,6 @@ private:
                                    ConnectionSettings connection,
                                    uint64_t generation);
 
-    // why: a printer with no /server/webcams/list entry can still name its stream directly;
-    // subclasses (e.g. printers with a fixed webcam path) can override this instead.
-    virtual std::string webcam_stream_override(const std::string& base_url) const { return {}; }
     void refresh_webcam_info() const;
     bool fetch_webcam_info(const ConnectionSettings& connection, uint64_t generation) const;
 

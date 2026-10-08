@@ -30,10 +30,9 @@ public:
                                     std::string&       error);
 
     // Print operations — emit QiDi multi-color box config, then delegate to base.
-    int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    // Only the LAN print path is supported by the base; the cloud/record/sdcard variants
+    // are inherited and return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
     int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
-    int start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
-    int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
 
     FilamentSyncMode get_filament_sync_mode() const override;
 

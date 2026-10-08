@@ -298,7 +298,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
     if (info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent::fetch_filament_info: no device IP, falling back to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     // Build a CrealityPrint helper so we can use its model detection + WS helpers
@@ -318,7 +318,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: " << host.model_name()
             << " is not CFS-capable, deferring to base Moonraker agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     BOOST_LOG_TRIVIAL(info)
@@ -333,7 +333,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent: CFS query failed (" << parse_err << "), "
             << "falling back to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     if (box_count == 0) {
@@ -342,7 +342,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         // Moonraker exposes.
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no active CFS boxes, deferring to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     BOOST_LOG_TRIVIAL(info)
@@ -387,7 +387,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         }
     }
 
-    build_ams_payload(box_count, max_slots - 1, trays);
+    build_ams_payload(box_count, max_slots - 1, trays, sync_mode == FilamentSyncMode::pull);
     return true;
 }
 
