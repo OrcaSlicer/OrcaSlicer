@@ -303,7 +303,7 @@ has_host_runtime_library() {
     local path
 
     if command -v ldconfig >/dev/null 2>&1; then
-        if ldconfig -p 2>/dev/null | grep -Fq " \$lib_name"; then
+        if ldconfig -p 2>/dev/null | grep -Fq "\$lib_name ("; then
             return 0
         fi
     fi
