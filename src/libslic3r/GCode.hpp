@@ -982,6 +982,12 @@ protected:
     ExtrusionPaths belt_cut_at_band_edges(const ExtrusionPath &path, std::vector<std::vector<double>> &uncut_line_lengths) const;
     // _extrude() of a path that stays in one band above the belt (see belt_cut_at_band_edges()).
     std::string _extrude_piece(const ExtrusionPath &path, const std::string &path_description, double speed);
+    // First point of the path in the slicing frame, for the per-point first-layer test.
+    Vec3d path_slicing_point(const ExtrusionPath &path) const;
+    // Flow in mm³ per mm the path is extruded with, after the flow ratios (the first layer's when `on_first_layer`).
+    double extrusion_mm3_per_mm(const ExtrusionPath &path, bool on_first_layer) const;
+    // Feed rate of a feature: its linear `speed`, or with volumetric speeds its flow divided by `mm3_per_mm`.
+    double feature_speed(double speed, const ConfigOptionFloatsOrPercentsNullable &volumetric_flow, double mm3_per_mm) const;
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
