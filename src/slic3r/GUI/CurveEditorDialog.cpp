@@ -109,6 +109,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_content = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     m_content->SetMinSize(FromDIP(wxSize(260, 80)));
     m_content->SetScrollRate(FromDIP(10), FromDIP(10));
+    auto* footer = new wxPanel(this);
+    auto* actions_area = new wxPanel(footer);
+    m_actions_panel = new wxPanel(actions_area);
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     auto* help = new wxStaticText(m_content, wxID_ANY, help_text);
     help->SetFont(Label::Body_14);
@@ -122,7 +125,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* plot_sizer = new wxBoxSizer(wxVERTICAL);
     auto* table_sizer = new wxBoxSizer(wxVERTICAL);
     editors->Add(plot_panel, 1, wxEXPAND | wxRIGHT, FromDIP(12));
-    editors->Add(table_panel, 0, wxEXPAND);
+    editors->Add(table_panel, 0, wxALIGN_TOP);
     sizer->Add(editors, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
     m_chart = new CurveEditorPanel(plot_panel, appearance);
@@ -286,8 +289,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_content->SendSizeEvent();
     });
     view_actions->Add(m_show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
-    auto make_action_button = [this, plot_panel](const wxString& label, const wxString& icon) {
-        auto* button = new Button(plot_panel, label, icon, 0, 16);
+    auto make_action_button = [this](const wxString& label, const wxString& icon) {
+        auto* button = new Button(m_actions_panel, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
         button->SetFont(Label::Body_12);
         const int spacing = label.empty() ? 0 : FromDIP(4);
@@ -413,10 +416,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     });
     actions->Add(reset_view, 0, wxALIGN_CENTER_VERTICAL);
     actions->Add(help_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
-    plot_sizer->Insert(1, actions, 0, wxEXPAND | wxTOP, FromDIP(6));
-    // Keep the action row intact even with a vertical scrollbar or longer translations.
-    m_content->SetMinSize(wxSize(std::max(FromDIP(260), actions->GetMinSize().x + FromDIP(20) +
-        wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_content)), FromDIP(80)));
+    m_actions_panel->SetSizerAndFit(actions);
+    actions_area->SetMinSize(actions->GetMinSize());
+    plot_panel->SetMinSize(wxSize(std::max(m_chart->GetMinSize().x, actions->GetMinSize().x), -1));
+    actions_area->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
+        event.Skip();
+        layout_actions();
+    });
 
     m_status = new wxStaticText(table_panel, wxID_ANY, wxEmptyString);
     m_status->SetFont(Label::Body_12);
@@ -437,17 +443,24 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         help->Wrap(std::max(FromDIP(240), width - FromDIP(20) - 1));
         editors->SetOrientation(wxHORIZONTAL);
         auto* plot_item = editors->GetItem(plot_panel);
+        auto* table_item = editors->GetItem(m_table_panel);
         plot_item->SetFlag(m_table_panel->IsShown() ? wxEXPAND | wxRIGHT : wxEXPAND);
+        table_item->SetFlag(wxALIGN_TOP);
         // Keep the table's headers readable; stack the panels when both no longer fit.
         if (m_table_panel->IsShown() && width < editors->GetMinSize().x + FromDIP(20)) {
             editors->SetOrientation(wxVERTICAL);
             plot_item->SetFlag(wxEXPAND | wxBOTTOM);
+            table_item->SetFlag(wxEXPAND);
         }
         layout_content();
     });
     main_sizer->Add(m_content, 1, wxEXPAND);
-    // Keep the modal actions outside the scrollable content on small/high-DPI displays.
-    main_sizer->Add(new DialogButtons(this, {"OK", "Cancel"}), 0, wxEXPAND);
+    // Keep all actions on the same row and outside the scrollable content.
+    auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
+    footer_sizer->Add(actions_area, 1, wxEXPAND | wxRIGHT, FromDIP(12));
+    footer_sizer->Add(new DialogButtons(footer, {"OK", "Cancel"}), 0, wxEXPAND);
+    footer->SetSizer(footer_sizer);
+    main_sizer->Add(footer, 0, wxEXPAND | wxLEFT, FromDIP(10));
     SetSizerAndFit(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
     m_grid->SetCellHighlightColour(StateColor::darkModeColorFor(wxColour("#009688")));
@@ -470,7 +483,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     load_points(m_model->rows());
     update_preview();
     fit_chart();
-    fit_in_display(*this, ClientToWindowSize(FromDIP(wxSize(920, 480))));
+    fit_in_display(*this, ClientToWindowSize(FromDIP(wxSize(920, 440))));
     layout_content();
     CentreOnParent();
 }
@@ -643,6 +656,11 @@ void CurveEditorDialog::layout_content()
 {
     wxRecursionGuard guard(m_layout_depth);
     if (guard.IsInside()) return;
+    // Show only occupied rows, with the grid's own scrollbar for longer models.
+    const int height = m_grid->GetColLabelSize() + m_grid->GetDefaultRowSize() *
+        std::clamp(m_grid->GetNumberRows(), 1, 12);
+    if (m_grid->GetMinSize().y != height)
+        m_grid->SetMinSize(wxSize(m_grid->GetMinSize().x, height));
     // Sizers force size events even when geometry is unchanged. Relayout only
     // the content: laying out the dialog here re-enters its child's size handler.
     const int width = m_content->GetClientSize().x;
@@ -650,6 +668,18 @@ void CurveEditorDialog::layout_content()
     m_content->FitInside();
     // Scrollbars can change the available width. Rewrap after the current layout completes.
     if (width != m_content->GetClientSize().x) m_content->SendSizeEvent(wxSEND_EVENT_POST);
+    layout_actions();
+}
+
+void CurveEditorDialog::layout_actions()
+{
+    wxWindow* area = m_actions_panel->GetParent();
+    const wxSize size = m_actions_panel->GetSize();
+    const int chart_right = area->ScreenToClient(m_chart->ClientToScreen(wxPoint(m_chart->GetClientSize().x, 0))).x;
+    // When the chart spans the dialog, stop before OK/Cancel instead of overlapping them.
+    const wxPoint position(std::max(0, std::min(chart_right, area->GetClientSize().x) - size.x),
+                           std::max(0, (area->GetClientSize().y - size.y) / 2));
+    if (m_actions_panel->GetPosition() != position) m_actions_panel->SetPosition(position);
 }
 
 } // namespace Slic3r::GUI
