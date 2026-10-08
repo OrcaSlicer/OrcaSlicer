@@ -12,11 +12,16 @@
 #include <string>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_utils.hpp"
 
 using namespace Slic3r;
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 TEST_CASE("Split empty mesh", "[its_split][its]") {
 
@@ -316,4 +321,66 @@ TEST_CASE("Simplified cube should not be empty.", "[its]")
     uint32_t wanted_count = 0;
     its_quadric_edge_collapse(its, wanted_count, &max_error);
     CHECK(!its.indices.empty());
+}
+
+TEST_CASE("The center of mass of a box far from the origin is its center", "[its]")
+{
+    indexed_triangle_set box = its_make_cube(10., 20., 30.);
+    for (Vec3f &v : box.vertices)
+        v += Vec3f(1000.f, 2000.f, 300.f);
+    const auto [volume, center] = its_volume_and_center_of_mass(box);
+    CHECK_THAT(volume, WithinRel(10. * 20. * 30., 1e-6));
+    CHECK_THAT(center.x(), WithinAbs(1005., 1e-6));
+    CHECK_THAT(center.y(), WithinAbs(2010., 1e-6));
+    CHECK_THAT(center.z(), WithinAbs(315., 1e-6));
+}
+
+TEST_CASE("The center of mass of a cone lies a quarter of its height above the base", "[its]")
+{
+    // Neither the surface centroid nor the vertex average lands there.
+    const double h = 40.;
+    const auto [volume, center] = its_volume_and_center_of_mass(its_make_cone(10., h));
+    CHECK(volume > 0.);
+    CHECK_THAT(center.z(), WithinAbs(h / 4., 1e-4));
+    CHECK_THAT(center.x(), WithinAbs(0., 1e-4));
+    CHECK_THAT(center.y(), WithinAbs(0., 1e-4));
+}
+
+TEST_CASE("A cavity moves the center of mass away from it", "[its]")
+{
+    indexed_triangle_set solid  = its_make_cube(20., 20., 20.);
+    indexed_triangle_set cavity = its_make_cube(10., 10., 8.);
+    for (Vec3f &v : cavity.vertices)
+        v += Vec3f(5.f, 5.f, 10.f);
+    its_flip_triangles(cavity);
+    its_merge(solid, cavity);
+    const auto [volume, center] = its_volume_and_center_of_mass(solid);
+    // A 20 mm cube centered at z 10 less a 10x10x8 mm cavity centered at z 14.
+    CHECK_THAT(volume, WithinRel(8000. - 800., 1e-6));
+    CHECK_THAT(center.x(), WithinAbs(10., 1e-6));
+    CHECK_THAT(center.y(), WithinAbs(10., 1e-6));
+    CHECK_THAT(center.z(), WithinAbs((8000. * 10. - 800. * 14.) / (8000. - 800.), 1e-6));
+}
+
+TEST_CASE("The center of mass follows an affine transformation of the mesh", "[its]")
+{
+    indexed_triangle_set cone = its_make_cone(10., 40.);
+    const auto [volume, center] = its_volume_and_center_of_mass(cone);
+    const Transform3d trafo = Geometry::translation_transform({ 50., -20., 7. }) * Geometry::rotation_transform({ 0.3, -0.5, 1.2 }) *
+                              Geometry::scale_transform({ 2., 0.5, 1.5 });
+    for (Vec3f &v : cone.vertices)
+        v = (trafo * v.cast<double>()).cast<float>();
+    const auto [moved_volume, moved_center] = its_volume_and_center_of_mass(cone);
+    CHECK_THAT(moved_volume, WithinRel(volume * trafo.linear().determinant(), 1e-5));
+    CHECK_THAT((moved_center - trafo * center).norm(), WithinAbs(0., 1e-4));
+}
+
+TEST_CASE("Flipped faces negate the volume but keep the center of mass", "[its]")
+{
+    indexed_triangle_set cone = its_make_cone(10., 40.);
+    const auto [volume, center] = its_volume_and_center_of_mass(cone);
+    its_flip_triangles(cone);
+    const auto [flipped_volume, flipped_center] = its_volume_and_center_of_mass(cone);
+    CHECK_THAT(flipped_volume, WithinRel(-volume, 1e-9));
+    CHECK_THAT((flipped_center - center).norm(), WithinAbs(0., 1e-9));
 }

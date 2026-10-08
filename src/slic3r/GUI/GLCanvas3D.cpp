@@ -85,7 +85,9 @@
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "CameraUtils.hpp"
+#include "GLModel.hpp"
 #include "GLShader.hpp"
+#include "libslic3r/ConnectedBodies.hpp"
 #include "GUI.hpp"
 #include "Tab.hpp"
 #include "GUI_Preview.hpp"
@@ -998,6 +1000,216 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
     }
+}
+
+GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const GLCanvas3D& canvas)
+{
+    using Sum = GCodeProcessorResult::ObjectMass::Sum;
+    Markers markers;
+    if (canvas.get_model() == nullptr)
+        return markers;
+
+    struct Instance
+    {
+        Transform3d                   trafo;
+        std::vector<const GLVolume*> volumes;
+    };
+    std::map<int, std::map<int, Instance>> objects;
+    const ModelObjectPtrs&                 model_objects = canvas.get_model()->objects;
+    for (const GLVolume* volume : canvas.get_volumes().volumes) {
+        const int obj_idx = volume->object_idx();
+        const int vol_idx = volume->volume_idx();
+        if (!volume->is_active || volume->is_wipe_tower || obj_idx < 0 || obj_idx >= int(model_objects.size()) || vol_idx < 0 ||
+            vol_idx >= int(model_objects[obj_idx]->volumes.size()))
+            continue;
+        Instance& instance = objects[obj_idx][volume->instance_idx()];
+        instance.trafo     = volume->get_instance_transformation().get_matrix();
+        instance.volumes.emplace_back(volume);
+    }
+
+    // From the filament presets, as the plater config holds the values of the last filament edited only.
+    const PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
+    std::vector<double> filament_densities;
+    for (const std::string& name : preset_bundle.filament_presets)
+        filament_densities.emplace_back(preset_bundle.filaments.find_preset(name, true)->config.opt_float("filament_density", 0));
+    const auto density = [&filament_densities](const ModelVolume& volume) {
+        const size_t filament = size_t(std::max(1, volume.extruder_id()));
+        const double density  = filament <= filament_densities.size() ? filament_densities[filament - 1] : 0.;
+        return density > 0. ? density : double(DEFAULT_FILAMENT_DENSITY);
+    };
+
+    Sum                                        plate;
+    std::map<size_t, std::pair<double, Vec3d>> meshes;
+    std::map<size_t, Bodies>                   bodies;
+    for (const auto& [obj_idx, instances] : objects) {
+        const ModelObject& object = *model_objects[obj_idx];
+        // An assembly is sliced, so that its overlapping parts are united and its negative volumes cut away, in the
+        // order of its volumes, as the later one prints where two overlap.
+        std::vector<const GLVolume*> volumes = instances.begin()->second.volumes;
+        std::sort(volumes.begin(), volumes.end(), [](const GLVolume* l, const GLVolume* r) { return l->volume_idx() < r->volume_idx(); });
+        std::vector<MeshInPlace>    solids;
+        std::vector<double>         densities;
+        std::vector<MeshInPlace>    negatives;
+        std::vector<Bodies::Volume> sliced;
+        for (const GLVolume* volume : volumes) {
+            const ModelVolume& model_volume = *object.volumes[volume->volume_idx()];
+            if (!model_volume.is_model_part() && !model_volume.is_negative_volume())
+                continue;
+            const Transform3d trafo = volume->get_volume_transformation().get_matrix();
+            if (model_volume.is_model_part()) {
+                solids.emplace_back(&model_volume.mesh().its, trafo);
+                densities.emplace_back(density(model_volume));
+            } else
+                negatives.emplace_back(&model_volume.mesh().its, trafo);
+            sliced.push_back({ model_volume.id().id, model_volume.is_negative_volume(), model_volume.is_model_part() ? densities.back() : 0., trafo });
+        }
+        const std::vector<std::pair<double, Vec3d>>* assembly = nullptr;
+        if (solids.size() > 1 || (!solids.empty() && !negatives.empty())) {
+            // Coarser while a part is dragged.
+            const size_t slabs  = canvas.is_dragging() ? 100 : 500;
+            const auto   cached = m_bodies.find(object.id().id);
+            const bool   valid  = cached != m_bodies.end() && cached->second.slabs >= slabs && cached->second.volumes == sliced;
+            Bodies& entry = bodies[object.id().id];
+            entry = valid ? std::move(cached->second) : Bodies{ std::move(sliced), slabs, solid_bodies(solids, densities, negatives, slabs) };
+            assembly      = &entry.bodies;
+        }
+
+        for (const auto& [inst_idx, instance] : instances) {
+            Sum sum;
+            if (assembly != nullptr) {
+                const double       scale = std::abs(instance.trafo.linear().determinant());
+                std::vector<Vec3d> centers;
+                for (const auto& [mass, center] : *assembly)
+                    if (mass > 0.) {
+                        centers.emplace_back(instance.trafo * center);
+                        sum.add({ mass * scale, mass * scale * centers.back() });
+                    }
+                if (centers.size() > 1)
+                    append(markers.bodies, std::move(centers));
+            } else
+                for (const GLVolume* volume : instance.volumes) {
+                    // The parts the object info's volume sums.
+                    const ModelVolume& model_volume = *object.volumes[volume->volume_idx()];
+                    if (!model_volume.is_model_part())
+                        continue;
+                    const auto [it, inserted] = meshes.try_emplace(model_volume.id().id);
+                    if (inserted) {
+                        const auto cached = m_meshes.find(it->first);
+                        it->second = cached != m_meshes.end() ? cached->second : its_volume_and_center_of_mass(model_volume.mesh().its);
+                    }
+                    const auto& [mesh_volume, mesh_center] = it->second;
+                    const Transform3d world = volume->world_matrix();
+                    const double      mass  = std::abs(mesh_volume * world.linear().determinant()) * density(model_volume);
+                    sum.add({ mass, mass * (world * mesh_center) });
+                }
+            if (sum.mass > 0.) {
+                markers.objects.emplace_back(sum.moment / sum.mass);
+                plate.add(sum);
+            }
+        }
+    }
+    m_meshes = std::move(meshes);
+    m_bodies = std::move(bodies);
+    if (plate.mass > 0.)
+        markers.plate.emplace_back(plate.moment / plate.mass);
+    return markers;
+}
+
+void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
+{
+    // The other gizmos work on the surface the marker would cover.
+    const GLGizmosManager::EType gizmo = canvas.get_gizmos_manager().get_current_type();
+    if (!wxGetApp().show_center_of_mass() ||
+        (gizmo != GLGizmosManager::Undefined && gizmo != GLGizmosManager::Move && gizmo != GLGizmosManager::Rotate &&
+         gizmo != GLGizmosManager::Scale && gizmo != GLGizmosManager::Flatten))
+        return;
+
+    // Preview adds faded markers for what is printed up to the top layer shown.
+    Markers parts;
+    Markers printed;
+    if (canvas.get_canvas_type() == ECanvasType::CanvasPreview) {
+        const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
+        const size_t       top_layer    = gcode_viewer.get_layers_z_range()[1];
+        const auto add = [top_layer](const GCodeProcessorResult::ObjectMass& mass, std::vector<Vec3d>& part, std::vector<Vec3d>& up_to_layer) {
+            if (mass.part.mass > 0.)
+                part.emplace_back(mass.part.moment / mass.part.mass);
+            if (!mass.printed_up_to_layer.empty())
+                if (const auto& sum = mass.printed_up_to_layer[std::min(top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
+                    up_to_layer.emplace_back(sum.moment / sum.mass);
+        };
+        add(gcode_viewer.get_plate_mass(), parts.plate, printed.plate);
+        for (const GCodeProcessorResult::ObjectMass& object : gcode_viewer.get_object_masses())
+            add(object, parts.objects, printed.objects);
+        for (const GCodeProcessorResult::ObjectMass& body : gcode_viewer.get_body_masses())
+            add(body, parts.bodies, printed.bodies);
+    } else
+        parts = model_markers(canvas);
+
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    if ((parts.plate.empty() && printed.plate.empty()) || shader == nullptr)
+        return;
+
+    if (!m_octants[0].is_initialized()) {
+        // A resolution divisible by 4 puts every triangle within one octant.
+        const GLModel::Geometry          sphere = smooth_sphere(32, 1.f);
+        std::array<GLModel::Geometry, 2> octants;
+        for (size_t i = 0; i + 2 < sphere.indices_count(); i += 3) {
+            const std::array<unsigned int, 3> ids = { sphere.extract_index(i), sphere.extract_index(i + 1), sphere.extract_index(i + 2) };
+            const Vec3f c = sphere.extract_position_3(ids[0]) + sphere.extract_position_3(ids[1]) + sphere.extract_position_3(ids[2]);
+            GLModel::Geometry& octant = octants[c.x() * c.y() * c.z() > 0.f ? 0 : 1];
+            for (const unsigned int id : ids)
+                octant.add_vertex(sphere.extract_position_3(id), sphere.extract_normal_3(id));
+            const auto n = (unsigned int)octant.vertices_count();
+            octant.add_triangle(n - 3, n - 2, n - 1);
+        }
+        for (size_t i = 0; i < octants.size(); ++i)
+            m_octants[i].init_from(std::move(octants[i]));
+    }
+
+    float scale = canvas.get_scale();
+#ifdef WIN32
+    scale *= float(get_dpi_for_window(wxGetApp().GetTopWindow())) / float(DPI_DEFAULT);
+#endif // WIN32
+    const Camera&      camera      = wxGetApp().plater()->get_camera();
+    const Transform3d& view_matrix = camera.get_view_matrix();
+
+    // Seen through the object it lies in; culling keeps the sphere's far half behind its near one.
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_CULL_FACE));
+    shader->start_using();
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    shader->set_uniform("view_normal_matrix", (Matrix3d)view_matrix.matrix().block(0, 0, 3, 3));
+    shader->set_uniform("emission_factor", 0.1f);
+    const auto draw = [&](const Markers& markers, float alpha) {
+        struct Kind
+        {
+            const std::vector<Vec3d>& centers;
+            std::array<ColorRGBA, 2>  colors;
+            // On screen, each smaller than the one before, so that markers at one place still show.
+            double radius;
+        };
+        const std::array<Kind, 3> kinds = { {
+            { markers.plate, { ColorRGBA(0.1f, 0.1f, 0.1f, 1.f), ColorRGBA::WHITE() }, 9. },
+            { markers.objects, { ColorRGBA(0x74 / 255.f, 0xAC / 255.f, 0xDF / 255.f, 1.f), ColorRGBA::WHITE() }, 7. },
+            { markers.bodies, { ColorRGBA::RED(), ColorRGBA::YELLOW() }, 5. },
+        } };
+        for (const Kind& kind : kinds)
+            for (const Vec3d& center : kind.centers) {
+                const double radius = kind.radius * scale * camera.get_inv_zoom();
+                shader->set_uniform("view_model_matrix", view_matrix * Geometry::translation_transform(center) * Geometry::scale_transform(radius));
+                for (size_t i = 0; i < m_octants.size(); ++i) {
+                    ColorRGBA color = kind.colors[i];
+                    color.a(alpha);
+                    m_octants[i].set_color(color);
+                    m_octants[i].render();
+                }
+            }
+    };
+    // Faded first, under any solid marker at the same place.
+    draw(printed, 0.4f);
+    draw(parts, 1.f);
+    shader->stop_using();
+    glsafe(::glEnable(GL_DEPTH_TEST));
 }
 
 void GLCanvas3D::Tooltip::set_text(const std::string& text)
@@ -2519,6 +2731,10 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
         m_frame_profiler.mark("ssao");
     }
+
+    // After the occlusion pass, which would shade it as the surface behind it.
+    if (!m_design_canvas && (m_canvas_type == ECanvasType::CanvasView3D || (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)))
+        m_center_of_mass.render(*this);
 
     if (_is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
@@ -10348,6 +10564,12 @@ void GLCanvas3D::_render_canvas_toolbar()
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
             [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
+        );
+
+        create_menu_item( _utf8(L("Center of mass")),
+            m_canvas_type != ECanvasType::CanvasAssembleView && !m_design_canvas, // work on prepare and preview
+            wxGetApp().show_center_of_mass(),
+            [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;}
         );
 
         // Belt printers, G-code preview only: show the raw machine-frame G-code instead of

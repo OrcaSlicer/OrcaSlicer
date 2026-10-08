@@ -9,6 +9,7 @@
 #include <array>
 #include <cereal/specialize.hpp>
 #include <functional>
+#include <utility>
 #include <vector>
 #include "BoundingBox.hpp"
 #include "Line.hpp"
@@ -324,6 +325,8 @@ inline stl_normal its_unnormalized_normal(const indexed_triangle_set &its,
 }
 
 float its_volume(const indexed_triangle_set &its);
+// Volume of the closed mesh and the center of mass of that solid at uniform density; no center for a zero volume.
+std::pair<double, Vec3d> its_volume_and_center_of_mass(const indexed_triangle_set &its);
 float its_average_edge_length(const indexed_triangle_set &its);
 
 void its_merge(indexed_triangle_set &A, const indexed_triangle_set &B);

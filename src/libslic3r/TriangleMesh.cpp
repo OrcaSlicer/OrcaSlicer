@@ -1495,6 +1495,28 @@ float its_volume(const indexed_triangle_set &its)
     return volume;
 }
 
+std::pair<double, Vec3d> its_volume_and_center_of_mass(const indexed_triangle_set &its)
+{
+    if (its.indices.empty())
+        return { 0., Vec3d::Zero() };
+
+    // Signed tetrahedra fanned from a mesh vertex, not the origin, to keep the sums precise far from it.
+    const Vec3d p0       = its.vertices.front().cast<double>();
+    double      volume6  = 0.;
+    Vec3d       moment24 = Vec3d::Zero();
+    for (const stl_triangle_vertex_indices &face : its.indices) {
+        const Vec3d  a = its.vertices[face(0)].cast<double>() - p0;
+        const Vec3d  b = its.vertices[face(1)].cast<double>() - p0;
+        const Vec3d  c = its.vertices[face(2)].cast<double>() - p0;
+        const double v = a.dot(b.cross(c));
+        volume6 += v;
+        moment24 += v * (a + b + c);
+    }
+    if (volume6 == 0.)
+        return { 0., p0 };
+    return { volume6 / 6., p0 + moment24 / (4. * volume6) };
+}
+
 float its_average_edge_length(const indexed_triangle_set &its)
 {
     if (its.indices.empty())

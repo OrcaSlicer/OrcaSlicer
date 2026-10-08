@@ -35,6 +35,9 @@ namespace Slic3r {
 
 class Print;
 
+// For a filament whose density is not set, in g/cm³.
+inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
+
 // slice warnings enum strings
 #define NOZZLE_HRC_CHECKER                                          "the_actual_nozzle_hrc_smaller_than_the_required_nozzle_hrc"
 #define BED_TEMP_TOO_HIGH_THAN_FILAMENT                             "bed_temperature_too_high_than_filament"
@@ -270,9 +273,33 @@ class Print;
             std::vector<std::string> params;    // extra msg info
         };
 
+        // Material extruded for the plate, one object instance or one connected body of it, for their centers of mass.
+        struct ObjectMass
+        {
+            struct Sum
+            {
+                double mass{ 0. };
+                Vec3d  moment{ Vec3d::Zero() };
+                void   add(const Sum &other) { mass += other.mass; moment += other.moment; }
+            };
+            // The parts alone, without brim, raft and supports.
+            Sum part;
+            // Everything printed up to each layer id, a body's own extrusions only, the others with brim, raft and supports.
+            std::vector<Sum> printed_up_to_layer;
+
+            // An extrusion on a layer, counted in the parts too when it belongs to them.
+            void add(const Sum &sum, bool in_part, size_t layer);
+            void add(const ObjectMass &other);
+        };
+
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        ObjectMass plate_mass;
+        // One per object instance its G-code labels.
+        std::vector<ObjectMass> object_masses;
+        // One per connected body of the object instances of several, when the sliced objects were at hand.
+        std::vector<ObjectMass> body_masses;
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -360,6 +387,9 @@ class Print;
             filename = std::forward<Other>(other).filename;
             id = std::forward<Other>(other).id;
             moves = std::forward<Other>(other).moves;
+            plate_mass = std::forward<Other>(other).plate_mass;
+            object_masses = std::forward<Other>(other).object_masses;
+            body_masses = std::forward<Other>(other).body_masses;
             lines_ends = std::forward<Other>(other).lines_ends;
             printable_area = std::forward<Other>(other).printable_area;
             bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
@@ -1099,6 +1129,9 @@ class Print;
         };
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
+        // The connected body of an object instance of several that a point at an object layer's height lies in, or -1.
+        using BodyLocator = std::function<int(const Vec3d &point)>;
+
     private:
         CommandProcessor m_command_processor;
         GCodeReader m_parser;
@@ -1126,6 +1159,13 @@ class Print;
         bool m_skippable{false};
         SkipType m_skippable_type{SkipType::stNone};
         int m_object_label_id{-1};
+        // Label of the object being printed, any kind, and its index in m_result.object_masses once it extrudes.
+        std::string m_mass_label;
+        int m_mass_index{-1};
+        std::map<std::string, size_t> m_mass_indices;
+        // A brim is printed before its object's label.
+        GCodeProcessorResult::ObjectMass m_pending_brim;
+        BodyLocator m_body_locator;
         float m_print_z{0.0f};
         std::vector<float> m_remaining_volume;
         ExtruderTemps m_filament_nozzle_temp;
@@ -1280,6 +1320,7 @@ class Print;
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
+        void set_body_locator(BodyLocator locator) { m_body_locator = std::move(locator); }
         // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the
         // per-slot machine-limit resolution can follow the active nozzle. Null is fine (slot 0).
         void initialize_from_context(const std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase>& nozzle_group_result) {
@@ -1483,6 +1524,10 @@ class Print;
         // Unload the current filament into the MK3 MMU2 unit at the end of print.
         void process_M702(const GCodeReader::GCodeLine& line);
 
+        // Object labels of Marlin and RepRapFirmware (M486) and of Klipper (EXCLUDE_OBJECT_START / _END)
+        void process_M486(const GCodeReader::GCodeLine& line);
+        void process_EXCLUDE_OBJECT(const GCodeReader::GCodeLine& line, bool start);
+
         //Used for Elegoo printer to change tool head
         void process_M6211(const GCodeReader::GCodeLine& line);
         void process_elegoo_M6211(const GCodeReader::GCodeLine& line);
@@ -1534,6 +1579,9 @@ class Print;
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
+        void add_object_mass(int filament_id, float volume);
+        void set_mass_label(std::string_view label);
+        void finalize_object_masses();
 
         void set_extrusion_role(ExtrusionRole role);
         // Resolve the SKIPPABLE_TYPE payload to a SkipType.

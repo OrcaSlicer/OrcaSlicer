@@ -30,6 +30,7 @@
 #include "Gizmos/GLGizmosManager.hpp"
 #include "GUI_ObjectLayers.hpp"
 #include "GLSelectionRectangle.hpp"
+#include "GLModel.hpp"
 #include "MeshUtils.hpp"
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
@@ -477,6 +478,46 @@ class GLCanvas3D
         void render(const std::vector<const ModelInstance*>& sorted_instances) const;
     };
 
+    class CenterOfMass
+    {
+        // The marker's two colors of alternating octants.
+        std::array<GLModel, 2> m_octants;
+        // Volume and center of mass of each ModelVolume's mesh, by ModelVolume id, which a new mesh changes.
+        std::map<size_t, std::pair<double, Vec3d>> m_meshes;
+        // The connected bodies of each assembly in its own coordinates, by ModelObject id, with the volumes they were sliced from.
+        struct Bodies
+        {
+            struct Volume
+            {
+                size_t      id;
+                bool        negative;
+                double      density;
+                Transform3d trafo;
+
+                bool operator==(const Volume& other) const
+                {
+                    return id == other.id && negative == other.negative && density == other.density && trafo.matrix() == other.trafo.matrix();
+                }
+            };
+            std::vector<Volume>                   volumes;
+            size_t                                slabs{ 0 };
+            std::vector<std::pair<double, Vec3d>> bodies;
+        };
+        std::map<size_t, Bodies> m_bodies;
+
+        // The plate's, each object instance's and each body of an assembly's.
+        struct Markers
+        {
+            std::vector<Vec3d> plate;
+            std::vector<Vec3d> objects;
+            std::vector<Vec3d> bodies;
+        };
+        Markers model_markers(const GLCanvas3D& canvas);
+
+    public:
+        void render(GLCanvas3D& canvas);
+    };
+
     class Tooltip
     {
         std::string m_text;
@@ -733,6 +774,7 @@ private:
     int m_selected_extruder;
 
     Labels m_labels;
+    CenterOfMass m_center_of_mass;
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
     Slope m_slope;

@@ -65,6 +65,7 @@ add_executable(${_TEST_NAME}_tests
     test_ordering_strategies.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
+    test_connected_bodies.cpp
     test_texture_displacement.cpp
     test_instance_lock.cpp
     ../libnest2d/printer_parts.cpp
