@@ -27,10 +27,11 @@ part as a solid of the density of its filament, the part's own or else its objec
 filament's density from the filament's selected preset, edits not yet saved included, as slicing does:
 the plater's own config holds the values of the filament edited last only. Preview has
 what will be printed, so its markers come from the toolpaths, whose mass depends on walls, infill
-and flow as well. There every marker has a faded twin for what is printed up to the top layer the
-layer slider shows: for the plate and the objects with their brim, raft and supports, where the
-weight rests at that point of the print; for a body, its own extrusions. With the slider at the top,
-a faded marker that adds nothing to its solid one hides under it.
+and flow as well. There the solid markers are for what is printed up to the top layer the layer
+slider shows: for the plate and the objects with their brim, raft and supports, where the weight
+rests at that point of the print; for a body, its own extrusions. Each has a faded twin for the
+finished parts alone, without brim, raft and supports, so the slider shows the weight moving
+toward where it ends.
 
 ## Prepare: from the meshes
 
@@ -106,9 +107,9 @@ point. The island found last is tried first, as extrusions mostly follow each ot
 no bodies.
 
 Each mass holds the parts' total and, for each layer id, the running total of what is printed up to
-that layer, so the faded marker for any slider position is a single lookup. The layer ids are those
+that layer, so the solid marker for any slider position is a single lookup. The layer ids are those
 the moves carry, which are also the layers of libvgcode and of the slider; in a print by object they
-follow the order of printing, so the faded markers show the objects printed so far as they are.
+follow the order of printing, so the solid markers show the objects printed so far as they are.
 
 ## Drawing
 
@@ -117,7 +118,7 @@ splits into two models drawn with the `gouraud_light` shader in each kind's two 
 9 pixels for the plate, 7 for the objects and 5 for the bodies, scaled like the canvas toolbar for the
 display's DPI and kept constant on screen through the camera's inverse zoom. They are drawn in that
 order, so that markers at one place show as rings. The faded markers are the same spheres at 40%
-opacity, drawn before all the solid ones.
+opacity, drawn before all the solid ones, which show over them where both meet.
 
 The centers usually lie inside the objects, so the markers are drawn without the depth test and show
 through the objects and anything in front of them. Back face culling keeps the far half of a sphere
@@ -125,7 +126,7 @@ from covering the near one. They are drawn after the ambient occlusion pass, whi
 darken them as the surface behind them, and before FXAA, which smooths their edges.
 
 The markers are part of the cached scene, so toggling them, or changing a filament's density while
-they are shown, marks the scene dirty, and moving the layer slider redraws the scene with the faded
+they are shown, marks the scene dirty, and moving the layer slider redraws the scene with the solid
 markers where they belong. In Prepare they are hidden
 while any gizmo other than Move, Rotate, Scale and Lay on face is open, since the others work on the
 surface a marker would cover, and a hidden object has no markers.

@@ -1124,10 +1124,11 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
          gizmo != GLGizmosManager::Scale && gizmo != GLGizmosManager::Flatten))
         return;
 
-    // Preview adds faded markers for what is printed up to the top layer shown.
-    Markers parts;
-    Markers printed;
-    if (canvas.get_canvas_type() == ECanvasType::CanvasPreview) {
+    // Preview adds markers for what is printed up to the top layer shown.
+    Markers    parts;
+    Markers    printed;
+    const bool preview = canvas.get_canvas_type() == ECanvasType::CanvasPreview;
+    if (preview) {
         const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
         const size_t       top_layer    = gcode_viewer.get_layers_z_range()[1];
         const auto add = [top_layer](const GCodeProcessorResult::ObjectMass& mass, std::vector<Vec3d>& part, std::vector<Vec3d>& up_to_layer) {
@@ -1205,9 +1206,9 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
                 }
             }
     };
-    // Faded first, under any solid marker at the same place.
-    draw(printed, 0.4f);
-    draw(parts, 1.f);
+    // Preview fades the finished parts' markers under those of what is printed so far.
+    draw(parts, preview ? 0.4f : 1.f);
+    draw(printed, 1.f);
     shader->stop_using();
     glsafe(::glEnable(GL_DEPTH_TEST));
 }
