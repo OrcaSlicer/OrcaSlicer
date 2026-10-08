@@ -29,6 +29,7 @@
 #include "libslic3r/libslic3r.h"
 
 using namespace Slic3r;
+using namespace Slic3r::Test;
 
 static double extrusion_with_comment(const std::string &output, const DynamicPrintConfig &config, std::string_view comment)
 {
