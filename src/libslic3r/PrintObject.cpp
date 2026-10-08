@@ -738,10 +738,9 @@ void PrintObject::prepare_infill()
         if (parts <= 1 && ! (first_part != nullptr && first_part->is_splittable()))
             needs_separated_components = false;
     }
-    for (Layer *layer : m_layers) {
-        layer->lslices_separated_component_bboxes.clear();
+    m_separated_body_bboxes.clear();
+    for (Layer *layer : m_layers)
         layer->lslices_separated_component_ids.clear();
-    }
     if (needs_separated_components) {
         const size_t        nl = m_layers.size();
         std::vector<size_t> offset(nl + 1, 0); // Orca: flat index of the first island of each layer
@@ -792,26 +791,19 @@ void PrintObject::prepare_infill()
                     });
             }
         }
-        // Orca: Full bounding box and index of each body, indexed by its union-find root.
-        std::vector<BoundingBox> body_bbox(nreg);
-        std::vector<size_t>      body_id(nreg, size_t(-1));
-        size_t                   num_bodies = 0;
-        for (size_t i = 0; i < nl; ++ i)
-            for (size_t a = 0; a < m_layers[i]->lslices.size(); ++ a) {
-                const size_t root = find(offset[i] + a);
-                body_bbox[root].merge(m_layers[i]->lslices_bboxes[a]);
-                if (body_id[root] == size_t(-1))
-                    body_id[root] = num_bodies ++;
-            }
-        // Orca: Store the body bbox and index for every island.
+        // Orca: Number the bodies by their first island and merge the bounding boxes of their islands.
+        std::vector<size_t> body_of_root(nreg, size_t(-1));
         for (size_t i = 0; i < nl; ++ i) {
             Layer *layer = m_layers[i];
-            layer->lslices_separated_component_bboxes.resize(layer->lslices.size());
             layer->lslices_separated_component_ids.resize(layer->lslices.size());
             for (size_t a = 0; a < layer->lslices.size(); ++ a) {
-                const size_t root = find(offset[i] + a);
-                layer->lslices_separated_component_bboxes[a] = body_bbox[root];
-                layer->lslices_separated_component_ids[a]    = body_id[root];
+                size_t &body = body_of_root[find(offset[i] + a)];
+                if (body == size_t(-1)) {
+                    body = m_separated_body_bboxes.size();
+                    m_separated_body_bboxes.emplace_back();
+                }
+                m_separated_body_bboxes[body].merge(layer->lslices_bboxes[a]);
+                layer->lslices_separated_component_ids[a] = body;
             }
         }
     }
@@ -1208,12 +1200,11 @@ std::pair<FillAdaptive::Octrees, FillAdaptive::Octrees> PrintObject::prepare_ada
 
     // Orca: Each body gets the octree it has when sliced on its own, from its own triangles.
     std::pair<Octrees, Octrees> octrees;
-    size_t num_bodies = 0;
-    for (const Layer *layer : m_layers)
-        for (size_t body : layer->lslices_separated_component_ids)
-            num_bodies = std::max(num_bodies, body + 1);
+    const size_t                num_bodies  = m_separated_body_bboxes.size();
+    bool                        need_object = num_bodies <= 1;
     if (num_bodies > 1) {
         const std::vector<indexed_triangle_set> body_meshes = split_mesh_by_body(*this, mesh, num_bodies);
+        need_object = std::any_of(body_meshes.begin(), body_meshes.end(), [](const indexed_triangle_set &its) { return its.indices.empty(); });
         std::vector<std::vector<Vec3d>>         body_overhangs(num_bodies);
         for (size_t i = 0; i < surfaces_w_layer.size(); ++ i)
             if (const int body = separated_body_at(*surfaces_w_layer[i].second, surfaces_w_layer[i].first->expolygon.contour.points.front()); body >= 0)
@@ -1240,9 +1231,10 @@ std::pair<FillAdaptive::Octrees, FillAdaptive::Octrees> PrintObject::prepare_ada
     for (size_t i = 1; i < overhangs.size(); ++ i)
         append(overhangs.front(), std::move(overhangs[i]));
 
-    if (adaptive_line_spacing)
+    // Orca: The object's octree only serves bodies that have none of their own.
+    if (need_object && adaptive_line_spacing)
         octrees.first.object = build_octree(mesh, overhangs.front(), adaptive_line_spacing, false);
-    if (support_line_spacing)
+    if (need_object && support_line_spacing)
         octrees.second.object = build_octree(mesh, overhangs.front(), support_line_spacing, true);
     return octrees;
 }

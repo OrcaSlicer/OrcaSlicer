@@ -22,9 +22,10 @@ into 3D connected bodies before bridges are detected, so bridge anchors and
 printed infill share one origin. Islands on adjacent layers belong to one body
 when their slices overlap. Parts that touch or overlap form one body. Separate
 parts, disconnected islands of one mesh, and interleaved parts that never touch,
-such as chain links, each form their own. Every island stores the bounding box
-of its whole body in `Layer::lslices_separated_component_bboxes`, and the index
-of that body in `Layer::lslices_separated_component_ids`.
+such as chain links, each form their own. Every island stores the index of its
+body in `Layer::lslices_separated_component_ids`, and
+`PrintObject::separated_body_bboxes()` holds the bounding box of each body over
+all its layers.
 
 The pass runs when a region uses separated infills, per-model surface centering
 or an octree infill pattern. It is skipped when the object has one model part
@@ -32,19 +33,23 @@ that cannot be split, since a single body already shares the object center.
 
 ## Centering a fill
 
-`infill_body_island()` matches each fill region to the island it overlaps most,
-and `infill_bounding_box()` moves the bounding box of the filler onto the
-center of that island's body. The box keeps the extent of the whole object, so
-coverage and cost do not change; only its center moves. Bridge anchoring
-(`Layer::generate_sparse_infill_polylines_for_anchoring()`) makes the same
-choice, so the anchors match the printed infill.
+`infill_body()` matches each fill region to the island it overlaps most, among
+the islands whose bounding boxes overlap it, and the filler takes the bounding
+box of that island's body instead of the object's. The box covers every layer
+of the body, which is the box the body gets when sliced alone, so patterns that
+depend on its extent as well as its center come out the same too. Bridge
+anchoring (`Layer::generate_sparse_infill_polylines_for_anchoring()`) makes the
+same choice, so the anchors match the printed infill.
 
-The patterns follow the moved center in one of two ways:
+The patterns follow the body's box in one of two ways:
 
 - Rectilinear and its variants, Line, Grid, Triangles, Tri-hexagon, Cubic,
   Quarter Cubic, Lateral Lattice, Lateral Honeycomb and the plane-path patterns
-  (Hilbert Curve, Archimedean Chords, Octagram Spiral) phase their layout
-  through the box center.
+  (Hilbert Curve, Archimedean Chords, Octagram Spiral) are laid out from the
+  box: they phase their lines through its center, and Hilbert Curve and the Zig
+  Zag links start from its corner. `Fill::extended_object_bounding_box()`
+  extends the box about its center, so it also serves a box that is not
+  centered on the origin.
 - Honeycomb, 3D Honeycomb, Cross Hatch, Gyroid, TPMS-D and TPMS-FK are laid out
   from the coordinate origin, which is the object center. They return true from
   `Fill::aligned_to_origin()`, and `Fill::fill_surface()` moves each region so
@@ -63,15 +68,16 @@ and refine it near the other parts, so these patterns
 (`is_octree_infill_pattern()`) always fill each body on its own, and the
 settings hide the option for them.
 
-Besides the octree of the object, `PrintObject::prepare_adaptive_infill_data()`
-builds one per body (`FillAdaptive::Octrees`) from the triangles of that body
-only, which is the octree the body gets when sliced alone. Each connected
+For an object of several bodies, `PrintObject::prepare_adaptive_infill_data()`
+builds one octree per body (`FillAdaptive::Octrees`) from the triangles of that
+body only, which is the octree the body gets when sliced alone. Each connected
 component of the mesh goes to the body that most of a few sampled triangles lie
 on. A sample is taken a layer height inside the solid, behind the triangle, and
 looked up in the islands of the nearest layer. Each internal bridge surface goes
 to the body of its island. The fill takes the octree of the region's body, from
-the same `infill_body_island()`; a body that received no triangles uses the
-object's octree.
+the same `infill_body()`. The octree of the whole object is built only for an
+object of a single body, or when some body received no triangles, which then
+uses it.
 
 ## Patterns left out
 

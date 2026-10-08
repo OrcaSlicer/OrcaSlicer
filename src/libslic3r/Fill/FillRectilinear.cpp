@@ -2750,23 +2750,6 @@ static void polylines_from_paths(const std::vector<MonotonicRegionLink> &path, c
     }
 }
 
-// The extended bounding box of the whole object that covers any rotation of every layer.
-BoundingBox FillRectilinear::extended_object_bounding_box() const {
-    // Build the extension around the box center. The transpose merge and the sqrt(2.) scaling
-    // (which covers any possible rotation) are both defined about the origin, so a box that is not
-    // origin-centered — e.g. a separated-infill box re-centered on a single assembly part — would be
-    // distorted. Shift to the origin first and back afterwards; for the default origin-centered box
-    // the two translations cancel and this is identical to the original behavior.
-    const Point c   = this->bounding_box.center();
-    BoundingBox out = this->bounding_box;
-    out.translate(-c.x(), -c.y());
-    out.merge(Point(out.min.y(), out.min.x()));
-    out.merge(Point(out.max.y(), out.max.x()));
-    out = out.scaled(sqrt(2.));
-    out.translate(c.x(), c.y());
-    return out;
-}
-
 bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillParams &params, float angleBase, float pattern_shift, Polylines &polylines_out)
 {
     // At the end, only the new polylines will be rotated back.
@@ -2801,7 +2784,13 @@ bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillPa
     // For infill that needs to be consistent between layers (like Zig Zag),
     // we use bounding box of whole object to match vertical lines between layers.
     BoundingBox bounding_box_src = poly_with_offset.bounding_box_src();
-    BoundingBox bounding_box     = this->has_consistent_pattern() ? this->extended_object_bounding_box() : bounding_box_src;
+    BoundingBox bounding_box     = bounding_box_src;
+    if (this->has_consistent_pattern()) {
+        // Orca: The polygons are rotated about the origin, so follow the box center to where it was rotated.
+        const Point c = this->bounding_box.center();
+        bounding_box  = this->extended_object_bounding_box();
+        bounding_box.translate(c.rotated(- rotate_vector.first) - c);
+    }
 
     // define flow spacing according to requested density
     if (params.full_infill() && !params.dont_adjust) {

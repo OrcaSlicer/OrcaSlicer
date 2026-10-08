@@ -170,11 +170,9 @@ public:
     ExPolygons 				 lslices;
     ExPolygons 				 lslices_extrudable;  // BBS: the extrudable part of lslices used for tree support
     std::vector<BoundingBox> lslices_bboxes;
-    // Orca: for separated infills / per-model centering. Aligned with lslices: for each island, the
-    // full bounding box of the 3D connected body (across all layers) it belongs to. Populated by
-    // PrintObject::infill() only when the feature is used; empty otherwise.
-    std::vector<BoundingBox> lslices_separated_component_bboxes;
-    // Orca: Index of that body within the object, aligned with lslices the same way.
+    // Orca: for separated infills / per-model centering / octree infills. Aligned with lslices: for each
+    // island, the 3D connected body (across all layers) it belongs to, indexing
+    // PrintObject::separated_body_bboxes(). Populated by PrintObject::prepare_infill() only when needed.
     std::vector<size_t>      lslices_separated_component_ids;
 
     // BBS

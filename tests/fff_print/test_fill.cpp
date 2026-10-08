@@ -1887,12 +1887,14 @@ static double unmatched_between_prints(const Print &a, const Print &b, Extrusion
 
 TEST_CASE("Separated infill centers the sparse infill of each body on itself", "[Fill][Regression]")
 {
-    const std::string pattern = GENERATE("line", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "gyroid");
+    const std::string pattern = GENERATE("line", "zigzag", "crosszag", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "gyroid");
     const bool separated = GENERATE(false, true);
     CAPTURE(pattern, separated);
     auto config = DynamicPrintConfig::full_print_config();
+    // Orca: The Zig Zag patterns mirror each body about its own center.
     config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
                                    {"sparse_infill_density", "20%"},
+                                   {"symmetric_infill_y_axis", true},
                                    {"top_shell_layers", 0},
                                    {"bottom_shell_layers", 0},
                                    {"separated_infills", separated}});
@@ -1926,14 +1928,10 @@ TEST_CASE("Separated infill centers monotonic and rectilinear bridges on each bo
         CHECK(unmatched > 0.5);
 }
 
-TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][Regression]")
+// Orca: Share of the infill of an off center pillar, and of the frame of four overlapping bars around it,
+// that each body sliced alone does not repeat. The frame is one body of several parts that holds the pillar.
+static std::pair<double, double> frame_and_pillar_unmatched(const DynamicPrintConfig &config)
 {
-    const std::string pattern = GENERATE("adaptivecubic", "supportcubic");
-    // Orca: Octree infill centers each body whether or not separated infills are enabled.
-    const bool separated = GENERATE(false, true);
-    CAPTURE(pattern, separated);
-    // Orca: A pillar off center in the hole of a frame of four overlapping bars, each a part of the object.
-    // The frame is one body of several parts, and its bounding box holds the pillar.
     auto box = [](double x, double y, double size_x, double size_y) {
         TriangleMesh mesh = make_cube(size_x, size_y, 6);
         mesh.translate(x, y, 0);
@@ -1943,13 +1941,6 @@ TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][
     const std::vector<TriangleMesh> pillar{box(18, 20, 16, 16)};
     std::vector<TriangleMesh>       both = frame;
     both.push_back(pillar.front());
-
-    auto config = DynamicPrintConfig::full_print_config();
-    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
-                                   {"sparse_infill_density", "40%"},
-                                   {"top_shell_layers", 0},
-                                   {"bottom_shell_layers", 0},
-                                   {"separated_infills", separated}});
     Print print_both, print_frame, print_pillar;
     slice_parts(print_both, config, both);
     slice_parts(print_frame, config, frame);
@@ -1959,9 +1950,41 @@ TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][
     auto rect = [](double x0, double y0, double x1, double y1) {
         return Polygon({Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1), Point::new_scale(x0, y1)});
     };
-    const Polygons pillar_inside{rect(21, 23, 31, 33)};
-    const Polygons frame_inside = diff(Polygons{rect(3, 3, 57, 57)}, Polygons{rect(11, 11, 49, 49)});
+    return {unmatched_between_prints(print_both, print_pillar, erInternalInfill, {rect(21, 23, 31, 33)}),
+            unmatched_between_prints(print_both, print_frame, erInternalInfill, diff(Polygons{rect(3, 3, 57, 57)}, Polygons{rect(11, 11, 49, 49)}))};
+}
+
+TEST_CASE("Separated infill fills each body like the body sliced alone", "[Fill][Regression]")
+{
+    // Orca: Hilbert Curve and the Zig Zag links follow the extent of the box, not only its center.
+    const std::string pattern = GENERATE("hilbertcurve", "zigzag", "crosszag", "gyroid");
+    CAPTURE(pattern);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "20%"},
+                                   {"symmetric_infill_y_axis", true},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"separated_infills", true}});
+    const std::pair<double, double> unmatched = frame_and_pillar_unmatched(config);
+    CHECK(unmatched.first < 0.02);
+    CHECK(unmatched.second < 0.02);
+}
+
+TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][Regression]")
+{
+    const std::string pattern = GENERATE("adaptivecubic", "supportcubic");
+    // Orca: Octree infill centers each body whether or not separated infills are enabled.
+    const bool separated = GENERATE(false, true);
+    CAPTURE(pattern, separated);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "40%"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"separated_infills", separated}});
     // Orca: The octree of the whole object is laid out from its center, which the off center pillar does not share.
-    CHECK(unmatched_between_prints(print_both, print_pillar, erInternalInfill, pillar_inside) < 0.02);
-    CHECK(unmatched_between_prints(print_both, print_frame, erInternalInfill, frame_inside) < 0.02);
+    const std::pair<double, double> unmatched = frame_and_pillar_unmatched(config);
+    CHECK(unmatched.first < 0.02);
+    CHECK(unmatched.second < 0.02);
 }

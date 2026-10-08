@@ -927,7 +927,6 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
                 params.infill_overhang_angle = region_config.infill_overhang_angle;
                 params.center_of_surface_pattern = region_config.center_of_surface_pattern;
-                params.separated_infills = region_config.separated_infills;
                 if (params.pattern == ipLockedZag) {
                     params.infill_lock_depth = scale_(region_config.infill_lock_depth);
                     params.skin_infill_depth = scale_(region_config.skin_infill_depth);
@@ -1000,6 +999,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // (which would unnecessarily split fill batching).
                 // Stored on SurfaceFillParams; copied to FillParams during conversion.
                 params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
+                // Orca: Likewise separated_infills only where it can move the pattern.
+                params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
+                                           params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
 
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
@@ -1272,42 +1274,28 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 
 // Orca: Anchors and printed infill must share the same body origin. Keep the choice
 // here so per-model surface centering and separated sparse infill cannot drift apart.
-// Returns the island whose body the fill region is centered on, or -1 to keep the object's origin.
-static int infill_body_island(const Layer &layer, const SurfaceFill &fill, const ExPolygon &expoly)
+// Returns the connected body the fill region is laid out on, or -1 to keep the object's origin.
+static int infill_body(const Layer &layer, const SurfaceFill &fill, const ExPolygon &expoly)
 {
     const auto &params = fill.params;
-    const bool external = params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface;
-    const bool per_model = external && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model &&
+    const bool per_model = (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface) &&
+                           params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model &&
                            (params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral);
-    const bool separate = !external && (is_octree_infill_pattern(params.pattern) ||
-                                        (params.separated_infills && is_separable_infill_pattern(params.pattern)));
-    int island = -1;
-    if (per_model || separate) {
-        double best_overlap = 0.;
-        for (size_t i = 0; i < layer.lslices.size() && i < layer.lslices_separated_component_bboxes.size(); ++i) {
+    int body = -1;
+    if (per_model || params.separated_infills || is_octree_infill_pattern(params.pattern)) {
+        const BoundingBox box          = get_extents(expoly);
+        double            best_overlap = 0.;
+        for (size_t i = 0; i < layer.lslices.size() && i < layer.lslices_separated_component_ids.size(); ++i) {
+            if (! layer.lslices_bboxes[i].overlap(box))
+                continue;
             const double overlap = area(intersection_ex(layer.lslices[i], expoly));
             if (overlap > best_overlap) {
                 best_overlap = overlap;
-                island       = int(i);
+                body         = int(layer.lslices_separated_component_ids[i]);
             }
         }
     }
-    return island;
-}
-
-static BoundingBox infill_bounding_box(const Layer &layer, int island, BoundingBox bbox)
-{
-    if (island >= 0) {
-        const Point center = layer.lslices_separated_component_bboxes[island].center();
-        bbox = layer.object()->bounding_box();
-        bbox.translate(center.x(), center.y());
-    }
-    return bbox;
-}
-
-static FillAdaptive::Octree *infill_octree(const Layer &layer, const FillAdaptive::Octrees *octrees, int island)
-{
-    return octrees ? octrees->get(island >= 0 ? int(layer.lslices_separated_component_ids[island]) : -1) : nullptr;
+    return body;
 }
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -1457,10 +1445,10 @@ void Layer::make_fills(const FillAdaptive::Octrees* adaptive_fill_octrees, const
 			params.can_reverse = false;
 		for (ExPolygon& expoly : surface_fill.expolygons) {
 
-            // Orca: Reuse the body origin and octree used for bridge anchoring, resetting them for each surface.
-            const int island = infill_body_island(*this, surface_fill, expoly);
-            f->set_bounding_box(infill_bounding_box(*this, island, bbox));
-            f->adapt_fill_octree = infill_octree(*this, octrees, island);
+            // Orca: Reuse the body box and octree used for bridge anchoring, resetting them for each surface.
+            const int body = infill_body(*this, surface_fill, expoly);
+            f->set_bounding_box(body >= 0 ? this->object()->separated_body_bboxes()[body] : bbox);
+            f->adapt_fill_octree = octrees ? octrees->get(body) : nullptr;
 
             f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
             if (params.symmetric_infill_y_axis) {
@@ -1633,10 +1621,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         params.extrusion_role            = surface_fill.params.extrusion_role;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
-            // Orca: Match the per-body origin and octree of make_fills() before generating physical anchors.
-            const int island = infill_body_island(*this, surface_fill, expoly);
-            f->set_bounding_box(infill_bounding_box(*this, island, bbox));
-            f->adapt_fill_octree = infill_octree(*this, octrees, island);
+            // Orca: Match the per-body box and octree of make_fills() before generating physical anchors.
+            const int body = infill_body(*this, surface_fill, expoly);
+            f->set_bounding_box(body >= 0 ? this->object()->separated_body_bboxes()[body] : bbox);
+            f->adapt_fill_octree = octrees ? octrees->get(body) : nullptr;
             // Spacing is modified by the filler to indicate adjustments. Reset it for each expolygon.
             f->spacing                     = surface_fill.params.spacing;
             surface_fill.surface.expolygon = std::move(expoly);

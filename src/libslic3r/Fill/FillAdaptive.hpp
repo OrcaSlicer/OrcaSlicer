@@ -38,14 +38,25 @@ struct Octree;
 struct OctreeDeleter { void operator()(Octree *p); };
 using  OctreePtr = std::unique_ptr<Octree, OctreeDeleter>;
 
-// Orca: Octree of the whole object, and for separated infills one per body (see Layer::lslices_separated_component_ids).
+// Orca: One octree per body (see Layer::lslices_separated_component_ids), and one of the whole object
+// for objects of a single body or with a body that has none of its own.
 struct Octrees
 {
     OctreePtr              object;
     std::vector<OctreePtr> bodies;
 
-    // A body without an octree of its own, or body -1, uses the object's.
-    Octree *get(int body) const { return body >= 0 && size_t(body) < bodies.size() && bodies[body] ? bodies[body].get() : object.get(); }
+    // A body without an octree, or body -1, uses the object's, or any body's when the object has none.
+    Octree *get(int body) const
+    {
+        if (body >= 0 && size_t(body) < bodies.size() && bodies[body])
+            return bodies[body].get();
+        if (object)
+            return object.get();
+        for (const OctreePtr &octree : bodies)
+            if (octree)
+                return octree.get();
+        return nullptr;
+    }
 };
 
 // Calculate line spacing for
