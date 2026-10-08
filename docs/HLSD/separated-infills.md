@@ -83,9 +83,8 @@ The line spacing of an octree comes from the density, line width and multiline
 count of a region, so a modifier or a part with its own density needs octrees of
 its own. `adaptive_fill_line_spacing()` gives the spacing of each region, and
 `FillAdaptive::RegionOctrees` holds one set of octrees per distinct spacing,
-shared by the regions that have it. When there are several, a set is built only
-for the bodies its regions fill. The fill takes the set of its region, then the
-octree of its body.
+shared by the regions that have it. A set is built only for the bodies its
+regions fill. The fill takes the set of its region, then the octree of its body.
 
 ## Patterns left out
 

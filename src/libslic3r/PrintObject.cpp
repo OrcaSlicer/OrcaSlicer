@@ -1211,51 +1211,50 @@ FillAdaptive::RegionOctrees PrintObject::prepare_adaptive_infill_data(
             }
         });
 
-    // Orca: Each body gets the octree it has when sliced on its own, from its own triangles.
-    const size_t      num_bodies = m_separated_body_bboxes.size();
-    std::vector<char> need_object(spacings.size(), num_bodies <= 1);
+    // Orca: Each body gets the octree it has when sliced on its own, from its own triangles, for each line spacing
+    // its regions fill with. Body num_bodies stands for the whole object, which serves an object of a single body
+    // and the surfaces of bodies that have no octree of their own.
+    const size_t                           num_bodies = m_separated_body_bboxes.size();
+    std::vector<std::pair<size_t, size_t>> to_build; // Set, body.
+    std::vector<indexed_triangle_set>      body_meshes;
+    std::vector<std::vector<Vec3d>>        body_overhangs(num_bodies);
     if (num_bodies > 1) {
-        const std::vector<indexed_triangle_set> body_meshes = split_mesh_by_body(*this, mesh, num_bodies);
-        std::vector<std::vector<Vec3d>>         body_overhangs(num_bodies);
+        body_meshes = split_mesh_by_body(*this, mesh, num_bodies);
         for (size_t i = 0; i < surfaces_w_layer.size(); ++ i)
             if (const int body = separated_body_at(*surfaces_w_layer[i].second, surfaces_w_layer[i].first->expolygon.contour.points.front()); body >= 0)
                 append(body_overhangs[body], overhangs[i]);
-        // Orca: Of several line spacings, each only gets the octrees of the bodies its regions fill.
-        std::vector<std::vector<char>> fills(spacings.size(), std::vector<char>(num_bodies, spacings.size() == 1));
-        if (spacings.size() > 1)
-            for (const Layer *layer : m_layers)
-                for (size_t region_id = 0; region_id < layer->regions().size() && region_id < octrees.region_set.size(); ++ region_id)
-                    if (const int set = octrees.region_set[region_id]; set >= 0)
-                        for (const Surface &surface : layer->regions()[region_id]->fill_surfaces) {
-                            const int body = separated_body_at(*layer, surface.expolygon.contour.points.front());
-                            (body >= 0 ? fills[set][body] : need_object[set]) = true;
-                        }
-        std::vector<std::pair<size_t, size_t>> to_build; // Set, body.
+        std::vector<std::vector<char>> fills(spacings.size(), std::vector<char>(num_bodies + 1, false));
+        for (const Layer *layer : m_layers)
+            for (size_t region_id = 0; region_id < layer->regions().size() && region_id < octrees.region_set.size(); ++ region_id)
+                if (const int set = octrees.region_set[region_id]; set >= 0)
+                    for (const Surface &surface : layer->regions()[region_id]->fill_surfaces) {
+                        const int body = separated_body_at(*layer, surface.expolygon.contour.points.front());
+                        fills[set][body >= 0 && ! body_meshes[body].indices.empty() ? size_t(body) : num_bodies] = true;
+                    }
         for (size_t set = 0; set < spacings.size(); ++ set) {
             octrees.sets[set].bodies.resize(num_bodies);
-            for (size_t body = 0; body < num_bodies; ++ body)
-                if (fills[set][body] && body_meshes[body].indices.empty())
-                    need_object[set] = true;
-                else if (fills[set][body])
+            for (size_t body = 0; body <= num_bodies; ++ body)
+                if (fills[set][body])
                     to_build.emplace_back(set, body);
         }
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, to_build.size()), [&](const tbb::blocked_range<size_t> &range) {
-            for (size_t i = range.begin(); i < range.end(); ++ i) {
-                m_print->throw_if_canceled();
-                const auto [set, body]       = to_build[i];
-                octrees.sets[set].bodies[body] = build_octree(body_meshes[body], body_overhangs[body], spacings[set].first, spacings[set].second);
-            }
-        });
-    }
+    } else
+        for (size_t set = 0; set < spacings.size(); ++ set)
+            to_build.emplace_back(set, num_bodies);
 
     // and gather them.
     for (size_t i = 1; i < overhangs.size(); ++ i)
         append(overhangs.front(), std::move(overhangs[i]));
 
-    // Orca: The object's octree only serves bodies that have none of their own.
-    for (size_t set = 0; set < spacings.size(); ++ set)
-        if (need_object[set])
-            octrees.sets[set].object = build_octree(mesh, overhangs.front(), spacings[set].first, spacings[set].second);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, to_build.size()), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t i = range.begin(); i < range.end(); ++ i) {
+            m_print->throw_if_canceled();
+            const auto [set, body] = to_build[i];
+            const bool object      = body == num_bodies;
+            (object ? octrees.sets[set].object : octrees.sets[set].bodies[body]) =
+                build_octree(object ? mesh : body_meshes[body], object ? overhangs.front() : body_overhangs[body], spacings[set].first,
+                             spacings[set].second);
+        }
+    });
     return octrees;
 }
 
