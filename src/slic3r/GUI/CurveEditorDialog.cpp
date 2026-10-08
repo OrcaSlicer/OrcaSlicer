@@ -286,12 +286,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_content->SendSizeEvent();
     });
     view_actions->Add(m_show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
-    view_actions->AddStretchSpacer();
-    auto make_icon_button = [plot_panel](const wxString& name, const wxString& icon) {
-        auto* button = new Button(plot_panel, wxEmptyString, icon, 0, 16);
+    auto make_action_button = [this, plot_panel](const wxString& label, const wxString& icon) {
+        auto* button = new Button(plot_panel, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
-        button->SetIconSpacing(0);
-        button->SetName(name);
+        button->SetFont(Label::Body_12);
+        const int spacing = label.empty() ? 0 : FromDIP(4);
+        button->SetIconSpacing(spacing);
+        // Include icon/text spacing in the button's minimum width.
+        button->SetMinSize(wxSize(button->GetMinSize().x + spacing, FromDIP(26)));
         return button;
     };
     const wxString ctrl = wxString::FromUTF8(KeyChord::modifier_name(wxMOD_CONTROL));
@@ -304,23 +306,22 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
            "%s + %s + mouse wheel: zoom vertically.\n\n"
            "Show range: enter exact bounds and press Enter or Apply.\n"
            "Show table: show or hide the point values.\n"
-           "Fit curve: show the full curve.\n"
+           "Reset View: show the full curve.\n"
            "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift);
-    auto* help_button = make_icon_button(_L("Graph controls"), "thermal_question");
+    auto* help_button = make_action_button(wxEmptyString, "thermal_question");
+    help_button->SetName(_L("Graph controls"));
     help_button->SetToolTip(controls_help);
     help_button->Bind(wxEVT_BUTTON, [this, controls_help](wxCommandEvent&) {
         MessageDialog dialog(this, controls_help, _L("Graph controls"), wxOK | wxICON_INFORMATION);
         dialog.ShowModal();
     });
-    view_actions->Add(help_button, 0, wxLEFT, FromDIP(8));
-    auto* fit_range = make_icon_button(_L("Fit curve"), "design_zoom");
-    fit_range->SetToolTip(_L("Fit curve") + "\n" + _L("Show the full curve."));
-    fit_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    auto* reset_view = make_action_button(_L("Reset View"), "design_zoom");
+    reset_view->SetToolTip(_L("Reset View") + "\n" + _L("Show the full curve."));
+    reset_view->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
         update_preview();
         fit_chart();
     });
-    view_actions->Add(fit_range, 0, wxLEFT, FromDIP(8));
     plot_sizer->Add(view_actions, 0, wxEXPAND | wxTOP, FromDIP(8));
     plot_sizer->Add(range_panel, 0, wxEXPAND | wxTOP, FromDIP(8));
 
@@ -373,13 +374,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     grid_frame->SetSizer(grid_sizer);
     table_sizer->Add(grid_frame, 1, wxEXPAND);
 
-    auto* actions = new wxGridSizer(3, 0, FromDIP(6));
-    auto add_button = [plot_panel, actions, make_button](const wxString& label, auto handler) {
-        auto* button = make_button(plot_panel, label);
+    auto* actions = new wxBoxSizer(wxHORIZONTAL);
+    auto add_button = [this, actions, make_action_button](const wxString& label, const wxString& icon, auto handler) {
+        auto* button = make_action_button(label, icon);
         button->Bind(wxEVT_BUTTON, handler);
-        actions->Add(button, 0, wxEXPAND);
+        actions->Add(button, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     };
-    add_button(_L("Add point"), [this](wxCommandEvent&) {
+    add_button(_L("Add point"), "param_add", [this](wxCommandEvent&) {
         finish_edit();
         const int count = m_grid->GetNumberRows();
         if (count == 0) {
@@ -398,21 +399,24 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         }
         update_preview();
     });
-    add_button(_L("Remove point"), [this](wxCommandEvent&) {
+    add_button(_L("Remove point"), "param_remove", [this](wxCommandEvent&) {
         finish_edit();
         const int row = m_grid->GetGridCursorRow();
         if (row >= 0 && row < m_grid->GetNumberRows())
             m_grid->DeleteRows(row);
         update_preview();
     });
-    auto* reset = make_button(plot_panel, _L("Reset to defaults"));
-    reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    add_button(_L("Reset to defaults"), "reset_gray", [this](wxCommandEvent&) {
         finish_edit();
         load_points(m_model->default_rows());
         update_preview();
     });
-    actions->Add(reset, 0, wxEXPAND);
+    actions->Add(reset_view, 0, wxALIGN_CENTER_VERTICAL);
+    actions->Add(help_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
     plot_sizer->Insert(1, actions, 0, wxEXPAND | wxTOP, FromDIP(6));
+    // Keep the action row intact even with a vertical scrollbar or longer translations.
+    m_content->SetMinSize(wxSize(std::max(FromDIP(260), actions->GetMinSize().x + FromDIP(20) +
+        wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_content)), FromDIP(80)));
 
     m_status = new wxStaticText(table_panel, wxID_ANY, wxEmptyString);
     m_status->SetFont(Label::Body_12);
