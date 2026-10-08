@@ -50,10 +50,6 @@
 #include <wx/event.h>
 #include <optional>
 #include "libslic3r/AppConfig.hpp"
-#ifdef SLIC3R_CAD
-#include "slic3r/GUI/Gizmos/GLGizmoPrimitive.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoSketch.hpp"
-#endif
 
 #include "libslic3r/Model.hpp"
 
@@ -217,14 +213,6 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case (EType::BrimEars):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg");
             break;
-#ifdef SLIC3R_CAD
-        case (EType::Primitive):
-            gizmo->set_icon_filename(m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg");
-            break;
-        case (EType::Sketch):
-            gizmo->set_icon_filename(m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg");
-            break;
-#endif
         }
 
     }
@@ -270,14 +258,6 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoAssembly(m_parent, m_is_dark ? "toolbar_assembly_dark.svg" : "toolbar_assembly.svg", EType::Assembly));
     m_gizmos.emplace_back(new GLGizmoSimplify(m_parent, "reduce_triangles.svg", EType::Simplify));
     m_gizmos.emplace_back(new GLGizmoBrimEars(m_parent, m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg", EType::BrimEars));
-#ifdef SLIC3R_CAD
-    // Registered last: Primitive and Sketch are the final entries before Undefined, so
-    // omitting them leaves every preceding m_gizmos index (indexed by EType) untouched.
-    if (wxGetApp().is_enable_cad_feature()) {
-        m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
-        m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
-    }
-#endif
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
@@ -1375,8 +1355,7 @@ GLGizmoBase* GLGizmosManager::get_current() const
 
 GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 {
-    // m_gizmos ends before the enum does when the CAD gizmos are not registered.
-    return type < m_gizmos.size() ? m_gizmos[type].get() : nullptr;
+    return ((type == Undefined) || m_gizmos.empty()) ? nullptr : m_gizmos[type].get();
 }
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const

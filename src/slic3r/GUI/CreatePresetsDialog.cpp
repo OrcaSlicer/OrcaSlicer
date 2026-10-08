@@ -540,12 +540,9 @@ static std::string calculate_md5(const std::string &input)
     return md5;
 }
 
-static std::string get_filament_id(std::string vendor_typr_serial)
+// Loads every system filament and the user's own, which a new filament id must not collide with.
+static void load_filament_id_sources(PresetBundle &temp_preset_bundle)
 {
-    std::unordered_map<std::string, std::set<std::string>> filament_id_to_filament_name;
-
-    // temp filament presets
-    PresetBundle temp_preset_bundle;
     temp_preset_bundle.load_system_filaments_json(Slic3r::ForwardCompatibilitySubstitutionRule::EnableSilent);
     std::string dir_user_presets = wxGetApp().app_config->get("preset_folder");
     if (dir_user_presets.empty()) {
@@ -553,6 +550,13 @@ static std::string get_filament_id(std::string vendor_typr_serial)
     } else {
         temp_preset_bundle.load_user_presets(dir_user_presets, ForwardCompatibilitySubstitutionRule::EnableSilent);
     }
+}
+
+static std::string get_filament_id(std::string vendor_typr_serial, const PresetBundle &temp_preset_bundle)
+{
+    std::unordered_map<std::string, std::set<std::string>> filament_id_to_filament_name;
+
+    // temp filament presets
     const std::deque<Preset> &filament_presets = temp_preset_bundle.filaments.get_presets();
 
     for (const Preset &preset : filament_presets) {
@@ -1193,7 +1197,9 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
             if (wxID_YES != dlg.ShowModal()) { return; }
         }
 
-        std::string user_filament_id     = get_filament_id(filament_preset_name);
+        PresetBundle filament_id_sources;
+        load_filament_id_sources(filament_id_sources);
+        std::string user_filament_id     = get_filament_id(filament_preset_name, filament_id_sources);
 
         const wxString &curr_create_type = curr_create_filament_type();
 
@@ -2259,13 +2265,19 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
     } else {
         selected_vendor_id = m_printer_preset_vendor_selected.id;
 
+        // The vendor list is built from the bundled profiles, so a vendor the user never
+        // installed loads from them.
+        const boost::filesystem::path vendor_dir = is_vendor_installed(selected_vendor_id) ?
+                                                       boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR :
+                                                       boost::filesystem::path(Slic3r::resources_dir()) / PRESET_PROFILES_DIR;
+
         try {
             // Pass the app's preset bundle (which already holds OrcaFilamentLibrary) as the base
             // bundle so vendor filaments that inherit OFL bases resolve via the existing
             // cross-vendor inheritance path.
             // Orca: served from the vendor's preset cache where one covers it — a shipped
             // build carries that instead of the raw preset JSONs — and parsed otherwise.
-            temp_preset_bundle.load_vendor_configs_from_json((boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).string(),
+            temp_preset_bundle.load_vendor_configs_from_json(vendor_dir.string(),
                                                              selected_vendor_id,
                                                              PresetBundle::LoadConfigBundleAttribute::LoadSystem,
                                                              ForwardCompatibilitySubstitutionRule::EnableSilent,
@@ -2873,13 +2885,21 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             return;
         }
 
+        // One load serves every clone below, since cloning assigns all filament ids before it saves a preset.
+        PresetBundle filament_id_sources;
+        if (!selected_filament_presets.empty())
+            load_filament_id_sources(filament_id_sources);
+        auto create_filament_id = [&filament_id_sources](std::string vendor_typr_serial) {
+            return get_filament_id(vendor_typr_serial, filament_id_sources);
+        };
+
         std::vector<std::string> successful_preset_names;
         if (curr_selected_preset_type == m_create_type.base_template) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base template";
             /******************************   clone filament preset    ********************************/
             std::vector<std::string> failures;
             if (!selected_filament_presets.empty()) {
-                bool create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name, get_filament_id, rewritten);
+                bool create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name, create_filament_id, rewritten);
                 if (!create_preset_result) {
                     std::string message;
                     for (const std::string &failure : failures) { message += "\t" + failure + "\n"; }
@@ -2889,7 +2909,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                     int res = dlg.ShowModal();
                     if (wxID_YES == res) {
                         create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name,
-                                                                                                              get_filament_id, true);
+                                                                                                              create_filament_id, true);
                     } else {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " printer preset no same preset but filament has same preset, user cancel create the printer preset";
                         return;
@@ -2905,7 +2925,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             if (!selected_process_presets.empty()) {
                 generate_process_presets_data(selected_process_presets, printer_nozzle_name);
                 bool create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name,
-                                                                                                           get_filament_id, rewritten);
+                                                                                                           create_filament_id, rewritten);
                 if (!create_preset_result) {
                     std::string message;
                     for (const std::string &failure : failures) { message += "\t" + failure + "\n"; }
@@ -2914,7 +2934,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                                       wxYES | wxYES_DEFAULT | wxCENTRE);
                     int res = dlg.ShowModal();
                     if (wxID_YES == res) {
-                        create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, get_filament_id, true);
+                        create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, create_filament_id, true);
                     } else {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " printer preset no same preset but process has same preset, user cancel create the printer preset";
                         return;
@@ -2926,7 +2946,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             /******************************   clone filament preset    ********************************/
             std::vector<std::string> failures;
             if (!selected_filament_presets.empty()) {
-                bool create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name, get_filament_id, rewritten);
+                bool create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name, create_filament_id, rewritten);
                 if (!create_preset_result) {
                     std::string message;
                     for (const std::string& failure : failures) {
@@ -2937,7 +2957,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                                       wxYES | wxYES_DEFAULT | wxCENTRE);
                     int           res = dlg.ShowModal();
                     if (wxID_YES == res) {
-                        create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name, get_filament_id, true);
+                        create_preset_result = preset_bundle->filaments.clone_presets_for_printer(selected_filament_presets, failures, printer_preset_name, create_filament_id, true);
                     } else {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " printer preset no same preset but filament has same preset, user cancel create the printer preset";
                         return;
@@ -2948,7 +2968,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             /******************************   clone process preset    ********************************/
             failures.clear();
             if (!selected_process_presets.empty()) {
-                bool create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, get_filament_id, rewritten);
+                bool create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, create_filament_id, rewritten);
                 if (!create_preset_result) {
                     std::string message;
                     for (const std::string& failure : failures) {
@@ -2957,7 +2977,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                     MessageDialog dlg(this, _L("Create process presets failed. As follows:\n") + from_u8(message) + _L("\nDo you want to rewrite it?"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxYES_DEFAULT | wxCENTRE);
                     int           res = dlg.ShowModal();
                     if (wxID_YES == res) {
-                        create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, get_filament_id, true);
+                        create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, create_filament_id, true);
                     } else {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " printer preset no same preset but filament has same preset, user cancel create the printer preset";
                         return;

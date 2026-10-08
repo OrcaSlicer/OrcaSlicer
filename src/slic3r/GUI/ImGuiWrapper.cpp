@@ -66,7 +66,6 @@
 #include <nanosvg/nanosvg.h>
 #include <nanosvg/nanosvgrast.h>
 #include "OpenGLManager.hpp"
-#include "GUI_App.hpp"
 
 namespace Slic3r {
 namespace GUI {

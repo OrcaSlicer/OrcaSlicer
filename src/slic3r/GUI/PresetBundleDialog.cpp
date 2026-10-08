@@ -30,7 +30,6 @@
 #include "MainFrame.hpp"
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
-#include <wx/event.h>
 #include <wx/utils.h>
 
 using json = nlohmann::json;

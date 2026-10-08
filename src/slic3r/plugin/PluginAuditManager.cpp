@@ -118,6 +118,8 @@ static const std::unordered_map<std::string, AuditEventCategory> audit_event_cat
 
     // threading
     {"_thread.start_new_thread", AuditEventCategory::Threading},
+    // processreplace: exec* replaces the current process image rather than spawning a child
+    {"os.exec", AuditEventCategory::ProcessReplace},
 };
 
 // Returns the category event_name belongs to, or AuditEventCategory::None when it isn't audited.
@@ -711,6 +713,7 @@ static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_targ
     {"pty.spawn", {0}},
     {"_winapi.CreateProcess", {1, 0}},
     {"_posixsubprocess.fork_exec", {0}},
+    {"os.exec", {0}},
 };
 
 AuditEventCategory open_category(PyObject* args)
@@ -771,6 +774,7 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, Plugi
     case AuditEventCategory::Socket:        return &permissions.network_socket;
     case AuditEventCategory::ProcessCreate: return &permissions.process;
     case AuditEventCategory::Threading:     return &permissions.threading;
+    case AuditEventCategory::ProcessReplace: return &permissions.process;
     default:                                return nullptr;
     }
 }
@@ -844,6 +848,8 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         return wxString::Format(_L("Plugin \"%s\" is requesting to run the following command(s):\n%s"), plugin_name, target_list);
     case AuditEventCategory::Threading:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission to create a thread."), plugin_name);
+    case AuditEventCategory::ProcessReplace:
+        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s"), plugin_name, target_list);
     default:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."), plugin_name, event_name);
     }

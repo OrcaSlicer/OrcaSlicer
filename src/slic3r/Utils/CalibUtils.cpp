@@ -20,8 +20,6 @@
 #include "../GUI/DeviceCore/DevConfig.h"
 #include "../GUI/DeviceCore/DevExtruderSystem.h"
 #include "../GUI/DeviceCore/DevManager.h"
-#include "../GUI/DeviceCore/DevStorage.h"
-#include "libslic3r/FlushVolCalc.hpp"
 #include "../GUI/Plater.hpp"
 #include <memory>
 #include "slic3r/GUI/Jobs/Worker.hpp"
