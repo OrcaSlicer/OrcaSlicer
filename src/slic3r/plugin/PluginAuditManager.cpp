@@ -868,11 +868,35 @@ int decide_audited_event(PluginAuditManager&             mgr,
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
-    wxMessageDialog dialog(nullptr,
-                           audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                        wxString::FromUTF8(event_name.c_str()), target_list),
-                           _L("Plugin permission request"), wxYES_NO | wxICON_WARNING);
-    if (dialog.ShowModal() != wxID_YES)
+    const wxString message = audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                           wxString::FromUTF8(event_name.c_str()), target_list);
+    const auto show_dialog = [message]() {
+        wxMessageDialog dialog(nullptr, message, _L("Plugin permission request"), wxYES_NO | wxICON_WARNING);
+        return dialog.ShowModal() == wxID_YES;
+    };
+
+    // The audit hook fires on whichever thread runs the plugin, e.g. the G-code export worker.
+    // A modal dialog must be created and run on the wx main thread: opening it from a worker
+    // thread can hang forever (observed with GTK). Marshal it like
+    // request_filesystem_read_permissions() does, and drop the GIL while waiting so the main
+    // thread can never end up blocked on it.
+    bool granted = false;
+    if (wxIsMainThread()) {
+        granted = show_dialog();
+    } else {
+        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+            return report_denied(mgr, event_name, {false, "audit permission required"});
+
+        auto result = std::make_shared<std::promise<bool>>();
+        auto future = result->get_future();
+        GUI::wxGetApp().CallAfter([result, show_dialog]() { result->set_value(show_dialog()); });
+
+        PyThreadState* saved_state = PyEval_SaveThread();
+        granted = future.get();
+        PyEval_RestoreThread(saved_state);
+    }
+
+    if (!granted)
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
     if (permission_list)
