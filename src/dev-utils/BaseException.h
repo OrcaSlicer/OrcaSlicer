@@ -3,6 +3,8 @@
 #include <boost/nowide/fstream.hpp>
 #include "StackWalker.h"
 #include <eh.h>
+#include <cstddef>
+#include <string>
 
 class CBaseException : public CStackWalker
 {

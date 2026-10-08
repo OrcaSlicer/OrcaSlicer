@@ -5,14 +5,15 @@
 #include <chrono>
 #include <map>
 #include <string>
+#include "LocalesUtils.hpp"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string/trim_all.hpp>
+#include <utility>
+#include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"
 #include "calib.hpp"
-
-using namespace nlohmann;
 
 #define ENV_DEV_HOST		"0"
 #define ENV_QAT_HOST		"1"
@@ -37,10 +38,13 @@ using namespace nlohmann;
 #define SETTING_OPENGL_SCENE_CACHE "opengl_scene_cache"
 #define SETTING_OPENGL_SKIP_IDENTICAL_FRAMES "opengl_skip_identical_frames"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
+#define SETTING_OPENGL_SHOW_RENDER_TIMINGS "opengl_show_render_timings"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
 #define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
+// off, static (light fixed in the world) or orbit (light turning with the camera)
+#define SETTING_OPENGL_REALISTIC_SHADOWS "opengl_realistic_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 #define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
@@ -157,7 +161,7 @@ public:
 	std::string 		get(const std::string &key) const
 		{ std::string value; this->get("app", key, value); return value; }
 	bool				get_bool(const std::string &section, const std::string &key) const
-		{ return this->get(section, key) == "true" || this->get(key) == "1"; }
+		{ const std::string value = this->get(section, key); return value == "true" || value == "1"; }
 	bool				get_bool(const std::string &key) const
 		{ return this->get_bool("app", key); }
 	void			    set(const std::string &section, const std::string &key, const std::string &value)
@@ -193,6 +197,9 @@ public:
 			m_dirty = true;
 		}
 	}
+
+	void                set(const std::string& section, const std::string& key, const char* value)
+		{ this->set(section, key, std::string(value)); }
 
 	void				set(const std::string& section, const std::string &key, bool value)
 	{

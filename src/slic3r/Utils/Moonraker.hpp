@@ -6,7 +6,8 @@
 #include <wx/arrstr.h>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
+
+class wxArrayString;
 
 
 namespace Slic3r {

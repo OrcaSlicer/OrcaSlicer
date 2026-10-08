@@ -1,10 +1,17 @@
 #include "../ClipperUtils.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <utility>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "FillBase.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
 #include "FillCrossHatch.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 

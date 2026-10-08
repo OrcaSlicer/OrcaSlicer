@@ -1,13 +1,22 @@
 #include "../ClipperUtils.hpp"
 #include "../MarchingSquares.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstddef>
 #include <iostream>
 #include <limits>
+#include "libslic3r/BoundingBox.hpp"
+#include <vector>
+#include "libslic3r/Execution/ExecutionTBB.hpp"
+#include <math.h>
+#include <utility>
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
 #include "FillGyroid.hpp"
+#include "libslic3r/Polygon.hpp"
 
 // ---------------------------------------------------------------------------
 // Marching-squares scalar field for the optimized gyroid branch.

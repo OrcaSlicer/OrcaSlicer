@@ -1,0 +1,75 @@
+# clang-tidy configuration, enforced by the clang-tidy CI job on the lines a pull
+# request changes (scripts/clang_tidy_diff.py). Two things are reported.
+# Missing includes: a file should include the header for every symbol it uses, not
+# rely on the precompiled header or another header's includes. Run with --fix to
+# add them.
+# Using-directives and using-declarations in the global namespace of a header:
+# they reach every file that includes the header, and a using-declaration also
+# makes the header look like the one to include for that name. Qualify the name
+# in the header, and put the using in the source files that want it.
+# Every check listed here gates pull requests, so enable a new one only once the
+# code it flags on touched lines is reasonable to fix in passing.
+Checks: '-*,misc-include-cleaner,google-global-names-in-headers'
+WarningsAsErrors: '*'
+CheckOptions:
+  # Missing includes only. Builds without the precompiled header break on these.
+  misc-include-cleaner.UnusedIncludes: false
+  # Headers that declare a symbol but are not the one to include: per-platform
+  # implementations of wxWidgets and Boost.Thread (a Linux run would suggest the
+  # GTK or pthread one), library internals and forward declarations (MSVC's STL
+  # __msvc_* and the Windows UCRT's corecrt_* included), CPython's headers behind
+  # Python.h (python3.x/ on Linux and macOS, libpython/include/ on Windows),
+  # curl's behind curl.h, oneTBB's behind tbb/, and
+  # admesh's stl.h, which the include path also exposes without its directory.
+  # Clipper's own clipper.hpp is only included through libslic3r/clipper.hpp or
+  # clipper_z.hpp, which configure it first, and Boost.Polygon's headers only
+  # work through boost/polygon/polygon.hpp or voronoi.hpp. Clipper2's headers
+  # are included through clipper2/clipper.h, or clipper2_z.hpp, which defines
+  # USINGZ first. minilzo's config
+  # headers are internal to minilzo.h.
+  # FFmpeg's C headers are left alone because they are only included inside
+  # extern "C", which an inserted include would miss. OS-specific headers (GLib,
+  # GTK, D-Bus, POSIX, the Windows SDK) are only used inside platform #if blocks,
+  # and an include added at the top of the file would break the other platforms'
+  # builds. A symbol these provide is not reported missing.
+  # Write every / as [/\\] so the patterns also match Windows paths.
+  # No comments inside the block below, because a # there silently becomes part of a pattern.
+  misc-include-cleaner.IgnoreHeaders: >-
+    wx[/\\](gtk|gtk1|msw|osx|unix|x11|motif|univ|qt|dfb|generic|private)[/\\].*;
+    .*[/\\]detail[/\\].*;
+    .*[/\\]impl[/\\].*;
+    .*_fwd\.hpp;
+    python3\.[0-9]+[/\\].*;
+    libpython[/\\]include[/\\].*;
+    bits[/\\].*;
+    corecrt_.*\.h;
+    __msvc_.*\.hpp;
+    boost[/\\]multiprecision[/\\]fwd\.hpp;
+    imconfig\.h;
+    expat_external\.h;
+    admesh[/\\]stl\.h;
+    boost[/\\]thread[/\\](pthread|win32)[/\\].*;
+    boost[/\\]regex[/\\]v[0-9]+[/\\].*;
+    curl[/\\](easy|multi|system|urlapi|header|options|websockets|mprintf)\.h;
+    oneapi[/\\]tbb[/\\].*;
+    opencv2[/\\]core[/\\]hal[/\\].*;
+    openssl[/\\]ossl_typ\.h;
+    libav[a-z]+[/\\].*;
+    libsw[a-z]+[/\\].*;
+    glib-2\.0[/\\].*;
+    gtk-3\.0[/\\].*;
+    dbus-1\.0[/\\].*;
+    sys[/\\].*;
+    unistd\.h;
+    strings\.h;
+    fcntl\.h;
+    termios\.h;
+    [/\\](um|shared)[/\\].*;
+    sal\.h;
+    tchar\.h;
+    clipper[/\\]clipper\.hpp;
+    png(lib)?conf\.h;
+    mcut[/\\]platform\.h;
+    boost[/\\]polygon[/\\].*;
+    clipper2[/\\]clipper\.(core|engine|offset|minkowski|rectclip|export|triangulation|version)\.h;
+    lzo(conf|defs)\.h

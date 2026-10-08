@@ -1,11 +1,20 @@
 #ifndef slic3r_GUI_SideButton_hpp_
 #define slic3r_GUI_SideButton_hpp_
 
+#include <vector>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/event.h>
+#include <wx/dc.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/vlbox.h>
 #include <wx/combo.h>
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
+
+class wxDC;
 
 
 class SideButton : public wxWindow

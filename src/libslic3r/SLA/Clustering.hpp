@@ -1,9 +1,13 @@
 #ifndef SLA_CLUSTERING_HPP
 #define SLA_CLUSTERING_HPP
 
+#include <functional>
+#include <Eigen/Core>
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <vector>
 
-#include <libslic3r/Point.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
 
 namespace Slic3r { namespace sla {

@@ -11,7 +11,18 @@
 #ifndef slic3r_FillAdaptive_hpp_
 #define slic3r_FillAdaptive_hpp_
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <Eigen/Geometry>
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
 
 struct indexed_triangle_set;
 
@@ -26,6 +37,27 @@ struct Octree;
 // To keep the definition of Octree opaque, we have to define a custom deleter.
 struct OctreeDeleter { void operator()(Octree *p); };
 using  OctreePtr = std::unique_ptr<Octree, OctreeDeleter>;
+
+// Orca: One octree per body (see Layer::lslices_separated_component_ids), and one of the whole object
+// for objects of a single body or with a body that has none of its own.
+struct Octrees
+{
+    OctreePtr              object;
+    std::vector<OctreePtr> bodies;
+
+    // A body without an octree, or body -1, uses the object's, or any body's when the object has none.
+    Octree *get(int body) const
+    {
+        if (body >= 0 && size_t(body) < bodies.size() && bodies[body])
+            return bodies[body].get();
+        if (object)
+            return object.get();
+        for (const OctreePtr &octree : bodies)
+            if (octree)
+                return octree.get();
+        return nullptr;
+    }
+};
 
 // Calculate line spacing for
 // 1) adaptive cubic infill

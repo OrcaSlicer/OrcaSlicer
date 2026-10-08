@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 #include <string>
 #include <vector>
 
 #include <boost/nowide/convert.hpp>
+#include <wx/string.h>
 
 #include "GUI.hpp"
 #include "I18N.hpp"

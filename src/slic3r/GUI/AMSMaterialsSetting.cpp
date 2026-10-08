@@ -8,8 +8,49 @@
 #include "I18N.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <cstdlib>
+#include <cstdio>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <unordered_map>
+#include <wx/arrstr.h>
+#include <set>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <cstddef>
+#include <climits>
+#include "libslic3r/PrintConfig.hpp"
+#include <cmath>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/colordlg.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <wx/colourdata.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/textctrl.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include <wx/sizer.h>
+#include <wx/peninfobase.h>
 #include "CalibUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "EncodedFilament.hpp"
@@ -933,8 +974,8 @@ bool AMSMaterialsSetting::Show(bool show)
 
 static void _collect_filament_info(const wxString& shown_name,
                                    const Preset& filament,
-                                   unordered_map<wxString, wxString>& query_filament_vendors,
-                                   unordered_map<wxString, wxString>& query_filament_types)
+                                   std::unordered_map<wxString, wxString>& query_filament_vendors,
+                                   std::unordered_map<wxString, wxString>& query_filament_types)
 {
     query_filament_vendors[shown_name] = filament.config.get_filament_vendor();
     query_filament_types[shown_name] = filament.config.get_filament_type();
@@ -971,7 +1012,10 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
     if (machine_diameter == 0.0f && preset_bundle) {
         const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-        if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+        if (opt) {
+            const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+            if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+        }
     }
     stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
@@ -1250,7 +1294,10 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
             if (machine_diameter == 0.0f) {
                 const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-                if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+                if (opt) {
+                    const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+                    if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+                }
             }
             stream << std::fixed << std::setprecision(1) << machine_diameter;
         }

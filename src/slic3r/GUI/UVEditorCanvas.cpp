@@ -1,14 +1,38 @@
 #include "UVEditorCanvas.hpp"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <cstdint>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
 #include <limits>
+#include <string>
+#include <math.h>
+#include "slic3r/GUI/GLModel.hpp"
 #include <unordered_map>
 
 #include <glad/gl.h>
 
+#include <vector>
+#include <utility>
+#include <wx/colour.h>
 #include <wx/dcbuffer.h>
+#include <wx/gdicmn.h>
+#include <wx/glcanvas.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include <wx/image.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
 #include <wx/statbmp.h>
+#include <wx/window.h>
+#include <wx/utils.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/tglbtn.h>
 
 #include "3DScene.hpp"
 #include "BitmapCache.hpp"
@@ -21,7 +45,6 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/Utils.hpp"
 
 namespace Slic3r::GUI {
 
@@ -1905,7 +1928,7 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
                                       "texture_displacement_distortion" };
     const wxString    bg_tips[3]  = { _L("Height map - show the layer's texture under the islands"),
                                       _L("Checker - a test grid; squares stay square where the unwrap does not stretch"),
-                                      _L("Distortion - colour each island by how much the unwrap stretches it") };
+                                      _L("Distortion - color each island by how much the unwrap stretches it") };
     for (int i = 0; i < 3; ++i) {
         m_background[i] = new UVToolButton(this, ID_UV_BG_HEIGHT + i, bg_icons[i], wxEmptyString, bg_tips[i], true, false, 22);
         header->Add(m_background[i], 0, wxALIGN_CENTER_VERTICAL | wxLEFT, i == 0 ? gap : FromDIP(3));

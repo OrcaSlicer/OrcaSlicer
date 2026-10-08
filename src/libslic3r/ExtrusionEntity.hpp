@@ -1,13 +1,19 @@
 #ifndef slic3r_ExtrusionEntity_hpp_
 #define slic3r_ExtrusionEntity_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
 #include <assert.h>
+#include <cstdint>
+#include <string>
+#include <cstddef>
 #include <string_view>
 #include <numeric>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

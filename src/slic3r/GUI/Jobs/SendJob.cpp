@@ -1,4 +1,6 @@
 #include "SendJob.hpp"
+#include <nlohmann/json.hpp>
+#include "bambu_networking.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -9,6 +11,19 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <cstdio>
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/DeviceCore/DevStorage.h"
+#include <wx/event.h>
+#include <functional>
+#include <exception>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

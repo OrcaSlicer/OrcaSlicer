@@ -1,21 +1,57 @@
-#include "libslic3r/libslic3r.h"
+#include "PrinterNetworkTypes.hpp"
+#include <nlohmann/json.hpp>
 #include "DeviceManager.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
-#include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
-#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
-#include "GuiColor.hpp"
 
 #include "GUI_App.hpp"
-#include "MsgDialog.hpp"
 #include "DeviceErrorDialog.hpp"
 #include "Plater.hpp"
-#include "GUI_App.hpp"
 #include "ReleaseNote.hpp"
+#include <string>
+#include <boost/log/trivial.hpp>
+#include <cstdlib>
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "libslic3r/Utils.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <chrono>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <memory>
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include <boost/algorithm/string/predicate.hpp>
+#include <cstdint>
+#include <map>
+#include "libslic3r/calib.hpp"
+#include <ctime>
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include <cstdio>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <optional>
+#include <exception>
+#include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
+#include <system_error>
+#include "libslic3r/ProjectTask.hpp"
+#include <cstring>
+#include <boost/chrono/duration.hpp>
+#include <iterator>
+#include "slic3r/GUI/UserNotification.hpp"
+#include <cctype>
+#include <algorithm>
+#include <limits>
+#include <stdexcept>
+#include "libslic3r/Config.hpp"
+#include <set>
+#include <sstream>
+#include <ios>
+#include <iomanip>
 #include <thread>
 #include <mutex>
 #include <charconv>
@@ -25,7 +61,15 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#include <wx/colour.h>
+#include <tuple>
 #include <wx/dir.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include "fast_float/fast_float.h"
 
 #include "DeviceCore/DevFilaSystem.h"
@@ -40,12 +84,10 @@
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevCtrl.h"
-#include "DeviceCore/DevInfo.h"
 #include "DeviceCore/DevPrintOptions.h"
 #include "DeviceCore/DevPrintTaskInfo.h"
 #include "DeviceCore/DevHMS.h"
 
-#include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
@@ -57,14 +99,23 @@
 #include "DeviceCore/DevUpgrade.h"
 
 #include "IPrinterAgent.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+
+using json = nlohmann::json;
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
+using namespace std::chrono_literals;
 
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms
 #define TIME_OUT  5000       //ms
 
 #define ORCA_NETWORK_DEBUG
-
-namespace pt = boost::property_tree;
 
 float string_to_float(const std::string& str_value) {
     float value = 0.0;
@@ -3052,7 +3103,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         DevFirmwareVersionInfo ver_info;
                         ver_info.name = (*it)["name"].get<std::string>();
                         if ((*it).contains("product_name"))
-                            ver_info.product_name = wxString::FromUTF8((*it)["product_name"].get<string>());
+                            ver_info.product_name = wxString::FromUTF8((*it)["product_name"].get<std::string>());
                         if ((*it).contains("sw_ver"))
                             ver_info.sw_ver = (*it)["sw_ver"].get<std::string>();
                         if ((*it).contains("sw_new_ver"))
@@ -4262,7 +4313,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                 info = _L("Selected diameter and machine diameter do not match");
                             }
                             else if (reason == "generate auto filament cali gcode failure") {
-                                info = _L("Failed to generate cali G-code");
+                                info = _L("Failed to generate calibration G-code");
                             }
                             else {
                                 info = reason;

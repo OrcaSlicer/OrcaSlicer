@@ -1,3 +1,15 @@
+#include <draco/core/decoder_buffer.h>
+#include <draco/compression/config/compression_shared.h>
+#include <draco/core/status.h>
+#include <draco/attributes/point_attribute.h>
+#include <draco/attributes/geometry_attribute.h>
+#include <boost/log/trivial.hpp>
+#include <draco/attributes/geometry_indices.h>
+#include <cstdint>
+#include <exception>
+#include <draco/core/draco_types.h>
+#include <draco/core/encoder_buffer.h>
+#include <cstdio>
 #include <string>
 #include <utility>
 #include <cstring>
@@ -9,6 +21,7 @@
 #include <draco/compression/decode.h>
 #include <draco/io/mesh_io.h>
 #include <draco/mesh/mesh.h>
+#include <vector>
 using namespace draco;
 
 #include "libslic3r/Model.hpp"

@@ -10,9 +10,21 @@
 
 #include "nlohmann/json.hpp"
 
+#include <cstddef>
 #include <fstream>
 #include <algorithm>
 #include <cctype>
+#include <string>
+#include "slic3r/GUI/ColorDecomposeDialog.hpp"
+#include <wx/string.h>
+#include <vector>
+#include "libslic3r/Config.hpp"
+#include <wx/colour.h>
+#include <utility>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/ColorDecomposeRecipe.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using json = nlohmann::json;
 

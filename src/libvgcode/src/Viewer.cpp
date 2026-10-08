@@ -4,6 +4,13 @@
 ///|/
 #include "../include/Viewer.hpp"
 #include "ViewerImpl.hpp"
+#include <array>
+#include <string>
+#include <utility>
+#include "../include/Types.hpp"
+#include <cstddef>
+#include <vector>
+#include <cstdint>
 
 namespace libvgcode {
 
@@ -52,9 +59,19 @@ void Viewer::set_shadow_map(int texture_unit, const Mat4x4& light_view_projectio
     m_impl->set_shadow_map(texture_unit, light_view_projection, intensity, texel_size);
 }
 
+void Viewer::set_light_top_dir(const Vec3& direction)
+{
+    m_impl->set_light_top_dir(direction);
+}
+
 void Viewer::set_tone(float exposure, float saturation)
 {
     m_impl->set_tone(exposure, saturation);
+}
+
+void Viewer::set_clipping_plane(const std::array<float, 4>& plane)
+{
+    m_impl->set_clipping_plane(plane);
 }
 
 EViewType Viewer::get_view_type() const

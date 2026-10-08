@@ -4,19 +4,32 @@
 #include "IMSlider.hpp"
 #include "GUI_Preview.hpp"
 #include "GUI_App.hpp"
-#include "GUI.hpp"
+#include <wx/slider.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <vector>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <functional>
+#include "libslic3r/Config.hpp"
+#include <boost/log/trivial.hpp>
+#include "libslic3r/CustomGCode.hpp"
+#include <wx/event.h>
+#include <algorithm>
+#include <cstdlib>
+#include <cassert>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <cmath>
+#include <cstdint>
 #if ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "GUI_Init.hpp"
 #endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "I18N.hpp"
-#include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "OpenGLManager.hpp"
 #include "GLCanvas3D.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 
 #include <wx/listbook.h>
 #include <wx/notebook.h>
@@ -30,8 +43,15 @@
 
 // this include must follow the wxWidgets ones or it won't compile on Windows -> see http://trac.wxwidgets.org/ticket/2421
 #include "libslic3r/Print.hpp"
-#include "libslic3r/SLAPrint.hpp"
 #include "NotificationManager.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
+
+class wxDropTarget;
+namespace libvgcode { enum class EViewType : uint8_t; }
 
 #ifdef _WIN32
 #include "BitmapComboBox.hpp"
@@ -376,7 +396,7 @@ void Preview::sys_color_changed()
     // m_layers_slider->sys_color_changed();
 }
 
-void Preview::on_tick_changed(Type type)
+void Preview::on_tick_changed(CustomGCode::Type type)
 {
     //if (type == Type::PausePrint) {
     //    m_schedule_background_process();

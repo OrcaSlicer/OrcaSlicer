@@ -2,11 +2,17 @@
 #define MARCHINGSQUARES_HPP
 
 #include "Execution/ExecutionTBB.hpp"
+#include <ostream>
+#include "libslic3r/Execution/Execution.hpp"
+#include <array>
+#include <iterator>
 #include <type_traits>
 #include <cstdint>
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include <cstdio>
+#include <iomanip>
 
 // Marching squares
 //
@@ -148,13 +154,12 @@ template<class ExecutionPolicy, class Enable = void> struct _Loop
 };
 
 // Add Specialization for using ExecutionTBB for parallel loops.
-using namespace Slic3r;
-template<> struct _Loop<ExecutionTBB>
+template<> struct _Loop<Slic3r::ExecutionTBB>
 {
     template<class It, class Fn> static void for_each_idx(It from, It to, Fn&& fn)
     {
-        execution::for_each(
-            ex_tbb, size_t(0), size_t(to - from), [&from, &fn](size_t i) { fn(from[i], i); }, execution::max_concurrency(ex_tbb));
+        Slic3r::execution::for_each(
+            Slic3r::ex_tbb, size_t(0), size_t(to - from), [&from, &fn](size_t i) { fn(from[i], i); }, Slic3r::execution::max_concurrency(Slic3r::ex_tbb));
     }
 };
 

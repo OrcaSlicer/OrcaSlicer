@@ -2,12 +2,18 @@
 #define slic3r_FillBase_hpp_
 
 #include <assert.h>
+#include <map>
+#include <cstddef>
+#include <math.h>
 #include <memory.h>
 #include <float.h>
 #include <stdint.h>
 #include <stdexcept>
 
+#include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "../libslic3r.h"
 #include "../BoundingBox.hpp"
@@ -18,8 +24,11 @@
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
-#include "../ExtrusionEntityCollection.hpp"
-#include "../ShortestPath.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+
+namespace Slic3r { class ExtrusionEntityCollection; }
 
 namespace Slic3r {
 
@@ -109,6 +118,7 @@ struct FillParams
 
     float           horiz_move{0.0}; //move infill to get cross zag pattern
     bool            symmetric_infill_y_axis{false};
+    bool            infill_complete_top{false};
     coord_t         symmetric_y_axis{0};
     bool            locked_zag{false};
     float           infill_lock_depth{0.0};
@@ -177,6 +187,9 @@ public:
 
     // Return true if infill has a consistent pattern between layers.
     virtual bool has_consistent_pattern() const { return false; }
+
+    // Orca: Is the pattern laid out from the origin instead of the bounding box center?
+    virtual bool aligned_to_origin() const { return false; }
 
     // Perform the fill.
     virtual Polylines fill_surface(const Surface *surface, const FillParams &params);

@@ -1,5 +1,43 @@
+#include "libslic3r/calib.hpp"
+#include <functional>
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/CommonDefs.hpp"
+#include <cstdint>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <algorithm>
+#include <map>
+#include <cassert>
+#include "libslic3r/PresetBundle.hpp"
+#include <cstdlib>
 #include <regex>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <string>
+#include <wx/sizer.h>
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <vector>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/chartype.h>
 #include "CalibrationWizardPresetPage.hpp"
+#include "CalibUtils.hpp"
 #include "GUI.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
@@ -1269,7 +1307,7 @@ void CalibrationPresetPage::stripWhiteSpace(std::string& str)
 {
     if (str == "") { return; }
 
-    string::iterator cur_it;
+    std::string::iterator cur_it;
     cur_it = str.begin();
 
     while (cur_it != str.end()) {
@@ -2559,7 +2597,7 @@ void CalibrationPresetPage::update_multi_extruder_filament_combobox(const std::s
     int ams_id_int = 0;
     try {
         if (!ams_id.empty())
-            ams_id_int = stoi(ams_id.c_str());
+            ams_id_int = std::stoi(ams_id.c_str());
 
     } catch (...) {}
 
@@ -2647,7 +2685,7 @@ void CalibrationPresetPage::update_filament_combobox(std::string ams_id)
     int ams_id_int = 0;
     try {
         if (!ams_id.empty())
-            ams_id_int = stoi(ams_id.c_str());
+            ams_id_int = std::stoi(ams_id.c_str());
 
     } catch (...) {}
 

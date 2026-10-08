@@ -1,8 +1,11 @@
 #pragma once
+#include <map>
 #include <mutex>
 #include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <string>
+#include <vector>
+#include <wx/object.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 

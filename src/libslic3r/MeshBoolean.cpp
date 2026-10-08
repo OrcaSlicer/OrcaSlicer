@@ -3,6 +3,37 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TryCatchSignal.hpp"
 #include "libslic3r/format.hpp"
+#include <Eigen/Core>
+#include <cstddef>
+#include <utility>
+#include <igl/MeshBooleanType.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Surface_mesh/Surface_mesh.h>
+#include <string>
+#include <fstream>
+#include <array>
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
+#include <CGAL/boost/graph/helpers.h>
+#include <boost/property_map/property_map.hpp>
+#include <CGAL/Named_function_parameters.h>
+#include <exception>
+#include <optional>
+#include <CGAL/Polygon_mesh_processing/measure.h>
+#include <csignal>
+#include <CGAL/Polygon_mesh_processing/self_intersections.h>
+#include <iterator>
+#include <CGAL/Polygon_mesh_processing/triangulate_hole.h>
+#include <CGAL/Polygon_mesh_processing/stitch_borders.h>
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/repair_degeneracies.h>
+#include <CGAL/Polygon_mesh_processing/manifoldness.h>
+#include <cstdint>
+#include <map>
+#include <algorithm>
 #undef PI
 
 #include <boost/next_prior.hpp>
@@ -27,7 +58,7 @@
 #include <CGAL/boost/graph/copy_face_graph.h>
 #include <CGAL/boost/graph/Face_filtered_graph.h>
 // For parameterize_lscm()
-#include <CGAL/Polygon_mesh_processing/border.h>
+#include <CGAL/boost/graph/border.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/detect_features.h>
 #include <CGAL/Surface_mesh_parameterization/Error_code.h>
@@ -114,7 +145,7 @@ void self_union(TriangleMesh& mesh)
 namespace cgal {
 
 namespace CGALProc    = CGAL::Polygon_mesh_processing;
-namespace CGALParams  = CGAL::Polygon_mesh_processing::parameters;
+namespace CGALParams  = CGAL::parameters;
 
 using EpecKernel = CGAL::Exact_predicates_exact_constructions_kernel;
 using EpicKernel = CGAL::Exact_predicates_inexact_constructions_kernel;
@@ -484,7 +515,7 @@ void segment(CGALMesh& src, std::vector<CGALMesh>& dst, double smoothing_alpha =
         typedef boost::graph_traits<_EpicMesh>::halfedge_descriptor      halfedge_descriptor;
         typedef boost::graph_traits<_EpicMesh>::vertex_descriptor        vertex_descriptor;
         std::vector<halfedge_descriptor> border_cycles;
-        CGAL::Polygon_mesh_processing::extract_boundary_cycles(out, std::back_inserter(border_cycles));
+        CGAL::extract_boundary_cycles(out, std::back_inserter(border_cycles));
         for (halfedge_descriptor h : border_cycles)
         {
             std::vector<face_descriptor>  patch_facets;
@@ -629,7 +660,6 @@ bool empty(const CGALMesh &mesh)
 
 bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string* error)
 {
-    using namespace CGAL;
     namespace PMP = CGAL::Polygon_mesh_processing;
 
     if (mesh.empty())
@@ -675,7 +705,7 @@ bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string
             using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
 
             std::vector<halfedge_descriptor> borders;
-            PMP::extract_boundary_cycles(cgal_mesh, std::back_inserter(borders));
+            CGAL::extract_boundary_cycles(cgal_mesh, std::back_inserter(borders));
 
             for (halfedge_descriptor h : borders) {
                 PMP::triangulate_and_refine_hole(cgal_mesh, h);

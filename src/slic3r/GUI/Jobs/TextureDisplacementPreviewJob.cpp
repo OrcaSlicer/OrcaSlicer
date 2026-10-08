@@ -1,7 +1,13 @@
 #include "TextureDisplacementPreviewJob.hpp"
 
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
+#include <cstdint>
+#include <memory>
+#include <atomic>
+#include <functional>
+#include <utility>
+#include "libslic3r/TextureDisplacement.hpp"
+#include <exception>
 
 namespace Slic3r::GUI {
 

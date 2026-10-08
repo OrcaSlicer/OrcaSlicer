@@ -1,4 +1,10 @@
+#include <cstdlib>
+#include <algorithm>
+#include <cstdio>
+#include <exception>
+#include <boost/algorithm/string/predicate.hpp>
 #include <limits>
+#include <miniz.h>
 #include <string.h>
 #include <map>
 #include <string>
@@ -6,22 +12,19 @@
 
 #include <boost/nowide/cstdio.hpp>
 
-#include "../libslic3r.h"
 #include "../Exception.hpp"
 #include "../Model.hpp"
-#include "../GCode.hpp"
-#include "../PrintConfig.hpp"
-#include "../Utils.hpp"
-#include "../I18N.hpp"
 #include "../Geometry.hpp"
-#include "../CustomGCode.hpp"
 #include "../LocalesUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 #include "AMF.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-namespace pt = boost::property_tree;
+#include <vector>
+#include <utility>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>

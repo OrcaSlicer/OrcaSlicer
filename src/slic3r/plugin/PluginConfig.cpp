@@ -1,24 +1,38 @@
 #include "PluginConfig.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <exception>
 #include <libslic3r/Config.hpp>
+#include "libslic3r/Preset.hpp"
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include <optional>
+#include <set>
+#include <mutex>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/libslic3r.h"
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/I18N.hpp>
 #include <slic3r/GUI/format.hpp>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <stdexcept>
 
+#include <string>
+#include <utility>
+#include <system_error>
+#include <vector>
 #include <wx/app.h>
+#include <wx/busycursor.h>
 #include <wx/utils.h>
 
 namespace Slic3r {

@@ -8,6 +8,28 @@
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvg/nanosvgrast.h"
 
+#include <vector>
+#include <boost/filesystem/path.hpp>
+#include <map>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
+#include "libslic3r/CustomGCode.hpp"
+#include <iterator>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/log/core/record_view.hpp>
+#include <boost/log/expressions/message.hpp>
+#include <cstddef>
+#include <exception>
+#include "libslic3r/PlaceholderParser.hpp"
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/errors.hpp>
+
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
@@ -35,6 +57,10 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/STEP.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 namespace po = boost::program_options;
