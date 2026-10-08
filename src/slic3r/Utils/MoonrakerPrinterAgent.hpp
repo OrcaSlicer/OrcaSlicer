@@ -88,6 +88,7 @@ protected:
     // Tray data for AMS payload building
     struct AmsTrayData {
         int         slot_index = 0;      // 0-based slot index
+        int         extruder_id = 0;     // Extruder this lane feeds (AFC extruder_index); 0 when unknown
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
@@ -98,6 +99,10 @@ protected:
 
     // Build ams JSON and call parser
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+
+    // Build ams JSON with one box per extruder (best effort, for lane_data-based filament
+    // changers such as AFC) and call the parser. Boxes are ordered by extruder id.
+    void build_ams_payload_grouped(const std::vector<AmsTrayData>& trays);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
@@ -164,9 +169,18 @@ private:
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
+    // Build one BBL tray JSON object (placeholder when the tray has no filament).
+    static nlohmann::json make_ams_tray_json(const std::string& tray_id, const AmsTrayData& tray);
+
+    // Wrap the AMS boxes into the payload ParseV1_0 understands and apply the pull-mode
+    // readiness state (printer_type, push counters, storage, module versions).
+    void submit_ams_payload(const nlohmann::json& ams_array, unsigned long ams_exist_bits, unsigned long tray_exist_bits);
+
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
     static int safe_json_int(const nlohmann::json& obj, const char* key);
+    // Accepts either a JSON number or a numeric string (AFC reports some fields as strings).
+    static int safe_json_int_flexible(const nlohmann::json& obj, const char* key, int default_value);
     static std::string safe_array_string(const nlohmann::json& arr, int idx);
     static int safe_array_int(const nlohmann::json& arr, int idx);
     static std::string normalize_color_value(const std::string& color);

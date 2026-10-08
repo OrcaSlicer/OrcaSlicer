@@ -441,19 +441,7 @@ int MoonrakerPrinterAgent::set_queue_on_main_fn(QueueOnMainFn fn)
 
 void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays)
 {
-
-    // Look up MachineObject via DeviceManager
-    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
-    if (!dev_manager) {
-        return;
-    }
-    MachineObject* obj = dev_manager->get_my_machine(device_info.dev_id);
-    if (!obj) {
-        return;
-    }
-
     // Build BBL-format JSON for DevFilaSystemParser::ParseV1_0
-    nlohmann::json ams_json = nlohmann::json::object();
     nlohmann::json ams_array = nlohmann::json::array();
 
     // Calculate ams_exist_bits and tray_exist_bits
@@ -461,11 +449,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     unsigned long tray_exist_bits = 0;
 
     for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
-        ams_exist_bits |= (1 << ams_id);
-
-        nlohmann::json ams_unit = nlohmann::json::object();
-        ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        if (ams_id < 32) {
+            ams_exist_bits |= (1UL << ams_id);
+        }
 
         nlohmann::json tray_array = nlohmann::json::array();
         int max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
@@ -481,35 +467,118 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 }
             }
 
-            nlohmann::json tray_json = nlohmann::json::object();
-            tray_json["id"] = std::to_string(slot_id);
-            tray_json["tag_uid"] = "0000000000000000";
-
-            if (tray && tray->has_filament) {
-                tray_exist_bits |= (1 << slot_index);
-
-                tray_json["tray_info_idx"] = tray->tray_info_idx;
-                tray_json["tray_type"] = tray->tray_type;
-                tray_json["tray_color"] = normalize_color_value(tray->tray_color);
-
-                // Add temperature data if provided
-                if (tray->bed_temp > 0) {
-                    tray_json["bed_temp"] = std::to_string(tray->bed_temp);
-                }
-                if (tray->nozzle_temp > 0) {
-                    tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
-                }
-            } else {
-                tray_json["tray_info_idx"] = "";
-                tray_json["tray_type"] = "";
-                tray_json["tray_color"] = "00000000";
-                tray_json["tray_slot_placeholder"] = "1";
+            if (tray && tray->has_filament && slot_index < 32) {
+                tray_exist_bits |= (1UL << slot_index);
             }
 
-            tray_array.push_back(tray_json);
+            static const AmsTrayData empty_tray;
+            tray_array.push_back(make_ams_tray_json(std::to_string(slot_id), tray ? *tray : empty_tray));
         }
+
+        nlohmann::json ams_unit = nlohmann::json::object();
+        ams_unit["id"] = std::to_string(ams_id);
+        ams_unit["info"] = "0002";  // treat as AMS_LITE
         ams_unit["tray"] = tray_array;
         ams_array.push_back(ams_unit);
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
+    submit_ams_payload(ams_array, ams_exist_bits, tray_exist_bits);
+}
+
+void MoonrakerPrinterAgent::build_ams_payload_grouped(const std::vector<AmsTrayData>& trays)
+{
+    // One AMS box per extruder, best effort. Lane-data changers (AFC, recent Happy Hare) report an
+    // extruder per lane but no physical box layout, so a box here is a logical feed group, not a
+    // discovered unit. Lanes without an extruder fall back to the main extruder.
+    std::map<int, std::vector<const AmsTrayData*>> boxes;
+    for (const auto& tray : trays) {
+        boxes[tray.extruder_id].push_back(&tray);
+    }
+
+    nlohmann::json ams_array = nlohmann::json::array();
+    unsigned long ams_exist_bits = 0;
+    unsigned long tray_exist_bits = 0;
+
+    int ams_id = 0;
+    for (auto& [extruder_id, lanes] : boxes) {
+        if (ams_id < 32) {
+            ams_exist_bits |= (1UL << ams_id);
+        }
+
+        // Keep a deterministic slot order within the box.
+        std::stable_sort(lanes.begin(), lanes.end(),
+                         [](const AmsTrayData* a, const AmsTrayData* b) { return a->slot_index < b->slot_index; });
+
+        nlohmann::json tray_array = nlohmann::json::array();
+        for (size_t slot = 0; slot < lanes.size(); ++slot) {
+            const AmsTrayData& tray = *lanes[slot];
+            int bit = ams_id * 4 + static_cast<int>(slot);
+            if (tray.has_filament && bit < 32) {
+                tray_exist_bits |= (1UL << bit);
+            }
+            tray_array.push_back(make_ams_tray_json(std::to_string(slot), tray));
+        }
+
+        nlohmann::json ams_unit = nlohmann::json::object();
+        ams_unit["id"] = std::to_string(ams_id);
+        // info: bits 0-3 = unit type (2 = AMS_LITE), bits 8-11 = bound extruder id.
+        const int   info_val   = 2 | ((extruder_id & 0x0F) << 8);
+        const char* hex_digits = "0123456789ABCDEF";
+        std::string info       = "0000";
+        info[3] = hex_digits[info_val & 0x0F];
+        info[2] = hex_digits[(info_val >> 4) & 0x0F];
+        info[1] = hex_digits[(info_val >> 8) & 0x0F];
+        info[0] = hex_digits[(info_val >> 12) & 0x0F];
+        ams_unit["info"] = info;
+        ams_unit["tray"] = tray_array;
+        ams_array.push_back(ams_unit);
+        ++ams_id;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload_grouped: Parsed " << trays.size()
+                            << " trays in " << boxes.size() << " extruder box(es)";
+    submit_ams_payload(ams_array, ams_exist_bits, tray_exist_bits);
+}
+
+nlohmann::json MoonrakerPrinterAgent::make_ams_tray_json(const std::string& tray_id, const AmsTrayData& tray)
+{
+    nlohmann::json tray_json = nlohmann::json::object();
+    tray_json["id"] = tray_id;
+    tray_json["tag_uid"] = "0000000000000000";
+
+    if (tray.has_filament) {
+        tray_json["tray_info_idx"] = tray.tray_info_idx;
+        tray_json["tray_type"] = tray.tray_type;
+        tray_json["tray_color"] = normalize_color_value(tray.tray_color);
+
+        // Add temperature data if provided
+        if (tray.bed_temp > 0) {
+            tray_json["bed_temp"] = std::to_string(tray.bed_temp);
+        }
+        if (tray.nozzle_temp > 0) {
+            tray_json["nozzle_temp_max"] = std::to_string(tray.nozzle_temp);
+        }
+    } else {
+        tray_json["tray_info_idx"] = "";
+        tray_json["tray_type"] = "";
+        tray_json["tray_color"] = "00000000";
+        tray_json["tray_slot_placeholder"] = "1";
+    }
+
+    return tray_json;
+}
+
+void MoonrakerPrinterAgent::submit_ams_payload(const nlohmann::json& ams_array, unsigned long ams_exist_bits, unsigned long tray_exist_bits)
+{
+    // Look up MachineObject via DeviceManager
+    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
+    if (!dev_manager) {
+        return;
+    }
+    MachineObject* obj = dev_manager->get_my_machine(device_info.dev_id);
+    if (!obj) {
+        return;
     }
 
     // Format as hex strings (matching BBL protocol)
@@ -518,6 +587,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     std::ostringstream tray_exist_ss;
     tray_exist_ss << std::hex << std::uppercase << tray_exist_bits;
 
+    nlohmann::json ams_json = nlohmann::json::object();
     ams_json["ams"] = ams_array;
     ams_json["ams_exist_bits"] = ams_exist_ss.str();
     ams_json["tray_exist_bits"] = tray_exist_ss.str();
@@ -528,7 +598,6 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
     // Call the parser to populate DevFilaSystem
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem().get(), false);
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
 
     // Set printer_type so update_sync_status() can match it against the preset's printer type.
     // Without this, the comparison fails and all sync badges are cleared.
@@ -568,8 +637,7 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (fetch_moonraker_filament_data(trays, max_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        build_ams_payload_grouped(trays);
         return true;
     }
 
@@ -684,6 +752,30 @@ int MoonrakerPrinterAgent::safe_json_int(const nlohmann::json& obj, const char* 
     return 0;
 }
 
+int MoonrakerPrinterAgent::safe_json_int_flexible(const nlohmann::json& obj, const char* key, int default_value)
+{
+    auto it = obj.find(key);
+    if (it == obj.end())
+        return default_value;
+    if (it->is_number_integer())
+        return it->get<int>();
+    if (it->is_string()) {
+        const std::string s = it->get<std::string>();
+        if (s.empty())
+            return default_value;
+        try {
+            std::size_t consumed = 0;
+            const int   value    = std::stoi(s, &consumed);
+            if (consumed != s.size()) // reject partial parses such as "2oops"
+                return default_value;
+            return value;
+        } catch (...) {
+            return default_value;
+        }
+    }
+    return default_value;
+}
+
 std::string MoonrakerPrinterAgent::safe_array_string(const nlohmann::json& arr, int idx)
 {
     if (arr.is_array() && idx >= 0 && idx < static_cast<int>(arr.size()) && arr[idx].is_string())
@@ -792,23 +884,22 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
             continue;
         }
 
-        // Extract lane index from the "lane" field (tool number, 0-based)
-        std::string lane_str = safe_json_string(lane_obj, "lane");
-        int lane_index = -1;
-        if (!lane_str.empty()) {
-            try {
-                lane_index = std::stoi(lane_str);
-            } catch (...) {
-                lane_index = -1;
-            }
-        }
-
+        // Lane tool number (0-based). AFC reports it as a string in the documented sample but it
+        // can also be a number; accept either and skip lanes without a usable index.
+        const int lane_index = safe_json_int_flexible(lane_obj, "lane", -1);
         if (lane_index < 0) {
             continue;
         }
 
         AmsTrayData tray;
         tray.slot_index = lane_index;
+        // AFC exposes the lane's extruder/toolhead as "extruder_index"; tolerate "extruder_id" as
+        // an alias. Unknown or negative falls back to the main extruder (best effort).
+        tray.extruder_id = safe_json_int_flexible(lane_obj, "extruder_index",
+                              safe_json_int_flexible(lane_obj, "extruder_id", 0));
+        if (tray.extruder_id < 0) {
+            tray.extruder_id = 0;
+        }
         tray.tray_color = safe_json_string(lane_obj, "color");
         tray.tray_type = safe_json_string(lane_obj, "material");
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
