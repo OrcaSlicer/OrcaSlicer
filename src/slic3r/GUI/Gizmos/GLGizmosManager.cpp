@@ -1,4 +1,3 @@
-#include "libslic3r/libslic3r.h"
 #include "GLGizmosManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/3DScene.hpp"
@@ -23,23 +22,47 @@
 //#include "slic3r/GUI/Gizmos/GLGizmoHollow.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSeam.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMmuSegmentation.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSimplify.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoEmboss.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoAssembly.hpp"
-#ifdef SLIC3R_CAD
-#include "slic3r/GUI/Gizmos/GLGizmoPrimitive.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoSketch.hpp"
-#endif
+#include <initializer_list>
+#include <wx/timer.h>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoMeasure.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include <utility>
+#include <map>
+#include <imgui.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <algorithm>
+#include <memory>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include <cassert>
+#include <boost/container_hash/hash.hpp>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <optional>
+#include "libslic3r/AppConfig.hpp"
 
-#include "libslic3r/format.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PresetBundle.hpp"
 
 #include <boost/functional/hash.hpp>
 
 #include <wx/glcanvas.h>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "slic3r/GUI/GLToolbar.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -171,6 +194,13 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case(EType::FuzzySkin):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_fuzzy_skin_paint_dark.svg" : "toolbar_fuzzy_skin_paint.svg");
             break;
+        case(EType::TextureDisplacement):
+            // One shared icon in both themes (no dedicated dark variant yet) - but it must still be
+            // *this* gizmo's icon. Handing it the fuzzy-skin one here quietly replaced the icon set at
+            // construction, so the toolbar ended up showing two identical fuzzy-skin buttons after any
+            // light/dark switch.
+            gizmo->set_icon_filename("toolbar_texture_displacement.svg");
+            break;
         case(EType::MeshBoolean):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_meshboolean_dark.svg" : "toolbar_meshboolean.svg");
             break;
@@ -183,14 +213,6 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case (EType::BrimEars):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg");
             break;
-#ifdef SLIC3R_CAD
-        case (EType::Primitive):
-            gizmo->set_icon_filename(m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg");
-            break;
-        case (EType::Sketch):
-            gizmo->set_icon_filename(m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg");
-            break;
-#endif
         }
 
     }
@@ -228,27 +250,19 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoSeam(m_parent, m_is_dark ? "toolbar_seam_dark.svg" : "toolbar_seam.svg", EType::Seam));
     m_gizmos.emplace_back(new GLGizmoFuzzySkin(m_parent, m_is_dark ? "toolbar_fuzzy_skin_paint_dark.svg" : "toolbar_fuzzy_skin_paint.svg", EType::FuzzySkin));
     m_gizmos.emplace_back(new GLGizmoMmuSegmentation(m_parent, m_is_dark ? "mmu_segmentation_dark.svg" : "mmu_segmentation.svg", EType::MmSegmentation));
+    // One shared icon (no dedicated dark variant yet); it recolours acceptably in both themes.
+    m_gizmos.emplace_back(new GLGizmoTextureDisplacement(m_parent, "toolbar_texture_displacement.svg", EType::TextureDisplacement));
     m_gizmos.emplace_back(new GLGizmoEmboss(m_parent, m_is_dark ? "toolbar_text_dark.svg" : "toolbar_text.svg", EType::Emboss));
     m_gizmos.emplace_back(new GLGizmoSVG(m_parent));
     m_gizmos.emplace_back(new GLGizmoMeasure(m_parent, m_is_dark ? "toolbar_measure_dark.svg" : "toolbar_measure.svg", EType::Measure));
     m_gizmos.emplace_back(new GLGizmoAssembly(m_parent, m_is_dark ? "toolbar_assembly_dark.svg" : "toolbar_assembly.svg", EType::Assembly));
     m_gizmos.emplace_back(new GLGizmoSimplify(m_parent, "reduce_triangles.svg", EType::Simplify));
     m_gizmos.emplace_back(new GLGizmoBrimEars(m_parent, m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg", EType::BrimEars));
-#ifdef SLIC3R_CAD
-    // Registered last: Primitive and Sketch are the final entries before Undefined, so
-    // omitting them leaves every preceding m_gizmos index (indexed by EType) untouched.
-    if (wxGetApp().is_enable_cad_feature()) {
-        m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
-        m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
-    }
-#endif
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
 
     m_common_gizmos_data.reset(new CommonGizmosDataPool(&m_parent));
-    if(!m_assemble_view_data)
-        m_assemble_view_data.reset(new AssembleViewDataPool(&m_parent));
 
     for (auto& gizmo : m_gizmos) {
         if (! gizmo->init()) {
@@ -343,7 +357,17 @@ bool GLGizmosManager::init_icon_textures()
         icon_list.insert(std::make_pair((int) IC_CANVAS_ZOOM_DARK_HOVER, texture_id));
     else
         return false;
-    
+
+    for (const auto& [icon, name] : std::initializer_list<std::pair<MENU_ICON_NAME, const char*>>{
+             { IC_CANVAS_SECTION, "canvas_section" }, { IC_CANVAS_SECTION_HOVER, "canvas_section_hover" },
+             { IC_CANVAS_SECTION_DARK, "canvas_section_dark" }, { IC_CANVAS_SECTION_DARK_HOVER, "canvas_section_dark_hover" },
+             { IC_CANVAS_SECTION_ACTIVE, "canvas_section_active" }, { IC_CANVAS_SECTION_ACTIVE_HOVER, "canvas_section_active_hover" },
+             { IC_CANVAS_SECTION_ACTIVE_DARK, "canvas_section_active_dark" }, { IC_CANVAS_SECTION_ACTIVE_DARK_HOVER, "canvas_section_active_dark_hover" } }) {
+        if (!IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/" + name + ".svg", 72, 72, texture_id))
+            return false;
+        icon_list.insert(std::make_pair((int) icon, texture_id));
+    }
+
     return true;
 }
 
@@ -445,14 +469,17 @@ void GLGizmosManager::set_hover_id(int id)
     m_gizmos[m_current]->set_hover_id(id);
 }
 
-void GLGizmosManager::update_assemble_view_data()
+void GLGizmosManager::update_section_view()
 {
-    if (m_assemble_view_data) {
-        if (!wxGetApp().plater()->get_assmeble_canvas3D()->get_wxglcanvas()->IsShown())
-            m_assemble_view_data->update(AssembleViewDataID(0));
-        else
-            m_assemble_view_data->update(AssembleViewDataID((int)AssembleViewDataID::ModelObjectsInfo | (int)AssembleViewDataID::ModelObjectsClipper));
-    }
+    if (m_current != FdmSupports && m_current != Seam && m_current != MmSegmentation && m_current != FuzzySkin && m_current != BrimEars)
+        return;
+
+    CommonGizmosDataObjects::ObjectClipper* clipper = m_common_gizmos_data ? m_common_gizmos_data->object_clipper() : nullptr;
+    if (clipper == nullptr)
+        return;
+
+    // Brim ears always cut horizontally.
+    clipper->set_position_by_ratio(m_parent.get_section_view_ratio(), m_current == BrimEars ? Vec3d::UnitZ() : m_parent.get_section_view_normal());
 }
 
 void GLGizmosManager::update_data()
@@ -465,6 +492,7 @@ void GLGizmosManager::update_data()
         m_common_gizmos_data->update(get_current()
                                    ? get_current()->get_requirements()
                                    : CommonGizmosDataID(0));
+    update_section_view();
     if (m_current != Undefined) m_gizmos[m_current]->data_changed(m_serializing);
 
     // Orca: hack: Fix issue that flatten gizmo faces not updated after reload from disk
@@ -550,6 +578,8 @@ bool GLGizmosManager::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_p
         return dynamic_cast<GLGizmoCut3D*>(m_gizmos[Cut].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == FuzzySkin)
         return dynamic_cast<GLGizmoFuzzySkin*>(m_gizmos[FuzzySkin].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
+    else if (m_current == TextureDisplacement)
+        return dynamic_cast<GLGizmoTextureDisplacement*>(m_gizmos[TextureDisplacement].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == MeshBoolean)
         return dynamic_cast<GLGizmoMeshBoolean*>(m_gizmos[MeshBoolean].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == BrimEars)
@@ -563,6 +593,7 @@ bool GLGizmosManager::is_paint_gizmo()
     return m_current == EType::FdmSupports ||
            m_current == EType::MmSegmentation ||
            m_current == EType::FuzzySkin ||
+           m_current == EType::TextureDisplacement ||
            m_current == EType::Seam;
 }
 
@@ -575,26 +606,14 @@ bool GLGizmosManager::is_allow_select_all() {
     return false;
 }
 
-ClippingPlane GLGizmosManager::get_clipping_plane() const
+std::optional<ClippingPlane> GLGizmosManager::get_clipping_plane() const
 {
-    if (! m_common_gizmos_data
-     || ! m_common_gizmos_data->object_clipper()
-     || m_common_gizmos_data->object_clipper()->get_position() == 0.)
+    if (! m_common_gizmos_data || ! m_common_gizmos_data->object_clipper())
+        return std::nullopt;
+    else if (m_common_gizmos_data->object_clipper()->get_position() == 0.)
         return ClippingPlane::ClipsNothing();
     else {
         const ClippingPlane& clp = *m_common_gizmos_data->object_clipper()->get_clipping_plane();
-        return ClippingPlane(-clp.get_normal(), clp.get_data()[3]);
-    }
-}
-
-ClippingPlane GLGizmosManager::get_assemble_view_clipping_plane() const
-{
-    if (!m_assemble_view_data
-        || !m_assemble_view_data->model_objects_clipper()
-        || m_assemble_view_data->model_objects_clipper()->get_position() == 0.)
-        return ClippingPlane::ClipsNothing();
-    else {
-        const ClippingPlane& clp = *m_assemble_view_data->model_objects_clipper()->get_clipping_plane();
         return ClippingPlane(-clp.get_normal(), clp.get_data()[3]);
     }
 }
@@ -629,12 +648,6 @@ void GLGizmosManager::render_painter_gizmo()
     auto *gizmo = dynamic_cast<GLGizmoPainterBase*>(get_current());
     assert(gizmo); // check the precondition
     gizmo->render_painter_gizmo();
-}
-
-void GLGizmosManager::render_painter_assemble_view() const
-{
-    if (m_assemble_view_data && m_assemble_view_data->model_objects_clipper())
-        m_assemble_view_data->model_objects_clipper()->render_cut();
 }
 
 // The icon bar, drawn with GL.
@@ -1342,8 +1355,7 @@ GLGizmoBase* GLGizmosManager::get_current() const
 
 GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 {
-    // m_gizmos ends before the enum does when the CAD gizmos are not registered.
-    return type < m_gizmos.size() ? m_gizmos[type].get() : nullptr;
+    return ((type == Undefined) || m_gizmos.empty()) ? nullptr : m_gizmos[type].get();
 }
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const
@@ -1531,6 +1543,8 @@ std::string get_name_from_gizmo_etype(GLGizmosManager::EType type)
         return "Color Painting";
     case GLGizmosManager::EType::FuzzySkin:
         return "Fuzzy Skin Painting";
+    case GLGizmosManager::EType::TextureDisplacement:
+        return "Texture Displacement";
     default:
         return "";
     }

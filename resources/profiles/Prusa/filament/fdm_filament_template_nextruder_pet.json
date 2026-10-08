@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_template_nextruder_pet",
+	"from": "system",
+	"instantiation": "false",
+	"filament_ramming_parameters": [
+		"250 100 42.4194 42.4194 42.4194 42.4194 42.4194| 0.05 42.4387 0.45 42.4387 0.95 42.4387 1.45 42.4387 1.95 42.4387 2.45 42.4387 2.95 42.4387 3.45 42.4387 3.95 42.4387 4.45 42.4387 4.95 42.4387"
+	],
+	"filament_loading_speed": [
+		"10"
+	],
+	"filament_loading_speed_start": [
+		"50"
+	],
+	"filament_unloading_speed": [
+		"60"
+	],
+	"filament_unloading_speed_start": [
+		"60"
+	],
+	"filament_cooling_moves": [
+		"3"
+	],
+	"filament_cooling_initial_speed": [
+		"5"
+	],
+	"filament_cooling_final_speed": [
+		"2.5"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"26.5"
+	]
+}

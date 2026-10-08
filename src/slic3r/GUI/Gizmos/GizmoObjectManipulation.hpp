@@ -1,11 +1,16 @@
 #ifndef slic3r_GizmoObjectManipulation_hpp_
 #define slic3r_GizmoObjectManipulation_hpp_
 
+#include <cstddef>
 #include <memory>
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <float.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <wx/string.h>
 
 #include "slic3r/GUI/GUI_Geometry.hpp"
 
@@ -14,6 +19,7 @@
 namespace Slic3r {
 namespace GUI {
 
+class ImGuiWrapper;
 class Selection;
 class GLCanvas3D;
 

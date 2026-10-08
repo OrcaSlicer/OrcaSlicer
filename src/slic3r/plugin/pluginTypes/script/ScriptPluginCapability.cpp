@@ -3,8 +3,10 @@
 #include "ScriptPluginCapabilityTrampoline.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 
 namespace py = pybind11;
 

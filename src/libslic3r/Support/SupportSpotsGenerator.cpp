@@ -1,25 +1,19 @@
 #include "SupportSpotsGenerator.hpp"
 
-#include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
 #include "ExtrusionEntity.hpp"
 #include "ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
 #include "Line.hpp"
 #include "Point.hpp"
-#include "Polygon.hpp"
-#include "PrincipalComponents2D.hpp"
-#include "Print.hpp"
-#include "PrintBase.hpp"
-#include "PrintConfig.hpp"
-#include "Tesselate.hpp"
-#include "libslic3r.h"
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 #include "tbb/blocked_range2d.h"
 #include "tbb/parallel_reduce.h"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -32,10 +26,7 @@
 #include <vector>
 
 #include "AABBTreeLines.hpp"
-#include "KDTreeIndirect.hpp"
 #include "libslic3r/Layer.hpp"
-#include "libslic3r/ClipperUtils.hpp"
-#include "Geometry/ConvexHull.hpp"
 
 // #define DETAILED_DEBUG_LOGS
 // #define DEBUG_FILES

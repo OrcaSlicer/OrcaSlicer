@@ -1,8 +1,15 @@
 #ifndef slic3r_Http_App_hpp_
 #define slic3r_Http_App_hpp_
 
+#include <boost/asio/ip/basic_endpoint.hpp>
+#include <functional>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/streambuf.hpp>
 #include <iostream>
+#include <map>
 #include <mutex>
+#include <sstream>
 #include <stack>
 
 #include <boost/beast/core.hpp>

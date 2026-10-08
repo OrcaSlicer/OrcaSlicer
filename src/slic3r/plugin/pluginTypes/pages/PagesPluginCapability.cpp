@@ -2,10 +2,17 @@
 #include "PagesPluginCapabilityTrampoline.hpp"
 
 #include "../../PluginFsUtils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 
 #include <boost/log/trivial.hpp>
+#include <memory>
+#include <functional>
+#include <mutex>
 #include <pybind11/pybind11.h>
 
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <string>
 #include <utility>
 
 namespace py = pybind11;

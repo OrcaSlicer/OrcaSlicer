@@ -1,6 +1,26 @@
 #include "PresetComboBoxes.hpp"
 
+#include <climits>
+#include <boost/log/trivial.hpp>
+#include <cassert>
+#include <boost/algorithm/string/replace.hpp>
+#include <cmath>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cctype>
 #include <cstddef>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include <map>
+#include <iterator>
+#include <deque>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/EncodedFilament.hpp"
+#include <unordered_set>
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
 #include <vector>
 #include <string>
 #include <set>
@@ -8,8 +28,16 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/image.h>
+#include <wx/anybutton.h>
+#include <wx/app.h>
+#include <wx/colourdata.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
 #include <wx/statbox.h>
@@ -24,7 +52,6 @@
 #include <wx/msw/private.h>
 #endif
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
@@ -36,9 +63,7 @@
 #include "format.hpp"
 #include "Tab.hpp"
 #include "ConfigWizard.hpp"
-#include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/UndoRedo.hpp"
-#include "../Utils/ColorSpaceConvert.hpp"
 #include "BitmapCache.hpp"
 #include "SavePresetDialog.hpp"
 #include "MsgDialog.hpp"
@@ -47,6 +72,7 @@
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
@@ -54,8 +80,6 @@
     #include <pango-1.0/pango/pango-layout.h>
     #include <gtk/gtk.h>
 #endif
-
-using Slic3r::GUI::format_wxstr;
 
 namespace Slic3r {
 namespace GUI {
@@ -361,7 +385,8 @@ wxString PresetComboBox::get_preset_item_name(unsigned int index)
                 return GetString(index);
             }
 
-            std::map<std::string, MachineObject *> machine_list = dev->get_my_machine_list();
+            std::map<std::string, MachineObject *> machine_list =
+                dev->get_my_machine_list(dev->get_current_printer_agent_id());
             if (machine_list.empty()) {
                 assert(false);
                 m_selected_dev_id.clear();
@@ -479,7 +504,8 @@ void PresetComboBox::add_connected_printers(std::string selected, bool alias_nam
     if (!dev)
         return;
 
-    std::map<std::string, MachineObject *> machine_list = dev->get_my_machine_list();
+    std::map<std::string, MachineObject *> machine_list =
+        dev->get_my_machine_list(dev->get_current_printer_agent_id());
     if (machine_list.empty())
         return;
 
@@ -999,7 +1025,13 @@ void PlaterPresetComboBox::update_badge_according_flag() {
     auto selection   = GetSelection();
     auto select_flag = GetFlag(selection);
     auto ok          = select_flag == (int) PresetComboBox::FilamentAMSType::FROM_AMS;
-    ShowBadge(ok);
+    ShowBadge(m_sync_badge || ok);
+}
+
+void PlaterPresetComboBox::set_sync_badge(bool show)
+{
+    m_sync_badge = show;
+    ShowBadge(show);
 }
 
 bool PlaterPresetComboBox::switch_to_tab()
@@ -2143,7 +2175,7 @@ void GUI::CalibrateFilamentComboBox::OnSelect(wxCommandEvent &evt)
     wxPostEvent(m_parent, e);
 }
 
-void PlaterPresetComboBox::sys_color_changed()
+void GUI::PlaterPresetComboBox::sys_color_changed()
 {
     PresetComboBox::sys_color_changed();
     if (clr_picker) {

@@ -6,6 +6,7 @@
     "setting_id": "GFSA01_16",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "100",
         "100"
     ],
     "counter_coef_2": [

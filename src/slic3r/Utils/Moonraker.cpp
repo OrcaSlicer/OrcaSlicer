@@ -1,15 +1,19 @@
 #include "Moonraker.hpp"
 
+#include <exception>
 #include <sstream>
 
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <wx/string.h>
+#include <utility>
+#include <wx/arrstr.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
 

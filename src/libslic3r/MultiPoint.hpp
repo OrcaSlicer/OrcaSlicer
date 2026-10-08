@@ -3,6 +3,10 @@
 
 #include "libslic3r.h"
 #include <algorithm>
+#include <utility>
+#include <initializer_list>
+#include <cmath>
+#include <cstddef>
 #include <vector>
 #include "Line.hpp"
 #include "Point.hpp"

@@ -1,3 +1,5 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <libslic3r/Utils.hpp>
@@ -5,6 +7,8 @@
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp> // secret_constants::USER_SECRET_FILENAME
 
+#include <catch2/catch_test_macros.hpp>
+#include "libslic3r_version.h"
 #include "plugin_test_utils.hpp"
 
 #include <boost/filesystem.hpp>

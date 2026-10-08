@@ -1,4 +1,6 @@
 #include "PopupWindow.hpp"
+#include <wx/popupwin.h>
+#include <wx/event.h>
 
 static wxWindow *GetTopParent(wxWindow *pWindow)
 {

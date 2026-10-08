@@ -1,12 +1,15 @@
 #include "ConfigValueFormatter.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/erase.hpp>
 #include <cstdlib>
+#include "libslic3r/Point.hpp"
 #include <string>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -50,6 +53,8 @@ wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConf
             }
         return _L("Undefined");
     }
+    if (val < 0 || val >= int(names.size()))
+        return _L("Undefined");
     return from_u8(_utf8(names[val]));
 }
 
@@ -212,6 +217,8 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
             ;
     }
     case coEnums: {
+        if (!opt_vector || opt_idx >= opt_vector->size())
+            return _L("Undefined");
         return get_string_from_enum(pure_key, config,
             pure_key == "top_surface_pattern" ||
             pure_key == "bottom_surface_pattern" ||
