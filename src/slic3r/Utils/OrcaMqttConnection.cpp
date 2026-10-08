@@ -1,7 +1,6 @@
 #include "OrcaMqttConnection.hpp"
 #include "Http.hpp"
 
-#include <atomic>
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -23,22 +22,25 @@
 #include <boost/beast/http/string_body.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
-
-#include <deque>
-#include <cstdint>
-#include <mutex>
-#include <cstddef>
-#include <boost/system/error_code.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
 #include <boost/beast/websocket/stream_base.hpp>
-#include <ios>
-#include <exception>
+
+#include <boost/system/errc.hpp>
+#include <boost/system/error_code.hpp>
+
 #include <openssl/ssl.h>
+#include <openssl/tls1.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <exception>
+#include <ios>
 #include <memory>
-#include <openssl/tls1.h>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
