@@ -19,6 +19,8 @@
 #include <wx/dialog.h>
 #include <wx/display.h>
 #include <wx/event.h>
+#include <wx/file.h>
+#include <wx/filedlg.h>
 #include <wx/gdicmn.h>
 #include <wx/grid.h>
 #include <wx/panel.h>
@@ -29,6 +31,7 @@
 #include <wx/sizer.h>
 #include <wx/spinbutt.h>
 #include <wx/stattext.h>
+#include <wx/strconv.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/tglbtn.h>
@@ -308,8 +311,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         show_table->Rescale();
         m_content->SendSizeEvent();
     });
-    auto make_action_button = [this](const wxString& label, const wxString& icon) {
-        auto* button = new Button(m_actions_panel, label, icon, 0, 16);
+    auto make_action_button = [this](wxWindow* parent, const wxString& label, const wxString& icon) {
+        auto* button = new Button(parent, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
         button->SetFont(Label::Body_12);
         const int spacing = label.empty() ? 0 : FromDIP(4);
@@ -330,14 +333,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
            "Show table: show or hide the point values.\n"
            "Reset View: show the full curve.\n"
            "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift);
-    auto* help_button = make_action_button(wxEmptyString, "thermal_question");
+    auto* help_button = make_action_button(m_actions_panel, wxEmptyString, "thermal_question");
     help_button->SetName(_L("Graph controls"));
     help_button->SetToolTip(controls_help);
     help_button->Bind(wxEVT_BUTTON, [this, controls_help](wxCommandEvent&) {
         MessageDialog dialog(this, controls_help, _L("Graph controls"), wxOK | wxICON_INFORMATION);
         dialog.ShowModal();
     });
-    auto* reset_view = make_action_button(_L("Reset View"), "design_zoom");
+    auto* reset_view = make_action_button(m_actions_panel, _L("Reset View"), "design_zoom");
     reset_view->SetToolTip(_L("Reset View") + "\n" + _L("Show the full curve."));
     reset_view->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
@@ -401,10 +404,21 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     grid_sizer->Add(m_grid, 1, wxEXPAND | wxALL, FromDIP(2));
     grid_frame->SetSizer(grid_sizer);
     table_sizer->Add(grid_frame, 1, wxEXPAND);
+    auto* csv_actions = new wxBoxSizer(wxHORIZONTAL);
+    csv_actions->AddStretchSpacer();
+    auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_import");
+    import_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { import_csv(); });
+    import_button->SetToolTip(_L("Import points from two CSV columns in table order. Comma or semicolon separators are supported."));
+    auto* export_button = make_action_button(table_panel, _L("Export CSV"), "design_export");
+    export_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { export_csv(); });
+    export_button->SetToolTip(_L("Export the current points to CSV. This does not save changes to the preset."));
+    csv_actions->Add(import_button, 0, wxALIGN_CENTER_VERTICAL);
+    csv_actions->Add(export_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+    table_sizer->Add(csv_actions, 0, wxEXPAND | wxTOP, FromDIP(6));
 
     auto* actions = new wxBoxSizer(wxHORIZONTAL);
     auto add_button = [this, actions, make_action_button](const wxString& label, const wxString& icon, auto handler) {
-        auto* button = make_action_button(label, icon);
+        auto* button = make_action_button(m_actions_panel, label, icon);
         button->Bind(wxEVT_BUTTON, handler);
         actions->Add(button, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     };
@@ -541,6 +555,48 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->on_zoom = {};
     // Modal OK/Cancel/Escape hide the window without sending a close event.
     wxGetApp().window_pos_save(this, m_geometry_key);
+}
+
+void CurveEditorDialog::import_csv()
+{
+    wxFileDialog dialog(this, _L("Import CSV"), wxEmptyString, wxEmptyString,
+                        _L("CSV files (*.csv)|*.csv"), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK) return;
+    wxFile file(dialog.GetPath());
+    wxString text;
+    if (!file.IsOpened() || !file.ReadAll(&text, wxConvUTF8)) {
+        show_error(this, _L("Could not read the CSV file."));
+        return;
+    }
+    Rows rows;
+    int line = 0;
+    if (const char* message = m_model->read_csv(text.utf8_string(), rows, line)) {
+        wxString error = _L(message);
+        if (line > 0) error = wxString::Format(_L("CSV line %d: %s"), line, error);
+        show_error(this, error);
+        return;
+    }
+    finish_edit();
+    load_points(rows);
+    update_preview();
+    fit_chart();
+}
+
+void CurveEditorDialog::export_csv()
+{
+    finish_edit();
+    std::vector<double> x, y;
+    if (!read_points(x, y)) return;
+    std::string text;
+    int row = -1;
+    if (m_model->write_csv(read_rows(), text, row)) return;
+    wxFileDialog dialog(this, _L("Export CSV"), wxEmptyString, "curve.csv",
+                        _L("CSV files (*.csv)|*.csv"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (dialog.ShowModal() != wxID_OK) return;
+    // Commit a complete temporary file so failed writes preserve an existing CSV.
+    wxTempFile file(dialog.GetPath());
+    if (!file.IsOpened() || !file.Write(wxString::FromUTF8(text), wxConvUTF8) || !file.Commit())
+        show_error(this, _L("Could not write the CSV file."));
 }
 
 void CurveEditorDialog::finish_edit()
