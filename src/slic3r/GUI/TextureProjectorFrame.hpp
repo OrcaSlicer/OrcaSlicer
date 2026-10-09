@@ -21,7 +21,12 @@
 #include <vector>
 
 #include <wx/bitmap.h>
+#include <wx/event.h>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
+
+class wxPaintEvent;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

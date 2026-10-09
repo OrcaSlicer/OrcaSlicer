@@ -1,15 +1,19 @@
 #ifndef slic3r_TextureDisplacementBakeJob_hpp_
 #define slic3r_TextureDisplacementBakeJob_hpp_
 
+#include <exception>
+#include <cstdint>
 #include <functional>
+#include "libslic3r/Point.hpp"
 #include <vector>
 
-#include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "Job.hpp"
+
+namespace Slic3r { class ModelVolume; }
 
 namespace Slic3r::GUI {
 

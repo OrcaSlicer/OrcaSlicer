@@ -8,8 +8,49 @@
 #include "I18N.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <cstdlib>
+#include <cstdio>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <unordered_map>
+#include <wx/arrstr.h>
+#include <set>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <cstddef>
+#include <climits>
+#include "libslic3r/PrintConfig.hpp"
+#include <cmath>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/colordlg.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <wx/colourdata.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/textctrl.h>
+#include <wx/string.h>
+#include <wx/utils.h>
+#include <wx/valtext.h>
+#include <wx/sizer.h>
+#include <wx/peninfobase.h>
 #include "CalibUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "EncodedFilament.hpp"
@@ -62,6 +103,14 @@ void AMSMaterialsSetting::create()
 
     m_sizer_button->Add(0, 0, 1, wxEXPAND, 0);
 
+    // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
+    m_wiki_ctrl = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
+    m_wiki_ctrl->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    m_wiki_ctrl->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    m_wiki_ctrl->SetCanFocus(false);
+    m_wiki_ctrl->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
     m_button_confirm = new Button(this, _L("Confirm"));
     m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_ok, this);
@@ -74,8 +123,9 @@ void AMSMaterialsSetting::create()
     m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_close->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_close, this);
 
-    m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
-    m_sizer_button->Add(m_button_reset, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
+    m_sizer_button->Add(m_wiki_ctrl, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
+    m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
+    m_sizer_button->Add(m_button_reset, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
     m_sizer_button->Add(m_button_close, 0, wxALIGN_CENTER, 0);
 
     m_sizer_main->Add(m_panel_normal, 0, wxALL, FromDIP(2));
@@ -299,11 +349,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     m_ratio_text->SetForegroundColour(wxColour(50, 58, 61));
     m_ratio_text->SetFont(Label::Head_14);
 
-    // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
-    wxString link_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
-    m_wiki_ctrl = new HyperLink(parent, _L("Wiki Guide"), link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
-    cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
 
     wxBoxSizer *m_sizer_cali_resutl = new wxBoxSizer(wxHORIZONTAL);
     // pa profile
@@ -933,8 +979,8 @@ bool AMSMaterialsSetting::Show(bool show)
 
 static void _collect_filament_info(const wxString& shown_name,
                                    const Preset& filament,
-                                   unordered_map<wxString, wxString>& query_filament_vendors,
-                                   unordered_map<wxString, wxString>& query_filament_types)
+                                   std::unordered_map<wxString, wxString>& query_filament_vendors,
+                                   std::unordered_map<wxString, wxString>& query_filament_types)
 {
     query_filament_vendors[shown_name] = filament.config.get_filament_vendor();
     query_filament_types[shown_name] = filament.config.get_filament_type();
@@ -971,7 +1017,10 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
     if (machine_diameter == 0.0f && preset_bundle) {
         const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-        if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+        if (opt) {
+            const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+            if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+        }
     }
     stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
@@ -1250,7 +1299,10 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
             if (machine_diameter == 0.0f) {
                 const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-                if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+                if (opt) {
+                    const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+                    if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+                }
             }
             stream << std::fixed << std::setprecision(1) << machine_diameter;
         }

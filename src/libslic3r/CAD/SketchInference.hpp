@@ -1,7 +1,9 @@
 #ifndef slic3r_SketchInference_hpp_
 #define slic3r_SketchInference_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include <math.h>
 #include <vector>
 #include <optional>
 #include <cmath>
@@ -36,8 +38,12 @@ InferenceSnap infer_point_snap(const std::vector<SketchEntity>& entities,
 // within `ang_tol_rad` of an axis, returns Horizontal or Vertical (the constraint to
 // auto-emit on the committed segment); std::nullopt otherwise. Degenerate (near-zero
 // length) segments return nullopt.
+// One angular tolerance for every "is this relation already true?" inference, so a pair of
+// lines that reads as horizontal to one rule cannot read as not-quite-parallel to the other.
+inline constexpr double kSketchInferAngleTol = 3.0 * M_PI / 180.0;
+
 std::optional<SketchConstraintType>
-infer_axis_constraint(const Vec2d& anchor, const Vec2d& tip, double ang_tol_rad = 3.0 * M_PI / 180.0);
+infer_axis_constraint(const Vec2d& anchor, const Vec2d& tip, double ang_tol_rad = kSketchInferAngleTol);
 
 // Relational constraints to auto-emit for a newly drawn entity `new_ei` against the
 // entities already in the sketch. Pure, no GUI/GL dependencies, unit-testable.
@@ -47,7 +53,7 @@ infer_axis_constraint(const Vec2d& anchor, const Vec2d& tip, double ang_tol_rad 
 // relation that is visibly there. Returns an empty vector when nothing qualifies.
 std::vector<SketchEntityConstraintDef>
 infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
-                double ang_tol_rad = 2.0 * M_PI / 180.0,
+                double ang_tol_rad = kSketchInferAngleTol,
                 double len_tol_frac = 0.01);
 
 } // namespace Slic3r

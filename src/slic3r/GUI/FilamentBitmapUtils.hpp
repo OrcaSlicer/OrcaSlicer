@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_FilamentBitmapUtils_hpp_
 #define slic3r_GUI_FilamentBitmapUtils_hpp_
 
+#include <cstddef>
 #include <wx/bitmap.h>
 #include <wx/colour.h>
 #include <wx/dc.h>

@@ -3,6 +3,9 @@
 
 #include "MeshUtils.hpp"
 #include "GLModel.hpp"
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include "libslic3r/Technologies.hpp"
 #include <vector>
 #include <string>
 #include <optional>

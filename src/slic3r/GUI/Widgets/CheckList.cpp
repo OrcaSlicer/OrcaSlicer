@@ -1,7 +1,21 @@
 #include "CheckList.hpp"
 
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include <wx/anybutton.h>
+#include <wx/arrstr.h>
+#include <wx/checklst.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/textctrl.h>
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <cstddef>
+#include <wx/dynarray.h>
+#include "slic3r/GUI/wxExtensions.hpp"
 
 CheckList::CheckList(
     wxWindow* parent,

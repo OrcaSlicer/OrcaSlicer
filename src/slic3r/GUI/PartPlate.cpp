@@ -1,7 +1,55 @@
+#include <array>
+#include <cassert>
+#include <cmath>
+#include <boost/algorithm/string/erase.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <cstddef>
 #include <algorithm>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <iterator>
+#include "libslic3r/BuildVolume.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <ios>
+#include <iomanip>
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/format.hpp"
+#include <cstring>
+#include <exception>
+#include "libslic3r/ParameterUtils.hpp"
+#include <imgui.h>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstdlib>
 #include <limits>
+#include <memory>
+#include <map>
+#include <mutex>
 #include <numeric>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <utility>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/GLTexture.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/GUI_ObjectLayers.hpp"
 #include <vector>
 #include <string>
 #include <sstream>
@@ -11,7 +59,6 @@
 #include <future>
 #include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
@@ -26,7 +73,6 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
-#include "libslic3r/Tesselate.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
@@ -48,9 +94,23 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/Utils/FileHelp.hpp"
 #include <imgui/imgui_internal.h>
+#include <wx/colour.h>
 #include <wx/dcgraph.h>
-using boost::optional;
-namespace fs = boost::filesystem;
+#include <wx/string.h>
+#include <wx/types.h>
+#include <wx/dcmemory.h>
+#include <wx/intl.h>
+#include <wx/event.h>
+#include <wx/image.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/SLA/Pad.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+
+class wxFont;
 
 static const float GROUND_Z = -0.03f;
 static const float GROUND_Z_GRIDLINE = -0.26f;
@@ -3068,7 +3128,7 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 	new_conf.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
 	new_conf.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
 	new_conf.set_key_value("overhang_reverse", new ConfigOptionBool(false));
-	auto applying_keys = global_config->diff(new_conf);
+	const auto applying_keys = global_config->diff(new_conf);
 
 	for (ModelObject* object : obj_ptrs) {
 		ModelConfigObject& config = object->config;
@@ -3077,8 +3137,8 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 			config.set_key_value(opt_key, new_conf.option(opt_key)->clone());
 		}
 
-		applying_keys = config.get().diff(new_conf);
-		for (auto opt_key : applying_keys) {
+		const auto object_keys = config.get().diff(new_conf);
+		for (auto opt_key : object_keys) {
 			config.set_key_value(opt_key, new_conf.option(opt_key)->clone());
 		}
 	}

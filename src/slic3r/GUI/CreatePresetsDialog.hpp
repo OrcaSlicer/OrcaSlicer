@@ -13,6 +13,19 @@
 #include "Widgets/DialogButtons.hpp"
 #include "miniz.h"
 #include "ParamsDialog.hpp"
+#include <wx/sizer.h>
+#include <wx/arrstr.h>
+#include <wx/string.h>
+#include <vector>
+#include <utility>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <set>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/event.h>
+#include <memory>
 
 namespace Slic3r {
 namespace GUI {

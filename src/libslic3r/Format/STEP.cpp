@@ -1,10 +1,29 @@
-#include "../libslic3r.h"
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Thread.hpp"
 
 #include "STEP.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <ostream>
+#include <cstddef>
+#include <Standard_Handle.hxx>
+#include <Standard_TypeDef.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <atomic>
+#include <IFSelect_ReturnStatus.hxx>
+#include <boost/chrono/duration.hpp>
+#include <cstring>
+#include <Poly_Triangulation.hxx>
+#include <cstdint>
+#include <gp_Trsf.hxx>
+#include <gp_Pnt.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/iostream.hpp>
@@ -12,6 +31,8 @@
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <utility>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'
@@ -25,7 +46,8 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
 #include "XCAFApp_Application.hxx"
-#include "TDF_LabelSequence.hxx"
+#include "NCollection_Sequence.hxx"
+#include "TDF_Label.hxx"
 #include "TopoDS_Solid.hxx"
 #include "TopoDS_Compound.hxx"
 #include "TopoDS_Builder.hxx"
@@ -33,10 +55,11 @@
 #include "TDataStd_Name.hxx"
 #include "BRepBuilderAPI_Transform.hxx"
 #include "TopExp_Explorer.hxx"
-#include "TopExp_Explorer.hxx"
 #include "BRep_Tool.hxx"
 #include "BRepTools.hxx"
 #include <IMeshTools_Parameters.hxx>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r {
@@ -199,9 +222,9 @@ static void getNamedSolids(const TopLoc_Location& location,
     std::string fullName{name};
 
     TopLoc_Location localLocation = location * shapeTool->GetLocation(label);
-    TDF_LabelSequence components;
+    NCollection_Sequence<TDF_Label> components;
     if (shapeTool->GetComponents(referredLabel, components)) {
-        for (Standard_Integer compIndex = 1; compIndex <= components.Length(); ++compIndex) {
+        for (int compIndex = 1; compIndex <= components.Length(); ++compIndex) {
             getNamedSolids(localLocation, fullName, id, shapeTool, components.Value(compIndex), namedSolids, isSplitCompound);
         }
     } else {
@@ -209,7 +232,7 @@ static void getNamedSolids(const TopLoc_Location& location,
         TopExp_Explorer explorer;
         shapeTool->GetShape(referredLabel, shape);
         TopAbs_ShapeEnum shape_type = shape.ShapeType();
-        BRepBuilderAPI_Transform transform(shape, localLocation, Standard_True);
+        BRepBuilderAPI_Transform transform(shape, localLocation, true);
         int                      i = 0;
         switch (shape_type) {
         case TopAbs_COMPOUND:
@@ -479,11 +502,11 @@ Step::Step_Status Step::load()
         if (cb_cancel) return;
         progress = 6;
         m_shape_tool = XCAFDoc_DocumentTool::ShapeTool(m_doc->Main());
-        TDF_LabelSequence topLevelShapes;
+        NCollection_Sequence<TDF_Label> topLevelShapes;
         m_shape_tool->GetFreeShapes(topLevelShapes);
         unsigned int id{ 1 };
-        Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
-        for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
+        int topShapeLength = topLevelShapes.Length() + 1;
+        for (int iLabel = 1; iLabel < topShapeLength; ++iLabel) {
             if (cb_cancel) return;
             getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), m_name_solids);
         }
@@ -538,12 +561,12 @@ Step::Step_Status Step::mesh(Model* model,
     new_object->input_file = m_path.c_str();
 
     auto task = new boost::thread(Slic3r::create_thread([&]() -> void {
-        TDF_LabelSequence topLevelShapes;
+        NCollection_Sequence<TDF_Label> topLevelShapes;
         m_shape_tool->GetFreeShapes(topLevelShapes);
         unsigned int id{ 1 };
-        Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
+        int topShapeLength = topLevelShapes.Length() + 1;
         
-        for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
+        for (int iLabel = 1; iLabel < topShapeLength; ++iLabel) {
             progress = static_cast<double>(iLabel) / (topShapeLength-1);
             if (cb_cancel) {
                 return;
@@ -580,10 +603,10 @@ Step::Step_Status Step::mesh(Model* model,
                 std::vector<Vec3f> points;
                 points.reserve(aNbNodes);
                 // BBS: count faces missing triangulation
-                Standard_Integer aNbFacesNoTri = 0;
+                int aNbFacesNoTri = 0;
                 // BBS: fill temporary triangulation
-                Standard_Integer aNodeOffset = 0;
-                Standard_Integer aTriangleOffet = 0;
+                int aNodeOffset = 0;
+                int aTriangleOffet = 0;
                 for (TopExp_Explorer anExpSF(namedSolids[i].solid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
                     const TopoDS_Shape& aFace = anExpSF.Current();
                     TopLoc_Location     aLoc;
@@ -594,15 +617,15 @@ Step::Step_Status Step::mesh(Model* model,
                     }
                     // BBS: copy nodes
                     gp_Trsf aTrsf = aLoc.Transformation();
-                    for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
+                    for (int aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                         gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                         aPnt.Transform(aTrsf);
                         points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
                     }
                     // BBS: copy triangles
                     const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
-                    Standard_Integer anId[3] = {};
-                    for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
+                    int anId[3] = {};
+                    for (int aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
                         Poly_Triangle aTri = aTriangulation->Triangle(aTriIter);
 
                         aTri.Get(anId[0], anId[1], anId[2]);

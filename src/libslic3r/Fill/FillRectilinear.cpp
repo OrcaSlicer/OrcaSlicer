@@ -1,3 +1,8 @@
+#include <numeric>
+#include <math.h>
+#include <initializer_list>
+#include <array>
+#include <map>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -10,15 +15,27 @@
 #include <boost/log/trivial.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <vector>
+#include <utility>
+#include <string>
 
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Geometry.hpp"
 #include "../Surface.hpp"
 #include "../ShortestPath.hpp"
-#include "../VariableWidth.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Flow.hpp"
 #include "FillRectilinear.hpp"
 
 // #define SLIC3R_DEBUG
@@ -417,9 +434,9 @@ public:
 //        bool sticks_removed = 
         remove_sticks(polygons_src);
 //        if (sticks_removed) BOOST_LOG_TRIVIAL(error) << "Sticks removed!";
-        polygons_outer = aoffset1 == 0 ? to_polygons(polygons_src) : offset(polygons_src, float(aoffset1), ClipperLib::jtMiter, miterLimit);
+        polygons_outer = aoffset1 == 0 ? to_polygons(polygons_src) : offset(polygons_src, float(aoffset1), jtMiter, miterLimit);
         if (aoffset2 < 0)
-            polygons_inner = shrink(polygons_outer, float(aoffset1 - aoffset2), ClipperLib::jtMiter, miterLimit);
+            polygons_inner = shrink(polygons_outer, float(aoffset1 - aoffset2), jtMiter, miterLimit);
 		// Filter out contours with zero area or small area, contours with 2 points only.
         const double min_area_threshold = 0.01 * aoffset2 * aoffset2;
         remove_small(polygons_outer, min_area_threshold);
@@ -2733,23 +2750,6 @@ static void polylines_from_paths(const std::vector<MonotonicRegionLink> &path, c
     }
 }
 
-// The extended bounding box of the whole object that covers any rotation of every layer.
-BoundingBox FillRectilinear::extended_object_bounding_box() const {
-    // Build the extension around the box center. The transpose merge and the sqrt(2.) scaling
-    // (which covers any possible rotation) are both defined about the origin, so a box that is not
-    // origin-centered — e.g. a separated-infill box re-centered on a single assembly part — would be
-    // distorted. Shift to the origin first and back afterwards; for the default origin-centered box
-    // the two translations cancel and this is identical to the original behavior.
-    const Point c   = this->bounding_box.center();
-    BoundingBox out = this->bounding_box;
-    out.translate(-c.x(), -c.y());
-    out.merge(Point(out.min.y(), out.min.x()));
-    out.merge(Point(out.max.y(), out.max.x()));
-    out = out.scaled(sqrt(2.));
-    out.translate(c.x(), c.y());
-    return out;
-}
-
 bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillParams &params, float angleBase, float pattern_shift, Polylines &polylines_out)
 {
     // At the end, only the new polylines will be rotated back.
@@ -2784,7 +2784,13 @@ bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillPa
     // For infill that needs to be consistent between layers (like Zig Zag),
     // we use bounding box of whole object to match vertical lines between layers.
     BoundingBox bounding_box_src = poly_with_offset.bounding_box_src();
-    BoundingBox bounding_box     = this->has_consistent_pattern() ? this->extended_object_bounding_box() : bounding_box_src;
+    BoundingBox bounding_box     = bounding_box_src;
+    if (this->has_consistent_pattern()) {
+        // Orca: The polygons are rotated about the origin, so follow the box center to where it was rotated.
+        const Point c = this->bounding_box.center();
+        bounding_box  = this->extended_object_bounding_box();
+        bounding_box.translate(c.rotated(- rotate_vector.first) - c);
+    }
 
     // define flow spacing according to requested density
     if (params.full_infill() && !params.dont_adjust) {

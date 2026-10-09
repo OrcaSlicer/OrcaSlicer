@@ -6,18 +6,40 @@
 #include "../Layer.hpp"
 #include "../Print.hpp"
 #include "../ShortestPath.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 
 #include "FillAdaptive.hpp"
 
 // for indexed_triangle_set
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <admesh/stl.h>
 
+#include <array>
+#include <cassert>
+#include <boost/geometry/core/cs.hpp>
+#include <boost/geometry/index/parameters.hpp>
+#include <boost/geometry/index/predicates.hpp>
+#include <boost/geometry/core/access.hpp>
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
 #include <functional>
+#include <math.h>
+#include <limits>
+#include <iterator>
 #include <numeric>
+#include <optional>
 #include <tuple>
+#include <vector>
+#include <utility>
 
 // Boost pool: Don't use mutexes to synchronize memory allocation.
 #define BOOST_POOL_NO_MT
@@ -27,6 +49,9 @@
 #include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/geometries/segment.hpp>
 #include <boost/geometry/index/rtree.hpp>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 
 namespace Slic3r {
@@ -276,88 +301,25 @@ void OctreeDeleter::operator()(Octree *p) {
     delete p;
 }
 
-std::pair<double, double> adaptive_fill_line_spacing(const PrintObject &print_object)
+std::vector<double> adaptive_fill_line_spacing(const PrintObject &print_object)
 {
-    // Output, spacing for icAdaptiveCubic and icSupportCubic
-    double  adaptive_line_spacing = 0.;
-    double  support_line_spacing = 0.;
-
-    enum class Tristate {
-        Yes,
-        No,
-        Maybe
-    };
-    struct RegionFillData {
-        Tristate        has_adaptive_infill;
-        Tristate        has_support_infill;
-        double          density;
-        double          extrusion_width;
-    };
-    std::vector<RegionFillData> region_fill_data;
-    region_fill_data.reserve(print_object.num_printing_regions());
-    bool                       build_octree                   = false;
+    std::vector<double>        line_spacing(print_object.num_printing_regions(), 0.);
     const std::vector<double> &nozzle_diameters               = print_object.print()->config().nozzle_diameter.values;
     double                     max_nozzle_diameter            = *std::max_element(nozzle_diameters.begin(), nozzle_diameters.end());
     double                     default_infill_extrusion_width = Flow::auto_extrusion_width(FlowRole::frInfill, float(max_nozzle_diameter));
-    for (size_t region_id = 0; region_id < print_object.num_printing_regions(); ++ region_id) {
-        const PrintRegionConfig &config                 = print_object.printing_region(region_id).config();
-        bool                     nonempty               = config.sparse_infill_density > 0;
-        bool                     has_adaptive_infill    = nonempty && config.sparse_infill_pattern == ipAdaptiveCubic;
-        bool                     has_support_infill     = nonempty && config.sparse_infill_pattern == ipSupportCubic;
-        double                   sparse_infill_line_width = config.sparse_infill_line_width.get_abs_value(max_nozzle_diameter);
-        region_fill_data.push_back(RegionFillData({
-            has_adaptive_infill ? Tristate::Maybe : Tristate::No,
-            has_support_infill ? Tristate::Maybe : Tristate::No,
-            config.sparse_infill_density,
-            sparse_infill_line_width != 0. ? sparse_infill_line_width : default_infill_extrusion_width
-        }));
-        build_octree |= has_adaptive_infill || has_support_infill;
+    for (size_t region_id = 0; region_id < line_spacing.size(); ++ region_id) {
+        const PrintRegionConfig &config = print_object.printing_region(region_id).config();
+        if (config.sparse_infill_density <= 0 || ! is_octree_infill_pattern(config.sparse_infill_pattern) ||
+            std::none_of(print_object.layers().begin(), print_object.layers().end(), [region_id](const Layer *layer) {
+                return region_id < layer->regions().size() && ! layer->regions()[region_id]->fill_surfaces.empty();
+            }))
+            continue;
+        double extrusion_width = config.sparse_infill_line_width.get_abs_value(max_nozzle_diameter);
+        if (extrusion_width == 0.)
+            extrusion_width = default_infill_extrusion_width;
+        line_spacing[region_id] = extrusion_width / ((config.sparse_infill_density / 100.0f) * 0.333333333f) * config.fill_multiline.value;
     }
-
-    if (build_octree) {
-        // Compute the average of above parameters over all layers
-        for (const Layer *layer : print_object.layers())
-            for (size_t region_id = 0; region_id < layer->regions().size(); ++ region_id) {
-                RegionFillData &rd = region_fill_data[region_id];
-                if (rd.has_adaptive_infill == Tristate::Maybe && ! layer->regions()[region_id]->fill_surfaces.empty())
-                    rd.has_adaptive_infill = Tristate::Yes;
-                if (rd.has_support_infill == Tristate::Maybe && ! layer->regions()[region_id]->fill_surfaces.empty())
-                    rd.has_support_infill = Tristate::Yes;
-            }
-
-        double  adaptive_fill_density           = 0.;
-        double  adaptive_infill_extrusion_width = 0.;
-        int     adaptive_cnt                    = 0;
-        double  support_fill_density            = 0.;
-        double  support_infill_extrusion_width  = 0.;
-        int     support_cnt                     = 0;
-
-        for (const RegionFillData &rd : region_fill_data) {
-            if (rd.has_adaptive_infill == Tristate::Yes) {
-                adaptive_fill_density           += rd.density;
-                adaptive_infill_extrusion_width += rd.extrusion_width;
-                ++ adaptive_cnt;
-            } else if (rd.has_support_infill == Tristate::Yes) {
-                support_fill_density           += rd.density;
-                support_infill_extrusion_width += rd.extrusion_width;
-                ++ support_cnt;
-            }
-        }
-
-        auto to_line_spacing = [](int cnt, double density, double extrusion_width) {
-            if (cnt) {
-                density         /= double(cnt);
-                extrusion_width /= double(cnt);
-                return extrusion_width / ((density / 100.0f) * 0.333333333f);
-            } else
-                return 0.;
-        };
-        const int n_multiline = print_object.printing_region(0).config().fill_multiline.value;
-        adaptive_line_spacing = to_line_spacing(adaptive_cnt, adaptive_fill_density, adaptive_infill_extrusion_width) * n_multiline;
-        support_line_spacing  = to_line_spacing(support_cnt, support_fill_density, support_infill_extrusion_width) * n_multiline;
-    }
-
-    return std::make_pair(adaptive_line_spacing, support_line_spacing);
+    return line_spacing;
 }
 
 // Context used by generate_infill_lines() when recursively traversing an octree in a DDA fashion

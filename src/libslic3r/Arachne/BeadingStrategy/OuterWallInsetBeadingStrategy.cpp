@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 
 namespace Slic3r::Arachne

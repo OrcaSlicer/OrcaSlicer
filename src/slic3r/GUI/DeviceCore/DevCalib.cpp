@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -6,13 +8,21 @@
 #include "slic3r/GUI/UserNotification.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include <string>
+#include <cassert>
+#include "libslic3r/calib.hpp"
+#include <chrono>
+#include <vector>
 #include <wx/dir.h>
+#include <wx/string.h>
 #include "fast_float/fast_float.h"
 
 #include "DevCalib.h"
 #include "DevDefs.h"
 #include "DevFilaSystem.h"
 #include "DevConfig.h"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -146,7 +156,7 @@ void calib_fail_message(MachineObject* obj, std::string cali_mode, std::string r
     } else if (reason == "nozzle_diameter is not matched") {
         info = _L("Selected diameter and machine diameter do not match");
     } else if (reason == "generate auto filament cali gcode failure") {
-        info = _L("Failed to generate cali gcode");
+        info = _L("Failed to generate calibration G-code");
     } else {
         info = wxString(reason);
     }

@@ -23,7 +23,11 @@
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
 #include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRack.h"
 
+#include <string>
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/webview.h>
 
 #include <memory>

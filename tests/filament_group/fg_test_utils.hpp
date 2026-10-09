@@ -2,9 +2,16 @@
 #define FG_TEST_UTILS_HPP
 
 #include "fg_test_serialization.hpp"
+#include "libslic3r/FilamentGroupUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentGroup.hpp"
+#include <iterator>
 #include <random>
 #include <algorithm>
 #include <cassert>
+#include <vector>
+#include <set>
+#include <string>
 
 namespace Slic3r {
 namespace FGTest {

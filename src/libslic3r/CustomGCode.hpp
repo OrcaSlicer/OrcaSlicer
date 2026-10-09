@@ -1,7 +1,10 @@
 #ifndef slic3r_CustomGCode_hpp_
 #define slic3r_CustomGCode_hpp_
 
+#include <map>
+#include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 

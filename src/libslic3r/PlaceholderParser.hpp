@@ -1,14 +1,16 @@
 #ifndef slic3r_PlaceholderParser_hpp_
 #define slic3r_PlaceholderParser_hpp_
 
-#include "libslic3r.h"
+#include "Config.hpp"
 #include <map>
+#include <memory>
 #include <random>
 #include <set>
 #include <string>
 #include <string_view>
 #include <vector>
-#include "PrintConfig.hpp"
+
+namespace Slic3r { class DynamicPrintConfig; }
 
 namespace Slic3r {
 

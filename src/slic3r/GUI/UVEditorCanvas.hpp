@@ -1,8 +1,11 @@
 #ifndef slic3r_UVEditorCanvas_hpp_
 #define slic3r_UVEditorCanvas_hpp_
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
 #include <functional>
+#include "libslic3r/Color.hpp"
 #include <utility>
 #include <vector>
 
@@ -10,9 +13,12 @@
 // pulls in the platform's real GL/gl.h, and glad/gl.h errors out if that happens first (it wants
 // to be the one to define the standard include guards GL/gl.h itself defines).
 #include <glad/gl.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
 #include <wx/panel.h>
 #include <wx/button.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 #include <wx/stattext.h>
 #include <wx/statbmp.h>
@@ -194,6 +200,7 @@ private:
     void on_paint(wxPaintEvent &evt);
     void on_size(wxSizeEvent &evt);
     void on_mouse(wxMouseEvent &evt);
+    void on_capture_lost(wxMouseCaptureLostEvent &evt);
     void on_key(wxKeyEvent &evt);
     void on_leave(wxMouseEvent &evt); // drops the +/- cursor hint when the pointer leaves the canvas
     void on_erase_background(wxEraseEvent &evt) {} // required to avoid flicker on MSW, deliberately a no-op
@@ -238,6 +245,16 @@ private:
     // vertex of some *other* island, in texture-UV space. Zero if nothing is within reach (#2).
     Vec2f snap_correction(int island) const;
     void  end_gesture();
+    // Cancels the gesture instead of finishing it: nothing is committed, and a modal rotate/scale is
+    // put back the way Esc puts it back. Used when the capture is taken away from us.
+    void  cancel_gesture();
+    // One capture at a time, released exactly once. Pressing a second button mid-drag would otherwise
+    // nest a second capture that the single release on button-up cannot undo, and macOS never sends
+    // wxEVT_MOUSE_CAPTURE_LOST to recover from that. A leaked capture is not a local problem there:
+    // while any wx window holds one, wxOSX routes every mouse event to it and the application stops
+    // seeing enter/leave and motion entirely, which also takes its tooltips down.
+    void  grab_mouse();
+    void  drop_mouse();
     // Rebuilds the status line from the current gesture/selection and pushes it to m_on_status.
     void  update_status();
     // Re-picks what a click at `pos` would grab in the current select mode, and repaints when that changed.

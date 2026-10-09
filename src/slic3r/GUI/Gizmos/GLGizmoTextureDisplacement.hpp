@@ -10,11 +10,23 @@
 #include "slic3r/GUI/IconManager.hpp"
 #include "slic3r/GUI/TextureLibrary.hpp"
 
+#include <Eigen/Core>
 #include <array>
 #include <atomic>
+#include "libslic3r/Color.hpp"
+#include <cstddef>
+#include "libslic3r/TriangleSelector.hpp"
+#include <cstdint>
+#include "libslic3r/Point.hpp"
+#include <imgui.h>
 #include <map>
 #include <memory>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <string>
+#include <vector>
+#include <utility>
+#include <wx/event.h>
+#include <wx/string.h>
 
 namespace Slic3r::GUI {
 
@@ -930,6 +942,13 @@ private:
     GLModel m_adjust_arrow_glmodel;
 
     std::map<std::string, wxString> m_desc;
+
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_brush;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_bucket_fill;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_gap_fill;
 
     // Icons for the panel's icon buttons (tools, views, mapping, tiling, layer actions). Loaded through IconManager with
     // the same colour/monochrome variants the main toolbar uses, so an inactive button shows the icon in

@@ -1,6 +1,29 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <memory>
+#include <vector>
+#include <cstdint>
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <ios>
+#include <iterator>
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <map>
+#include <math.h>
+#include "libslic3r/TextureBake/TextureBakeDisplace.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
+#include <tuple>
+#include <Eigen/Geometry>
+#include "libslic3r/libslic3r.h"
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
