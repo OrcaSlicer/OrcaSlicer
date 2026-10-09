@@ -3,6 +3,13 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/string.h>
+#include <wx/checklst.h>
+#include <wx/event.h>
+#include <wx/dc.h>
 #include <wx/tipwin.h>
 #include <wx/colour.h>
 
@@ -36,6 +43,7 @@ class Button : public StaticBox
     wxRect textSize;
     wxSize minSize; // set by outer
     wxSize paddingSize;
+    int m_icon_spacing = 5;
     ScalableBitmap active_icon;
 
     StateColor text_color;
@@ -69,6 +77,8 @@ public:
     void SetMaxSize(const wxSize& size) override;
 
     void SetPaddingSize(const wxSize& size);
+
+    void SetIconSpacing(int spacing);
 
     void SetStyle(const ButtonStyle style /*= ButtonStyle::Regular*/, const ButtonType type /*= ButtonType::None*/);
 

@@ -1,12 +1,33 @@
 #include "WebGuideDialog.hpp"
 #include "ConfigWizard.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
 #include <boost/log/trivial.hpp>
+#include <map>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <memory>
+#include <exception>
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include <set>
+#include <ostream>
+#include <iterator>
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/ParamsDialog.hpp"
+#include "libslic3r/Semver.hpp"
+#include <ios>
+#include <stdexcept>
+#include <sstream>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -14,14 +35,28 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r_version.h"
 
+#include <string>
+#include <vector>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/log.h>
+#include <wx/settings.h>
+#include <wx/event.h>
+#include <wx/setup.h>
+#include <unordered_set>
+#include <system_error>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/strconv.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/weakref.h>
 #include <wx/display.h>
@@ -35,12 +70,16 @@
 #include <unordered_map>
 
 #include "MainFrame.hpp"
+#include "Plater.hpp"
 #include <boost/dll.hpp>
 #include <slic3r/GUI/Widgets/WebView.hpp>
-#include <slic3r/Utils/Http.hpp>
-#include <libslic3r/miniz_extension.hpp>
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PresetUpdater.hpp"
+
+class wxWindow;
 
 using namespace nlohmann;
 
@@ -218,37 +257,38 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
     m_page = startpage;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(" enter, load=%1%, start_page=%2%")%load%int(startpage);
     //wxLogMessage("GUIDE: webpage_1  %s", (boost::filesystem::path(resources_dir()) / "web\\guide\\1\\index.html").make_preferred().string().c_str() );
-    wxString TargetUrl = from_u8( (boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=1").make_preferred().string() );
+    const wxString guide_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/0/index.html");
+    wxString TargetUrl = guide_url + "?target=1";
     //wxLogMessage("GUIDE: webpage_2  %s", TargetUrl.mb_str());
 
     if (startpage == BBL_WELCOME){
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=1").make_preferred().string());
+        TargetUrl = guide_url + "?target=1";
     } else if (startpage == BBL_REGION) {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=11").make_preferred().string());
+        TargetUrl = guide_url + "?target=11";
     } else if (startpage == BBL_MODELS) {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+        TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENTS) {
         SetTitle(_L("Setup Wizard"));
 
         int nSize = m_ProfileJson["model"].size();
 
         if (nSize>0)
-            TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=22").make_preferred().string());
+            TargetUrl = guide_url + "?target=22";
         else
-            TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+            TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENT_ONLY) {
         SetTitle("");
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=23").make_preferred().string());
+        TargetUrl = guide_url + "?target=23";
     } else if (startpage == BBL_MODELS_ONLY) {
         SetTitle("");
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=24").make_preferred().string());
+        TargetUrl = guide_url + "?target=24";
     }
     else {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+        TargetUrl = guide_url + "?target=21";
     }
 
     wxString strlang = wxGetApp().current_language_code_safe();
@@ -256,7 +296,6 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
     if (strlang != "")
         TargetUrl = wxString::Format("%s&lang=%s", w2s(TargetUrl), strlang);
 
-    TargetUrl = "file://" + TargetUrl;
     if (load)
         load_url(TargetUrl);
 
@@ -575,7 +614,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 response["sequence_id"] = "";
 
             if (!m_MainPtr->preset_updater) {
-                response["error"] = "Printer update service is unavailable.";
+                response["error"] = _u8L("Printer update service is unavailable.");
                 wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                 wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
             } else {
@@ -629,7 +668,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                         });
                 } catch (const std::exception &e) {
                     BOOST_LOG_TRIVIAL(warning) << "Failed to check for new printers: " << e.what();
-                    response["error"] = "Failed to check for new printers.";
+                    response["error"] = _u8L("Failed to check for new printers.");
                     wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                     wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
                 }
@@ -798,7 +837,7 @@ int GuideFrame::SaveProfile()
     m_MainPtr->app_config->set_bool("stealth_mode", StealthMode);
 
     //finish
-    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", "1");
+    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", true);
 
     m_MainPtr->app_config->save();
 
@@ -1125,6 +1164,8 @@ bool GuideFrame::run()
 
         app.app_config->set_legacy_datadir(false);
         app.update_mode();
+        if (Plater *plater = app.plater())
+            plater->normalize_bed_types(false);
         // BBS
         //app.obj_manipul()->update_ui_from_settings();
         BOOST_LOG_TRIVIAL(info) << "GuideFrame applied";
@@ -1160,8 +1201,23 @@ bool GuideFrame::run()
 
 int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType)
 {
+    std::unordered_set<std::string> visiting;
+    return GetFilamentInfo(VendorDirectory, pFilaList, filepath, sVendor, sType, visiting);
+}
+
+int GuideFrame::GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList,
+                                const std::string& filepath, std::string& sVendor,
+                                std::string& sType, std::unordered_set<std::string>& visiting)
+{
     //GetStardardFilePath(filepath);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " GetFilamentInfo:VendorDirectory - " << VendorDirectory << ", Filepath - "<<filepath;
+
+    // Path-scoped guard: without it an `inherits` cycle would recurse forever.
+    // The repeated file was not inserted, so the cycle hit has nothing to erase.
+    if (!visiting.insert(filepath).second) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits cycle at " << filepath;
+        return -1;
+    }
 
     // Resolve this file's own vendor/type into LOCAL variables, independent of
     // whatever the caller already accumulated. The cache entry for `filepath`
@@ -1197,41 +1253,30 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
             else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_type";
 
-            if (vendor == "" || type == "") {
-                if (jLocal.contains("inherits")) {
-                    std::string FName = jLocal["inherits"];
+            if (jLocal.contains("inherits")) {
+                std::string FName = jLocal["inherits"];
 
-                    if (!pFilaList.contains(FName)) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
-                        status = -1;
-                    } else {
-                        std::string FPath = pFilaList[FName]["sub_path"];
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
-                        wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
-                        boost::filesystem::path inherits_path(w2s(strNewFile));
-                        if (!boost::filesystem::exists(inherits_path))
-                            inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
-
-                        if (boost::filesystem::exists(inherits_path)) {
-                            // Recurse with this file's own (vendor, type) as the chain accumulator.
-                            status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type);
-                        } else {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
-                            status = -1;
-                        }
-                    }
+                if (!pFilaList.contains(FName)) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
+                    status = -1;
                 } else {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
-                    if (type == "") {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
-                        status = -1;
+                    std::string FPath = pFilaList[FName]["sub_path"];
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
+                    wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
+                    boost::filesystem::path inherits_path(w2s(strNewFile));
+                    if (!boost::filesystem::exists(inherits_path))
+                        inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
+
+                    if (boost::filesystem::exists(inherits_path)) {
+                        // Traverse the full chain for errors; inherited values only fill local gaps.
+                        status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type, visiting);
                     } else {
-                        if (vendor == "")
-                            vendor = "Generic";
-                        status = 0;
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
+                        status = -1;
                     }
                 }
             } else {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
                 status = 0;
             }
         }
@@ -1250,6 +1295,7 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     // Merge this file's resolved values into the caller's out-params (fill empties only).
     if (sVendor.empty()) sVendor = vendor;
     if (sType.empty())   sType   = type;
+    visiting.erase(filepath);
     return status;
 }
 
@@ -1279,7 +1325,7 @@ bool GuideFrame::BuildProfileJson(const PresetBundle& bundle, bool require_all_r
                 entry["vendor"]          = vp.id;
                 entry["nozzle_diameter"] = nozzle_str;
                 entry["materials"]       = materials_str;
-                entry["cover"]           = cover_path.string();
+                entry["cover"]           = into_u8(file_url_from_path(cover_path));
                 entry["nozzle_selected"] = "";
                 entry["sub_path"]        = "";
                 m_ProfileJson["model"].push_back(entry);
@@ -1400,23 +1446,26 @@ bool GuideFrame::BuildProfileDataFromVendors()
         // is served from the shipped profiles. Each is stamped by name and
         // version alone: a profile change requires a version bump, so those two
         // determine content wherever the vendor's copy sits.
-        struct VendorSource { std::string name; boost::filesystem::path dir; std::string version; };
-        std::vector<VendorSource> ordered;
-        auto add_vendor = [&ordered](const std::string& name, const boost::filesystem::path& dir) {
+        std::vector<PresetBundle::VendorSource> ordered;
+        json stamps = json::array();
+        auto add_vendor = [&ordered, &stamps](const std::string& name, const boost::filesystem::path& dir) {
             // The version a load from `dir` would serve: the profile's where one
             // exists (a cache is only served while it covers the profile beside
             // it), the cache's own stamp where the cache is the whole vendor.
             // A profile without a version (blacklist.json) carries no presets
             // and is passed over.
             const boost::filesystem::path profile = dir / (name + ".json");
+            std::string version;
             if (boost::filesystem::exists(profile)) {
                 const Semver v = get_version_from_json(profile.string());
-                if (v.valid())
-                    ordered.push_back({name, dir, v.to_string()});
+                if (! v.valid())
+                    return;
+                version = v.to_string();
             } else {
-                ordered.push_back({name, dir,
-                    VendorCacheFile::peek_version((dir / (name + ".opc")).string(), name)});
+                version = VendorCacheFile::peek_version((dir / (name + ".opc")).string(), name);
             }
+            ordered.push_back({name, dir});
+            stamps.push_back({name, version});
         };
         const std::string filament_library(PresetBundle::ORCA_FILAMENT_LIBRARY);
         if (auto it = vendor_sources.find(filament_library); it != vendor_sources.end())
@@ -1426,9 +1475,6 @@ bool GuideFrame::BuildProfileDataFromVendors()
                 add_vendor(name, dir);
         if (ordered.empty())
             return false;
-        json stamps = json::array();
-        for (const VendorSource& v : ordered)
-            stamps.push_back({v.name, v.version});
 
         // What this function derives is a pure function of that stamped set, so
         // the derived JSON is cached whole: a fresh cache makes an open one
@@ -1456,34 +1502,24 @@ bool GuideFrame::BuildProfileDataFromVendors()
         }
 
         // Each vendor comes from its preset cache where one covers it, which is
-        // what makes this worth doing instead of the scan below; loading into a
-        // bundle per vendor keeps the install order the startup path has.
-        PresetBundle bundle;
-        auto load_vendor = [](PresetBundle& into, const std::string& vendor,
-                              const boost::filesystem::path& dir, const PresetBundle* base) {
-            into.load_vendor_configs_from_json(dir.string(), vendor, PresetBundle::LoadSystem,
-                                               ForwardCompatibilitySubstitutionRule::EnableSilent, base);
-        };
-        for (const VendorSource& v : ordered) {
-            if (*m_cancel_token)
-                return false;   // as in the scan below: a vendor without a cache is parsed, and that takes time
-            if (v.name == filament_library) {
-                load_vendor(bundle, v.name, v.dir, nullptr);
-            } else {
-                PresetBundle tmp;
-                load_vendor(tmp, v.name, v.dir, &bundle);
-                bundle.merge_presets(std::move(tmp));
-            }
-        }
-        if (bundle.vendors.empty())
+        // what makes this worth doing instead of the scan below.
+        PresetBundle             bundle;
+        std::vector<std::string> failed;
+        const std::string errors = bundle.load_vendors(ordered, ForwardCompatibilitySubstitutionRule::EnableSilent,
+                                                       /*allow_cache=*/true, m_cancel_token.get(), &failed).second;
+        if (*m_cancel_token || bundle.vendors.empty())
+            return false;
+        if (! errors.empty())
+            BOOST_LOG_TRIVIAL(warning) << "GuideFrame: loading the vendors reported: " << errors;
+        // A vendor that failed to load sends this open to the scan below, which lists
+        // what it can read of every vendor.
+        if (! failed.empty())
             return false;
         if (! BuildProfileJson(bundle, /*require_all_resource_vendors=*/false))
             return false;
 
         // Written through a temp file and moved into place, as the preset caches
-        // are: half a cache must never be readable, and the PID suffix keeps two
-        // instances from interleaving on one temp file.
-        const std::string tmp_path = cache_file.string() + "." + std::to_string(get_current_pid()) + ".tmp";
+        // are: half a cache must never be readable.
         try {
             json out;
             out["format"]  = 1;
@@ -1492,18 +1528,9 @@ bool GuideFrame::BuildProfileDataFromVendors()
             for (const char* key : { "model", "machine", "filament", "process" })
                 profile[key] = m_ProfileJson[key];
             boost::filesystem::create_directories(cache_file.parent_path());
-            {
-                boost::nowide::ofstream ofs(tmp_path, std::ios::binary | std::ios::trunc);
-                ofs << out.dump(-1, ' ', false, json::error_handler_t::ignore);
-                ofs.close();
-                if (! ofs.good())
-                    throw std::runtime_error("write failed");
-            }
-            if (const std::error_code ec = rename_file(tmp_path, cache_file.string()))
+            if (const std::error_code ec = write_file_atomically(cache_file.string(), out.dump(-1, ' ', false, json::error_handler_t::ignore), /*binary=*/true))
                 throw std::runtime_error(ec.message());
         } catch (const std::exception& e) {
-            boost::system::error_code rm;
-            boost::filesystem::remove(tmp_path, rm);
             BOOST_LOG_TRIVIAL(warning) << "GuideFrame: could not write the profile data cache: " << e.what();
         }
         return true;
@@ -1655,13 +1682,13 @@ int GuideFrame::SaveProfileData()
     return 0;
 }
 
-void StringReplace(string &strBase, string strSrc, string strDes)
+void StringReplace(std::string &strBase, std::string strSrc, std::string strDes)
 {
-    string::size_type pos    = 0;
-    string::size_type srcLen = strSrc.size();
-    string::size_type desLen = strDes.size();
+    std::string::size_type pos    = 0;
+    std::string::size_type srcLen = strSrc.size();
+    std::string::size_type desLen = strDes.size();
     pos                      = strBase.find(strSrc, pos);
-    while ((pos != string::npos)) {
+    while ((pos != std::string::npos)) {
         strBase.replace(pos, srcLen, strDes);
         pos = strBase.find(strSrc, (pos + desLen));
     }
@@ -1727,7 +1754,7 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
                     cover_path = (boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/web/image/printer/") / cover_file)
                                      .make_preferred();
             }
-            OneModel["cover"]                  = cover_path.string();
+            OneModel["cover"]                  = into_u8(file_url_from_path(cover_path));
 
             OneModel["nozzle_selected"] = "";
 
@@ -1803,8 +1830,8 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
                     std::string sT;
 
                     int nRet = GetFilamentInfo(vendor_dir.string(),tFilaList, sub_file, sV, sT);
-                    if (nRet != 0) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Load Filament:" << s1 << ",GetFilamentInfo Failed, Vendor:" << sV << ",Type:"<< sT;
+                    if (nRet != 0 || sV.empty() || sT.empty()) {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Load Filament:" << s1 << ",unresolved vendor/type, Vendor:" << sV << ",Type:"<< sT;
                         continue;
                     }
 

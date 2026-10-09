@@ -1,5 +1,10 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
@@ -8,8 +13,15 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <cmath>
+#include "libslic3r/Config.hpp"
+#include <cstddef>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 #include <string>
+#include <vector>
+#include "libslic3r/clonable_ptr.hpp"
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
@@ -335,6 +347,10 @@ TEST_CASE("The shipped defaults size the tower from the flush matrix", "[WipeTow
     const double flush_volume = WipeTower2::estimate_semm_flush_volume(config, 2);
     const double expected     = std::max(double(WipeTower::get_limit_depth_by_height(5.f)), flush_volume / (0.2 * 50.));
     CHECK_THAT(estimate(config, 2, 0.2, 5.).depth, WithinAbs(expected, 1e-6));
+
+    // The flush volume is nonzero for one slot, but a lone filament makes no tool change.
+    REQUIRE(WipeTower2::estimate_semm_flush_volume(config, 1) > 0.);
+    CHECK_THAT(estimate(config, 1, 0.2, 5.).depth, WithinAbs(0., 1e-9));
 }
 
 TEST_CASE("A config missing a tower key falls back to that key's default", "[WipeTowerEstimate]") {

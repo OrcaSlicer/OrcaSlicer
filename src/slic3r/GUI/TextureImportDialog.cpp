@@ -1,8 +1,12 @@
+#include <array>
+#include <cstdlib>
+#include <functional>
 #include <glad/gl.h>
 #include "OpenGLManager.hpp"
 
 #include "TextureImportDialog.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "ColorDecomposeDialog.hpp"
@@ -13,16 +17,46 @@
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 
+#include <utility>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <vector>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <math.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/TexturePainting.hpp"
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <memory>
+#include <mutex>
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/colordlg.h>
+#include <wx/dc.h>
+#include <wx/colourdata.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
+#include <wx/dialog.h>
 #include <wx/display.h>
+#include <wx/event.h>
 #include <wx/evtloop.h>
+#include <wx/settings.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/popupwin.h>
+#include <wx/glcanvas.h>
+#include <wx/image.h>
+#include <wx/sizer.h>
+#include <wx/object.h>
+#include <wx/spinctrl.h>
+#include <wx/progdlg.h>
+#include <wx/peninfobase.h>
 #include <wx/statline.h>
 #include <wx/scrolwin.h>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 #include <wx/valtext.h>
 
@@ -36,6 +70,8 @@
 #include <sstream>
 
 #include <boost/log/trivial.hpp>
+#include <wx/window.h>
+#include <wx/busycursor.h>
 
 static constexpr const char* DEFAULT_VIRTUAL_FILAMENT_BASIC_TYPE = "PLA Basic";
 static constexpr const char* DEFAULT_VIRTUAL_FILAMENT_SHORT_TYPE = "PLA";
@@ -534,7 +570,7 @@ public:
 
         m_content = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
         m_content->SetBackgroundColour(pop_bg);
-        m_content->SetScrollRate(0, FromDIP(5));
+        m_content->SetScrollRate(0, FromDIP(20));
         auto* outer = new wxBoxSizer(wxVERTICAL);
 
         const int pop_w   = std::max(FromDIP(213), popup_width);
@@ -711,7 +747,7 @@ private:
             : wxColour(128, 128, 128);
 
         wxString name_str = (idx < m_names.size()) ? filament_name_to_wx_string(m_names[idx])
-                                                    : wxString::Format("Filament %d", display_number((int)idx));
+                                                    : wxString::Format(_L("Filament %d"), display_number((int)idx));
         row->SetToolTip(name_str);
 
         row->Bind(wxEVT_PAINT, [this, idx, sq, sq_r, sq_x, gap1, fil_clr, name_str, row_bg, hover_bg, name_fg](wxPaintEvent& e) {
@@ -794,7 +830,7 @@ private:
         row->SetBackgroundColour(row_bg);
         row->SetBackgroundStyle(wxBG_STYLE_PAINT);
         row->SetCursor(wxCursor(wxCURSOR_HAND));
-        row->SetToolTip(entry.name.empty() ? wxString::Format("Filament %d", display_number(idx)) : filament_name_to_wx_string(entry.name));
+        row->SetToolTip(entry.name.empty() ? wxString::Format(_L("Filament %d"), display_number(idx)) : filament_name_to_wx_string(entry.name));
 
         row->Bind(wxEVT_PAINT, [this, entry, idx, row_bg, hover_bg, name_fg](wxPaintEvent& e) {
             auto* p = static_cast<wxPanel*>(e.GetEventObject());
@@ -1756,7 +1792,7 @@ TextureImportDialog::TextureImportDialog(
         entry.dialog_index = (int)i;
         entry.color_hex = texture_normalize_color_hex(entry.color_hex);
         if (entry.name.empty())
-            entry.name = "Filament " + std::to_string(i + 1);
+            entry.name = GUI::format(_u8L("Filament %d"), i + 1);
         m_filament_color_strs.push_back(entry.color_hex);
         m_filament_names.push_back(entry.name);
         m_filament_colors_rgba.push_back(parse_color_string(entry.color_hex));
@@ -2274,7 +2310,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
 
     m_mapping_scroll = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition,
                                              wxSize(-1, FromDIP(300)));
-    m_mapping_scroll->SetScrollRate(0, FromDIP(10));
+    m_mapping_scroll->SetScrollRate(0, FromDIP(20));
     m_mapping_scroll->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_mapping_scroll->Bind(wxEVT_MOUSEWHEEL, &TextureImportDialog::dismiss_filament_popup_on_wheel, this);
 
@@ -2551,7 +2587,7 @@ void TextureImportDialog::on_computation_complete(wxCommandEvent&)
         m_filament_entries[i].color_hex = i < m_filament_color_strs.size() ?
             texture_normalize_color_hex(m_filament_color_strs[i]) : "#808080";
         m_filament_entries[i].name = i < m_filament_names.size() ?
-            m_filament_names[i] : "Filament " + std::to_string(i + 1);
+            m_filament_names[i] : GUI::format(_u8L("Filament %d"), i + 1);
     }
     m_new_filament_colors.clear();
     m_new_filament_preset_names.clear();
@@ -2954,7 +2990,7 @@ void TextureImportDialog::compact_used_virtual_filaments()
     for (size_t i = 0; i < existing_count; ++i) {
         compact_colors.push_back(old_colors[i]);
         compact_color_strs.push_back(i < old_color_strs.size() ? old_color_strs[i] : "");
-        compact_names.push_back(i < old_names.size() ? old_names[i] : "Filament " + std::to_string(i + 1));
+        compact_names.push_back(i < old_names.size() ? old_names[i] : GUI::format(_u8L("Filament %d"), i + 1));
         TextureFilamentEntry entry = i < old_entries.size() ? old_entries[i] : TextureFilamentEntry{};
         entry.dialog_index = (int)i;
         entry.color_hex = texture_normalize_color_hex(compact_color_strs.back());
@@ -3480,7 +3516,7 @@ void TextureImportDialog::show_filament_popup(size_t row_index)
         if (m_mapping_rows[row_index].target_panel) {
             wxString label = (idx >= 0 && idx < (int)m_filament_names.size())
                 ? filament_name_to_wx_string(m_filament_names[idx])
-                : wxString::Format("Filament %d", display_number(idx));
+                : wxString::Format(_L("Filament %d"), display_number(idx));
             m_mapping_rows[row_index].target_panel->SetToolTip(label);
             m_mapping_rows[row_index].target_panel->Refresh();
         }
@@ -3629,7 +3665,7 @@ void TextureImportDialog::do_auto_match()
         // Match clusters to closest existing filaments
         std::vector<std::string> names;
         for (size_t i = 0; i < m_existing_filament_count; ++i)
-            names.push_back(m_filament_names.size() > i ? m_filament_names[i] : "Filament " + std::to_string(i + 1));
+            names.push_back(m_filament_names.size() > i ? m_filament_names[i] : GUI::format(_u8L("Filament %d"), i + 1));
 
         std::vector<std::array<float, 4>> existing_filament_colors(
             m_filament_colors_rgba.begin(),
@@ -3726,7 +3762,7 @@ void TextureImportDialog::rebuild_mapping_rows()
     auto get_filament_label = [this, display_number](int idx) -> wxString {
         if (idx >= 0 && idx < (int)m_filament_names.size())
             return filament_name_to_wx_string(m_filament_names[idx]);
-        return wxString::Format("Filament %d", display_number(idx));
+        return wxString::Format(_L("Filament %d"), display_number(idx));
     };
 
     const wxColour dash_clr   = StateColor::darkModeColorFor(wxColour("#ACACAC"));
@@ -4335,7 +4371,7 @@ void TextureImportDialog::on_dpi_changed(const wxRect&)
 
     if (m_mapping_scroll) {
         m_mapping_scroll->SetMinSize(wxSize(-1, FromDIP(300)));
-        m_mapping_scroll->SetScrollRate(0, FromDIP(10));
+        m_mapping_scroll->SetScrollRate(0, FromDIP(20));
     }
 
     if (m_btn_skip) {

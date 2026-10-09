@@ -1,9 +1,11 @@
 #include <catch2/catch_all.hpp>
-#include "test_utils.hpp"
+#include <catch2/catch_test_macros.hpp>
 
+#include <cstdlib>
 #include <libslic3r/Optimize/BruteforceOptimizer.hpp>
 
-#include <libslic3r/Optimize/NLoptOptimizer.hpp>
+#include "libslic3r/Optimize/Optimizer.hpp"
+#include "libslic3r/libslic3r.h"
 
 void check_opt_result(double score, double ref, double abs_err, double rel_err)
 {

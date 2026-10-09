@@ -2,7 +2,6 @@
 #include "GCodeViewer.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
@@ -10,30 +9,71 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 //BBS: add convex hull logic for toolpath check
-#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
-#include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
-#include "GUI_Preview.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/Layer.hpp"
-#include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
+#include <boost/container_hash/hash.hpp>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <string>
+#include "libvgcode/include/Types.hpp"
+#include <vector>
+#include <utility>
+#include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/Point.hpp"
+#include <math.h>
+#include "libvgcode/include/Viewer.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
+#include <cassert>
+#include <cstdint>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include "slic3r/GUI/IMSlider.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <exception>
+#include <iterator>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
+#include "libvgcode/include/ColorRange.hpp"
+#include <optional>
+#include "libslic3r_version.h"
+#include <wx/busycursor.h>
+#include "libslic3r/Slicing.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <map>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/slider.h>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <string_view>
+#include <functional>
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -46,6 +86,17 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+using namespace std::string_view_literals;
+
+namespace Slic3r { class PrintBase; }
 
 
 namespace Slic3r {
@@ -102,6 +153,31 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
     else if (view_type == libvgcode::EViewType::PressureAdvance)
         return _u8L("Pressure Advance");
     return "";
+}
+
+// ORCA: Stable, locale independent names used to persist a view type in the application config.
+// Keep these in sync with the entries of libvgcode::EViewType exposed in the preview combo box.
+static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_type_config_map()
+{
+    static const std::vector<std::pair<std::string, libvgcode::EViewType>> map = {
+        { "summary",                      libvgcode::EViewType::Summary },
+        { "feature_type",                 libvgcode::EViewType::FeatureType },
+        { "color_print",                  libvgcode::EViewType::ColorPrint },
+        { "speed",                        libvgcode::EViewType::Speed },
+        { "actual_speed",                 libvgcode::EViewType::ActualSpeed },
+        { "acceleration",                 libvgcode::EViewType::Acceleration },
+        { "jerk",                         libvgcode::EViewType::Jerk },
+        { "height",                       libvgcode::EViewType::Height },
+        { "width",                        libvgcode::EViewType::Width },
+        { "volumetric_flow_rate",         libvgcode::EViewType::VolumetricFlowRate },
+        { "actual_volumetric_flow_rate",  libvgcode::EViewType::ActualVolumetricFlowRate },
+        { "layer_time_linear",            libvgcode::EViewType::LayerTimeLinear },
+        { "layer_time_logarithmic",       libvgcode::EViewType::LayerTimeLogarithmic },
+        { "fan_speed",                    libvgcode::EViewType::FanSpeed },
+        { "temperature",                  libvgcode::EViewType::Temperature },
+        { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
+    };
+    return map;
 }
 
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
@@ -601,7 +677,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+
+                ImVec4 scroll_col    = ImVec4(0.77f, 0.77f, 0.77f, m_is_dark ? .6f : 1.0f); // same color with sliced plates toolbar scrollbar
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f)); // ORCA using background color with opacity creates a second color. This prevents secondary color
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, scroll_col);
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered , style.Colors[ImGuiCol_TableHeaderBg]);
+
                 const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.f, plot_height});
                 const ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | (needs_scroll ? ImGuiTableFlags_ScrollY : 0);
                 if (ImGui::BeginTable("ToolPositionTable", 2, table_flags, ImVec2(0.0f, needs_scroll ? table_view_h : 0.0f))) {
@@ -629,7 +712,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGui::EndTable();
                 }
                 ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(1);
+                ImGui::PopStyleColor(5);
                 imgui.end();
             }
 
@@ -997,13 +1080,17 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
     }
 }
-void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
-    if (has_render_path && m_show_marker) {
+    if (has_render_path && m_show_marker)
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
+}
+
+void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+{
+    if (has_render_path && m_show_marker)
         marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
-    }
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
     // BBS
@@ -1087,9 +1174,7 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
     // Default view type at first slice.
     // May be overridden in load() once we know how many tools are actually used in the G-code.
     m_nozzle_nums = preset_bundle ? preset_bundle->get_printer_extruder_count() : 1;
-    auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-    m_view_type_sel = (it != view_type_items.end()) ? std::distance(view_type_items.begin(), it) : 0;
-    set_view_type(libvgcode::EViewType::FeatureType);
+    apply_default_view_type();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished");
 }
@@ -1108,6 +1193,73 @@ void GCodeViewer::set_scale(float scale)
         m_sequential_view.marker.m_scale = scale;
         m_sequential_view.gcode_window.m_scale = scale; // ORCA
     }
+}
+
+// ORCA: Preview default view type preference, see "preview_default_view_type" in the application config.
+std::string GCodeViewer::view_type_to_config_name(libvgcode::EViewType type)
+{
+    for (const auto& [name, value] : view_type_config_map()) {
+        if (value == type)
+            return name;
+    }
+    return std::string();
+}
+
+bool GCodeViewer::view_type_from_config_name(const std::string& name, libvgcode::EViewType& type)
+{
+    for (const auto& [config_name, value] : view_type_config_map()) {
+        if (config_name == name) {
+            type = value;
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::pair<std::string, std::string>> GCodeViewer::default_view_type_choices()
+{
+    std::vector<std::pair<std::string, std::string>> choices = {
+        { "auto", _u8L("Automatic") },
+        { "last", _u8L("Last used") },
+    };
+    for (const auto& [name, type] : view_type_config_map())
+        choices.push_back({ name, get_view_type_string(type) });
+    return choices;
+}
+
+void GCodeViewer::select_view_type(libvgcode::EViewType type)
+{
+    auto it = std::find(view_type_items.begin(), view_type_items.end(), type);
+    m_view_type_sel = (it != view_type_items.end()) ? static_cast<int>(std::distance(view_type_items.begin(), it)) : 0;
+    set_view_type(type);
+}
+
+// ORCA: Pick the view type the preview opens with, following the "preview_default_view_type" preference:
+// a fixed view type, the one the user picked last ("last"), or the automatic choice ("auto", the default)
+// which shows Filament for multi material prints and Line Type for single material ones.
+// The default is only (re)applied when it actually changes, so a view type picked by hand survives a reslice.
+void GCodeViewer::apply_default_view_type()
+{
+    const std::string preference = wxGetApp().app_config->get("preview_default_view_type");
+
+    std::string key = preference;
+    libvgcode::EViewType type = libvgcode::EViewType::FeatureType;
+    if (preference == "last") {
+        if (!view_type_from_config_name(wxGetApp().app_config->get("preview_last_view_type"), type))
+            type = libvgcode::EViewType::FeatureType;
+    }
+    else if (!view_type_from_config_name(preference, type)) {
+        // "auto", or an unknown value written by a newer version
+        const bool multi_material = m_viewer.get_used_extruders_count() > 1;
+        type = multi_material ? libvgcode::EViewType::ColorPrint : libvgcode::EViewType::FeatureType;
+        key = multi_material ? "auto_multi_material" : "auto_single_material";
+    }
+
+    if (m_applied_default_view_type_key == key)
+        return;
+
+    m_applied_default_view_type_key = key;
+    select_view_type(type);
 }
 
 void GCodeViewer::update_by_mode(ConfigOptionMode mode)
@@ -1349,6 +1501,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed
             });
     m_paths_bounding_box = BoundingBoxf3(libvgcode::convert(bbox[0]).cast<double>(), libvgcode::convert(bbox[1]).cast<double>());
+    m_max_bounding_box = m_paths_bounding_box;
 
     if (wxGetApp().is_editor())
         m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);
@@ -1391,27 +1544,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
-    // ORCA: Apply smart default view type when extruder count changes.
-    // Multi-color: ColorPrint (Filament), Single-color: FeatureType (Line Type).
-    // User selections persist within same extruder count, defaults reapply on count change.
-    int current_count = m_viewer.get_used_extruders_count();
-    if (current_count > 1) {
-        if (m_last_extruder_count_default_applied != 2) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::ColorPrint);
-            m_last_extruder_count_default_applied = 2;
-        }
-    } else {
-        if (m_last_extruder_count_default_applied != 1) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::FeatureType);
-            m_last_extruder_count_default_applied = 1;
-        }
-    }
+    // ORCA: Apply the default view type now that we know how many tools the G-code actually uses.
+    apply_default_view_type();
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
@@ -1618,15 +1752,87 @@ void GCodeViewer::reset()
 }
 
 //BBS: GUI refactor: add canvas width and height
-void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_shells(canvas_width, canvas_height);
 
-    if (m_viewer.get_extrusion_roles().empty())
+    if (m_viewer.get_extrusion_roles_count() == 0)
         return;
 
     render_toolpaths();
+
+    auto current = m_viewer.get_view_visible_range();
+    auto endpoints = m_viewer.get_view_full_range();
+    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
+    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
+}
+
+size_t GCodeViewer::shadow_casters_signature() const
+{
+    size_t hash = m_viewer.get_vertices_count();
+    const libvgcode::Interval& visible = m_viewer.get_view_visible_range();
+    const libvgcode::Interval& layers  = m_viewer.get_layers_view_range();
+    for (size_t value : { size_t(visible[0]), size_t(visible[1]), size_t(layers[0]), size_t(layers[1]) })
+        boost::hash_combine(hash, value);
+    for (double value : { m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y(), m_paths_bounding_box.min.z(),
+                          m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
+        boost::hash_combine(hash, value);
+    boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
+        boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Wipes));
+    for (float value : m_clipping_plane)
+        boost::hash_combine(hash, value);
+    return hash;
+}
+
+void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position)
+{
+    if (!has_data())
+        return;
+
+    m_viewer.render_shadow_casters(
+        libvgcode::convert(static_cast<Matrix4f>(light_view_matrix.matrix().cast<float>())),
+        libvgcode::convert(static_cast<Matrix4f>(light_projection_matrix.matrix().cast<float>())),
+        libvgcode::convert(static_cast<Vec3f>(light_position.cast<float>())));
+}
+
+void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size)
+{
+    m_viewer.set_shadow_map(texture_unit,
+        libvgcode::convert(static_cast<Matrix4f>(light_view_projection.matrix().cast<float>())),
+        intensity, texel_size);
+}
+
+void GCodeViewer::set_light_top_dir(const Vec3d& direction)
+{
+    m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
+}
+
+void GCodeViewer::set_tone(float exposure, float saturation)
+{
+    m_viewer.set_tone(exposure, saturation);
+}
+
+void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
+{
+    // Flipped to match ClippingPlane::distance().
+    const Vec3f normal = -plane.get_normal().cast<float>();
+    m_clipping_plane = plane.is_active() ?
+        std::array<float, 4>{ normal.x(), normal.y(), normal.z(), float(plane.get_offset()) } :
+        std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+    m_viewer.set_clipping_plane(m_clipping_plane);
+}
+
+void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
+{
+    if (m_viewer.get_extrusion_roles().empty())
+        return;
 
     float legend_height = 0.0f;
     render_legend(legend_height, canvas_width, canvas_height, right_margin);
@@ -1636,16 +1842,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
         m_user_mode = wxGetApp().get_mode();
     }
 
-    //BBS fixed bottom_margin for space to render horiz slider
-    int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
-    auto current = m_viewer.get_view_visible_range();
-    auto endpoints = m_viewer.get_view_full_range();
-    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
-    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
-    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
-    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
-    // BBS fixed buttom margin. m_moves_slider.pos_y
-    m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
+    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
@@ -1684,6 +1881,14 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
     //BBS render slider
     render_slider(canvas_width, canvas_height);
+}
+
+int GCodeViewer::sequential_view_height(int canvas_height) const
+{
+    //BBS fixed bottom_margin for space to render horiz slider
+    const int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
+    // BBS fixed buttom margin. m_moves_slider.pos_y
+    return canvas_height - bottom_margin * m_scale;
 }
 
 #define ENABLE_CALIBRATION_THUMBNAIL_OUTPUT 0
@@ -2613,7 +2818,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         return ret;
     };
-    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
         const ImGuiStyle& style = ImGui::GetStyle();
         std::vector<float> offsets;
         offsets.push_back(max_width(title_columns[0].second, title_columns[0].first, extra_size) + 3.0f * style.ItemSpacing.x + style.WindowPadding.x);
@@ -2760,7 +2965,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ::sprintf(buff, "%.2f", longest_str);
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), {buff} });
@@ -2992,8 +3197,8 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
                 for (int j = idx; j < extruder_filaments.size() && j < idx + line_capacity; ++j) {
                     auto text_info = imgui.calculate_filament_group_text_size(get_filament_display_type(extruder_filaments[j]));
                     auto text_size = std::get<0>(text_info);
-                    filament_group_item_align_width = max(filament_group_item_align_width, text_size.x);
-                    text_line_height = max(text_line_height, text_size.y);
+                    filament_group_item_align_width = std::max(filament_group_item_align_width, text_size.x);
+                    text_line_height = std::max(text_line_height, text_size.y);
                 }
                 container_height += (three_words_width * 1.3f + text_line_height );
             }
@@ -3386,7 +3591,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
-    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
             const ImGuiStyle& style = ImGui::GetStyle();
             std::vector<float> offsets;
             // ORCA increase spacing for more readable format. Using direct number requires much less code change in here. GetTextLineHeight for additional spacing for icon_size
@@ -3409,14 +3614,23 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         std::vector<std::pair<ColorRGBA, std::pair<double, double>>> ret;
         ret.reserve(custom_gcode_per_print_z.size());
 
+        // Loop invariant, but built lazily: this lambda runs once per extruder on every frame
+        // and most prints reach neither colour change below, so fetching it up front would cost
+        // more than the per-item fetch it replaces.
+        std::vector<float> zs;
+        bool zs_built = false;
+
         for (const auto& item : custom_gcode_per_print_z) {
             if (extruder_id + 1 != static_cast<unsigned char>(item.extruder))
                 continue;
 
-            if (item.type != ColorChange)
+            if (item.type != CustomGCode::ColorChange)
                 continue;
 
-            const std::vector<float> zs = m_viewer.get_layers_zs();
+            if (!zs_built) {
+                zs = m_viewer.get_layers_zs();
+                zs_built = true;
+            }
             auto lower_b = std::lower_bound(zs.begin(), zs.end(),
                 static_cast<float>(item.print_z - epsilon()));
             if (lower_b == zs.end())
@@ -3541,6 +3755,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 m_view_type_sel = i;
                 set_view_type(view_type_items[m_view_type_sel]);
                 reset_visible(view_type_items[m_view_type_sel]);
+                // ORCA: remember the pick so the "Last used" preview default can restore it
+                const std::string view_type_name = view_type_to_config_name(view_type_items[m_view_type_sel]);
+                if (!view_type_name.empty())
+                    wxGetApp().app_config->set("preview_last_view_type", view_type_name);
                 update_moves_slider();
             #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
                 imgui.set_requires_extra_frame();
@@ -3798,7 +4016,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         total_filaments.push_back(buffer);
 
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), total_filaments });
@@ -4565,16 +4783,18 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
         // ORCA: Get layer Zs as doubles
         std::vector<double> layer_zs = get_layers_zs();
+        // loop invariant, same reason as the layer Zs above
+        const std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
 
         for (Slic3r::CustomGCode::Item custom_gcode : custom_gcode_per_print_z) {
             ImGui::Dummy({window_padding, window_padding});
             ImGui::SameLine();
 
             switch (custom_gcode.type) {
-            case PausePrint: imgui.text(cgcode_pause_str); break;
-            case Template: imgui.text(cgcode_template_str); break;
-            case ToolChange: imgui.text(cgcode_toolchange_str); break;
-            case Custom: imgui.text(cgcode_custom_str); break;
+            case CustomGCode::PausePrint: imgui.text(cgcode_pause_str); break;
+            case CustomGCode::Template: imgui.text(cgcode_template_str); break;
+            case CustomGCode::ToolChange: imgui.text(cgcode_toolchange_str); break;
+            case CustomGCode::Custom: imgui.text(cgcode_custom_str); break;
             default: imgui.text(cgcode_unknown_str); break;
             }
             ImGui::SameLine(max_len);
@@ -4584,7 +4804,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
 
-            std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
             float custom_gcode_time = 0;
             if (layer > 0)
             {
@@ -4633,7 +4852,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::string print_str = _u8L("Model printing time");
     std::string total_str = _u8L("Total time");
     float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
-    if (m_viewer.get_layers_estimated_times().empty())
+    if (m_viewer.get_layers_count() == 0)
         max_len += ImGui::CalcTextSize(total_str.c_str()).x;
     else {
         if (m_viewer.get_view_type() == libvgcode::EViewType::FeatureType)

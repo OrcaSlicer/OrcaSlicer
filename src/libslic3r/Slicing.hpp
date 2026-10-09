@@ -3,10 +3,12 @@
 #ifndef slic3r_Slicing_hpp_
 #define slic3r_Slicing_hpp_
 
+#include <cassert>
 #include <cstring>
 #include <map>
 #include <set>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "libslic3r.h"

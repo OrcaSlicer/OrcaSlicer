@@ -1,12 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Prusa XL",
-	"renamed_from": "Prusa Generic PETG @XL;Prusa Generic PETG XL",
+	"renamed_from": "Prusa Generic PETG @XL;Prusa Generic PETG XL;Generic PETG @Prusa XL 5T;Prusa Generic PETG @XL 5T;Prusa Generic PETG XL 5T",
 	"inherits": "Generic PETG @Prusa base",
 	"from": "system",
 	"setting_id": "8vcNv4b4H7aYA01G",
 	"instantiation": "true",
-	"nozzle_temperature_intial_layer": "230",
 	"nozzle_temperature": "240",
 	"hot_plate_temp_initial_layer": "80",
 	"hot_plate_temp": "80",
@@ -52,6 +51,30 @@
 		"Prusa XL 0.4 nozzle",
 		"Prusa XL 0.5 nozzle",
 		"Prusa XL 0.6 nozzle",
-		"Prusa XL 0.8 nozzle"
+		"Prusa XL 0.8 nozzle",
+		"Prusa XL 5T 0.25 nozzle",
+		"Prusa XL 5T 0.3 nozzle",
+		"Prusa XL 5T 0.4 nozzle",
+		"Prusa XL 5T 0.5 nozzle",
+		"Prusa XL 5T 0.6 nozzle",
+		"Prusa XL 5T 0.8 nozzle"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"40"
+	],
+	"filament_multitool_ramming_volume": [
+		"5"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"29"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
 	]
 }

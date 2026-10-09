@@ -1,14 +1,58 @@
 #include "GLGizmoBrimEars.hpp"
+#include <cstddef>
+#include <Eigen/Geometry>
+#include <algorithm>
+#include <cereal/archives/binary.hpp>
+#include <cmath>
+#include <cstdint>
 #include <glad/gl.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <utility>
+#include "slic3r/GUI/Event.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <limits>
+#include <vector>
+#include <imgui.h>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/MultiPoint.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Model.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <map>
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "GLGizmoUtils.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -46,10 +90,9 @@ bool GLGizmoBrimEars::on_init()
 {
     m_new_point_head_radius = get_brim_default_radius();
 
-    m_shortcut_key = WXK_CONTROL_E;
+    m_shortcut = Shortcut::GizmoBrimEars;
 
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
-    const wxString alt  = GUI::shortkey_alt_prefix();
 
     m_desc["brim_ear_radius"]       = _L("Brim ear radius");
     m_desc["max_angle"]             = _L("Max angle");
@@ -60,13 +103,11 @@ bool GLGizmoBrimEars::on_init()
     m_desc["create"]                = _L("Create");
     m_desc["auto_generate"]         = _L("Auto-generate");
     m_desc["auto-generate-tooltip"] = _L("Generate brim ears using Max angle and Detection radius");
-    m_desc["section_view"]          = _L("Section view");
 
     m_shortcuts = {
         {_L("Left mouse button"),   _L("Add or Select")},
         {_L("Right mouse button"),  _L("Remove")},
         {ctrl + _L("Mouse wheel"),  m_desc["brim_ear_radius"]},
-        {alt + _L("Mouse wheel"),   m_desc["section_view"]},
     };
 
     return true;
@@ -515,26 +556,6 @@ bool GLGizmoBrimEars::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_p
         apply_radius_change();
     }
 
-    if (action == SLAGizmoEventType::MouseWheelUp && alt_down) {
-        double pos = m_c->object_clipper()->get_position();
-        pos        = std::min(1., pos + 0.01);
-        m_c->object_clipper()->set_position_by_ratio(pos, false, true);
-        return true;
-    }
-
-    if (action == SLAGizmoEventType::MouseWheelDown && alt_down) {
-        double pos = m_c->object_clipper()->get_position();
-        pos        = std::max(0., pos - 0.01);
-        m_c->object_clipper()->set_position_by_ratio(pos, false, true);
-        return true;
-    }
-
-    // reset clipper position
-    if (action == SLAGizmoEventType::ResetClippingPlane) {
-        m_c->object_clipper()->set_position_by_ratio(-1., false);
-        return true;
-    }
-
     return false;
 }
 
@@ -656,8 +677,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     float                 space_size      = m_imgui->get_style_scaling() * 8;
-    std::vector<wxString> text_list       = {m_desc["brim_ear_radius"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"],
-                                             m_desc["create"], m_desc["remove"]};
+    std::vector<wxString> text_list       = {m_desc["brim_ear_radius"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["create"],
+                                             m_desc["remove"]};
     float                 widest_text     = m_imgui->find_widest_text(text_list);
     float                 caption_size    = widest_text + space_size + ImGui::GetStyle().WindowPadding.x;
     float                 input_text_size = m_imgui->scaled(10.0f);
@@ -746,21 +767,6 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
     }
     m_imgui->disabled_end();
-        
-    ImGui::Separator();
-
-    ImGui::AlignTextToFramePadding();
-    float clp_dist = float(m_c->object_clipper()->get_position());
-    m_imgui->text(m_desc["section_view"]);
-    ImGui::SameLine(caption_size);
-    ImGui::PushItemWidth(slider_width);
-    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##section_view", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_clp_dist_input = ImGui::BBLDragFloat("##section_view_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) {
-        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true);
-    }
 
     ImGui::Separator();
 

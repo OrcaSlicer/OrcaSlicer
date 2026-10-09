@@ -2,11 +2,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include "libslic3r/Polygon.hpp"
 #include <limits>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Fill/FillCornerSmoothing.hpp"
 #include "libslic3r/Polyline.hpp"
-#include "libslic3r/libslic3r.h"
 
 using namespace Slic3r;
 

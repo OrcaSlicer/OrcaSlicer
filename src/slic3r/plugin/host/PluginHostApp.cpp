@@ -1,4 +1,5 @@
 #include "PluginHostBindings.hpp"
+#include <pybind11/pybind11.h>
 
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
@@ -8,6 +9,8 @@
 
 #include <memory>
 #include <stdexcept>
+#include <wx/app.h>
+#include <string>
 
 namespace py = pybind11;
 

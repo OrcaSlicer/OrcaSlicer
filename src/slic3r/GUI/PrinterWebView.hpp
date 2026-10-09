@@ -6,6 +6,8 @@
 #include "wx/cmdline.h"
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
+#include <wx/setup.h>
+#include <wx/event.h>
 #include <wx/webview.h>
 #include <wx/string.h>
 
@@ -26,6 +28,7 @@
 #include "wx/textctrl.h"
 #include <wx/timer.h>
 #include <memory>
+#include "Lazy.hpp"
 
 
 namespace Slic3r {
@@ -34,7 +37,7 @@ namespace GUI {
 class PrinterWebViewHandler;
 
 
-class PrinterWebView : public wxPanel {
+class PrinterWebView : public wxPanel, public LazyInstance<PrinterWebView> {
 public:
     PrinterWebView(wxWindow *parent);
     virtual ~PrinterWebView();
@@ -55,13 +58,18 @@ private:
     friend class PrinterWebViewHandler;
 
     void SendAPIKey();
+    void create_browser();
+    void reset_browser();
 
     wxWebView* m_browser;
     long m_zoomFactor;
     wxString m_apikey;
     bool m_apikey_sent;
+    // Last url passed to load_url(), reloaded after reset_browser().
+    wxString m_url;
     wxString m_url_deferred;
     std::unique_ptr<PrinterWebViewHandler> m_handler;
+    bool m_reset_on_show{false};
 
     // DECLARE_EVENT_TABLE()
 };

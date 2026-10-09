@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Anycubic",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Anycubic Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "jKvjWU6rcHvWblWC",
 	"filament_id": "OFY9muEs",

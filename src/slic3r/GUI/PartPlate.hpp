@@ -1,11 +1,27 @@
 #ifndef __part_plate_hpp_
 #define __part_plate_hpp_
 
+#include <cmath>
+#include "libslic3r/Config.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include <map>
+#include <cstddef>
+#include <cereal/access.hpp>
+#include <cereal/specialize.hpp>
 #include <vector>
 #include <set>
 #include <array>
 #include <thread>
 #include <mutex>
+#include <wx/types.h>
 
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -197,7 +213,7 @@ private:
     // void render_left_arrow(const ColorRGBA render_color, bool use_lighting) const;
     // void render_right_arrow(const ColorRGBA render_color, bool use_lighting) const;
     void render_icon_texture(GLModel &buffer, GLTexture &texture);
-    void show_tooltip(const std::string tooltip);
+    void set_hover_tooltip(const std::string& tooltip);
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
@@ -428,7 +444,7 @@ public:
     bool contains(const BoundingBoxf3& bb) const;
     bool intersects(const BoundingBoxf3& bb) const;
 
-    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1, bool render_cali = false, bool show_grid = true, bool hide_chrome = false);
 
     void set_selected();
     void set_unselected();
@@ -640,8 +656,11 @@ class PartPlateList : public ObjectBase
     bool render_bedtype_logo = true;
     bool render_plate_settings = true;
     bool render_cali_logo = true;
+    // Tooltip of the plate icon the last scene pass drew hovered; the canvas overlay shows it.
+    std::string m_hover_tooltip;
 
     bool m_is_dark = false;
+    bool m_icon_textures_dark = false;
 
     int m_filament_count = 1;
 
@@ -857,9 +876,11 @@ public:
 
     /*rendering related functions*/
     void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
-    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current = false, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current = false, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true, bool hide_chrome = false);
     void set_render_option(bool bedtype_texture, bool plate_settings);
     void set_render_cali(bool value = true) { render_cali_logo = value; }
+    void render_hover_tooltip() const;
+    void clear_hover_tooltip() { m_hover_tooltip.clear(); }
     void register_raycasters_for_picking(GLCanvas3D& canvas)
     {
         for (auto plate : m_plate_list)
@@ -939,12 +960,25 @@ public:
     bool calc_extruder_only_area(Rect &left_only_rect, Rect &right_only_rect);
     void init_bed_type_info();
     bool init_extruder_only_area_info();
+    // Each load_*_textures() loads whatever of its set is not loaded yet; each load_next_*()
+    // loads one texture and returns false once none remain.
     void load_bedtype_textures();
+    bool load_next_bedtype_texture();
     void load_extruder_only_area_textures();
+    bool load_next_extruder_only_area_texture();
+    // Starts loading the printer's logo texture, or sends the levels compressed since; false when
+    // there is no logo to draw.
+    bool load_logo_texture();
 
     void show_cali_texture(bool show = true);
     void init_cali_texture_info();
     void load_cali_textures();
+    bool load_next_cali_texture();
+    bool icon_textures_loaded() const { return m_del_texture.get_id() != 0 && m_icon_textures_dark == m_is_dark; }
+    void load_icon_textures();
+    // Loads the next bed-type, calibration or extruder-area texture, or the logo, which rendering
+    // otherwise loads on first use; false once none remain.
+    bool load_next_plate_texture();
 
     void on_extruder_count_changed(int extruder_count);
 
@@ -956,6 +990,13 @@ public:
     BedTextureInfo bed_texture_info[btCount];
     BedTextureInfo cali_texture_info;
     BedTextureInfo extruder_only_area_info[(unsigned char) Slic3r::ExtruderOnlyAreaType::btAreaCount];
+
+private:
+    // The next part to load in each texture set, counted across the set's parts in order; reset
+    // with the set's is_load_* flag.
+    size_t m_next_bedtype_texture{ 0 };
+    size_t m_next_cali_texture{ 0 };
+    size_t m_next_extruder_only_area_texture{ 0 };
 };
 
 } // namespace GUI

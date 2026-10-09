@@ -73,12 +73,12 @@
 		"20000"
 	],
 	"machine_max_acceleration_z": [
-		"250",
-		"500"
+		"50",
+		"100"
 	],
 	"machine_max_speed_z": [
-		"25",
-		"12"
+		"5",
+		"10"
 	],
 	"machine_max_acceleration_retracting": [
 		"5000",

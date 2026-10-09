@@ -5,6 +5,7 @@
 //#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
@@ -12,7 +13,22 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <algorithm>
+#include <array>
 #include <glad/gl.h>
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <wx/busycursor.h>
+#include <vector>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 
 namespace Slic3r::GUI {
@@ -28,14 +44,11 @@ void GLGizmoSeam::on_shutdown()
 
 bool GLGizmoSeam::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_P;
+    m_shortcut = Shortcut::GizmoSeam;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
-    const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view"] = _L("Section view");
-    m_desc["reset_direction"]  = _L("Reset direction");
     m_desc["cursor_size"]      = _L("Brush size");
     m_desc["tool_type"]        = _L("Tool type");
     m_desc["enforce"]          = _L("Enforce seam");
@@ -49,8 +62,7 @@ bool GLGizmoSeam::on_init()
         {_L("Left mouse button"),           m_desc["enforce"]},
         {_L("Right mouse button"),          m_desc["block"]},
         {shift + _L("Left mouse button"),   m_desc["remove"]},
-        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]},
-        {alt + _L("Mouse wheel"),           m_desc["clipping_of_view"]}
+        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]}
     };
 
     return true;
@@ -86,19 +98,12 @@ void GLGizmoSeam::render_painter_gizmo()
     glsafe(::glDisable(GL_BLEND));
 }
 
-// BBS
-bool GLGizmoSeam::on_key_down_select_tool_type(int keyCode) {
-    switch (keyCode)
-    {
-    case 'S':
-        m_current_tool = ImGui::SphereButtonIcon;
-        break;
-    case 'C':
-        m_current_tool = ImGui::CircleButtonIcon;
-        break;
-    default:
-        return false;
-        break;
+bool GLGizmoSeam::on_tool_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::PaintToolSphere: m_current_tool = ImGui::SphereButtonIcon; break;
+    case Shortcut::PaintToolCircle: m_current_tool = ImGui::CircleButtonIcon; break;
+    default: return false;
     }
     return true;
 }
@@ -147,20 +152,17 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
     const float space_size = m_imgui->get_style_scaling() * 8;
-    const float clipping_slider_left = std::max(m_imgui->calc_text_size(m_desc.at("clipping_of_view")).x,
-                                                m_imgui->calc_text_size(m_desc.at("reset_direction")).x + ImGui::GetStyle().FramePadding.x * 2)
-                                           + m_imgui->scaled(1.5f);
     const float cursor_size_slider_left = m_imgui->calc_text_size(m_desc.at("cursor_size")).x + m_imgui->scaled(1.f);
     const float empty_button_width      = m_imgui->calc_button_size("").x;
 
     float caption_max    = 0.f;
     float total_text_max = 0.f;
-    for (const auto &t : std::array<std::string, 6>{"enforce", "block", "remove", "cursor_size", "clipping_of_view"}) {
+    for (const auto &t : std::array<std::string, 4>{"enforce", "block", "remove", "cursor_size"}) {
         caption_max    = std::max(caption_max, m_imgui->calc_text_size(m_desc[t + "_caption"]).x);
         total_text_max = std::max(total_text_max, m_imgui->calc_text_size(m_desc[t]).x);
     }
 
-    const float sliders_left_width = std::max(cursor_size_slider_left, clipping_slider_left);
+    const float sliders_left_width = cursor_size_slider_left;
     const float slider_icon_width  = m_imgui->get_slider_icon_size().x;
 
     const float sliders_width = m_imgui->scaled(7.0f);
@@ -233,28 +235,6 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
     m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
-
-    ImGui::Separator();
-    if (m_c->object_clipper()->get_position() == 0.f) {
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(m_desc.at("clipping_of_view"));
-    }
-    else {
-        if (m_imgui->button(m_desc.at("reset_direction"))) {
-            wxGetApp().CallAfter([this](){
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                });
-        }
-    }
-
-    auto clp_dist = float(m_c->object_clipper()->get_position());
-    ImGui::SameLine(sliders_left_width);
-    ImGui::PushItemWidth(sliders_width);
-    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width + sliders_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
 
     ImGui::Separator();
 

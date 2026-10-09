@@ -1,6 +1,17 @@
 #include <catch2/catch_all.hpp>
+#include <algorithm>
+#include <utility>
+#include <vector>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Geometry.hpp"
 
 using namespace Slic3r;
 
@@ -37,4 +48,26 @@ TEST_CASE("A part's 2D convex hull is its footprint projected onto the bed", "[M
         CHECK(bb.max.x() == scaled(50.));
         CHECK(bb.max.y() == scaled(45.));
     }
+}
+
+TEST_CASE("An object's raw mesh keeps the triangles of each part on its own vertices", "[Model]")
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+    TriangleMesh second = make_cube(10, 10, 10);
+    second.translate(30, 0, 0);
+    object->add_volume(std::move(second), ModelVolumeType::MODEL_PART, false);
+
+    // Two separate cubes stay two closed components, one around each cube.
+    const std::vector<indexed_triangle_set> parts = its_split(object->raw_indexed_triangle_set());
+    REQUIRE(parts.size() == 2);
+    std::vector<double> min_x;
+    for (const indexed_triangle_set &part : parts) {
+        CHECK(part.indices.size() == 12);
+        min_x.push_back(bounding_box(part).min.x());
+    }
+    std::sort(min_x.begin(), min_x.end());
+    CHECK_THAT(min_x.front(), Catch::Matchers::WithinAbs(0., 1e-4));
+    CHECK_THAT(min_x.back(), Catch::Matchers::WithinAbs(30., 1e-4));
 }

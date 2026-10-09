@@ -1,6 +1,8 @@
 #ifndef PARTSKIPCOMMON_H
 #define PARTSKIPCOMMON_H
 
+#include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
     

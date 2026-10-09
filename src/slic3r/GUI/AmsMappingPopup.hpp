@@ -1,13 +1,22 @@
 #ifndef slic3r_GUI_AmsMappingPopup_hpp_
 #define slic3r_GUI_AmsMappingPopup_hpp_
 
+#include <string>
+#include <vector>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <optional>
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <map>
+#include <functional>
+#include <memory>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -20,7 +29,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 
 #include "GUI_Utils.hpp"
