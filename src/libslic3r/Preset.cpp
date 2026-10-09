@@ -2345,7 +2345,7 @@ bool PresetCollection::reset_project_embedded_presets()
     return re_select;
 }
 
-void PresetCollection::set_sync_info_and_save(std::string name, std::string setting_id, std::string syncinfo, long long update_time)
+void PresetCollection::set_sync_info_and_save(std::string name, std::string setting_id, std::string syncinfo, long long update_time, const std::string& user_id)
 {
     lock();
     const std::string canonical_name = this->canonical_preset_name(name);
@@ -2363,7 +2363,10 @@ void PresetCollection::set_sync_info_and_save(std::string name, std::string sett
                         preset2.save_info();
                     }
             }
-            preset->setting_id = setting_id;
+            if (!setting_id.empty())
+                preset->setting_id = setting_id;
+            if (!user_id.empty())
+                preset->user_id = user_id;
             if (update_time > 0)
                 preset->updated_time = update_time;
             if (preset->sync_info == "update")
@@ -2653,6 +2656,9 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             iter->base_id = based_id;
             iter->filament_id = cloud_filament_id;
             update_alias(*iter);
+            // Persist the cloud-assigned identity to disk, mirroring the equal/newer branch
+            // above; otherwise the id stays only in memory and the next launch rewrites it.
+            iter->save_info();
             //presets_loaded.emplace_back(*it->second);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", update the user preset %1% from cloud, type %2%, setting_id %3%, base_id %4%, sync_info %5% inherits %6%, filament_id %7%")
                % iter->name %Preset::get_type_string(m_type) %iter->setting_id %iter->base_id %iter->sync_info %iter->inherits() % iter->filament_id;
