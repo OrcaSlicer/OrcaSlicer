@@ -477,7 +477,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "0002";  // treat as AMS_LITE
+        // Generic unit: type 1 (AMS) maps to AMSModel::GENERIC_AMS, which drives the
+        // variable-lane rendering. This is not a real Bambu AMS-Lite.
+        ams_unit["info"] = "0001";
         ams_unit["tray"] = tray_array;
         ams_array.push_back(ams_unit);
     }
@@ -522,8 +524,9 @@ void MoonrakerPrinterAgent::build_ams_payload_grouped(const std::vector<AmsTrayD
 
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
-        // info: bits 0-3 = unit type (2 = AMS_LITE), bits 8-11 = bound extruder id.
-        const int   info_val   = 2 | ((extruder_id & 0x0F) << 8);
+        // info: bits 0-3 = unit type (1 = AMS, i.e. AMSModel::GENERIC_AMS), bits 8-11 = bound
+        // extruder id. A logical feed group is a generic unit, not a Bambu AMS-Lite.
+        const int   info_val   = 1 | ((extruder_id & 0x0F) << 8);
         const char* hex_digits = "0123456789ABCDEF";
         std::string info       = "0000";
         info[3] = hex_digits[info_val & 0x0F];
