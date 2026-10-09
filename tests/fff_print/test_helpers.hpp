@@ -17,7 +17,9 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Slic3r { namespace Test {
+namespace Slic3r {
+struct GCodeProcessorResult;
+namespace Test {
 
 constexpr double MM_PER_MIN = 60.0;
 
@@ -92,8 +94,8 @@ void init_and_process_print(std::initializer_list<TriangleMesh> meshes, Slic3r::
 void init_and_process_print(std::initializer_list<TestMesh> meshes, Slic3r::Print &print, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> config_items);
 void init_and_process_print(std::initializer_list<TriangleMesh> meshes, Slic3r::Print &print, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> config_items);
 
-// Process `print` and return its exported G-code.
-std::string gcode(Print& print);
+// Process `print` and return its exported G-code, filling `result` when one is given.
+std::string gcode(Print& print, GCodeProcessorResult* result = nullptr);
 
 // Build, slice, and return the G-code for `meshes` under the given config.
 std::string slice(std::initializer_list<TestMesh> meshes, const DynamicPrintConfig &config);

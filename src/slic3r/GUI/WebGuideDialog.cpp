@@ -12,7 +12,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
 #include <boost/log/trivial.hpp>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <map>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -36,8 +35,8 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r_version.h"
 
 #include <string>
@@ -74,12 +73,13 @@
 #include "Plater.hpp"
 #include <boost/dll.hpp>
 #include <slic3r/GUI/Widgets/WebView.hpp>
-#include <slic3r/Utils/Http.hpp>
-#include <libslic3r/miniz_extension.hpp>
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PresetUpdater.hpp"
 
-namespace fs = boost::filesystem;
+class wxWindow;
 
 using namespace nlohmann;
 
@@ -614,7 +614,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 response["sequence_id"] = "";
 
             if (!m_MainPtr->preset_updater) {
-                response["error"] = "Printer update service is unavailable.";
+                response["error"] = _u8L("Printer update service is unavailable.");
                 wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                 wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
             } else {
@@ -668,7 +668,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                         });
                 } catch (const std::exception &e) {
                     BOOST_LOG_TRIVIAL(warning) << "Failed to check for new printers: " << e.what();
-                    response["error"] = "Failed to check for new printers.";
+                    response["error"] = _u8L("Failed to check for new printers.");
                     wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                     wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
                 }
@@ -1682,13 +1682,13 @@ int GuideFrame::SaveProfileData()
     return 0;
 }
 
-void StringReplace(string &strBase, string strSrc, string strDes)
+void StringReplace(std::string &strBase, std::string strSrc, std::string strDes)
 {
-    string::size_type pos    = 0;
-    string::size_type srcLen = strSrc.size();
-    string::size_type desLen = strDes.size();
+    std::string::size_type pos    = 0;
+    std::string::size_type srcLen = strSrc.size();
+    std::string::size_type desLen = strDes.size();
     pos                      = strBase.find(strSrc, pos);
-    while ((pos != string::npos)) {
+    while ((pos != std::string::npos)) {
         strBase.replace(pos, srcLen, strDes);
         pos = strBase.find(strSrc, (pos + desLen));
     }

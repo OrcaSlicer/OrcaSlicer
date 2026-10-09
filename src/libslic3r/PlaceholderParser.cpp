@@ -2175,7 +2175,6 @@ namespace client
     {
         macro_processor() : macro_processor::base_type(start)
         {
-            using namespace qi::labels;
             qi::alpha_type              alpha;
             qi::alnum_type              alnum;
             qi::eps_type                eps;

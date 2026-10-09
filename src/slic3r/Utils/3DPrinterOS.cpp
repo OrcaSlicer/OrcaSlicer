@@ -43,9 +43,6 @@
 #include <wx/utils.h>
 
 
-using json = nlohmann::json;
-
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace {

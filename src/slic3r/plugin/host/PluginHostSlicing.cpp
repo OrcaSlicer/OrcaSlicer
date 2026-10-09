@@ -15,11 +15,19 @@
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
-#include "libslic3r/Model.hpp"
 #include <pybind11/stl.h>
 #include <memory>
 #include <string>
 #include <vector>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <pybind11/detail/common.h>
+#include <pybind11/detail/descr.h>
+#include <pybind11/numpy.h>
+
+namespace Slic3r { class Model; }
 
 namespace py = pybind11;
 

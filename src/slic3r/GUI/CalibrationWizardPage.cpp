@@ -19,10 +19,8 @@
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
 #include "slic3r/GUI/PresetComboBoxes.hpp"
-#include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/anybutton.h>
-#include "slic3r/GUI/Widgets/HyperLink.hpp"
 #include <wx/utils.h>
 #include <wx/arrstr.h>
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
@@ -30,6 +28,8 @@
 #include "slic3r/GUI/BBLStatusBarSend.hpp"
 #include <memory>
 #include <wx/scrolwin.h>
+
+namespace Slic3r { class DynamicPrintConfig; }
 
 namespace Slic3r { namespace GUI {
 
@@ -493,7 +493,10 @@ void CaliPageCaption::init_bitmaps() {
 void CaliPageCaption::create_wiki(wxWindow* parent)
 {
     // ORCA standardized HyperLink
-    m_wiki_text = new HyperLink(parent, _L("Wiki Guide"));
+    m_wiki_text = new Button(parent, "", "toolbar_wiki", 0, 15);
+    m_wiki_text->SetToolTip(_L("Wiki Guide"));
+    m_wiki_text->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    m_wiki_text->SetCanFocus(false);
     m_wiki_text->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
         if (!m_wiki_url.empty())
             wxLaunchDefaultBrowser(m_wiki_url);

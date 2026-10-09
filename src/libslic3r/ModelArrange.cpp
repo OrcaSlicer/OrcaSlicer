@@ -11,9 +11,11 @@
 #include "Config.hpp"
 #include <set>
 #include <string>
-#include "MTUtils.hpp"
 #include "Point.hpp"
 #include "PrintConfig.hpp"
+#include "BoundingBox.hpp"
+#include "ExPolygon.hpp"
+#include "Polygon.hpp"
 
 namespace Slic3r {
 

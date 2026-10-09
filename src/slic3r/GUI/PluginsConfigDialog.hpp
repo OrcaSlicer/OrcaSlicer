@@ -10,6 +10,8 @@
 #include <string>
 #include <wx/string.h>
 
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // Lists the plugin capabilities the edited preset of `m_type` uses (see capabilities_in_use) and edits

@@ -943,6 +943,13 @@ private:
 
     std::map<std::string, wxString> m_desc;
 
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_brush;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_bucket_fill;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_gap_fill;
+
     // Icons for the panel's icon buttons (tools, views, mapping, tiling, layer actions). Loaded through IconManager with
     // the same colour/monochrome variants the main toolbar uses, so an inactive button shows the icon in
     // the theme's normal (grey) foreground colour and an active one shows it in its original colours -

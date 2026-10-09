@@ -28,6 +28,7 @@
 #include <wx/app.h>
 #include <wx/defs.h>
 #include <wx/thread.h>
+#include <wx/timer.h>
 #include <wx/toplevel.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
@@ -415,6 +416,44 @@ struct UiDockPanelHandle
     int id{0};
 };
 
+// Polls until the plater is shown on screen, then runs the callback with it (null when the app
+// is closing instead) and deletes itself. A plugin loaded at startup opens its panes from
+// on_load, before the main window exists, and a pane added before that window is laid out is
+// sized against the unsized frame and keeps that width (AuiMgr::track_docked_size).
+class PlaterShownWaiter : public wxTimer
+{
+public:
+    explicit PlaterShownWaiter(std::function<void(GUI::Plater*)> fn) : m_fn(std::move(fn)) {}
+
+    // True once the callback ran.
+    bool try_run()
+    {
+        const bool   closing = GUI::wxGetApp().is_closing();
+        GUI::Plater* plater  = closing ? nullptr : GUI::wxGetApp().plater();
+        if (!closing && (plater == nullptr || !plater->IsShownOnScreen()))
+            return false;
+        Stop();
+        m_fn(plater);
+        // Off the timer callback's stack: wxGTK's timeout callback still reads the timer after Notify().
+        GUI::wxGetApp().CallAfter([this]() { delete this; });
+        return true;
+    }
+
+    void Notify() override { try_run(); }
+
+private:
+    std::function<void(GUI::Plater*)> m_fn;
+};
+
+void run_when_plater_shown(std::function<void(GUI::Plater*)> fn)
+{
+    GUI::wxGetApp().CallAfter([fn = std::move(fn)]() mutable {
+        auto* waiter = new PlaterShownWaiter(std::move(fn));
+        if (!waiter->try_run())
+            waiter->Start(100);
+    });
+}
+
 py::object ui_create_dock_panel(const std::string& html, const std::string& title, int width, int height,
                                 py::object on_message, py::object on_close, const std::string& dock)
 {
@@ -434,14 +473,13 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
     const int new_id = UiRegistry::instance().reserve_id();
     UiRegistry::instance().bind(new_id, nullptr, plugin_key);
 
-    GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, dock, w, h,
-                               msg_adapter = std::move(msg_adapter),
-                               close_holder = std::move(close_holder)]() mutable {
+    run_when_plater_shown([new_id, plugin_key, html, title, dock, w, h,
+                           msg_adapter = std::move(msg_adapter),
+                           close_holder = std::move(close_holder)](GUI::Plater* plater) mutable {
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
-        GUI::Plater* plater = GUI::wxGetApp().plater();
-        if (plater == nullptr || GUI::wxGetApp().is_closing()) {
+        if (plater == nullptr) {
             UiRegistry::instance().remove(new_id);
             return;
         }
@@ -565,7 +603,7 @@ void progress_close(int id)
     });
 }
 
-void plater_notification(NotificationManager::NotificationLevel notification_level, const std::string& text,
+void plater_notification(GUI::NotificationManager::NotificationLevel notification_level, const std::string& text,
                          const std::string& hypertext, py::object on_click)
 {
     const std::string plugin_key = PluginAuditManager::instance().current_plugin();
@@ -600,7 +638,7 @@ void plater_notification(NotificationManager::NotificationLevel notification_lev
     }
 
     run_on_ui_blocking([notification_level, text, hypertext, callback = std::move(callback)]() mutable {
-        wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification, notification_level, text,
+        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::NotificationType::CustomNotification, notification_level, text,
                                                                            hypertext, std::move(callback));
     });
 }
@@ -713,16 +751,16 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
            py::arg("maximum") = 100, py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
            "Create a native progress dialog and return a ProgressDialog handle.");
 
-    py::enum_<NotificationManager::NotificationLevel>(ui, "NotificationLevel")
-        .value("ProgressBarNotificationLevel", NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
-        .value("HintNotificationLevel", NotificationManager::NotificationLevel::HintNotificationLevel)
-        .value("RegularNotificationLevel", NotificationManager::NotificationLevel::RegularNotificationLevel)
-        .value("PrintInfoNotificationLevel", NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
-        .value("PrintInfoShortNotificationLevel", NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
-        .value("ImportantNotificationLevel", NotificationManager::NotificationLevel::ImportantNotificationLevel)
-        .value("WarningNotificationLevel", NotificationManager::NotificationLevel::WarningNotificationLevel)
-        .value("SeriousWarningNotificationLevel", NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
-        .value("ErrorNotificationLevel", NotificationManager::NotificationLevel::ErrorNotificationLevel)
+    py::enum_<GUI::NotificationManager::NotificationLevel>(ui, "NotificationLevel")
+        .value("ProgressBarNotificationLevel", GUI::NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
+        .value("HintNotificationLevel", GUI::NotificationManager::NotificationLevel::HintNotificationLevel)
+        .value("RegularNotificationLevel", GUI::NotificationManager::NotificationLevel::RegularNotificationLevel)
+        .value("PrintInfoNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
+        .value("PrintInfoShortNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
+        .value("ImportantNotificationLevel", GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel)
+        .value("WarningNotificationLevel", GUI::NotificationManager::NotificationLevel::WarningNotificationLevel)
+        .value("SeriousWarningNotificationLevel", GUI::NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
+        .value("ErrorNotificationLevel", GUI::NotificationManager::NotificationLevel::ErrorNotificationLevel)
         .export_values();
 
     ui.def("push_notification", &plater_notification, py::arg("notification_level"), py::arg("text"),

@@ -46,7 +46,6 @@
 #include "nanosvg/nanosvgrast.h"
 
 #include "libslic3r/Utils.hpp"
-#include "GUI_App.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>

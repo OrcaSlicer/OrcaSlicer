@@ -8,12 +8,12 @@
 #include <libslic3r/SLA/ConcaveHull.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
 
-#include <libslic3r/MTUtils.hpp>
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <boost/log/trivial.hpp>
 #include <limits>
 #include <vector>
+#include "libslic3r/Line.hpp"
 
 namespace Slic3r {
 namespace sla {

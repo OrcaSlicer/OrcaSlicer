@@ -5,6 +5,8 @@
 
 #include <wx/tglbtn.h>
 
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 

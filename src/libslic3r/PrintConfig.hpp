@@ -136,25 +136,31 @@ enum InfillPattern : int {
     ipCount,
 };
 
-// Orca: Infill patterns whose alignment origin follows the fill bounding box, so the
-// "separated_infills" option can re-center them per connected body. Patterns evaluated in
-// absolute/global coordinates (Gyroid, TPMS, Honeycomb, CrossHatch, ...) or that are shape-relative
-// (Concentric) ignore that bounding box and are therefore excluded.
+// Orca: Infill patterns that the "separated_infills" option can center on each connected body.
 inline bool is_separable_infill_pattern(InfillPattern pattern)
 {
     switch (pattern) {
+    case ipMonotonic:
+    case ipMonotonicLine:
     case ipRectilinear:
     case ipAlignedRectilinear:
     case ipZigZag:
     case ipCrossZag:
     case ipLockedZag:
+    case ipLine:
     case ipGrid:
     case ipTriangles:
     case ipStars:          // tri-hexagon
     case ipCubic:
     case ipQuarterCubic:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
     case ipLateralHoneycomb:
     case ipLateralLattice:
+    case ipCrossHatch:
+    case ipTpmsD:
+    case ipTpmsFK:
+    case ipGyroid:
     case ipHilbertCurve:
     case ipArchimedeanChords:
     case ipOctagramSpiral:
@@ -163,6 +169,9 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
         return false;
     }
 }
+
+// Orca: Infill patterns laid out by an octree, which each connected body always gets of its own.
+inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == ipAdaptiveCubic || pattern == ipSupportCubic; }
 
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
@@ -928,6 +937,15 @@ void normalize_filament_values_to_variants(DynamicPrintConfig &config);
 
 extern std::set<std::string> filament_dev_options;
 
+// Orca: a filament_dev_options option holds several values per filament, and how many is up to the
+// filament preset, so one filament's values cannot be replaced in place. This rebuilds each option from
+// filament_configs, one config per filament in slot order, as the filaments' values one after another.
+void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs);
+
+// Orca: sizes the per-slot mixed-colour metadata options to new_slot_count, keeping the first
+// old_slot_count values; an option the config lacks is created.
+void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count);
+
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
     t_config_option_keys& diff_keys, DynamicPrintConfig& filament_overrides, std::vector<int>& f_map_indices);
@@ -1358,6 +1376,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                bottom_layer_direction))
     ((ConfigOptionString,               solid_infill_rotate_template))
     ((ConfigOptionBool,                 symmetric_infill_y_axis))
+    ((ConfigOptionBool,                 infill_complete_top))
     ((ConfigOptionFloat,                infill_shift_step))
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
@@ -2555,6 +2574,8 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
+
+double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
 
 } // namespace Slic3r
 

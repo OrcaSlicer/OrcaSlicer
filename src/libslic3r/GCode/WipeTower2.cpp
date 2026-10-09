@@ -37,10 +37,10 @@
 #include "libslic3r/Polyline.hpp"
 #include "PrintConfig.hpp"
 #include "Surface.hpp"
-#include "Fill/FillRectilinear.hpp"
 #include "libslic3r/libslic3r.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r

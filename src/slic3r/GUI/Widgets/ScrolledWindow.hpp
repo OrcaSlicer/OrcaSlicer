@@ -11,7 +11,12 @@
 #endif
 
 #include <wx/splitter.h>
-#include "Scrollbar.hpp"
+
+class wxMouseEvent;
+class wxPanel;
+class wxScrollWinEvent;
+class wxSizeEvent;
+class wxSplitterWindow;
 
 class MyScrollbar;
 

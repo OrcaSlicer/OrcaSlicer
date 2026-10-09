@@ -1,6 +1,5 @@
 #include "AMSControl.hpp"
 #include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 
@@ -42,8 +41,12 @@
 
 #include <boost/log/trivial.hpp>
 #include <wx/string.h>
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Widgets/StepCtrl.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
-#include "CalibUtils.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -1049,7 +1052,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
     /*update humidity popup*/
     if (m_percent_humidity_dry_popup->IsShown())
     {
-        string target_id = m_percent_humidity_dry_popup->get_owner_ams_id();
+        std::string target_id = m_percent_humidity_dry_popup->get_owner_ams_id();
         for (const auto& the_info : ams_info)
         {
             if (target_id == the_info.ams_id)

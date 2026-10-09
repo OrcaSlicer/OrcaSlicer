@@ -21,6 +21,10 @@
 #include "libslic3r/Config.hpp"
 #include <wx/colour.h>
 #include <utility>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/ColorDecomposeRecipe.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using json = nlohmann::json;
 

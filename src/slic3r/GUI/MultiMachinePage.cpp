@@ -26,6 +26,7 @@
 #include "slic3r/GUI/MsgDialog.hpp"
 #include <string>
 #include <algorithm>
+#include <wx/dcgraph.h>
 
 namespace Slic3r {
 namespace GUI {

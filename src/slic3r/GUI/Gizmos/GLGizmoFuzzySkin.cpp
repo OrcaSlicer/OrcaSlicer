@@ -32,6 +32,13 @@
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <memory>
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r::GUI {
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 
 #include "DevNozzleSystem.h"
 #include "DevFirmware.h"

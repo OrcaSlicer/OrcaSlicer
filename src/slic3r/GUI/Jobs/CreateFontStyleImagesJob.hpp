@@ -4,7 +4,6 @@
 #include <exception>
 #include <vector>
 #include <string>
-#include <libslic3r/Emboss.hpp>
 #include "slic3r/Utils/EmbossStyleManager.hpp"
 #include "Job.hpp"
 

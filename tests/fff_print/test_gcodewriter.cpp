@@ -36,6 +36,7 @@
 #include <boost/filesystem.hpp>
 
 #include "test_helpers.hpp"
+#include "libslic3r/Arrange.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

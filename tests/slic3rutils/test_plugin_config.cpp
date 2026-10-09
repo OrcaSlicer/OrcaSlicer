@@ -3,9 +3,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <ios>
-#include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginConfig.hpp>
-#include <slic3r/plugin/PluginManager.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include "plugin_test_utils.hpp"

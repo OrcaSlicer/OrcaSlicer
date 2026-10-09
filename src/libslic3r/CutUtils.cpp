@@ -19,6 +19,7 @@
 #include <optional>
 #include <math.h>
 #include <cmath>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 

@@ -6,7 +6,7 @@
 #include "NetworkAgent.hpp"
 #include "../GUI/Jobs/ProgressIndicator.hpp"
 #include "../GUI/PartPlate.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Utils.hpp"
@@ -20,8 +20,6 @@
 #include "../GUI/DeviceCore/DevConfig.h"
 #include "../GUI/DeviceCore/DevExtruderSystem.h"
 #include "../GUI/DeviceCore/DevManager.h"
-#include "../GUI/DeviceCore/DevStorage.h"
-#include "libslic3r/FlushVolCalc.hpp"
 #include "../GUI/Plater.hpp"
 #include <memory>
 #include "slic3r/GUI/Jobs/Worker.hpp"
@@ -61,6 +59,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

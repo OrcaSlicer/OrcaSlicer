@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <cassert>
+#include "MultiMaterialSegmentation.hpp"
 
 namespace Slic3r {
 

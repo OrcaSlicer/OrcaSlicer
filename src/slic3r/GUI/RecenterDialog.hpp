@@ -7,10 +7,14 @@
 #include <wx/dc.h>
 #include <wx/gdicmn.h>
 #include <wx/statbmp.h>
-#include "Widgets/Button.hpp"
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/toplevel.h>
+
+class wxCommandEvent;
+class wxDC;
+class wxPaintEvent;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 class RecenterDialog : public DPIDialog

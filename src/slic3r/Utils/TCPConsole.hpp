@@ -16,12 +16,12 @@
 namespace Slic3r {
 namespace Utils {
 
-using boost::asio::ip::tcp;
-
 // Generic command / response TCP telnet like console class.
 // Used by the MKS host to send G-code commands to test connection ("M105") and to start printing ("M23 filename", "M24").
 class TCPConsole
 {
+    using tcp = boost::asio::ip::tcp;
+
 public:
     TCPConsole() : m_resolver(m_io_context), m_socket(m_io_context) { set_defaults(); }
     TCPConsole(const std::string& host_name, const std::string& port_name) : m_resolver(m_io_context), m_socket(m_io_context)
