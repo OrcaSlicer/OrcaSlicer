@@ -3,6 +3,7 @@
 #include "libslic3r/Point.hpp"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 #include <cstdint>
 #include <cstddef>
