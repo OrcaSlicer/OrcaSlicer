@@ -1981,7 +1981,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Speed of the externally visible bridge extrusions.\n\n"
                      "In addition, if Slow down for curled perimeters is disabled or Classic overhang mode is enabled, "
                      "it will be the print speed of overhang walls that are supported by less than 13%, "
-                     "whether they are part of a bridge or an overhang.");
+                     "whether they are part of a bridge or an overhang.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\" and \"Max external volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -1991,7 +1991,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_bridge_speed", coFloatsOrPercents);
     def->label = L("Internal");
     def->category = L("Speed");
-    def->tooltip = L("Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%.");
+    def->tooltip = L("Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "bridge_speed";
     def->min = 1;
@@ -2637,7 +2637,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_speed", coFloats);
     def->label = L("Outer wall");
     def->category = L("Speed");
-    def->tooltip = L("This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality.");
+    def->tooltip = L("This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\" and \"Max external volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -2649,7 +2649,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Speed");
     def->tooltip = L("This separate setting will affect the speed of perimeters having radius <= small_perimeter_threshold "
                    "(usually holes). If expressed as percentage (for example: 80%) it will be calculated "
-                   "on the outer wall speed setting above. Set to zero for auto.");
+                   "on the outer wall speed setting above. Set to zero for auto.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\" and, on outer walls, \"Max external volumetric speed\".");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 1;
@@ -2673,7 +2673,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Same as \"Small perimeters\", but for supports. "
                     "This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. "
                     "If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. "
-                    "Set to zero for auto.");
+                    "Set to zero for auto.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 1;
@@ -2695,33 +2695,48 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Set the speed of each feature as a volumetric flow (mm³/s) instead of a linear speed (mm/s). "
                      "Each line is then printed at its feature's flow divided by the line's cross section, so lines of different "
                      "width or height extrude the same flow. A volumetric speed expressed as a percentage is calculated on the "
-                     "filament's maximum volumetric speed, which still limits every speed.\n\n"
+                     "filament's \"Max volumetric speed\", which still limits every speed, as \"Max external volumetric speed\" "
+                     "does for the visible features.\n\n"
                      "Small perimeter, overhang, ironing and travel speeds keep their own settings, applied over the resulting "
                      "speeds. Calibration prints ignore this option.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     // Orca: named *_volumetric_flow because outer_wall_volumetric_speed is already a custom G-code placeholder.
-    struct VolumetricFlowDef { const char *key; const char *label; const char *full_label; double default_percent; };
+    const char *flow_tooltip = L("Volumetric flow of this feature when volumetric speeds are enabled. If expressed as a percentage, "
+                                 "it is calculated on the filament's \"Max volumetric speed\".\n\n"
+                                 "The resulting speed is limited by the filament's \"Max volumetric speed\".");
+    const char *walls_flow_tooltip = L("Volumetric flow of this feature when volumetric speeds are enabled. If expressed as a percentage, "
+                                       "it is calculated on the filament's \"Max volumetric speed\".\n\n"
+                                       "The resulting speed is limited by the filament's \"Max volumetric speed\" and, on outer walls, "
+                                       "\"Max external volumetric speed\".");
+    const char *external_flow_tooltip = L("Volumetric flow of this feature when volumetric speeds are enabled. If expressed as a percentage, "
+                                          "it is calculated on the filament's \"Max volumetric speed\".\n\n"
+                                          "The resulting speed is limited by the filament's \"Max volumetric speed\" and "
+                                          "\"Max external volumetric speed\".");
+    const char *top_flow_tooltip = L("Volumetric flow of this feature when volumetric speeds are enabled. If expressed as a percentage, "
+                                     "it is calculated on the filament's \"Max volumetric speed\".\n\n"
+                                     "The resulting speed is limited by the filament's \"Max volumetric speed\" and, unless the surface "
+                                     "is ironed, \"Max external volumetric speed\".");
+    struct VolumetricFlowDef { const char *key; const char *label; const char *full_label; const char *tooltip; double default_percent; };
     for (const VolumetricFlowDef &flow : std::initializer_list<VolumetricFlowDef>{
-             {"initial_layer_volumetric_flow", L("First layer"), L("First layer volumetric speed"), 25},
-             {"initial_layer_infill_volumetric_flow", L("First layer infill"), L("First layer infill volumetric speed"), 50},
-             {"outer_wall_volumetric_flow", L("Outer wall"), L("Outer wall volumetric speed"), 50},
-             {"inner_wall_volumetric_flow", L("Inner wall"), L("Inner wall volumetric speed"), 100},
-             {"sparse_infill_volumetric_flow", L("Sparse infill"), L("Sparse infill volumetric speed"), 100},
-             {"internal_solid_infill_volumetric_flow", L("Internal solid infill"), L("Internal solid infill volumetric speed"), 100},
-             {"top_surface_volumetric_flow", L("Top surface"), L("Top surface volumetric speed"), 50},
-             {"gap_infill_volumetric_flow", L("Gap infill"), L("Gap infill volumetric speed"), 50},
-             {"support_volumetric_flow", L("Support"), L("Support volumetric speed"), 100},
-             {"support_interface_volumetric_flow", L("Support interface"), L("Support interface volumetric speed"), 50},
-             {"bridge_volumetric_flow", L("External"), L("External bridge volumetric speed"), 25},
-             {"internal_bridge_volumetric_flow", L("Internal"), L("Internal bridge volumetric speed"), 40}}) {
+             {"initial_layer_volumetric_flow", L("First layer"), L("First layer volumetric speed"), walls_flow_tooltip, 25},
+             {"initial_layer_infill_volumetric_flow", L("First layer infill"), L("First layer infill volumetric speed"), flow_tooltip, 50},
+             {"outer_wall_volumetric_flow", L("Outer wall"), L("Outer wall volumetric speed"), external_flow_tooltip, 50},
+             {"inner_wall_volumetric_flow", L("Inner wall"), L("Inner wall volumetric speed"), flow_tooltip, 100},
+             {"sparse_infill_volumetric_flow", L("Sparse infill"), L("Sparse infill volumetric speed"), flow_tooltip, 100},
+             {"internal_solid_infill_volumetric_flow", L("Internal solid infill"), L("Internal solid infill volumetric speed"), flow_tooltip, 100},
+             {"top_surface_volumetric_flow", L("Top surface"), L("Top surface volumetric speed"), top_flow_tooltip, 50},
+             {"gap_infill_volumetric_flow", L("Gap infill"), L("Gap infill volumetric speed"), flow_tooltip, 50},
+             {"support_volumetric_flow", L("Support"), L("Support volumetric speed"), flow_tooltip, 100},
+             {"support_interface_volumetric_flow", L("Support interface"), L("Support interface volumetric speed"), flow_tooltip, 50},
+             {"bridge_volumetric_flow", L("External"), L("External bridge volumetric speed"), external_flow_tooltip, 25},
+             {"internal_bridge_volumetric_flow", L("Internal"), L("Internal bridge volumetric speed"), flow_tooltip, 40}}) {
         def = this->add(flow.key, coFloatsOrPercents);
         def->label = flow.label;
         def->full_label = flow.full_label;
         def->category = L("Speed");
-        def->tooltip = L("Volumetric flow of this feature when volumetric speeds are enabled. If expressed as a percentage, "
-                         "it is calculated on the filament's maximum volumetric speed, which also limits it.");
+        def->tooltip = flow.tooltip;
         def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
         def->min = 0.1;
         def->mode = comAdvanced;
@@ -3168,6 +3183,17 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2. });
+
+    def = this->add("filament_max_external_volumetric_speed", coFloats);
+    def->label = L("Max external volumetric speed");
+    def->tooltip = L("Lower volumetric speed limit for the visible external features: outer walls, external bridges and overhang walls, "
+                     "and top surfaces that are not ironed. It applies on top of the max volumetric speed. 0 means no extra limit.\n\n"
+                     "Set it to the highest flow at which this material still prints glossy, to keep the surface finish while the "
+                     "rest of the print runs at the max volumetric speed.");
+    def->sidetext = L(u8"mm³/s");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 0. });
 
     def = this->add("machine_load_filament_time", coFloat);
     def->label = L("Filament load time");
@@ -4051,7 +4077,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("initial_layer_speed", coFloats);
     def->label = L("First layer");
-    def->tooltip = L("This is the speed for the first layer except for solid infill sections.");
+    def->tooltip = L("This is the speed for the first layer except for solid infill sections.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\" and, on outer walls, \"Max external volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -4060,7 +4086,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("initial_layer_infill_speed", coFloats);
     def->label = L("First layer infill");
-    def->tooltip = L("This is the speed for solid infill parts of the first layer.");
+    def->tooltip = L("This is the speed for solid infill parts of the first layer.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -4379,7 +4405,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("gap_infill_speed", coFloats);
     def->label = L("Gap infill");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly.");
+    def->tooltip = L("This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -4996,7 +5022,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_speed", coFloats);
     def->label = L("Sparse infill");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for internal sparse infill.");
+    def->tooltip = L("This is the speed for internal sparse infill.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -5163,7 +5189,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("ironing_speed", coFloat);
     def->label = L("Ironing speed");
     def->category = L("Quality");
-    def->tooltip = L("This is the print speed for ironing lines.");
+    def->tooltip = L("This is the print speed for ironing lines.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -5903,7 +5929,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_speed", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for inner walls.");
+    def->tooltip = L("This is the speed for inner walls.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->aliases = { "perimeter_feed_rate" };
     def->min = 1;
@@ -6816,7 +6842,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_solid_infill_speed", coFloats);
     def->label = L("Internal solid infill");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for internal solid infill, not including the top or bottom surface.");
+    def->tooltip = L("This is the speed for internal solid infill, not including the top or bottom surface.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -7480,7 +7506,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_interface_speed", coFloats);
     def->label = L("Support interface");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for support interfaces.");
+    def->tooltip = L("This is the speed for support interfaces.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -7552,7 +7578,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_speed", coFloats);
     def->label = L("Support");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for support.");
+    def->tooltip = L("This is the speed for support.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -8084,7 +8110,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_speed", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for solid top surface infill.");
+    def->tooltip = L("This is the speed for solid top surface infill.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\" and, unless the surface is ironed, \"Max external volumetric speed\".");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -10085,6 +10111,7 @@ std::set<std::string> print_options_with_variant = {
 std::set<std::string> filament_options_with_variant = {
     "filament_flow_ratio",
     "filament_max_volumetric_speed",
+    "filament_max_external_volumetric_speed",
     // Per-variant ramming / pre-cooling / nozzle-change filament overrides
     "filament_ramming_volumetric_speed",
     "filament_pre_cooling_temperature",

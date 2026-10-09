@@ -703,9 +703,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     static float get_outer_wall_volumetric_speed(const FullPrintConfig& config, const Print& print, int filament_id, int filament_variant_idx, int extruder_id) {
         float outer_wall_volumetric_speed = 0;
         float filament_max_volumetric_speed = config.filament_max_volumetric_speed.get_at(filament_variant_idx);
-        if (config.enable_volumetric_speeds && print.calib_mode() == CalibMode::Calib_None)
+        const bool calibrating = print.calib_mode() != CalibMode::Calib_None;
+        // Orca: the outer wall is also limited by the max external volumetric speed.
+        float max_volumetric_speed = filament_max_volumetric_speed;
+        if (const float max_external = float(config.filament_max_external_volumetric_speed.get_at(filament_variant_idx)); max_external > 0 && !calibrating)
+            max_volumetric_speed = std::min(max_volumetric_speed, max_external);
+        if (config.enable_volumetric_speeds && !calibrating)
             return std::min(float(print.default_region_config().outer_wall_volumetric_flow.get_at(extruder_id).get_abs_value(filament_max_volumetric_speed)),
-                            filament_max_volumetric_speed);
+                            max_volumetric_speed);
         const double filament_diameter = config.filament_diameter.get_at(filament_id);
         float outer_wall_line_width = print.default_region_config().get_abs_value("outer_wall_line_width", filament_diameter);
         if (outer_wall_line_width == 0.0) {
@@ -715,8 +720,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         Flow outer_wall_flow = Flow(outer_wall_line_width, config.layer_height, config.nozzle_diameter.get_at(extruder_id));
         float outer_wall_speed = print.default_region_config().outer_wall_speed.get_at(extruder_id);
         outer_wall_volumetric_speed = outer_wall_speed * outer_wall_flow.mm3_per_mm();
-        if (outer_wall_volumetric_speed > filament_max_volumetric_speed)
-            outer_wall_volumetric_speed = filament_max_volumetric_speed;
+        if (outer_wall_volumetric_speed > max_volumetric_speed)
+            outer_wall_volumetric_speed = max_volumetric_speed;
         return outer_wall_volumetric_speed;
     }
 
@@ -9041,6 +9046,19 @@ double GCode::feature_speed(double speed, const ConfigOptionFloatsOrPercentsNull
     return volumetric_flow.get_at(get_nozzle_config_index(m_writer.filament()->id())).get_abs_value(max_volumetric_speed) / mm3_per_mm;
 }
 
+double GCode::volumetric_speed_limit(ExtrusionRole role) const
+{
+    const double max_volumetric_speed          = FILAMENT_CONFIG(filament_max_volumetric_speed);
+    const double max_external_volumetric_speed = FILAMENT_CONFIG(filament_max_external_volumetric_speed);
+    // Orca: visible features are outer walls, what prints at the external bridge speed, and top surfaces this layer does not iron.
+    const bool visible = role == erExternalPerimeter || role == erOverhangPerimeter || role == erBridgeInfill ||
+                         (role == erTopSolidInfill && m_layer != nullptr &&
+                          Layer::choose_ironing_extruder(m_config, m_config.spiral_mode.value, m_layer->upper_layer == nullptr) < 0);
+    if (max_external_volumetric_speed <= 0. || !visible || m_print->calib_mode() != CalibMode::Calib_None)
+        return max_volumetric_speed;
+    return max_volumetric_speed > 0. ? std::min(max_volumetric_speed, max_external_volumetric_speed) : max_external_volumetric_speed;
+}
+
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
 {
     std::string gcode;
@@ -9312,9 +9330,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     //        m_config.max_volumetric_speed.value / _mm3_per_mm
     //    );
     //}
-    if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+    const double max_volumetric_speed = volumetric_speed_limit(path.role());
+    if (max_volumetric_speed > 0) {
         // cap speed with max_volumetric_speed anyway (even if user is not using autospeed)
-        speed = std::min(speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
+        speed = std::min(speed, max_volumetric_speed / _mm3_per_mm);
     }
     // ORCA: resonance‑avoidance on short external perimeters
 {
@@ -9328,10 +9347,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
         }
 
         // re‑apply volumetric cap
-        if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+        if (max_volumetric_speed > 0) {
             speed = std::min(
                 speed,
-                FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm
+                max_volumetric_speed / _mm3_per_mm
             );
         }
 
@@ -9363,10 +9382,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? FEATURE_SPEED(outer_wall, _mm3_per_mm) : FEATURE_SPEED(inner_wall, _mm3_per_mm);
             if (ref_speed == 0)
-                ref_speed = FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm;
+                ref_speed = max_volumetric_speed / _mm3_per_mm;
 
-            if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
-                ref_speed = std::min(ref_speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
+            if (max_volumetric_speed > 0) {
+                ref_speed = std::min(ref_speed, max_volumetric_speed / _mm3_per_mm);
             }
             if (sloped) {
                 ref_speed = std::min(ref_speed, m_config.scarf_joint_speed.get_abs_value(ref_speed));

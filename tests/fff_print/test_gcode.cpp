@@ -138,3 +138,43 @@ TEST_CASE("Volumetric speeds are ignored while disabled", "[GCode]")
     for (const auto &[speed, extruded_flow] : moves)
         CHECK_THAT(speed, Catch::Matchers::WithinRel(outer_wall_speed, 0.001));
 }
+
+TEST_CASE("The max external volumetric speed limits outer walls but not inner walls", "[GCode]")
+{
+    // At 200mm/s both walls would extrude well above the external limit and below the filament limit.
+    const double max_external = 5.;
+    const std::string gcode = volumetric_speed_gcode(false, {{"filament_max_external_volumetric_speed", max_external},
+                                                             {"outer_wall_speed", 200.},
+                                                             {"inner_wall_speed", 200.}});
+    const auto outer_wall = role_speeds_and_flows(gcode, "Outer wall");
+    const auto inner_wall = role_speeds_and_flows(gcode, "Inner wall");
+
+    REQUIRE_FALSE(outer_wall.empty());
+    REQUIRE_FALSE(inner_wall.empty());
+    for (const auto &[speed, extruded_flow] : outer_wall)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(max_external, 0.01));
+    for (const auto &[speed, extruded_flow] : inner_wall)
+        CHECK(extruded_flow > 2. * max_external);
+}
+
+TEST_CASE("The max external volumetric speed limits top surfaces only when they are not ironed", "[GCode]")
+{
+    const auto [ironing_type, limited] = GENERATE(table<std::string, bool>({
+        {"no ironing", true},
+        {"top", false},
+    }));
+    INFO(ironing_type);
+    const double max_external = 5.;
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(false, {{"filament_max_external_volumetric_speed", max_external},
+                                                                            {"top_surface_speed", 200.},
+                                                                            {"ironing_type", ironing_type}}),
+                                             "Top surface");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves) {
+        if (limited)
+            CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(max_external, 0.01));
+        else
+            CHECK(extruded_flow > 2. * max_external);
+    }
+}
