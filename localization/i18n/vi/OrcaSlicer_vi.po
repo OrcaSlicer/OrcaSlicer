@@ -39575,3 +39575,12 @@ msgstr "Tệp CSV không có điểm."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Giới hạn chiều dài đùn tùy vào kích thước bàn của máy in hiện tại và các điểm mô hình."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Số điểm tối đa: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Đường cong có quá nhiều điểm."
+

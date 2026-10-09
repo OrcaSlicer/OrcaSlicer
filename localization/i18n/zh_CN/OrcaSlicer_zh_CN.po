@@ -39457,3 +39457,12 @@ msgstr "CSV 文件中没有点。"
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "挤出长度上限取决于当前打印机的热床尺寸和模型点。"
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "最大点数：%d。"
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "曲线的点数过多。"
+

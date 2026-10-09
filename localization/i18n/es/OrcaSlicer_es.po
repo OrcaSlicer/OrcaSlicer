@@ -37874,3 +37874,12 @@ msgstr "El CSV no contiene puntos."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "El límite de longitud de extrusión depende de la cama de la impresora actual y los puntos del modelo."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Puntos máximos: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "La curva tiene demasiados puntos."
+

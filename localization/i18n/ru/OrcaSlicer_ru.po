@@ -38245,3 +38245,12 @@ msgstr "В файле CSV нет точек."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Предел длины экструзии зависит от размера стола текущего принтера и точек модели."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Максимум точек: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "В кривой слишком много точек."
+

@@ -38630,3 +38630,14 @@ msgstr "CSV faile nėra taškų."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Ekstruzijos ilgio riba priklauso nuo dabartinio spausdintuvo stalo dydžio ir modelio taškų."
 
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Didž. taškų skaičius: %d."
+
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+msgid "The curve contains too many points."
+msgstr "Kreivėje per daug taškų."
+

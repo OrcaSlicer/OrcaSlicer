@@ -38688,3 +38688,12 @@ msgstr "CSV dosyasında nokta yok."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Ekstrüzyon uzunluğu sınırı, mevcut yazıcının yatak boyutuna ve model noktalarına bağlıdır."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "En fazla nokta: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Eğride çok fazla nokta var."
+

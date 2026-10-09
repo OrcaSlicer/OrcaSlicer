@@ -32317,3 +32317,10 @@ msgstr ""
 
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Maximum number of points: %d."
+msgstr ""
+
+msgid "The curve contains too many points."
+msgstr ""
