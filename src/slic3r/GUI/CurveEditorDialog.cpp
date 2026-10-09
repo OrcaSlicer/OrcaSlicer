@@ -12,7 +12,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <wx/checkbox.h>
 #include <wx/colour.h>
 #include <wx/dc.h>
 #include <wx/dcclient.h>
@@ -32,6 +31,7 @@
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
 #include "libslic3r/CurveModel.hpp"
@@ -43,6 +43,7 @@
 #include "KeyChord.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/StateColor.hpp"
@@ -262,21 +263,38 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     range_panel->Hide();
 
     auto* view_actions = new wxBoxSizer(wxHORIZONTAL);
-    auto* show_range = new wxCheckBox(plot_panel, wxID_ANY, _L("Show range"));
-    show_range->SetFont(Label::Body_12);
-    show_range->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-    show_range->SetValue(false);
-    show_range->Bind(wxEVT_CHECKBOX, [this, range_panel](wxCommandEvent& event) {
+    auto make_view_checkbox = [this, plot_panel, view_actions](const wxString& label, bool checked, int spacing) {
+        auto* checkbox = new CheckBox(plot_panel);
+        checkbox->SetName(label);
+        checkbox->SetValue(checked);
+        auto* text = new wxStaticText(plot_panel, wxID_ANY, label);
+        text->SetFont(Label::Body_12);
+        text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        // Give label clicks the same event and keyboard focus as the checkbox.
+        text->Bind(wxEVT_LEFT_UP, [checkbox](wxMouseEvent&) {
+            checkbox->SetFocus();
+            checkbox->SetValue(!checkbox->GetValue());
+            wxCommandEvent event(wxEVT_TOGGLEBUTTON, checkbox->GetId());
+            event.SetEventObject(checkbox);
+            event.SetInt(checkbox->GetValue());
+            checkbox->ProcessWindowEvent(event);
+        });
+        auto* row = new wxBoxSizer(wxHORIZONTAL);
+        row->Add(checkbox, 0, wxALIGN_CENTER_VERTICAL);
+        row->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+        view_actions->Add(row, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(spacing));
+        return checkbox;
+    };
+    auto* show_range = make_view_checkbox(_L("Show range"), false, 0);
+    show_range->Bind(wxEVT_TOGGLEBUTTON, [this, range_panel](wxCommandEvent& event) {
+        event.Skip();
         range_panel->Show(event.IsChecked());
         // Reuse the content's size handler to update orientation and scrollbars.
         m_content->SendSizeEvent();
     });
-    view_actions->Add(show_range, 0, wxALIGN_CENTER_VERTICAL);
-    auto* show_table = new wxCheckBox(plot_panel, wxID_ANY, _L("Show table"));
-    show_table->SetFont(Label::Body_12);
-    show_table->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-    show_table->SetValue(true);
-    show_table->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    auto* show_table = make_view_checkbox(_L("Show table"), true, 12);
+    show_table->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& event) {
+        event.Skip();
         finish_edit();
         update_preview();
         m_table_panel->Show(event.IsChecked());
@@ -284,7 +302,12 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         if (event.IsChecked() && m_grid->GetGridCursorRow() >= 0)
             m_grid->MakeCellVisible(m_grid->GetGridCursorRow(), m_grid->GetGridCursorCol());
     });
-    view_actions->Add(show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
+    Bind(wxEVT_DPI_CHANGED, [this, show_range, show_table](wxDPIChangedEvent& event) {
+        event.Skip();
+        show_range->Rescale();
+        show_table->Rescale();
+        m_content->SendSizeEvent();
+    });
     auto make_action_button = [this](const wxString& label, const wxString& icon) {
         auto* button = new Button(m_actions_panel, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
