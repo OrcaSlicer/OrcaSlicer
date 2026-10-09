@@ -47,6 +47,8 @@ private:
     void step_chart_range(int field, int direction);
     void sync_chart_range();
     void update_range_tooltips();
+    void import_csv();
+    void export_csv();
     void layout_content();
     void layout_actions();
 
