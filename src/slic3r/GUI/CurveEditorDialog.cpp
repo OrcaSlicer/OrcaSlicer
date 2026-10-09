@@ -137,7 +137,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_chart->before_drag = [this] { finish_edit(); update_preview(); };
     m_chart->on_select = [this](int row) {
         m_grid->SetGridCursor(row, 0);
-        m_grid->MakeCellVisible(row, 0);
+        if (m_table_panel->IsShown()) m_grid->MakeCellVisible(row, 0);
     };
     m_chart->on_move = [this](int row, double x, double y) { move_point(row, x, y); };
     auto change_view = [this](const CurveEditorView& view) {
@@ -288,6 +288,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         update_preview();
         m_table_panel->Show(event.IsChecked());
         m_content->SendSizeEvent();
+        if (event.IsChecked() && m_grid->GetGridCursorRow() >= 0)
+            m_grid->MakeCellVisible(m_grid->GetGridCursorRow(), m_grid->GetGridCursorCol());
     });
     view_actions->Add(show_table, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
     auto make_action_button = [this](const wxString& label, const wxString& icon) {
@@ -338,6 +340,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_grid->SetFont(Label::Body_12);
     m_grid->SetDefaultCellFont(Label::Body_12);
     m_grid->CreateGrid(0, 2);
+    m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
     m_grid->GetTable()->SetAttrProvider(new FlatGridAttributes);
     m_grid->SetLabelFont(Label::Body_12);
     m_grid->SetDefaultRowSize(std::max(FromDIP(22), m_grid->GetCharHeight() + FromDIP(6)), true);
@@ -358,7 +361,12 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_grid->GetRowLabelSize() + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_grid)), FromDIP(180)));
     m_grid->DisableDragRowSize();
     m_grid->Bind(wxEVT_GRID_CELL_CHANGED, [this](wxGridEvent& event) { update_preview(); event.Skip(); });
-    m_grid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& event) { m_chart->select_point(event.GetRow()); event.Skip(); });
+    m_grid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& event) {
+        // Moving the grid cursor (including from the graph) doesn't select a row by itself.
+        m_grid->SelectRow(event.GetRow());
+        m_chart->select_point(event.GetRow());
+        event.Skip();
+    });
     m_grid->GetGridWindow()->Bind(wxEVT_SIZE, [this, column_widths](wxSizeEvent& event) {
         event.Skip();
         wxRecursionGuard guard(m_grid_resize_depth);
@@ -399,15 +407,18 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
                 m_grid->SetCellValue(row, 1, wxString::FromUTF8(format_number(y[row - 1] + (y[row] - y[row - 1]) / 2)));
             }
             m_grid->SetGridCursor(row, 0);
-            m_grid->MakeCellVisible(row, 0);
+            if (m_table_panel->IsShown()) m_grid->MakeCellVisible(row, 0);
         }
         update_preview();
     });
     add_button(_L("Remove point"), "param_remove", [this](wxCommandEvent&) {
         finish_edit();
         const int row = m_grid->GetGridCursorRow();
-        if (row >= 0 && row < m_grid->GetNumberRows())
+        if (row >= 0 && row < m_grid->GetNumberRows()) {
             m_grid->DeleteRows(row);
+            if (m_grid->GetNumberRows() > 0)
+                m_grid->SetGridCursor(std::min(row, m_grid->GetNumberRows() - 1), 0);
+        }
         update_preview();
     });
     add_button(_L("Reset to defaults"), "reset_gray", [this](wxCommandEvent&) {
@@ -535,6 +546,7 @@ void CurveEditorDialog::load_points(const Rows& rows)
         m_grid->SetCellValue(row, 0, wxString::FromUTF8(rows[row].first));
         m_grid->SetCellValue(row, 1, wxString::FromUTF8(rows[row].second));
     }
+    if (!rows.empty()) m_grid->SetGridCursor(0, 0);
 }
 
 CurveEditorDialog::Rows CurveEditorDialog::read_rows() const
