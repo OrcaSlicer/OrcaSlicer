@@ -27,7 +27,7 @@ class CurveEditorPanel : public wxPanel
 {
 public:
     using Interpolator = CurveModel::Interpolator;
-    CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance);
+    CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance, const CurveViewLimits& view_limits);
     void set_data(const std::vector<double>& x, const std::vector<double>& y,
                   const std::vector<wxString>& tooltips, Interpolator interpolate);
     void set_view(const CurveEditorView& view);
@@ -43,11 +43,6 @@ public:
     std::function<void(double, bool, double)> on_zoom;
 
 private:
-    struct PlotMargins {
-        wxSize size;
-        int left;
-        int right;
-    };
     wxRect chart_rect() const;
     wxPoint chart_point(double x, double y, const wxRect& plot) const;
     bool point_visible(double x, double y) const;
@@ -57,6 +52,7 @@ private:
     void paint_chart();
 
     CurveEditorAppearance m_appearance;
+    CurveViewLimits m_view_limits;
     CurveEditorView m_view;
     std::vector<double> m_x;
     std::vector<double> m_y;
@@ -69,7 +65,6 @@ private:
     wxPoint m_drag_previous;
     double m_drag_x = 0.0;
     double m_drag_y = 0.0;
-    mutable std::optional<PlotMargins> m_zoom_margins;
     wxRecursionGuardFlag m_zoom_depth = 0;
 };
 
