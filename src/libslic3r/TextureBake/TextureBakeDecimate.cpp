@@ -551,9 +551,13 @@ DecimateResult decimate(const TriSoup &geometry, size_t target_triangles, bool h
 
     // Rebuild from the surviving faces, with per-face normals.
     TriSoup &out = result.geometry;
+    if (!face_color.empty())
+        result.face_color.reserve(active_faces);
     for (size_t f = 0; f < face_count; ++f) {
         if (faces[f * 3] < 0)
             continue;
+        if (!face_color.empty())
+            result.face_color.push_back(f < face_color.size() ? face_color[f] : -1);
         const Vec3f a = pos[size_t(faces[f * 3])].cast<float>();
         const Vec3f b = pos[size_t(faces[f * 3 + 1])].cast<float>();
         const Vec3f c = pos[size_t(faces[f * 3 + 2])].cast<float>();

@@ -10,6 +10,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "TreeSupportCommon.hpp"
+#include "BeltFloorContext.hpp"
 
 #include "../BuildVolume.hpp"
 #include "../ClipperUtils.hpp"
@@ -19,6 +20,7 @@
 #include "../Utils.hpp"
 #include "../format.hpp"
 #include "libslic3r/libslic3r.h"
+#include "../PrintConfig.hpp"
 
 #include <cstddef>
 #include <algorithm>
@@ -115,6 +117,21 @@ TreeModelVolumes::TreeModelVolumes(
         m_increase_until_radius = config.increase_radius_until_radius;
         m_radius_0 = config.getRadius(0);
         m_raft_layers = config.raft_layers;
+        // Support blockers are consumed in the same index space as m_layer_outlines
+        // (object layer i lives at index num_raft_layers + i), but
+        // slice_support_blockers() returns them in object-layer space.  Shift them.
+        //
+        // The belt surface is deliberately NOT a blocker.  A blocker is a collision,
+        // and a branch descending onto a collision slides off it: on a belt that
+        // walks the branch down the tilted surface, ahead of the part, until it
+        // reaches the bottom layer floating in mid-air.  The belt is where branches
+        // END: organic_draw_branches() clips their slices with m_belt_floor and the
+        // first clipped slice is the contact.
+        {
+            const size_t num_raft = m_raft_layers.size();
+            if (num_raft > 0 && ! m_anti_overhang.empty())
+                m_anti_overhang.insert(m_anti_overhang.begin(), num_raft, Polygons{});
+        }
         m_current_outline_idx = 0;
 
         m_layer_outlines.emplace_back(mesh_settings, std::vector<Polygons>{});
@@ -127,6 +144,32 @@ TreeModelVolumes::TreeModelVolumes(
             for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx)
                 outlines[layer_idx] = polygons_simplify(to_polygons(print_object.get_layer(layer_idx - num_raft_layers)->lslices), mesh_settings.resolution);
         });
+
+        // Belt floor: pre-compute belt surface polygon per-layer for clipping.
+        // Branches grow toward the belt and their slices are clipped at the belt
+        // surface in organic_draw_branches().  The organic pipeline works in LOCAL
+        // Z (no global_z_offset), so use local z_shift and local print_z.
+        {
+            const auto &slicing_params = print_object.slicing_parameters();
+            const auto &pcfg2 = print_object.print()->config();
+            BeltFloorContext ctx;
+            ctx.init_local(slicing_params, pcfg2, print_object.belt_global_z_offset());
+            if (ctx.is_active()) {
+                m_belt_floor = ctx.compute_per_layer_floors(num_layers, [&](size_t layer_idx) -> double {
+                    // Object layers: local print_z (subtract global offset).
+                    if (layer_idx >= num_raft_layers)
+                        return print_object.get_layer(layer_idx - num_raft_layers)->print_z
+                               - print_object.belt_global_z_offset();
+                    // Belt raft layers (below the object): each carries its own
+                    // local print_z in m_raft_layers. The belt floor is a tilted
+                    // plane, so the half-plane to clip grows as print_z drops —
+                    // using 0 here clipped every below-object layer against the
+                    // Z=0 belt surface, under-clipping the raft region and leaving
+                    // a dense support mass below the floor.
+                    return (layer_idx < m_raft_layers.size()) ? m_raft_layers[layer_idx] : 0.;
+                });
+            }
+        }
     }
 #endif
 
@@ -484,7 +527,7 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             // 2) Sum over top / bottom ranges.
             const bool processing_last_mesh = outline_idx == layer_outline_indices.back();
             tbb::parallel_for(tbb::blocked_range<LayerIndex>(data.begin(), data.end()),
-                [&collision_areas_offsetted, &outlines, &machine_border = m_machine_border, &anti_overhang = m_anti_overhang, radius, 
+                [&collision_areas_offsetted, &outlines, &machine_border = m_machine_border, &anti_overhang = m_anti_overhang, radius,
                     xy_distance, z_distance_bottom_layers, z_distance_top_layers, min_resolution = m_min_resolution, &data, processing_last_mesh, &throw_on_cancel]
                 (const tbb::blocked_range<LayerIndex>& range) {
                     for (LayerIndex layer_idx = range.begin(); layer_idx != range.end(); ++ layer_idx) {
@@ -530,9 +573,14 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
                                     // not support an overhang<90 degree than to risk fusing to it.
                                 append(collisions, offset(union_ex(collision_areas_original), radius + required_range_x, jtMiter, 1.2));
                             }
-                        collisions = processing_last_mesh && layer_idx < int(anti_overhang.size()) ? 
-                                union_(collisions, offset(union_ex(anti_overhang[layer_idx]), radius, jtMiter, 1.2)) : 
-                                union_(collisions);
+                        if (processing_last_mesh) {
+                            if (layer_idx < int(anti_overhang.size()))
+                                append(collisions, offset(union_ex(anti_overhang[layer_idx]), radius, jtMiter, 1.2));
+                            // NOTE: m_belt_floor is NOT added to collision here — branches
+                            // should grow toward the belt and terminate at it, not avoid it.
+                            // Belt floor clipping is done post-generation in organic_draw_branches().
+                        }
+                        collisions = union_(collisions);
                         auto &dst = data[layer_idx];
                         if (processing_last_mesh) {
                             if (! dst.empty())

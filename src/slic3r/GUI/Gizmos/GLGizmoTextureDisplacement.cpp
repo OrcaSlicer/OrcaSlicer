@@ -1514,11 +1514,8 @@ void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
         // How the entry prints: its filament, or for a mix the two it interleaves and in what ratio.
         shader->set_uniform(("palette_a" + idx).c_str(), e.a);
         shader->set_uniform(("palette_b" + idx).c_str(), e.b);
-        shader->set_uniform(("palette_num" + idx).c_str(), e.num);
-        shader->set_uniform(("palette_den" + idx).c_str(), e.den);
     }
     // The filaments those indices refer to, and the interleave the shader resolves a mix with - the
-    // same inputs make_mix_resolver() gets, so the preview shows the pattern that prints rather than
     // the mix's smooth average colour. m_palette_filaments is what m_shaded_preview_palette was built from.
     const int filament_count =
         (palette_count > 0) ? int(std::min(m_palette_filaments.size(), size_t(PALETTE_MAX_FILAMENTS))) : 0;
@@ -1527,9 +1524,6 @@ void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
         const ColorRGBA &c = m_palette_filaments[size_t(i)];
         shader->set_uniform(("filament_rgb[" + std::to_string(i) + "]").c_str(), Vec3f(c.r(), c.g(), c.b()));
     }
-    shader->set_uniform("mix_mode", int(mv->texture_displacement_options.color_mix_mode));
-    shader->set_uniform("layer_height", color_band_mm(*mv)); // as color_settings_for()
-    shader->set_uniform("dither_cell", std::max(m_subdivide_color_mm, 0.05f) * 2.f); // as color_settings_for()
     if (color_tex != nullptr) {
         shader->set_uniform("color_tex", 1);
         glsafe(::glActiveTexture(GL_TEXTURE1));
@@ -2074,7 +2068,13 @@ void GLGizmoTextureDisplacement::queue_preview_job()
     // The filament list the result's indices refer to, captured with the job rather than read back
     // when it lands - loading a filament meanwhile must not recolour a preview computed against a
     // different list.
-    const std::vector<ColorRGBA> filaments = m_palette_filaments;
+    // Every extruder, not the palette's physical-only list: the bake writes the filament it resolved
+    // to, and a mix resolves to a *mixed filament slot*, which is an extruder past the physical ones.
+    // Grouping against the shorter list dropped every triangle carrying such a slot out of the mesh
+    // entirely - the relief vanished and left only the few triangles that happened to print in a plain
+    // filament. The palette still has to be built from physical filaments alone (see filament_palette()),
+    // which is why these two are not the same list.
+    const std::vector<ColorRGBA> filaments = wxGetApp().plater()->get_extruders_colors();
 
     m_preview_job_running = true;
     auto &worker = wxGetApp().plater()->get_ui_job_worker();
@@ -4271,19 +4271,44 @@ bool GLGizmoTextureDisplacement::any_layer_colors(const ModelVolume &mv)
     return false;
 }
 
+void GLGizmoTextureDisplacement::bind_mixes_to_filament_slots(std::vector<PaletteEntry> &palette)
+{
+    Sidebar *sidebar = &wxGetApp().plater()->sidebar();
+    if (sidebar == nullptr)
+        return;
+    for (PaletteEntry &e : palette) {
+        if (!e.is_mix())
+            continue;
+        // Components are 1-based in the config; the ratios are percentages summing to 100, which is the
+        // form create_mixed_filament_from_result() normalises from.
+        const int a_pct = int(std::lround(100.0 * double(e.num) / double(e.den)));
+        const int slot  = sidebar->ensure_mixed_filament({ unsigned(e.a + 1), unsigned(e.b + 1) },
+                                                         { a_pct, 100 - a_pct });
+        if (slot >= 0) {
+            e.a = e.b = slot;
+            e.num = e.den = 1;
+        } else {
+            // No room for another slot. Collapse to the component that dominates the blend, which is what
+            // the old per-triangle path did on a surface it could not band anyway.
+            const int dominant = (e.num * 2 >= e.den) ? e.a : e.b;
+            e.a = e.b = dominant;
+            e.num = e.den = 1;
+        }
+    }
+}
+
 TextureColorSettings GLGizmoTextureDisplacement::color_settings_for(const ModelVolume &mv)
 {
     TextureColorSettings out;
     if (!any_layer_colors(mv))
         return out; // nothing is colouring: every colour path stays switched off
     out.palette          = cached_palette();
-    out.palette_pure     = make_palette(m_palette_filaments, /* mixing */ false);
-    out.mix_mode         = mv.texture_displacement_options.color_mix_mode;
+    out.palette_pure     = make_palette(m_palette_filaments, /* mixing */ false, PALETTE_MAX_ENTRIES);
+    // Done here rather than in cached_palette(): this runs when a preview or a bake is queued, off a
+    // user action, while that one is also touched from the render path - and creating filament slots
+    // there would mutate the project mid-frame.
+    bind_mixes_to_filament_slots(out.palette);
     out.despeckle_passes = mv.texture_displacement_options.color_despeckle;
-    out.layer_height     = color_band_mm(mv);
-    // The dither cell is tied to the colour-detail target: a cell much smaller than a facet cannot be
-    // drawn at all, and one much larger stops reading as a blend and starts reading as a check.
-    out.dither_cell_mm   = std::max(m_subdivide_color_mm, 0.05f) * 2.f;
     return out;
 }
 
@@ -4296,10 +4321,15 @@ const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDispl
     const ModelVolume *mv     = texture_volume();
     const bool         mixing = mv != nullptr && mv->texture_displacement_options.color_mix_enabled;
     std::vector<ColorRGBA> filaments = filament_palette();
-    if (m_palette_cache.empty() || filaments != m_palette_filaments || mixing != m_palette_mixing) {
+    // Every mix costs a filament slot once they are bound to one, and the mask can name only so many
+    // states, so the palette has to leave room beside the physical filaments it already counts.
+    const int cap = int(EnforcerBlockerType::ExtruderMax);
+    if (m_palette_cache.empty() || filaments != m_palette_filaments || mixing != m_palette_mixing ||
+        cap != m_palette_cap) {
         m_palette_filaments = std::move(filaments);
         m_palette_mixing    = mixing;
-        m_palette_cache     = make_palette(m_palette_filaments, mixing);
+        m_palette_cap       = cap;
+        m_palette_cache     = make_palette(m_palette_filaments, mixing, cap);
         m_palette_quantizer = make_palette_quantizer(m_palette_cache);
     }
     return m_palette_cache;
@@ -4307,40 +4337,29 @@ const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDispl
 
 std::vector<ColorRGBA> GLGizmoTextureDisplacement::filament_palette()
 {
-    std::vector<ColorRGBA> palette = wxGetApp().plater()->get_extruders_colors();
-    // mmu_segmentation_facets encodes the filament in a 6-bit prefix code and stops at Extruder16.
+    std::vector<ColorRGBA> all = wxGetApp().plater()->get_extruders_colors();
+
+    // Physical filaments only. The mixes this palette produces each become a mixed filament slot of
+    // their own (see bind_mixes_to_filament_slots()), and those slots are extruders too - so taking the
+    // list as it comes meant the next rebuild mixed *them* again, and handed components naming a
+    // virtual slot to a blend that can only name physical ones. That is what left entries reading
+    // "filament 1 plus nothing" and raised "Mixed filament has invalid or mismatched components".
+    const auto *is_mixed = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+    std::vector<ColorRGBA> palette;
+    palette.reserve(all.size());
+    for (size_t i = 0; i < all.size(); ++i)
+        if (is_mixed == nullptr || i >= is_mixed->values.size() || !is_mixed->values[i])
+            palette.push_back(all[i]);
+
+    // A paint mask can only name so many states, and every mix spends one beside these.
     if (palette.size() > size_t(EnforcerBlockerType::ExtruderMax))
         palette.resize(size_t(EnforcerBlockerType::ExtruderMax));
     return palette;
 }
 
-float GLGizmoTextureDisplacement::color_band_mm(const ModelVolume &mv)
-{
-    const float lh   = print_layer_height();
-    const float edge = (mv.texture_displacement_options.v2_refine_mm > 0.f) ? mv.texture_displacement_options.v2_refine_mm
-                                                                           : v2_recommendation(mv).edge_mm;
-    if (edge <= 0.f || lh <= 0.f)
-        return lh;
-    // A refined triangle of edge e stacks in rows about 0.87 * e apart (an equilateral triangle's
-    // height), and a dither needs at least two rows per period to be a dither at all.
-    constexpr float ROW_PER_EDGE = 0.87f;
-    return lh * std::max(1.f, std::ceil(2.f * ROW_PER_EDGE * edge / lh));
-}
-
-float GLGizmoTextureDisplacement::print_layer_height()
-{
-    try {
-        const DynamicPrintConfig &cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        if (const ConfigOptionFloat *opt = cfg.option<ConfigOptionFloat>("layer_height"); opt != nullptr)
-            if (opt->value > 1e-3)
-                return float(opt->value);
-    } catch (...) {
-    }
-    return 0.2f;
-}
 
 std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement::make_palette(
-    const std::vector<ColorRGBA> &filaments, bool mixing)
+    const std::vector<ColorRGBA> &filaments, bool mixing, int max_entries)
 {
     std::vector<PaletteEntry> out;
     const int                 n = int(filaments.size());
@@ -4357,7 +4376,7 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
     const int pairs = n * (n - 1) / 2;
     int       steps = 0;
     for (int s = 5; s >= 1; --s)
-        if (n + pairs * s <= PALETTE_MAX_ENTRIES) {
+        if (n + pairs * s <= max_entries) {
             steps = s;
             break;
         }
@@ -4377,51 +4396,6 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
             }
         }
     return out;
-}
-
-ColorResolveFn GLGizmoTextureDisplacement::make_mix_resolver(const std::vector<PaletteEntry> &palette,
-                                                             ColorMixMode mode, float layer_height,
-                                                             float cell_mm)
-{
-    if (palette.empty())
-        return nullptr;
-    auto        entries = std::make_shared<std::vector<PaletteEntry>>(palette);
-    const float band    = std::max(layer_height, 0.01f);
-    const float cell    = std::max(cell_mm, 0.01f);
-
-    return [entries, mode, band, cell](int index, const Vec3f &pos, const Vec3f &normal) -> int {
-        if (index < 0 || size_t(index) >= entries->size())
-            return -1;
-        const PaletteEntry &e = (*entries)[size_t(index)];
-        if (!e.is_mix())
-            return e.a;
-
-        // Which of the two filaments this point falls on. Both patterns are *ordered*, never random:
-        // the eye blends a regular pattern into a flat colour, and turns a random one into noise.
-        // Auto: bands wherever the surface is steeper than ~45 degrees - consecutive layers alternate
-        // there, which is how a blend prints and reads. On a flat-facing surface a layer is one band
-        // and the only way to interleave is a checkerboard across the surface, which at print scale
-        // reads as a pattern rather than a colour; there the mix falls back to its dominant filament.
-        const bool upright = std::abs(normal.z()) < 0.7f;
-        if (mode == ColorMixMode::Auto && !upright)
-            return e.num * 2 >= e.den ? e.a : e.b;
-        const bool bands = mode == ColorMixMode::ZBands || mode == ColorMixMode::Auto;
-        if (bands) {
-            // One band per print layer. floorf, not a cast, so this stays correct below z = 0.
-            const int slot = int(std::floor(pos.z() / band));
-            const int phase = ((slot % e.den) + e.den) % e.den;
-            return phase < e.num ? e.a : e.b;
-        }
-        // Ordered 4x4 Bayer over the surface, indexed by position so the pattern is stable in space
-        // rather than in triangle order (which would move under any remesh, and read as noise).
-        static const int BAYER[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
-        const int gx = ((int(std::floor(pos.x() / cell)) % 4) + 4) % 4;
-        const int gy = ((int(std::floor(pos.y() / cell)) % 4) + 4) % 4;
-        // A third axis would be ideal, but the two dominant ones are enough for a surface pattern and
-        // keep the cell square on the faces that matter.
-        const float threshold = (float(BAYER[gy * 4 + gx]) + 0.5f) / 16.f;
-        return (float(e.num) / float(e.den)) > threshold ? e.a : e.b;
-    };
 }
 
 ColorQuantizeFn GLGizmoTextureDisplacement::make_palette_quantizer(const std::vector<PaletteEntry> &palette)
@@ -4460,10 +4434,15 @@ ColorQuantizeFn GLGizmoTextureDisplacement::make_palette_quantizer(const std::ve
                             best_pure   = int(i);
                         }
                     }
-                    // A mix is an interleave that only reads as its colour from a distance; up close
-                    // it is stripes. Spend it only where it buys a clearly better match than the nearest
-                    // single filament: ten Delta E is a visible step, less is not worth the stripes.
-                    constexpr float PREFER_PURE_DE = 10.f;
+                    // A mix is an interleave that only reads as its colour from a distance; up close it is
+                    // stripes. So it is spent only where it buys a better match than the nearest single
+                    // filament - but "better" was set at ten Delta E, which is not a visible step, it is a
+                    // different colour. Measured over the whole cube that threshold turned 94% of the
+                    // lookups that wanted a mix back into a pure filament, leaving 38%; along a greyscale
+                    // ramp, the shape a height texture actually traces, it cut 80% to 66%. Two Delta E is
+                    // about where a side-by-side difference stops being arguable, which is the right place
+                    // to start paying for stripes.
+                    constexpr float PREFER_PURE_DE = 2.f;
                     if (best_pure >= 0 && palette[size_t(best)].is_mix() && best_pure_d - best_d < PREFER_PURE_DE)
                         best = best_pure;
                     (*lut)[(size_t(r) * E + size_t(g)) * E + size_t(b)] = uint8_t(best);
@@ -4563,7 +4542,7 @@ TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
             if (params.subdiv_color_edge_mm > 0.f && !palette.empty())
                 color = make_combined_color_sampler(mesh.its, layers, current, make_palette_quantizer(palette));
             // Note the sampler is built on the *quantizer* alone - the refinement follows perceived
-            // colour, never the interleaving that realises a mix (see ColorResolveFn).
+            // colour, never the interleaving that realises a mix - the slicer does that per layer.
             // "Min edge" is a feature-mode control (it is the floor the curvature test refines down
             // to); in plain adaptive mode the target edge length is the only criterion, so the floor
             // must not be allowed to silently override a target the user set below it.
@@ -6148,24 +6127,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                        "of filaments can cover a photo or a gradient. An image of flat colors "
                                        "prints the same either way. Off uses one filament per area."));
                         if (opts.color_mix_enabled) {
-                            slider_label(_L("Mix by"));
-                            const std::string mix_z       = _u8L("Layers");
-                            const std::string mix_xy      = _u8L_CONTEXT("Surface", "Texture Displacement");
-                            const std::string mix_auto    = _u8L("Automatic");
-                            const char       *mix_items[] = { mix_z.c_str(), mix_xy.c_str(), mix_auto.c_str() };
-                            int               mix_mode    = int(opts.color_mix_mode);
-                            ImGui::SetNextItemWidth(-card_pad);
-                            if (scoped_combo("##color_mix_mode", &mix_mode, mix_items, IM_ARRAYSIZE(mix_items))) {
-                                opts.color_mix_mode    = ColorMixMode(mix_mode);
-                                m_preview_params_dirty = true;
-                            }
-                            hover_tip(_u8L("Layers: the two filaments alternate between print layers, which "
-                                           "blends smoothly on upright surfaces but disappears on flat-facing "
-                                           "ones, where a whole layer is a single band.\n"
-                                           "Surface: a fine checkerboard across the surface, which works at "
-                                           "any angle but can read as texture rather than as a blend.\n"
-                                           "Automatic: layers on upright faces; flat-facing faces take the nearer "
-                                           "single filament, since a checkerboard there shows as a pattern."));
                             ImGui::TextDisabled("%s", Slic3r::format(_u8L("%1% printable colors from %2% filaments"),
                                                                      int(cached_palette().size()), int(m_palette_filaments.size())).c_str());
                         }

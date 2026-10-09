@@ -4,7 +4,6 @@
 // Via pybind11 so this file requests the same python3xx.lib as everything else.
 #include <boost/filesystem/path.hpp>
 #include <pybind11/conduit/wrap_include_python_h.h>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -104,22 +103,20 @@ public:
     bool is_denied_filename(const boost::filesystem::path& candidate) const;
 
     // --- denied-path-keyword registry ---
-    // Keywords that categorically deny a path if ANY of its components (directory or file
-    // name), not just the base name, contains one case-insensitively -- e.g. a "secrets"
-    // subfolder, a "certificates" folder, or a "conf"/"config" file anywhere the plugin can
-    // otherwise reach, including inside an allowed root. This is intentionally broader and
-    // fuzzier than the exact-name is_denied_filename registry: it exists to categorically rule
-    // out whole classes of sensitive paths (secrets, certificates, config) rather than name
-    // specific known files, at the cost of over-blocking an unrelated name that happens to
-    // contain the keyword -- the fail-safe direction, same rationale as is_denied_filename.
+    // Keywords that categorically deny a path if ANY component matches one case-insensitively --
+    // e.g. a "secrets" subfolder, a "certificates" folder, a "conf"/"config" directory, or a
+    // .conf/.ini file anywhere the plugin can otherwise reach, including inside an allowed root.
+    // This is broader than the exact-name is_denied_filename registry, but it is not a substring
+    // match: importable modules such as numpy/__config__.py, configparser.py, sysconfig.py, or
+    // user folders such as "Conference" and "Concert" are unrelated names and must stay promptable.
     void add_denied_path_keyword(const std::string& keyword);
 
     // The list install_hook() seeds into the keyword registry. Exposed so tests seed the exact
     // same set without a live interpreter.
     static std::vector<std::string> default_denied_path_keywords();
 
-    // True when any component of candidate's (canonicalized) path contains a registered
-    // keyword, case-insensitively.
+    // True when any component of candidate's (canonicalized) path matches a registered keyword,
+    // case-insensitively. A registered "conf" keyword also blocks .conf/.ini file components.
     bool is_denied_path_keyword(const boost::filesystem::path& candidate) const;
 
     // is_denied_filename(candidate) || is_denied_path_keyword(candidate). Convenience for
