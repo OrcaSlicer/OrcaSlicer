@@ -37,6 +37,112 @@ public:
 
 } // namespace
 
+TEST_CASE("CSV import accepts common numeric spreadsheet formats", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    const std::string text = GENERATE(
+        "0,0\n10,1\n",
+        "extrusion_length,flow_correction_factor\r\n0,0\r\n10,1\r\n",
+        "\xEF\xBB\xBF" "x;y\r\n0;0\r\n10;1\r\n",
+        "\n\"x\",\"y\"\n\n\"0\",\"0\"\n\"10\",\"1\"\n",
+        "0;0\n0,5;0,75\n10;1\n",
+        "0,0\n\"0,5\",\"0,75\"\n10,1\n",
+        " 0 , 0 \n 1e1 , 1 \n");
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line = -1;
+    REQUIRE(model.read_csv(text, rows, line) == nullptr);
+    std::vector<double> x, y;
+    int row = -1;
+    REQUIRE(model.read_points(rows, x, y, row) == nullptr);
+    CHECK_THAT(x.front(), WithinAbs(0.0, 1e-12));
+    CHECK_THAT(x.back(), WithinAbs(10.0, 1e-12));
+    CHECK_THAT(y.back(), WithinAbs(1.0, 1e-12));
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Malformed CSV leaves existing points and parameters untouched", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    const std::string invalid = GENERATE(
+        "", "\n \n", "0\n10,1\n", "0,0,5\n10,1\n", "0,0,\n10,1\n",
+        "\"0,0\n10,1\n", "\"0\"junk,0\n10,1\n", "0,\"0\"\"\"\n10,1\n",
+        "0,0\n10,\n", "0,0\n10,nan\n", "0,0\ninf,1\n",
+        "0,0\n10,0.9\n", "0,0\n5,0.8\n10,0.7\n", "1,0\n10,1\n",
+        "0,0\n0,1\n", "0,0\n", "x,y\n0,0\nx,y\n10,1\n");
+    const std::vector<std::string> parameters = {"0,0", "\n10,1"};
+    FlowModel model(parameters);
+    const auto original = model.rows();
+    auto rows = original;
+    int line = -1;
+    REQUIRE(model.read_csv(invalid, rows, line) != nullptr);
+    CHECK(rows == original);
+    CHECK(model.parameters() == parameters);
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("CSV validation reports the physical file line including headers and blank lines", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line = -1;
+    REQUIRE(model.read_csv("x,y\n\n0,0\n\n10,invalid\n", rows, line) != nullptr);
+    CHECK(line == 5);
+    REQUIRE(model.read_csv("x,y\n\n0,0\n\n10,0.9\n", rows, line) != nullptr);
+    CHECK(line == 5);
+}
+
+TEST_CASE("CSV import rejects binary data after valid points instead of accepting a partial file", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    FlowModel model;
+    const auto original = CurveModel::Rows{{"0", "0"}, {"10", "1"}};
+    auto rows = original;
+    std::string csv = "0,0\n10,1\n";
+    csv.push_back('\0');
+    csv += "invalid,invalid\n";
+    int line = -1;
+    REQUIRE(model.read_csv(csv, rows, line) != nullptr);
+    CHECK(rows == original);
+    CHECK(line == 3);
+}
+
+TEST_CASE("CSV export preserves entered precision and normalizes decimal separators", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    FlowModel model;
+    const CurveModel::Rows rows = {{"0", "0"}, {" 0,1234567890123456789012345 ", "0,75"}, {"1e1", "1"}};
+    std::string csv;
+    int row = -1;
+    REQUIRE(model.write_csv(rows, csv, row) == nullptr);
+    CHECK(csv.find("0.1234567890123456789012345,0.75\n") != std::string::npos);
+    CHECK(csv.find("1e1,1\n") != std::string::npos);
+    CurveModel::Rows imported;
+    int line = -1;
+    REQUIRE(model.read_csv(csv, imported, line) == nullptr);
+    CHECK(imported[1].first == "0.1234567890123456789012345");
+    CHECK(imported[1].second == "0.75");
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("An empty curve round trips through an explicit CSV header", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    FlowModel model;
+    std::string csv;
+    int row = -1;
+    REQUIRE(model.write_csv({}, csv, row) == nullptr);
+    CurveModel::Rows rows = {{"0", "0"}, {"10", "1"}};
+    int line = -1;
+    REQUIRE(model.read_csv(csv, rows, line) == nullptr);
+    CHECK(rows.empty());
+}
+
+TEST_CASE("CSV export rejects an invalid curve without replacing its output", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    FlowModel model;
+    std::string csv = "Existing file contents";
+    int row = -1;
+    REQUIRE(model.write_csv({{"0", "0"}, {"10", "0.5"}}, csv, row) != nullptr);
+    CHECK(csv == "Existing file contents");
+    CHECK(row == 1);
+}
+
 TEST_CASE("Curve models default to PCHIP and allow derived interpolation overrides", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {
     const std::vector<double> x = {0, 1, 3}, y = {0, 0.8, 1};
