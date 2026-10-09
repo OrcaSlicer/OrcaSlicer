@@ -470,7 +470,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         std::string gcode = gcodegen.writer().set_temperature(temp, false, extruder_id);
         gcode.pop_back();
-        gcode += " ;cooldown\n";
+        gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
         return gcode;
     }
 
