@@ -38429,6 +38429,10 @@ msgstr "Último factor corrector de flujo: debe ser 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modelo vacío. No se compensará el flujo."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Límite X: tamaño de cama de la impresora actual y puntos del modelo."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Mostrar opciones al importar archivos STEP"
 
