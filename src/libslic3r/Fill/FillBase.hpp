@@ -188,6 +188,9 @@ public:
     // Return true if infill has a consistent pattern between layers.
     virtual bool has_consistent_pattern() const { return false; }
 
+    // Orca: Is the pattern laid out from the origin instead of the bounding box center?
+    virtual bool aligned_to_origin() const { return false; }
+
     // Perform the fill.
     virtual Polylines fill_surface(const Surface *surface, const FillParams &params);
     virtual ThickPolylines fill_surface_arachne(const Surface* surface, const FillParams& params);

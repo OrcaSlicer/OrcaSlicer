@@ -947,13 +947,12 @@ std::string Http::tls_global_init()
 
 std::string Http::tls_system_cert_store()
 {
-    std::string ret;
-
 #ifdef OPENSSL_CERT_OVERRIDE
-    ret = ::getenv(X509_get_default_cert_file_env());
+    if (const char *cert_file = ::getenv(X509_get_default_cert_file_env()))
+        return cert_file;
 #endif
 
-    return ret;
+    return {};
 }
 
 std::string Http::url_encode(const std::string &str)

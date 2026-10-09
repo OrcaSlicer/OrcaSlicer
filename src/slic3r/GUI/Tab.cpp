@@ -5833,7 +5833,8 @@ if (is_marlin_flavor)
                 // The page edits the extruder selected on the variant switch.
                 const size_t extruder_idx = size_t(get_current_active_extruder());
                 bool is_SEMM = m_config->opt_bool("single_extruder_multi_material");
-                if (is_SEMM && m_extruders_count > 1 && boost::starts_with(opt_key, "nozzle_diameter"))
+                bool independent_nozzles = m_preset_bundle && m_preset_bundle->is_bbl_vendor() && m_extruders_count > 1;
+                if (is_SEMM && m_extruders_count > 1 && !independent_nozzles && boost::starts_with(opt_key, "nozzle_diameter"))
                 {
                     SuppressBackgroundProcessingUpdate sbpu;
                     const double new_nd = boost::any_cast<double>(value);

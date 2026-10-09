@@ -910,6 +910,44 @@ TEST_CASE("Each filament sets the pressure advance of its extruder variant on a 
     }
 }
 
+// Without a dynamic nozzle map the hotend placeholders carry no hotend index (-1) on a BBL printer: Bambu
+// firmware reads an explicit index as a request for the Filament Track Switch and rejects the job. Any other
+// printer gets the extruder index of the filament.
+TEST_CASE("Hotend placeholders resolve to -1 on a BBL printer and to the extruder index elsewhere", "[MultiFilament]")
+{
+    // filament 1 prints the walls on extruder 2, filament 2 the infill on extruder 1
+    auto [is_bbl, start, changes] = GENERATE(table<bool, std::string, std::set<std::string>>({
+        { true,  "; hotend start filament 0: -1 -1 -1",
+          { "; hotend change filament 0: -1 -1", "; hotend change filament 1: -1 -1" } },
+        // the first change loads filament 1 with no filament before it, so there is no outgoing extruder
+        { false, "; hotend start filament 0: 1 1 1",
+          { "; hotend change filament -1: -1 1", "; hotend change filament 0: 1 0", "; hotend change filament 1: 0 1" } },
+    }));
+    DynamicPrintConfig config = two_extruder_pressure_advance_config("2,1", "0,0,0,0", 1, 2);
+    config.set_key_value("machine_start_gcode", new ConfigOptionString(
+        "; hotend start filament [initial_no_support_extruder]: [initial_no_support_hotend] [current_hotend] {first_non_support_hotend[0]}"));
+    config.set_key_value("change_filament_gcode", new ConfigOptionString(
+        "; hotend change filament [current_filament_id]: [current_hotend] [next_hotend]"));
+    Print print;
+    print.is_BBL_printer() = is_bbl;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    INFO("BBL printer: " << is_bbl);
+    std::vector<std::string> starts;
+    std::set<std::string>    found;
+    std::istringstream       stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.rfind("; hotend start ", 0) == 0)
+            starts.push_back(line);
+        else if (line.rfind("; hotend change ", 0) == 0)
+            found.insert(line);
+    }
+    CHECK(starts == std::vector<std::string>{ start });
+    CHECK(found == changes);
+}
+
 // Filament 1 prints the walls on extruder 1 (variant index 0), filament 2 the infill on extruder 2 (variant index 3).
 TEST_CASE("Adaptive pressure advance on one extruder leaves the other extruder's pressure advance alone", "[MultiFilament]")
 {
