@@ -283,17 +283,12 @@ void BackgroundSlicingProcess::process_fff()
         m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
         m_fff_print->export_gcode(m_temp_output_path, m_gcode_result,
                                   [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
-        // Orca: BBL printers post-process the g-code in place here and never re-parse it into a fresh
-        // GCodeProcessorResult, so m_gcode_result->nozzle_group_result (consumed by the H2C print-dispatch
-        // nozzle mapping) survives post-processing. No preservation guard is needed on this path.
+        // Orca: BBL printers post-process the g-code in place here, in the file the G-code viewer maps, so
+        // the preview re-reads its moves and line offsets from the edited file. The rest of m_gcode_result,
+        // including nozzle_group_result (consumed by the H2C print-dispatch nozzle mapping), is kept.
         if (m_fff_print->is_BBL_printer()) {
             if (run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config()))
-                // The scripts/plugins rewrote the very file the G-code viewer memory-maps, so every byte
-                // offset in m_gcode_result->lines_ends (built while exporting the pre-processed G-code) is
-                // now stale and GCodeWindow would slice the file mid-line. Re-scan it. Note this only
-                // realigns the line framing: if a script inserts or removes lines, the moves' gcode_id
-                // still refers to the pre-processed numbering and the highlighted line stays shifted.
-                m_gcode_result->rebuild_lines_ends();
+                m_fff_print->reload_gcode_moves(m_gcode_result);
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");

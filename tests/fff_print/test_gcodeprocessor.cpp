@@ -9,19 +9,15 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/nowide/fstream.hpp>
-
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
-#include <ios>
-#include <iterator>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 #include <sstream>
@@ -227,93 +223,61 @@ TEST_CASE("Line ends of the exported G-code mark every newline in the file", "[G
     CHECK(difference.first == result.lines_ends.end());
 }
 
-namespace {
-
-// Writes the bytes verbatim: the G-code export is binary, so no newline translation must creep in
-// here either, otherwise the CRLF cases below would silently test LF.
-void write_gcode(const std::string &path, const std::string &content)
+TEST_CASE("Reloaded moves name their lines in G-code a script rewrote in place", "[GCodeProcessor]")
 {
-    boost::nowide::ofstream f(path, std::ios::binary);
-    f << content;
-}
-
-// Cuts line `id` (1-based) out of the file the way GCodeViewer's G-code window does: the text it
-// shows is bytes [lines_ends[id - 2], lines_ends[id - 1]). Reproducing that here is what makes these
-// assertions about the rendered result rather than about the offsets themselves.
-std::string line_at(const std::string &path, const std::vector<size_t> &lines_ends, size_t id)
-{
-    boost::nowide::ifstream f(path, std::ios::binary);
-    const std::string       bytes((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    const size_t            start = id == 1 ? 0 : lines_ends[id - 2];
-    return bytes.substr(start, lines_ends[id - 1] - start);
-}
-
-} // namespace
-
-TEST_CASE("rebuild_lines_ends realigns the line offsets after the G-code is rewritten in place", "[GCodeProcessor]")
-{
-    ScopedTemporaryFile  tmp(".gcode");
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20) }, print, model);
     GCodeProcessorResult result;
-    result.filename = tmp.string();
+    const std::string    gcode          = Test::gcode(print, &result);
+    const auto           exported_moves = result.moves;
 
-    write_gcode(tmp.string(), "G1 X1\nG1 X2\nG1 X3\n");
-    REQUIRE(result.rebuild_lines_ends());
-    REQUIRE(result.lines_ends.size() == 3);
-    CHECK(line_at(tmp.string(), result.lines_ends, 2) == "G1 X2\n");
+    // A script that prepends one comment and, writing in text mode on Windows, turns every LF into CRLF.
+    const std::string prepended = ";EDITED\r\n";
+    std::string       edited    = prepended;
+    for (const char c : gcode) {
+        if (c == '\n')
+            edited += '\r';
+        edited += c;
+    }
+    ScopedTemporaryFile temp(".gcode");
+    save_string_file(temp.path(), edited);
+    result.filename = temp.string();
+    print.reload_gcode_moves(&result);
 
-    // What a post-processing script that opens the file in Python text mode on Windows does: prepend a
-    // comment and translate every LF to CRLF. Every byte offset shifts, and cumulatively.
-    write_gcode(tmp.string(), ";EDITED\r\nG1 X1\r\nG1 X2\r\nG1 X3\r\n");
-    CHECK(line_at(tmp.string(), result.lines_ends, 2) != "G1 X1\r\n");
+    std::vector<size_t> newline_ends;
+    for (size_t i = edited.find('\n'); i != std::string::npos; i = edited.find('\n', i + 1))
+        newline_ends.push_back(i + 1);
+    CHECK(result.lines_ends == newline_ends);
 
-    REQUIRE(result.rebuild_lines_ends());
-    REQUIRE(result.lines_ends.size() == 4);
-    CHECK(line_at(tmp.string(), result.lines_ends, 1) == ";EDITED\r\n");
-    CHECK(line_at(tmp.string(), result.lines_ends, 2) == "G1 X1\r\n");
-    CHECK(line_at(tmp.string(), result.lines_ends, 4) == "G1 X3\r\n");
+    // Every move that came from a line now names the same line one further down.
+    REQUIRE(result.moves.size() == exported_moves.size());
+    const auto difference = std::mismatch(exported_moves.begin(), exported_moves.end(), result.moves.begin(),
+                                          [](const auto &exported, const auto &reloaded) {
+                                              return reloaded.gcode_id == (exported.gcode_id == 0 ? 0 : exported.gcode_id + 1);
+                                          });
+    INFO("first difference at move " << difference.first - exported_moves.begin());
+    CHECK(difference.first == exported_moves.end());
 }
 
-TEST_CASE("rebuild_lines_ends maps a file longer than one read chunk", "[GCodeProcessor]")
+TEST_CASE("Rewritten G-code that cannot be re-read keeps the moves and hides the G-code window", "[GCodeProcessor]")
 {
-    ScopedTemporaryFile  tmp(".gcode");
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20) }, print, model);
     GCodeProcessorResult result;
-    result.filename = tmp.string();
+    const std::string    gcode          = Test::gcode(print, &result);
+    const auto           exported_moves = result.moves;
 
-    const size_t line_count = 20000;
-    std::string  content;
-    for (size_t i = 0; i < line_count; ++i)
-        content += "G1 X" + std::to_string(i) + "\n";
-    // The scan reads the file in chunks, so it has to span at least one chunk boundary to be meaningful.
-    REQUIRE(content.size() > 65536);
-    write_gcode(tmp.string(), content);
+    // A script that strips the trailing config block, which the G-code reader needs.
+    const size_t config_block = gcode.find("; CONFIG_BLOCK_START");
+    REQUIRE(config_block != std::string::npos);
+    ScopedTemporaryFile temp(".gcode");
+    save_string_file(temp.path(), gcode.substr(0, config_block));
+    result.filename = temp.string();
+    print.reload_gcode_moves(&result);
 
-    REQUIRE(result.rebuild_lines_ends());
-    REQUIRE(result.lines_ends.size() == line_count);
-    CHECK(result.lines_ends.back() == content.size());
-    CHECK(line_at(tmp.string(), result.lines_ends, line_count) == "G1 X" + std::to_string(line_count - 1) + "\n");
-}
-
-TEST_CASE("rebuild_lines_ends ignores a trailing line that has no newline", "[GCodeProcessor]")
-{
-    ScopedTemporaryFile  tmp(".gcode");
-    GCodeProcessorResult result;
-    result.filename = tmp.string();
-
-    // Matches the export pass, which only ever records the offset one past a '\n'.
-    write_gcode(tmp.string(), "G1 X1\nG1 X2");
-    REQUIRE(result.rebuild_lines_ends());
-    CHECK(result.lines_ends.size() == 1);
-    CHECK(line_at(tmp.string(), result.lines_ends, 1) == "G1 X1\n");
-}
-
-TEST_CASE("rebuild_lines_ends empties the map when the G-code file cannot be read", "[GCodeProcessor]")
-{
-    // A partially rebuilt map would have the G-code window slicing lines at wrong offsets again; an
-    // empty one just hides the window.
-    GCodeProcessorResult result;
-    result.filename   = (boost::filesystem::temp_directory_path() / "orca-nonexistent-gcode-file.gcode").string();
-    result.lines_ends = {1, 2, 3};
-
-    CHECK_FALSE(result.rebuild_lines_ends());
     CHECK(result.lines_ends.empty());
+    REQUIRE(result.moves.size() == exported_moves.size());
+    CHECK(result.moves.back().gcode_id == exported_moves.back().gcode_id);
 }
