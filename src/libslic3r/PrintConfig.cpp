@@ -32,7 +32,6 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
 #include <cstdint>
-#include <initializer_list>
 #include <set>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -2718,31 +2717,138 @@ void PrintConfigDef::init_fff_params()
                                      "it is calculated on the filament's \"Max volumetric speed\".\n\n"
                                      "The resulting speed is limited by the filament's \"Max volumetric speed\" and, unless the surface "
                                      "is ironed, \"Max external volumetric speed\".");
-    struct VolumetricFlowDef { const char *key; const char *label; const char *full_label; const char *tooltip; double default_percent; };
-    for (const VolumetricFlowDef &flow : std::initializer_list<VolumetricFlowDef>{
-             {"initial_layer_volumetric_flow", L("First layer"), L("First layer volumetric speed"), walls_flow_tooltip, 25},
-             {"initial_layer_infill_volumetric_flow", L("First layer infill"), L("First layer infill volumetric speed"), flow_tooltip, 50},
-             {"outer_wall_volumetric_flow", L("Outer wall"), L("Outer wall volumetric speed"), external_flow_tooltip, 50},
-             {"inner_wall_volumetric_flow", L("Inner wall"), L("Inner wall volumetric speed"), flow_tooltip, 100},
-             {"sparse_infill_volumetric_flow", L("Sparse infill"), L("Sparse infill volumetric speed"), flow_tooltip, 100},
-             {"internal_solid_infill_volumetric_flow", L("Internal solid infill"), L("Internal solid infill volumetric speed"), flow_tooltip, 100},
-             {"top_surface_volumetric_flow", L("Top surface"), L("Top surface volumetric speed"), top_flow_tooltip, 50},
-             {"gap_infill_volumetric_flow", L("Gap infill"), L("Gap infill volumetric speed"), flow_tooltip, 50},
-             {"support_volumetric_flow", L("Support"), L("Support volumetric speed"), flow_tooltip, 100},
-             {"support_interface_volumetric_flow", L("Support interface"), L("Support interface volumetric speed"), flow_tooltip, 50},
-             {"bridge_volumetric_flow", L("External"), L("External bridge volumetric speed"), external_flow_tooltip, 25},
-             {"internal_bridge_volumetric_flow", L("Internal"), L("Internal bridge volumetric speed"), flow_tooltip, 40}}) {
-        def = this->add(flow.key, coFloatsOrPercents);
-        def->label = flow.label;
-        def->full_label = flow.full_label;
-        def->category = L("Speed");
-        def->tooltip = flow.tooltip;
-        def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
-        def->min = 0.1;
-        def->mode = comAdvanced;
-        def->nullable = true;
-        def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(flow.default_percent, true)});
-    }
+
+    def = this->add("initial_layer_volumetric_flow", coFloatsOrPercents);
+    def->label = L("First layer");
+    def->full_label = L("First layer volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = walls_flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(25, true)});
+
+    def = this->add("initial_layer_infill_volumetric_flow", coFloatsOrPercents);
+    def->label = L("First layer infill");
+    def->full_label = L("First layer infill volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
+
+    def = this->add("outer_wall_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Outer wall");
+    def->full_label = L("Outer wall volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = external_flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
+
+    def = this->add("inner_wall_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Inner wall");
+    def->full_label = L("Inner wall volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
+
+    def = this->add("sparse_infill_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Sparse infill");
+    def->full_label = L("Sparse infill volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
+
+    def = this->add("internal_solid_infill_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Internal solid infill");
+    def->full_label = L("Internal solid infill volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
+
+    def = this->add("top_surface_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Top surface");
+    def->full_label = L("Top surface volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = top_flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
+
+    def = this->add("gap_infill_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Gap infill");
+    def->full_label = L("Gap infill volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
+
+    def = this->add("support_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Support");
+    def->full_label = L("Support volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
+
+    def = this->add("support_interface_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Support interface");
+    def->full_label = L("Support interface volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
+
+    def = this->add("bridge_volumetric_flow", coFloatsOrPercents);
+    def->label = L("External");
+    def->full_label = L("External bridge volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = external_flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(25, true)});
+
+    def = this->add("internal_bridge_volumetric_flow", coFloatsOrPercents);
+    def->label = L("Internal");
+    def->full_label = L("Internal bridge volumetric speed");
+    def->category = L("Speed");
+    def->tooltip = flow_tooltip;
+    def->sidetext = L(u8"mm³/s or %");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0.1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(40, true)});
 
     def = this->add("wall_sequence", coEnum);
     def->label = L("Walls printing order");

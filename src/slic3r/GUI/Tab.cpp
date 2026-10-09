@@ -3011,7 +3011,7 @@ void TabPrint::build()
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
         // Orca: each speed below is followed by its volumetric alternative; ConfigManipulation shows one of the two.
         optgroup = page->new_optgroup(L("Speed definition"), L"param_volumetric_speed", 15);
-        optgroup->append_single_option_line("enable_volumetric_speeds");
+        optgroup->append_single_option_line("enable_volumetric_speeds", "speed_settings_other_layers_speed#volumetric-speeds");
         optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
         optgroup->append_single_option_line("initial_layer_speed", "speed_settings_initial_layer_speed#initial-layer", 0);
         optgroup->append_single_option_line("initial_layer_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer", 0);
@@ -3054,10 +3054,12 @@ void TabPrint::build()
         optgroup->append_line(line);
         optgroup->append_separator();
         line = { L("Bridge"), L("Set speed for external and internal bridges") };
+        line.label_path = "speed_settings_overhang_speed#bridge-speed";
         line.append_option(optgroup->get_option("bridge_speed", 0));
         line.append_option(optgroup->get_option("internal_bridge_speed", 0));
         optgroup->append_line(line);
         line = { L("Bridge"), L("Set volumetric speed for external and internal bridges") };
+        line.label_path = "speed_settings_overhang_speed#bridge-speed";
         line.append_option(optgroup->get_option("bridge_volumetric_flow", 0));
         line.append_option(optgroup->get_option("internal_bridge_volumetric_flow", 0));
         optgroup->append_line(line);
@@ -4708,7 +4710,7 @@ void TabFilament::build()
         optgroup = page->new_optgroup(L("Volumetric speed limitation"), L"param_volumetric_speed");
         optgroup->append_single_option_line("filament_adaptive_volumetric_speed", "material_volumetric_speed_limitation#adaptive-volumetric-speed", 0);
         optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
-        optgroup->append_single_option_line("filament_max_external_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
+        optgroup->append_single_option_line("filament_max_external_volumetric_speed", "material_volumetric_speed_limitation#max-external-volumetric-speed", 0);
 
         //line = { "", "" };
         //line.full_width = 1;
