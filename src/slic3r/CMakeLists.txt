@@ -147,6 +147,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/WebPanel.hpp
     GUI/Widgets/WebHosting.cpp
     GUI/Widgets/WebHosting.hpp
+    GUI/AuiMgr.cpp
+    GUI/AuiMgr.hpp
     GUI/AuiPaneLayout.cpp
     GUI/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
@@ -178,16 +180,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoCut.hpp
     GUI/Gizmos/GLGizmoEmboss.cpp
     GUI/Gizmos/GLGizmoEmboss.hpp
-    #GUI/Gizmos/GLGizmoFaceDetector.cpp
-    #GUI/Gizmos/GLGizmoFaceDetector.hpp
     GUI/Gizmos/GLGizmoFdmSupports.cpp
     GUI/Gizmos/GLGizmoFdmSupports.hpp
     GUI/Gizmos/GLGizmoFlatten.cpp
     GUI/Gizmos/GLGizmoFlatten.hpp
     GUI/Gizmos/GLGizmoFuzzySkin.cpp
     GUI/Gizmos/GLGizmoFuzzySkin.hpp
-    #GUI/Gizmos/GLGizmoHollow.cpp
-    #GUI/Gizmos/GLGizmoHollow.hpp
     GUI/Gizmos/GLGizmoMeasure.cpp
     GUI/Gizmos/GLGizmoMeasure.hpp
     GUI/Gizmos/GLGizmoMeshBoolean.cpp
@@ -208,16 +206,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoSeam.hpp
     GUI/Gizmos/GLGizmoSimplify.cpp
     GUI/Gizmos/GLGizmoSimplify.hpp
-    #GUI/Gizmos/GLGizmoSlaSupports.cpp
-    #GUI/Gizmos/GLGizmoSlaSupports.hpp
     GUI/Gizmos/GLGizmosManager.cpp
     GUI/Gizmos/GLGizmosManager.hpp
     GUI/Gizmos/GLGizmoSVG.cpp
     GUI/Gizmos/GLGizmoSVG.hpp
+    GUI/Gizmos/GLGizmoTextureDisplacement.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacement.hpp
     GUI/Gizmos/GLGizmoUtils.cpp
     GUI/Gizmos/GLGizmoUtils.hpp
-    #GUI/Gizmos/GLGizmoText.cpp
-    #GUI/Gizmos/GLGizmoText.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
     GUI/GLModel.cpp
@@ -236,6 +232,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/GLToolbar.hpp
     GUI/ImageDPIFrame.cpp
     GUI/ImageDPIFrame.hpp
+    GUI/IMediaController.hpp
     GUI/GUI_App.cpp
     GUI/GUI_App.hpp
     GUI/GUI_AuxiliaryList.cpp
@@ -341,6 +338,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/SLAImportDialog.hpp
     GUI/Jobs/SLAImportJob.cpp
     GUI/Jobs/SLAImportJob.hpp
+    GUI/Jobs/TextureDisplacementBakeJob.cpp
+    GUI/Jobs/TextureDisplacementBakeJob.hpp
+    GUI/Jobs/TextureDisplacementPrepareJob.cpp
+    GUI/Jobs/TextureDisplacementPrepareJob.hpp
+    GUI/Jobs/TextureDisplacementDebugJob.cpp
+    GUI/Jobs/TextureDisplacementDebugJob.hpp
+    GUI/Jobs/TextureDisplacementPreviewJob.cpp
+    GUI/Jobs/TextureDisplacementPreviewJob.hpp
     GUI/Jobs/ThreadSafeQueue.hpp
     GUI/Jobs/UpgradeNetworkJob.cpp
     GUI/Jobs/UpgradeNetworkJob.hpp
@@ -365,6 +370,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/MediaFilePanel.h
     GUI/MediaPlayCtrl.cpp
     GUI/MediaPlayCtrl.h
+    GUI/WebRtcMediaController.cpp
+    GUI/WebRtcMediaController.hpp
     GUI/MeshUtils.cpp
     GUI/MeshUtils.hpp
     GUI/ModelMall.cpp
@@ -415,8 +422,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/NotificationManager.hpp
     GUI/OAuthDialog.cpp
     GUI/OAuthDialog.hpp
-    GUI/ObjColorDialog.cpp
-    GUI/ObjColorDialog.hpp
     GUI/ObjectDataViewModel.cpp
     GUI/ObjectDataViewModel.hpp
     GUI/OG_CustomCtrl.cpp
@@ -470,8 +475,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/ProjectDirtyStateManager.cpp
     GUI/ProjectDirtyStateManager.hpp
     GUI/Project.hpp
-    GUI/PublishDialog.cpp
-    GUI/PublishDialog.hpp
     GUI/PublishSettingsDialog.cpp
     GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
@@ -490,6 +493,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/SceneRaycaster.hpp
     GUI/SceneCache.cpp
     GUI/SceneCache.hpp
+    GUI/FrameProfiler.cpp
+    GUI/FrameProfiler.hpp
+    GUI/SceneBenchmark.cpp
+    GUI/SceneBenchmark.hpp
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
@@ -536,6 +543,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/TaskManager.hpp
     GUI/TextLines.cpp
     GUI/TextLines.hpp
+    GUI/TextureLibrary.cpp
+    GUI/TextureLibrary.hpp
+    GUI/TextureProjectorFrame.cpp
+    GUI/TextureProjectorFrame.hpp
     GUI/TickCode.cpp
     GUI/TickCode.hpp
     GUI/TroubleshootDialog.cpp
@@ -552,6 +563,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/UserManager.hpp
     GUI/UserNotification.cpp
     GUI/UserNotification.hpp
+    GUI/UVEditorCanvas.cpp
+    GUI/UVEditorCanvas.hpp
     GUI/WebDownPluginDlg.cpp
     GUI/WebDownPluginDlg.hpp
     GUI/WebGuideDialog.cpp
@@ -560,6 +573,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/WebUserLoginDialog.hpp
     GUI/WebViewDialog.cpp
     GUI/WebViewDialog.hpp
+    GUI/WebMediaController.hpp
+    GUI/WebMediaController.cpp
     GUI/Widgets/AMSControl.cpp
     GUI/Widgets/AMSControl.hpp
     GUI/Widgets/AMSItem.cpp
@@ -754,6 +769,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/NetworkAgentFactory.cpp
     Utils/ICloudServiceAgent.hpp
     Utils/IPrinterAgent.hpp
+    Utils/ICameraSignalingChannel.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
     Utils/OrcaPrinterAgent.cpp
@@ -782,7 +798,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/Process.cpp
     Utils/Process.hpp
-    Utils/ProfileDescription.hpp
     Utils/Profile.hpp
     Utils/RaycastManager.cpp
     Utils/RaycastManager.hpp
@@ -820,6 +835,10 @@ if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
         GUI/CAD/DesignPanel.cpp
         GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignRowList.cpp
+        GUI/CAD/DesignRowList.hpp
+        GUI/CAD/DesignTextDialog.cpp
+        GUI/CAD/DesignTextDialog.hpp
         GUI/CAD/DesignCanvas.cpp
         GUI/CAD/DesignCanvas.hpp
         GUI/CAD/DesignSketchTool.cpp
@@ -830,11 +849,6 @@ if (SLIC3R_CAD)
         GUI/CAD/SketchInlineEditor.hpp
         GUI/CAD/McpControl.cpp
         GUI/CAD/McpControl.hpp
-        GUI/Gizmos/GLGizmoSketch.cpp
-        GUI/Gizmos/GLGizmoSketch.hpp
-        # Needs GeometryEngine (make_primitive / apply_fillet / tessellate).
-        GUI/Gizmos/GLGizmoPrimitive.cpp
-        GUI/Gizmos/GLGizmoPrimitive.hpp
     )
 endif ()
 
@@ -924,7 +938,7 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise pybind11::embed)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto LibDataChannel::LibDataChannel noise::noise pybind11::embed)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Linux finds wxWidgets in module mode, whose include dirs and definitions
@@ -981,29 +995,32 @@ endif ()
 
 if (APPLE)
     # Static FFmpeg from the deps install: nothing to bundle into the .app,
-    # no rpath/install_name handling. Order matters: avcodec -> swscale -> avutil.
+    # no rpath/install_name handling. Order matters: avformat -> avcodec -> swscale -> avutil.
+    find_library(LIBAVFORMAT_LIBRARY NAMES libavformat.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     find_library(LIBAVCODEC_LIBRARY NAMES libavcodec.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     find_library(LIBSWSCALE_LIBRARY NAMES libswscale.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     find_library(LIBAVUTIL_LIBRARY NAMES libavutil.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
-    if (NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
-        message(FATAL_ERROR "Static FFmpeg (libavcodec.a/libswscale.a/libavutil.a) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps — FFMPEG builds static-only on macOS.")
+    if (NOT LIBAVFORMAT_LIBRARY OR NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "Static FFmpeg (libavformat.a/libavcodec.a/libswscale.a/libavutil.a) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps — FFMPEG builds static-only on macOS.")
     endif ()
-    target_link_libraries(libslic3r_gui ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_link_libraries(libslic3r_gui ${LIBAVFORMAT_LIBRARY} ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
 elseif (WIN32)
     # Prebuilt shared FFmpeg from the deps install. Windows has no pkg-config,
     # so resolve the import libraries out of the deps prefix directly; the DLLs
     # are copied next to the executable by the top level CMakeLists.
+    find_library(LIBAVFORMAT_LIBRARY NAMES avformat PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     find_library(LIBAVCODEC_LIBRARY NAMES avcodec PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     find_library(LIBSWSCALE_LIBRARY NAMES swscale PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     find_library(LIBAVUTIL_LIBRARY NAMES avutil PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
-    if (NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
-        message(FATAL_ERROR "FFmpeg (avcodec/swscale/avutil) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps.")
+    if (NOT LIBAVFORMAT_LIBRARY OR NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "FFmpeg (avformat/avcodec/swscale/avutil) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps.")
     endif ()
-    target_link_libraries(libslic3r_gui ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_link_libraries(libslic3r_gui ${LIBAVFORMAT_LIBRARY} ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
 else ()
     pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
+        libavformat
         libavcodec
         libswscale
         libavutil

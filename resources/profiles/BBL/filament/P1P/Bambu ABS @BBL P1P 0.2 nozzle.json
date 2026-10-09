@@ -6,6 +6,7 @@
     "setting_id": "GFSB00_02",
     "instantiation": "true",
     "fan_max_speed": [
+        "20",
         "20"
     ],
     "filament_long_retractions_when_cut": [

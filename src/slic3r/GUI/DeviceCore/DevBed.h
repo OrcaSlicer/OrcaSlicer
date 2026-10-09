@@ -1,6 +1,5 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {
 
@@ -16,8 +15,8 @@ public:
 
 public:
 
-    static void ParseV1_0(const json &print_json, DevBed *system);
-    static void ParseV2_0(const json &print_json, DevBed *system);
+    static void ParseV1_0(const nlohmann::json &print_json, DevBed *system);
+    static void ParseV2_0(const nlohmann::json &print_json, DevBed *system);
 
 private:
 

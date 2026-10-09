@@ -1,5 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/GCode/WipePathHelpers.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Polyline.hpp"
@@ -9,7 +14,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/ExtrusionEntity.hpp"
+#include <cstddef>
 #include <limits>
+#include <vector>
+#include <utility>
+#include <optional>
+#include "libslic3r/ArcFitter.hpp"
 
 using namespace Slic3r;
 using Slic3r::AABBTreeLines::LinesDistancer;

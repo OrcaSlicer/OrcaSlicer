@@ -1,7 +1,28 @@
 #include "UpgradePanel.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/ProgressBar.hpp"
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <map>
+#include <cstdlib>
+#include <cstddef>
+#include "slic3r/GUI/ReleaseNote.hpp"
 #include <slic3r/GUI/Widgets/SideTools.hpp>
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <slic3r/GUI/I18N.hpp>
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <unordered_map>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <string>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/scrolwin.h>
 #include "slic3r/GUI/DeviceTab/uiDeviceUpdateVersion.h"
 #include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRackUpdate.h"
 
@@ -25,8 +46,8 @@ static const std::unordered_map<wxString, wxString> ACCESSORY_DISPLAY_STR = {
     {"O2L_10B", L("Laser 10W")},
     {"O2L_40B", L("Laser 40W")},
     {"O2L_PCM", L("Cutting Module")},
-    {"O2L_ACM", "Active Cutting Module"},
-    {"O2L_UCM", "Ultrasonic Cutting Module"},
+    {"O2L_ACM", L("Active Cutting Module")},
+    {"O2L_UCM", L("Ultrasonic Cutting Module")},
     {"O2L-AFP", L("Auto Fire Extinguishing System")},
     {"O2L-FTS", L("Filament Track Switch")},
 };
@@ -955,7 +976,7 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
                          wxString result = it->second.name.substr(0, pos);
                          result.MakeUpper();
                          if (auto str_it = ACCESSORY_DISPLAY_STR.find(result); str_it != ACCESSORY_DISPLAY_STR.end())
-                             result = str_it->second;
+                             result = _L(str_it->second);
                          ams_device_name = result + "-%s";
                      }
 

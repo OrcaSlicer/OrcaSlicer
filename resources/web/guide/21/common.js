@@ -311,7 +311,7 @@ function CreatePrinterBlock(OneModel)
 
 	return	'<div class="PrinterBlock" onClick="ChooseModel(\''+vendor+'\',\''+OneModel['model']+'\')">'+
 			'	<div class="PImg">'+
-			'		<img class="ModelThumbnail" src="' + OneModel['cover'] + '" />'+
+			'		<img class="ModelThumbnail" src="' + OneModel['cover'] + '" onerror="this.onerror=null;this.src=\'../img/printer-dummy.png\';"/>'+
 			'	</div>'+
 			'	<div class="PrinterInfoMark">?</div>'+
 			'	<div class="PrinterInfo">'+

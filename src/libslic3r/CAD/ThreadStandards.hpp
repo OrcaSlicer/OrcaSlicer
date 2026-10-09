@@ -24,6 +24,8 @@ struct ThreadSpec {
     double thread_depth_mm() const { return 0.6134 * pitch_mm; }
     // Internal/tapped minor (tap-drill) diameter for the same nominal thread.
     double minor_diameter_mm() const { return major_diameter_mm - 1.0825 * pitch_mm; }
+    // Radial depth of the internal (tapped) thread, minor to major: (D - D1) / 2.
+    double internal_depth_mm() const { return 0.5 * (major_diameter_mm - minor_diameter_mm()); }
 
     bool imperial() const { return series == Series::UNC || series == Series::UNF; }
 };

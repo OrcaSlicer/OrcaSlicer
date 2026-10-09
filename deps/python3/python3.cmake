@@ -151,6 +151,12 @@ elseif(APPLE)
     # the post-install -add_rpath below.
     set(_python_ldflags "${_python_arch_flags} -Wl,-headerpad_max_install_names")
 
+    # The macOS 27 SDK declares pipe2() and dup3() as available from macOS 27, so
+    # configure finds them and CPython 3.12 calls them without a runtime check.
+    # Below a macOS 27 deployment target they are weak-linked and resolve to NULL
+    # on older systems, where os.pipe() then segfaults -- in `make install`
+    # (compileall, ensurepip) and in the shipped app alike. Every configure below
+    # keeps the pipe()/dup2() fallbacks (python/cpython#153711).
     if(IS_CROSS_COMPILE)
         set(_python_build_tgt --build=${_python_build_arch}-apple-darwin --host=${_python_host_arch}-apple-darwin)
         set(_python_build_arch_flags "-arch ${_python_build_arch_flag} -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
@@ -174,7 +180,8 @@ elseif(APPLE)
                  --enable-shared \
                  --without-static-libpython \
                  --disable-test-modules \
-                 --build=${_python_build_arch}-apple-darwin && \
+                 --build=${_python_build_arch}-apple-darwin \
+                 ac_cv_func_pipe2=no ac_cv_func_dup3=no && \
              make -j${NPROC} python && \
              cd '<SOURCE_DIR>' && \
              env \
@@ -191,6 +198,7 @@ elseif(APPLE)
                  --without-static-libpython \
                  --with-openssl='${DESTDIR}' \
                  --disable-test-modules \
+                 ac_cv_func_pipe2=no ac_cv_func_dup3=no \
                  ${_python_build_tgt} \
                  --with-build-python='${_python_build_python}' \
                  py_cv_module__tkinter=n/a"
@@ -213,6 +221,8 @@ elseif(APPLE)
             --with-openssl=${DESTDIR}
             --disable-test-modules
             ${_python_build_tgt}
+            ac_cv_func_pipe2=no
+            ac_cv_func_dup3=no
             # Tcl/Tk 9.0 (e.g. from Homebrew) is incompatible with CPython 3.12's
             # _tkinter; OrcaSlicer's embedded Python does not need tkinter anyway.
             py_cv_module__tkinter=n/a

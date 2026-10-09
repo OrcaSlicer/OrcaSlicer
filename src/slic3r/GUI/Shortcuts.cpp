@@ -4,8 +4,16 @@
 #include "libslic3r/AppConfig.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <array>
+#include <cstddef>
 #include <map>
+#include "slic3r/GUI/KeyChord.hpp"
+#include <optional>
+#include <string>
 #include <utility>
+#include <wx/accel.h>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 
@@ -105,6 +113,7 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(GizmoMeasure,      "gizmo_measure",      L("Gizmo measure"),                                        PLATER, { 'U' }),
     SHORTCUT(GizmoAssembly,     "gizmo_assembly",     L("Gizmo assemble"),                                       PLATER, { 'Y' }),
     SHORTCUT(GizmoBrimEars,     "gizmo_brim_ears",    L("Gizmo brim ears"),                                      PLATER, { 'E' }),
+    SHORTCUT(GizmoDisplacement, "gizmo_displacement", L("Gizmo texture displacement painting"),                  PLATER, { 'D' }),
 
     // Sliders
     SHORTCUT(GoToLayer,           "go_to_layer",           L("Jump to layer"),                                   PREVIEW, { 'G', SHIFT }),

@@ -2,9 +2,21 @@
 #define BBS_3MF_hpp_
 
 #include "../GCode/ThumbnailData.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/Semver.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <set>
+#include <utility>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <optional>
+#include <type_traits>
+#include <istream>
 
 namespace Slic3r {
 class Model;

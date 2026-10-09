@@ -8,7 +8,6 @@
 #include "libslic3r/Preset.hpp"
 #include "ParamsPanel.hpp"
 #include "Tab.hpp"
-#include "format.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
@@ -17,6 +16,27 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/Button.hpp"
 #include "GUI_Factories.hpp"
+#include "I18N.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <map>
+#include <wx/string.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include <wx/timer.h>
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include <wx/wupdlock.h>
+#include <vector>
 
 
 namespace Slic3r {

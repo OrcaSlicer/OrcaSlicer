@@ -1,5 +1,6 @@
-#include "Exception.hpp"
+#include "BoundingBox.hpp"
 #include "TriangleMesh.hpp"
+#include "Polygon.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "MeshSplitImpl.hpp"
 #include "ClipperUtils.hpp"
@@ -8,16 +9,27 @@
 #include "Point.hpp"
 #include "Execution/ExecutionTBB.hpp"
 #include "Execution/ExecutionSeq.hpp"
-#include "CutUtils.hpp"
 #include "Utils.hpp"
-#include "Format/STL.hpp"
+#include "libslic3r.h"
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <Eigen/Geometry>
+#include <libqhull_r/libqhull_r.h>
+#include <cstdio>
+#include <cstring>
 #include <libqhullcpp/Qhull.h>
 #include <libqhullcpp/QhullFacetList.h>
+#include <libqhullcpp/QhullVertex.h>
+#include <libqhullcpp/QhullPoint.h>
 #include <libqhullcpp/QhullVertexSet.h>
 
 #include <cmath>
 #include <deque>
 #include <queue>
+#include <map>
+#include <math.h>
 #include <vector>
 #include <utility>
 #include <algorithm>
@@ -31,6 +43,7 @@
 #include <Eigen/Dense>
 
 #include <assert.h>
+#include "ExtrusionEntity.hpp"
 
 namespace Slic3r {
 

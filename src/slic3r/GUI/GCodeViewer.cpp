@@ -2,7 +2,6 @@
 #include "GCodeViewer.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
@@ -10,30 +9,72 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 //BBS: add convex hull logic for toolpath check
-#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
-#include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
-#include "GUI_Preview.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/Layer.hpp"
-#include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
+#include <boost/container_hash/hash.hpp>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <string>
+#include "libvgcode/include/Types.hpp"
+#include <vector>
+#include <utility>
+#include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include <math.h>
+#include "libvgcode/include/Viewer.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
+#include <cassert>
+#include <cstdint>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include "slic3r/GUI/IMSlider.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <exception>
+#include <iterator>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
+#include "libvgcode/include/ColorRange.hpp"
+#include <optional>
+#include "libslic3r_version.h"
+#include <wx/busycursor.h>
+#include "libslic3r/Slicing.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <map>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/slider.h>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <string_view>
+#include <functional>
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -46,6 +87,17 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+using namespace std::string_view_literals;
+
+namespace Slic3r { class PrintBase; }
 
 
 namespace Slic3r {
@@ -626,7 +678,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+
+                ImVec4 scroll_col    = ImVec4(0.77f, 0.77f, 0.77f, m_is_dark ? .6f : 1.0f); // same color with sliced plates toolbar scrollbar
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f)); // ORCA using background color with opacity creates a second color. This prevents secondary color
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, scroll_col);
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered , style.Colors[ImGuiCol_TableHeaderBg]);
+
                 const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.f, plot_height});
                 const ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | (needs_scroll ? ImGuiTableFlags_ScrollY : 0);
                 if (ImGui::BeginTable("ToolPositionTable", 2, table_flags, ImVec2(0.0f, needs_scroll ? table_view_h : 0.0f))) {
@@ -654,7 +713,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGui::EndTable();
                 }
                 ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(1);
+                ImGui::PopStyleColor(5);
                 imgui.end();
             }
 
@@ -1713,6 +1772,26 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
     m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
 }
 
+size_t GCodeViewer::shadow_casters_signature() const
+{
+    size_t hash = m_viewer.get_vertices_count();
+    const libvgcode::Interval& visible = m_viewer.get_view_visible_range();
+    const libvgcode::Interval& layers  = m_viewer.get_layers_view_range();
+    for (size_t value : { size_t(visible[0]), size_t(visible[1]), size_t(layers[0]), size_t(layers[1]) })
+        boost::hash_combine(hash, value);
+    for (double value : { m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y(), m_paths_bounding_box.min.z(),
+                          m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
+        boost::hash_combine(hash, value);
+    boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
+        boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Wipes));
+    for (float value : m_clipping_plane)
+        boost::hash_combine(hash, value);
+    return hash;
+}
+
 void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position)
 {
     if (!has_data())
@@ -1731,9 +1810,24 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
         intensity, texel_size);
 }
 
+void GCodeViewer::set_light_top_dir(const Vec3d& direction)
+{
+    m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
+}
+
 void GCodeViewer::set_tone(float exposure, float saturation)
 {
     m_viewer.set_tone(exposure, saturation);
+}
+
+void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
+{
+    // Flipped to match ClippingPlane::distance().
+    const Vec3f normal = -plane.get_normal().cast<float>();
+    m_clipping_plane = plane.is_active() ?
+        std::array<float, 4>{ normal.x(), normal.y(), normal.z(), float(plane.get_offset()) } :
+        std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+    m_viewer.set_clipping_plane(m_clipping_plane);
 }
 
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
@@ -2725,7 +2819,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         return ret;
     };
-    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
         const ImGuiStyle& style = ImGui::GetStyle();
         std::vector<float> offsets;
         offsets.push_back(max_width(title_columns[0].second, title_columns[0].first, extra_size) + 3.0f * style.ItemSpacing.x + style.WindowPadding.x);
@@ -2872,7 +2966,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ::sprintf(buff, "%.2f", longest_str);
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), {buff} });
@@ -3034,27 +3128,6 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
     };
 
-    auto link_filament_group_wiki = [&](const std::string& label) {
-        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
-        ImColor HyperColor = ImColor(0, 150, 136, 255); // ORCA match color
-        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
-        imgui.text(label.c_str());
-        ImGui::PopStyleColor();
-
-        // ORCA use underline to match hyperlink style
-        ImVec2 lineEnd = ImGui::GetItemRectMax();
-        lineEnd.y -= 2.0f;
-        ImVec2 lineStart = lineEnd;
-        lineStart.x = ImGui::GetItemRectMin().x;
-        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
-        // click behavior
-        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                open_filament_group_wiki();
-            }
-        }
-    };
-
     auto draw_dash_line = [&](ImDrawList* draw_list, int dash_length = 5, int gap_length = 3) {
         ImVec2 p1 = ImGui::GetCursorScreenPos();
         ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
@@ -3104,8 +3177,8 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
                 for (int j = idx; j < extruder_filaments.size() && j < idx + line_capacity; ++j) {
                     auto text_info = imgui.calculate_filament_group_text_size(get_filament_display_type(extruder_filaments[j]));
                     auto text_size = std::get<0>(text_info);
-                    filament_group_item_align_width = max(filament_group_item_align_width, text_size.x);
-                    text_line_height = max(text_line_height, text_size.y);
+                    filament_group_item_align_width = std::max(filament_group_item_align_width, text_size.x);
+                    text_line_height = std::max(text_line_height, text_size.y);
                 }
                 container_height += (three_words_width * 1.3f + text_line_height );
             }
@@ -3128,7 +3201,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
     else
         tips_count = 5;
 
-    float AMS_container_height = ams_item_height + line_height * tips_count + line_height;
+    float AMS_container_height = ams_item_height + line_height * tips_count + line_height + window_padding * 2.f;
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0)); // this shold be 0 since its child of gcodeviewer
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding * 3, 0));
@@ -3143,10 +3216,6 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         ImGui::Dummy({window_padding, window_padding});
         ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.0f,1.0f,1.0f,0.6f));
         imgui.bold_text(_u8L("Filament Grouping"));
-        ImGui::SameLine();
-        std::string tip_str = _u8L("Why this grouping");
-        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize(tip_str.c_str()).x);
-        link_filament_group_wiki(tip_str);
         ImGui::Separator();
         ImGui::PopStyleColor();
         ImGui::Dummy({window_padding, window_padding});
@@ -3251,6 +3320,9 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
 
         ImGui::Dummy({window_padding, window_padding});
+        GLGizmoUtils::render_wiki_guide_button(*wxGetApp().plater()->get_current_canvas3D(), m_scale,"https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
+        ImGui::SameLine();
+
         if (!is_optimal_group) {
             link_text_set_to_optional(_u8L("Set to Optimal"));
             ImGui::SameLine();
@@ -3259,10 +3331,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
         link_text(_u8L("Regroup filament"));
 
-        ImGui::SameLine();
-        std::string wiki_str = _u8L("Wiki Guide"); // ORCA
-        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize(wiki_str.c_str()).x);
-        link_filament_group_wiki(wiki_str);
+        ImGui::Dummy({window_padding, window_padding});
 
         ImGui::EndChild();
     }
@@ -3498,7 +3567,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
-    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
             const ImGuiStyle& style = ImGui::GetStyle();
             std::vector<float> offsets;
             // ORCA increase spacing for more readable format. Using direct number requires much less code change in here. GetTextLineHeight for additional spacing for icon_size
@@ -3531,7 +3600,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (extruder_id + 1 != static_cast<unsigned char>(item.extruder))
                 continue;
 
-            if (item.type != ColorChange)
+            if (item.type != CustomGCode::ColorChange)
                 continue;
 
             if (!zs_built) {
@@ -3923,7 +3992,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         total_filaments.push_back(buffer);
 
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), total_filaments });
@@ -4698,10 +4767,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImGui::SameLine();
 
             switch (custom_gcode.type) {
-            case PausePrint: imgui.text(cgcode_pause_str); break;
-            case Template: imgui.text(cgcode_template_str); break;
-            case ToolChange: imgui.text(cgcode_toolchange_str); break;
-            case Custom: imgui.text(cgcode_custom_str); break;
+            case CustomGCode::PausePrint: imgui.text(cgcode_pause_str); break;
+            case CustomGCode::Template: imgui.text(cgcode_template_str); break;
+            case CustomGCode::ToolChange: imgui.text(cgcode_toolchange_str); break;
+            case CustomGCode::Custom: imgui.text(cgcode_custom_str); break;
             default: imgui.text(cgcode_unknown_str); break;
             }
             ImGui::SameLine(max_len);

@@ -6,10 +6,32 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
-#include "slic3r/plugin/PluginManager.hpp"
 #include "libnest2d/common.hpp"
 
+#include <algorithm>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
 #include <numeric>
+#include "slic3r/GUI/Jobs/ArrangeJob.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include <utility>
+#include <string>
+#include <vector>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {

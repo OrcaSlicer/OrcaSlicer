@@ -19,6 +19,11 @@
 		"PA-CF"
 	],
 	"filament_multitool_ramming_flow": [
+		"8",
+		"8",
+		"8",
+		"8",
+		"8",
 		"8"
 	],
 	"compatible_printers": []
