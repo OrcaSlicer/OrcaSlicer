@@ -22,6 +22,7 @@
 #include <fstream>
 #include <ios>
 #include <initializer_list>
+#include <math.h>
 #include <string>
 #include <string_view>
 #include <utility>
