@@ -3329,6 +3329,7 @@ const ModelVolume* GLGizmoTextureDisplacement::texture_volume() const
 
 void GLGizmoTextureDisplacement::update_model_object()
 {
+    store_panel_state();
     bool         updated = false;
     ModelObject *mo      = m_c->selection_info()->model_object();
     int          idx     = -1;
@@ -3363,6 +3364,24 @@ void GLGizmoTextureDisplacement::update_model_object()
 void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
 {
     wxBusyCursor wait;
+
+    // Opening the gizmo puts the panel back where it was left: the layer and the mode come off the
+    // volume, because they are the user's place in this model's stack, and the dock state off the
+    // application config, because it is about their window. Only on open - this also runs on an
+    // undo/redo and on a layer switch, where overriding what the user is doing now would be wrong.
+    if (first_update) {
+        if (const ModelVolume *mv = texture_volume(); mv != nullptr) {
+            const TextureDisplacementOptions &opts = mv->texture_displacement_options;
+            m_panel_mode = std::clamp(opts.panel_mode, 0, 1);
+            // Only if that slot still holds a layer: the stack can have been edited by anything that
+            // does not go through the panel, and a selection pointing at nothing shows an empty panel.
+            const auto &stack = mv->texture_displacement_layers;
+            if (std::any_of(stack.begin(), stack.end(),
+                            [&opts](const TextureDisplacementLayer &l) { return l.slot == opts.active_slot; }))
+                m_active_layer_slot = opts.active_slot;
+        }
+        m_undocked = wxGetApp().app_config->get_bool(UNDOCKED_CONFIG_KEY);
+    }
 
     const ModelObject *mo = m_c->selection_info()->model_object();
     m_triangle_selectors.clear();
@@ -3409,6 +3428,14 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
     rebuild_preview();
 }
 
+void GLGizmoTextureDisplacement::store_panel_state()
+{
+    if (ModelVolume *mv = texture_volume(); mv != nullptr) {
+        mv->texture_displacement_options.active_slot = m_active_layer_slot;
+        mv->texture_displacement_options.panel_mode  = m_panel_mode;
+    }
+}
+
 void GLGizmoTextureDisplacement::set_active_layer(int slot)
 {
     if (slot == m_active_layer_slot)
@@ -3417,6 +3444,7 @@ void GLGizmoTextureDisplacement::set_active_layer(int slot)
     // reflect - otherwise they would be silently lost.
     update_model_object();
     m_active_layer_slot = slot;
+    store_panel_state();
     update_from_model_object(false);
     // The on-canvas gizmo (if on) is anchored to whichever layer is active - keep it in sync
     // instead of leaving it pointing at the previous layer's (now stale) paint patch.
@@ -5590,6 +5618,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                    "not what you wanted and you know why."));
             if (clicked && !on) {
                 m_panel_mode = m;
+                store_panel_state();
                 if (!pro_mode()) {
                     // Leaving the subdivision preview open would strand a wireframe whose controls just
                     // disappeared, so close it as part of the switch.
@@ -5612,6 +5641,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                         _L("Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside "
                            "the toolbar.")))
             m_undocked = !m_undocked;
+            wxGetApp().app_config->set_bool(UNDOCKED_CONFIG_KEY, m_undocked);
     }
     ImGui::Separator();
 

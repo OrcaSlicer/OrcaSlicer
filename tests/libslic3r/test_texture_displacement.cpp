@@ -2135,3 +2135,146 @@ TEST_CASE("A second bake beside a first comes out as fine as a single bake", "[T
     CHECK(second <= single * 5 / 4);
 }
 
+
+// The .3mf stores the layer stack as JSON (see texture_displacement_layers_to_json). Two properties
+// matter: everything the UV editor and the panel can set has to survive a round trip, and a document
+// written by a build that knew fewer fields has to keep loading, with the missing ones left at their
+// defaults rather than zeroed.
+TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisplacement]")
+{
+    std::vector<TextureDisplacementLayer> layers(2);
+    TextureDisplacementLayer             &a = layers[0];
+    a.slot                 = 0;
+    a.name                 = "Bark";
+    a.path                 = "/textures/bark.png";
+    a.depth_mm             = 1.25f;
+    a.tiling_scale         = 7.5f;
+    a.rotation_deg         = 30.f;
+    a.offset               = Vec2f(0.25f, -0.5f);
+    a.invert               = true;
+    a.midlevel             = 0.125f;
+    a.smoothing            = 0.75f;
+    a.edge_smoothing       = true;
+    a.edge_smoothing_amount = 0.25f;
+    a.auto_connect_islands = false;
+    a.tile_enabled         = false;
+    a.tile_method          = TextureTileMethod::MirroredRepeat;
+    a.projection_method    = TextureProjectionMethod::LSCM;
+    a.blend_mode           = TextureBlendMode::Subtract;
+    a.color_enabled        = true;
+    a.lscm_seam_angle_deg  = 45.f;
+    a.island_padding_mm    = 0.5f;
+    a.lscm_seam_edges      = { { 1, 2 }, { 3, 5 } };
+    a.islands              = { TextureIsland{ Vec2f(1.f, 2.f), 15.f, 1.5f }, TextureIsland{} };
+    a.island_groups        = { 0, 0 };
+    a.lscm_uv_overrides    = { { -4, Vec2f(0.5f, 0.75f) } };
+
+    TextureDisplacementLayer &b = layers[1];
+    b.slot                    = 1;
+    b.projection_method       = TextureProjectionMethod::ViewProjected;
+    b.view_project_right      = Vec3f(0.f, 1.f, 0.f);
+    b.view_project_up         = Vec3f(0.f, 0.f, 1.f);
+    b.view_project_projective = true;
+    for (size_t i = 0; i < b.view_project_matrix.size(); ++i)
+        b.view_project_matrix[i] = float(i) + 0.5f;
+
+    TextureDisplacementOptions options;
+    options.displace_border   = false;
+    options.smooth_enabled    = true;
+    options.smooth_strength   = 0.6f;
+    options.smooth_iterations = 5;
+    options.pipeline_v2       = false;
+    options.v2_max_triangles_k = 250;
+    options.color_mix_mode    = ColorMixMode::XYDither;
+    options.color_despeckle   = 4;
+    options.active_slot       = 3;
+    options.panel_mode        = 1;
+
+    const std::string json = texture_displacement_layers_to_json(layers, options);
+
+    std::vector<TextureDisplacementLayer> read_layers;
+    TextureDisplacementOptions            read_options;
+    REQUIRE(texture_displacement_layers_from_json(json, read_layers, read_options));
+    REQUIRE(read_layers.size() == layers.size());
+
+    const TextureDisplacementLayer &ra = read_layers[0];
+    CHECK(ra.name == a.name);
+    CHECK(ra.path == a.path);
+    CHECK_THAT(ra.depth_mm, WithinAbs(a.depth_mm, 1e-6f));
+    CHECK_THAT(ra.tiling_scale, WithinAbs(a.tiling_scale, 1e-6f));
+    CHECK_THAT(ra.rotation_deg, WithinAbs(a.rotation_deg, 1e-6f));
+    CHECK(ra.offset.isApprox(a.offset));
+    CHECK(ra.invert == a.invert);
+    CHECK_THAT(ra.midlevel, WithinAbs(a.midlevel, 1e-6f));
+    CHECK_THAT(ra.smoothing, WithinAbs(a.smoothing, 1e-6f));
+    CHECK(ra.edge_smoothing == a.edge_smoothing);
+    CHECK_THAT(ra.edge_smoothing_amount, WithinAbs(a.edge_smoothing_amount, 1e-6f));
+    CHECK(ra.auto_connect_islands == a.auto_connect_islands);
+    CHECK(ra.tile_enabled == a.tile_enabled);
+    CHECK(ra.tile_method == a.tile_method);
+    CHECK(ra.projection_method == a.projection_method);
+    CHECK(ra.blend_mode == a.blend_mode);
+    CHECK(ra.color_enabled == a.color_enabled);
+    CHECK_THAT(ra.lscm_seam_angle_deg, WithinAbs(a.lscm_seam_angle_deg, 1e-6f));
+    CHECK_THAT(ra.island_padding_mm, WithinAbs(a.island_padding_mm, 1e-6f));
+    CHECK(ra.lscm_seam_edges == a.lscm_seam_edges);
+    REQUIRE(ra.islands.size() == a.islands.size());
+    CHECK(ra.islands[0].offset.isApprox(a.islands[0].offset));
+    CHECK_THAT(ra.islands[0].rotation_deg, WithinAbs(a.islands[0].rotation_deg, 1e-6f));
+    CHECK_THAT(ra.islands[0].scale, WithinAbs(a.islands[0].scale, 1e-6f));
+    CHECK(ra.island_groups == a.island_groups);
+    REQUIRE(ra.lscm_uv_overrides.size() == 1);
+    CHECK(ra.lscm_uv_overrides[0].first == -4);
+    CHECK(ra.lscm_uv_overrides[0].second.isApprox(Vec2f(0.5f, 0.75f)));
+
+    const TextureDisplacementLayer &rb = read_layers[1];
+    CHECK(rb.projection_method == TextureProjectionMethod::ViewProjected);
+    CHECK(rb.view_project_right.isApprox(b.view_project_right));
+    CHECK(rb.view_project_up.isApprox(b.view_project_up));
+    CHECK(rb.view_project_projective);
+    CHECK(rb.view_project_matrix == b.view_project_matrix);
+
+    CHECK(read_options.displace_border == options.displace_border);
+    CHECK(read_options.smooth_enabled == options.smooth_enabled);
+    CHECK_THAT(read_options.smooth_strength, WithinAbs(options.smooth_strength, 1e-6f));
+    CHECK(read_options.smooth_iterations == options.smooth_iterations);
+    CHECK(read_options.pipeline_v2 == options.pipeline_v2);
+    CHECK(read_options.v2_max_triangles_k == options.v2_max_triangles_k);
+    CHECK(read_options.color_mix_mode == options.color_mix_mode);
+    CHECK(read_options.color_despeckle == options.color_despeckle);
+    // Where the panel was left comes back with the rest, so a reopened project is on the same layer.
+    CHECK(read_options.active_slot == options.active_slot);
+    CHECK(read_options.panel_mode == options.panel_mode);
+}
+
+TEST_CASE("Texture displacement JSON keeps defaults for keys it does not carry", "[TextureDisplacement]")
+{
+    // What a build that knew fewer fields would have written: one layer, almost nothing set.
+    const std::string sparse = R"({"version":1,"layers":[{"slot":2,"name":"Old","depth_mm":0.75}]})";
+
+    std::vector<TextureDisplacementLayer> layers;
+    TextureDisplacementOptions            options;
+    REQUIRE(texture_displacement_layers_from_json(sparse, layers, options));
+    REQUIRE(layers.size() == 1);
+
+    const TextureDisplacementLayer  &l = layers[0];
+    const TextureDisplacementLayer   fresh;
+    const TextureDisplacementOptions defaults;
+    CHECK(l.slot == 2);
+    CHECK(l.name == "Old");
+    CHECK_THAT(l.depth_mm, WithinAbs(0.75f, 1e-6f));
+    // Everything absent keeps the struct's own default rather than becoming zero.
+    CHECK_THAT(l.tiling_scale, WithinAbs(fresh.tiling_scale, 1e-6f));
+    CHECK(l.auto_connect_islands == fresh.auto_connect_islands);
+    CHECK(l.tile_enabled == fresh.tile_enabled);
+    CHECK(l.projection_method == fresh.projection_method);
+    CHECK_THAT(l.lscm_seam_angle_deg, WithinAbs(fresh.lscm_seam_angle_deg, 1e-6f));
+    CHECK(options.color_mix_mode == defaults.color_mix_mode);
+    CHECK(options.pipeline_v2 == defaults.pipeline_v2);
+    CHECK(options.active_slot == defaults.active_slot);
+    CHECK(options.panel_mode == defaults.panel_mode);
+
+    std::vector<TextureDisplacementLayer> unused_layers;
+    TextureDisplacementOptions            unused_options;
+    CHECK(!texture_displacement_layers_from_json("not json at all", unused_layers, unused_options));
+}

@@ -412,15 +412,39 @@ struct TextureDisplacementOptions
     // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
     int          color_despeckle   = 2;
 
+    // Where the panel was left, rather than anything the bake reads. It lives with the volume because
+    // that is what it describes: reopening a project should put the user back on the layer they were
+    // editing, in the mode they were editing it in, not on slot 0 in Standard.
+    int active_slot = 0;
+    int panel_mode  = 0; // 0 Standard, 1 Pro
+
     template<class Archive> void serialize(Archive &ar)
     {
         int mix_mode = int(color_mix_mode);
         ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
            pipeline_v2, v2_refine_mm, v2_regularize, v2_max_triangles_k,
-           v2_relocate, color_mix_enabled, mix_mode, color_despeckle);
+           v2_relocate, v2_flip_edges, color_mix_enabled, mix_mode, color_despeckle,
+           active_slot, panel_mode);
         color_mix_mode = ColorMixMode(mix_mode);
     }
 };
+
+// Project persistence (see bbs_3mf.cpp). The layer stack and the per-volume options are written to the
+// .3mf as JSON rather than through the cereal save()/load() above: those two are positional and
+// unversioned, which is right for the undo/redo stack they serve (one session, one binary) but would
+// make every future field a project-breaking change. A JSON object tolerates both directions - an
+// unknown key is ignored, a missing one keeps the member's default - so old projects keep loading and
+// new ones degrade gracefully in older builds.
+//
+// The texture image itself is *not* in here. It is a binary blob that belongs in the archive as a file
+// of its own, exactly as EmbossShape stores its SVG; `path_in_3mf` names that file, and the caller is
+// responsible for writing it and for filling `image_data` back in on load.
+std::string texture_displacement_layers_to_json(const std::vector<TextureDisplacementLayer> &layers,
+                                                const TextureDisplacementOptions            &options);
+// Returns false and leaves both outputs untouched when the text is not valid JSON.
+bool texture_displacement_layers_from_json(const std::string                      &text,
+                                           std::vector<TextureDisplacementLayer>  &layers,
+                                           TextureDisplacementOptions             &options);
 
 // How much detail a height texture carries: central differences of the grey image, the mean gradient
 // and the share of texels steeper than 30 grey levels, mapped to how many texels one mesh edge may
