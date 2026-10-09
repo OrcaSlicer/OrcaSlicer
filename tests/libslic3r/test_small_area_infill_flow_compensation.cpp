@@ -396,6 +396,22 @@ TEST_CASE("Curve viewports reject reversed degenerate nonfinite and overflowing 
     CHECK(FlowModel().validate_view({0, 10, -0.1, 1}) == nullptr);
 }
 
+TEST_CASE("Dragging the second flow point toward zero keeps a valid and finite curve", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    std::vector<double> x = {0, 0.2, 10};
+    const double first_factor = GENERATE(0.0, -1.0, -3.0, std::numeric_limits<double>::lowest());
+    const std::vector<double> y = {first_factor, 0.5, 1};
+    const auto bounds = model.drag_bounds(1, x, y, {0, 11, 0, 1});
+    x[1] = bounds.min_x;
+    int row = -1;
+    REQUIRE(model.validate_points(x, y, row) == nullptr);
+    const auto interpolate = model.make_interpolator(x, y);
+    CHECK(std::isfinite(interpolate(x[1])));
+    CHECK(std::isfinite(interpolate(0.1)));
+    CHECK(std::isfinite(interpolate(5.0)));
+}
+
 TEST_CASE("Flow viewports enforce useful bounds and a minimum visible span", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {
     FlowModel model;
