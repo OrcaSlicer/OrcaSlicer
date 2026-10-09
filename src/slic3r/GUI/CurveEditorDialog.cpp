@@ -130,7 +130,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     editors->Add(table_panel, 0, wxALIGN_TOP);
     sizer->Add(editors, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
 
-    m_chart = new CurveEditorPanel(plot_panel, appearance);
+    m_chart = new CurveEditorPanel(plot_panel, appearance, m_model->view_limits());
     m_chart->SetBackgroundColour(*wxWHITE);
     m_chart->SetFont(Label::Body_12);
     m_chart->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
