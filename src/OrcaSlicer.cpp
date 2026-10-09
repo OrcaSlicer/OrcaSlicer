@@ -1820,6 +1820,8 @@ int CLI::run(int argc, char **argv)
                         old_printable_width = static_cast<int>(old_printable_bbox.size().x());
                         old_printable_depth = static_cast<int>(old_printable_bbox.size().y());
                     }
+                    // A 3mf can carry an empty project_settings.config - the models in
+                    // resources/handy_models do - and opt_float() dereferences without checking.
                     if (config.option<ConfigOptionFloat>("printable_height"))
                         old_printable_height = (int)(config.opt_float("printable_height"));
 
@@ -2505,7 +2507,8 @@ int CLI::run(int argc, char **argv)
                             orig_printable_width = static_cast<int>(orig_printable_bbox.size().x());
                             orig_printable_depth = static_cast<int>(orig_printable_bbox.size().y());
                         }
-                        orig_printable_height = (int)(config.opt_float("printable_height"));
+                        if (config.option<ConfigOptionFloat>("printable_height"))
+                            orig_printable_height = (int)(config.opt_float("printable_height"));
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(":%1%, check printable size: old_printable_width=%2%, orig_printable_width=%3%, old_printable_depth=%4%, orig_printable_depth=%5%, old_printable_height=%6%, orig_printable_height=%7%")
                                     %__LINE__ %old_printable_width %orig_printable_width %old_printable_depth %orig_printable_depth %old_printable_height %orig_printable_height;
                         if ((orig_printable_width > 0) && (orig_printable_depth > 0) && (orig_printable_height > 0))
@@ -4617,7 +4620,8 @@ int CLI::run(int argc, char **argv)
                 BoundingBoxf temp_printable_bbox(temp_printable_area);
                 printer_plate.printable_width = static_cast<int>(temp_printable_bbox.size().x());
                 printer_plate.printable_depth = static_cast<int>(temp_printable_bbox.size().y());
-                printer_plate.printable_height = (int)(config.opt_float("printable_height"));
+                if (config.option<ConfigOptionFloat>("printable_height"))
+                    printer_plate.printable_height = (int)(config.opt_float("printable_height"));
             }
             if (temp_exclude_area.size() >= 4) {
                 printer_plate.exclude_width = (int)(temp_exclude_area[2].x() - temp_exclude_area[0].x());

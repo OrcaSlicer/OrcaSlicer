@@ -22,9 +22,9 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/ComboBox.hpp"
-#include "Widgets/HyperLink.hpp"
 
 // Previous definitions
+class Button;
 class SwitchBoard;
 class MultiSwitchButton;
 
@@ -41,7 +41,7 @@ protected:
     Label*    nozzle_flow_type_label;
     ComboBox* nozzle_flow_type_checkbox;
     Label    *change_nozzle_tips;
-    HyperLink* m_wiki_link;
+    Button* m_wiki_link;
     Button* m_single_update_nozzle_button;
     Button* m_multiple_update_nozzle_button;
 
@@ -54,7 +54,7 @@ protected:
     ComboBox *multiple_right_nozzle_flow_checkbox;
 
     Label *multiple_change_nozzle_tips;
-    HyperLink* multiple_wiki_link;
+    Button* multiple_wiki_link;
 
     wxPanel *single_panel;
     wxPanel *multiple_panel;

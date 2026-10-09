@@ -154,14 +154,9 @@ static const float g_purge_volume_one_time = 135.f;
 static const int g_max_flush_count = 4;
 static const size_t g_max_label_object = 64;
 
-static bool is_bambu_x2d_printer(const FullPrintConfig &config)
-{
-    return config.printer_model.value == "Bambu Lab X2D";
-}
-
 // Multi-nozzle printer predicate: an extruder carries a nozzle cluster (extruder_max_nozzle_count
 // entry > 1). Today only H2C profiles trip it, so every existing single- and dual-extruder printer
-// is excluded and keeps its historic placeholder values.
+// is excluded and keeps its historic first-filament marker.
 static bool is_multi_nozzle_printer(const FullPrintConfig &config)
 {
     return std::any_of(config.extruder_max_nozzle_count.values.begin(),
@@ -169,33 +164,20 @@ static bool is_multi_nozzle_printer(const FullPrintConfig &config)
                        [](int v) { return v > 1; });
 }
 
-static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int hotend_id)
+// current_hotend / next_hotend value. On a BBL printer: the real nozzle id only while the print uses a
+// dynamic nozzle map (a filament moves between nozzles across layers), else -1. Bambu firmware reads an
+// explicit hotend index as a request for the Filament Track Switch and rejects the job on a printer
+// without one. group_result may be null on slicing paths that don't populate it, which resolves to -1.
+// Any other printer has no firmware hotend selection and gets the filament's extruder index, whatever
+// its nozzle map, so existing custom G-code keeps its values.
+static int hotend_id_for_gcode_placeholder(const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
+                                           bool is_bbl_printer, int filament_id, int extruder_id, int layer_id = -1)
 {
-    return is_bambu_x2d_printer(config) ? -1 : hotend_id;
-}
-
-// current_hotend / next_hotend value. For multi-nozzle printers a dynamic nozzle map yields the real
-// nozzle id, a static map yields -1:
-//  - multi-nozzle (H2C): dynamic nozzle map -> real nozzle id; static -> -1.
-//    The dynamic branch is dormant today: the selector create() overload that sets the flag has no
-//    callers yet (deferred with the nozzle-assignment pipeline), so H2C currently resolves to -1.
-//  - X2D: keeps its historic -1 (single-nozzle -> falls through to the fallback helper).
-//  - every other (existing single-nozzle) printer: keeps its historic extruder-id value, so
-//    existing g-code stays byte-identical.
-// group_result may be null on slicing paths that don't populate it -> the dynamic branch is simply
-// skipped, so we never dereference null.
-static int hotend_id_for_gcode_placeholder(const FullPrintConfig                                             &config,
-                                           const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
-                                           int                                                               filament_id,
-                                           int                                                               extruder_id,
-                                           int                                                               layer_id = -1)
-{
-    if (is_multi_nozzle_printer(config)) {
-        if (group_result && group_result->is_support_dynamic_nozzle_map() && filament_id >= 0)
-            return group_result->get_nozzle_id(filament_id, layer_id);
-        return -1;
-    }
-    return hotend_id_for_gcode_placeholder(config, extruder_id);
+    if (!is_bbl_printer)
+        return extruder_id;
+    if (group_result && group_result->is_support_dynamic_nozzle_map() && filament_id >= 0)
+        return group_result->get_nozzle_id(filament_id, layer_id);
+    return -1;
 }
 
 // Logical nozzle id for the *_nozzle_id placeholders. Null-safe: falls back to the
@@ -210,24 +192,20 @@ static int nozzle_id_for_gcode_placeholder(const std::shared_ptr<MultiNozzleUtil
 
 // Init variants: the start-gcode init sites (first_non_support_hotend / initial_no_support_hotend /
 // current_hotend / initial_nozzle_id / filament_start current_nozzle_id) use get_first_nozzle_for_filament
-// (the nozzle a filament FIRST uses) rather than the layer-based get_nozzle_id. Same hotend-value semantics
-// as hotend_id_for_gcode_placeholder above (multi-nozzle static -> -1; dynamic branch dormant;
-// existing printers -> extruder id; X2D -> -1); they differ from the layer-based helper only on the dormant
-// dynamic path for a filament first used after layer 0.
-static int first_hotend_id_for_gcode_placeholder(const FullPrintConfig                                             &config,
-                                                 const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
-                                                 int                                                               filament_id,
-                                                 int                                                               extruder_id)
+// (the nozzle a filament FIRST uses) rather than the layer-based get_nozzle_id. Same hotend-value rule
+// as hotend_id_for_gcode_placeholder above; they differ from the layer-based helper only on the dynamic
+// path for a filament first used after layer 0.
+static int first_hotend_id_for_gcode_placeholder(const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
+                                                 bool is_bbl_printer, int filament_id, int extruder_id)
 {
-    if (is_multi_nozzle_printer(config)) {
-        if (group_result && group_result->is_support_dynamic_nozzle_map() && filament_id >= 0) {
-            auto nozzle = group_result->get_first_nozzle_for_filament(filament_id);
-            if (nozzle)
-                return nozzle->group_id;
-        }
-        return -1;
+    if (!is_bbl_printer)
+        return extruder_id;
+    if (group_result && group_result->is_support_dynamic_nozzle_map() && filament_id >= 0) {
+        auto nozzle = group_result->get_first_nozzle_for_filament(filament_id);
+        if (nozzle)
+            return nozzle->group_id;
     }
-    return hotend_id_for_gcode_placeholder(config, extruder_id);
+    return -1;
 }
 
 static int first_nozzle_id_for_gcode_placeholder(const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
@@ -1214,12 +1192,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
             config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
             config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
-            // current_hotend/next_hotend (see hotend_id_for_gcode_placeholder): multi-nozzle H2C -> -1
-            // (static; dynamic branch dormant), X2D -> -1, existing printers -> extruder id.
+            const bool is_bbl_printer = gcodegen.m_print->is_BBL_printer();
             config.set_key_value("current_hotend", new ConfigOptionInt(
-                hotend_id_for_gcode_placeholder(gcodegen.m_config, group_result, old_filament_id, old_extruder_id, m_layer_idx)));
+                hotend_id_for_gcode_placeholder(group_result, is_bbl_printer, old_filament_id, old_extruder_id, m_layer_idx)));
             config.set_key_value("next_hotend", new ConfigOptionInt(
-                hotend_id_for_gcode_placeholder(gcodegen.m_config, group_result, new_filament_id, (int) gcodegen.get_extruder_id(new_filament_id), m_layer_idx)));
+                hotend_id_for_gcode_placeholder(group_result, is_bbl_printer, new_filament_id, (int) gcodegen.get_extruder_id(new_filament_id), m_layer_idx)));
             config.set_key_value("current_nozzle_id", new ConfigOptionInt(old_nozzle_id));
             config.set_key_value("next_nozzle_id", new ConfigOptionInt(next_nozzle_id));
             config.set_key_value("current_filament_id", new ConfigOptionInt(old_filament_id));
@@ -1498,7 +1475,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         gcodegen.placeholder_parser().set("current_nozzle_id",
             nozzle_id_for_gcode_placeholder(group_result, new_filament_id, new_extruder_id, m_layer_idx));
         gcodegen.placeholder_parser().set("current_hotend",
-            hotend_id_for_gcode_placeholder(gcodegen.m_config, group_result, new_filament_id, new_extruder_id, m_layer_idx));
+            hotend_id_for_gcode_placeholder(group_result, gcodegen.m_print->is_BBL_printer(), new_filament_id, new_extruder_id, m_layer_idx));
         {
             size_t fi = gcodegen.get_filament_config_index(new_filament_id);
             gcodegen.placeholder_parser().set("retraction_distance_when_cut", gcodegen.m_config.retraction_distances_when_cut.get_at(fi));
@@ -3309,20 +3286,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     first_non_support_hotends.reserve(first_non_support_filaments.size());
     for (int filament_id : first_non_support_filaments)
         first_non_support_hotends.push_back(filament_id < 0 ? -1 :
-            first_hotend_id_for_gcode_placeholder(m_config, group_result, filament_id, (int) get_extruder_id(filament_id)));
+            first_hotend_id_for_gcode_placeholder(group_result, is_bbl_printers, filament_id, (int) get_extruder_id(filament_id)));
 
     this->placeholder_parser().set("first_non_support_tools", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("first_non_support_hotend", new ConfigOptionInts(first_non_support_hotends));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
-    // initial_no_support_hotend/current_hotend (see first_hotend_id_for_gcode_placeholder): multi-nozzle
-    // H2C -> -1 (static; dynamic branch dormant), X2D -> -1, existing printers -> extruder id.
     this->placeholder_parser().set("initial_no_support_hotend",
-        first_hotend_id_for_gcode_placeholder(m_config, group_result, (int) initial_non_support_extruder_id, (int) get_extruder_id(initial_non_support_extruder_id)));
+        first_hotend_id_for_gcode_placeholder(group_result, is_bbl_printers, (int) initial_non_support_extruder_id,
+                                              (int) get_extruder_id(initial_non_support_extruder_id)));
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
     this->placeholder_parser().set("current_hotend",
-        first_hotend_id_for_gcode_placeholder(m_config, group_result, (int) initial_extruder_id, extruder_id));
+        first_hotend_id_for_gcode_placeholder(group_result, is_bbl_printers, (int) initial_extruder_id, extruder_id));
     this->placeholder_parser().set("current_filament_id", (int) initial_extruder_id);
     this->placeholder_parser().set("current_extruder_id", extruder_id);
     this->placeholder_parser().set("current_nozzle_id",
@@ -3831,7 +3807,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             file.writeln(filament_start_gcode);
             // Mark the first filament used in print. Multi-nozzle printers (H2C) get ";VT%d H%d" where
             // H = dynamic ? nozzle_id : -1; existing single-nozzle printers keep the bare ";VT%d" so their
-            // g-code stays byte-identical. (The dynamic branch is dormant, so H2C currently emits H-1.)
+            // g-code stays byte-identical.
             if (is_multi_nozzle_printer(m_config)) {
                 int initial_nozzle_id = -1;
                 if (group_result && group_result->is_support_dynamic_nozzle_map()) {
@@ -9615,6 +9591,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         this->placeholder_parser().set("current_extruder_id", new_extruder_id);
         this->placeholder_parser().set("current_nozzle_id",
             nozzle_id_for_gcode_placeholder(m_print->get_layered_nozzle_group_result(), (int) new_filament_id, new_extruder_id, m_layer_index));
+        this->placeholder_parser().set("current_hotend",
+            hotend_id_for_gcode_placeholder(m_print->get_layered_nozzle_group_result(), m_print->is_BBL_printer(), (int) new_filament_id,
+                                            new_extruder_id, m_layer_index));
         {
             size_t fi = get_filament_config_index(new_filament_id);
             this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(fi));
@@ -9793,12 +9772,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
     dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
-    // current_hotend/next_hotend (see hotend_id_for_gcode_placeholder): multi-nozzle H2C -> -1
-    // (static; dynamic branch dormant), X2D -> -1, existing printers -> extruder id.
     dyn_config.set_key_value("current_hotend", new ConfigOptionInt(
-        hotend_id_for_gcode_placeholder(m_config, group_result, old_filament_id, old_extruder_id, m_layer_index)));
+        hotend_id_for_gcode_placeholder(group_result, m_print->is_BBL_printer(), old_filament_id, old_extruder_id, m_layer_index)));
     dyn_config.set_key_value("next_hotend", new ConfigOptionInt(
-        hotend_id_for_gcode_placeholder(m_config, group_result, (int) new_filament_id, new_extruder_id, m_layer_index)));
+        hotend_id_for_gcode_placeholder(group_result, m_print->is_BBL_printer(), (int) new_filament_id, new_extruder_id, m_layer_index)));
     dyn_config.set_key_value("current_nozzle_id", new ConfigOptionInt(old_nozzle_id));
     dyn_config.set_key_value("next_nozzle_id", new ConfigOptionInt(next_nozzle_id));
     dyn_config.set_key_value("current_filament_id", new ConfigOptionInt(old_filament_id));
@@ -9976,7 +9953,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
     this->placeholder_parser().set("current_extruder", new_filament_id);
     this->placeholder_parser().set("current_hotend",
-        hotend_id_for_gcode_placeholder(m_config, group_result, (int) new_filament_id, new_extruder_id, m_layer_index));
+        hotend_id_for_gcode_placeholder(group_result, m_print->is_BBL_printer(), (int) new_filament_id, new_extruder_id, m_layer_index));
     // Orca: keep the global current-tool identity coherent for later contexts (see append_tcr).
     this->placeholder_parser().set("current_filament_id", (int) new_filament_id);
     this->placeholder_parser().set("current_extruder_id", new_extruder_id);

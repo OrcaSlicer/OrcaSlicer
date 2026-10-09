@@ -871,10 +871,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("center_of_surface_pattern", has_centered_surface);
 
     // Orca: separate infills
-    bool is_internal_infill_separable = is_separable_infill_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
-                                        config->opt_string("sparse_infill_rotate_template") != "" ||
-                                        config->opt_string("solid_infill_rotate_template") != "";
-    toggle_line("separated_infills", is_internal_infill_separable);
+    toggle_line("separated_infills", is_separable_infill_pattern(pattern));
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
     auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };

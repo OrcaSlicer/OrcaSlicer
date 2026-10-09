@@ -2309,6 +2309,12 @@ wxBoxSizer* MainFrame::create_side_tools()
 
             bool slice = true;
 
+            // The Slice-plate hover popup is a transient popup that keeps grabbing
+            // the mouse capture while shown. Left behind the modal grouping dialog it
+            // would starve that dialog of mouse events, so close it synchronously first.
+            if (m_filament_group_popup)
+                m_filament_group_popup->Dismiss();
+
             auto curr_plate = m_plater->get_partplate_list().get_curr_plate();
             #ifdef __linux__
                 PresetBundle* preset = wxGetApp().preset_bundle;

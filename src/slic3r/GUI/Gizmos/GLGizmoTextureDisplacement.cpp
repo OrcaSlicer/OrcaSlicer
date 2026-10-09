@@ -27,6 +27,7 @@
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/TextureLibrary.hpp"
 #include "slic3r/GUI/TextureProjectorFrame.hpp"
 #include "slic3r/GUI/UVEditorCanvas.hpp"
@@ -407,11 +408,48 @@ GLGizmoTextureDisplacement::GLGizmoTextureDisplacement(GLCanvas3D& parent, const
 
 bool GLGizmoTextureDisplacement::on_init()
 {
+    m_shortcut = Shortcut::GizmoDisplacement;
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
+
+
     m_desc["cursor_size"]   = _L("Brush size");
     m_desc["circle"]        = _L("Circle");
     m_desc["sphere"]        = _L("Sphere");
     m_desc["remove_layer"]  = _L("Remove");
     m_desc["bake"]          = _L_CONTEXT("Bake", "Texture Displacement");
+
+
+    m_desc["paint"]            = _L("Paint");
+    m_desc["erase"]            = _L("Erase");
+    m_desc["gap_area"]         = _L("Gap area");
+    m_desc["smart_fill_angle"] = _L("Smart fill angle");
+    m_desc["toggle_wireframe"] = _L("Toggle Wireframe");
+
+    std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
+    std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
+    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L_CONTEXT("Enter", "Keyboard Shortcut"), m_desc["toggle_wireframe"]};
+
+    m_shortcuts_brush = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        toggle_wireframe_shortcut
+    };
+
+    m_shortcuts_bucket_fill = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        toggle_wireframe_shortcut
+    };
+
+    m_shortcuts_gap_fill = {
+        {ctrl + _L("Mouse wheel"), m_desc["gap_area"]},
+        toggle_wireframe_shortcut
+    };
+ 
     return true;
 }
 
@@ -523,7 +561,15 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // volume for a shaded pass that then draws nothing is what made the model vanish - most obviously
     // with zero layers, but equally with a layer that has no texture picked yet.
     const bool use_shaded = m_use_shaded_preview && m_shaded_preview_glmodel.is_initialized() && shaded_preview_ready();
-    const bool use_true_preview = !use_shaded && m_preview_glmodel.is_initialized();
+    // Checker/Distortion are built from the *base* patch and drawn with a polygon offset, which biases
+    // depth values - it does not move the geometry. It therefore cannot win against a surface that
+    // genuinely stands in front, and the displaced preview does exactly that: it rises above the base
+    // surface by the layer's depth. Drawn underneath a UV-check overlay it simply occludes it, which is
+    // why those two modes looked like they did nothing. Leave it out and let the undisplaced volume show
+    // through instead (toggle_model_objects_visibility below) - that one *is* coincident with the
+    // overlay, which is what the offset assumes, and it is the surface whose mapping is being inspected.
+    const bool use_true_preview = !use_shaded && m_uv_check_mode == UVCheckMode::None &&
+                                  m_preview_glmodel.is_initialized();
     // In Checker/Distortion mode the UV-check overlay *is* the surface visualization the user is
     // looking at, so the opaque paint-selection highlight must not be drawn on top of it - same
     // reasoning as skipping it for the shaded preview (see bug #12). Without this the painted area
@@ -551,7 +597,13 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
             render_triangles(selection);
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
         }
-    } else if (show_paint_overlay) {
+    } else {
+        // render_triangles() *is* the model in a painter gizmo (it draws every model-part volume with the
+        // selector's colours), not an overlay on top of one - so it still has to run under a UV-check
+        // overlay, or nothing draws the surface at all and the checker floats alone over an empty scene.
+        // Deliberately without the depth bias the branch above applies: the checker/heatmap is drawn later
+        // with its own -1 offset and has to win against this. Biasing both by the same amount is what made
+        // the painted area cover the checker and is why this call used to be skipped outright.
         render_triangles(selection);
     }
 
@@ -5313,6 +5365,12 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         return;
     ModelVolume *mv = texture_volume();
 
+    float  scale = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+
     const float approx_height = m_imgui->scaled(24.f);
     y = std::min(y, bottom_limit - approx_height);
 
@@ -5742,14 +5800,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         const int cur_mode = m_use_shaded_preview                               ? 1 :
                              m_uv_check_mode == UVCheckMode::Checker    ? 2 :
                              m_uv_check_mode == UVCheckMode::Distortion ? 3 : 0;
-        int  new_mode  = cur_mode;
-        bool wf_toggle = false;
-        const wxString distortion_na = active == nullptr ? _L("Add a layer first.") :
-                                       active->projection_method != TextureProjectionMethod::LSCM ?
-                                                           _L("Needs the active layer mapped with Unwrap (LSCM).") :
-                                                           wxString();
-        // Distortion over a layer that stopped being an unwrap shows nothing at all, so fall back to Normal.
-        if (cur_mode == 3 && !distortion_na.empty())
+        int  new_mode       = cur_mode;
+        bool wf_toggle      = false;
+        bool open_uv_editor = false;
+        // Checker and Distortion both draw *the unwrap* - the first the texture grid laid over it, the second
+        // its stretch - so they only mean anything for a layer mapped with Unwrap (LSCM). On the default
+        // triplanar mapping (or cylindrical / spherical / from view) they are faded out with the reason in the
+        // tooltip, rather than being offered and then showing nothing.
+        const wxString uv_view_na = active == nullptr ? _L("Add a layer first.") :
+                                    active->projection_method != TextureProjectionMethod::LSCM ?
+                                                        _L("Only for a layer mapped with Unwrap (LSCM) - set the "
+                                                           "active layer's Mapping to Unwrap to use this view.") :
+                                                        wxString();
+        // Either view over a layer that stopped being an unwrap shows nothing at all, so fall back to Normal.
+        if ((cur_mode == 2 || cur_mode == 3) && !uv_view_na.empty())
             new_mode = 0;
 
         const float x0 = ImGui::GetCursorPosX();
@@ -5768,12 +5832,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(703, "texture_displacement_checker.svg", cur_mode == 2, icon_md, _L("Checker"),
                         _L("Checker - a test grid instead of the texture. Where the squares stay square the "
-                           "texture is undistorted; where they stretch, it will too")))
-            new_mode = 2;
+                           "texture is undistorted; where they stretch, it will too. Opens the UV editor if "
+                           "it is closed"),
+                        uv_view_na)) {
+            new_mode       = 2;
+            open_uv_editor = true;
+        }
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(704, "texture_displacement_distortion.svg", cur_mode == 3, icon_md, _L("Distortion"),
-                        _L("Distortion - blue-to-red stretch heatmap over the unwrap"), distortion_na))
-            new_mode = 3;
+                        _L("Distortion - blue-to-red stretch heatmap over the unwrap. Opens the UV editor if "
+                           "it is closed"),
+                        uv_view_na)) {
+            new_mode       = 3;
+            open_uv_editor = true;
+        }
         vsep(icon_md);
         if (icon_toggle(705, "texture_displacement_wireframe.svg", m_wireframe_overlay, icon_md, _L("Wireframe"),
                         _L("Wireframe - overlay the mesh edges; independent of the view above")))
@@ -5788,6 +5860,13 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         hover_tip(_u8L("Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting "
                         "or dragging a slider starts to stutter - the preview then waits until you let go."));
 
+        // Both are views of the unwrap, so picking one brings the UV editor up with it - including when that
+        // view is already the active one and only the pane is missing.
+        if (open_uv_editor && !m_show_uv_editor) {
+            m_show_uv_editor = true;
+            if (new_mode == cur_mode)
+                update_uv_editor(); // otherwise apply_view_mode() below does it
+        }
         if (new_mode != cur_mode)
             apply_view_mode(new_mode);
         if (wf_toggle) {
@@ -6891,18 +6970,34 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
 
         const float button_h = std::round(frame_h * 1.25f);
-        const float third    = std::floor((panel_w - style.ItemSpacing.x) / 3.f);
-        if (busy) {
-            if (ImGui::Button((_u8L("Stop") + "##stop").c_str(), ImVec2(third, button_h)))
-                wxGetApp().plater()->get_ui_job_worker().cancel_all();
-            hover_tip(_u8L("Stops the bake. Whatever it had already finished stays on the model, and can be undone."));
-        } else {
-            if (ImGui::Button((_u8L("Close") + "##close").c_str(), ImVec2(third, button_h)))
-                m_parent.reset_all_gizmos();
-            hover_tip(_u8L("Closes the tool without baking. Your paint, layers and settings stay with the model."));
-        }
+        const float button_w = std::max({
+            ImGui::CalcTextSize(_u8L("Close").c_str()).x,
+            ImGui::CalcTextSize(_u8L("Stop").c_str()).x,
+            ImGui::CalcTextSize(_u8L("Preparing...").c_str()).x,
+            ImGui::CalcTextSize(_u8L("Baking...").c_str()).x,
+        }) + m_imgui->scaled(0.5f);
+        const float row_y  = ImGui::GetCursorPosY();
+        const float icon_h = 21.f * scale;
+        const float row_h  = std::max(icon_h, button_h);
 
+        const std::vector<std::pair<wxString, wxString>> shortcut = 
+            m_tool_type == ToolType::BUCKET_FILL ? m_shortcuts_bucket_fill
+            : m_tool_type == ToolType::SMART_FILL  ? m_shortcuts_bucket_fill 
+            : m_tool_type == ToolType::BRUSH       ? m_shortcuts_brush 
+            : m_tool_type == ToolType::GAP_FILL    ? m_shortcuts_gap_fill 
+            : std::vector<std::pair<wxString, wxString>>{};
+
+        ImGui::SetCursorPosY(row_y + (row_h - icon_h) * .5f); // center vertically
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(int(m_imgui->scaled(.5f)), style.ItemSpacing.y));
+        GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcut, x, y);
         ImGui::SameLine();
+        GLGizmoUtils::render_wiki_guide_button(m_parent, scale, "https://www.orcaslicer.com/wiki/print_prepare/prepare_texture_displacement");
+        ImGui::SameLine();
+        GLGizmoUtils::render_video_guide_button(m_parent, scale, "https://www.youtube.com/watch?v=D7w3tG1kdvE");
+        ImGui::PopStyleVar(1);
+
+        ImGui::SameLine(x0 + panel_w - button_w * 2 - style.ItemSpacing.x);
+
         const bool        can_bake   = !busy && mv != nullptr && mv->is_texture_displacement_painted();
         const std::string bake_label = m_prepare_in_progress ? _u8L("Preparing...") :
                                        m_bake_in_progress    ? _u8L("Baking...") :
@@ -6910,7 +7005,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         GLGizmoUtils::push_orca_button_style();
         m_imgui->push_bold_font();
         m_imgui->disabled_begin(!can_bake);
-        if (ImGui::Button((bake_label + "##bake").c_str(), ImVec2(x0 + panel_w - ImGui::GetCursorPosX(), button_h))) {
+        ImGui::SetCursorPosY(row_y + (row_h - button_h) * .5f); // center vertically
+        if (ImGui::Button((bake_label + "##bake").c_str(), ImVec2(button_w, button_h))) {
             // Standard mode's Bake is the whole pipeline (remesh -> refine -> displace); Pro's is only the
             // displacement, because there the user has already prepared the mesh with the controls above.
             if (pro_mode())
@@ -6934,6 +7030,17 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                       "density and refined where the texture bends first, so the detail has vertices to "
                                       "land on - all in one step."),
                              wrap_w);
+
+        ImGui::SameLine();
+        if (busy) {
+            if (ImGui::Button((_u8L("Stop") + "##stop").c_str(), ImVec2(button_w, button_h)))
+                wxGetApp().plater()->get_ui_job_worker().cancel_all();
+            hover_tip(_u8L("Stops the bake. Whatever it had already finished stays on the model, and can be undone."));
+        } else {
+            if (ImGui::Button((_u8L("Close") + "##close").c_str(), ImVec2(button_w, button_h)))
+                m_parent.reset_all_gizmos();
+            hover_tip(_u8L("Closes the tool without baking. Your paint, layers and settings stay with the model."));
+        }
 
         // What Bake will produce, and which layers it will skip.
         if (mv != nullptr) {

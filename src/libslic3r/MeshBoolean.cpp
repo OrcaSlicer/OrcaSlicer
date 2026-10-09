@@ -1045,7 +1045,28 @@ void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& b
     // But we can force it to work by spliting the src mesh into disconnected components,
     // and do booleans seperately, then merge all the results.
     indexed_triangle_set all_its;
-    if (boolean_opts == "UNION" || boolean_opts == "A_NOT_B") {
+    if (boolean_opts == "A_NOT_B") {
+        // Each cut can leave the source with several disconnected components, which mcut rejects
+        // in the next dispatch, so re-split after every cut part (e.g. each letter of a text).
+        std::vector<indexed_triangle_set> parts = std::move(src_parts);
+        for (size_t j = 0; j < cut_parts.size(); j++) {
+            auto cut_part = triangle_mesh_to_mcut(cut_parts[j]);
+            std::vector<indexed_triangle_set> next_parts;
+            for (indexed_triangle_set &part : parts) {
+                auto src_part = triangle_mesh_to_mcut(part);
+                if (do_boolean_single(*src_part, *cut_part, boolean_opts)) {
+                    TriangleMesh tri_part = mcut_to_triangle_mesh(*src_part);
+                    std::vector<indexed_triangle_set> pieces = its_split(tri_part.its);
+                    std::move(pieces.begin(), pieces.end(), std::back_inserter(next_parts));
+                } else
+                    next_parts.emplace_back(std::move(part));
+            }
+            parts = std::move(next_parts);
+        }
+        for (const indexed_triangle_set &part : parts)
+            its_merge(all_its, part);
+    }
+    else if (boolean_opts == "UNION") {
         for (size_t i = 0; i < src_parts.size(); i++) {
             auto src_part = triangle_mesh_to_mcut(src_parts[i]);
             for (size_t j = 0; j < cut_parts.size(); j++) {
