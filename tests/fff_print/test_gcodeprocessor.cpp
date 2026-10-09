@@ -398,6 +398,27 @@ TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers 
     CHECK(center_of(plate).z() < center_of(objects).z());
 }
 
+TEST_CASE("Each cube's raft is its support, centered below it", "[GCodeProcessor]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "skirt_loops", 0 }, { "brim_type", "no_brim" }, { "raft_layers", 3 } });
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20), Test::cube(20) }, print, model, config);
+    GCodeProcessorResult result;
+    Test::gcode(print, &result);
+
+    REQUIRE(result.support_masses.size() == 2);
+    for (size_t i = 0; i < 2; ++i) {
+        const GCodeProcessorResult::ObjectMass::Sum support = result.support_masses[i].total();
+        const Vec3d                                 object  = center_of(result.object_masses[i].total());
+        REQUIRE(support.mass > 0.);
+        CHECK_THAT(center_of(support).x(), Catch::Matchers::WithinAbs(object.x(), 1.));
+        CHECK_THAT(center_of(support).y(), Catch::Matchers::WithinAbs(object.y(), 1.));
+        CHECK(center_of(support).z() < 1.);
+    }
+}
+
 TEST_CASE("A spiral vase cube counts all its extrusions, rising through each layer", "[GCodeProcessor]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();

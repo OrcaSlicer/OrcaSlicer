@@ -1444,6 +1444,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_plate_mass    = gcode_result.plate_mass;
     m_object_masses = gcode_result.object_masses;
     m_body_masses   = gcode_result.body_masses;
+    m_support_masses = gcode_result.support_masses;
 
     // convert data from PrusaSlicer format to libvgcode format.
     // Belt printers: when the designed (upright) view is active, back-transform
@@ -1882,6 +1883,7 @@ void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
     m_plate_mass = {};
     m_object_masses.clear();
     m_body_masses.clear();
+    m_support_masses.clear();
 
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
@@ -1964,6 +1966,7 @@ void GCodeViewer::reset()
     m_plate_mass = {};
     m_object_masses.clear();
     m_body_masses.clear();
+    m_support_masses.clear();
     m_left_extruder_filament.clear();
     m_right_extruder_filament.clear();
     m_sequential_view.gcode_window.reset();

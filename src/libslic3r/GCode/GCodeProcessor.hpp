@@ -310,6 +310,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // One per object instance, and one per connected body of the instances of several, when the sliced objects were at hand.
         std::vector<ObjectMass> object_masses;
         std::vector<ObjectMass> body_masses;
+        // One per object instance, of its supports and raft.
+        std::vector<ObjectMass> support_masses;
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -400,6 +402,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             plate_mass = std::forward<Other>(other).plate_mass;
             object_masses = std::forward<Other>(other).object_masses;
             body_masses = std::forward<Other>(other).body_masses;
+            support_masses = std::forward<Other>(other).support_masses;
             lines_ends = std::forward<Other>(other).lines_ends;
             printable_area = std::forward<Other>(other).printable_area;
             bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
@@ -1145,7 +1148,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             int object{ -1 };
             int body{ -1 };
         };
-        using MassLocator = std::function<MassLocation(const Vec3d &point)>;
+        // For a support, the object instance only.
+        using MassLocator = std::function<MassLocation(const Vec3d &point, bool support)>;
 
     private:
         CommandProcessor m_command_processor;
@@ -1332,7 +1336,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // Locates extrusions in the objects and bodies it numbers, those objects listed beforehand.
         void set_mass_locator(MassLocator locator, std::vector<GCodeProcessorResult::ObjectMass> objects)
         {
-            m_mass_locator         = std::move(locator);
+            m_mass_locator = std::move(locator);
+            m_result.support_masses.assign(objects.size(), {});
             m_result.object_masses = std::move(objects);
         }
         // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the

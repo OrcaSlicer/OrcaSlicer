@@ -13,7 +13,8 @@ Three kinds of marker share one shape, a sphere whose octants alternate between 
 
 - each plate, black and white, for everything on it;
 - each object instance, light blue and white;
-- each body of an assembly, red and yellow.
+- each body of an assembly, red and yellow;
+- in Preview, the supports and raft of each object instance, green and black.
 
 A click on a marker opens a box beside it with the weight and volume of what it stands for, where its
 center lies in that thing's bounding box and the size of the box, and its moments of inertia about
@@ -116,7 +117,10 @@ outline where none holds the point. The boxes of one layer's islands say nothing
 instances, so an instance whose widened box reaches another's, as copies placed side by side do,
 tests the outlines alone, and outside them the nearest outline of all such instances wins. The island
 gives both the instance and the body. The island found last is tried first, as extrusions mostly follow each other on one
-island. Brim, raft and supports lie outside the islands, which is why they count in the plate only.
+island. Brim, raft and supports lie outside the islands. The brim counts in the plate only; a support
+or raft extrusion goes to the instance whose footprint, the box of its widened islands, holds it, the
+one whose center is nearest among several, or else the nearest footprint, as supports stand below and
+around their object.
 
 Each mass holds, for each layer id, the running total of what is printed up to that layer, the last
 of which is the faded marker's, so the solid marker for any slider position is a single lookup. The layer ids are those
@@ -127,7 +131,7 @@ follow the order of printing, so the solid markers show the objects printed so f
 
 `smooth_sphere()` with a resolution divisible by four leaves every triangle within one octant, so it
 splits into two models drawn with the `gouraud_light` shader in each kind's two colors. The radius is
-9 pixels for the plate, 7 for the objects and 5 for the bodies, scaled like the canvas toolbar for the
+9 pixels for the plate, 7 for the objects, 6 for the supports and 5 for the bodies, scaled like the canvas toolbar for the
 display's DPI and kept constant on screen through the camera's inverse zoom. They are drawn in that
 order, so that markers at one place show as rings. The faded markers are the same spheres at 40%
 opacity, drawn before all the solid ones, which show over them where both meet.

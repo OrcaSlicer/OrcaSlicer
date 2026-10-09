@@ -1010,9 +1010,9 @@ static GCodeProcessorResult::ObjectMass::Sum mass_sum(const MassProperties& soli
              solid.mass * (solid.spread.diagonal() + solid.center.cwiseProduct(solid.center)) };
 }
 
-// On screen, of the plates, the objects and the bodies, each smaller than the one before, so that markers at one place
-// still show.
-static constexpr std::array<double, 3> marker_radii{ 9., 7., 5. };
+// On screen, of the plates, the objects, the supports and the bodies, each smaller than the one before, so that markers at
+// one place still show.
+static constexpr std::array<double, 4> marker_radii{ 9., 7., 6., 5. };
 
 // As the canvas toolbar scales for the display's DPI.
 static double marker_scale(const GLCanvas3D& canvas)
@@ -1175,6 +1175,8 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             add(object, mkObject);
         for (const GCodeProcessorResult::ObjectMass& body : gcode_viewer.get_body_masses())
             add(body, mkBody);
+        for (const GCodeProcessorResult::ObjectMass& support : gcode_viewer.get_support_masses())
+            add(support, mkSupport);
     } else
         m_drawn[0] = model_markers(canvas);
     if (std::all_of(m_drawn.begin(), m_drawn.end(),
@@ -1212,6 +1214,7 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
     const std::array<std::array<ColorRGBA, 2>, mkCount> colors = { {
         { ColorRGBA(0.1f, 0.1f, 0.1f, 1.f), ColorRGBA::WHITE() },
         { ColorRGBA(0x5A / 255.f, 0x9B / 255.f, 0xD4 / 255.f, 1.f), ColorRGBA::WHITE() },
+        { ColorRGBA(0.f, 0.6f, 0.f, 1.f), ColorRGBA(0.1f, 0.1f, 0.1f, 1.f) },
         { ColorRGBA(0.7f, 0.f, 0.f, 1.f), ColorRGBA::YELLOW() },
     } };
     const auto draw = [&](const Markers& markers, float alpha) {
@@ -1281,6 +1284,7 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
     imgui.set_next_window_pos(float(screen.x() + 2. * marker_radii[pick.kind] * marker_scale(canvas)), float(screen.y()), ImGuiCond_Always, 0.f, 0.5f);
     const std::string title = pick.kind == mkPlate  ? _u8L("Plate center of mass") :
                               pick.kind == mkBody   ? _u8L("Part center of mass") :
+                              pick.kind == mkSupport ? _u8L("Support center of mass") :
                               marker.assembly       ? _u8L("Assembly center of mass") :
                                                       _u8L("Object center of mass");
     bool open = true;

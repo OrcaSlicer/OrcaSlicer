@@ -2673,7 +2673,28 @@ static void set_mass_locator(GCodeProcessor &processor, const Print &print)
     {
         size_t object{ 0 }, instance{ 0 }, layer{ 0 }, island{ 0 };
     };
-    auto locate = [objects = std::move(objects), last = std::optional<Hit>()](const Vec3d &point) mutable -> GCodeProcessor::MassLocation {
+    auto locate = [objects = std::move(objects), footprints = std::move(boxes),
+                   last = std::optional<Hit>()](const Vec3d &point, bool support) mutable -> GCodeProcessor::MassLocation {
+        // Supports stand below and around their object: the instance whose footprint holds the point, the one whose center
+        // is nearest among several, else the nearest footprint.
+        if (support) {
+            const Point p(scaled(point.x()), scaled(point.y()));
+            int         found  = -1;
+            bool        inside = false;
+            double      best   = std::numeric_limits<double>::max();
+            for (size_t i = 0; i < footprints.size(); ++i) {
+                const BoundingBox &box = footprints[i];
+                const double       gap = Point((box.min - p).cwiseMax(p - box.max).cwiseMax(0)).cast<double>().squaredNorm();
+                const bool         in  = gap == 0.;
+                const double       d   = in ? (box.center() - p).cast<double>().squaredNorm() : gap;
+                if ((in && !inside) || (in == inside && d < best)) {
+                    found  = int(i);
+                    inside = in;
+                    best   = d;
+                }
+            }
+            return { found, -1 };
+        }
         constexpr double z_tolerance = 0.002;
         const auto       local       = [&point, &objects](size_t object, size_t instance) {
             return Point(Point(scaled(point.x()), scaled(point.y())) - objects[object].object->instances()[instance].shift);

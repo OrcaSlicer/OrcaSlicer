@@ -484,7 +484,7 @@ class GLCanvas3D
     class CenterOfMass
     {
         using Sum = GCodeProcessorResult::ObjectMass::Sum;
-        enum MarkerKind : size_t { mkPlate, mkObject, mkBody, mkCount };
+        enum MarkerKind : size_t { mkPlate, mkObject, mkSupport, mkBody, mkCount };
         // A marker's mass and the box of what it stands for.
         struct Marker
         {
@@ -495,7 +495,7 @@ class GLCanvas3D
 
             Vec3d center() const { return sum.moment / sum.mass; }
         };
-        // The plates', each object instance's and each body of an assembly's.
+        // The plates', each object instance's, its supports' and each body of an assembly's.
         using Markers = std::array<std::vector<Marker>, mkCount>;
 
         // The marker's two colors of alternating octants.

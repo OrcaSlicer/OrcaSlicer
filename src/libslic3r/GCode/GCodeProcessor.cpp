@@ -2606,6 +2606,7 @@ void GCodeProcessorResult::reset() {
     plate_mass = {};
     object_masses.clear();
     body_masses.clear();
+    support_masses.clear();
     lines_ends.clear();
     printable_area = Pointfs();
     //BBS: add bed exclude area
@@ -7317,7 +7318,8 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const size_t layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
     m_result.plate_mass.add(sum, extent, layer);
-    if (!part || !m_mass_locator)
+    // The brim belongs to the plate alone.
+    if (role == erBrim || !m_mass_locator)
         return;
     const auto add = [&sum, &extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
         if (index < 0)
@@ -7327,9 +7329,12 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
         masses[index].add(sum, extent, layer);
     };
     // At the nozzle's height, which the layers print at.
-    const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height);
-    add(m_result.object_masses, location.object);
-    add(m_result.body_masses, location.body);
+    const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height, !part);
+    if (part) {
+        add(m_result.object_masses, location.object);
+        add(m_result.body_masses, location.body);
+    } else
+        add(m_result.support_masses, location.object);
 }
 
 void GCodeProcessor::finalize_object_masses()
@@ -7343,6 +7348,8 @@ void GCodeProcessor::finalize_object_masses()
         accumulate(object);
     for (GCodeProcessorResult::ObjectMass &body : m_result.body_masses)
         accumulate(body);
+    for (GCodeProcessorResult::ObjectMass &support : m_result.support_masses)
+        accumulate(support);
 }
 
 void GCodeProcessor::set_extrusion_role(ExtrusionRole role)

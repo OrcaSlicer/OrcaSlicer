@@ -263,6 +263,7 @@ private:
     GCodeProcessorResult::ObjectMass              m_plate_mass;
     std::vector<GCodeProcessorResult::ObjectMass> m_object_masses;
     std::vector<GCodeProcessorResult::ObjectMass> m_body_masses;
+    std::vector<GCodeProcessorResult::ObjectMass> m_support_masses;
 
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
@@ -349,6 +350,7 @@ public:
     const GCodeProcessorResult::ObjectMass&              get_plate_mass() const { return m_plate_mass; }
     const std::vector<GCodeProcessorResult::ObjectMass>& get_object_masses() const { return m_object_masses; }
     const std::vector<GCodeProcessorResult::ObjectMass>& get_body_masses() const { return m_body_masses; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_support_masses() const { return m_support_masses; }
     size_t get_vertices_count() const { return m_viewer.get_vertices_count(); }
     size_t get_layers_count() const { return m_viewer.get_layers_count(); }
     // ORCA: realistic view. Changes whenever the toolpaths casting shadows do.
