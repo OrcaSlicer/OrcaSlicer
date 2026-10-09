@@ -41,6 +41,16 @@ if(WIN32)
     set(_make_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} nmake)
     set(_install_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} nmake install_sw )
 else()
+    # A static library that is embedded into a shared object must not export its
+    # symbols. CPython's _ssl/_hashlib are dlopened (RTLD_LOCAL) DSOs that each
+    # embed this OpenSSL, while the process also loads the system OpenSSL 3.x
+    # through WebKitGTK/gnutls. With default visibility their unversioned
+    # OpenSSL references are preempted by that global 3.x copy, mixing 1.1.1 and
+    # 3.x ABIs and corrupting the heap (ssl.create_default_context() aborts).
+    # Hidden visibility makes each embedded copy self-contained. Windows builds
+    # with cl, which has no equivalent flag and no system OpenSSL to collide
+    # with.
+    set(_openssl_extra_cflags -fvisibility=hidden)
     if(APPLE)
         set(_conf_cmd export MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET} && ./Configure -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
     else()
