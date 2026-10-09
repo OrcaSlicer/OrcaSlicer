@@ -9,6 +9,19 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "imgui/imgui.h"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <map>
+#include <vector>
+#include <memory>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <cstddef>
+#include <utility>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
+#include <functional>
+#include "libslic3r/Color.hpp"
 
 namespace Slic3r {
 
@@ -94,7 +107,6 @@ class GLGizmoCut3D : public GLGizmoBase
     GLModel m_reference_radius;
     GLModel m_angle_arc;
 
-    Vec3d   m_old_center;
     Vec3d   m_cut_normal;
 
     struct InvalidConnectorsStatistics

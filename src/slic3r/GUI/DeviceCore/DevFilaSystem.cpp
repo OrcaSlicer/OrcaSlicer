@@ -1,13 +1,34 @@
+#include <array>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <ctime>
+#include <cstdlib>
+#include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/colour.h>
+#include <string>
+#include <wx/string.h>
+#include <optional>
+#include <unordered_map>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <set>
+#include <utility>
 #include "DevFilaSystem.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 using namespace nlohmann;
 
@@ -95,7 +116,12 @@ std::string DevAmsTray::get_filament_type()
     if (m_fila_type == "Sup.ABS") { return "ABS-S"; }
     if (m_fila_type == "Support W") { return "PLA-S"; }
     if (m_fila_type == "Support G") { return "PA-S"; }
-    if (m_fila_type == "Support") { if (setting_id == "GFS00") { m_fila_type = "PLA-S"; } else if (setting_id == "GFS01") { m_fila_type = "PA-S"; } else { return "PLA-S"; } }
+    // setting_id is our OF id; GFS00/GFS01 are the printer's own support-filament ids.
+    if (m_fila_type == "Support") {
+        auto* agent = GUI::wxGetApp().getAgent();
+        const std::string printer_filament_id = agent ? agent->from_orca_filament_id(setting_id) : setting_id;
+        if (printer_filament_id == "GFS00") { m_fila_type = "PLA-S"; } else if (printer_filament_id == "GFS01") { m_fila_type = "PA-S"; } else { return "PLA-S"; }
+    }
 
     return m_fila_type;
 }
@@ -134,7 +160,7 @@ DevAms::~DevAms()
     m_trays.clear();
 }
 
-static unordered_map<int, wxString> s_ams_display_formats = {
+static std::unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},
@@ -654,11 +680,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 curr_tray->setting_id = (*tray_it)["tray_info_idx"].get<std::string>();
                                 //std::string type            = (*tray_it)["tray_type"].get<std::string>();
                                 std::string type = MachineObject::setting_id_to_type(curr_tray->setting_id, (*tray_it)["tray_type"].get<std::string>());
-                                if (curr_tray->setting_id == "GFS00")
+                                // curr_tray->setting_id is our OF id; GFS00/GFS01 are the printer's own support-filament ids.
+                                auto* agent = GUI::wxGetApp().getAgent();
+                                const std::string printer_filament_id = agent ? agent->from_orca_filament_id(curr_tray->setting_id) : curr_tray->setting_id;
+                                if (printer_filament_id == "GFS00")
                                 {
                                     curr_tray->m_fila_type = "PLA-S";
                                 }
-                                else if (curr_tray->setting_id == "GFS01")
+                                else if (printer_filament_id == "GFS01")
                                 {
                                     curr_tray->m_fila_type = "PA-S";
                                 }
@@ -752,9 +781,9 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 curr_tray->remain = -1;
                             }
-                            if (tray_it->contains("tray_slot_placeholder")) {
-                                curr_tray->is_slot_placeholder = true;
-                            }
+                            // The tray objects are reused across status updates. Reset this
+                            // state when a previously empty slot receives a filament again.
+                            curr_tray->is_slot_placeholder = tray_it->contains("tray_slot_placeholder");
                             int ams_id_int = 0;
                             int tray_id_int = 0;
                             try

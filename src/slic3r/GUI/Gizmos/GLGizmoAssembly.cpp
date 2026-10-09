@@ -1,23 +1,32 @@
 #include "GLGizmoAssembly.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
-#include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/MeasureUtils.hpp"
 
+#include <cstdlib>
+#include <imgui.h>
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/Measure.hpp"
 #include <numeric>
 
 #include <glad/gl.h>
 
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoMeasure.hpp"
+#include <optional>
 #include <tbb/parallel_for.h>
 #include <future>
+#include <vector>
 #include <wx/clipbrd.h>
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -46,7 +55,7 @@ bool GLGizmoAssembly::on_init()
 {
     GLGizmoMeasure::on_init();
 
-    m_shortcut_key = WXK_CONTROL_Y;
+    m_shortcut = Shortcut::GizmoAssembly;
     return true;
 }
 
@@ -69,6 +78,7 @@ bool GLGizmoAssembly::on_is_activable() const
 
 void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limit)
 {
+    render_dimensioning_if_scene_reused();
     static std::optional<Measure::SurfaceFeature> last_feature;
     static EMode last_mode = EMode::FeatureSelection;
     static SelectedFeatures last_selected_features;

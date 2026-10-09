@@ -1,6 +1,11 @@
 #ifndef slic3r_GCodeProcessor_hpp_
 #define slic3r_GCodeProcessor_hpp_
 
+#include "libslic3r/CommonDefs.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -8,8 +13,17 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 
+#include <cstddef>
+#include <cassert>
 #include <cstdint>
 #include <array>
+#include <unordered_map>
+#include <utility>
+#include <map>
+#include <memory>
+#include <functional>
+#include <cstdlib>
+#include <set>
 #include <vector>
 #include <mutex>
 #include <string>
@@ -306,6 +320,9 @@ class Print;
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
         std::vector<unsigned int> nozzle_change_sequence;
         std::vector<unsigned int> filament_change_sequence;
+        // 0-based mixed (virtual) filament slots actually used on this plate.
+        // Recorded before resolve_mixed_filaments expands them to physical components.
+        std::vector<unsigned int> used_mixed_filaments;
         std::vector<int> optimal_assignment;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
@@ -325,53 +342,57 @@ class Print;
 
         //BBS: add mutex for protection of gcode result
         mutable std::mutex result_mutex;
-        GCodeProcessorResult& operator=(const GCodeProcessorResult &other)
+        GCodeProcessorResult& operator=(const GCodeProcessorResult &other) { assign(other); return *this; }
+        // Declared because the user-declared copy assignment suppresses the implicit move.
+        GCodeProcessorResult& operator=(GCodeProcessorResult &&other) { assign(std::move(other)); return *this; }
+        // Add a new member here, or neither assignment transfers it.
+        template<class Other> void assign(Other &&other)
         {
-            filename = other.filename;
-            id = other.id;
-            moves = other.moves;
-            lines_ends = other.lines_ends;
-            printable_area = other.printable_area;
-            bed_exclude_area = other.bed_exclude_area;
-            wrapping_exclude_area = other.wrapping_exclude_area;
-            toolpath_outside = other.toolpath_outside;
-            label_object_enabled = other.label_object_enabled;
-            long_retraction_when_cut = other.long_retraction_when_cut;
-            timelapse_warning_code = other.timelapse_warning_code;
-            printable_height = other.printable_height;
-            settings_ids = other.settings_ids;
-            filaments_count = other.filaments_count;
-            extruder_colors = other.extruder_colors;
-            filament_diameters = other.filament_diameters;
-            filament_densities = other.filament_densities;
-            filament_costs = other.filament_costs;
-            print_statistics = other.print_statistics;
-            custom_gcode_per_print_z = other.custom_gcode_per_print_z;
-            spiral_vase_mode = other.spiral_vase_mode;
-            warnings = other.warnings;
-            bed_type = other.bed_type;
-            gcode_check_result = other.gcode_check_result;
-            limit_filament_maps = other.limit_filament_maps;
-            filament_printable_reuslt = other.filament_printable_reuslt;
+            filename = std::forward<Other>(other).filename;
+            id = std::forward<Other>(other).id;
+            moves = std::forward<Other>(other).moves;
+            lines_ends = std::forward<Other>(other).lines_ends;
+            printable_area = std::forward<Other>(other).printable_area;
+            bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
+            wrapping_exclude_area = std::forward<Other>(other).wrapping_exclude_area;
+            toolpath_outside = std::forward<Other>(other).toolpath_outside;
+            label_object_enabled = std::forward<Other>(other).label_object_enabled;
+            long_retraction_when_cut = std::forward<Other>(other).long_retraction_when_cut;
+            timelapse_warning_code = std::forward<Other>(other).timelapse_warning_code;
+            printable_height = std::forward<Other>(other).printable_height;
+            settings_ids = std::forward<Other>(other).settings_ids;
+            filaments_count = std::forward<Other>(other).filaments_count;
+            extruder_colors = std::forward<Other>(other).extruder_colors;
+            filament_diameters = std::forward<Other>(other).filament_diameters;
+            filament_densities = std::forward<Other>(other).filament_densities;
+            filament_costs = std::forward<Other>(other).filament_costs;
+            print_statistics = std::forward<Other>(other).print_statistics;
+            custom_gcode_per_print_z = std::forward<Other>(other).custom_gcode_per_print_z;
+            spiral_vase_mode = std::forward<Other>(other).spiral_vase_mode;
+            warnings = std::forward<Other>(other).warnings;
+            bed_type = std::forward<Other>(other).bed_type;
+            gcode_check_result = std::forward<Other>(other).gcode_check_result;
+            limit_filament_maps = std::forward<Other>(other).limit_filament_maps;
+            filament_printable_reuslt = std::forward<Other>(other).filament_printable_reuslt;
             // Orca: copy the shared grouping result so a copied result keeps it (shared_ptr =>
             // memory-safe), rather than leaving a stale pointer on the target. No g-code effect either way.
-            nozzle_group_result = other.nozzle_group_result;
+            nozzle_group_result = std::forward<Other>(other).nozzle_group_result;
             // Keep the per-extruder hotend types on a copied result (injector input).
-            extruder_types = other.extruder_types;
-            printer_extruder_variant = other.printer_extruder_variant;
-            printer_extruder_id = other.printer_extruder_id;
-            layer_filaments = other.layer_filaments;
-            filament_change_sequence = other.filament_change_sequence;
-            nozzle_change_sequence = other.nozzle_change_sequence;
-            optimal_assignment = other.optimal_assignment;
-            filament_change_count_map = other.filament_change_count_map;
+            extruder_types = std::forward<Other>(other).extruder_types;
+            printer_extruder_variant = std::forward<Other>(other).printer_extruder_variant;
+            printer_extruder_id = std::forward<Other>(other).printer_extruder_id;
+            layer_filaments = std::forward<Other>(other).layer_filaments;
+            filament_change_sequence = std::forward<Other>(other).filament_change_sequence;
+            used_mixed_filaments = std::forward<Other>(other).used_mixed_filaments;
+            nozzle_change_sequence = std::forward<Other>(other).nozzle_change_sequence;
+            optimal_assignment = std::forward<Other>(other).optimal_assignment;
+            filament_change_count_map = std::forward<Other>(other).filament_change_count_map;
             // Keep the SKIPPABLE per-type time on a copied result.
-            skippable_part_time = other.skippable_part_time;
-            initial_layer_time = other.initial_layer_time;
+            skippable_part_time = std::forward<Other>(other).skippable_part_time;
+            initial_layer_time = std::forward<Other>(other).initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
-            time = other.time;
+            time = std::forward<Other>(other).time;
 #endif
-            return *this;
         }
         void  lock() const { result_mutex.lock(); }
         void  unlock() const { result_mutex.unlock(); }
@@ -475,6 +496,9 @@ class Print;
         static const std::string VFlush_End_Tag;
         static const std::string External_Purge_Tag;
     public:
+        // Size of the blocks the post-processing passes write the G-code in
+        static constexpr size_t Output_Block_Size = 65536;
+
         // Orca: SKIPPABLE region tags, stored as static strings (the FLUSH idiom above) rather than
         // a CustomETags/CustomTags array. Public so the emission sites (WipeTower / change_filament
         // path) can reference them single-sourced.
@@ -513,6 +537,10 @@ class Print;
             Wipe_Tower_Start,
             Wipe_Tower_End,
             PA_Change,
+            Print_Time_Total_Sec_Placeholder,
+            Print_Time_Day_Placeholder,
+            Print_Time_Hour_Placeholder,
+            Print_Time_Minute_Placeholder,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
         };
@@ -522,7 +550,7 @@ class Print;
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
         // checks the given gcode for reserved tags and returns true when finding any
         // (the first max_count found tags are returned into found_tag)
-        static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag);
+        static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag, bool is_bbl_printer);
 
         static int get_gcode_last_filament(const std::string &gcode_str);
         static bool get_last_z_from_gcode(const std::string& gcode_str, double& z);
@@ -642,6 +670,9 @@ class Print;
                 //For line move, there are same. For arc move, there are different.
                 Vec3f enter_direction;
                 Vec3f exit_direction;
+                // Orca: move direction over all four axes, unit length. Used by
+                // calc_vmax_junction_deviation(); see there for why E is normalized in.
+                Vec4f jd_unit_vec;
 
                 void reset();
             };
@@ -1196,6 +1227,9 @@ class Print;
         EProducer m_producer;
 
         TimeProcessor m_time_processor;
+        // calculate_time()'s map from each block's move id to its index after the actual speed moves are inserted,
+        // a member to reuse its capacity.
+        std::vector<std::pair<unsigned int, unsigned int>> m_actual_speed_id_map;
         UsedFilaments m_used_filaments;
 
         Print* m_print{ nullptr };
@@ -1493,6 +1527,16 @@ class Print;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int machine_idx) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        // Orca: junction deviation for a block at the given acceleration, 0 for a classic jerk machine.
+        float get_junction_deviation(PrintEstimatedStatistics::ETimeMode mode, float acceleration) const;
+        // Orca: acceleration along the junction direction, clamped by the per axis limits.
+        float calc_junction_acceleration(const TimeBlock& block, const Vec4f& junction_unit_vec,
+                                         PrintEstimatedStatistics::ETimeMode mode) const;
+        // Orca: entry speed from the junction deviation model, which limits a corner by its angle alone
+        // and is therefore isotropic, unlike per axis jerk. Negative means classic jerk applies instead.
+        float calc_vmax_junction_deviation(const TimeBlock& block, const TimeMachine::State& prev,
+                                           const TimeMachine::State& curr, bool has_prev_move,
+                                           PrintEstimatedStatistics::ETimeMode mode) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const;
@@ -1531,5 +1575,3 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
-

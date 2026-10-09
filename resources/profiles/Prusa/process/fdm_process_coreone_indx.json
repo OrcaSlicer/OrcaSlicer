@@ -1,0 +1,126 @@
+{
+	"type": "process",
+	"name": "fdm_process_coreone_indx",
+	"inherits": "0.20mm SPEED @CORE One HF 0.4",
+	"from": "system",
+	"instantiation": "false",
+	"bridge_speed": [
+		"50"
+	],
+	"brim_width": "0",
+	"default_acceleration": [
+		"3000"
+	],
+	"initial_layer_acceleration": [
+		"500"
+	],
+	"top_surface_acceleration": [
+		"2000"
+	],
+	"travel_acceleration": [
+		"7000"
+	],
+	"inner_wall_acceleration": [
+		"6000"
+	],
+	"outer_wall_acceleration": [
+		"5000"
+	],
+	"sparse_infill_pattern": "grid",
+	"filename_format": "{input_filename_base}_{layer_height}mm_{printer_model}_{print_time}.gcode",
+	"overhang_1_4_speed": [
+		"75%"
+	],
+	"overhang_2_4_speed": [
+		"50"
+	],
+	"overhang_3_4_speed": [
+		"25"
+	],
+	"overhang_4_4_speed": [
+		"15"
+	],
+	"support_line_width": "0.4",
+	"skirt_distance": "6",
+	"skirt_height": "1",
+	"enable_support": "1",
+	"resolution": "0.0125",
+	"support_type": "normal(manual)",
+	"support_bottom_z_distance": "0",
+	"support_interface_speed": [
+		"60"
+	],
+	"support_base_pattern": "default",
+	"support_base_pattern_spacing": "2.5",
+	"support_speed": [
+		"120"
+	],
+	"support_threshold_angle": "30",
+	"support_object_xy_distance": "0.35",
+	"tree_support_branch_angle": "30",
+	"enable_prime_tower": "0",
+	"initial_layer_speed": [
+		"45"
+	],
+	"initial_layer_infill_speed": [
+		"100"
+	],
+	"outer_wall_speed": [
+		"200"
+	],
+	"inner_wall_speed": [
+		"250"
+	],
+	"sparse_infill_speed": [
+		"300"
+	],
+	"internal_solid_infill_speed": [
+		"250"
+	],
+	"top_surface_speed": [
+		"150"
+	],
+	"gap_infill_speed": [
+		"120"
+	],
+	"travel_speed": [
+		"350"
+	],
+	"bridge_acceleration": [
+		"1500"
+	],
+	"bridge_angle": "0",
+	"brim_type": "outer_only",
+	"ensure_vertical_shell_thickness": "ensure_all",
+	"sparse_infill_acceleration": [
+		"7000"
+	],
+	"raft_first_layer_density": "90%",
+	"raft_first_layer_expansion": "3",
+	"single_extruder_multi_material_priming": "0",
+	"small_perimeter_speed": [
+		"170"
+	],
+	"internal_solid_infill_acceleration": [
+		"7000"
+	],
+	"travel_speed_z": [
+		"12"
+	],
+	"wall_distribution_count": "1",
+	"wall_transition_angle": "10",
+	"wall_transition_filter_deviation": "25%",
+	"wall_transition_length": "100%",
+	"max_bridge_length": "10",
+	"prime_tower_brim_width": "2",
+	"wipe_tower_cone_angle": "25",
+	"wipe_tower_extra_flow": "200%",
+	"wipe_tower_extra_spacing": "125%",
+	"mmu_segmented_region_max_width": "5",
+	"wall_sequence": "inner wall/outer wall",
+	"exclude_object": "0",
+	"tree_support_branch_diameter": "5",
+	"enable_overhang_speed": [
+		"1"
+	]
+}

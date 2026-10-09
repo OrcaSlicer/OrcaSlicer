@@ -5,7 +5,22 @@
 #include "Arachne/WallToolPaths.hpp"
 
 #include "FillConcentric.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "FillCornerSmoothing.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <cassert>
 #include <libslic3r/ShortestPath.hpp>
+#include <utility>
+#include <vector>
+#include "libslic3r/ExtrusionEntity.hpp"
 
 namespace Slic3r {
 
@@ -21,6 +36,9 @@ void FillConcentric::_fill_surface_single(
     
     coord_t min_spacing = scale_(this->spacing) * params.multiline;
     coord_t distance = coord_t(min_spacing / params.density);
+    // A non-positive step never shrinks the region, so the inset loop below would not end.
+    if (min_spacing <= 0 || distance <= 0)
+        return;
     
     if (params.density > 0.9999f && !params.dont_adjust) {
         distance = this->_adjust_solid_spacing(bounding_box.size()(0), distance);
@@ -32,11 +50,31 @@ void FillConcentric::_fill_surface_single(
 
     Polygons loops = to_polygons(contracted);
 
-    ExPolygons last { std::move(contracted) };
+    ExPolygons last { contracted };
     while (! last.empty()) {
         last = offset2_ex(last, -(distance + min_spacing/2), +min_spacing/2);
         append(loops, to_polygons(last));
     }
+
+    // Orca: round the corners of the loops. Unlike the other patterns these are never clipped to the
+    // fill region - they are its offsets - so a corner may only be rounded where the curve replacing it
+    // stays inside. Rounding cuts toward the inside of the turn, which around a hole, at a concave
+    // feature or across a thin region is outside the fill and would put the extrusion over a wall.
+    // The reach is capped at half the distance between two loops as well: a loop is as long as the
+    // object, and a corner cut by half of its side would swallow the neighbouring loops.
+    auto corner_stays_inside = [&contracted](const Vec2d &from, const Vec2d &to) {
+        // The straight chord between the ends of the curve is the deepest the curve can cut.
+        for (const double t : { 0.25, 0.5, 0.75 }) {
+            const Vec2d  sample = from + t * (to - from);
+            const Point  point(coord_t(sample.x()), coord_t(sample.y()));
+            if (std::none_of(contracted.begin(), contracted.end(),
+                             [&point](const ExPolygon &region) { return region.contains(point); }))
+                return false;
+        }
+        return true;
+    };
+    smooth_polygons_corners(loops, params.smooth_factor, scaled<double>(params.resolution), 0.5 * distance,
+                            corner_stays_inside);
 
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops
@@ -87,6 +125,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
     // no rotation is supported for this infill pattern
     Point   bbox_size = expolygon.contour.bounding_box().size();
     coord_t min_spacing = scaled<coord_t>(this->spacing);
+    if (min_spacing <= 0)
+        return;
 
     if (params.density > 0.9999f && !params.dont_adjust) {
         coord_t                loops_count = std::max(bbox_size.x(), bbox_size.y()) / min_spacing + 1;

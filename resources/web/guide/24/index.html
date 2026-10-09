@@ -10,7 +10,7 @@
 <link rel="stylesheet" type="text/css" href="24.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <!-- <script type="text/javascript" src="test.js"></script> -->
-<script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../data/text.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
@@ -82,7 +82,8 @@
 </div>
 <div id="AcceptArea">
 	<div class="ButtonStyleRegular ButtonTypeChoice trans"           id="CreateBtn"  onclick="CreateNewPrinter()">Create</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t39" id="AcceptBtn"  onclick="ConfirmSelect()">Confirm</div>	
+	<div class="ButtonStyleRegular ButtonTypeChoice" id="CheckNewPrintersBtn" onclick="CheckForNewPrinters()">Check for new printers</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t39" id="AcceptBtn"  onclick="ConfirmSelect()">Confirm</div>
 	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t38" id="PreBtn"  onclick="CancelSelect()">Cancel</div>
 </div>
 	

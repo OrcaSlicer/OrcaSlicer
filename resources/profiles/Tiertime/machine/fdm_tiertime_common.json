@@ -1,9 +1,9 @@
 {
 	"type": "machine",
 	"name": "fdm_tiertime_common",
+	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
-	"inherits": "fdm_machine_common",
 	"gcode_flavor": "klipper",
 	"machine_max_acceleration_e": [
 		"5000",
@@ -117,15 +117,12 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"wipe": [
 		"1"
 	],
-	"default_filament_profile": [
-		""
-	],
+	"default_filament_profile": [],
 	"default_print_profile": "0.20mm Standard @Tiertime UP400 Pro",
 	"bed_exclude_area": [
 		"0x0"

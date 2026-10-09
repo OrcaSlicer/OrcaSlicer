@@ -1,11 +1,15 @@
 {
 	"type": "filament",
 	"name": "Prusament PC Blend @CORE One",
+	"renamed_from": "Prusament PC Blend CORE One;Prusament PC Blend @CORE One MMU3;Prusament PC Blend CORE One MMU3",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "x1SkWhSSkVVIPwCF",
-	"filament_id": "Prusament PC Blend @CORE One",
+	"filament_id": "OFvDbkFq",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet"
+	],
 	"chamber_temperature": [
 		"40"
 	],
@@ -16,7 +20,11 @@
 		"Prusa CORE One 0.25 nozzle",
 		"Prusa CORE One 0.3 nozzle",
 		"Prusa CORE One 0.4 nozzle",
-		"Prusa CORE One 0.5 nozzle"
+		"Prusa CORE One 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"35"
@@ -73,7 +81,7 @@
 		"110"
 	],
 	"idle_temperature": [
-		"130"
+		"150"
 	],
 	"nozzle_temperature": [
 		"275"

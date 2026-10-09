@@ -5,7 +5,7 @@
 #ifndef UTILS_EXTRUSION_LINE_H
 #define UTILS_EXTRUSION_LINE_H
 
-#include <clipper/clipper_z.hpp>
+#include "../../ClipperZUtils.hpp"
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -19,9 +19,8 @@
 #include "ExtrusionJunction.hpp"
 #include "../../Polyline.hpp"
 #include "../../Polygon.hpp"
-#include "../../BoundingBox.hpp"
 #include "../../ExtrusionEntity.hpp"
-#include "../../Flow.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 
 namespace Slic3r {
@@ -31,6 +30,14 @@ class Flow;
 
 namespace Slic3r::Arachne
 {
+
+// ORCA: Tolerance of the "almost exactly colinear" early-out shared by the two simplify() passes
+// (this file and WallToolPaths.cpp). That test drops a vertex regardless of the user's Maximum wall
+// resolution/deviation, so it has to stay at the scale of coordinate rounding noise. A larger value
+// silently decimates finely tessellated curves: on a circle, one vertex may be removed whenever the
+// sagitta of the resulting chord falls below the tolerance, which halves the point count and turns
+// smooth arcs into corners the firmware has to decelerate through.
+inline coord_t colinear_vertex_tolerance() { return coord_t(SCALED_EPSILON); }
 
 /*!
  * Represents a polyline (not just a line) that is to be extruded with variable
@@ -286,7 +293,7 @@ using VariableWidthLines = std::vector<ExtrusionLine>; //<! The ExtrusionLines g
 
 namespace Slic3r {
 
-void extrusion_paths_append(ExtrusionPaths &dst, const ClipperLib_Z::Paths &extrusion_paths, const ExtrusionRole role, const Flow &flow);
+void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow);
 void extrusion_paths_append(ExtrusionPaths &dst, const Arachne::ExtrusionLine &extrusion, const ExtrusionRole role, const Flow &flow);
 
 } // namespace Slic3r

@@ -7,8 +7,28 @@
 #include "ReleaseNote.hpp"
 #include "wxExtensions.hpp"
 
+#include <unordered_set>
+#include <string>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <boost/log/trivial.hpp>
+#include <wx/image.h>
+#include <utility>
+#include <vector>
+#include "slic3r/GUI/Monitor.hpp"
 #include <wx/mstream.h>
 #include <wx/dcmemory.h>
+#include <wx/statbmp.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/webrequest.h>
+#include <wx/timer.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r {
 namespace GUI
@@ -39,7 +59,7 @@ DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWin
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
 
     m_scroll_area = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_scroll_area->SetScrollRate(0, 5);
+    m_scroll_area->SetScrollRate(0, FromDIP(20));
     m_scroll_area->SetBackgroundColour(*wxWHITE);
     m_scroll_area->SetMinSize(wxSize(FromDIP(320), FromDIP(250)));
 
@@ -348,7 +368,7 @@ wxString DeviceErrorDialog::parse_error_level(int error_code)
     }
 }
 
-static const std::unordered_set<string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
+static const std::unordered_set<std::string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
 wxString DeviceErrorDialog::show_error_code(int error_code)
 {
     if (m_error_code == error_code) { return wxEmptyString;}
@@ -538,7 +558,8 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
         break;
     }
     case DeviceErrorDialog::CHECK_ASSISTANT: {
-        wxGetApp().mainframe->m_monitor->jump_to_HMS(); // go to assistant page
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->jump_to_HMS(); // go to assistant page
         break;
     }
     case DeviceErrorDialog::FILAMENT_EXTRUDED: {
@@ -568,7 +589,8 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
     }
     case DeviceErrorDialog::JUMP_TO_LIVEVIEW: {
         Slic3r::GUI::wxGetApp().mainframe->jump_to_monitor();
-        Slic3r::GUI::wxGetApp().mainframe->m_monitor->jump_to_LiveView();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->jump_to_LiveView();
         break;
     }
     case DeviceErrorDialog::NO_REMINDER_NEXT_TIME: {
@@ -618,7 +640,8 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
     }
     case DeviceErrorDialog::OK_JUMP_RACK: {
         Slic3r::GUI::wxGetApp().mainframe->jump_to_monitor();
-        Slic3r::GUI::wxGetApp().mainframe->m_monitor->jump_to_Rack();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->jump_to_Rack();
         break;
     }
     case DeviceErrorDialog::ABORT: {

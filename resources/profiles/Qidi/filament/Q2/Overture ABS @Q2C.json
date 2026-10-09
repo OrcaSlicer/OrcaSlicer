@@ -3,7 +3,7 @@
 	"name": "Overture ABS@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFB99",
+	"filament_id": "OFK8XHPn",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

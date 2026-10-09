@@ -3,6 +3,6 @@
 	"name": "Snapmaker ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "3811508002",
+	"filament_id": "OF72YYTd",
 	"instantiation": "false"
 }

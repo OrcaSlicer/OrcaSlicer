@@ -3,7 +3,6 @@
 	"name": "fdm_filament_ppa",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFN97",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"0"
@@ -45,6 +44,9 @@
 		"0.96"
 	],
 	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_multitool_ramming_flow": [
 		"8"
 	],
 	"filament_type": [

@@ -3,7 +3,7 @@
 	"name": "Overture Easy PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFOT003",
+	"filament_id": "OF1Pke8t",
 	"instantiation": "false",
 	"filament_cost": [
 		"17.99"

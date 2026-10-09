@@ -1,4 +1,10 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+#include <cmath>
+#include <cfloat>
+#include <imgui.h>
 #include <imgui/imgui_internal.h>
 
 #include "GizmoObjectManipulation.hpp"
@@ -18,9 +24,27 @@
 #include "GLGizmoUtils.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include "libslic3r/Point.hpp"
+#include <limits>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <math.h>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include <vector>
+#include <string_view>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}
+
+using namespace std::string_view_literals;
 
 namespace Slic3r
 {
@@ -239,7 +263,7 @@ void GizmoObjectManipulation::update_if_dirty()
     };
 
     for (int i = 0; i < 3; ++ i) {
-        auto update = [this, i](Vec3d &cached, Vec3d &cached_rounded,  const Vec3d &new_value) {
+        auto update = [i](Vec3d &cached, Vec3d &cached_rounded,  const Vec3d &new_value) {
 			//wxString new_text = double_to_string(new_value(i), 2);
 			double new_rounded = round(new_value(i)*100)/100.0;
 			//new_text.ToDouble(&new_rounded);
@@ -702,7 +726,7 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper,  bo
 
      for (int i = 0; i < number; i++)
      {
-         char buf[3][64] = {0};
+         char buf[3][64] = {};
          float buf_size[3] = {0};
          for (int j = 0; j < 3; j++) {
              ImGui::DataTypeFormatString(buf[j], IM_ARRAYSIZE(buf[j]), ImGuiDataType_Double, (void *) &vec[i][j], "%.2f");

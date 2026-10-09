@@ -8,7 +8,38 @@
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "libslic3r/Config.hpp"
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <vector>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <array>
+#include <cstdlib>
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <algorithm>
+#include <wx/arrstr.h>
+#include <set>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <cstddef>
+#include <cstdint>
 #include <wx/gbsizer.h>
+#include <wx/gdicmn.h>
+#include <wx/tglbtn.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Plater.hpp"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -115,7 +146,7 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto scroll_window = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    scroll_window->SetScrollRate(5, 5);
+    scroll_window->SetScrollRate(5, FromDIP(20));
     scroll_window->SetBackgroundColour(*wxWHITE);
     scroll_window->SetMinSize(HISTORY_WINDOW_SIZE);
     scroll_window->SetSize(HISTORY_WINDOW_SIZE);
@@ -443,7 +474,7 @@ void HistoryWindow::sync_history_data() {
 
         auto edit_button = new Button(m_history_data_panel, _L("Edit"));
         edit_button->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
-        edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value, edit_button](auto& e) {
+        edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value](auto& e) {
             if (m_ui_op_lock) return;
 
             PACalibResult result_buffer = result;
@@ -702,7 +733,6 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
 
     wxArrayString         filament_items;
     std::set<std::string> filament_id_set;
-    std::set<std::string> printer_names;
     std::ostringstream    stream;
     // If the machine didn't report a nozzle diameter (0.0 = unknown), fall back to the currently
     // selected printer preset so the filament list isn't empty.
@@ -714,67 +744,21 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
     stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
 
-    for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
-        // filter by system preset
-        if (!printer_it->is_system)
-            continue;
-        // get printer_model
-        ConfigOption *      printer_model_opt = printer_it->config.option("printer_model");
-        ConfigOptionString *printer_model_str = dynamic_cast<ConfigOptionString *>(printer_model_opt);
-        if (!printer_model_str)
-            continue;
-
-        // use printer_model as printer type
-        if (printer_model_str->value != DevPrinterConfigUtil::get_printer_display_name(obj->printer_type))
-            continue;
-
-        if (printer_it->name.find(nozzle_diameter_str) != std::string::npos)
-            printer_names.insert(printer_it->name);
-    }
-
     if (preset_bundle) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
-        for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {
-            // filter by system preset
-            Preset &preset = *filament_it;
-            /*The situation where the user preset is not displayed is as follows:
-                1. Not a root preset
-                2. Not system preset and the printer firmware does not support user preset */
-            if (preset_bundle->filaments.get_preset_base(*filament_it) != &preset || (!filament_it->is_system && ! obj->is_support_user_preset)) { continue; }
+        for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
+                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+            if (!filament_id_set.insert(filament_it->filament_id).second)
+                continue;
+            const std::string alias = preset_bundle->filaments.get_preset_alias(*filament_it, true);
+            if (alias.empty())
+                continue;
 
-            ConfigOption *       printer_opt  = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings *printer_strs = dynamic_cast<ConfigOptionStrings *>(printer_opt);
-            for (auto printer_str : printer_strs->values) {
-                if (printer_names.find(printer_str) != printer_names.end()) {
-                    if (filament_id_set.find(filament_it->filament_id) != filament_id_set.end()) {
-                        continue;
-                    } else {
-                        filament_id_set.insert(filament_it->filament_id);
-                        // name matched
-                        if (filament_it->is_system) {
-                            filament_items.push_back(filament_it->alias);
-                            FilamentInfos filament_infos;
-                            filament_infos.filament_id             = filament_it->filament_id;
-                            filament_infos.setting_id              = filament_it->setting_id;
-                            map_filament_items[filament_it->alias] = filament_infos;
-                        } else {
-                            char   target = '@';
-                            size_t pos    = filament_it->name.find(target);
-                            if (pos != std::string::npos) {
-                                std::string user_preset_alias    = filament_it->name.substr(0, pos - 1);
-                                wxString    wx_user_preset_alias = wxString(user_preset_alias.c_str(), wxConvUTF8);
-                                user_preset_alias                = wx_user_preset_alias.ToStdString();
-
-                                filament_items.push_back(user_preset_alias);
-                                FilamentInfos filament_infos;
-                                filament_infos.filament_id            = filament_it->filament_id;
-                                filament_infos.setting_id             = filament_it->setting_id;
-                                map_filament_items[user_preset_alias] = filament_infos;
-                            }
-                        }
-                    }
-                }
-            }
+            filament_items.push_back(alias);
+            FilamentInfos filament_infos;
+            filament_infos.filament_id = filament_it->filament_id;
+            filament_infos.setting_id  = filament_it->setting_id;
+            map_filament_items[alias]  = filament_infos;
         }
     }
     return filament_items;
@@ -865,12 +849,14 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
     if (support_nozzle_volume(curr_obj)) {
         Label *nozzle_name_title = new Label(top_panel, _L("Nozzle"));
         m_comboBox_nozzle_type   = new ::ComboBox(top_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, NEW_HISTORY_DIALOG_INPUT_SIZE, 0, nullptr, wxCB_READONLY);
-        wxArrayString          nozzle_items;
+        // The labels are in display order, not enum order (E3D High Flow is 5 but the fifth label), so each
+        // item carries its NozzleVolumeType as client data.
         const ConfigOptionDef *nozzle_volume_type_def = print_config_def.get("nozzle_volume_type");
         if (nozzle_volume_type_def && nozzle_volume_type_def->enum_keys_map) {
-            for (auto item : nozzle_volume_type_def->enum_labels) { nozzle_items.push_back(_L(item)); }
+            for (size_t i = 0; i < nozzle_volume_type_def->enum_labels.size(); ++i)
+                m_comboBox_nozzle_type->Append(_L(nozzle_volume_type_def->enum_labels[i]), wxNullBitmap,
+                                               (void *) (intptr_t) nozzle_volume_type_def->enum_keys_map->at(nozzle_volume_type_def->enum_values[i]));
         }
-        m_comboBox_nozzle_type->Set(nozzle_items);
         m_comboBox_nozzle_type->SetSelection(-1);
         flex_sizer->Add(nozzle_name_title);
         flex_sizer->Add(m_comboBox_nozzle_type);
@@ -938,7 +924,7 @@ int NewCalibrationHistoryDialog::get_nozzle_combo_id_code() const
 
 void NewCalibrationHistoryDialog::on_select_nozzle_pos(wxCommandEvent &event)
 {
-    // Mirror the picked hotend's flow onto the (Orca index-based) nozzle-type combo.
+    // Mirror the picked hotend's flow onto the nozzle-type combo.
     if (!curr_obj || !m_comboBox_nozzle_id || !m_comboBox_nozzle_type || !curr_obj->GetNozzleSystem())
         return;
 
@@ -949,7 +935,9 @@ void NewCalibrationHistoryDialog::on_select_nozzle_pos(wxCommandEvent &event)
     DevNozzle nozzle = curr_obj->GetNozzleSystem()->GetNozzleByPosId(pos);
     if (nozzle.IsNormal()) {
         NozzleVolumeType volume_type = DevNozzle::ToNozzleVolumeType(nozzle.GetNozzleFlowType());
-        m_comboBox_nozzle_type->SetSelection(static_cast<int>(volume_type));
+        for (unsigned int i = 0; i < m_comboBox_nozzle_type->GetCount(); ++i)
+            if (NozzleVolumeType(intptr_t(m_comboBox_nozzle_type->GetClientData(i))) == volume_type)
+                m_comboBox_nozzle_type->SetSelection(i);
     }
 }
 
@@ -996,7 +984,7 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
             msg_dlg.ShowModal();
             return;
         }
-        m_new_result.nozzle_volume_type = NozzleVolumeType(m_comboBox_nozzle_type->GetSelection());
+        m_new_result.nozzle_volume_type = NozzleVolumeType(intptr_t(m_comboBox_nozzle_type->GetClientData(m_comboBox_nozzle_type->GetSelection())));
     }
 
     auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];

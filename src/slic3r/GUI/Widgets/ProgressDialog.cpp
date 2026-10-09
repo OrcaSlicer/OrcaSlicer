@@ -1,4 +1,14 @@
 #include "wx/wxprec.h"
+#include <cstddef>
+#include <wx/time.h>
+#include <wx/dialog.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/progdlg.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/translation.h>
+#include <wx/debug.h>
 
 #ifndef WX_PRECOMP
 #include "wx/utils.h"
@@ -21,6 +31,14 @@
 #include "ProgressDialog.hpp"
 #include "wx/evtloop.h"
 #include "Label.hpp"
+#include <wx/event.h>
+#include <wx/gauge.h>
+#include <wx/sizer.h>
+
+#ifdef __WXGTK__
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#endif
 
 // ----------------------------------------------------------------------------
 // constants
@@ -178,7 +196,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
         wxBoxSizer *sizer_1line = new wxBoxSizer(wxHORIZONTAL);
         m_msg                   = new wxStaticText(m_panel_1line, wxID_ANY, wxEmptyString, wxDefaultPosition, PROGRESSDIALOG_SIMPLEBOOK_SIZE, 0);
         m_msg->Wrap(-1);
-        m_msg->SetFont(::Label::Body_13);
+        m_msg->SetFont(::Label::Body_14);
         m_msg->SetForegroundColour(PROGRESSDIALOG_GREY_700);
         sizer_1line->Add(m_msg, 0, wxALIGN_CENTER, 0);
         m_panel_1line->SetSizer(sizer_1line);
@@ -188,7 +206,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
         wxBoxSizer *sizer_2line = new wxBoxSizer(wxVERTICAL);
         m_msg_2line             = new wxStaticText(m_panel_2line, wxID_ANY, wxEmptyString, wxDefaultPosition, PROGRESSDIALOG_SIMPLEBOOK_SIZE, 0);
         m_msg_2line->Wrap(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x);
-        m_msg_2line->SetFont(::Label::Body_13);
+        m_msg_2line->SetFont(::Label::Body_14);
         m_msg_2line->SetForegroundColour(PROGRESSDIALOG_GREY_700);
         m_msg_2line->SetMaxSize(wxSize(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x, -1));
         sizer_2line->Add(m_msg_2line, 1, wxALL, 0);
@@ -199,12 +217,12 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
         m_sizer_main->Add(m_simplebook, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(28));
     } else {
         m_msg_scrolledWindow = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL );
-        m_msg_scrolledWindow->SetScrollRate(0,5);
+        m_msg_scrolledWindow->SetScrollRate(0, FromDIP(20));
         wxBoxSizer* m_msg_sizer= new wxBoxSizer(wxVERTICAL);
 
         m_msg = new wxStaticText(m_msg_scrolledWindow, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x, -1), 0);
         m_msg->Wrap(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x);
-        m_msg->SetFont(::Label::Body_13);
+        m_msg->SetFont(::Label::Body_14);
         m_msg->SetForegroundColour(PROGRESSDIALOG_GREY_700);
 
         m_msg_sizer->Add(m_msg, 0, wxEXPAND | wxALL, 0);
@@ -227,7 +245,19 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
 
     if (!HasPDFlag(wxPD_NO_PROGRESS)) {
         m_gauge = new wxGauge(this, wxID_ANY, maximum, wxDefaultPosition, PROGRESSDIALOG_GAUGE_SIZE, gauge_style);
+#ifdef __WXGTK__
+        SetGaugeColor(m_gauge, 
+            StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
+            StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
+        );
         m_gauge->SetValue(0);
+#else
+        m_gauge->Pulse(); // colors not applied without this. probably it switches to a dc painted version of progressbar
+        m_gauge->SetValue(0);
+        m_gauge->SetForegroundColour(wxColour("#009688"));
+        m_gauge->SetBackgroundColour(wxColour("#D9D9D9"));
+        wxGetApp().UpdateDarkUI(m_gauge);
+#endif
         m_sizer_main->Add(m_gauge, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(28));
     }
 
@@ -499,7 +529,7 @@ void ProgressDialog::EnsureActiveEventLoopExists()
 wxStaticText *ProgressDialog::CreateLabel(const wxString &text, wxSizer *sizer)
 {
     wxStaticText *label = new wxStaticText(this, wxID_ANY, text);
-    wxStaticText *value = new wxStaticText(this, wxID_ANY, wxGetTranslation("unknown"));
+    wxStaticText *value = new wxStaticText(this, wxID_ANY, _L("unknown"));
 
     // Match the message label's look so the times theme with the rest of the
     // dialog: PROGRESSDIALOG_GREY_700 is a key in the dark-mode colour map, so
@@ -824,7 +854,7 @@ ProgressDialog::~ProgressDialog()
 
 void ProgressDialog::DoSetSize(int x, int y, int width, int height, int sizeFlags /*= wxSIZE_AUTO*/)
 {
-    if (m_button_cancel != nullptr) { m_button_cancel->SetMinSize(PROGRESSDIALOG_CANCEL_BUTTON_SIZE); }
+    //if (m_button_cancel != nullptr) { m_button_cancel->SetMinSize(PROGRESSDIALOG_CANCEL_BUTTON_SIZE); }
 
 #ifdef __WXMSW__
     //if (m_block_left != nullptr && m_block_right != nullptr) {

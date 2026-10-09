@@ -3,7 +3,7 @@
 	"name": "Bambu ABS-GF @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "OGFB50",
+	"filament_id": "OFknl9Iz",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"fan_cooling_layer_time": [
@@ -13,15 +13,33 @@
 		"30"
 	],
 	"filament_cost": [
-		"29.99"
+		"26.99"
 	],
 	"filament_density": [
 		"1.08"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
 		"0.95"
 	],
 	"filament_max_volumetric_speed": [
+		"12",
+		"12",
+		"12",
+		"12",
+		"12",
 		"12"
 	],
 	"filament_type": [

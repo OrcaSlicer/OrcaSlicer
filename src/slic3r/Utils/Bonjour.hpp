@@ -1,8 +1,16 @@
 #ifndef slic3r_Bonjour_hpp_
 #define slic3r_Bonjour_hpp_
 
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/ip/address_v6.hpp>
+#include <boost/optional/optional.hpp>
+#include <cstddef>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/io_service.hpp>
+#include <cassert>
 #include <cstdint>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <set>
 #include <unordered_map>
@@ -13,6 +21,11 @@
 #include <boost/optional.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/shared_ptr.hpp>
+#include <vector>
+#include <utility>
+
+namespace boost::asio::ip { class address_v4; }
+namespace boost::asio::ip { class address_v6; }
 
 namespace Slic3r {
 
@@ -115,6 +128,7 @@ class UdpSession
 {
 public:
 	UdpSession(Bonjour::ReplyFn rfn);
+	virtual ~UdpSession() = default;
 	virtual void handle_receive(const boost::system::error_code& error, size_t bytes) = 0;
 	std::vector<char>				buffer;
 	boost::asio::ip::udp::endpoint	remote_endpoint;

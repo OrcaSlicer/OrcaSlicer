@@ -3,16 +3,25 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFApp_Application.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
+#include <Standard_TypeDef.hxx>
+#include <Standard_Handle.hxx>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <Message_ProgressIndicator.hxx>
 #include <atomic>
+#include <functional>
+#include <string>
+#include <iostream>
+#include <ios>
+#include <iomanip>
+#include <ostream>
+#include <vector>
 
-namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
 class TriangleMesh;
+class Model;
 class ModelObject;
 
 // load step stage
@@ -75,10 +84,10 @@ class StepProgressIncdicator : public Message_ProgressIndicator
 public:
     StepProgressIncdicator(std::atomic<bool>& stop_flag) : should_stop(stop_flag){}
 
-    Standard_Boolean UserBreak() override { return should_stop.load(); }
+    bool UserBreak() override { return should_stop.load(); }
 
-    void Show(const Message_ProgressScope&, const Standard_Boolean) override {
-        std::cout << "Progress: " << GetPosition() << "%" << std::endl;
+    void Show(const Message_ProgressScope&, const bool) override {
+        std::cout << "Progress: " << std::fixed << std::setprecision(2) << 100.0 * GetPosition() << "%" << std::endl;
     }
 private:
     std::atomic<bool>& should_stop;
@@ -94,7 +103,7 @@ public:
         MESH_SUCCESS,
         MESH_ERROR
     };
-    Step(fs::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
+    Step(boost::filesystem::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     Step(std::string path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     ~Step();
     Step_Status load();

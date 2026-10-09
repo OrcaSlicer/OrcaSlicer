@@ -1,16 +1,33 @@
 #include "DropDown.hpp"
 #include "Label.hpp"
 
+#include <cassert>
+#include <algorithm>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cstdio>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <vector>
+#include <utility>
+#include <iterator>
+#include <wx/dc.h>
+#include <wx/dcclient.h>
 #include <wx/display.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/popupwin.h>
+#include <wx/stattext.h>
+#include <wx/gdicmn.h>
+#include <wx/window.h>
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
 #endif
 
 #include <set>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 
@@ -427,7 +444,10 @@ void DropDown::render(wxDC &dc)
             }
             pt.y += (rcContent.height - textSize.y) / 2;
             dc.SetFont(GetFont());
-            dc.SetTextForeground(text_color.colorForStates(states2));
+            // Dimmed items stay selectable, so they only borrow the disabled text tone rather
+            // than taking the disabled state itself.
+            const int text_states = (item.style & DD_ITEM_STYLE_DIMMED) ? (states2 & ~StateColor::Enabled) : states2;
+            dc.SetTextForeground(text_color.colorForStates(text_states));
             dc.DrawText(text, pt);
             if (group.IsEmpty() && !item.group_key.IsEmpty()) {
                 auto szBmp = arrow_bitmap.GetBmpSize();

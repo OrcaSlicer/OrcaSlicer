@@ -2,6 +2,12 @@
 #define slic3r_GLGizmoSeam_hpp_
 
 #include "GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/string.h>
+#include <map>
+#include <vector>
+#include <utility>
 
 namespace Slic3r::GUI {
 
@@ -12,8 +18,7 @@ public:
 
     void render_painter_gizmo() override;
 
-    //BBS
-    bool on_key_down_select_tool_type(int keyCode);
+    bool on_tool_shortcut(Shortcut shortcut) override;
 
 protected:
     // BBS

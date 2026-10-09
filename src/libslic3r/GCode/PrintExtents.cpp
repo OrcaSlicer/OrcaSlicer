@@ -10,7 +10,18 @@
 #include "../Print.hpp"
 
 #include "PrintExtents.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "WipeTower.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <Eigen/Geometry>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
@@ -143,7 +154,8 @@ BoundingBoxf get_wipe_tower_extrusions_extents(const Print &print, const coordf_
     double wipe_tower_y = print.config().wipe_tower_y.get_at(plate_idx) + plate_origin(1);
     Transform2d trafo =
         Eigen::Translation2d(wipe_tower_x, wipe_tower_y) *
-        Eigen::Rotation2Dd(Geometry::deg2rad(print.config().wipe_tower_rotation_angle.value));
+        Eigen::Rotation2Dd(Geometry::deg2rad(print.config().wipe_tower_rotation_angle.value)) *
+        Eigen::Translation2d(print.wipe_tower_data().rib_offset.cast<double>()); // tower-local rib-wall shift, zero unless rib
 
     BoundingBoxf bbox;
     for (const std::vector<WipeTower::ToolChangeResult> &tool_changes : print.wipe_tower_data().tool_changes) {

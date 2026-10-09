@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @U1 0.6 nozzle",
+	"inherits": "Generic PLA Silk @System",
+	"from": "system",
+	"setting_id": "8rhmpBFmMj9vVZwG",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.6 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
+	],
+	"additional_cooling_fan_speed": [
+		"70",
+		"70"
+	]
+}

@@ -2,6 +2,12 @@
 #define SRC_LIBSLIC3R_ALGORITHM_LINE_SPLIT_HPP_
 
 #include "ClipperZUtils.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include "libslic3r/ExPolygon.hpp"
 
 namespace Slic3r {
 namespace Algorithm {
@@ -49,8 +55,8 @@ SplittedLine split_line(const PathType& path, const ExPolygons& clip, bool close
 
     // Convert the input path into an open ZPath
     ClipperZUtils::ZPath p;
-    p.reserve(path.size() + closed ? 1 : 0);
-    ClipperLib_Z::cInt z = 0;
+    p.reserve(path.size() + (closed ? 1 : 0));
+    coord_t z = 0;
     for (const auto& point : path) {
         p.emplace_back(point.x(), point.y(), z);
         z++;

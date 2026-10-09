@@ -1,15 +1,21 @@
 #include "SlicingPipelinePluginCapability.hpp"
 #include "SlicingPipelinePluginCapabilityTrampoline.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
 #include "slic3r/plugin/PluginBindingUtils.hpp" // config_value_or_none
 #include "libslic3r/libslic3r.h"    // unscale<>, live SCALING_FACTOR
+#include "libslic3r/Print.hpp"
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <memory>
 
 namespace py = pybind11;
 namespace Slic3r {
 
 bool SlicingPipelineContext::cancelled() const { return print && print->canceled(); }
 
-void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module, py::enum_<PluginCapabilityType>& pluginTypes) {
-    (void) pluginTypes; // unused: this capability defines its own Step enum (below) rather than extending the shared PluginCapabilityType enum.
+void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module) {
     auto slicing = module.def_submodule("slicing", "Slicing pipeline API (research/experimental).");
 
     py::enum_<SlicingPipelineStepPlugin>(slicing, "Step")

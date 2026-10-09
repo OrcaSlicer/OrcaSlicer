@@ -1,11 +1,17 @@
 #ifndef slic3r_FillPlanePath_hpp_
 #define slic3r_FillPlanePath_hpp_
 
+#include <cstddef>
+#include <cmath>
 #include <map>
+#include <utility>
 
 #include "../libslic3r.h"
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 
@@ -21,10 +27,10 @@ public:
     void            add_point(const Vec2d& pt) { m_out.emplace_back(this->scaled(pt)); }
     Points&& result() { return std::move(m_out); }
     virtual bool    clips() const { return false; }
-
-protected:
+    // The output grid the generated points are snapped to.
     const Point     scaled(const Vec2d& fpt) const { return { coord_t(floor(fpt.x() * m_scale_out + 0.5)), coord_t(floor(fpt.y() * m_scale_out + 0.5)) }; }
 
+protected:
     // Output polyline.
     Points          m_out;
 
@@ -53,6 +59,11 @@ protected:
     friend class InfillPolylineClipper;
     
     virtual void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) = 0;
+    virtual void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+                                      const FillParams & /* params */, InfillPolylineOutput &output)
+    {
+        this->generate(min_x, min_y, max_x, max_y, resolution, output);
+    }
 };
 
 class FillArchimedeanChords : public FillPlanePath
@@ -75,6 +86,8 @@ public:
 protected:
     bool centered() const override { return false; }
     void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) override;
+    void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+                              const FillParams &params, InfillPolylineOutput &output) override;
 };
 
 class FillOctagramSpiral : public FillPlanePath
@@ -86,6 +99,8 @@ public:
 protected:
     bool centered() const override { return true; }
     void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) override;
+    void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+                              const FillParams &params, InfillPolylineOutput &output) override;
 };
 
 } // namespace Slic3r

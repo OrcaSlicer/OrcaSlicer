@@ -1,6 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
 #include "Mouse3DController.hpp"
+#include "GUI.hpp"
 
 #include "Camera.hpp"
 #include "GUI_App.hpp"
@@ -8,6 +9,23 @@
 #include "Plater.hpp"
 #include "NotificationManager.hpp"
 
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <mutex>
+#include <deque>
+#include <utility>
+#include <cassert>
+#include <string>
+#include <algorithm>
+#include <imgui.h>
+#include <chrono>
+#include <hidapi.h>
+#include <map>
+#include <boost/algorithm/string/trim.hpp>
+#include <ios>
+#include <wx/app.h>
+#include <cstdlib>
 #include <wx/glcanvas.h>
 
 #include <boost/nowide/convert.hpp>
@@ -15,6 +33,8 @@
 #include "I18N.hpp"
 
 #include <bitset>
+#include <cstdio>
+#include <cstring>
 
 //unofficial linux lib
 #ifdef HAVE_SPNAV
@@ -498,7 +518,7 @@ void Mouse3DController::render_settings_dialog(GLCanvas3D& canvas) const
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 20.0f));
     static ImVec2 last_win_size(0.0f, 0.0f);
     bool shown = true;
-    if (imgui.begin(_L("3Dconnexion settings"), &shown, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse || ImGuiWindowFlags_NoTitleBar)) {
+    if (imgui.begin(_L("3Dconnexion settings"), &shown, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar)) {
         if (shown) {
             ImVec2 win_size = ImGui::GetWindowSize();
             if (last_win_size.x != win_size.x || last_win_size.y != win_size.y) {

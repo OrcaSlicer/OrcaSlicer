@@ -3,7 +3,19 @@
 #include "libslic3r/Exception.hpp"
 
 #include <algorithm>
+#include <boost/optional/optional.hpp>
+#include <boost/none.hpp>
+#include <initializer_list>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/serial_port.hpp>
+#include <boost/asio/serial_port_base.hpp>
+#include <boost/system/system_error.hpp>
+#include <cstring>
+#include <cerrno>
 #include <string>
+#include <utility>
 #include <vector>
 #include <chrono>
 #include <thread>
@@ -276,7 +288,6 @@ std::vector<std::string> scan_serial_ports()
 // Class Serial
 
 namespace asio = boost::asio;
-using boost::system::error_code;
 
 Serial::Serial(asio::io_service& io_service) :
 	asio::serial_port(io_service)
@@ -331,7 +342,9 @@ void Serial::set_baud_rate(unsigned baud_rate)
 			speed_t c_ispeed;
 			speed_t c_ospeed;
 		};
+#ifndef BOTHER
 #define BOTHER CBAUDEX
+#endif
 
 		termios2 ios;
 		handle_errno(::ioctl(handle, TCGETS2, &ios));

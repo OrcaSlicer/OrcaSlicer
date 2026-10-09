@@ -1,11 +1,40 @@
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
+#include <array>
+#include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <cstdlib>
 #include <glad/gl.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include <utility>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Geometry.hpp"
+#include <string>
+#include <vector>
+#include <imgui.h>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_Colors.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 // TODO: Display tooltips quicker on Linux
 
@@ -299,7 +328,6 @@ GLGizmoBase::GLGizmoBase(GLCanvas3D &parent, const std::string &icon_filename, u
     : m_parent(parent)
     , m_group_id(-1)
     , m_state(Off)
-    , m_shortcut_key(NO_SHORTCUT_KEY_VALUE)
     , m_icon_filename(icon_filename)
     , m_sprite_id(sprite_id)
     , m_imgui(wxGetApp().imgui())
@@ -442,7 +470,7 @@ bool GLGizmoBase::use_grabbers(const wxMouseEvent &mouse_event) {
         }
     } else if (m_dragging) {
         // when mouse cursor leave window than finish actual dragging operation
-        bool is_leaving = mouse_event.Leaving();
+        bool is_leaving = mouse_event.Leaving() && !m_parent.has_mouse_capture(); // ORCA keep tracking mouse position while drag active and cursor not in window bounds
         if (mouse_event.Dragging()) {
             Point      mouse_coord(mouse_event.GetX(), mouse_event.GetY());
             auto       ray = m_parent.mouse_ray(mouse_coord);
@@ -515,11 +543,8 @@ void GLGizmoBase::render_input_window(float x, float y, float bottom_limit)
 
 std::string GLGizmoBase::get_name(bool include_shortcut) const
 {
-    int key = get_shortcut_key();
-    std::string out = on_get_name();
-    if (include_shortcut && key >= WXK_CONTROL_A && key <= WXK_CONTROL_Z)
-        out += std::string(" [") + char(int('A') + key - int(WXK_CONTROL_A)) + "]";
-    return out;
+    const std::string name = on_get_name();
+    return include_shortcut && m_shortcut.has_value() ? wxGetApp().shortcuts().with_key(name, *m_shortcut) : name;
 }
 
 } // namespace GUI

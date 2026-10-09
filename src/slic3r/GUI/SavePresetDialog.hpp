@@ -4,15 +4,19 @@
 //#include <wx/gdicmn.h>
 
 #include "libslic3r/Preset.hpp"
-#include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"
-#include "Widgets/RadioGroup.hpp"
-#include "Widgets/Button.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/Label.hpp"
-#include "Widgets/TextInput.hpp"
+#include <string>
+#include <wx/anybutton.h>
+#include <wx/sizer.h>
+#include <wx/checklst.h>
+#include <vector>
+#include <wx/event.h>
 
-class wxString;
+class RadioGroup;
+class TextInput;
+class wxBoxSizer;
+class wxCommandEvent;
+
 class wxStaticText;
 class wxComboBox;
 class wxStaticBitmap;
@@ -75,7 +79,6 @@ class SavePresetDialog : public DPIDialog
         bool                m_save_to_project {false};
         RadioGroup*         m_radio_group; // ORCA
         bool                m_detach{false};
-        wxCheckBox*         m_detach_checkbox{nullptr};
 
         void update();
     };

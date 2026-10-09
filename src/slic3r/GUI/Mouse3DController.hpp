@@ -2,6 +2,12 @@
 #define slic3r_Mouse3DController_hpp_
 
 // Enabled debug output to console and extended imgui dialog
+#include <cstddef>
+#include <limits>
+#include <deque>
+#include <map>
+#include <string>
+#include <array>
 #define ENABLE_3DCONNEXION_DEVICES_DEBUG_OUTPUT 0
 
 #include "libslic3r/Point.hpp"

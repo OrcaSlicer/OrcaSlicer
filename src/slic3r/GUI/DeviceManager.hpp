@@ -1,9 +1,15 @@
 #ifndef slic3r_DeviceManager_hpp_
 #define slic3r_DeviceManager_hpp_
 
+#include <cstdint>
+#include <ctime>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <atomic>
+#include <tuple>
+#include <set>
+#include <utility>
 #include <vector>
 #include <string>
 #include <memory>
@@ -18,6 +24,7 @@
 #include "boost/bimap/bimap.hpp"
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/Utils/PrinterNetworkTypes.hpp"
 
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
@@ -26,6 +33,7 @@
 #include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/colour.h>
 
@@ -55,7 +63,6 @@
 #define END_SEQ_ID              30000
 #define SUBSCRIBE_RETRY_COUNT   5
 
-using namespace nlohmann;
 namespace Slic3r {
 
 namespace GUI
@@ -100,7 +107,6 @@ struct DevPrintTaskRatingInfo;
 // given nozzle diameter (mm), bucketed per nozzle size to mirror the printer firmware.
 bool is_stringing_prone_filament(const std::string& filament_id, float nozzle_diameter);
 
-
 class MachineObject
 {
 private:
@@ -113,7 +119,6 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
-    std::string user_access_code;
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -228,13 +233,18 @@ public:
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
 
-    /*user access code*/
-    void set_user_access_code(std::string code, bool only_refresh = true);
-    void erase_user_access_code();
-    std::string get_user_access_code() const;
-
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
+
+    // id of the IPrinterAgent that was used to discover or bind this device (IPrinterAgent::get_agent_info().id,
+    // e.g. "bbl"), stamped at creation time — not derived from get_agent(), since m_agent is a single
+    // process-wide NetworkAgent shared by every MachineObject and gets repointed on agent swap
+    // (see DeviceManager::set_agent()), so it can't tell which agent originally found this device.
+    // We persist this as well so that when the printer agent is swapped, we don't show unrelated devices,
+    // e.g. if the current printer agent is elegoo, we shouldn't show printers connected by BBL printer agent
+    // under local machines.
+    std::string printer_agent_id;
+
     std::string   get_show_printer_type() const;
     PrinterSeries get_printer_series() const;
     PrinterArch get_printer_arch() const;
@@ -272,9 +282,11 @@ public:
     bool m_is_online;
     bool m_lan_mode_connection_state{false};
     bool m_set_ctt_dlg{ false };
+    bool m_unsupported_dlg_shown{ false };
     void set_lan_mode_connection_state(bool state) {m_lan_mode_connection_state = state;};
     bool get_lan_mode_connection_state() {return m_lan_mode_connection_state;};
     void set_ctt_dlg( wxString text);
+    void show_unsupported_dlg(int code);
     int  parse_msg_count = 0;
     int  keep_alive_count = 0;
     std::chrono::system_clock::time_point   last_update_time;   /* last received print data from machine */
@@ -301,7 +313,7 @@ public:
     bool  ams_support_virtual_tray { true };
     time_t ams_user_setting_start = 0;
     time_t ams_switch_filament_start = 0;
-    AmsStatusMain ams_status_main;
+    AmsStatusMain ams_status_main = AmsStatusMain::AMS_STATUS_MAIN_IDLE;
     int   ams_status_sub;
     int   ams_version = 0;
 
@@ -335,6 +347,8 @@ public:
     bool is_main_extruder_on_left() const { return false;  } // only means the extruder is on the left hand when extruder id is 0
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
+    // Orca: the printer preset's extruder index of device extruder extder_id
+    int  get_preset_extruder_index(int extder_id) const { return is_multi_extruders() ? (is_main_extruder_on_left() ? extder_id : 1 - extder_id) : 0; }
 
     /* E3D has extra nozzle flow type info */
     bool has_extra_flow_type{false};
@@ -452,7 +466,7 @@ public:
     std::string get_print_error_str() const { return MachineObject::get_error_code_str(this->print_error); }
 
     std::unordered_set<GUI::DeviceErrorDialog*> m_command_error_code_dlgs;
-    void  add_command_error_code_dlg(int command_err, json action_json=json{});
+    void  add_command_error_code_dlg(int command_err, nlohmann::json action_json=nlohmann::json{});
 
     int     curr_layer = 0;
     int     total_layers = 0;
@@ -541,30 +555,12 @@ public:
     bool xcam_first_layer_inspector { false };
     time_t  xcam_first_layer_hold_start = 0;
     std::string local_rtsp_url;
+    std::string webcam_stream_url;
     std::string tutk_state;
-    enum LiveviewLocal {
-        LVL_None,
-        LVL_Disable,
-        LVL_Local,
-        LVL_Rtsps,
-        LVL_Rtsp
-    } liveview_local{ LVL_None };
-    enum LiveviewRemote {
-        LVR_None,
-        LVR_Tutk,
-        LVR_Agora,
-        LVR_TutkAgora
-    } liveview_remote{ LVR_None };
-    enum FileLocal {
-        FL_None,
-        FL_Local
-    } file_local{ FL_None };
-    enum FileRemote {
-        FR_None,
-        FR_Tutk,
-        FR_Agora,
-        FR_TutkAgora
-    } file_remote{ FR_None };
+    LiveviewLocal liveview_local{ LiveviewLocal::LVL_None };
+    LiveviewRemote liveview_remote{ LiveviewRemote::LVR_None};
+    FileLocal file_local{ FileLocal::FL_None };
+    FileRemote file_remote{ FileRemote::FR_None };
 
     enum PlateMakerDectect : int
     {
@@ -690,7 +686,7 @@ public:
 
 
     /* machine mqtt apis */
-    int connect(bool use_openssl = true);
+    int connect();
     int disconnect();
 
     json_diff print_json;
@@ -702,6 +698,8 @@ public:
     std::string  subtask_id_;
     std::string  job_id_;
     std::string  last_subtask_id_;
+    // note: printer-agent-supplied thumbnail url, empty when the agent supplies none.
+    std::string  m_agent_thumbnail_url;
     BBLSliceInfo* slice_info {nullptr};
     boost::thread* get_slice_info_thread { nullptr };
     boost::thread* get_model_task_thread { nullptr };
@@ -759,9 +757,10 @@ public:
     int command_set_printer_nozzle(std::string nozzle_type, float diameter);
     int command_set_printer_nozzle2(int id, std::string nozzle_type, float diameter);
     int command_get_access_code();
-    int command_ack_proceed(json& proceed);
+    int command_start_camera();
+    int command_ack_proceed(nlohmann::json& proceed);
     int command_purification_disable();
-    int command_dont_remind_next_time(json& mqtt_guard_json);
+    int command_dont_remind_next_time(nlohmann::json& mqtt_guard_json);
 
     /* command upgrade */
     int command_upgrade_confirm();
@@ -805,8 +804,7 @@ public:
     int command_ams_calibrate(int ams_id);
     int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max);
     int command_ams_select_tray(std::string tray_id);
-    int command_ams_refresh_rfid(std::string tray_id);
-    int command_ams_refresh_rfid2(int ams_id, int slot_id);
+    int command_ams_refresh_rfid(int ams_id, int slot_id);
     int command_ams_control(std::string action);
     int command_ams_drying_stop();
     int command_start_extrusion_cali(int tray_index, int nozzle_temp, int bed_temp, float max_volumetric_speed, std::string setting_id = "");
@@ -888,9 +886,11 @@ public:
     static bool is_in_printing_status(std::string status);
 
     void set_print_state(std::string status);
+    void update_print_progress(const nlohmann::json& value);
 
     bool is_connected();
     bool is_connecting();
+    // Emits DeviceOnline or DeviceOffline only when the reachability state changes.
     void set_online_state(bool on_off);
     bool is_online() { return m_is_online; }
     bool is_info_ready(bool check_version = true) const;
@@ -902,7 +902,7 @@ public:
 
     /* Msg for display MsgFn */
     typedef std::function<void(std::string topic, std::string payload)> MsgFn;
-    int publish_json(const json& json_item, int qos = 0, int flag = 0) ;
+    int publish_json(const nlohmann::json& json_item, int qos = 0, int flag = 0) ;
     int publish_json(const std::string& json_str, int qos = 0, int flag = 0) = delete;
     int cloud_publish_json(std::string json_str, int qos = 0, int flag = 0);
     int local_publish_json(std::string json_str, int qos = 0, int flag = 0);
@@ -946,15 +946,16 @@ public:
      * or scenarios where users want to bypass the AMS.
      */
     std::vector<DevAmsTray> vt_slot;
-    DevAmsTray parse_vt_tray(json vtray);
+    DevAmsTray parse_vt_tray(nlohmann::json vtray);
 
     /*get ams slot info*/
     bool    contains_tray(const std::string &ams_id, const std::string &tray_id) const;
     DevAmsTray get_tray(const std::string &ams_id, const std::string &tray_id) const;/*use contains_tray() check first*/
 
     /*for parse new info*/
-    bool check_enable_np(const json& print) const;
-    void parse_new_info(json print);
+    bool check_enable_np(const nlohmann::json& print) const;
+    void parse_new_info(nlohmann::json print);
+    void parse_new_info2(const nlohmann::json& info);
     int  get_flag_bits(std::string str, int start, int count = 1) const;
     uint32_t get_flag_bits_no_border(std::string str, int start_idx, int count = 1) const;
     int get_flag_bits(int num, int start, int count = 1, int base = 10) const;
@@ -964,7 +965,8 @@ public:
     {
         std::set<std::string>                      checked_filament;
         std::string                                printer_preset_name;
-        std::map<std::string, std::pair<int, int>> filament_list; // filament_id, pair<min temp, max temp>
+        // filament_id, pair<min temps, max temps>, one per filament variant
+        std::map<std::string, std::pair<std::vector<int>, std::vector<int>>> filament_list;
     };
     std::map<std::string, FilamentData> m_nozzle_filament_data;
     void update_filament_list();
@@ -983,7 +985,7 @@ public:
     void command_set_save_remote_print_file_to_storage(bool save);
 
 private:
-
+    int command_with_dialog(int cmd_result);
     /* xcam door open check*/
     bool is_support_door_open_check = false;
     DoorOpenCheckState xcam_door_open_check  = DoorOpenCheckState::DOOR_OPEN_CHECK_DISABLE;

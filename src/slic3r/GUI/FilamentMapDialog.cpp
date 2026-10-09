@@ -7,6 +7,19 @@
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
 #include "MsgDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <numeric>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/FilamentMapPanel.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -241,7 +254,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     wxBoxSizer *mode_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_auto_btn   = new CapsuleButton(this, PageType::ptAuto, only_saving_mode ? _L("Fila Saving") : _L("Auto"), false);
+    m_auto_btn   = new CapsuleButton(this, PageType::ptAuto, only_saving_mode ? _L("File Saving") : _L("Auto"), false);
     m_manual_btn = new CapsuleButton(this, PageType::ptManual, _L("Custom"), false);
     if (show_default)
         m_default_btn = new CapsuleButton(this, PageType::ptDefault, _L("Same as Global"), true);
@@ -327,7 +340,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
         bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     }
-    main_sizer->Add(bottom_panel, 0, wxEXPAND);
+    main_sizer->Add(bottom_panel, 0, wxEXPAND | wxTOP, FromDIP(15));
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
     m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancel, this);

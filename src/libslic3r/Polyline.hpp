@@ -1,10 +1,16 @@
 #ifndef slic3r_Polyline_hpp_
 #define slic3r_Polyline_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Line.hpp"
 #include "MultiPoint.hpp"
+#include <initializer_list>
+#include <cstddef>
+#include <algorithm>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 //BBS: new necessary header file
 #include "ArcFitter.hpp"
@@ -129,13 +135,13 @@ public:
     std::vector<PathFittingData> fitting_result;
     //BBS: simplify points by arc fitting
     void simplify_by_fitting_arc(double tolerance);
-    //BBS: 
+    void reset_to_linear_move();
+    //BBS:
     Polylines equally_spaced_lines(double distance) const;
 
 private:
     void append_fitting_result_after_append_points();
     void append_fitting_result_after_append_polyline(const Polyline& src);
-    void reset_to_linear_move();
     bool split_fitting_result_before_index(const size_t index, Point &new_endpoint, std::vector<PathFittingData>& data) const;
     bool split_fitting_result_after_index(const size_t index, Point &new_startpoint, std::vector<PathFittingData>& data) const;
 };

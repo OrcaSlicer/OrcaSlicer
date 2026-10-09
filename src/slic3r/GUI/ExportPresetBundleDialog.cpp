@@ -1,18 +1,42 @@
 #include "ExportPresetBundleDialog.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_App.hpp"
-#include "ConfigWizard.hpp"
 #include "I18N.hpp"
-#include "GUI_App.hpp"
-#include <libslic3r/Config.hpp>
+#include <cstddef>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/log/trivial.hpp>
+#include <deque>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <utility>
+#include <string>
+#include "libslic3r/Preset.hpp"
+#include <sstream>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI.hpp"
 #include <wx/app.h>
 #include <wx/event.h>
+#include <wx/filedlg.h>
 #include <wx/filename.h>
+#include <wx/gdicmn.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
 #include <miniz.h>
+#include <nlohmann/json.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+
+class wxWindow;
+
+using json = nlohmann::json;
+
 namespace Slic3r { namespace GUI {
 
 ExportPresetBundleDialog::ExportPresetBundleDialog(
@@ -51,7 +75,7 @@ void ExportPresetBundleDialog::on_script_message(const nlohmann::json& j)
         OnRequestPresets();
     } else if (strCmd == "export_local") {
         wxFileDialog dlg(this, _L("Save preset bundle"), "", "export.orca_bundle",
-                         "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+                         _L("Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
         wxString path;
         wxString name;
         if (dlg.ShowModal() == wxID_OK) {

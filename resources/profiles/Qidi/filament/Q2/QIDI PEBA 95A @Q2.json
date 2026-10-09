@@ -3,7 +3,7 @@
 	"name": "QIDI PEBA 95A@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_36",
+	"filament_id": "OFhiJE7Y",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

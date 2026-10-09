@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "MIHp3VCfT1e6gMjs",
 	"name": "Sovol SV08 MAX 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_machine_common",
+	"from": "system",
+	"setting_id": "MIHp3VCfT1e6gMjs",
+	"instantiation": "true",
 	"printer_model": "Sovol SV08 MAX",
 	"default_print_profile": "0.20mm Standard @Sovol SV08 MAX 0.4 nozzle",
 	"printer_variant": "0.4",
@@ -27,48 +27,63 @@
 		"0.8"
 	],
 	"machine_max_speed_e": [
+		"50",
 		"50"
 	],
 	"machine_max_speed_x": [
+		"800",
 		"800"
 	],
 	"machine_max_speed_y": [
+		"800",
 		"800"
 	],
 	"machine_max_speed_z": [
+		"10",
 		"10"
 	],
 	"machine_max_acceleration_e": [
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_extruding": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_retracting": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_travel": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_x": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_y": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_z": [
+		"500",
 		"500"
 	],
 	"machine_max_jerk_e": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_y": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_z": [
+		"2.5",
 		"2.5"
 	],
 	"z_hop": [

@@ -7,21 +7,58 @@
 #include "../../Utils/NetworkAgent.hpp"
 #include "../BitmapCache.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_config.hpp>
 #include <boost/endian/conversion.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/thread/lock_types.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
 #include <boost/uuid/detail/md5.hpp>
 #include <boost/regex.hpp>
 
+#include <string>
+#include <cerrno>
+#include <system_error>
+#include <wx/event.h>
+#include <map>
+#include "slic3r/GUI/Printer/BambuTunnel.h"
+#include <vector>
+#include <cassert>
+#include <utility>
+#include <ctime>
+#include <openssl/md5.h>
+#include <memory>
+#include <wx/log.h>
+#include <ios>
+#include <iterator>
+#include <filesystem>
+#include <functional>
+#include <wx/datetime.h>
+#include <sstream>
+#include <istream>
+#include "libslic3r/Semver.hpp"
+#include <cmath>
+#include <cstdio>
+#include <cctype>
 #include <wx/mstream.h>
 
 #include "nlohmann/json.hpp"
 
 #include <cstring>
+#include <wx/thread.h>
 
 #ifndef NDEBUG
 //#define PRINTER_FILE_SYSTEM_TEST
 #endif
+
+using json = nlohmann::json;
 
 std::string last_system_error() {
     return Slic3r::decode_path(std::error_code(
@@ -164,7 +201,7 @@ void PrinterFileSystem::ListAllFiles()
         req["storage"] = m_file_storage;
     req["api_version"] = 2;
     req["notify"] = "DETAIL";
-    SendRequest<FileList>(LIST_INFO, req, [this, type = m_file_type](json const& resp, FileList & list, auto) -> int {
+    SendRequest<FileList>(LIST_INFO, req, [type = m_file_type](json const& resp, FileList & list, auto) -> int {
         json files = resp["file_lists"];
         for (auto& f : files) {
             std::string     name = f["name"];
@@ -662,10 +699,10 @@ PrinterFileSystem::File const &PrinterFileSystem::GetFile(size_t index, bool &se
 void PrinterFileSystem::Attached()
 {
     boost::unique_lock lock(m_mutex);
-    m_recv_thread = std::move(boost::thread([w = weak_from_this()] {
+    m_recv_thread = boost::thread([w = weak_from_this()] {
         boost::shared_ptr<PrinterFileSystem> s = w.lock();
         if (s) s->RecvMessageThread();
-    }));
+    });
 }
 
 void PrinterFileSystem::Start()
@@ -1230,7 +1267,7 @@ boost::uint32_t PrinterFileSystem::RequestMediaAbility(int api_version)
     req["api_version"] = api_version;
 
     return SendRequest<MediaAbilityList>(
-        REQUEST_MEDIA_ABILITY, req, [this](const json &resp, MediaAbilityList &list, auto) -> int {
+        REQUEST_MEDIA_ABILITY, req, [](const json &resp, MediaAbilityList &list, auto) -> int {
             json abliity_list = resp["storage"];
             list              = abliity_list.get<MediaAbilityList>();
             return 0;
@@ -1783,6 +1820,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
 
 
 #include <stdlib.h>
+#include "libslic3r/PrintConfig.hpp"
 #if defined(_MSC_VER) || defined(_WIN32)
 #include <Windows.h>
 #else
@@ -1803,7 +1841,7 @@ static void* get_function(const char* name)
         return function;
 
 #if defined(_MSC_VER) || defined(_WIN32)
-    function = GetProcAddress(module, name);
+    function = reinterpret_cast<void*>(GetProcAddress(module, name));
 #else
     function = dlsym(module, name);
 #endif

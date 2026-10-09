@@ -1,6 +1,6 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "slic3r/Utils/json_diff.hpp"
+#include <string>
 
 namespace Slic3r {
 
@@ -26,12 +26,12 @@ public:
     SdcardState get_sdcard_state() const { return  m_sdcard_state; };
     SdcardState set_sdcard_state(int state);
 
-    static void ParseV1_0(const json &print_json, DevStorage *system);
+    static void ParseV1_0(const nlohmann::json &print_json, DevStorage *system);
 
     bool is_timelapse_storage_low(const std::string& storage) const;
 
 private:
-    MachineObject *m_owner;
+    [[maybe_unused]] MachineObject *m_owner;
     SdcardState    m_sdcard_state  { NO_SDCARD };
     // timelapse storage space info (from device push cam data)
     int tl_internal_free_kb{-1};

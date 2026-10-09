@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PPA-CF",
-	"inherits": "FusRock Generic PAHT-CF",
+	"inherits": "FusRock PAHT-CF",
 	"from": "system",
 	"setting_id": "MFItX51zZO0KYjdk",
+	"filament_id": "OFLC1oRH",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"filament_flow_ratio": [
 		"0.99"
 	],

@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_SideMenuPopup_hpp_
 #define slic3r_GUI_SideMenuPopup_hpp_
 
+#include <vector>
+#include <cstddef>
+#include <wx/event.h>
 #include <wx/stattext.h>
 #include <wx/vlbox.h>
 #include <wx/combo.h>

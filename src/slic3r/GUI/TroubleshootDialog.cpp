@@ -1,12 +1,59 @@
 #include "TroubleshootDialog.hpp"
 #include "I18N.hpp"
 
+#include "BuildCommit.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <vector>
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/dataobj.h>
+#include <wx/buffer.h>
+#include <cctype>
+#include <wx/chartype.h>
+#include <wx/datetime.h>
+#include "libslic3r/Config.hpp"
+#include <wx/arrstr.h>
+#include <wx/filefn.h>
+#include <map>
+#include <cstdio>
+#include <stdio.h>
+#include <algorithm>
+#include <boost/algorithm/string/trim_all.hpp>
+#include <cmath>
+#include <string>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <fstream>
+#include <ios>
+#include <boost/log/trivial.hpp>
+#include <exception>
+#include <utility>
+#include <ctime>
+#include <boost/filesystem/file_status.hpp>
+#include <cstdint>
+#include <wx/filedlg.h>
+#include <wx/dirdlg.h>
+#include <wx/dir.h>
+#include <wx/filename.h>
+#include <wx/sizer.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/stdpaths.h>
 #include <wx/display.h>
+#include <wx/string.h>
+#include <wx/utils.h>
+#include <wx/strconv.h>
 #include <wx/wfstream.h>
+#include "libslic3r_version.h"
 #include "wx/clipbrd.h"
 
 #include "libslic3r/libslic3r.h"
@@ -16,6 +63,9 @@
 #include "libslic3r/Preset.hpp"
 
 #include <nlohmann/json.hpp>
+#include <wx/wx.h>
+#include <wx/zipstrm.h>
+#include <wx/window.h>
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -71,7 +121,7 @@ wxFlexGridSizer* TroubleshootDialog::create_item_loaded_profiles()
     auto gen_stats = GetProfilesOverview();
     gen_stats      = ""; // clear mem. not needed after generating m_..._act, m_..._usr variables
    
-    auto add_sizer = [this, g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
+    auto add_sizer = [g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
         int sys = 0;
         for (auto it = col->begin(); it != col->end(); it++) {
             if (it->is_system)
@@ -137,9 +187,9 @@ TroubleshootDialog::TroubleshootDialog()
     version->SetFont(version_font);
     version->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
 
-    auto build = new Button(this, wxString(GIT_COMMIT_HASH));
+    auto build = new Button(this, wxString(build_commit_label));
     build->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-    auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(GIT_COMMIT_HASH);
+    auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(build_commit_hash);
     build->SetToolTip(hash_url);
     build->Bind(wxEVT_BUTTON, [hash_url](wxCommandEvent &e) {
          wxLaunchDefaultBrowser(hash_url);
@@ -178,7 +228,7 @@ TroubleshootDialog::TroubleshootDialog()
         return wxTheClipboard->SetData(new wxTextDataObject(GetSysInfoAll()));
     });
 
-    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines, sys_copy_btn](wxCommandEvent &e) {
+    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines](wxCommandEvent &e) {
         m_sys_panel_mode = !m_sys_panel_mode;
         sys_panel->SetText(sys_info_lines(m_sys_panel_mode));
         sys_less_btn->SetLabel(m_sys_panel_mode ? _L("Hide") : _L("Show"));
@@ -186,7 +236,19 @@ TroubleshootDialog::TroubleshootDialog()
         Fit();
     });
 
-    auto link_wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/troubleshoot_center");
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/troubleshoot_center";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    auto video_btn = new Button(this, "", "toolbar_video_guide", 0, 15);
+    auto video_url = "https://www.youtube.com/watch?v=CFzt8W7OCx0";
+    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    video_btn->SetCanFocus(false);
+    video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
 
     // RIGHT SIZER //////////////////////
 
@@ -226,7 +288,7 @@ TroubleshootDialog::TroubleshootDialog()
     };
 
     auto info_desc_1 = create_info_line(_L("We need information for diagnosing source of the issue. Check wiki page for detailed guide."));
-    auto info_desc_2 = create_info_line(_L("Pack button collects project file and logs of current session onto a zip file."));
+    auto info_desc_2 = create_info_line(_L("Pack button collects project file and logs of current session onto a ZIP archive."));
     auto info_desc_3 = create_info_line(_L("Any additional visual examples like images or screen recordings might be helpful while reporting the issue."));
     wxBoxSizer *info_desc_sizer = new wxBoxSizer(wxVERTICAL);
     info_desc_sizer->Add(info_desc_1, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
@@ -292,7 +354,7 @@ TroubleshootDialog::TroubleshootDialog()
     auto log_level_szr = create_label(_L("Log level"), "");
     log_level_szr->Add(create_item_log_level_combo(), 0, wxALIGN_CENTER_VERTICAL);
 
-    auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a zip file."));
+    auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a ZIP archive."));
     auto log_pack_btn = create_btn(_L("Pack") + "...", "");
     log_pack_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         auto data_dir   = boost::filesystem::path(Slic3r::data_dir());
@@ -317,6 +379,10 @@ TroubleshootDialog::TroubleshootDialog()
     sys_btn_sizer->AddStretchSpacer();
     sys_btn_sizer->Add(sys_copy_btn, 0, wxLEFT | wxRIGHT, FromDIP(5));
 
+    wxBoxSizer *link_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+    link_btn_sizer->Add(wiki_btn);
+    link_btn_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
+
     left_sizer->Add(m_header_logo     , 0, wxEXPAND | wxALIGN_CENTER);
     left_sizer->Add(logo_line         , 0, wxEXPAND       | wxTOP, FromDIP(12));
     left_sizer->Add(version           , 0, wxEXPAND       | wxTOP, FromDIP(6));
@@ -324,8 +390,7 @@ TroubleshootDialog::TroubleshootDialog()
     left_sizer->Add(sys_panel         , 0, wxEXPAND       | wxTOP, FromDIP(15));
     left_sizer->AddStretchSpacer();
     left_sizer->Add(sys_btn_sizer     , 0, wxEXPAND       | wxTOP, FromDIP(15));
-    left_sizer->Add(link_wiki         , 0, wxALIGN_CENTER | wxTOP, FromDIP(15));
-    left_sizer->AddSpacer(FromDIP(5));
+    left_sizer->Add(link_btn_sizer    , 0, wxALIGN_CENTER | wxTOP, FromDIP(15));
     
     wxBoxSizer *right_sizer  = new wxBoxSizer(wxVERTICAL);
 
@@ -371,7 +436,7 @@ wxString TroubleshootDialog::GetSysInfoAll()
 {
     wxString info;
     info += "Version   :  " + wxString(SoftFever_VERSION) + "\n"
-          + "Build     :  " + wxString(GIT_COMMIT_HASH)   + "\n"
+          + "Build     :  " + wxString(build_commit_label) + "\n"
           + "Package   :  " + GetPackageType() + "\n"
           + "Platform  :  " + GetOSinfo()      + "\n"
           + "Processor :  " + GetCPUinfo() + "\n"
@@ -1199,7 +1264,7 @@ bool TroubleshootDialog::ExportAsJson(const wxString& json_data, const wxString&
 
     wxFileDialog dialog(this, _L("Choose where to save the exported JSON file"), defaultPath,
         export_name.IsEmpty() ? "export.json" : export_name + ".json",
-        "JSON files (*.json)|*.json",
+        _L("JSON files (*.json)|*.json"),
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT
     );
 

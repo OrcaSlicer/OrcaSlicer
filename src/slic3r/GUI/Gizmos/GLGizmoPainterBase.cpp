@@ -2,6 +2,14 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
+#include <cfloat>
+#include <cstddef>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <cassert>
+#include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
@@ -13,8 +21,35 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <limits>
+#include "libslic3r/Config.hpp"
 #include <memory>
 #include <optional>
+#include "slic3r/GUI/GLModel.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <vector>
+#include <utility>
+#include <queue>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
+
+namespace Slic3r::GUI { class ImGuiWrapper; }
+namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
 
@@ -131,15 +166,12 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection) const
     }
 }
 
-void GLGizmoPainterBase::render_cursor()
+std::vector<Transform3d> GLGizmoPainterBase::mesh_trafo_matrices() const
 {
-    // First check that the mouse pointer is on an object.
     const ModelObject* mo = m_c->selection_info()->model_object();
     const Selection& selection = m_parent.get_selection();
     const ModelInstance* mi = mo->instances[selection.get_instance_idx()];
-    const Camera& camera = wxGetApp().plater()->get_camera();
 
-    // Precalculate transformations of individual meshes.
     std::vector<Transform3d> trafo_matrices;
     for (const ModelVolume* mv : mo->volumes) {
         if (mv->is_model_part())
@@ -154,6 +186,26 @@ void GLGizmoPainterBase::render_cursor()
             }
         }
     }
+    return trafo_matrices;
+}
+
+bool GLGizmoPainterBase::render_follows_cursor() const
+{
+    // The brush is drawn only where the cursor meets the model. update_raycast_cache() keeps the
+    // answer for render_cursor().
+    if (m_c->selection_info() == nullptr || m_c->selection_info()->model_object() == nullptr)
+        return false;
+    update_raycast_cache(m_parent.get_local_mouse_position(), wxGetApp().plater()->get_camera(), mesh_trafo_matrices());
+    return m_rr.mesh_id != -1;
+}
+
+void GLGizmoPainterBase::render_cursor()
+{
+    // First check that the mouse pointer is on an object.
+    const Camera& camera = wxGetApp().plater()->get_camera();
+
+    // Precalculate transformations of individual meshes.
+    const std::vector<Transform3d> trafo_matrices = mesh_trafo_matrices();
     // Raycast and return if there's no hit.
     update_raycast_cache(m_parent.get_local_mouse_position(), camera, trafo_matrices);
     if (m_rr.mesh_id == -1)
@@ -706,20 +758,6 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                 return true;
             }
         }
-        else if (alt_down) {
-            // BBS
-            double pos = m_c->object_clipper()->get_position();
-            pos = action == SLAGizmoEventType::MouseWheelDown
-                      ? std::max(0., pos - 0.01)
-                      : std::min(1., pos + 0.01);
-            m_c->object_clipper()->set_position_by_ratio(pos, true);
-            return true;
-        }
-    }
-
-    if (action == SLAGizmoEventType::ResetClippingPlane) {
-        m_c->object_clipper()->set_position_by_ratio(-1., false);
-        return true;
     }
 
     if (action == SLAGizmoEventType::LeftDown
@@ -1456,7 +1494,7 @@ void TriangleSelectorPatch::update_triangles_per_patch()
         return touching_triangles;
     };
 
-    auto calc_fragment_area = [this](const TrianglePatch& patch, float max_limit_area, int stride) {
+    auto calc_fragment_area = [](const TrianglePatch& patch, float max_limit_area, int stride) {
         double total_area = 0.f;
         const std::vector<int>& ti = patch.triangle_indices;
         /*for (int i = 0; i < ti.size() / 3; i++) {

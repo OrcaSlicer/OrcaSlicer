@@ -4,14 +4,31 @@
 #include "Plater.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
-#include "libslic3r/AppConfig.hpp"
 
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <cmath>
+#include <wx/event.h>
+#include <vector>
+#include <wx/types.h>
+#include <cassert>
+#include "slic3r/GUI/Field.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <cstddef>
+#include <wx/settings.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Config.hpp"
+#include <algorithm>
 #include <wx/utils.h>
 #include <boost/algorithm/string/split.hpp>
-#include "libslic3r/Utils.hpp"
 #include "I18N.hpp"
-#include "format.hpp"
 #include <slic3r/GUI/Widgets/Label.hpp>
+#include <wx/validate.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -158,7 +175,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             ctrl_line.height = size.y;
     };
 
-    auto add_buttons_width = [&h_pos, this] (int blinking_button_width) {
+    auto add_buttons_width = [&h_pos] (int blinking_button_width) {
 #ifndef DISABLE_BLINKING
 #  ifndef DISABLE_UNDO_SYS
         h_pos += 3 * blinking_button_width;

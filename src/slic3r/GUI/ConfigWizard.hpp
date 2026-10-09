@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <wx/dialog.h>
+#include <wx/string.h>
 
 #include "GUI_Utils.hpp"
 

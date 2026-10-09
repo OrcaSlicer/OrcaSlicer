@@ -2,14 +2,16 @@
 #define slic3r_GCode_FanMover_hpp_
 
 
-#include "../libslic3r.h"
-#include "../PrintConfig.hpp"
 #include "../ExtrusionEntity.hpp"
 
-#include "../Point.hpp"
 #include "../GCodeReader.hpp"
 #include "../GCodeWriter.hpp"
+#include <cstdint>
+#include <list>
+#include <algorithm>
 #include <regex>
+#include <string>
+#include <string_view>
 
 namespace Slic3r {
 
@@ -32,7 +34,8 @@ class FanMover
 private:
     const std::regex regex_fan_speed;
     const float nb_seconds_delay;
-    const bool with_D_option;
+    // Set from fan_speedup_time at the call site, but nothing here reads it.
+    [[maybe_unused]] const bool with_D_option;
     const bool relative_e;
     const bool only_overhangs;
     const float kickstart;

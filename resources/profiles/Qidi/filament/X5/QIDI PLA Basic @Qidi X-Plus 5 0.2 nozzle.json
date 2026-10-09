@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Basic @Qidi X-Plus 5 0.2 nozzle",
+	"inherits": "QIDI PLA Basic@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "sfrpgBzPufKwgBCT",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.2 nozzle"
+	]
+}

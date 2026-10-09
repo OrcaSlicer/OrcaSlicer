@@ -1,14 +1,24 @@
-#include <nlohmann/json.hpp>
+#include "libslic3r/ProjectTask.hpp"
+#include <cstdlib>
+#include <cassert>
+#include <cstdio>
+#include <boost/log/trivial.hpp>
+#include <limits>
+
+#include <map>
+#include <vector>
+#include <string>
+#include <utility>
+#include <wx/colour.h>
+#include <set>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "DevMapping.h"
 #include "DevFilaSystem.h"
 #include "DevUtil.h"
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GuiColor.hpp"
-
-using namespace nlohmann;
 
 namespace Slic3r
 {
@@ -270,7 +280,7 @@ namespace Slic3r
         std::set<int> picked_tar;
         for (int k = 0; k < distance_map.size(); k++)
         {
-            float min_val = INT_MAX;
+            float min_val = std::numeric_limits<float>::max();
             int picked_src_idx = -1;
             int picked_tar_idx = -1;
             for (int i = 0; i < distance_map.size(); i++)
