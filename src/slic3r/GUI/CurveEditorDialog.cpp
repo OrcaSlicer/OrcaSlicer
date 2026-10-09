@@ -176,6 +176,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* range_panel = new wxPanel(plot_panel);
     auto* range_sizer = new wxBoxSizer(wxVERTICAL);
     auto* ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
+    ranges->AddGrowableCol(1, 1);
+    ranges->AddGrowableCol(2, 1);
     auto* apply_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     auto add_title = [range_panel, ranges](const wxString& label) {
@@ -245,7 +247,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     apply_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { apply_chart_range(); });
     apply_btn_sizer->Add(apply_range, 1, wxEXPAND);
 
-    range_sizer->Add(ranges, 0, wxALIGN_LEFT);
+    range_sizer->Add(ranges, 0, wxEXPAND);
     m_range_status = new wxStaticText(range_panel, wxID_ANY, wxEmptyString);
     m_range_status->SetFont(Label::Body_12);
     m_range_status->SetForegroundColour(wxColour("#E14747"));
@@ -399,14 +401,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     table_sizer->Add(grid_frame, 1, wxEXPAND);
     auto* csv_actions = new wxBoxSizer(wxHORIZONTAL);
     csv_actions->AddStretchSpacer();
-    auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_load", 10);
-    import_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { import_csv(); });
-    import_button->SetToolTip(_L("Import points from two CSV columns in table order. Comma or semicolon separators are supported."));
     auto* export_button = make_action_button(table_panel, _L("Export CSV"), "design_export", 10);
     export_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { export_csv(); });
     export_button->SetToolTip(_L("Export the current points to CSV. This does not save changes to the preset."));
-    csv_actions->Add(import_button, 0, wxALIGN_CENTER_VERTICAL);
-    csv_actions->Add(export_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+    auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_load", 10);
+    import_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { import_csv(); });
+    import_button->SetToolTip(_L("Import points from two CSV columns in table order. Comma or semicolon separators are supported."));
+    csv_actions->Add(export_button, 0, wxALIGN_CENTER_VERTICAL);
+    csv_actions->Add(import_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
     table_sizer->Add(csv_actions, 0, wxEXPAND | wxTOP, FromDIP(6));
 
     auto* actions = new wxBoxSizer(wxHORIZONTAL);
