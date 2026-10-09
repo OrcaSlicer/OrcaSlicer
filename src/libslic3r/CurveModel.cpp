@@ -24,6 +24,49 @@ CurveModel::Row split_point(const std::string& parameter)
             comma == std::string::npos ? std::string() : boost::algorithm::trim_copy(parameter.substr(comma + 1))};
 }
 
+bool split_csv_row(const std::string& line, char separator, CurveModel::Row& row)
+{
+    std::vector<std::string> cells;
+    size_t position = 0;
+    while (true) {
+        std::string cell;
+        while (position < line.size() && (line[position] == ' ' || line[position] == '\t')) ++position;
+        if (position < line.size() && line[position] == '"') {
+            ++position;
+            bool closed = false;
+            while (position < line.size()) {
+                const char character = line[position++];
+                if (character != '"') cell += character;
+                else if (position < line.size() && line[position] == '"') {
+                    cell += '"';
+                    ++position;
+                } else {
+                    closed = true;
+                    break;
+                }
+            }
+            if (!closed) return false;
+            while (position < line.size() && (line[position] == ' ' || line[position] == '\t')) ++position;
+            if (position < line.size() && line[position] != separator) return false;
+        } else {
+            const size_t start = position;
+            while (position < line.size() && line[position] != separator) {
+                if (line[position] == '"') return false;
+                ++position;
+            }
+            cell = line.substr(start, position - start);
+        }
+        boost::algorithm::trim(cell);
+        cells.push_back(std::move(cell));
+        if (cells.size() > 2) return false;
+        if (position == line.size()) break;
+        ++position;
+    }
+    if (cells.size() != 2) return false;
+    row = {std::move(cells[0]), std::move(cells[1])};
+    return true;
+}
+
 } // namespace
 
 CurveModel::CurveModel(std::vector<std::string> parameters)
@@ -85,6 +128,64 @@ bool CurveModel::read_number(std::string text, double& value)
     if (!(stream >> value) || !std::isfinite(value)) return false;
     stream >> std::ws;
     return stream.eof();
+}
+
+const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line) const
+{
+    std::istringstream stream(text.compare(0, 3, "\xEF\xBB\xBF") == 0 ? text.substr(3) : text);
+    Rows candidate;
+    std::vector<int> line_numbers;
+    std::string record;
+    char separator = 0;
+    bool header = false;
+    line = 0;
+    int current_line = 0;
+    const auto columns = csv_column_names();
+    while (std::getline(stream, record)) {
+        ++current_line;
+        boost::algorithm::trim(record);
+        if (record.empty()) continue;
+        if (!separator) separator = record.find(';') == std::string::npos ? ',' : ';';
+        Row point;
+        line = current_line;
+        if (!split_csv_row(record, separator, point))
+            return L("CSV must contain exactly two columns per line.");
+        if (candidate.empty() && !header &&
+            ((point.first == columns[0] && point.second == columns[1]) || point == Row{"x", "y"})) {
+            header = true;
+            continue;
+        }
+        candidate.push_back(std::move(point));
+        line_numbers.push_back(current_line);
+    }
+    line = 0;
+    if (candidate.empty() && !header) return L("The CSV file contains no points.");
+    std::vector<double> x, y;
+    int row = -1;
+    if (const char* error = read_points(candidate, x, y, row)) {
+        if (row >= 0) line = line_numbers[row];
+        return error;
+    }
+    rows = std::move(candidate);
+    return nullptr;
+}
+
+const char* CurveModel::write_csv(const Rows& rows, std::string& text, int& row) const
+{
+    std::vector<double> x, y;
+    if (const char* error = read_points(rows, x, y, row)) return error;
+    const auto columns = csv_column_names();
+    std::string output = std::string(columns[0]) + "," + columns[1] + "\n";
+    for (const auto& point : rows) {
+        // Keep all entered digits, including values more precise than a double.
+        std::string first = boost::algorithm::trim_copy(point.first);
+        std::string second = boost::algorithm::trim_copy(point.second);
+        std::replace(first.begin(), first.end(), ',', '.');
+        std::replace(second.begin(), second.end(), ',', '.');
+        output += first + "," + second + "\n";
+    }
+    text = std::move(output);
+    return nullptr;
 }
 
 bool CurveModel::valid_view(const CurveView& view)
