@@ -61,6 +61,22 @@ calibration config, so `feature_speed` ignores volumetric speeds whenever
 `Print::calib_mode()` is set. The flow rate calibration sets no calibration mode,
 so its setup turns the option off in the print preset instead.
 
+## Max external volumetric speed
+
+`filament_max_external_volumetric_speed` is a per-variant filament option, 0 by
+default, that caps the flow of the visible features below the filament's max
+volumetric speed, with or without volumetric speeds. It applies to outer walls,
+to what prints at the external bridge speed (bridge infill and overhang walls),
+and to top surfaces on a layer where their region is not ironed.
+
+`GCode::volumetric_speed_limit` returns the flow limit of a path's role, and
+`_extrude` uses it everywhere the filament limit used to cap a speed, including
+the resonance-avoidance re-cap and the overhang reference speed. Whether a top
+surface is ironed follows `Layer::choose_ironing_extruder`, the rule the ironing
+generator uses, so an ironed top surface keeps the higher limit. Calibration prints
+ignore the option, as they do volumetric speeds. A volumetric speed in percent is
+still a share of the filament's max volumetric speed, not of this limit.
+
 ## Outside the G-code generator
 
 - Fill grouping and perimeter merging: `SurfaceFillParams` compares the
@@ -74,7 +90,7 @@ so its setup turns the option off in the print preset instead.
   section on that layer. A percentage uses the maximum volumetric speed of the
   initial tool, as the linear values use its nozzle.
 - The `outer_wall_volumetric_speed` placeholder reports the configured outer wall
-  flow, capped by the filament limit.
+  flow, capped by the filament limit and the max external volumetric speed.
 - Each key invalidates the same steps as its linear counterpart, except the gap
   fill flow, which invalidates perimeters because perimeter merging compares it.
 
