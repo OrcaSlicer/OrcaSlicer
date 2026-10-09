@@ -33,6 +33,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <cstddef>
+#include <mutex>
 #include <cmath>
 #include <exception>
 #include <deque>

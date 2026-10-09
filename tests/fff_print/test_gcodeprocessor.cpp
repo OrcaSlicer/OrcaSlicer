@@ -14,12 +14,13 @@
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
