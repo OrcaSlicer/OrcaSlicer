@@ -523,7 +523,7 @@ bool GLGizmosManager::is_running() const
 
 bool GLGizmosManager::open_gizmo_by_shortcut(Shortcut shortcut)
 {
-    if (!m_enabled)
+    if (!m_enabled || m_gizmos.empty())
         return false;
 
     // The text tool opens without a selection because it creates its own object.
@@ -1428,13 +1428,12 @@ void GLGizmosManager::update_hover_state(const EType &type)
 
 bool GLGizmosManager::activate_gizmo(EType type)
 {
+    // already activated
+    if (m_current == type)
+        return true;
+
     if (m_gizmos.empty())
         return false;
-
-    assert(!m_gizmos.empty());
-
-    // already activated
-    if (m_current == type) return true;
 
     if (m_current != Undefined) {
         // clean up previous gizmo
