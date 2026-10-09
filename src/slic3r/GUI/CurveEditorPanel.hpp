@@ -31,6 +31,7 @@ public:
     void set_data(const std::vector<double>& x, const std::vector<double>& y,
                   const std::vector<wxString>& tooltips, Interpolator interpolate);
     void set_view(const CurveEditorView& view);
+    void set_view_limits(const CurveViewLimits& limits);
     const CurveEditorView& view() const { return m_view; }
     void select_point(int row);
     void finish_drag();
