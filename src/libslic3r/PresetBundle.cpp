@@ -5381,13 +5381,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     bool process_multi_extruder = false;
     std::vector<int> filament_variant_index;
     size_t extruder_variant_count;
-    if (!config.option<ConfigOptionInts>("filament_self_index")) {
-        std::vector<int>& filament_self_indice = config.option<ConfigOptionInts>("filament_self_index", true)->values;
+    // A config loaded over the full defaults has a one-entry index even when the file has none.
+    ConfigOptionInts* filament_self_index_opt = config.option<ConfigOptionInts>("filament_self_index", true);
+    if (filament_self_index_opt->size() < num_filaments) {
+        std::vector<int>& filament_self_indice = filament_self_index_opt->values;
         filament_self_indice.resize(num_filaments);
         for (int index = 0; index < num_filaments; index++)
             filament_self_indice[index] = index + 1;
     }
-    std::vector<int> filament_self_indice = std::move(config.option<ConfigOptionInts>("filament_self_index")->values);
+    std::vector<int> filament_self_indice = std::move(filament_self_index_opt->values);
     // ORCA: Initialize filament_extruder_variant for backward compatibility with old 3mf files
     // that don't have this option saved or have it with default single-element value
     ConfigOptionStrings* filament_extruder_variant_opt = config.option<ConfigOptionStrings>("filament_extruder_variant");
