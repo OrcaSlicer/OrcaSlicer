@@ -433,6 +433,8 @@ TEST_CASE("Each separate part of an assembly gets its center of mass, overlappin
     GCodeProcessorResult result;
     Test::gcode(print, &result);
 
+    REQUIRE(result.object_masses.size() == 1);
+    CHECK(result.object_masses.front().assembly);
     // One body is the object itself.
     if (overlapping) {
         CHECK(result.body_masses.empty());

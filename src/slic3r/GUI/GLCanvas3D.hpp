@@ -490,6 +490,8 @@ class GLCanvas3D
         {
             Sum           sum;
             BoundingBoxf3 box;
+            // Of an object, whether it is an assembly.
+            bool assembly{ false };
 
             Vec3d center() const { return sum.moment / sum.mass; }
         };

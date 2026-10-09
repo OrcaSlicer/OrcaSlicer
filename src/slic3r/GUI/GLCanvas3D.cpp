@@ -1100,6 +1100,7 @@ GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const 
         for (const auto& [inst_idx, instance] : instances) {
             // The box of its parts, which the object's size shows.
             Marker object_marker;
+            object_marker.assembly = assembly != nullptr;
             for (const GLVolume* volume : instance.volumes)
                 if (object.volumes[volume->volume_idx()]->is_model_part())
                     object_marker.box.merge(volume->transformed_convex_hull_bounding_box());
@@ -1164,10 +1165,10 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
         m_top_layer                     = gcode_viewer.get_layers_z_range()[1];
         const auto add = [this](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
             if (const Sum total = mass.total(); total.mass > 0.)
-                m_drawn[0][kind].push_back({ total, mass.box });
+                m_drawn[0][kind].push_back({ total, mass.box, mass.assembly });
             if (!mass.printed_up_to_layer.empty())
                 if (const Sum& sum = mass.printed_up_to_layer[std::min(m_top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
-                    m_drawn[1][kind].push_back({ sum, mass.box });
+                    m_drawn[1][kind].push_back({ sum, mass.box, mass.assembly });
         };
         add(gcode_viewer.get_plate_mass(), mkPlate);
         for (const GCodeProcessorResult::ObjectMass& object : gcode_viewer.get_object_masses())
@@ -1278,9 +1279,12 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
     const Point   screen = CameraUtils::project(wxGetApp().plater()->get_camera(), center);
     ImGuiWrapper& imgui  = *wxGetApp().imgui();
     imgui.set_next_window_pos(float(screen.x() + 2. * marker_radii[pick.kind] * marker_scale(canvas)), float(screen.y()), ImGuiCond_Always, 0.f, 0.5f);
-    const std::array<std::string, mkCount> titles = { _u8L("Plate center of mass"), _u8L("Object center of mass"), _u8L("Body center of mass") };
+    const std::string title = pick.kind == mkPlate  ? _u8L("Plate center of mass") :
+                              pick.kind == mkBody   ? _u8L("Part center of mass") :
+                              marker.assembly       ? _u8L("Assembly center of mass") :
+                                                      _u8L("Object center of mass");
     bool open = true;
-    imgui.begin(titles[pick.kind] + "##center_of_mass", &open,
+    imgui.begin(title + "###center_of_mass", &open,
                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     if (ImGui::IsWindowAppearing())
         imgui.set_requires_extra_frame();

@@ -296,6 +296,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             // Everything printed up to each layer id, the plate's with brim, raft and supports, and the box it fills.
             std::vector<Sum> printed_up_to_layer;
             BoundingBoxf3    box;
+            // Of an object, whether it is an assembly.
+            bool assembly{ false };
 
             Sum  total() const { return printed_up_to_layer.empty() ? Sum{} : printed_up_to_layer.back(); }
             void add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer);
@@ -1327,7 +1329,12 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
-        void set_mass_locator(MassLocator locator) { m_mass_locator = std::move(locator); }
+        // Locates extrusions in the objects and bodies it numbers, those objects listed beforehand.
+        void set_mass_locator(MassLocator locator, std::vector<GCodeProcessorResult::ObjectMass> objects)
+        {
+            m_mass_locator         = std::move(locator);
+            m_result.object_masses = std::move(objects);
+        }
         // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the
         // per-slot machine-limit resolution can follow the active nozzle. Null is fine (slot 0).
         void initialize_from_context(const std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase>& nozzle_group_result) {

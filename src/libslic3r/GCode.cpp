@@ -2591,8 +2591,9 @@ WipeTowerType GCode::wipe_tower_type()
     return WipeTowerType::Type2;
 }
 
-// Numbers the object instances and the connected bodies of the instances of several, and finds those an extrusion lies in.
-static GCodeProcessor::MassLocator mass_locator(const Print &print)
+// Numbers the object instances and the connected bodies of the instances of several, for the processor to find those an
+// extrusion lies in.
+static void set_mass_locator(GCodeProcessor &processor, const Print &print)
 {
     struct Object
     {
@@ -2608,19 +2609,20 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
         // Per instance, whether its widened box reaches another's, so that the box of an island proves nothing.
         std::vector<bool> crowded;
     };
-    std::vector<Object> objects;
-    int                 instances_total = 0;
-    int                 bodies_total    = 0;
+    std::vector<Object>                           objects;
+    std::vector<GCodeProcessorResult::ObjectMass> object_masses;
+    int                                           bodies_total = 0;
     for (const PrintObject *object : print.objects()) {
         const auto layers = object->layers();
         if (layers.empty())
             continue;
         // Bodies for assemblies only, as the Prepare tab counts them: those separated infills found, if it needed them.
-        const ModelVolumePtrs           &volumes = object->model_object()->volumes;
-        size_t                           count   = 0;
+        const ModelVolumePtrs &volumes  = object->model_object()->volumes;
+        const bool             assembly = std::count_if(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_model_part(); }) > 1 ||
+                              std::any_of(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_negative_volume(); });
+        size_t                           count = 0;
         std::vector<std::vector<size_t>> bodies;
-        if (std::count_if(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_model_part(); }) > 1 ||
-            std::any_of(volumes.begin(), volumes.end(), [](const ModelVolume *v) { return v->is_negative_volume(); })) {
+        if (assembly) {
             count = object->separated_body_bboxes().size();
             if (count > 0 && std::all_of(layers.begin(), layers.end(), [](const Layer *l) { return l->lslices_separated_component_ids.size() == l->lslices.size(); }))
                 for (const Layer *layer : layers)
@@ -2636,8 +2638,10 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
             count = 0;
             bodies.assign(layers.size(), {});
         }
-        Object &o = objects.emplace_back(Object{ object, instances_total, count, bodies_total, {}, std::move(bodies), {}, {} });
-        instances_total += int(object->instances().size());
+        Object &o = objects.emplace_back(Object{ object, int(object_masses.size()), count, bodies_total, {}, std::move(bodies), {}, {} });
+        object_masses.resize(object_masses.size() + object->instances().size());
+        for (size_t instance = 0; instance < object->instances().size(); ++instance)
+            object_masses[o.first_instance + instance].assembly = assembly;
         bodies_total += int(count * object->instances().size());
         for (const Layer *layer : layers) {
             o.print_zs.emplace_back(layer->print_z);
@@ -2645,7 +2649,7 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
         }
     }
     if (objects.empty())
-        return nullptr;
+        return;
     std::vector<BoundingBox> boxes;
     for (const Object &o : objects) {
         BoundingBox box;
@@ -2669,7 +2673,7 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
     {
         size_t object{ 0 }, instance{ 0 }, layer{ 0 }, island{ 0 };
     };
-    return [objects = std::move(objects), last = std::optional<Hit>()](const Vec3d &point) mutable -> GCodeProcessor::MassLocation {
+    auto locate = [objects = std::move(objects), last = std::optional<Hit>()](const Vec3d &point) mutable -> GCodeProcessor::MassLocation {
         constexpr double z_tolerance = 0.002;
         const auto       local       = [&point, &objects](size_t object, size_t instance) {
             return Point(Point(scaled(point.x()), scaled(point.y())) - objects[object].object->instances()[instance].shift);
@@ -2713,6 +2717,7 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
         }
         return nearest ? location(*nearest) : GCodeProcessor::MassLocation{};
     };
+    processor.set_mass_locator(std::move(locate), std::move(object_masses));
 }
 
 void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb)
@@ -3237,7 +3242,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled,
                                    print.get_layered_nozzle_group_result());
-    m_processor.set_mass_locator(mass_locator(print));
+    set_mass_locator(m_processor, print);
     const bool is_bbl_printers = print.is_BBL_printer();
     const bool skip_config_block = print.config().gcode_skip_config_block;
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();

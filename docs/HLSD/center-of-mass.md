@@ -154,6 +154,10 @@ ImGui window beside the marker, redrawn with the overlay from the markers of the
 follows a dragged object, and in Preview the layer slider. It closes when its marker is gone, or when
 the number of markers of its kind changes, as then it may stand for something else.
 
+Its title says what the marker stands for: the plate, an object, an assembly or a part, the body of
+an assembly. The G-code export lists the object instances for the processor, marking assemblies, as
+it hands it the locator.
+
 Each marker carries its sums: mass, volume, first moments and the second moments about the origin
 along each axis, `Σ m x²`, `Σ m y²` and `Σ m z²`, which add up from parts to objects to plates. The
 moment of inertia about the axis through the center parallel to x is then
