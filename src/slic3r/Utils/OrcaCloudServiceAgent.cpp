@@ -1129,6 +1129,19 @@ std::string OrcaCloudServiceAgent::request_setting_id(std::string name,
     if (http_code)
         *http_code = result.http_code;
 
+    // 409 duplicate_profile_uuid in the create path means the deterministic id we
+    // just generated already exists in this account: the earlier create succeeded.
+    // Adopt it instead of failing, so sync_preset persists the id and stops retrying.
+    if (result.http_code == 409 && result.conflict_code == -2
+        && !result.server_version.id.empty() && result.server_version.id == new_id) {
+        if (values_map && result.server_version.updated_time != 0)
+            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(result.server_version.updated_time);
+        if (http_code)
+            *http_code = 200;
+        BOOST_LOG_TRIVIAL(info) << "OrcaCloudServiceAgent: request_setting_id adopted existing profile id " << new_id << " (409 duplicate_profile_uuid)";
+        return new_id;
+    }
+
     if (result.success) {
         if (values_map && result.new_updated_time != 0) {
             (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(result.new_updated_time);
@@ -1394,6 +1407,7 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(const std::string& profile_id,
     SyncPushResult result;
     result.success        = false;
     result.http_code      = 0;
+    result.conflict_code  = 0;
     result.server_deleted = false;
 
     nlohmann::json body;
@@ -1429,20 +1443,30 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(const std::string& profile_id,
             err_body = json;
             if (json.is_null()) {
                 result.server_deleted = true;
-            } else {
-                auto& profile_data                 = json["server_profile"];
-                result.server_version.id           = profile_data.value("id", "");
-                result.server_version.name         = profile_data.value("name", "");
-                result.server_version.updated_time = profile_data.value(ORCA_JSON_KEY_UPDATE_TIME, 0);
+            } else if (json.is_object()) {
+                result.conflict_code = json.value("code", 0);
+                if (json.contains("server_profile") && !json["server_profile"].is_null()) {
+                    auto& profile_data                 = json["server_profile"];
+                    result.server_version.id           = profile_data.value("id", "");
+                    result.server_version.name         = profile_data.value("name", "");
+                    result.server_version.updated_time = profile_data.value(ORCA_JSON_KEY_UPDATE_TIME, 0);
+                }
             }
         } catch (...) {}
-        // Surface the conflict via the http-error callback with the local preset name injected.
-        // The raw server body omits the name for tombstone (-3) conflicts (server_profile is null),
-        // but the GUI needs it to regenerate the deterministic setting_id for a force push.
-        if (!err_body.is_object())
-            err_body = nlohmann::json::object();
-        err_body["name"] = name;
-        invoke_http_error_callback(409, err_body.dump());
+        // Create-path duplicate_profile_uuid (-2) is an idempotent success: the deterministic id
+        // already exists, so the caller adopts the returned id. Skip the conflict notification,
+        // otherwise every already-imported preset would raise a Pull/Force-push prompt on each launch.
+        const bool is_create               = original_updated_time.empty();
+        const bool auto_resolved_duplicate = (is_create && result.conflict_code == -2);
+        if (!auto_resolved_duplicate) {
+            // Surface the conflict via the http-error callback with the local preset name injected.
+            // The raw server body omits the name for tombstone (-3) conflicts (server_profile is null),
+            // but the GUI needs it to regenerate the deterministic setting_id for a force push.
+            if (!err_body.is_object())
+                err_body = nlohmann::json::object();
+            err_body["name"] = name;
+            invoke_http_error_callback(409, err_body.dump());
+        }
         result.error_message = response;
         return result;
     }
