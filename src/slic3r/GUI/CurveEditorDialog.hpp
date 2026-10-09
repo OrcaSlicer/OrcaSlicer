@@ -28,8 +28,10 @@ public:
     bool is_modified() const { return m_model->is_modified(); }
 
 protected:
+    // Use a stable, non-localized geometry key for each dialog; an empty key disables persistence.
     CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help,
-                      const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model);
+                      const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model,
+                      std::string geometry_key = {});
 
 private:
     void load_points(const Rows& rows);
@@ -48,6 +50,7 @@ private:
 
     CurveEditorAppearance m_appearance;
     std::unique_ptr<CurveModel> m_model;
+    std::string m_geometry_key;
     wxScrolledWindow* m_content;
     CurveEditorPanel* m_chart;
     wxGrid* m_grid;
