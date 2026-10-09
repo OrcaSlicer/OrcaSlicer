@@ -396,6 +396,75 @@ TEST_CASE("Curve viewports reject reversed degenerate nonfinite and overflowing 
     CHECK(FlowModel().validate_view({0, 10, -0.1, 1}) == nullptr);
 }
 
+TEST_CASE("Adding a curve point skips intervals exhausted by floating-point precision", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    const bool narrow_length = GENERATE(false, true);
+    const double length = 0.7229999999999986;
+    const double next_length = narrow_length ? std::nextafter(length, 1.0) : 0.723;
+    const double factor = 0.2472;
+    const double next_factor = narrow_length ? 0.5476 : std::nextafter(factor, 1.0);
+    CurveModel::Rows rows = {{"0", "0"}, {CurveModel::format_number(length), CurveModel::format_number(factor)},
+                            {CurveModel::format_number(next_length), CurveModel::format_number(next_factor)}, {"10", "1"}};
+    const auto original = rows;
+    int row = 2;
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(row == 3);
+    std::vector<double> x, y;
+    int error_row;
+    REQUIRE(model.read_points(rows, x, y, error_row) == nullptr);
+    CHECK(x[row] > x[row - 1]);
+    CHECK(x[row] < x[row + 1]);
+    CHECK(y[row] > y[row - 1]);
+    CHECK(y[row] < y[row + 1]);
+    rows.erase(rows.begin() + row);
+    CHECK(rows == original);
+}
+
+TEST_CASE("Point insertion uses a preceding interval when the final interval has no room", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    CurveModel::Rows rows = {{"0", "0"}, {"1", CurveModel::format_number(std::nextafter(1.0, 0.0))},
+                            {CurveModel::format_number(std::nextafter(1.0, 2.0)), "1"}};
+    int row = 2;
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(row == 1);
+    std::vector<double> x, y;
+    int error_row;
+    CHECK(model.read_points(rows, x, y, error_row) == nullptr);
+}
+
+TEST_CASE("Repeated curve point insertion keeps all coordinates strictly increasing", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    CurveModel::Rows rows = {{"0", "0"}, {"0.7229999999999986", "0.2472"}, {"0.7230", "0.5476"}, {"10", "1"}};
+    for (int insertion = 0; insertion < 80; ++insertion) {
+        int row = 2;
+        REQUIRE(model.insert_point(rows, row));
+        std::vector<double> x, y;
+        int error_row;
+        REQUIRE(model.read_points(rows, x, y, error_row) == nullptr);
+    }
+    CHECK(rows.front() == CurveModel::Row{"0", "0"});
+    CHECK(rows.back() == CurveModel::Row{"10", "1"});
+}
+
+TEST_CASE("A curve with no representable insertion interval remains unchanged", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    const double middle_factor = std::nextafter(1.0, 0.0);
+    CurveModel::Rows rows = {{"0", CurveModel::format_number(std::nextafter(middle_factor, 0.0))},
+                            {"1", CurveModel::format_number(middle_factor)}, {"2", "1"}};
+    std::vector<double> x, y;
+    int error_row;
+    REQUIRE(model.read_points(rows, x, y, error_row) == nullptr);
+    const auto original = rows;
+    int row = 1;
+    CHECK_FALSE(model.insert_point(rows, row));
+    CHECK(row == 1);
+    CHECK(rows == original);
+}
+
 TEST_CASE("Dragging the second flow point toward zero keeps a valid and finite curve", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     const FlowModel model;
