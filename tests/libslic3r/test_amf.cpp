@@ -9,6 +9,7 @@
 
 #include <boost/nowide/fstream.hpp>
 
+#include <ios>
 #include <string>
 
 using namespace Slic3r;
