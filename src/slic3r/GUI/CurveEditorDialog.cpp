@@ -118,8 +118,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* help = new wxStaticText(m_content, wxID_ANY, help_text);
     help->SetFont(Label::Body_14);
     help->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    help->Wrap(FromDIP(880));
-    sizer->Add(help, 0, wxEXPAND | wxALL, FromDIP(10));
+    help->Wrap(FromDIP(870));
+    sizer->Add(help, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(15));
+    sizer->AddSpacer(FromDIP(10));
 
     auto* editors = new wxBoxSizer(wxHORIZONTAL);
     auto* plot_panel = new wxPanel(m_content);
@@ -454,7 +455,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         // Wrap retains the original text. Resetting the label would leave it
         // unwrapped when wxWidgets skips wrapping again at the same width.
         // Native static text adds a pixel to its measured width on Windows.
-        help->Wrap(std::max(FromDIP(240), width - FromDIP(20) - 1));
+        help->Wrap(std::max(FromDIP(240), width - FromDIP(30) - 1));
         editors->SetOrientation(wxHORIZONTAL);
         auto* plot_item = editors->GetItem(plot_panel);
         auto* table_item = editors->GetItem(m_table_panel);
