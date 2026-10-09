@@ -326,17 +326,13 @@ ConfigOption* ConfigOptionDef::create_default_option() const
             return new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt());
 
         if (type == coEnums) {
-            auto dft = this->default_value->clone();
-            if (dft->nullable()) {
-                ConfigOptionEnumsGenericNullable *opt = dynamic_cast<ConfigOptionEnumsGenericNullable *>(this->default_value->clone());
-                opt->keys_map = this->enum_keys_map;
-                return opt;
-            } else {
-                ConfigOptionEnumsGeneric *opt = dynamic_cast<ConfigOptionEnumsGeneric *>(this->default_value->clone());
-                opt->keys_map = this->enum_keys_map;
-                return opt;
-            }
-            delete dft;
+            // Enum list defaults are built without a keys map, which the copy needs to deserialize and serialize names.
+            ConfigOption *opt = this->default_value->clone();
+            if (auto *nullable_enums = dynamic_cast<ConfigOptionEnumsGenericNullable *>(opt))
+                nullable_enums->keys_map = this->enum_keys_map;
+            else if (auto *enums = dynamic_cast<ConfigOptionEnumsGeneric *>(opt))
+                enums->keys_map = this->enum_keys_map;
+            return opt;
         }
 
         return this->default_value->clone();

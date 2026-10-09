@@ -10,10 +10,8 @@
 #include <libslic3r/SLA/Rotfinder.hpp>
 
 #include <libslic3r/Execution/ExecutionTBB.hpp>
-#include <libslic3r/Execution/ExecutionSeq.hpp>
 
 #include <libslic3r/Optimize/BruteforceOptimizer.hpp>
-#include <libslic3r/Optimize/NLoptOptimizer.hpp>
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
@@ -21,13 +19,15 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Optimize/Optimizer.hpp"
 #include "libslic3r/BoundingBox.hpp"
-#include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include <libslic3r/Geometry.hpp>
 
 #include <thread>
 #include <vector>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r { namespace sla {
 

@@ -19,6 +19,11 @@
 #include <libslic3r/ShortestPath.hpp>
 #include <vector>
 #include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/PrintConfig.hpp"
+
+namespace Slic3r { class Surface; }
 
 namespace Slic3r {
 

@@ -1,8 +1,6 @@
 #include "CalibrationWizardCaliPage.hpp"
 #include "CalibUtils.hpp"
-#include "MainFrame.hpp"
 #include "I18N.hpp"
-#include "Widgets/Label.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include <wx/string.h>
@@ -22,6 +20,14 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/Utils.hpp"
 #include <wx/panel.h>
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

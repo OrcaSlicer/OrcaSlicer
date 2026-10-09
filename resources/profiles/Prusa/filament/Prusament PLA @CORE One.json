@@ -7,6 +7,9 @@
 	"setting_id": "PuujUMjNKLZvZNAH",
 	"filament_id": "OFnO4wnf",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pla"
+	],
 	"chamber_temperature": [
 		"20"
 	],
@@ -104,5 +107,11 @@
 	],
 	"slow_down_min_speed": [
 		"20"
+	],
+	"filament_unloading_speed": [
+		"100"
+	],
+	"filament_unloading_speed_start": [
+		"100"
 	]
 }

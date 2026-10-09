@@ -88,19 +88,13 @@ uniform vec3      palette_lab[64];
 uniform vec3      palette_rgb[64];
 uniform int       palette_count;
 uniform bool      pure_only;      // match against single filaments only (flat-colour image)
-// How each entry prints. A pure entry is one filament (a == b); a mix interleaves filaments a and b,
-// num parts of a in every den, and the print shows that interleave rather than the entry's average
-// colour. The fragment resolves it exactly as GLGizmoTextureDisplacement::make_mix_resolver() does
-// per triangle on the CPU, so the preview shows the pattern the bake will print.
+// How each entry prints. Every entry names a single filament: a mix is given its own mixed filament
+// slot, whose components the slicer alternates per print layer, so the fragment just looks that slot's
+// colour up.
 uniform int       palette_a[64];
 uniform int       palette_b[64];
-uniform int       palette_num[64];
-uniform int       palette_den[64];
 uniform vec3      filament_rgb[16];
 uniform int       filament_count;
-uniform int       mix_mode;     // ColorMixMode: 0 Z bands, 1 XY dither, 2 auto
-uniform float     layer_height; // mm; one Z band per print layer
-uniform float     dither_cell;  // mm; one XY dither cell
 uniform sampler2D color_tex;     // the layer's colour image, sampled at the same uv as the height
 uniform bool      has_color_tex;
 uniform bool volume_mirrored;
@@ -295,63 +289,16 @@ int nearest_palette_entry(vec3 rgb)
 }
 
 // One 2x2 Bayer cell, {0, 2; 3, 1}, for x and y in {0, 1}.
-float bayer2(float x, float y) { return 2.0 * x + 3.0 * y - 4.0 * x * y; }
 
-// The colour the printer lays down at world point `pos` for palette entry `index`: its filament, or
-// for a mix whichever of its two filaments this point falls on. Mirrors make_mix_resolver() on the
-// CPU, floors on the band/cell size included. All the modular arithmetic is done in floats with
-// mod(), which wraps negative coordinates the way the CPU's ((v % n) + n) % n does and needs no
-// integer % (not available on every GLSL 1.10 target).
-vec3 printed_color(int index, vec3 pos, vec3 normal, vec3 footprint)
+// The colour the printer lays down at world point `pos` for palette entry `index`. Every entry names a
+// single filament: a mix is given its own mixed filament slot, whose components the slicer alternates
+// per print layer, so there is nothing left to interleave here.
+vec3 printed_color(int index)
 {
     int a = palette_a[index];
-    int b = palette_b[index];
-    if (a < 0 || a >= filament_count || b < 0 || b >= filament_count)
+    if (a < 0 || a >= filament_count)
         return palette_rgb[index]; // no filament to resolve to: the entry's own colour
-    if (a == b)
-        return filament_rgb[a];
-    float num = float(palette_num[index]);
-    float den = float(palette_den[index]);
-    // Auto: bands where the surface is steeper than ~45 degrees, the dominant filament elsewhere.
-    if (mix_mode == 2 && abs(normal.z) >= 0.7)
-        return filament_rgb[(num * 2.0 >= den) ? a : b];
-
-    // Pre-filter. The interleave is an ordered dither the eye is meant to blend away, and no dither
-    // blends when it is drawn at less than a few pixels per period - it aliases, which is what turned
-    // every upright wall into horizontal streaks: the Z band cycle is den * layer_height (around a
-    // millimetre), and every pixel of a row on a vertical wall shares one z, so each row came out as a
-    // 1-bit threshold of the image at that row's phase. `footprint` is mm of world position per pixel,
-    // so this is zoom- and resolution-correct rather than a tuned constant: where the print's own
-    // pattern is finer than this view can resolve, show what the print looks like from here, which is
-    // the entry's perceptual average. The Normal view remains where the per-facet truth lives.
-    float period = (mix_mode == 1) ? 2.0 * max(dither_cell, 0.01) : den * max(layer_height, 0.01);
-    float px     = (mix_mode == 1) ? max(footprint.x, footprint.y) : footprint.z;
-    float sharp  = clamp(period / max(4.0 * px, 1e-6) - 0.5, 0.0, 1.0);
-    if (sharp <= 0.0)
-        return palette_rgb[index];
-
-    vec3 picked;
-    if (mix_mode == 1) {
-        // Ordered 4x4 Bayer over floor(x / cell), floor(y / cell). The CPU's table
-        //     0  8  2 10
-        //    12  4 14  6
-        //     3 11  1  9
-        //    15  7 13  5
-        // is 4 * bayer2(x % 2, y % 2) + bayer2(x / 2, y / 2), which needs no array (GLSL 1.10 has
-        // no constant arrays).
-        float cell  = max(dither_cell, 0.01);
-        float gx    = mod(floor(pos.x / cell), 4.0);
-        float gy    = mod(floor(pos.y / cell), 4.0);
-        float bayer = 4.0 * bayer2(mod(gx, 2.0), mod(gy, 2.0)) + bayer2(floor(gx / 2.0), floor(gy / 2.0));
-        picked = filament_rgb[(num / den > (bayer + 0.5) / 16.0) ? a : b];
-    } else {
-        // Z bands: one per band height, the band's phase in the a/b cycle picks the filament. Both
-        // operands are integer-valued, so the half keeps "phase < num" exact under float rounding.
-        float slot  = floor(pos.z / max(layer_height, 0.01));
-        float phase = mod(slot, den);
-        picked = filament_rgb[(phase < num - 0.5) ? a : b];
-    }
-    return mix(palette_rgb[index], picked, sharp);
+    return filament_rgb[a];
 }
 
 void main()
@@ -364,9 +311,6 @@ void main()
     // world position and perturb the world normal.
     vec3 triangle_normal = normalize(cross(dFdx(world_pos.xyz), dFdy(world_pos.xyz)));
     vec3 tex_pos = world_pos.xyz - tex_anchor; // the frame the texture is projected in, as the bake does
-    // World mm per pixel, for pre-filtering the interleave in printed_color(). Taken here because the
-    // albedo branch at the end of main() is non-uniform control flow, where derivatives are undefined.
-    vec3 pos_fwidth = fwidth(world_pos.xyz);
     if (volume_mirrored)
         triangle_normal = -triangle_normal;
 
@@ -508,6 +452,6 @@ void main()
         // orientation and scale about the volume's origin, see texture_displacement_bake_frame()), so
         // measuring z from the bed instead shifted the band phase by the volume origin's height - a
         // different filament in the same place than the bake produces.
-        albedo = printed_color(nearest_palette_entry(texture(color_tex, color_uv).rgb), tex_pos, triangle_normal, pos_fwidth);
+        albedo = printed_color(nearest_palette_entry(texture(color_tex, color_uv).rgb));
     out_color = vec4(vec3(intensity.y) + albedo * intensity.x, uniform_color.a);
 }

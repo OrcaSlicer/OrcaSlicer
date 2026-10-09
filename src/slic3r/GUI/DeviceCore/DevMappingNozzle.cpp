@@ -1,4 +1,3 @@
-#include "DevMapping.h"
 #include "DevMappingNozzle.h"
 
 #include "DevNozzleRack.h"
@@ -7,9 +6,7 @@
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
 
-#include "json_diff.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
-#include "libslic3r/Print.hpp"
 
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -29,6 +26,8 @@
 #include <string>
 #include <unordered_set>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ProjectTask.hpp"
 using namespace nlohmann;
 
 namespace Slic3r {
@@ -251,7 +250,7 @@ int DevNozzleMappingCtrl::CtrlGetAutoNozzleMappingV1(Slic3r::GUI::Plater* plater
 
 void DevNozzleMappingCtrl::ParseAutoNozzleMapping(const json& print_jj)
 {
-    if (print_jj.contains("command") && print_jj["command"].get<string>() == "get_auto_nozzle_mapping") {
+    if (print_jj.contains("command") && print_jj["command"].get<std::string>() == "get_auto_nozzle_mapping") {
         if (print_jj.contains("sequence_id") && print_jj["sequence_id"] == m_sequence_id) {
             Clear();
             DevJsonValParser::ParseVal(print_jj, "result", m_result);

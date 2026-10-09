@@ -14,7 +14,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
-#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polygon.hpp"

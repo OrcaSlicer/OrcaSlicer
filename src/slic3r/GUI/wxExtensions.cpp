@@ -36,7 +36,6 @@
 #include "I18N.hpp"
 #include "GUI_Utils.hpp"
 #include "Plater.hpp"
-#include "../Utils/MacDarkMode.hpp"
 #include "BitmapComboBox.hpp"
 #include "Widgets/StaticBox.hpp"
 #include "Widgets/Label.hpp"
@@ -44,6 +43,7 @@
 #include "FilamentBitmapUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "libslic3r_version.h"
+#include <map>
 #ifndef __linux__
 // msw_menuitem_bitmaps is used for MSW and OSX
 static std::map<int, std::string> msw_menuitem_bitmaps;
@@ -453,9 +453,16 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
                                 const bool menu_bitmap/* = false*/,
                                 const bool resize/* = false*/,
                                 const bool bitmap2/* = false*/,
-                                const vector<std::string>& array_new_color/* = vector<std::string>*/)//used for semi transparent material)
+                                const std::vector<std::string>& array_new_color/* = vector<std::string>*/)//used for semi transparent material)
 {
     static Slic3r::GUI::BitmapCache cache;
+
+    // An empty name means the caller's icon lookup failed
+    if (bmp_name_in.empty() || bmp_name_in == ".png") {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": empty bitmap name";
+        return wxNullBitmap;
+    }
+
     if (bitmap2) {
         return create_scaled_bitmap2(bmp_name_in, cache, win, px_cnt, grayscale, resize, array_new_color);
     }
@@ -494,7 +501,7 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
 
 wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::BitmapCache& cache, wxWindow* win/* = nullptr*/ ,
     const int px_cnt/* = 16*/, const bool grayscale/* = false*/ , const bool resize/* = false*/ ,
-    const vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
+    const std::vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
 {
     unsigned int width = 0;
     // win may be nullptr; see create_scaled_bitmap() above.
@@ -641,7 +648,7 @@ wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_da
     }
 
     wxColourDialog dialog(parent, &data);
-    dialog.SetTitle(_L("Please choose the filament colour"));
+    dialog.SetTitle(_L("Please choose the filament color"));
 
     if (dialog.ShowModal() == wxID_OK) {
         data = dialog.GetColourData();

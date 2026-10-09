@@ -27,6 +27,9 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
+#include <Python.h>
 
 namespace Slic3r {
 

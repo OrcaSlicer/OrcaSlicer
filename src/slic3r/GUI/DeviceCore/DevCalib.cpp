@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -21,6 +21,8 @@
 #include "DevDefs.h"
 #include "DevFilaSystem.h"
 #include "DevConfig.h"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -154,7 +156,7 @@ void calib_fail_message(MachineObject* obj, std::string cali_mode, std::string r
     } else if (reason == "nozzle_diameter is not matched") {
         info = _L("Selected diameter and machine diameter do not match");
     } else if (reason == "generate auto filament cali gcode failure") {
-        info = _L("Failed to generate cali gcode");
+        info = _L("Failed to generate calibration G-code");
     } else {
         info = wxString(reason);
     }

@@ -2,7 +2,6 @@
 #include "ImGuiWrapper.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
-#include "GUI_ObjectList.hpp"
 #include "GLCanvas3D.hpp"
 #include "MainFrame.hpp"
 #include "Preferences.hpp"
@@ -12,7 +11,6 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include <cstdint>

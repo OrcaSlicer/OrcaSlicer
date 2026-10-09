@@ -39,6 +39,14 @@
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r::GUI {
 
@@ -1048,7 +1056,7 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
         ImGui::PushStyleColor(ImGuiCol_Border , ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA));
         
-        if (ImGui::BeginPopup(pop_id.c_str())) {
+        if (ImGui::BeginPopup(pop_id.c_str(), ImGuiWindowFlags_NoMove)) {
             
             m_imgui->text(_L("To:"));
 

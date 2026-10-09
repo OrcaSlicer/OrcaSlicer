@@ -54,7 +54,6 @@
 #include "Semver.hpp"
 #include "format.hpp"
 #include "Platform.hpp"
-#include "Time.hpp"
 #include "libslic3r.h"
 // For the vendor-installation helpers: the vendor profile version
 // (get_version_from_json) and the preset cache stamp (VendorCacheFile).
@@ -120,6 +119,9 @@
 // We are using quite an old TBB 2017 U7, which does not support global control API officially.
 // Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
 #include <tbb/tbb.h>
+#include <string.h>
+
+namespace boost::posix_time { class ptime; }
 #if ! defined(TBB_VERSION_MAJOR)
     #include <tbb/version.h>
 #endif
@@ -402,7 +404,6 @@ std::string debug_out_path(const char *name, ...)
 }
 
 namespace logging = boost::log;
-namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
@@ -890,7 +891,6 @@ int copy_file_linux_read_write(int infile, int outfile, uintmax_t file_size)
 // and only features supported by Linux 3.10 (on our build server with CentOS 7) are kept, namely sendfile with ranges and statx() are not supported.
 bool copy_file_linux(const boost::filesystem::path &from, const boost::filesystem::path &to, boost::system::error_code &ec)
 {
-	using namespace boost::filesystem;
 
 	struct fd_wrapper
 	{

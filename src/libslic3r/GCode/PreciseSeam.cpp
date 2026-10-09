@@ -1,18 +1,22 @@
+// Precise Seam implementation. Design: docs/HLSD/precise-seam.md
 #include "PreciseSeam.hpp"
+#include "PreciseSeamInternal.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "SeamPlacer.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Print.hpp"
 #include <algorithm>
 #include <atomic>
 #include <boost/log/trivial.hpp>
 #include <optional>
 #include <cstddef>
-#include <limits>
-#include <iterator>
+#include <string>
 #include <cassert>
 #include <cmath>
 #include <tbb/parallel_for.h>
@@ -22,501 +26,509 @@
 namespace Slic3r {
 namespace PreciseSeam {
 
+ModifierRegions prepare_modifier_regions(ExPolygons regions)
+{
+    ModifierRegions cached;
+    cached.reserve(regions.size());
+    // Each exterior is measured once; its holes remain in the same cached region.
+    for (ExPolygon &region : regions)
+        cached.emplace_back(std::move(region));
+    return cached;
+}
+
+ModifierSlices prepare_modifier_slices(std::vector<ExPolygons> slices)
+{
+    ModifierSlices cached;
+    cached.reserve(slices.size());
+    // Keep empty layers so callers can index by the original object layer number.
+    for (ExPolygons &layer : slices)
+        cached.push_back(prepare_modifier_regions(std::move(layer)));
+    return cached;
+}
+
+PreparedPerimeter::PreparedPerimeter(const Polygon &perimeter) : polygon(perimeter)
+{
+    const size_t count = polygon.size();
+    if (count < 3)
+        return;
+    for (size_t edge = 0; edge < count; ++edge)
+        if (polygon.points[edge] == polygon.points[(edge + 1) % count])
+            return;
+    bounds = BoundingBox(polygon.points);
+    // Close an open polyline explicitly; prepare its storage once for all modifier queries.
+    line.points.reserve(count + 1);
+    line.points.insert(line.points.end(), polygon.points.begin(), polygon.points.end());
+    line.points.push_back(polygon.points.front());
+    valid = true;
+}
+
 // Import EnforcedBlockedSeamPoint from SeamPlacerImpl namespace for convenience
 using SeamPlacerImpl::EnforcedBlockedSeamPoint;
 
-// Machine precision for checking exact coordinate matching (squared distance)
-// Ideally, intersection points should match perimeter vertices bitwise,
-// but we account for possible machine rounding errors in Clipper calculations
-// Actual deviations: maximum ~0.27, using 2.5 with margin (nanometers)
+// Squared on-edge tolerance in coordinate units: Clipper truncates cuts to whole units, under 1 unit
+// per axis, so under sqrt(2) from the edge (squared < 2); 2.5 keeps a margin. Independent of SCALING_FACTOR.
 static constexpr double MACHINE_PRECISION_SQUARED = 2.5;
 
-// Tolerance for checking proximity when inserting seam points into perimeter
-static const coord_t TOLERANCE_LINEAR = scale_(0.001);  // 1.0 micrometers
-static const coord_t TOLERANCE_SQUARED = TOLERANCE_LINEAR * TOLERANCE_LINEAR;
+// Snapping radius for point insertion, shared by every rule that must match insertion. Deliberately in
+// scaled units (1 um by default, 10 um on large beds), well above single-precision candidate steps.
+static constexpr coord_t TOLERANCE_LINEAR = 1000;
+static constexpr coord_t TOLERANCE_SQUARED = TOLERANCE_LINEAR * TOLERANCE_LINEAR;
 
-// Find common segment between intersection polygon and object perimeter
-//
-// REQUIREMENTS:
-//   - intersection_polygon must be converted to CCW (counter-clockwise) beforehand
-//   - perimeter_polygon must be converted to CCW (counter-clockwise) beforehand
-//
-// Parameters:
-//   intersection_polygon - intersection area polygon (result of intersection()), CCW orientation
-//   perimeter_polygon - object outline (outer perimeter), CCW orientation
-//   modifier_polygon - modifier that formed the intersection
-//
-// Returns:
-//   SegmentData - longest continuous segment with point correspondence
-//   std::nullopt - if segment not found (< 2 points) or error
-//
-static std::optional<SegmentData> common_segment_in_intersection(
-    const Polygon &intersection_polygon,
-    const Polygon &perimeter_polygon,
-    PreciseSeamWarnings* warnings = nullptr)
+namespace detail {
+
+// Use the existing clipping tolerance only to recover rounded coordinates, not to
+// bridge gaps between intervals: even a small uncovered interval must remain a gap.
+static std::optional<double> parameter_on_edge(const Point &point, const Point &a, const Point &b)
 {
-    const size_t isect_n = intersection_polygon.points.size();
-    const size_t perim_n = perimeter_polygon.points.size();
-
-    // Check for empty polygons
-    if (isect_n == 0 || perim_n == 0) {
+    // Original vertices need no floating-point projection.
+    if (point == a) return 0.;
+    if (point == b) return 1.;
+    const Vec2d direction = b.cast<double>() - a.cast<double>();
+    const Vec2d offset = point.cast<double>() - a.cast<double>();
+    const double squared_length = direction.squaredNorm();
+    if (squared_length == 0.)
         return std::nullopt;
-    }
-
-    // Minimum 2 points required to form segment
-    if (isect_n < 2) {
+    const double parameter = std::clamp(offset.dot(direction) / squared_length, 0., 1.);
+    if ((offset - parameter * direction).squaredNorm() > MACHINE_PRECISION_SQUARED)
         return std::nullopt;
-    }
-
-    // ============================================================
-    // STEP 1: Project all intersection points onto perimeter
-    // ============================================================
-
-    struct PointProjection {
-        double dist_squared;    // Squared distance to perimeter
-        size_t edge_index;      // Edge/vertex index of perimeter
-        bool on_perimeter;      // Whether point lies on perimeter (within machine precision)
-    };
-
-    std::vector<PointProjection> projections;
-    projections.reserve(isect_n);
-
-    // Project each intersection point onto perimeter
-    for (size_t i = 0; i < isect_n; ++i) {
-        size_t edge_idx;
-        const Point proj_point = perimeter_polygon.point_projection(intersection_polygon.points[i], &edge_idx);
-        const double dist_sq = (intersection_polygon.points[i] - proj_point).cast<double>().squaredNorm();
-
-        const auto invalid = std::numeric_limits<size_t>::max();
-        if (edge_idx == invalid) {
-            // Projection error - point does not belong to perimeter
-            projections.push_back({dist_sq, edge_idx, false});
-        } else {
-            // Check whether point lies on perimeter (within machine precision)
-            bool on_perim = (dist_sq <= MACHINE_PRECISION_SQUARED);
-            projections.push_back({dist_sq, edge_idx, on_perim});
-        }
-    }
-
-    // ============================================================
-    // STEP 2: Find all continuous segments of points on perimeter
-    // ============================================================
-
-    std::vector<bool> processed(isect_n, false);  // Processed point flags
-    std::vector<std::vector<size_t>> segments;    // Found segments (point indices)
-
-    for (size_t start_idx = 0; start_idx < isect_n; ++start_idx) {
-        // Skip processed or non-perimeter points
-        if (processed[start_idx] || !projections[start_idx].on_perimeter) {
-            continue;
-        }
-
-        // Found point on perimeter - search for continuous segment
-        std::vector<size_t> backward_indices;  // Point indices backward from start_idx
-        std::vector<size_t> forward_indices;   // Point indices forward from start_idx (including start_idx)
-
-        // Add start point to forward
-        forward_indices.push_back(start_idx);
-        processed[start_idx] = true;
-
-        // Backward traversal (only if start_idx == 0, for wrap-around handling)
-        if (start_idx == 0) {
-            for (size_t offset = 1; offset < isect_n; ++offset) {
-                size_t curr_idx = (start_idx + isect_n - offset) % isect_n;
-
-                // Stop if point already processed or not on perimeter
-                if (processed[curr_idx] || !projections[curr_idx].on_perimeter) {
-                    break;
-                }
-
-                backward_indices.push_back(curr_idx);
-                processed[curr_idx] = true;
-            }
-        }
-
-        // Forward traversal from start_idx
-        for (size_t offset = 1; offset < isect_n; ++offset) {
-            size_t curr_idx = (start_idx + offset) % isect_n;
-
-            // Stop if point already processed or not on perimeter
-            if (processed[curr_idx] || !projections[curr_idx].on_perimeter) {
-                break;
-            }
-
-            forward_indices.push_back(curr_idx);
-            processed[curr_idx] = true;
-        }
-
-        // Merge backward (in reverse order) + forward into one segment
-        std::vector<size_t> segment_indices;
-        segment_indices.reserve(backward_indices.size() + forward_indices.size());
-
-        // Add backward in reverse order
-        segment_indices.insert(
-            segment_indices.end(),
-            backward_indices.rbegin(),
-            backward_indices.rend()
-        );
-
-        // Add forward
-        segment_indices.insert(
-            segment_indices.end(),
-            forward_indices.begin(),
-            forward_indices.end()
-        );
-
-        // Save found segment
-        segments.push_back(std::move(segment_indices));
-    }
-
-    // ============================================================
-    // STEP 3: Select longest segment
-    // ============================================================
-
-    // If no segments found
-    if (segments.empty()) {
-        return std::nullopt;
-    }
-
-    // Search for segment with maximum point count
-    auto it_longest = std::max_element(
-        segments.begin(),
-        segments.end(),
-        [](const auto &a, const auto &b) { return a.size() < b.size(); }
-    );
-
-    const std::vector<size_t> &longest_segment = *it_longest;
-
-    // Check minimum requirement: >= 2 points
-    if (longest_segment.size() < 2) {
-        return std::nullopt;
-    }
-
-    // Special case: all intersection vertices lie on perimeter
-    if (longest_segment.size() == isect_n) {
-        // Threshold for edge midpoint check: increased by 0.5 due to rounding error in integer coordinate division
-        constexpr double EDGE_CENTER_THRESHOLD = MACHINE_PRECISION_SQUARED + 0.5;
-
-        // Check each intersection edge - does its midpoint lie on perimeter
-        std::vector<size_t> edges_not_on_perim_indices;
-
-        for (size_t i = 0; i < isect_n; ++i) {
-            size_t next_i = (i + 1) % isect_n;
-
-            // Calculate edge midpoint i→next_i
-            const Point &pt1 = intersection_polygon.points[i];
-            const Point &pt2 = intersection_polygon.points[next_i];
-            Point edge_center(
-                (pt1.x() + pt2.x()) / 2,
-                (pt1.y() + pt2.y()) / 2
-            );
-
-            // Project midpoint onto perimeter
-            const Point proj = perimeter_polygon.point_projection(edge_center);
-            const double dist_sq = (edge_center - proj).cast<double>().squaredNorm();
-
-            // Check if midpoint lies on perimeter (accounting for rounding error)
-            if (dist_sq > EDGE_CENTER_THRESHOLD) {
-                edges_not_on_perim_indices.push_back(i);
-            }
-        }
-
-        // Analyze results
-        if (edges_not_on_perim_indices.empty()) {
-            // All edges on perimeter → modifier fully contains perimeter → not suitable for seam placement
-            if (warnings)
-                warnings->full_containment.store(true, std::memory_order_relaxed);
-            return std::nullopt;
-        }
-
-        // Edges not on perimeter act as "cuts" that split the circular ring of vertices
-        // into separate on-perimeter segments. For k cuts there are k segments.
-        // We iterate over consecutive pairs of cuts and pick the longest segment.
-        const size_t k = edges_not_on_perim_indices.size();
-        size_t best_start = 0;
-        size_t best_length = 0;
-
-        for (size_t i = 0; i < k; ++i) {
-            size_t gap_cur  = edges_not_on_perim_indices[i];
-            size_t gap_next = edges_not_on_perim_indices[(i + 1) % k];
-
-            // Segment starts at the vertex right after the current cut
-            size_t start  = (gap_cur + 1) % isect_n;
-            // Number of vertices from start up to and including the vertex before the next cut
-            size_t length = (gap_next - gap_cur - 1 + isect_n) % isect_n + 1;
-
-            if (length > best_length) {
-                best_length = length;
-                best_start  = start;
-            }
-        }
-
-        if (best_length < 2) {
-            return std::nullopt;
-        }
-
-        // Form SegmentData from the longest on-perimeter segment
-        SegmentData result;
-        result.segment.points.reserve(best_length);
-        result.perimeter_edge_indices.reserve(best_length);
-
-        for (size_t i = 0; i < best_length; ++i) {
-            size_t idx = (best_start + i) % isect_n;
-            result.segment.points.push_back(intersection_polygon.points[idx]);
-            result.perimeter_edge_indices.push_back(projections[idx].edge_index);
-        }
-
-        return result;
-    }
-
-    // ============================================================
-    // STEP 4: Form SegmentData result
-    // ============================================================
-
-    SegmentData result;
-    result.segment.points.reserve(longest_segment.size());
-    result.perimeter_edge_indices.reserve(longest_segment.size());
-
-    // Fill points and edge_index for each segment point
-    for (size_t idx : longest_segment) {
-        result.segment.points.push_back(intersection_polygon.points[idx]);
-        result.perimeter_edge_indices.push_back(projections[idx].edge_index);
-    }
-
-    return result;
+    return parameter;
 }
 
-// Fast search for common segment between intersection polygon and object perimeter
-// Hybrid algorithm: first exact coordinate matching, then geometric check
-//
-// REQUIREMENTS:
-//   - intersection_polygon must be converted to CCW (counter-clockwise) beforehand
-//   - perimeter_polygon must be converted to CCW (counter-clockwise) beforehand
-//
-// Parameters:
-//   intersection_polygon - intersection area polygon (result of intersection()), CCW orientation
-//   perimeter_polygon - object outline (outer perimeter), CCW orientation
-//
-// Returns:
-//   SegmentData - continuous segment with point correspondence
-//   std::nullopt - if segment not found (< 2 points) or error
-//
-static std::optional<SegmentData> common_segment_in_intersection_fast(
-    const Polygon &intersection_polygon,
-    const Polygon &perimeter_polygon,
-    PreciseSeamWarnings* warnings = nullptr)
+static std::optional<ClippedEdgeInterval> interval_on_edge(
+    const Point &first, const Point &last, size_t edge, const Polygon &perimeter)
 {
-    const size_t isect_n = intersection_polygon.points.size();
-    const size_t perim_n = perimeter_polygon.points.size();
-
-    // ============================================================
-    // STEP 1: Input data validation
-    // ============================================================
-
-    if (isect_n == 0 || perim_n == 0) {
+    const Point &a = perimeter.points[edge];
+    const Point &b = perimeter.points[(edge + 1) % perimeter.size()];
+    const auto t0 = parameter_on_edge(first, a, b);
+    // Reject this edge before projecting the second point when the first is outside.
+    if (!t0)
         return std::nullopt;
-    }
-
-    if (isect_n < 2) {
+    const auto t1 = parameter_on_edge(last, a, b);
+    if (!t1 || *t0 == *t1)
         return std::nullopt;
+    ClippedEdgeInterval interval{edge, *t0, *t1, first, last};
+    if (interval.begin > interval.end) {
+        std::swap(interval.begin, interval.end);
+        std::swap(interval.first, interval.last);
     }
+    // Canonical endpoints make adjacent original edges join at their shared vertex.
+    if (interval.begin == 0.) interval.first = a;
+    if (interval.end == 1.) interval.last = b;
+    return interval;
+}
 
-    // ============================================================
-    // STEP 2: Find first point (exact coordinate match)
-    // ============================================================
-
-    // Vectors for forward direction
-    std::vector<size_t> forward_intersection_indices;
-    std::vector<size_t> forward_edge_indices;
-    forward_intersection_indices.reserve(isect_n);
-    forward_edge_indices.reserve(isect_n);
-
-    // Vectors for backward direction
-    std::vector<size_t> backward_intersection_indices;
-    std::vector<size_t> backward_edge_indices;
-    backward_intersection_indices.reserve(isect_n);
-    backward_edge_indices.reserve(isect_n);
-
-    size_t first_isect_idx = 0;   // index of first matching point in intersection_polygon
-    size_t first_perim_idx = 0;   // index of first matching point in perimeter_polygon (also edge_index)
-    bool found_first = false;
-
-    // Search for first exact match (not optimized — expected gain is negligible)
-    for (size_t i = 0; i < isect_n; ++i) {
-        const Point &isect_pt = intersection_polygon.points[i];
-
-        auto it = std::find(perimeter_polygon.points.begin(),
-                           perimeter_polygon.points.end(),
-                           isect_pt);
-
-        if (it != perimeter_polygon.points.end()) {
-            first_isect_idx = i;
-            first_perim_idx = std::distance(perimeter_polygon.points.begin(), it);
-            found_first = true;
-
-            // Add first point to forward vectors
-            forward_intersection_indices.push_back(i);
-            forward_edge_indices.push_back(first_perim_idx);
-            break;
-        }
-    }
-
-    // If no matching point found - use full geometric algorithm
-    if (!found_first) {
-        return common_segment_in_intersection(intersection_polygon, perimeter_polygon, warnings);
-    }
-
-    // Sentinel value for an invalid edge_index returned by Polygon::point_projection.
-    const auto invalid = std::numeric_limits<size_t>::max();
-
-    // ============================================================
-    // STEP 3: Forward pass (from first point forward)
-    // ============================================================
-
-    // Adaptive tracking of position in perimeter (instead of fixed prediction)
-    size_t next_expected_perim_idx = (first_perim_idx + 1) % perim_n;
-
-    for (size_t offset = 1; offset < isect_n; ++offset) {
-        size_t curr_isect_idx = (first_isect_idx + offset) % isect_n;
-        const Point &curr_isect_pt = intersection_polygon.points[curr_isect_idx];
-        const Point &expected_pt = perimeter_polygon.points[next_expected_perim_idx];
-
-        // First check exact match with expected position
-        if (curr_isect_pt == expected_pt) {
-            forward_intersection_indices.push_back(curr_isect_idx);
-            forward_edge_indices.push_back(next_expected_perim_idx);
-            next_expected_perim_idx = (next_expected_perim_idx + 1) % perim_n;
+// Interior clipping vertices normally retain the exact source coordinates. Only
+// the two cut endpoints need projection; a failed sequence tries the next anchor.
+static bool append_exact_fragment(const Polyline &fragment, const Polygon &perimeter,
+                                  std::vector<ClippedEdgeInterval> &intervals)
+{
+    const size_t size = fragment.size();
+    const size_t count = perimeter.size();
+    assert(size >= 3); // bind_fragment() sends only fragments with interior points here.
+    // A longer sequence cannot be one exact pass over this contour.
+    if (size > count + 2)
+        return false;
+    for (size_t anchor = 0; anchor < count; ++anchor) {
+        if (fragment.points[1] != perimeter.points[anchor])
             continue;
+        // Clipping may return either direction, independent of contour winding.
+        for (bool forward : {true, false}) {
+            const auto next = [count, forward](size_t index) {
+                return forward ? (index + 1) % count : (index + count - 1) % count;
+            };
+            size_t last = anchor;
+            bool matches = true;
+            for (size_t i = 2; i + 1 < size; ++i) {
+                last = next(last);
+                if (fragment.points[i] != perimeter.points[last]) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (!matches)
+                continue;
+            const size_t first_edge = forward ? (anchor + count - 1) % count : anchor;
+            const size_t last_edge = forward ? last : (last + count - 1) % count;
+            const auto first = interval_on_edge(fragment.points.front(), fragment.points[1], first_edge, perimeter);
+            const auto end = interval_on_edge(fragment.points[size - 2], fragment.points.back(), last_edge, perimeter);
+            if (!first || !end)
+                continue;
+            // Commit only a complete match, so rejected anchors leave no intervals.
+            intervals.push_back(*first);
+            size_t vertex = anchor;
+            for (size_t i = 2; i + 1 < size; ++i) {
+                const size_t adjacent = next(vertex);
+                const size_t edge = forward ? vertex : adjacent;
+                intervals.push_back({edge, 0., 1., perimeter.points[edge], perimeter.points[(edge + 1) % count]});
+                vertex = adjacent;
+            }
+            intervals.push_back(*end);
+            return true;
         }
-
-        // Exact match not found - check geometrically
-        size_t edge_idx;
-        const Point proj_point = perimeter_polygon.point_projection(curr_isect_pt, &edge_idx);
-        const double dist_sq = (curr_isect_pt - proj_point).cast<double>().squaredNorm();
-
-        if (edge_idx == invalid || dist_sq > MACHINE_PRECISION_SQUARED) {
-            // Point not on perimeter - break forward pass
-            break;
-        }
-
-        // Point on perimeter - add and adjust expected position
-        forward_intersection_indices.push_back(curr_isect_idx);
-        forward_edge_indices.push_back(edge_idx);
-        next_expected_perim_idx = (edge_idx + 1) % perim_n;
     }
+    return false;
+}
 
-    // ============================================================
-    // STEP 4: Backward pass
-    // ============================================================
-
-    // Optimization: backward can find maximum (isect_n - forward_count) points
-    size_t forward_count = forward_intersection_indices.size();
-    size_t max_backward_iterations = isect_n - forward_count;
-
-    // Adaptive tracking of position in perimeter for backward direction
-    next_expected_perim_idx = (first_perim_idx + perim_n - 1) % perim_n;
-
-    for (size_t offset = 1; offset <= max_backward_iterations; ++offset) {
-        size_t curr_isect_idx = (first_isect_idx + isect_n - offset) % isect_n;
-        const Point &curr_isect_pt = intersection_polygon.points[curr_isect_idx];
-        const Point &expected_pt = perimeter_polygon.points[next_expected_perim_idx];
-
-        // First check exact match with expected position
-        if (curr_isect_pt == expected_pt) {
-            backward_intersection_indices.push_back(curr_isect_idx);
-            backward_edge_indices.push_back(next_expected_perim_idx);
-            next_expected_perim_idx = (next_expected_perim_idx + perim_n - 1) % perim_n;
+// Find the first edge once, then follow the contour without restarting a global search.
+bool append_projected_fragment(const Polyline &fragment, const Polygon &perimeter,
+                               std::vector<ClippedEdgeInterval> &intervals,
+                               FragmentBindingFailure &failure)
+{
+    const size_t original_size = intervals.size();
+    bool forward = true;
+    const size_t count = perimeter.size();
+    for (size_t i = 1; i < fragment.size(); ++i) {
+        if (fragment.points[i - 1] == fragment.points[i])
             continue;
+        failure.pair_index = i - 1;
+        std::optional<ClippedEdgeInterval> matched;
+        const auto is_forward = [&](const ClippedEdgeInterval &candidate) {
+            const Vec2d movement = fragment.points[i].cast<double>() - fragment.points[i - 1].cast<double>();
+            const Vec2d edge = perimeter.points[(candidate.edge + 1) % count].cast<double>() -
+                               perimeter.points[candidate.edge].cast<double>();
+            return movement.dot(edge) > 0.;
+        };
+        if (intervals.size() == original_size) {
+            failure.reason = "initial edge not found";
+            for (size_t edge = 0; edge < count; ++edge) {
+                matched = interval_on_edge(fragment.points[i - 1], fragment.points[i], edge, perimeter);
+                if (matched) {
+                    // The first suitable edge defines orientation; overlapping visits are unsupported.
+                    forward = is_forward(*matched);
+                    break;
+                }
+            }
+        } else {
+            failure.reason = "non-continuous binding";
+            const ClippedEdgeInterval &previous = intervals.back();
+            const double end = forward ? previous.end : previous.begin;
+            matched = interval_on_edge(fragment.points[i - 1], fragment.points[i], previous.edge, perimeter);
+            if (matched && is_forward(*matched) != forward)
+                matched.reset();
+            // The shared point is the previous pair's last point on the same edge, so continuity holds by
+            // construction. Reuse its parameter rather than comparing a recomputed one: the two projections
+            // may be compiled differently (e.g. FMA contraction) and differ by an ulp on some platforms.
+            if (matched)
+                (forward ? matched->begin : matched->end) = end;
+            // Crossing to the neighbor is allowed only at their actual shared vertex.
+            const size_t vertex = forward ? (previous.edge + 1) % count : previous.edge;
+            if (!matched && end == (forward ? 1. : 0.) && fragment.points[i - 1] == perimeter.points[vertex]) {
+                const size_t edge = forward ? vertex : (previous.edge + count - 1) % count;
+                matched = interval_on_edge(fragment.points[i - 1], fragment.points[i], edge, perimeter);
+                if (matched && is_forward(*matched) != forward)
+                    matched.reset();
+                // The shared point is exactly the neighbor's start (forward) or end (backward) vertex,
+                // so parameter_on_edge() returns exactly 0 or 1 for it.
+                assert(!matched || (forward ? matched->begin == 0. : matched->end == 1.));
+            }
         }
-
-        // Exact match not found - check geometrically
-        size_t edge_idx;
-        const Point proj_point = perimeter_polygon.point_projection(curr_isect_pt, &edge_idx);
-        const double dist_sq = (curr_isect_pt - proj_point).cast<double>().squaredNorm();
-
-        if (edge_idx == invalid || dist_sq > MACHINE_PRECISION_SQUARED) {
-            // Point not on perimeter - break backward pass
-            break;
+        if (!matched) {
+            // Never leave a partial fragment or discard earlier successful fragments.
+            intervals.resize(original_size);
+            return false;
         }
-
-        // Point on perimeter - add and adjust expected position
-        backward_intersection_indices.push_back(curr_isect_idx);
-        backward_edge_indices.push_back(edge_idx);
-        next_expected_perim_idx = (edge_idx + perim_n - 1) % perim_n;
+        intervals.push_back(*matched);
     }
+    return intervals.size() > original_size;
+}
 
-    // Check special case: all intersection vertices lie on perimeter
-    // Use full geometric algorithm (rare case but requires special handling)
-    size_t total_points = forward_intersection_indices.size() + backward_intersection_indices.size();
-    if (total_points == isect_n) {
-        return common_segment_in_intersection(intersection_polygon, perimeter_polygon, warnings);
+// Exact binding first, projection as the general path; both leave intervals unchanged on failure.
+bool bind_fragment(const Polyline &fragment, const Polygon &perimeter,
+                   std::vector<ClippedEdgeInterval> &intervals, FragmentBindingFailure &failure)
+{
+    if (fragment.size() > 2 && append_exact_fragment(fragment, perimeter, intervals))
+        return true;
+    return append_projected_fragment(fragment, perimeter, intervals, failure);
+}
+
+// Rare-case repair, run only after binding has failed: Clipper may place an end cut a unit or two beside
+// a vertex, so it lies on neither edge. Move such an end onto that vertex, taken from the fragment's own
+// chain, and let the caller retry with the same strict rules, so a wrong move can only fail again.
+// Returns false when nothing was changed.
+static bool snap_cuts_to_adjacent_vertices(Polyline &fragment, const Polygon &perimeter)
+{
+    const size_t count = perimeter.size();
+    // Strict comparison matches the vertex snapping in insert_point_into_perimeter.
+    const auto close = [](const Point &a, const Point &b) {
+        return (a - b).cast<double>().squaredNorm() < double(TOLERANCE_SQUARED);
+    };
+    const auto snap_target = [&](const Point &cut, const Point &neighbour) -> std::optional<Point> {
+        if (cut == neighbour)
+            return std::nullopt;
+        bool neighbour_is_vertex = false;
+        bool ambiguous = false;
+        std::optional<Point> target;
+        // Scan the whole perimeter before deciding: a cut that is a real vertex must be detected anywhere,
+        // and an ambiguity must not pre-empt the neighbour rule below.
+        for (size_t j = 0; j < count; ++j) {
+            if (perimeter[j] == cut)
+                return std::nullopt; // A real vertex, not a rounded cut.
+            if (perimeter[j] != neighbour)
+                continue;
+            neighbour_is_vertex = true;
+            for (const Point &candidate : {perimeter[(j + count - 1) % count], perimeter[(j + 1) % count]}) {
+                if (!close(cut, candidate))
+                    continue;
+                if (target && *target != candidate)
+                    ambiguous = true;
+                target = candidate;
+            }
+        }
+        // A cut between two arbitrary points of one edge is not this rounding case.
+        if (!neighbour_is_vertex)
+            return std::nullopt;
+        // The neighbour itself takes precedence, even when both of its chain vertices are close too
+        // (edges shorter than the radius on both sides): the cut is then just a rounded copy of it.
+        if (close(cut, neighbour))
+            return neighbour;
+        // Two different edge-start candidates: keep the failure rather than guess.
+        if (ambiguous)
+            return std::nullopt;
+        return target;
+    };
+    bool changed = false;
+    if (fragment.size() >= 2)
+        if (const auto target = snap_target(fragment.points.front(), fragment.points[1])) {
+            if (*target == fragment.points[1])
+                fragment.points.erase(fragment.points.begin());
+            else
+                fragment.points.front() = *target;
+            changed = true;
+        }
+    if (fragment.size() >= 2)
+        if (const auto target = snap_target(fragment.points.back(), fragment.points[fragment.size() - 2])) {
+            if (*target == fragment.points[fragment.size() - 2])
+                fragment.points.pop_back();
+            else
+                fragment.points.back() = *target;
+            changed = true;
+        }
+    return changed;
+}
+
+// Location fields shared by the failure and recovery markers, enough to find the layer in a saved project.
+static std::string fragment_location(const ExtractionContext &context, size_t fragment_index)
+{
+    const Layer *layer = context.layer;
+    const ModelObject *object = layer && layer->object() ? layer->object()->model_object() : nullptr;
+    return " object=" + std::to_string(object ? object->id().id : 0) +
+           " modifier=" + std::to_string(context.modifier ? context.modifier->id().id : 0) +
+           " layer=" + (layer ? std::to_string(layer->id()) : std::string("unknown")) +
+           " z=" + (layer ? std::to_string(layer->slice_z) : std::string("unknown")) +
+           " fragment=" + std::to_string(fragment_index);
+}
+
+bool append_fragment(const Polyline &fragment, const Polygon &perimeter,
+                     std::vector<ClippedEdgeInterval> &intervals,
+                     const ExtractionContext &context, size_t fragment_index)
+{
+    FragmentBindingFailure failure;
+    if (bind_fragment(fragment, perimeter, intervals, failure))
+        return true;
+    // Rare-case fallback: repair the end cuts and retry once. A recovery is logged but is not a failure
+    // (no failure count, no user warning).
+    const char *outcome = nullptr;
+    Polyline cleaned = fragment;
+    if (snap_cuts_to_adjacent_vertices(cleaned, perimeter)) {
+        FragmentBindingFailure retry_failure;
+        // Only a contact shorter than the snapping distance may remain: nothing to bind, nothing lost.
+        if (cleaned.size() < 2)
+            outcome = "contact";
+        else if (bind_fragment(cleaned, perimeter, intervals, retry_failure))
+            outcome = "bound";
     }
-
-    // ============================================================
-    // STEP 5: Merge backward (reversed) + forward
-    // ============================================================
-
-    std::vector<size_t> continuous_intersection_indices;
-    std::vector<size_t> continuous_edge_indices;
-
-    if (backward_intersection_indices.empty()) {
-        // No backward - just move forward
-        continuous_intersection_indices = std::move(forward_intersection_indices);
-        continuous_edge_indices = std::move(forward_edge_indices);
-    } else {
-        // Merge: backward (reversed) + forward
-        size_t total_size = backward_intersection_indices.size() + forward_intersection_indices.size();
-        continuous_intersection_indices.reserve(total_size);
-        continuous_edge_indices.reserve(total_size);
-
-        // Add backward in reverse order
-        continuous_intersection_indices.insert(
-            continuous_intersection_indices.end(),
-            backward_intersection_indices.rbegin(),
-            backward_intersection_indices.rend()
-        );
-        continuous_edge_indices.insert(
-            continuous_edge_indices.end(),
-            backward_edge_indices.rbegin(),
-            backward_edge_indices.rend()
-        );
-
-        // Add forward
-        continuous_intersection_indices.insert(
-            continuous_intersection_indices.end(),
-            forward_intersection_indices.begin(),
-            forward_intersection_indices.end()
-        );
-        continuous_edge_indices.insert(
-            continuous_edge_indices.end(),
-            forward_edge_indices.begin(),
-            forward_edge_indices.end()
-        );
+    // A failed fragment shorter than the snapping radius is a contact: insertion would collapse it to one
+    // point anyway, so accept it instead of reporting a failure.
+    if (outcome == nullptr && fragment.length() < double(TOLERANCE_LINEAR))
+        outcome = "contact";
+    if (outcome != nullptr) {
+        // Same log budget as failures, counted separately; SeamPlacer::init() reports the total.
+        if (context.warnings == nullptr ||
+            context.warnings->recovered_fragments.fetch_add(1, std::memory_order_relaxed) < failed_fragment_log_limit)
+            BOOST_LOG_TRIVIAL(warning) << "[PreciseSeamFragmentRecovered] Rare case resolved after a binding failure"
+                << " outcome=" << outcome << fragment_location(context, fragment_index)
+                << " original_pair=" << failure.pair_index << " original_reason=" << failure.reason
+                << " fragment_points=" << fragment.size() << " cleaned_points=" << cleaned.size()
+                << " perimeter_points=" << perimeter.size();
+        return true;
     }
+    // Reserve a log slot atomically before formatting; callers without shared state log every failure.
+    if (context.warnings &&
+        context.warnings->failed_fragments.fetch_add(1, std::memory_order_relaxed) >= failed_fragment_log_limit)
+        return false;
+    // Keep a small marker for investigating a saved project, not a full geometry dump.
+    BOOST_LOG_TRIVIAL(warning) << "[PreciseSeamIntersectionFailed] Unable to process intersection"
+        << fragment_location(context, fragment_index) << " pair=" << failure.pair_index
+        << " reason=" << failure.reason << " fragment_points=" << fragment.size()
+        << " perimeter_points=" << perimeter.size();
+    return false;
+}
+} // namespace detail
 
-    // ============================================================
-    // STEP 6: Check minimum size and special cases
-    // ============================================================
-
-    if (continuous_intersection_indices.size() < 2) {
-        return std::nullopt;
+// Finalize one joined strong segment; only Center needs temporary per-edge lengths.
+static void prepare_strong_segment(PerimeterSegment &segment, ModelVolumeType mode, bool compare_lengths)
+{
+    const bool center = mode == ModelVolumeType::PRECISE_SEAM_CENTER;
+    std::vector<double> edge_lengths;
+    if (center)
+        edge_lengths.reserve(segment.edge_indices.size());
+    // A single Left/Right segment needs only its endpoint; Center always needs arc length.
+    if (center || compare_lengths) {
+        for (size_t i = 0; i < segment.edge_indices.size(); ++i) {
+            const double length = (segment.polyline.points[i + 1].cast<double>() -
+                                   segment.polyline.points[i].cast<double>()).norm();
+            segment.length += length;
+            if (center)
+                edge_lengths.push_back(length);
+        }
     }
-
-    // ============================================================
-    // STEP 7: Form SegmentData result
-    // ============================================================
-
-    SegmentData result;
-    result.segment.points.reserve(continuous_intersection_indices.size());
-    result.perimeter_edge_indices.reserve(continuous_intersection_indices.size());
-
-    // Fill with original coordinates from intersection_polygon + edge_index
-    for (size_t i = 0; i < continuous_intersection_indices.size(); ++i) {
-        size_t idx = continuous_intersection_indices[i];
-        result.segment.points.push_back(intersection_polygon.points[idx]);
-        result.perimeter_edge_indices.push_back(continuous_edge_indices[i]);
+    if (mode == ModelVolumeType::PRECISE_SEAM_LEFT) {
+        segment.strong_target = StrongSeamTarget{segment.polyline.points.front(), segment.begin.edge_index};
+        return;
     }
+    segment.strong_target = StrongSeamTarget{segment.polyline.points.back(), segment.end.edge_index};
+    if (!center)
+        return;
 
+    // The total is now known; reuse local lengths to locate its half without new square roots.
+    double remaining = segment.length * 0.5;
+    for (size_t i = 0; i < edge_lengths.size(); ++i) {
+        const double length = edge_lengths[i];
+        if (remaining <= length && length > 0.) {
+            const Point &a = segment.polyline.points[i];
+            const Point &b = segment.polyline.points[i + 1];
+            segment.strong_target = StrongSeamTarget{
+                a + ((remaining / length) * (b - a).cast<double>()).cast<coord_t>(), segment.edge_indices[i]};
+            return;
+        }
+        remaining -= length;
+    }
+}
+
+SegmentExtraction extract_perimeter_segments(const PreparedPerimeter &prepared, const ModifierRegions &modifier,
+                                             ModelVolumeType mode, const ExtractionContext &context)
+{
+    using detail::ClippedEdgeInterval;
+    SegmentExtraction result;
+    if (!prepared.valid) {
+        result.valid = false;
+        return result;
+    }
+    const Polygon &perimeter = prepared.polygon;
+    const size_t count = perimeter.size();
+    std::vector<const ExPolygon*> nearby_regions;
+    for (const ModifierRegion &region : modifier)
+        if (!region.polygon.empty() && prepared.bounds.overlap(region.bounds))
+            nearby_regions.push_back(&region.polygon);
+    if (nearby_regions.empty())
+        return result;
+
+    // Clip as an open line, without offsets or contact rules: modifiers should cross the perimeter
+    // clearly, and the open path keeps self-touching vertices apart.
+    std::vector<ClippedEdgeInterval> intervals;
+    Polylines fragments;
+    // Clip only accepted regions, with their holes still attached to the exterior.
+    for (const ExPolygon *region : nearby_regions) {
+        Polylines clipped = intersection_pl(prepared.line, *region);
+        for (Polyline &fragment : clipped)
+            // Clipper returns a single point where a border only touches the line: nothing to bind.
+            if (fragment.size() >= 2)
+                fragments.push_back(std::move(fragment));
+    }
+    for (size_t i = 0; i < fragments.size(); ++i)
+        if (!detail::append_fragment(fragments[i], perimeter, intervals, context, i))
+            ++result.discarded_fragments;
+
+    std::sort(intervals.begin(), intervals.end(), [](const auto &a, const auto &b) {
+        if (a.edge != b.edge) return a.edge < b.edge;
+        if (a.begin != b.begin) return a.begin < b.begin;
+        return a.end < b.end;
+    });
+    // Union overlaps on the same occurrence of an edge, never across equal coordinates.
+    std::vector<ClippedEdgeInterval> merged;
+    for (const ClippedEdgeInterval &interval : intervals) {
+        // Fragments touching on an edge meet at the same integer point. Comparing that point as well keeps
+        // them joined even if its two projections differ by an ulp on some platforms (e.g. FMA contraction).
+        if (!merged.empty() && merged.back().edge == interval.edge &&
+            (interval.begin <= merged.back().end || interval.first == merged.back().last)) {
+            if (interval.end > merged.back().end) {
+                merged.back().end = interval.end;
+                merged.back().last = interval.last;
+            }
+        } else
+            merged.push_back(interval);
+    }
+    const auto position = [count](size_t edge, double parameter) {
+        return parameter == 1. ? PerimeterPosition{(edge + 1) % count, 0.}
+                               : PerimeterPosition{edge, parameter};
+    };
+    const auto same_position = [](const PerimeterPosition &a, const PerimeterPosition &b) {
+        return a.edge_index == b.edge_index && a.parameter == b.parameter;
+    };
+    for (const ClippedEdgeInterval &interval : merged) {
+        const auto begin = position(interval.edge, interval.begin);
+        const auto end = position(interval.edge, interval.end);
+        if (result.segments.empty() || !same_position(result.segments.back().end, begin)) {
+            PerimeterSegment segment;
+            segment.begin = begin;
+            segment.polyline.points.push_back(interval.first);
+            result.segments.push_back(std::move(segment));
+        }
+        PerimeterSegment &segment = result.segments.back();
+        segment.polyline.points.push_back(interval.last);
+        segment.edge_indices.push_back(interval.edge);
+        segment.end = end;
+    }
+    if (result.segments.size() > 1 && same_position(result.segments.back().end, result.segments.front().begin)) {
+        // Only the artificial cut at vertex zero can join the last and first intervals.
+        PerimeterSegment tail = std::move(result.segments.back());
+        result.segments.pop_back();
+        PerimeterSegment &head = result.segments.front();
+        tail.polyline.points.insert(tail.polyline.points.end(), head.polyline.points.begin() + 1, head.polyline.points.end());
+        tail.edge_indices.insert(tail.edge_indices.end(), head.edge_indices.begin(), head.edge_indices.end());
+        tail.end = head.end;
+        head = std::move(tail);
+    }
+    // A full loop must cover every original edge, not merely have equal endpoint coordinates.
+    result.full_containment = merged.size() == count;
+    for (size_t i = 0; result.full_containment && i < count; ++i)
+        result.full_containment = merged[i].edge == i && merged[i].begin == 0. && merged[i].end == 1.;
+    // A touch on an inclined edge leaves a sub-micron gap. Treat the single segment as full containment
+    // when the gap is shorter than the snapping radius, or spans one vertex with both ends within it
+    // (exact for edges of 2 um and longer). The 2 um end distance is a cheap pre-filter.
+    if (!result.full_containment && result.segments.size() == 1) {
+        const PerimeterSegment &only = result.segments.front();
+        const Point &first = only.polyline.points.front();
+        const Point &last = only.polyline.points.back();
+        const double limit = double(TOLERANCE_LINEAR);
+        if ((first - last).cast<double>().squaredNorm() < 4. * limit * limit) {
+            const auto edge_length = [&perimeter, count](size_t edge) {
+                return (perimeter[(edge + 1) % count] - perimeter[edge]).cast<double>().norm();
+            };
+            // Uncovered length from the segment's end forward to its begin; stops early once it exceeds the limit.
+            const auto gap_length = [&](const PerimeterPosition &from, const PerimeterPosition &to) {
+                if (from.edge_index == to.edge_index && from.parameter <= to.parameter)
+                    return (to.parameter - from.parameter) * edge_length(from.edge_index);
+                double gap = (1. - from.parameter) * edge_length(from.edge_index);
+                for (size_t edge = (from.edge_index + 1) % count; gap < limit && edge != to.edge_index; edge = (edge + 1) % count)
+                    gap += edge_length(edge);
+                return gap + to.parameter * edge_length(to.edge_index);
+            };
+            // Strict comparisons match the vertex snapping in insert_point_into_perimeter.
+            const auto within_snap = [limit](const Point &a, const Point &b) {
+                return (a - b).cast<double>().squaredNorm() < limit * limit;
+            };
+            const Point &vertex = perimeter[only.begin.edge_index];
+            const bool around_one_vertex = (only.end.edge_index + 1) % count == only.begin.edge_index &&
+                                           within_snap(last, vertex) && within_snap(first, vertex);
+            if (around_one_vertex || gap_length(only.end, only.begin) < limit)
+                result.full_containment = true;
+        }
+    }
+    // Strong skips full containment and weak handles it by type; neither needs strong data for it.
+    if (!result.full_containment && is_precise_seam_strong(mode))
+        for (PerimeterSegment &segment : result.segments)
+            prepare_strong_segment(segment, mode, result.segments.size() > 1);
     return result;
 }
 
@@ -538,16 +550,11 @@ void init_precise_seam_data(
     // Collect and categorize precise seam modifiers
     for (const ModelVolume* volume : model_object->volumes) {
         if (volume->is_precise_seam()) {
-            ModelVolumeType type = volume->type();
-            // Categorization: strong modifiers have priority
-            if (type == ModelVolumeType::PRECISE_SEAM_CENTER ||
-                type == ModelVolumeType::PRECISE_SEAM_LEFT ||
-                type == ModelVolumeType::PRECISE_SEAM_RIGHT) {
+            // Strong (Center/Left/Right) and weak (Enforced/Blocked/Neutral) go to separate lists.
+            if (volume->is_precise_seam_strong())
                 strong_volumes_out.push_back(volume);
-            } else {
-                // ENFORCED, BLOCKED, NEUTRAL - weak modifiers (processed later)
+            else
                 weak_volumes_out.push_back(volume);
-            }
         }
     }
 
@@ -558,137 +565,15 @@ void init_precise_seam_data(
     std::reverse(weak_volumes_out.begin(), weak_volumes_out.end());
 }
 
-// Calculate cumulative lengths for each Polyline point
-// Analog of Polygon::parameter_by_length(), adapted for open line
-static std::vector<double> polyline_parameter_by_length(const Polyline &polyline)
-{
-    // Keep scaled-coordinate lengths in double precision for midpoint interpolation.
-    std::vector<double> lengths(polyline.points.size(), 0.);
-    for (size_t i = 1; i < polyline.points.size(); ++i) {
-        lengths[i] = lengths[i-1] + (polyline.points[i] - polyline.points[i-1]).cast<double>().norm();
-    }
-    return lengths;
-}
-
-// Find geometric center coordinates of segment
-// Returns: {center coordinates, perimeter vertex index}
-// Index is start vertex of edge containing center
-static std::optional<std::pair<Point, size_t>> segment_center(const SegmentData &data, const Polygon &perimeter_polygon)
-{
-    const Polyline &segment = data.segment;
-
-    if (segment.points.size() < 2) {
-        return std::nullopt; // Need at least a line to find middle
-    }
-
-    std::vector<double> lengths = polyline_parameter_by_length(segment);
-    if (lengths.empty()) {
-        return std::nullopt; // Polyline contains no points
-    }
-
-    double half_length = lengths.back() * 0.5; // Take half of total length
-    size_t mid_idx = segment.points.size() / 2;
-    double mid_length = lengths[mid_idx];
-
-    bool found = false;
-    size_t start_idx = 0;
-    size_t end_idx = 0;
-
-    if (mid_length < half_length) {
-        // Go right (to end)
-        for (size_t i = mid_idx; i < segment.points.size() - 1; ++i) {
-            if (lengths[i] <= half_length && half_length < lengths[i+1]) {
-                start_idx = i;     // Fix left point of segment
-                end_idx = i + 1;   // Fix right point of segment
-                found = true;
-                break;
-            }
-        }
-    } else if (mid_length > half_length) {
-        // Go left (to start)
-        for (size_t i = mid_idx; i > 0; --i) {
-            if (lengths[i-1] <= half_length && half_length < lengths[i]) {
-                start_idx = i - 1; // Take neighboring point on left
-                end_idx = i;       // And nearest on right
-                found = true;
-                break;
-            }
-        }
-    } else {
-        // Middle sits exactly at vertex
-        start_idx = mid_idx;
-        end_idx = (mid_idx + 1) % segment.points.size(); // use next point (wrap-around)
-        found = true;
-    }
-
-    if (!found) {
-        return std::nullopt; // Didn't find suitable segment
-    }
-
-    const Point &p1 = segment.points[start_idx];
-    const Point &p2 = segment.points[end_idx];
-
-    double local_mid_length = half_length - lengths[start_idx];
-    double edge_length = lengths[end_idx] - lengths[start_idx];
-
-    Point mid_point;
-    if (edge_length <= 0.0) {
-        mid_point = p1; // Degenerate case, take start point
-    } else {
-        double k = local_mid_length / edge_length;
-        mid_point = p1 + (k * (p2 - p1).cast<double>()).cast<coord_t>(); // Linear interpolation
-    }
-
-    // Clipper may merge several collinear perimeter edges into one segment edge.
-    // Locate the midpoint on the original perimeter instead of reusing the start's edge.
-    size_t edge_idx;
-    const Point projected_midpoint = perimeter_polygon.point_projection(mid_point, &edge_idx);
-    if (edge_idx == std::numeric_limits<size_t>::max())
-        return std::nullopt;
-
-    return std::make_pair(projected_midpoint, edge_idx);
-}
-
-// Find coordinates of left (first) point of segment
-// Returns: {first point coordinates, perimeter vertex index}
-// Index is start vertex of edge containing first point
-static std::optional<std::pair<Point, size_t>> segment_left(const SegmentData &data)
-{
-    if (data.segment.points.empty()) {
-        return std::nullopt;
-    }
-
-    return std::make_pair(data.segment.points[0], data.perimeter_edge_indices[0]);
-}
-
-// Find coordinates of right (last) point of segment
-// Returns: {last point coordinates, perimeter vertex index}
-// Index is start vertex of edge containing last point
-static std::optional<std::pair<Point, size_t>> segment_right(const SegmentData &data)
-{
-    if (data.segment.points.empty()) {
-        return std::nullopt;
-    }
-
-    size_t last_idx = data.segment.points.size() - 1;
-    return std::make_pair(data.segment.points[last_idx], data.perimeter_edge_indices[last_idx]);
-}
-
-// Insert point into perimeter with proximity check to existing vertices
-// If point is close to vertex (< TOLERANCE_SQUARED) - use existing vertex
-// Returns pair: {final coordinates, point index in polygon}
-// edge_start_idx is start vertex of edge containing point
-static std::optional<std::pair<Point, size_t>> insert_point_into_perimeter(
+// Inserts a point on edge `edge_start_idx`, or reuses a vertex closer than TOLERANCE_LINEAR.
+// Returns {final coordinates, index}. Requires at least three vertices (callers ensure it).
+static std::pair<Point, size_t> insert_point_into_perimeter(
     const Point &point,
     size_t edge_start_idx,
     Polygon &perimeter_polygon
 )
 {
-    // Check input data
-    if (perimeter_polygon.points.size() < 3) {
-        return std::nullopt;  // Polygon must be at least a triangle
-    }
-
+    assert(perimeter_polygon.points.size() >= 3);
     size_t perim_max = perimeter_polygon.points.size();
 
     // Determine edge start and end
@@ -709,11 +594,8 @@ static std::optional<std::pair<Point, size_t>> insert_point_into_perimeter(
         return std::make_pair(perim_p_end, vtx_end);
     }
 
-    // Insert point into perimeter
-    // IMPORTANT: Special handling for the last edge to preserve indexing for subsequent insertions.
-    // If this is the last edge (edge_start_idx == perim_max - 1), we append to the end instead of
-    // inserting at position 0 (which would shift all indices). This allows sorting points by
-    // descending arc length and inserting them without invalidating previously computed indices.
+    // On the closing edge, append instead of inserting at index 0: callers insert in descending source
+    // order and rely on earlier indices staying valid.
     size_t insert_pos;
     if (edge_start_idx == perim_max - 1) {
         // Last edge: add to end of vector
@@ -731,25 +613,16 @@ static std::optional<std::pair<Point, size_t>> insert_point_into_perimeter(
     return std::make_pair(perimeter_polygon.points[insert_pos], insert_pos);
 }
 
-// Insert new point at distance TOLERANCE_LINEAR from specified perimeter vertex
-// Insertion direction specified by direction parameter: +1 = after vertex, -1 = before vertex
-// If target edge length < 2*TOLERANCE_LINEAR, insertion not performed (new point would be too close to edge end)
-// Returns true if point was inserted, false otherwise
-// point_idx is index of perimeter vertex from which insertion is performed
-static bool refine_at_vertex(
+// Adds a helper point TOLERANCE_LINEAR after (+1) or before (-1) vertex `point_idx`; skips edges shorter
+// than 2 * TOLERANCE_LINEAR. Requires at least three vertices.
+static void refine_at_vertex(
     size_t point_idx,
     int direction,
     Polygon &perimeter_polygon
 )
 {
-    // Check input data
-    if (perimeter_polygon.points.size() < 3) {
-        return false;  // Polygon must be at least a triangle
-    }
-
-    if (direction != 1 && direction != -1) {
-        return false;  // Direction must be +1 or -1
-    }
+    assert(perimeter_polygon.points.size() >= 3);
+    assert(direction == 1 || direction == -1);
 
     size_t perim_max = perimeter_polygon.points.size();
 
@@ -773,11 +646,9 @@ static bool refine_at_vertex(
     Vec2d edge_vector = (edge_end - edge_start).cast<double>();
     double edge_length = edge_vector.norm();
 
-    // Check if edge is long enough for insertion
-    // New point must be at distance TOLERANCE_LINEAR from start
-    // and at distance >= TOLERANCE_LINEAR from end
+    // The helper needs TOLERANCE_LINEAR of edge on both sides.
     if (edge_length < 2.0 * TOLERANCE_LINEAR) {
-        return false;  // Edge too short - new point would be too close to end
+        return;  // Edge too short - new point would be too close to end
     }
 
     // Calculate new point coordinates: edge_start + TOLERANCE_LINEAR * direction_normalized
@@ -788,11 +659,8 @@ static bool refine_at_vertex(
         ? Point(edge_start + offset)
         : Point(edge_end   - offset);
 
-    // Insert point into perimeter
-    // IMPORTANT: Special handling of last edge to preserve indexing for subsequent insertions.
-    // If this is last edge (edge_start_idx == perim_max - 1), add point to end of vector
-    // instead of inserting at position 0 (which would shift all indices). This allows sorting points
-    // by descending arc length and inserting them without invalidating previously computed indices.
+    // On the closing edge, append instead of inserting at index 0: callers insert in descending source
+    // order and rely on earlier indices staying valid.
     if (edge_start_idx == perim_max - 1) {
         // Last edge: add to end of vector
         perimeter_polygon.points.push_back(new_point);
@@ -803,162 +671,91 @@ static bool refine_at_vertex(
             new_point
         );
     }
-
-    return true;
 }
 
-// Insert strong seam point into perimeter polygon
+// Records one extraction for the warnings: the type of a modifier with a discarded fragment, and the
+// evaluated/reached flags for "had no effect" (a discarded fragment counts as reached, a contact not).
+static void record_extraction(PreciseSeamWarnings *warnings, const ModelVolume *modifier,
+                              const SegmentExtraction &extracted)
+{
+    if (warnings == nullptr || !extracted.valid)
+        return;
+    if (extracted.discarded_fragments > 0)
+        PreciseSeamWarnings::mark(warnings->failed_types, modifier->type());
+    const auto it = warnings->modifier_usage.find(modifier);
+    if (it == warnings->modifier_usage.end())
+        return;
+    // Load before store: most calls find the flag already set, so shared cache lines stay clean.
+    PreciseSeamWarnings::ModifierUsage &usage = it->second;
+    if (!usage.checked.load(std::memory_order_relaxed))
+        usage.checked.store(true, std::memory_order_relaxed);
+    const bool reached = !extracted.segments.empty() || extracted.full_containment || extracted.discarded_fragments > 0;
+    if (reached && !usage.reached.load(std::memory_order_relaxed))
+        usage.reached.store(true, std::memory_order_relaxed);
+}
+
+// Strong priority is per modifier, never a global maximum across different modifiers.
 std::optional<Point> insert_strong_seam_point(
     const std::vector<const ModelVolume*> &strong_volumes,
     Polygon &polygon,
+    const PreparedPerimeter &prepared,
     const Layer *layer,
-    const ModifierSlicesCache &slices_cache,
+    const ModifierRegionsCache &slices_cache,
     PreciseSeamWarnings* warnings)
 {
-    if (strong_volumes.empty() || layer == nullptr) {
+    assert(&prepared.polygon == &polygon);
+    if (strong_volumes.empty() || layer == nullptr || !prepared.valid)
         return std::nullopt;
-    }
-
-    // layer->id() is offset by raft layer count, but modifier_slices is 0-based
-    // (built from PrintObject::layers() via slice_single_volume). Subtract raft
-    // offset to get the correct index into the cache.
-    const size_t raft_layers = layer->object()->slicing_parameters().raft_layers();
-    size_t layer_id = layer->id() - raft_layers;
-
-    // Reject disjoint bounds before running polygon clipping; touching bounds still overlap.
-    const BoundingBox perimeter_bbox(polygon.points);
-
-    // Iterate through strong modifiers in hierarchy order
-    for (const ModelVolume* modifier_volume : strong_volumes) {
-        // Look up pre-sliced polygons from cache (sliced once in SeamPlacer::init).
-        // TODO: slice_single_volume() converts ExPolygons to flat Polygons, losing
-        // the association between outer contours and their holes. This makes correct
-        // handling of multiply-connected modifier regions (e.g. a torus cross-section)
-        // impossible. Consider a variant returning std::vector<ExPolygons> and adapting
-        // the algorithm to work with multiply-connected domains.
-        auto it = slices_cache.find(modifier_volume);
-        if (it == slices_cache.end())
-            continue; // modifier not in cache (should not happen)
-        const std::vector<Polygons> &modifier_slices = it->second;
-
-        // Check if this layer has slices for this modifier
-        if (layer_id >= modifier_slices.size()) {
-            continue; // No slices for this layer
-        }
-
-        const Polygons &modifier_polygons = modifier_slices[layer_id];
-
-        // Check for multiply-connected regions (holes = CW polygons).
-        // slice_single_volume() flattens ExPolygons into Polygons, but preserves
-        // orientation: CCW = outer contour, CW = hole. If any CW polygon is present,
-        // the modifier is multiply-connected and cannot be processed correctly.
-        bool has_holes = std::any_of(modifier_polygons.begin(), modifier_polygons.end(),
-            [](const Polygon &p) { return p.is_clockwise(); });
-        if (has_holes) {
+    const size_t layer_id = layer->id() - layer->object()->slicing_parameters().raft_layers();
+    for (const ModelVolume *modifier : strong_volumes) {
+        const auto it = slices_cache.find(modifier);
+        if (it == slices_cache.end() || layer_id >= it->second.size())
+            continue;
+        const SegmentExtraction extracted = extract_perimeter_segments(
+            prepared, it->second[layer_id], modifier->type(), {layer, modifier, warnings});
+        record_extraction(warnings, modifier, extracted);
+        // Full containment leaves no intersection to place the point on: skipped with a warning.
+        if (extracted.full_containment) {
             if (warnings)
-                warnings->multiply_connected.store(true, std::memory_order_relaxed);
+                PreciseSeamWarnings::mark(warnings->full_containment, modifier->type());
             continue;
         }
+        // No usable segment, even if all fragments were discarded: pass the turn to the next modifier.
+        if (extracted.segments.empty())
+            continue;
+        if (warnings && extracted.segments.size() > 1)
+            PreciseSeamWarnings::mark(warnings->multiple_intersections, modifier->type());
 
-        // Iterate through all polygons of the modifier on this layer
-        // After finding a match, check if remaining modifier polygons also intersect the perimeter.
-        // Strong modifiers process only one intersection (one seam per perimeter), so any additional
-        // intersections from unprocessed polygons indicate a multiple-intersection situation.
-        auto check_remaining_polygons = [&](size_t current_idx) {
-            if (warnings && !warnings->multiple_intersections.load(std::memory_order_relaxed)) {
-                // Refinement may have rounded newly inserted points, so use the current bounds.
-                const BoundingBox refined_bbox(polygon.points);
-                for (size_t j = current_idx + 1; j < modifier_polygons.size(); ++j) {
-                    if (!refined_bbox.overlap(BoundingBox(modifier_polygons[j].points)))
-                        continue;
-                    if (!intersection(Polygons{polygon}, Polygons{modifier_polygons[j]}).empty()) {
-                        warnings->multiple_intersections.store(true, std::memory_order_relaxed);
-                        break;  // one extra intersection is enough to trigger the warning
-                    }
-                }
-            }
-        };
-        for (size_t modifier_polygon_idx = 0; modifier_polygon_idx < modifier_polygons.size(); ++modifier_polygon_idx) {
-            const Polygon &modifier_polygon = modifier_polygons[modifier_polygon_idx];
-            if (!perimeter_bbox.overlap(BoundingBox(modifier_polygon.points)))
-                continue;
-            // Find intersection with perimeter
-            Polygons intersection_polygons = intersection(Polygons{polygon}, Polygons{modifier_polygon});
-
-            // Multiple intersection polygons = modifier crosses perimeter in several places
-            if (warnings && intersection_polygons.size() > 1)
-                warnings->multiple_intersections.store(true, std::memory_order_relaxed);
-            // Diff check: modifier minus perimeter yields >1 polygon = through-body intersection.
-            // However, if any diff polygon is CW, it is a hole left by full containment
-            // (modifier fully covers perimeter), not a real through-body case.
-            // Full containment is detected separately in common_segment_in_intersection().
-            if (warnings && !warnings->through_body.load(std::memory_order_relaxed)) {
-                Polygons diff_polygons = diff(Polygons{modifier_polygon}, Polygons{polygon});
-                if (diff_polygons.size() > 1) {
-                    bool has_cw = std::any_of(diff_polygons.begin(), diff_polygons.end(),
-                        [](const Polygon &p) { return p.is_clockwise(); });
-                    if (!has_cw)
-                        warnings->through_body.store(true, std::memory_order_relaxed);
-                }
-            }
-
-            // Process each intersection polygon
-            for (Polygon &intersection_polygon : intersection_polygons) {
-                // Convert intersection_polygon to CCW to guarantee same traversal direction as perimeter
-                intersection_polygon.make_counter_clockwise();
-
-                // Try to find perimeter segment in this intersection
-                std::optional<SegmentData> segment = common_segment_in_intersection_fast(
-                    intersection_polygon,
-                    polygon,
-                    warnings
-                );
-
-                if (!segment.has_value()) {
-                    continue;
-                }
-
-                // Select target point finder based on modifier type
-                std::optional<std::pair<Point, size_t>> target;
-                switch (modifier_volume->type()) {
-                    case ModelVolumeType::PRECISE_SEAM_CENTER: target = segment_center(segment.value(), polygon); break;
-                    case ModelVolumeType::PRECISE_SEAM_LEFT:   target = segment_left(segment.value());   break;
-                    case ModelVolumeType::PRECISE_SEAM_RIGHT:  target = segment_right(segment.value());  break;
-                    default: continue;
-                }
-
-                if (!target.has_value())
-                    continue;
-
-                // Insert target point into perimeter with tolerance check
-                std::optional<std::pair<Point, size_t>> result = insert_point_into_perimeter(
-                    target->first,  // target_point
-                    target->second, // insert_idx
-                    polygon
-                );
-
-                if (!result.has_value())
-                    continue;
-
-                // Add additional points on both sides to create transition zone.
-                // +1 must be called before -1: reverse order shifts result->second and breaks insertion.
-                refine_at_vertex(result->second, +1, polygon);
-                refine_at_vertex(result->second, -1, polygon);
-
-                check_remaining_polygons(modifier_polygon_idx);
-                return result->first;
+        // Lengths are compared exactly: for a symmetric modifier the chosen face may alternate between
+        // layers, which is accepted (the user gets the multiple-intersections warning).
+        StrongSeamTarget target{Point(0, 0), 0};
+        double longest = -1.;
+        for (const PerimeterSegment &segment : extracted.segments) {
+            assert(segment.strong_target.has_value());
+            const StrongSeamTarget &candidate = *segment.strong_target;
+            // Slice coordinates already include object rotation and retain bed axes.
+            // Centering/instance translation cannot change rear (+Y), then left (-X) ordering.
+            const bool farther_or_left = candidate.point.y() > target.point.y() ||
+                (candidate.point.y() == target.point.y() && candidate.point.x() < target.point.x());
+            if (segment.length > longest || (segment.length == longest && farther_or_left)) {
+                longest = segment.length;
+                target = candidate;
             }
         }
+        const auto [seam_point, seam_index] = insert_point_into_perimeter(target.point, target.edge_index, polygon);
+        // Preserve the insertion order: refining before first would shift the seam index.
+        refine_at_vertex(seam_index, +1, polygon);
+        refine_at_vertex(seam_index, -1, polygon);
+        return seam_point; // No later strong modifier or weak processing for this perimeter.
     }
-
-    // No matching segment found or insertion failed
     return std::nullopt;
 }
 
 // Convert ModelVolumeType of weak modifier to EnforcedBlockedSeamPoint.
-// Precondition: called only with weak precise-seam types (filtered via is_precise_seam_weak()).
+// Precondition: a weak precise-seam type; init_precise_seam_data() puts only those in the weak list.
 // Exhaustive switch (no default) so -Wswitch flags any future PRECISE_SEAM_* additions.
 static EnforcedBlockedSeamPoint convert_weak_modifier_type(ModelVolumeType type) {
+    assert(is_precise_seam_weak(type));
     switch (type) {
         case ModelVolumeType::PRECISE_SEAM_ENFORCED:
             return EnforcedBlockedSeamPoint::Enforced;
@@ -982,223 +779,57 @@ static EnforcedBlockedSeamPoint convert_weak_modifier_type(ModelVolumeType type)
     return EnforcedBlockedSeamPoint::Neutral;
 }
 
-// Collect all weak modifier segments for given perimeter
-// Process weak modifiers (ENFORCED/BLOCKED/NEUTRAL) and collect segment boundaries
-// Also insert boundary points into perimeter polygon (sorted by descending arc length)
-// Split enforced edges into small segments (≤ enforcer_oversampling_distance) for precise seam placement
-// Return ordered vector of segments with updated coordinates (in same order as weak_volumes list)
-std::vector<WeakModifierSegment> collect_weak_modifier_segments(
-    const std::vector<const ModelVolume*> &weak_volumes,
-    Polygon &polygon,
-    const Layer *layer,
-    const ModifierSlicesCache &slices_cache,
-    PreciseSeamWarnings* warnings)
+// Consume ready boundaries in modifier priority order; geometry extraction is separate.
+static std::vector<WeakModifierSegment> prepare_weak_modifier_segments(
+    std::vector<WeakModifierSegment> result, Polygon &polygon)
 {
-    std::vector<WeakModifierSegment> result;
-
-    // Check input parameters
-    if (weak_volumes.empty() || layer == nullptr) {
-        return result; // Empty vector
-    }
-
-    // layer->id() is offset by raft layer count, but modifier_slices is 0-based
-    // (built from PrintObject::layers() via slice_single_volume). Subtract raft
-    // offset to get the correct index into the cache.
-    const size_t raft_layers = layer->object()->slicing_parameters().raft_layers();
-    size_t layer_id = layer->id() - raft_layers;
-
-    // The perimeter is not modified until all weak segments have been collected.
-    const BoundingBox perimeter_bbox(polygon.points);
-
-    // Iterate through all weak modifiers in hierarchy order
-    for (const ModelVolume* modifier_volume : weak_volumes) {
-        // Look up pre-sliced polygons from cache (sliced once in SeamPlacer::init).
-        // TODO: slice_single_volume() converts ExPolygons to flat Polygons, losing
-        // the association between outer contours and their holes. This makes correct
-        // handling of multiply-connected modifier regions (e.g. a torus cross-section)
-        // impossible. Consider a variant returning std::vector<ExPolygons> and adapting
-        // the algorithm to work with multiply-connected domains.
-        auto it = slices_cache.find(modifier_volume);
-        if (it == slices_cache.end())
-            continue; // modifier not in cache (should not happen)
-        const std::vector<Polygons> &modifier_slices = it->second;
-
-        // Check if slices exist for given layer
-        if (layer_id >= modifier_slices.size()) {
-            continue; // No slices for this layer
-        }
-
-        const Polygons &modifier_polygons = modifier_slices[layer_id];
-
-        // Check for multiply-connected regions (holes = CW polygons).
-        // slice_single_volume() flattens ExPolygons into Polygons, but preserves
-        // orientation: CCW = outer contour, CW = hole. If any CW polygon is present,
-        // the modifier is multiply-connected and cannot be processed correctly.
-        bool has_holes = std::any_of(modifier_polygons.begin(), modifier_polygons.end(),
-            [](const Polygon &p) { return p.is_clockwise(); });
-        if (has_holes) {
-            if (warnings)
-                warnings->multiply_connected.store(true, std::memory_order_relaxed);
-            continue;
-        }
-
-        // Iterate through all modifier polygons on this layer
-        for (const Polygon &modifier_polygon : modifier_polygons) {
-            // Preserve touching and contained pairs for the existing clipping and warning logic.
-            if (!perimeter_bbox.overlap(BoundingBox(modifier_polygon.points)))
-                continue;
-            // Find intersection with perimeter
-            Polygons intersection_polygons = intersection(Polygons{polygon}, Polygons{modifier_polygon});
-
-            // Note: intersection_polygons.size() > 1 is NOT flagged as a warning here.
-            // For weak modifiers, multiple intersection polygons are expected (the modifier
-            // may legitimately cross the perimeter in several places).
-            // Only through-body intersections (detected by diff below) are abnormal.
-
-            // Diff check: if modifier minus perimeter yields >1 polygon, the modifier
-            // passes through the model body, creating a through-body intersection.
-            // CW polygon in diff = hole from full containment, not through-body.
-            // Full containment is detected separately in common_segment_in_intersection().
-            if (warnings && !warnings->through_body.load(std::memory_order_relaxed)) {
-                Polygons diff_polygons = diff(Polygons{modifier_polygon}, Polygons{polygon});
-                if (diff_polygons.size() > 1) {
-                    bool has_cw = std::any_of(diff_polygons.begin(), diff_polygons.end(),
-                        [](const Polygon &p) { return p.is_clockwise(); });
-                    if (!has_cw)
-                        warnings->through_body.store(true, std::memory_order_relaxed);
-                }
-            }
-
-            // Process each intersection polygon
-            for (Polygon &intersection_polygon : intersection_polygons) {
-                // Convert intersection_polygon to CCW to guarantee same traversal direction as perimeter
-                intersection_polygon.make_counter_clockwise();
-
-                // Search for perimeter segment in this intersection
-                std::optional<SegmentData> segment = common_segment_in_intersection_fast(
-                    intersection_polygon,
-                    polygon,
-                    warnings
-                );
-
-                if (!segment.has_value()) {
-                    continue; // Segment not found
-                }
-
-                // Get left (first) point of segment
-                std::optional<std::pair<Point, size_t>> left = segment_left(segment.value());
-
-                // Get right (last) point of segment
-                std::optional<std::pair<Point, size_t>> right = segment_right(segment.value());
-
-                // If both boundaries found, add segment to result
-                if (left.has_value() && right.has_value()) {
-                    result.push_back({
-                        convert_weak_modifier_type(modifier_volume->type()),  // Type: Enforced/Blocked/Neutral
-                        left->first,                                          // Left point coordinates
-                        left->second,                                         // Perimeter vertex index for left point
-                        right->first,                                         // Right point coordinates
-                        right->second                                         // Perimeter vertex index for right point
-                    });
-                }
-            }
-        }
-    }
-
     // If no segments, return empty vector
     if (result.empty()) {
         return result;
     }
 
-    // Insert boundary points into perimeter polygon
-    // Sort points by descending arc length to avoid breaking indexing
-
-    // 1. Parameterize polygon: calculate cumulative lengths for each vertex
-    std::vector<double> cumulative_lengths(polygon.points.size() + 1);
-    cumulative_lengths[0] = 0.0;
-    for (size_t i = 0; i < polygon.points.size(); ++i) {
-        size_t next_i = (i + 1) % polygon.points.size();
-        double edge_length = (polygon.points[next_i] - polygon.points[i]).cast<double>().norm();
-        cumulative_lengths[i + 1] = cumulative_lengths[i] + edge_length;
-    }
-
-    // 2. Create helper vector for sorting: {segment index, left/right point, arc length}
+    // Source positions have the same order as arc length, without measuring the perimeter.
     struct PointToInsert {
-        size_t segment_idx;  // Index in result
-        bool is_left;        // true = left point, false = right point
-        double arc_length;   // Arc length from perimeter start
+        size_t segment_idx;
+        bool is_left;
+        PerimeterPosition position;
     };
     std::vector<PointToInsert> points_to_insert;
     points_to_insert.reserve(result.size() * 2);
-
     for (size_t seg_idx = 0; seg_idx < result.size(); ++seg_idx) {
         const WeakModifierSegment &seg = result[seg_idx];
-
-        // Left point
-        double left_base = cumulative_lengths[seg.left_idx];
-        double left_offset = (seg.left_point - polygon.points[seg.left_idx]).cast<double>().norm();
-        points_to_insert.push_back({seg_idx, true, left_base + left_offset});
-
-        // Right point
-        double right_base = cumulative_lengths[seg.right_idx];
-        double right_offset = (seg.right_point - polygon.points[seg.right_idx]).cast<double>().norm();
-        points_to_insert.push_back({seg_idx, false, right_base + right_offset});
+        // A whole-perimeter zone has no boundaries to insert.
+        if (seg.whole_perimeter)
+            continue;
+        points_to_insert.push_back({seg_idx, true, seg.left_position});
+        points_to_insert.push_back({seg_idx, false, seg.right_position});
     }
 
-    // 3. Sort by descending arc length (insert distant points first)
+    // Descending order preserves pending source indices; vertex zero is canonical (0, 0).
+    // Only insertion events are reordered: modifier priority in result remains unchanged.
     std::sort(points_to_insert.begin(), points_to_insert.end(),
               [](const PointToInsert &a, const PointToInsert &b) {
-                  return a.arc_length > b.arc_length;
+                  if (a.position.edge_index != b.position.edge_index)
+                      return a.position.edge_index > b.position.edge_index;
+                  return a.position.parameter > b.position.parameter;
               });
-
-    // 4. Insert points in descending arc length order
-    std::vector<bool> segment_valid(result.size(), true);
-    bool any_insertion_failed = false;
 
     for (const PointToInsert &pt : points_to_insert) {
         WeakModifierSegment &seg = result[pt.segment_idx];
         Point &point_coords = pt.is_left ? seg.left_point : seg.right_point;
-        size_t edge_idx = pt.is_left ? seg.left_idx : seg.right_idx;
-
-        // Insert point with tolerance check
-        std::optional<std::pair<Point, size_t>> insert_result =
-            insert_point_into_perimeter(point_coords, edge_idx, polygon);
-
-        if (insert_result.has_value()) {
-            // Update coordinates in result (if point coincided with existing vertex, take its coordinates)
-            point_coords = insert_result->first;
-        } else {
-            // Failed to insert point - segment becomes invalid
-            segment_valid[pt.segment_idx] = false;
-            any_insertion_failed = true;
-        }
+        // Take the final coordinates: a boundary close to an existing vertex snaps to it.
+        point_coords = insert_point_into_perimeter(point_coords, pt.position.edge_index, polygon).first;
     }
 
-    // 5. Remove segments whose boundaries could not be inserted
-    if (any_insertion_failed) {
-        // Critical error: boundary point not inserted (shouldn't happen in normal conditions)
-        BOOST_LOG_TRIVIAL(error) << "PreciseSeam: boundary point insertion failed, performing segment compaction";
-
-        // Remove invalid segments (array compaction)
-        size_t write_pos = 0;
-        for (size_t read_pos = 0; read_pos < result.size(); ++read_pos) {
-            if (segment_valid[read_pos]) {
-                if (write_pos != read_pos) {
-                    result[write_pos] = std::move(result[read_pos]);
-                }
-                ++write_pos;
-            }
-        }
-        result.resize(write_pos);
-    }
-
-    // 6. Group coincident boundaries by their snapped vertex, including wraparound to vertex 0.
-    // Scan original vertices backwards so insertions cannot shift pending vertex indices.
-    // O(vertices * segments), matching the boundary lookup below; typically only a few segments.
+    // Add helpers at boundary vertices, scanning original vertices backwards so insertions do not shift
+    // pending indices.
     for (size_t poly_idx = polygon.size(); poly_idx-- > 0; ) {
         bool refine_before = false;
         bool refine_after = false;
         for (const WeakModifierSegment &segment : result) {
+            // Its placeholder points must not match a real vertex.
+            if (segment.whole_perimeter)
+                continue;
             refine_before |= polygon[poly_idx] == segment.left_point;
             refine_after |= polygon[poly_idx] == segment.right_point;
         }
@@ -1209,38 +840,44 @@ std::vector<WeakModifierSegment> collect_weak_modifier_segments(
             refine_at_vertex(poly_idx, -1, polygon);
     }
 
-    // 7. Split edges in enforced zones into segments ≤ enforcer_oversampling_distance
+    // Split edges in enforced zones into segments ≤ enforcer_oversampling_distance
     // Determine type pattern for each polygon edge (sequential application of hierarchy)
     std::vector<EnforcedBlockedSeamPoint> edge_types(polygon.size(), EnforcedBlockedSeamPoint::Neutral);
 
-    // Helper lambda: search for point index in modified polygon by coordinates.
-    // Linear scan is intentional — O(N×M) is acceptable for typical M ≤ 5 weak segments.
-    auto find_point_index = [&](const Point &pt) -> std::optional<size_t> {
-        for (size_t i = 0; i < polygon.size(); ++i) {
-            if (polygon[i] == pt) return i;
-        }
-        return std::nullopt;
+    // Every boundary was inserted or snapped above and later steps only add vertices, so it is found.
+    // A linear scan is fine: there are only a few zones per perimeter.
+    auto find_point_index = [&](const Point &pt) -> size_t {
+        const auto it = std::find(polygon.points.begin(), polygon.points.end(), pt);
+        assert(it != polygon.points.end());
+        return size_t(it - polygon.points.begin());
     };
 
-    // Apply types sequentially: segments are sorted low-priority-first
-    // (bottom of object tree first), so higher-priority modifiers overwrite
-    // lower-priority ones via last-write-wins.
+    // Last write wins: zones are sorted lowest priority first.
     for (const auto &segment : result) {
-        // Find boundary point indices in modified polygon
-        std::optional<size_t> left_idx = find_point_index(segment.left_point);
-        std::optional<size_t> right_idx = find_point_index(segment.right_point);
-
-        if (!left_idx.has_value() || !right_idx.has_value()) {
-            BOOST_LOG_TRIVIAL(error) << "PreciseSeam: boundary point not found in modified polygon, skipping segment";
+        // A whole-perimeter zone types every edge, so Enforced subdivides the whole perimeter, as
+        // painting it green all round would.
+        if (segment.whole_perimeter) {
+            std::fill(edge_types.begin(), edge_types.end(), segment.type);
+            continue;
+        }
+        const size_t left_idx = find_point_index(segment.left_point);
+        const size_t right_idx = find_point_index(segment.right_point);
+        // Practically unreachable, but a miss would write past edge_types in Release builds: skip the zone.
+        if (left_idx == polygon.size() || right_idx == polygon.size()) {
+            BOOST_LOG_TRIVIAL(error) << "PreciseSeam: weak boundary not found in perimeter, skipping zone";
             continue;
         }
 
-        // Set type for edges [left_idx, right_idx]
-        for (size_t idx = left_idx.value(); ; idx = (idx + 1) % polygon.size()) {
+        // A zone covers edges [left_idx, right_idx): the edge from the right boundary is outside and must
+        // not be subdivided. Edge types only drive subdivision; candidates are typed per point later.
+        for (size_t idx = left_idx; idx != right_idx; idx = (idx + 1) % polygon.size())
             edge_types[idx] = segment.type;
-            if (idx == right_idx.value()) break;
-        }
     }
+
+    // Boundaries and helpers are already in place; without enforced edges nothing is subdivided,
+    // so skip rebuilding the polygon.
+    if (std::find(edge_types.begin(), edge_types.end(), EnforcedBlockedSeamPoint::Enforced) == edge_types.end())
+        return result;
 
     // Split enforced edges into small segments
     const double STEP_SCALED = scale_(SeamPlacer::enforcer_oversampling_distance);
@@ -1291,9 +928,53 @@ std::vector<WeakModifierSegment> collect_weak_modifier_segments(
     return result;
 }
 
-// Apply weak modifier types to perimeter points based on segment boundaries.
-// Find boundary points in refined polygon by coordinates and set types
-// for all points inside each segment.
+// Collect every modifier's ready segments before insertions can shift source edge indices.
+std::vector<WeakModifierSegment> collect_weak_modifier_segments(
+    const std::vector<const ModelVolume*> &weak_volumes,
+    Polygon &polygon,
+    const PreparedPerimeter &prepared,
+    const Layer *layer,
+    const ModifierRegionsCache &slices_cache,
+    PreciseSeamWarnings* warnings)
+{
+    assert(&prepared.polygon == &polygon);
+    std::vector<WeakModifierSegment> result;
+    if (weak_volumes.empty() || layer == nullptr || !prepared.valid)
+        return result;
+
+    // Modifier cache indices exclude raft layers, unlike Layer::id().
+    const size_t raft_layers = layer->object()->slicing_parameters().raft_layers();
+    const size_t layer_id = layer->id() - raft_layers;
+    for (const ModelVolume *modifier_volume : weak_volumes) {
+        const auto it = slices_cache.find(modifier_volume);
+        if (it == slices_cache.end() || layer_id >= it->second.size())
+            continue;
+        const ExtractionContext context{layer, modifier_volume, warnings};
+        const SegmentExtraction extracted = extract_perimeter_segments(prepared, it->second[layer_id], modifier_volume->type(), context);
+        record_extraction(warnings, modifier_volume, extracted);
+        const auto type = convert_weak_modifier_type(modifier_volume->type());
+        // Full containment works like seam painting: Enforced and Neutral type the whole perimeter;
+        // Blocked is skipped with a warning, since the seam cannot avoid the whole perimeter.
+        if (extracted.full_containment) {
+            if (type == EnforcedBlockedSeamPoint::Blocked) {
+                if (warnings)
+                    PreciseSeamWarnings::mark(warnings->full_containment, modifier_volume->type());
+                continue;
+            }
+            WeakModifierSegment whole{type, Point(), PerimeterPosition{0, 0.}, Point(), PerimeterPosition{0, 0.}};
+            whole.whole_perimeter = true;
+            result.push_back(whole);
+            continue;
+        }
+        for (const PerimeterSegment &segment : extracted.segments) {
+            result.push_back({type, segment.polyline.points.front(), segment.begin,
+                                   segment.polyline.points.back(), segment.end});
+        }
+    }
+    // Boundary insertion, refinement and last-write-wins priority use the established path.
+    return prepare_weak_modifier_segments(std::move(result), polygon);
+}
+
 void apply_weak_modifiers_to_perimeter(
     const std::vector<WeakModifierSegment> &weak_segments,
     PrintObjectSeamData::LayerSeams &result,
@@ -1319,6 +1000,15 @@ void apply_weak_modifiers_to_perimeter(
     // so higher-priority modifiers (higher in object tree) overwrite via last-write-wins.
     for (size_t seg_idx = 0; seg_idx < weak_segments.size(); ++seg_idx) {
         const auto &segment = weak_segments[seg_idx];
+
+        // A whole-perimeter zone types every candidate, including painting's oversampled points.
+        if (segment.whole_perimeter) {
+            for (size_t i = perimeter.start_index; i < perimeter.end_index; ++i)
+                result.points[i].type = segment.type;
+            if (segment.type == EnforcedBlockedSeamPoint::Enforced)
+                some_point_enforced = true;
+            continue;
+        }
 
         // Find boundary point indices in result.points
         std::optional<size_t> left_idx = find_point_index(segment.left_point);

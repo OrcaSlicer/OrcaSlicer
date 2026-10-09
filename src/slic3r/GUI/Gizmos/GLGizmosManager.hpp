@@ -102,12 +102,6 @@ public:
         Assembly,
         Simplify,
         BrimEars,
-#ifdef SLIC3R_CAD
-        // Both need the CAD kernel (GeometryEngine); keep them last so that with
-        // SLIC3R_CAD off the enum matches upstream's numbering exactly.
-        Primitive,
-        Sketch,
-#endif
         //SlaSupports,
         // BBS
         //FaceRecognition,
@@ -188,7 +182,8 @@ public:
         IC_TOOLBAR_RESET_ZERO,
         IC_TOOLBAR_RESET_ZERO_HOVER,
         IC_TOOLBAR_TOOLTIP,
-        IC_TOOLBAR_TOOLTIP_HOVER,
+        IC_TOOLBAR_WIKI_GUIDE,
+        IC_TOOLBAR_VIDEO_GUIDE,
         IC_NAME_COUNT,
         IC_CANVAS_MENU,
         IC_CANVAS_MENU_HOVER,

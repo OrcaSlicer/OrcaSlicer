@@ -31,6 +31,13 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
 namespace Slic3r {
 namespace GUI {
 

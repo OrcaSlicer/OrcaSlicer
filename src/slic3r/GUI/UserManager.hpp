@@ -9,11 +9,8 @@
 #include <chrono>
 #include <boost/thread.hpp>
 #include "nlohmann/json.hpp"
-#include "slic3r/Utils/json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
-
-using namespace nlohmann;
 
 namespace Slic3r {
 

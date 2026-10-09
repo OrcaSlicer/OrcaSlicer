@@ -38,7 +38,11 @@ no wx dependency and is unit-tested.
 The notebook needs a page object for a tab to exist and for tabs to be inserted and
 removed by pointer, and the placeholder is that object. It builds the real panel inside
 itself the first time it is shown and forwards showing and hiding afterwards, so a panel's
-own show handling stays its activation hook. Nothing builds while the main window is
+own show handling stays its activation hook. The build runs before the placeholder shows
+itself, so a panel built on demand is created in a hidden window as a prebuilt one is: on
+Windows every control created or moved inside a shown window re-clips and repaints its
+shown siblings, which makes building a large panel into a shown page many times slower.
+Nothing builds while the main window is
 hidden; the window's first show builds the start page. A page that is out of the book is
 not prebuilt. A panel built while its page is hidden stays hidden, and gets the theming
 the window applied before the panel existed.

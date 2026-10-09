@@ -22,7 +22,6 @@
 #include "Format/AssimpImport.hpp"
 #include "ClipperUtils.hpp"
 #include "Exception.hpp"
-#include "Model.hpp"
 #include "ModelArrange.hpp"
 #include "Arrange.hpp"
 #include "Geometry.hpp"
@@ -85,6 +84,7 @@
 
 // Transtltion
 #include "I18N.hpp"
+#include "ExPolygon.hpp"
 
 // ModelIO support
 #ifdef __APPLE__
@@ -321,8 +321,7 @@ Model Model::read_from_file(const std::string&                                  
                             Import3mfProgressFn                                 proFn,
                             ImportstlProgressFn                                 stlFn,
                             BBLProject *                                        project,
-                            int                                                 plate_id,
-                            ObjImportColorFn                                    objFn)
+                            int                                                 plate_id)
 {
     Model model;
 
@@ -1272,7 +1271,6 @@ ModelObject& ModelObject::assign_copy(const ModelObject &rhs)
         this->volumes.emplace_back(new ModelVolume(*model_volume));
         this->volumes.back()->set_model_object(this);
     }
-
     this->clear_instances();
 	this->instances.reserve(rhs.instances.size());
     for (const ModelInstance *model_instance : rhs.instances) {
@@ -1311,7 +1309,6 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
 	rhs.volumes.clear();
     for (ModelVolume *model_volume : this->volumes)
         model_volume->set_model_object(this);
-
     this->clear_instances();
 	this->instances = std::move(rhs.instances);
 	rhs.instances.clear();
@@ -1435,9 +1432,7 @@ ModelVolume* ModelObject::add_volume_with_shared_mesh(const ModelVolume &other, 
 void ModelObject::delete_volume(size_t idx)
 {
     ModelVolumePtrs::iterator i = this->volumes.begin() + idx;
-    ModelVolume* volume_to_delete = *i;
-
-    delete volume_to_delete;
+    delete *i;
     this->volumes.erase(i);
 
     if (this->volumes.size() == 1)
@@ -1530,6 +1525,7 @@ void ModelObject::sort_volumes(bool full_sort)
             return vl_type < vr_type;
         });
 }
+
 ModelInstance* ModelObject::add_instance()
 {
     ModelInstance* i = new ModelInstance(this);
@@ -1700,6 +1696,9 @@ indexed_triangle_set ModelObject::raw_indexed_triangle_set() const
             size_t j = out.indices.size();
             append(out.vertices, v->mesh().its.vertices);
             append(out.indices,  v->mesh().its.indices);
+            // Orca: Point the volume's triangles at its own vertices, which follow those of the volumes before it.
+            for (size_t k = j; k < out.indices.size(); ++ k)
+                out.indices[k] += stl_triangle_vertex_indices::Constant(int(i));
             const Transform3d& m = v->get_matrix();
             for (; i < out.vertices.size(); ++ i)
                 out.vertices[i] = (m * out.vertices[i].cast<double>()).cast<float>().eval();
@@ -3888,7 +3887,6 @@ bool model_volume_list_changed(const ModelObject &model_object_old, const ModelO
         return std::find(types.begin(), types.end(), t) != types.end();
     });
 }
-
 
 template< typename TypeFilterFn, typename CompareFn>
 bool model_property_changed(const ModelObject &model_object_old, const ModelObject &model_object_new, TypeFilterFn type_filter, CompareFn compare)

@@ -33,6 +33,8 @@
 #include "I18N.hpp"
 
 #include <bitset>
+#include <cstdio>
+#include <cstring>
 
 //unofficial linux lib
 #ifdef HAVE_SPNAV

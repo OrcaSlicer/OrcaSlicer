@@ -17,6 +17,7 @@
 #include <wx/textctrl.h>
 #include <wx/timer.h>
 #include <wx/spinctrl.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

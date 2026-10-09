@@ -36,8 +36,13 @@ override is not available in these profiles. The source's `EXCLUDE_E_START` and
 `EXCLUDE_E_END` internal markers become comments rather than printer commands.
 
 Pressure-advance restoration and automatic pressure-advance emission use the
-selected filament preset's settings. These profiles do not impose machine-owned
-filament overrides. Dock-fan control retains the source's material and layer
+selected filament preset's settings. The INDX filament presets include
+`fdm_filament_template_indx`, whose start G-code sets the filament's pressure
+advance with `M572` and then starts the firmware's automatic calibration with
+`M573 R`, the commands PrusaSlicer emits after a tool change; the station purge
+disables pressure advance before it. The template also carries Prusa's
+multi-tool ramming and a 10 mm³ minimal purge. These profiles do not impose
+machine-owned filament overrides. Dock-fan control retains the source's material and layer
 conditions; shutdown parks the tool and turns off the used heaters and dock fan.
 
 ## Configuration boundaries

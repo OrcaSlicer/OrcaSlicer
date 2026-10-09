@@ -5,6 +5,9 @@
 	"from": "system",
 	"setting_id": "eKla6su22rYaL9iz",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_indx"
+	],
 	"filament_flow_ratio": [
 		"1",
 		"1",

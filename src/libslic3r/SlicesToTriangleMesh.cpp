@@ -16,6 +16,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
 #include <vector>
+#include "ExPolygon.hpp"
 
 namespace Slic3r {
 

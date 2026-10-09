@@ -121,6 +121,7 @@
 // This is the only place where we want to allow that, so define an override macro.
 #define SLIC3R_ALLOW_LIBSLIC3R_I18N_IN_SLIC3R
 #include "libslic3r/I18N.hpp"
+#include "libslic3r/Point.hpp"
 #undef SLIC3R_ALLOW_LIBSLIC3R_I18N_IN_SLIC3R
 #include "slic3r/GUI/I18N.hpp"
 
@@ -171,13 +172,12 @@
 #include <openssl/evp.h>
 
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/I18N.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/InstanceLock.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/miniz_extension.hpp"
-#include "libslic3r/Utils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/host/PluginHostUi.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
@@ -240,6 +240,26 @@
 #include "PluginsDialog.hpp"
 #include "SpeedDialDialog.hpp"
 #include "TerminalDialog.hpp"
+#include "libslic3r/Format/STEP.hpp"
+#include "libslic3r/Semver.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/ConfigWizard.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/HttpServer.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/ParamsDialog.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
+#include <wx/defs.h>
+#include "slic3r/GUI/Widgets/WebView.hpp"
+#include <cwchar>
+#include <wx/dataview.h>
+#include <wx/itemattr.h>
+#include <wx/version.h>
 
 //#ifdef WIN32
 //#include "BaseException.h"
@@ -268,6 +288,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 #endif
 #ifdef _WIN32
 #include <boost/dll/runtime_symbol_info.hpp>
+#include <direct.h>
 #endif
 
 #ifdef WIN32
@@ -288,8 +309,10 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
     #include <gtk/gtk.h>
 #endif
 
+namespace fs = boost::filesystem;
 using namespace std::literals;
 namespace pt = boost::property_tree;
+using json = nlohmann::json;
 
 struct StaticBambuLib
 {
@@ -3086,6 +3109,21 @@ bool GUI_App::on_init_inner()
         for (auto d : dialogStack)
             d->EndModal(wxID_ABORT);
     });
+
+#ifdef __APPLE__
+    // A quit request from the Dock, a logout or a restart ends with AppKit calling exit() right after this event, so
+    // OnExit() and ~GUI_App() never run. Shut the plugins and Python down here as ~GUI_App() does. Left to
+    // PluginManager's static destructor, the shutdown locks hook state that has already been destroyed and aborts.
+    // Unload the Bambu network plugin too. Its static destructors abort if its agent's threads are still running.
+    wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
+        stop_sync_user_preset();
+        Slic3r::NetworkAgent::unload_network_module();
+        Slic3r::PluginManager::instance().shutdown();
+        Slic3r::PythonInterpreter::instance().shutdown();
+        e.Skip();
+    });
+#endif
 
     // Verify resources path
     const wxString resources_dir = from_u8(Slic3r::resources_dir());
@@ -8215,7 +8253,7 @@ bool GUI_App::load_language(wxString language, bool initial)
         message += _L("\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n");
 #endif
         if (initial)
-        	message + "\n\nApplication will close.";
+        	message += "\n\n" + _L("Application will close.");
         wxMessageBox(message, _L("Orca Slicer - Switching language failed"), wxOK | wxICON_ERROR);
         if (initial)
 			std::exit(EXIT_FAILURE);
@@ -9002,7 +9040,7 @@ std::map<std::string, std::string> GUI_App::get_delete_cache_presets_lock()
 
 void GUI_App::process_delete_presets()
 {
-    std::map<string, string> delete_cache_presets = get_delete_cache_presets_lock();
+    std::map<std::string, std::string> delete_cache_presets = get_delete_cache_presets_lock();
     for (auto it = delete_cache_presets.begin(); it != delete_cache_presets.end();) {
         if (it->first.empty()) continue;
         std::string del_setting_id = it->first;
@@ -10030,7 +10068,7 @@ bool is_soluble_filament(int extruder_id)
     return support_option->get_at(0);
 };
 
-bool has_filaments(const std::vector<string>& model_filaments) {
+bool has_filaments(const std::vector<std::string>& model_filaments) {
     auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
     if (!Slic3r::GUI::wxGetApp().plater()) return false;
     auto model_objects = Slic3r::GUI::wxGetApp().plater()->model().objects;
@@ -10065,7 +10103,7 @@ bool is_support_filament(int extruder_id, bool strict_check)
     Slic3r::ConfigOptionBools *support_option = dynamic_cast<Slic3r::ConfigOptionBools *>(filament->config.option("filament_is_support"));
 
     if(!strict_check &&(filament_type == "PETG" || filament_type == "PLA")) {
-        std::vector<string> model_filaments;
+        std::vector<std::string> model_filaments;
         if (filament_type == "PETG")
             model_filaments.emplace_back("PLA");
         else {
@@ -10076,6 +10114,18 @@ bool is_support_filament(int extruder_id, bool strict_check)
     if (support_option == nullptr) return false;
     return support_option->get_at(0);
 };
+
+Vec3d build_plate_tilt_up_direction()
+{
+    const DynamicPrintConfig &cfg    = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const auto               *opt_x  = cfg.option<ConfigOptionFloat>("build_plate_tilt_x");
+    const auto               *opt_y  = cfg.option<ConfigOptionFloat>("build_plate_tilt_y");
+    const double              tilt_x = opt_x != nullptr ? opt_x->value : 0.;
+    const double              tilt_y = opt_y != nullptr ? opt_y->value : 0.;
+    if (tilt_x == 0. && tilt_y == 0.)
+        return Vec3d::UnitZ();
+    return Vec3d(std::tan(Geometry::deg2rad(tilt_y)), std::tan(Geometry::deg2rad(tilt_x)), 1.).normalized();
+}
 
 } // GUI
 } //Slic3r

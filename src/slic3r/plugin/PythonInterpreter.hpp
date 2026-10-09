@@ -12,7 +12,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "libslic3r/libslic3r.h"
 
 namespace pybind11 {
 class scoped_interpreter;

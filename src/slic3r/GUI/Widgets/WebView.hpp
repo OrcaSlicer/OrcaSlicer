@@ -6,6 +6,9 @@
 #include <wx/webview.h>
 #include <wx/event.h>
 
+class wxWebView;
+class wxWindow;
+
 wxDECLARE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 class WebView

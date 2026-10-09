@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "libslic3r/Print.hpp"
 
 namespace Slic3r {
 

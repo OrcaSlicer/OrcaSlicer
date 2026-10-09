@@ -26,6 +26,7 @@
 #include <vector>
 
 #include <boost/filesystem.hpp>
+#include "libslic3r/Point.hpp"
 
 // H2C/A2L multi-nozzle filament grouping core.
 //

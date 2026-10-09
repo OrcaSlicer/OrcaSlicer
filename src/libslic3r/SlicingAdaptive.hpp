@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+namespace Slic3r { class ModelObject; }
+
 namespace Slic3r
 {
 

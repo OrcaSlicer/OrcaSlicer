@@ -1,6 +1,4 @@
 #include "../ClipperUtils.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -13,6 +11,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polyline.hpp"
 #include "FillCrossHatch.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 

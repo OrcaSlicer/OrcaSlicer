@@ -17,6 +17,7 @@
 #include <atomic>
 #include <memory>
 #include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include <string>
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
@@ -107,7 +108,6 @@ class PlaterPresetComboBox;
 class PartPlateList;
 class SyncNozzleAndAmsDialog;
 class FinishSyncAmsDialog;
-using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 
 class Plater;
 enum class ActionButtonType : int;
@@ -116,12 +116,8 @@ enum class ActionButtonType : int;
 // (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
 inline constexpr int kSidebarContextMenuFilamentId = -2;
 
-#define EVT_PUBLISHING_START        1
-#define EVT_PUBLISHING_STOP         2
-
 //BBS: add EVT_SLICING_UPDATE declare here
 wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
-wxDECLARE_EVENT(EVT_PUBLISH,        wxCommandEvent);
 wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG,        wxCommandEvent);
 
 // Explanation of int param
@@ -144,7 +140,7 @@ wxDECLARE_EVENT(EVT_NOTICE_CHILDE_SIZE_CHANGED, SimpleEvent);
 wxDECLARE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 using ColorEvent = Event<wxColour>;
 wxDECLARE_EVENT(EVT_ADD_CUSTOM_FILAMENT, ColorEvent);
-const wxString DEFAULT_PROJECT_NAME = "Untitled";
+const wxString DEFAULT_PROJECT_NAME = L("Untitled");
 
 class SidebarProps
 {
@@ -295,8 +291,19 @@ public:
 
     // Mixed-color filament sidebar section
     void add_mixed_filament();
+    // The filament slot that blends `components` (1-based physical filament indices) in `ratios`
+    // (percentages), creating it when no existing mixed slot already describes that blend. Returns the
+    // 0-based filament index, or -1 when the paint-state cap leaves no room for another one.
+    //
+    // Exists so a feature that needs a blend can ask for one without going through the modal dialog:
+    // the texture displacement gizmo turns each mix in its palette into a slot, which is what moves the
+    // interleaving from its own paint mask to the slicer, where it happens per layer.
+    int ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios);
     void edit_mixed_filament(size_t idx);
     void delete_mixed_filament_at(size_t idx);
+    // Drops every mixed filament at once, after confirming. The texture displacement gizmo can create
+    // one slot per colour in its palette, so clearing them one at a time is tedious.
+    void remove_all_mixed_filaments();
     void decompose_filament_color(int filament_idx);
     void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();
@@ -328,7 +335,6 @@ private:
 class Plater: public wxPanel
 {
 public:
-    using fs_path = boost::filesystem::path;
 
     Plater(wxWindow *parent, MainFrame *main_frame);
     Plater(Plater &&) = delete;
@@ -388,6 +394,10 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void reload_print();
+    // Belt printers: re-run the G-code preview conversion so the "designed view" toggle
+    // (hotkey B / legend checkbox) takes effect; the back-transform is applied to the
+    void refresh_belt_view();
+    // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -571,7 +581,6 @@ public:
     int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
 
     //BBS
-    void publish_project();
 
     void reload_from_disk();
     void replace_with_stl();
@@ -606,7 +615,6 @@ public:
     void send_calibration_job_finished(wxCommandEvent &evt);
     void print_job_finished(wxCommandEvent &evt);
     void send_job_finished(wxCommandEvent& evt);
-    void publish_job_finished(wxCommandEvent& evt);
     void open_platesettings_dialog(wxCommandEvent& evt);
     void open_filament_map_setting_dialog(wxCommandEvent &evt);
     void on_change_color_mode(SimpleEvent& evt);
@@ -717,7 +725,6 @@ public:
     int get_send_calibration_finished_event();
     int get_print_finished_event();
     int get_send_finished_event();
-    int get_publish_finished_event();
 
     void set_current_canvas_as_dirty();
     void unbind_canvas_event_handlers();
@@ -842,7 +849,6 @@ public:
     //BBS: show object info
     void show_object_info();
     //BBS
-    bool show_publish_dialog(bool show = true);
     //BBS: post process string object exception strings by warning types
     void post_process_string_object_exception(StringObjectException &err);
     void update_objects_position_when_select_preset(const std::function<void()> &select_prest);
@@ -1080,6 +1086,8 @@ private:
     void _calib_pa_pattern_gen_gcode();
     void _calib_pa_tower(const Calib_Params& params);
     void _calib_pa_select_added_objects();
+    void _calib_apply_belt_mode();
+    void _calib_temp_belt_sectioned(const Calib_Params& params, double belt_angle_rad);
 
     void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);
 

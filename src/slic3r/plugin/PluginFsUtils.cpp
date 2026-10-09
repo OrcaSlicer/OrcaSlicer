@@ -807,6 +807,7 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
+            read_string_list("threading", parsed.permissions.threading);
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -850,6 +851,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"network_http", state.permissions.network_http},
         {"network_socket", state.permissions.network_socket},
         {"process", state.permissions.process},
+        {"threading", state.permissions.threading},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();
