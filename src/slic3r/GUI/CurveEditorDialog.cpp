@@ -311,12 +311,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         show_table->Rescale();
         m_content->SendSizeEvent();
     });
-    auto make_action_button = [this](wxWindow* parent, const wxString& label, const wxString& icon) {
+    auto make_action_button = [this](wxWindow* parent, const wxString& label, const wxString& icon, int horizontal_padding = 5) {
         auto* button = new Button(parent, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
         button->SetFont(Label::Body_12);
         const int spacing = label.empty() ? 0 : FromDIP(4);
         button->SetIconSpacing(spacing);
+        button->SetPaddingSize(FromDIP(wxSize(horizontal_padding, 5)));
         // Include icon/text spacing in the button's minimum width.
         button->SetMinSize(wxSize(button->GetMinSize().x + spacing, FromDIP(26)));
         return button;
@@ -406,10 +407,10 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     table_sizer->Add(grid_frame, 1, wxEXPAND);
     auto* csv_actions = new wxBoxSizer(wxHORIZONTAL);
     csv_actions->AddStretchSpacer();
-    auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_import");
+    auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_load", 10);
     import_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { import_csv(); });
     import_button->SetToolTip(_L("Import points from two CSV columns in table order. Comma or semicolon separators are supported."));
-    auto* export_button = make_action_button(table_panel, _L("Export CSV"), "design_export");
+    auto* export_button = make_action_button(table_panel, _L("Export CSV"), "design_export", 10);
     export_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { export_csv(); });
     export_button->SetToolTip(_L("Export the current points to CSV. This does not save changes to the preset."));
     csv_actions->Add(import_button, 0, wxALIGN_CENTER_VERTICAL);
