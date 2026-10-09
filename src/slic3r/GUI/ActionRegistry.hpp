@@ -239,6 +239,7 @@ private:
     // one plugin's whole action set; refresh_capability touches a single capability.
     void refresh_source(const std::string& plugin_key, ActionChange change);
     void refresh_capability(const std::string& plugin_key, const std::string& capability, ActionChange change);
+    void refresh_page_capability(const std::string& plugin_key, const std::string& capability, ActionChange change);
 
     bool m_started = false;                                                // init() runs exactly once; guards double-subscription
     std::unordered_map<std::string, std::shared_ptr<AppAction>> m_actions; // UI-thread confined; no lock

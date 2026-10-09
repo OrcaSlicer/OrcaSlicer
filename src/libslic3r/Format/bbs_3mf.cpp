@@ -1395,7 +1395,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         bool _handle_start_relationship(const char** attributes, unsigned int num_attributes);
 
-        void _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
+        bool _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
         bool _generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
         //bool _generate_volumes(ModelObject& object, const Geometry& geometry, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
 
@@ -2117,7 +2117,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                     }
                     std::vector<Component> object_id_list;
-                    _generate_current_object_list(object_id_list, object.first, m_current_objects);
+                    if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                        return false;
 
                     ObjectMetadata::VolumeMetadataList volumes;
                     ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -2216,7 +2217,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
 
             std::vector<Component> object_id_list;
-            _generate_current_object_list(object_id_list, object.first, m_current_objects);
+            if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                return false;
 
             ObjectMetadata::VolumeMetadataList volumes;
             ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -5071,11 +5073,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
-    void _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
+    bool _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
     {
+        // A cycle in the component graph would expand forever, and an acyclic graph can still expand
+        // exponentially, so bound the number of component references queued. Checking before they are
+        // queued bounds the work list itself, whatever the fan-out. A valid file over the budget is
+        // rejected too, but the budget is way above the component references of any real object.
+        static constexpr size_t max_components = 100000;
+
         std::list<std::pair<Component, Transform3d>> id_list;
         id_list.push_back(std::make_pair(Component(object_id, Transform3d::Identity()), Transform3d::Identity()));
 
+        size_t num_components = 0;
         while (!id_list.empty())
         {
             auto current_item = id_list.front();
@@ -5085,6 +5094,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (current_object != current_objects.end()) {
                 //found one
                 if (!current_object->second.components.empty()) {
+                    num_components += current_object->second.components.size();
+                    if (num_components > max_components) {
+                        add_error("invalid 3mf: cyclic or too many component references");
+                        sub_objects.clear();
+                        return false;
+                    }
                     for (const Component &comp : current_object->second.components) {
                         id_list.push_back(std::pair(comp, current_item.second * comp.transform));
                     }
@@ -5096,6 +5111,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
             }
         }
+        return true;
     }
 
     bool _BBS_3MF_Importer::_generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions)

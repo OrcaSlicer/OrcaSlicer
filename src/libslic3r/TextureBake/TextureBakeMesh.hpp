@@ -15,7 +15,10 @@ namespace TextureBake {
 TriSoup to_soup(const indexed_triangle_set &its, const std::vector<uint8_t> &face_excluded = {});
 
 // Welds at the geometry grid.
-indexed_triangle_set to_indexed_triangle_set(const TriSoup &soup);
+// `face_color`, when given, is read as one entry per soup triangle and rewritten to match the output.
+// Welding can leave a triangle with no area, and those are dropped here, so the two would otherwise
+// fall out of step.
+indexed_triangle_set to_indexed_triangle_set(const TriSoup &soup, std::vector<int> *face_color = nullptr);
 
 } // namespace TextureBake
 } // namespace Slic3r

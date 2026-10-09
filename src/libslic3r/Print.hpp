@@ -12,6 +12,7 @@
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
+#include "Fill/FillTpmsAdaptive.hpp"
 
 #include "BoundingBox.hpp"
 #include "ExtrusionEntityCollection.hpp"
@@ -406,6 +407,7 @@ public:
     double                      max_z() const         { return m_max_z; }
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
+    const TpmsRadialField*       tpms_radial_field(TpmsAdaptiveMode mode) const { return m_tpms_radial_fields[size_t(mode)].get(); }
 
     // BBS
     void generate_support_preview();
@@ -650,6 +652,7 @@ private:
     FillAdaptive::RegionOctrees prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
+    TpmsRadialFields prepare_tpms_radial_fields() const;
 
     // BBS
     SupportNecessaryType is_support_necessary();
@@ -700,6 +703,7 @@ private:
     FillAdaptive::RegionOctrees             m_adaptive_fill_octrees;
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
+    TpmsRadialFields m_tpms_radial_fields;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
@@ -1287,6 +1291,11 @@ public:
     void set_gcode_file_ready();
     void set_gcode_file_invalidated();
     void export_gcode_from_previous_file(const std::string& file, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
+    // Re-reads the moves and line offsets of `result` from its G-code file after the file was rewritten in
+    // place (post-processing scripts or plugins), so the preview and its G-code window follow the file on
+    // disk. Everything else in `result` was computed while slicing and is kept. If the file cannot be
+    // re-read, the moves are kept and the line offsets are cleared, which hides the G-code window.
+    void reload_gcode_moves(GCodeProcessorResult* result) const;
     //BBS: add modify_count logic
     int get_modified_count() const {return m_modified_count;}
     //BBS: add status for whether support used

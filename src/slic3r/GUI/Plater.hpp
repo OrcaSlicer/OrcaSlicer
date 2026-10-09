@@ -291,8 +291,19 @@ public:
 
     // Mixed-color filament sidebar section
     void add_mixed_filament();
+    // The filament slot that blends `components` (1-based physical filament indices) in `ratios`
+    // (percentages), creating it when no existing mixed slot already describes that blend. Returns the
+    // 0-based filament index, or -1 when the paint-state cap leaves no room for another one.
+    //
+    // Exists so a feature that needs a blend can ask for one without going through the modal dialog:
+    // the texture displacement gizmo turns each mix in its palette into a slot, which is what moves the
+    // interleaving from its own paint mask to the slicer, where it happens per layer.
+    int ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios);
     void edit_mixed_filament(size_t idx);
     void delete_mixed_filament_at(size_t idx);
+    // Drops every mixed filament at once, after confirming. The texture displacement gizmo can create
+    // one slot per colour in its palette, so clearing them one at a time is tedious.
+    void remove_all_mixed_filaments();
     void decompose_filament_color(int filament_idx);
     void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();

@@ -400,6 +400,17 @@ void PluginPages::relayout()
     }
 }
 
+void PluginPages::select_page(const PluginCapabilityId& id)
+{
+    if (m_parent == nullptr || m_pages.find(id) == m_pages.end())
+        return;
+
+    // Swap the page into the visible slot first when it lives behind the overflow menu.
+    m_swapped_in_id = id;
+    relayout();
+    m_parent->SelectPageByName(page_tab_id(id));
+}
+
 void PluginPages::show_overflow_menu()
 {
     const int visible_slots = std::max(1, m_visible_page_count);

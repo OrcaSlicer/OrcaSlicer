@@ -937,6 +937,7 @@ struct Sidebar::priv
     StaticLine*       m_text_mixed_title{nullptr};
     ScalableButton*   m_btn_mixed_add{nullptr};
     ScalableButton*   m_btn_mixed_del{nullptr};
+    ScalableButton*   m_btn_mixed_del_all{nullptr};
     wxScrolledWindow* m_mixed_scroll_area{nullptr};       // independent scrollbar for mixed rows
     wxPanel*          m_panel_mixed_content{nullptr};
     wxBoxSizer*       m_sizer_mixed_filaments{nullptr};   // two-column, mirrors sizer_filaments
@@ -3451,6 +3452,11 @@ Sidebar::Sidebar(Plater *parent)
         });
         title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
 
+        p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
+        p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
+        p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
+        title_sizer->Add(p->m_btn_mixed_del_all, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+
         p->m_btn_mixed_add = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "add_filament");
         p->m_btn_mixed_add->SetToolTip(_L("Add mixed filament"));
         p->m_btn_mixed_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { add_mixed_filament(); });
@@ -5124,6 +5130,58 @@ static bool create_mixed_filament_from_result(
     return true;
 }
 
+int Sidebar::ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios)
+{
+    if (components.size() < 2 || components.size() != ratios.size())
+        return -1;
+    if (p->combos_filament.size() < 2)
+        return -1;
+
+    // Normalise the way create_mixed_filament_from_result() stores them, so the comparison below sees
+    // the same text the config holds rather than two spellings of one blend.
+    int ratio_sum = 0;
+    for (const int r : ratios)
+        ratio_sum += r;
+    if (ratio_sum <= 0)
+        return -1;
+
+    std::string comp_str, ratio_str;
+    {
+        CNumericLocalesSetter c_locale_setter;
+        for (size_t i = 0; i < components.size(); ++i) {
+            if (i > 0) { comp_str += ","; ratio_str += ","; }
+            comp_str += std::to_string(components[i]);
+            char buf[32];
+            std::snprintf(buf, sizeof(buf), "%.4f", float(ratios[i]) / float(ratio_sum));
+            ratio_str += buf;
+        }
+    }
+
+    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    const auto *is_mixed_opt   = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    const auto *comp_opt       = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    const auto *ratios_opt     = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    if (is_mixed_opt != nullptr && comp_opt != nullptr && ratios_opt != nullptr)
+        for (size_t i = 0; i < is_mixed_opt->values.size(); ++i)
+            if (is_mixed_opt->values[i] && i < comp_opt->values.size() && i < ratios_opt->values.size() &&
+                comp_opt->values[i] == comp_str && ratios_opt->values[i] == ratio_str)
+                return int(i);
+
+    if (wxGetApp().preset_bundle->filament_presets.size() >= size_t(EnforcerBlockerType::ExtruderMax))
+        return -1;
+
+    std::vector<std::string> color_strs, names, types;
+    collect_physical_filament_info(color_strs, names, types);
+
+    MixedFilamentResult result;
+    result.components = components;
+    result.ratios     = ratios;
+    const size_t created_at = wxGetApp().preset_bundle->filament_presets.size();
+    if (!create_mixed_filament_from_result(this, result, color_strs))
+        return -1;
+    return int(created_at);
+}
+
 void Sidebar::add_mixed_filament()
 {
     auto* plater = dynamic_cast<Plater*>(GetParent());
@@ -5299,6 +5357,28 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
     }
+}
+
+void Sidebar::remove_all_mixed_filaments()
+{
+    auto *plater = dynamic_cast<Plater *>(GetParent());
+    if (plater == nullptr)
+        return;
+    const size_t count = plater->mixed_filament_config_indices().size();
+    if (count == 0)
+        return;
+
+    // Worth a confirmation: this drops filament slots the model may be painted with, and anything
+    // painted in one falls back to a plain filament.
+    MessageDialog dlg(this, format_wxstr(_L("Remove all %1% mixed filaments?"), count), _L("Mixed Filament"),
+                      wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION);
+    if (dlg.ShowModal() != wxID_YES)
+        return;
+
+    // Back to front: delete_mixed_filament_at() indexes the list as it stands, so removing from the end
+    // leaves the indices of everything still to go untouched.
+    for (size_t i = count; i-- > 0;)
+        delete_mixed_filament_at(i);
 }
 
 void Sidebar::delete_mixed_filament_at(size_t panel_idx)
@@ -14996,7 +15076,8 @@ bool Plater::priv::undo_redo_blocked_by_job()
         return false;
     notification_manager->push_notification(NotificationType::CustomNotification,
                                             NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                            _u8L("Cannot undo or redo while an operation is running. Stop it first."));
+                                            _u8L("Cannot undo or redo while an operation is running. Stop the operation, or wait "
+                                                 "for it to finish and then retry."));
     return true;
 }
 

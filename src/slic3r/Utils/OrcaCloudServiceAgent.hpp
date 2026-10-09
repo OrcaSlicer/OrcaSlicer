@@ -94,6 +94,7 @@ struct SyncPullResponse {
 struct SyncPushResult {
     bool success;
     int http_code;
+    int conflict_code;
     long long new_updated_time;
     ProfileUpsert server_version;
     bool server_deleted;

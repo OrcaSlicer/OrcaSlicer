@@ -437,10 +437,14 @@ coordf_t Layer::get_sparse_infill_max_void_area()
     double max_void_area = 0.;
     for (auto layerm : m_regions) {
         Flow flow = layerm->flow(frInfill);
-        float density = layerm->region().config().sparse_infill_density;
-        InfillPattern pattern = layerm->region().config().sparse_infill_pattern;
+        const PrintRegionConfig &config = layerm->region().config();
+        float density = config.sparse_infill_density;
+        InfillPattern pattern = config.sparse_infill_pattern;
         if (density == 0.)
             return -1;
+        // Orca: the adaptive TPMS infill is as sparse as its interior density.
+        if (density < 100.f && config.tpms_adaptive != TpmsAdaptiveMode::Disabled && is_tpms_adaptive_pattern(pattern))
+            density = std::min(density, std::max(1.f, float(config.tpms_interior_density)));
 
         //BBS: rough estimation and need to be optimized
         double spacing = flow.scaled_spacing() * (100 - density) / density;

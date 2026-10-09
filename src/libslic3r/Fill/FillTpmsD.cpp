@@ -14,13 +14,20 @@
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 #include "FillTpmsD.hpp"
+#include "FillTpmsAdaptive.hpp"
 
 namespace Slic3r {
 
 static double scaled_floor(double x,double scale){
 	return std::floor(x/scale)*scale;
+}
+
+static float schwarz_d(float x, float y, float z)
+{
+    return std::sin(x) * std::sin(y) * std::sin(z) - std::cos(x) * std::cos(y) * std::cos(z);
 }
 
 static Polylines make_waves(double gridZ, double density_adjusted, double line_spacing, double width, double height)
@@ -110,31 +117,49 @@ void FillTpmsD::_fill_surface_single(
     ExPolygon                        expolygon, 
     Polylines                       &polylines_out)
 {
+    if (params.tpms_adaptive == TpmsAdaptiveMode::SteppedShells && this->tpms_radial_field != nullptr) {
+        fill_tpms_shells(*this->tpms_radial_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
+                         [&](const FillParams &shell_params, const ExPolygon &shell) {
+                             this->_fill_surface_single(shell_params, thickness_layers, direction, shell, polylines_out);
+                         });
+        return;
+    }
+
     auto infill_angle = float(this->angle + (CorrectionAngle * 2*M_PI) / 360.);
     if(std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
 
-    BoundingBox bb = expolygon.contour.bounding_box();
-    // Density adjusted to have a good %of weight.
-    double      density_adjusted = std::max(0., params.density * DensityAdjust / params.multiline);
-    // Distance between the gyroid waves in scaled coordinates.
-    coord_t     distance = coord_t(scale_(this->spacing)  / density_adjusted);
+    Polylines polylines;
+    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
+        // Radians per mm of the regular pattern at a density.
+        auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
+        BoundingBox bbox = expolygon.contour.bounding_box();
+        bbox.offset(scale_((params.multiline + 1) * this->spacing));
+        polylines = make_adaptive_tpms({schwarz_d, frequency(params.density), frequency(params.tpms_interior_density), params.tpms_adaptive_gradient},
+                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
+    } else {
+        BoundingBox bb = expolygon.contour.bounding_box();
+        // Density adjusted to have a good %of weight.
+        double      density_adjusted = std::max(0., params.density * DensityAdjust / params.multiline);
+        // Distance between the gyroid waves in scaled coordinates.
+        coord_t     distance = coord_t(scale_(this->spacing)  / density_adjusted);
 
-    // align bounding box to a multiple of our grid module
-    bb.merge(align_to_grid(bb.min, Point(2*M_PI*distance, 2*M_PI*distance)));
+        // align bounding box to a multiple of our grid module
+        bb.merge(align_to_grid(bb.min, Point(2*M_PI*distance, 2*M_PI*distance)));
 
-    // generate pattern
-    Polylines polylines = make_waves(
-        scale_(this->z),
-        density_adjusted,
-        this->spacing,
-        ceil(bb.size()(0) / distance) + 1.,
-        ceil(bb.size()(1) / distance) + 1.);
+        // generate pattern
+        polylines = make_waves(
+            scale_(this->z),
+            density_adjusted,
+            this->spacing,
+            ceil(bb.size()(0) / distance) + 1.,
+            ceil(bb.size()(1) / distance) + 1.);
 
-	// shift the polyline to the grid origin
-	for (Polyline &pl : polylines)
-		pl.translate(bb.min);
-	
+        // shift the polyline to the grid origin
+        for (Polyline &pl : polylines)
+            pl.translate(bb.min);
+    }
+
 	    // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
 
