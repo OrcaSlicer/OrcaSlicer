@@ -39164,7 +39164,47 @@ msgstr "Ostatni wsp. korekty przepływu musi być 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Model jest pusty. Brak kompensacji przepływu."
 
+msgid "Import CSV"
+msgstr "Wczytaj CSV"
+
 # AI Translated
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "Limit X zależy od rozmiaru stołu bieżącej drukarki i punktów modelu."
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Import punktów z dwóch kolumn CSV w kolejności tabeli. Separator: przecinek lub średnik."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "Eksport CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Eksport punktów do CSV. Zmiany profilu nie zostaną zapisane."
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "Pliki CSV (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "Nie można odczytać CSV."
+
+# AI Translated
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "Wiersz CSV %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "Nie można zapisać CSV."
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Każdy wiersz CSV musi mieć dwie kolumny."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "Plik CSV nie zawiera punktów."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Limit długości ekstruzji zależy od rozmiaru stołu bieżącej drukarki i punktów modelu."
 

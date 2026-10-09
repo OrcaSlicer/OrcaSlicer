@@ -37830,7 +37830,47 @@ msgstr "Último factor corrector de flujo: debe ser 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modelo vacío. No se compensará el flujo."
 
+msgid "Import CSV"
+msgstr "Importar CSV"
+
 # AI Translated
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "Límite X: tamaño de cama de la impresora actual y puntos del modelo."
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Importa puntos de dos columnas CSV en orden de tabla. Separadores: coma o punto y coma."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "Exportar CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Exporta los puntos a CSV. No guarda cambios en el perfil."
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "Archivos CSV (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "No se puede leer el CSV."
+
+# AI Translated
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "Línea CSV %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "No se puede escribir el CSV."
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Cada línea CSV debe tener dos columnas."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "El CSV no contiene puntos."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "El límite de longitud de extrusión depende de la cama de la impresora actual y los puntos del modelo."
 

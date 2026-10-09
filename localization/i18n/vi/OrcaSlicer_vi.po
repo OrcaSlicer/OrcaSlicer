@@ -39531,7 +39531,47 @@ msgstr "Hệ số hiệu chỉnh lưu lượng cuối phải là 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Mô hình trống. Không áp dụng bù lưu lượng."
 
+msgid "Import CSV"
+msgstr "Nhập CSV"
+
 # AI Translated
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "Giới hạn X tùy theo cỡ bàn in của máy in hiện tại và các điểm mô hình."
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Nhập điểm từ hai cột CSV theo thứ tự bảng. Dấu phân cách: phẩy hoặc chấm phẩy."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "Xuất CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Xuất các điểm ra CSV. Không lưu thay đổi vào cài đặt sẵn."
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "Tệp CSV (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "Không đọc được tệp CSV."
+
+# AI Translated
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "Dòng CSV %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "Không ghi được tệp CSV."
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Mỗi dòng CSV phải có đúng hai cột."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "Tệp CSV không có điểm."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Giới hạn chiều dài đùn tùy vào kích thước bàn của máy in hiện tại và các điểm mô hình."
 

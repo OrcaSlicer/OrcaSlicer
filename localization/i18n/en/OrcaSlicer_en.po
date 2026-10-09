@@ -32357,6 +32357,37 @@ msgstr ""
 msgid "The model is empty. No flow compensation will be applied."
 msgstr ""
 
-msgid "The X limit depends on the current printer's bed size and model points."
+msgid "Import CSV"
+msgstr ""
+
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr ""
+
+msgid "Export CSV"
+msgstr ""
+
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr ""
+
+msgid "CSV files (*.csv)|*.csv"
+msgstr ""
+
+msgid "Could not read the CSV file."
+msgstr ""
+
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr ""
+
+msgid "Could not write the CSV file."
+msgstr ""
+
+msgid "CSV must contain exactly two columns per line."
+msgstr ""
+
+msgid "The CSV file contains no points."
+msgstr ""
+
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr ""
 
