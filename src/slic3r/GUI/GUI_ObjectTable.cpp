@@ -1,20 +1,15 @@
 #include "wx/clipbrd.h"
 #include "wx/display.h"
 
-#include "SelectMachine.hpp"
 #include "I18N.hpp"
 
-#include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 //#include "libslic3r/Model.hpp"
 //#include "Plater.hpp"
 #include "Widgets/Label.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Tab.hpp"
-#include "format.hpp"
-#include "BitmapCache.hpp"
 #include "GUI_ObjectTable.hpp"
 #include "GUI_ObjectList.hpp"
 #include <wx/gdicmn.h>
@@ -50,6 +45,11 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/toplevel.h>
 #include <wx/textctrl.h>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/GUI_ObjectTableSettings.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/defs.h>
 
 //use wxGridWindow to compute position
 //#include "wx/generic/private/grid.h"
@@ -2938,10 +2938,10 @@ void ObjectTablePanel::load_data()
 
     m_object_grid->SetColLabelValue(ObjectGridTable::col_printable, _L("Printable"));
     m_object_grid->SetColLabelValue(ObjectGridTable::col_printable_reset, "");
-    m_object_grid->SetColLabelValue(ObjectGridTable::col_plate_index, wxString::Format("%S%S", _L("Plate"), wxString::FromUTF8("\u2191\u2193")));
+    m_object_grid->SetColLabelValue(ObjectGridTable::col_plate_index, wxString::Format("%S %S", _L("Plate"), wxString::FromUTF8("\u2191\u2193")));
     /*m_object_grid->SetColLabelValue(ObjectGridTable::col_assemble_name, L("Module"));*/
-    m_object_grid->SetColLabelValue(ObjectGridTable::col_name, wxString::Format("%S%S", _L("Name"), wxString::FromUTF8("\u2191\u2193")));
-    m_object_grid->SetColLabelValue(ObjectGridTable::col_filaments, wxString::Format("%S%S", _L("Filament"), wxString::FromUTF8("\u2191\u2193")));
+    m_object_grid->SetColLabelValue(ObjectGridTable::col_name, wxString::Format("%S %S", _L("Name"), wxString::FromUTF8("\u2191\u2193")));
+    m_object_grid->SetColLabelValue(ObjectGridTable::col_filaments, wxString::Format("%S %S", _L("Filament"), wxString::FromUTF8("\u2191\u2193")));
     m_object_grid->SetColLabelValue(ObjectGridTable::col_filaments_reset, "");
     m_object_grid->SetColLabelValue(ObjectGridTable::col_layer_height, _L("Layer height"));
     m_object_grid->SetColLabelValue(ObjectGridTable::col_layer_height_reset, "");
@@ -2956,8 +2956,8 @@ void ObjectTablePanel::load_data()
     m_object_grid->SetColLabelValue(ObjectGridTable::col_speed_perimeter, _L("Outer wall speed"));
     m_object_grid->SetColLabelValue(ObjectGridTable::col_speed_perimeter_reset, "");
     m_object_grid->SetLabelFont(Label::Head_13);
-    m_object_grid->SetLabelTextColour(StateColor::darkModeColorFor(wxColour("#303A3C")));
-    m_object_grid->SetLabelBackgroundColour( wxColour("#FFFFFF"));
+    m_object_grid->SetLabelTextColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    m_object_grid->SetLabelBackgroundColour( StateColor::darkModeColorFor(wxColour("#D9D9D9")));
 #else
     m_object_grid->HideColLabels();
 #endif
@@ -2996,6 +2996,12 @@ void ObjectTablePanel::load_data()
     //m_object_grid->SetSelectionForeground(wxColour(0xDB,0xFD,0xE7));
     //m_object_grid->SetSelectionBackground(*wxWHITE);
     m_object_grid->SetDefaultCellBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    m_object_grid->SetSelectionBackground(StateColor::darkModeColorFor(wxColour("#BFE1DE"))); // its not fully working since background of control's covers cell 
+
+    m_object_grid->SetCellHighlightColour(StateColor::darkModeColorFor(wxColour("#009688")));
+    m_object_grid->SetCellHighlightPenWidth(FromDIP(1));
+    m_object_grid->SetCellHighlightROPenWidth(FromDIP(1)); // Highlight for read-only cells
+
     for (int col = 0; col < cols; col++)
     {
         ObjectGridTable::ObjectGridCol* grid_col = m_object_grid_table->get_grid_col(col);

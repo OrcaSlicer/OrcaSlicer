@@ -38,8 +38,7 @@
 #include <wx/event.h>
 #include <wx/msgdlg.h>
 
-#include "json_diff.hpp"
-#include "libslic3r/libslic3r.h"
+#include <nlohmann/json.hpp>
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -49,24 +48,23 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/UpdateDialogs.hpp"
-#include "slic3r/GUI/ConfigWizard.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Config/Version.hpp"
-#include "slic3r/Config/Snapshot.hpp"
 #include "slic3r/GUI/MarkdownTip.hpp"
 #include "libslic3r/miniz_extension.hpp"
-#include "slic3r/GUI/GUI_Utils.hpp"
+
+using json = nlohmann::json;
+
+namespace Slic3r::GUI::Config { class Snapshot; }
+namespace Slic3r::GUI::Config { class SnapshotDB; }
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::Config::Index;
 using Slic3r::GUI::Config::Version;
-using Slic3r::GUI::Config::Snapshot;
-using Slic3r::GUI::Config::SnapshotDB;
 
 
 // FIXME: Incompat bundle resolution doesn't deal with inherited user presets

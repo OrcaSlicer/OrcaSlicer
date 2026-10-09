@@ -28,6 +28,7 @@
 #include "TextureToColor/TriMesh.hpp"
 #include "TriangleMesh.hpp"
 #include "TriangleSelector.hpp"
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 

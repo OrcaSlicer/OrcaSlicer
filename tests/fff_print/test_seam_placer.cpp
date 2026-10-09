@@ -22,6 +22,10 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r;
 
@@ -209,6 +213,61 @@ TEST_CASE("Entirely painted contours keep valid enforced seam candidates", "[Sea
     }
 }
 
+TEST_CASE("Seam painting acts only from model parts and negative volumes", "[SeamPlacer]")
+{
+    // Painting survives a type change, but only model parts expose it in the seam gizmo. A helper
+    // painted while it was a part must not affect the seam once it is a modifier or support volume.
+    // Negative volumes keep it on purpose: it is the only way to paint the wall of a hole they cut.
+    const auto helper_type = GENERATE(ModelVolumeType::MODEL_PART, ModelVolumeType::NEGATIVE_VOLUME,
+                                      ModelVolumeType::PARAMETER_MODIFIER, ModelVolumeType::SUPPORT_BLOCKER,
+                                      ModelVolumeType::SUPPORT_ENFORCER);
+    // Precise Seam helpers are left out: on the loop they would retype the candidates themselves.
+    const std::string type_name = ModelVolume::type_to_string(helper_type);
+    CAPTURE(type_name);
+    PipelineFixture fixture;
+    // A 2 mm strip along the front side: its front face lies on the loop's front edge, while its back
+    // face stays farther than the paint radius. As a negative volume it cuts only the strip.
+    ModelVolume *helper = fixture.model.objects.front()->add_volume(TriangleMesh(its_make_cube(20, 2, 0.4)));
+    const ObjectID helper_id = helper->id();
+    {
+        // Paint every face of the helper while it is still a part, then change its type.
+        TriangleSelector selector(helper->mesh());
+        for (size_t i = 0; i < helper->mesh().its.indices.size(); ++i)
+            selector.set_facet(int(i), EnforcerBlockerType::ENFORCER);
+        helper->seam_facets.set(selector);
+    }
+    REQUIRE(helper->is_seam_painted());
+    const auto count_enforced = [&]() {
+        fixture.print.apply(fixture.model, fixture.config);
+        PrintObject &object = fixture.prepare();
+        auto &region = clear_first_layer(object);
+        append_loop(region, fixture.points_in_layer(object, {{0, 0}, {20, 0}, {20, 20}, {0, 20}}));
+        SeamPlacer placer;
+        placer.init(fixture.print, [] {});
+        const auto &data = placer.m_seam_per_object.at(&object).layers.front();
+        REQUIRE(data.perimeters.size() == 1);
+        // The helper volume in the print's model copy keeps its painting whatever its type.
+        const auto &volumes = object.model_object()->volumes;
+        const auto it = std::find_if(volumes.begin(), volumes.end(), [&](const ModelVolume *v) { return v->id() == helper_id; });
+        REQUIRE(it != volumes.end());
+        CHECK((*it)->is_seam_painted());
+        return size_t(std::count_if(data.points.begin(), data.points.end(), [](const auto &candidate) {
+            return candidate.type == SeamPlacerImpl::EnforcedBlockedSeamPoint::Enforced;
+        }));
+    };
+    helper->set_type(helper_type);
+    const bool acts = helper_type == ModelVolumeType::MODEL_PART || helper_type == ModelVolumeType::NEGATIVE_VOLUME;
+    if (acts)
+        CHECK(count_enforced() > 0);
+    else
+        CHECK(count_enforced() == 0);
+    if (!acts) {
+        // The painting was ignored, not lost: as a part again the helper enforces candidates.
+        helper->set_type(ModelVolumeType::MODEL_PART);
+        CHECK(count_enforced() > 0);
+    }
+}
+
 TEST_CASE("Precise Seam removes path junction duplicates but preserves separate visits", "[SeamPlacer][PreciseSeam]")
 {
     const bool enable_ps = GENERATE(false, true);
@@ -227,7 +286,14 @@ TEST_CASE("Precise Seam removes path junction duplicates but preserves separate 
     const Points outline = fixture.points_in_layer(object, vertices);
     append_loop(region, outline, true);
     SeamPlacer placer;
+    // A direct call outside G-code export: init() must not need an active print step.
     placer.init(fixture.print, [] {});
+    // The helper never reaches the loop, so it is reported, named with its object; no helper, no warning.
+    if (enable_ps) {
+        CHECK(placer.precise_seam_warning().find("had no effect on the seam") != std::string::npos);
+        CHECK(placer.precise_seam_warning().find("\"object.stl\"") != std::string::npos);
+    } else
+        CHECK(placer.precise_seam_warning().empty());
     const auto &data = placer.m_seam_per_object.at(&object).layers.front();
     REQUIRE(data.perimeters.size() == 1);
     // Each separate path contributes both endpoints in ordinary mode; PS removes only adjacent copies.
@@ -293,4 +359,49 @@ TEST_CASE("Print apply synchronizes support and seam helpers through type change
     check_applied(before);
     fixture.print.apply(fixture.model, fixture.config);
     check_applied(fixture.model);
+}
+
+TEST_CASE("Precise Seam volume changes invalidate only G-code export", "[SeamPlacer][PreciseSeam][Print]")
+{
+    const int change = GENERATE(0, 1, 2, 3); // Add, move, retype, remove.
+    CAPTURE(change);
+    PipelineFixture fixture;
+    ModelObject *model_object = fixture.model.objects.front();
+    // A second helper stays in the object throughout: deleting down to a single volume makes
+    // ModelObject::delete_volume() fold the volume transform into the instances and renew the volume
+    // ID, which legitimately reslices the object regardless of Precise Seam.
+    ModelVolume *keeper = model_object->add_volume(make_cube(1, 1, 1));
+    keeper->set_type(ModelVolumeType::PRECISE_SEAM_NEUTRAL);
+    if (change != 0) {
+        ModelVolume *seam = model_object->add_volume(make_cube(1, 1, 1));
+        seam->set_type(ModelVolumeType::PRECISE_SEAM_CENTER);
+    }
+    fixture.print.apply(fixture.model, fixture.config);
+    // A full export marks every step done, so an invalidated step is visible afterwards.
+    Test::gcode(fixture.print);
+    REQUIRE(fixture.print.objects().size() == 1);
+    const PrintObject *object = fixture.print.objects().front();
+    REQUIRE(fixture.print.is_step_done(psGCodeExport));
+    REQUIRE(object->is_step_done(posSlice));
+    REQUIRE(object->is_step_done(posPerimeters));
+
+    if (change == 0) {
+        ModelVolume *seam = model_object->add_volume(make_cube(1, 1, 1));
+        seam->set_type(ModelVolumeType::PRECISE_SEAM_CENTER);
+    } else {
+        ModelVolume *seam = model_object->volumes.back();
+        REQUIRE(seam->is_precise_seam());
+        if (change == 1) seam->set_offset(Vec3d(2, 3, 0));
+        if (change == 2) seam->set_type(ModelVolumeType::PRECISE_SEAM_ENFORCED);
+        if (change == 3) model_object->delete_volume(model_object->volumes.size() - 1);
+    }
+    fixture.print.apply(fixture.model, fixture.config);
+
+    // The helper takes no part in slicing: the object and its layers are kept, only export reruns.
+    // REQUIRE, not CHECK: a recreated PrintObject means the old one was freed and must not be read.
+    REQUIRE(fixture.print.objects().size() == 1);
+    REQUIRE(fixture.print.objects().front() == object);
+    CHECK_FALSE(fixture.print.is_step_done(psGCodeExport));
+    CHECK(object->is_step_done(posSlice));
+    CHECK(object->is_step_done(posPerimeters));
 }

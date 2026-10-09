@@ -981,7 +981,7 @@ int ReselectMachineDialog::CaculateSwitcherDistribution(MachineObject* obj, cons
                 }
                 if (can.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY)
                 {
-                    material = "Empty";
+                    material = L("Empty");
                 }
 
                 auto itOK = std::find_if(posOK.begin(), posOK.end(), [&](const trayHelper& tray){

@@ -17,9 +17,13 @@
 #include <wx/window.h>
 #include <wx/withimages.h>
 #include "wxExtensions.hpp"
+#include <wx/defs.h>
+#include <wx/notebook.h>
+
+class wxObject;
+class wxStaticText;
 
 
-class ScalableButton;
 class TabButton;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:

@@ -29,7 +29,6 @@
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include <numeric>
-#include <ClipperUtils.hpp>
 
 #include <boost/geometry/index/rtree.hpp>
 #include <utility>
@@ -45,6 +44,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/multiprecision/integer.hpp>
 #include <boost/rational.hpp>
+#include "MultiMaterialSegmentation.hpp"
 
 namespace libnest2d {
 #if !defined(_MSC_VER) && defined(__SIZEOF_INT128__) && !defined(__APPLE__)
@@ -93,7 +93,6 @@ using namespace libnest2d;
 using Item         = _Item<ExPolygon>;
 using Box          = _Box<Point>;
 using Circle       = _Circle<Point>;
-using Segment      = _Segment<Point>;
 using MultiPolygon = ExPolygons;
 
 // Summon the spatial indexing facilities from boost
@@ -300,7 +299,15 @@ Points get_shrink_bedpts(const DynamicPrintConfig* print_cfg, const ArrangeParam
 template<class PConf>
 void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
-        if (params.is_seq_print) {
+        if (params.is_belt) {
+            // Pack from the end of the belt that prints first, and keep the pile on the
+            // bed when it is larger than the room around that end.
+            pcfg.starting_point = !params.belt_reversed    ? PConf::Alignment::BOTTOM_LEFT :
+                                  params.belt_axis == 1    ? PConf::Alignment::TOP_LEFT :
+                                                             PConf::Alignment::BOTTOM_RIGHT;
+            pcfg.clamp_to_bin = true;
+        }
+        else if (params.is_seq_print) {
             // Start placing the items from the center of the print bed
             pcfg.starting_point = PConf::Alignment::BOTTOM_LEFT;
         }
@@ -445,6 +452,50 @@ protected:
         return bindist;
     }
 
+    // Belt printers pack from the end of the belt that prints first, and a corner
+    // packer's checks (pile inside the bin, pack origin) apply to them as well.
+    bool corner_packing() const { return params.is_belt || m_pconf.starting_point == PConfig::Alignment::BOTTOM_LEFT; }
+
+    static double at(const Box::PointType &pt, int i) { return double(i == 0 ? getX(pt) : getY(pt)); }
+
+    // Position along the belt in print order: increasing from the end that prints first.
+    double belt_pos(const Box::PointType &pt) const { return params.belt_reversed ? -at(pt, params.belt_axis) : at(pt, params.belt_axis); }
+    double belt_start(const Box &bb) const { return belt_pos(params.belt_reversed ? bb.maxCorner() : bb.minCorner()); }
+    double belt_end(const Box &bb) const { return belt_pos(params.belt_reversed ? bb.minCorner() : bb.maxCorner()); }
+
+    // The corner of the bin the belt pile grows from.
+    Box::PointType belt_origin() const
+    {
+        const Box bb = sl::boundingBox(m_bin);
+        auto o = bb.minCorner();
+        if (params.belt_reversed) {
+            if (params.belt_axis == 0) setX(o, getX(bb.maxCorner()));
+            else                       setY(o, getY(bb.maxCorner()));
+        }
+        return o;
+    }
+
+    // An item's far edge in print order is what it costs (so a row fills across the
+    // belt before the pile advances), with a slight pull toward the near lateral
+    // edge and the same penalty as the bottom-left heuristic for sitting outside
+    // the corner.
+    double dist_along_belt(const Box &ibb)
+    {
+        const Box    bin = sl::boundingBox(m_bin);
+        const int    l   = 1 - params.belt_axis;
+        const double lat = at(ibb.minCorner(), l) - at(bin.minCorner(), l);
+        double       d   = belt_end(ibb) - belt_start(bin);
+        d += lat < 0 ? 10 * -lat : 0.1 * lat;
+        if (double behind = belt_start(ibb) - belt_start(bin); behind < 0)
+            d += 10 * -behind;
+        return norm(d);
+    }
+
+    double corner_bindist(const Box &ibb, const Slic3r::Point &origin_pack)
+    {
+        return params.is_belt ? dist_along_belt(ibb) : dist_for_BOTTOM_LEFT(ibb, origin_pack);
+    }
+
     double dist_to_bin(const Box& ibb, const Slic3r::Point& origin_pack, typename Packer::PlacementConfig::Alignment starting_point_alignment)
     {
         double bindist = 0;
@@ -534,8 +585,8 @@ protected:
 
             // The smalles distance from the arranged pile center:
             double dist = norm(*(std::min_element(dists.begin(), dists.end())));
-            if (m_pconf.starting_point == PConfig::Alignment::BOTTOM_LEFT) {
-                double bindist = dist_for_BOTTOM_LEFT(ibb, origin_pack);
+            if (corner_packing()) {
+                double bindist = corner_bindist(ibb, origin_pack);
                 score = 0.2 * dist + 0.8 * bindist;
             }
             else {
@@ -592,8 +643,8 @@ protected:
             break;
         }
         case LAST_BIG_ITEM: {
-            if (m_pconf.starting_point == PConfig::Alignment::BOTTOM_LEFT) {
-                score = dist_for_BOTTOM_LEFT(ibb, origin_pack);
+            if (corner_packing()) {
+                score = corner_bindist(ibb, origin_pack);
             }
             else {
                 if (m_pilebb.defined)
@@ -608,8 +659,8 @@ protected:
             // already processed bigger items.
             // No need to play around with the anchor points, the center will be
             // just fine for small items
-            if (m_pconf.starting_point == PConfig::Alignment::BOTTOM_LEFT)
-                score = dist_for_BOTTOM_LEFT(ibb, origin_pack);
+            if (corner_packing())
+                score = corner_bindist(ibb, origin_pack);
             else {
                 // Align mainly around existing items
                 score = 0.8 * norm(pl::distance(ibb.center(), bigbb.center()))+ 0.2*norm(pl::distance(ibb.center(), origin_pack));
@@ -710,6 +761,28 @@ protected:
             score += 1 * (new_extruder_cnt-last_extruder_cnt);
         }
 
+        // On a belt the parts print in belt order, so every colour change between
+        // parts is a filament change. Items arrive sorted by extruder and the pile
+        // grows from the leading end; keep each colour's run contiguous by charging
+        // an item for every packed item of another colour it does not fully follow,
+        // counting the tilted layers that reach belt_tilt_slope * height past that
+        // item's far edge.
+        if (params.is_belt && !params.is_seq_print) {
+            const std::set<int> item_colours(item.extrude_ids.begin(), item.extrude_ids.end());
+            const double        item_start = belt_start(ibb);
+            for (Item &p : m_items) {
+                if (p.is_virt_object)
+                    continue;
+                const std::set<int> p_colours(p.extrude_ids.begin(), p.extrude_ids.end());
+                const bool same_colour = std::includes(item_colours.begin(), item_colours.end(), p_colours.begin(), p_colours.end())
+                                      || std::includes(p_colours.begin(), p_colours.end(), item_colours.begin(), item_colours.end());
+                if (same_colour)
+                    continue;
+                if (item_start < belt_end(p.boundingBox()) + scaled(p.height * params.belt_tilt_slope))
+                    score += 10.;
+            }
+        }
+
         return std::make_tuple(score, fullbb);
     }
 
@@ -733,6 +806,7 @@ public:
             auto binbb = sl::boundingBox(m_bin);
             m_pconf.best_object_pos = binbb.minCorner() + Point{ binbb.width() * this->params.align_center.x(), binbb.height() * this->params.align_center.y() };
             m_pconf.alignment = PConfig::Alignment::USER_DEFINED;
+            m_pconf.clamp_to_bin = true;
         }
 
         for (auto& region : m_pconf.m_excluded_regions) {
@@ -786,7 +860,8 @@ public:
 
             auto binbb = sl::boundingBox(m_bin);
 
-            auto starting_point = cfg.starting_point == PConfig::Alignment::BOTTOM_LEFT ? binbb.minCorner() : binbb.center();
+            auto starting_point = this->params.is_belt ? belt_origin() :
+                cfg.starting_point == PConfig::Alignment::BOTTOM_LEFT ? binbb.minCorner() : binbb.center();
             // if we have wipe tower, items should be arranged around wipe tower
             for (Item itm : items) {
                 if (itm.is_wipe_tower) {
@@ -937,7 +1012,7 @@ std::function<double(const Item &, const ItemGroup&)> AutoArranger<ExPolygon>::g
         auto mp = m_merged_pile;
         mp.emplace_back(itm.transformedShape());
         auto chull = sl::convexHull(mp);
-        if (m_pconf.starting_point == PConfig::Alignment::BOTTOM_LEFT)
+        if (corner_packing())
         {
             if (!sl::isInside(chull, m_bin))
                 score += LARGE_COST_TO_REJECT;

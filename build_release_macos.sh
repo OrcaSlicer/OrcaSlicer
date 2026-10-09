@@ -104,8 +104,8 @@ fi
 
 CMAKE_VERSION=$(cmake --version | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
 if [ "$CMAKE_VERSION" -ge 4 ] 2>/dev/null; then
-  export CMAKE_POLICY_VERSION_MINIMUM=3.5
-  export CMAKE_POLICY_COMPAT="-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+  export CMAKE_POLICY_VERSION_MINIMUM=3.10
+  export CMAKE_POLICY_COMPAT="-DCMAKE_POLICY_VERSION_MINIMUM=3.10"
   echo "Detected CMake 4.x, adding compatibility flag (env + cmake arg)"
 else
   export CMAKE_POLICY_COMPAT=""

@@ -1,22 +1,16 @@
 #include "PrinterNetworkTypes.hpp"
-#include "json_diff.hpp"
-#include "libslic3r/libslic3r.h"
+#include <nlohmann/json.hpp>
 #include "DeviceManager.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
-#include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
-#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
-#include "GuiColor.hpp"
 
 #include "GUI_App.hpp"
-#include "MsgDialog.hpp"
 #include "DeviceErrorDialog.hpp"
 #include "Plater.hpp"
-#include "GUI_App.hpp"
 #include "ReleaseNote.hpp"
 #include <string>
 #include <boost/log/trivial.hpp>
@@ -90,12 +84,10 @@
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevCtrl.h"
-#include "DeviceCore/DevInfo.h"
 #include "DeviceCore/DevPrintOptions.h"
 #include "DeviceCore/DevPrintTaskInfo.h"
 #include "DeviceCore/DevHMS.h"
 
-#include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
@@ -107,16 +99,23 @@
 #include "DeviceCore/DevUpgrade.h"
 
 #include "IPrinterAgent.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+
+using json = nlohmann::json;
+
+class wxWindow;
 
 namespace fs = boost::filesystem;
+using namespace std::chrono_literals;
 
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms
 #define TIME_OUT  5000       //ms
 
 #define ORCA_NETWORK_DEBUG
-
-namespace pt = boost::property_tree;
 
 float string_to_float(const std::string& str_value) {
     float value = 0.0;
@@ -3104,7 +3103,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         DevFirmwareVersionInfo ver_info;
                         ver_info.name = (*it)["name"].get<std::string>();
                         if ((*it).contains("product_name"))
-                            ver_info.product_name = wxString::FromUTF8((*it)["product_name"].get<string>());
+                            ver_info.product_name = wxString::FromUTF8((*it)["product_name"].get<std::string>());
                         if ((*it).contains("sw_ver"))
                             ver_info.sw_ver = (*it)["sw_ver"].get<std::string>();
                         if ((*it).contains("sw_new_ver"))
@@ -4314,7 +4313,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                 info = _L("Selected diameter and machine diameter do not match");
                             }
                             else if (reason == "generate auto filament cali gcode failure") {
-                                info = _L("Failed to generate cali G-code");
+                                info = _L("Failed to generate calibration G-code");
                             }
                             else {
                                 info = reason;

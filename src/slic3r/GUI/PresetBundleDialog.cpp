@@ -16,7 +16,7 @@
 #include <vector>
 #include <utility>
 #include "slic3r/GUI/GUI.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/event.h>
 #include <wx/filename.h>
@@ -30,8 +30,10 @@
 #include "MainFrame.hpp"
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
-#include <wx/event.h>
 #include <wx/utils.h>
+
+using json = nlohmann::json;
+
 namespace Slic3r { namespace GUI {
 
 PresetBundleDialog::PresetBundleDialog(

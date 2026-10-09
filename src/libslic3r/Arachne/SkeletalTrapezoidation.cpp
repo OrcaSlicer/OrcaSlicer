@@ -28,6 +28,8 @@
 #include "libslic3r/Arachne/SkeletalTrapezoidationJoint.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Arachne/SkeletalTrapezoidationGraph.hpp"
+#include "libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp"
 
 #ifndef NDEBUG
     #include "libslic3r/EdgeGrid.hpp"
@@ -463,8 +465,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         if (!edge.prev)
             edge.from->incident_edge = &edge;
 }
-
-using NodeSet = SkeletalTrapezoidation::NodeSet;
 
 void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 {

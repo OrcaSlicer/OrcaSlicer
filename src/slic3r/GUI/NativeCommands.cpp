@@ -24,7 +24,6 @@
 #include <functional>
 #include <initializer_list>
 #include <libslic3r/Model.hpp>
-#include <libslic3r/Utils.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -40,6 +39,8 @@
 #include <vector>
 #include <wx/string.h>
 #include <wx/utils.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

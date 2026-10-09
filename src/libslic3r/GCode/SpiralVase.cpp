@@ -1,5 +1,4 @@
 #include "SpiralVase.hpp"
-#include "GCode.hpp"
 #include "libslic3r/libslic3r.h"
 #include <algorithm>
 #include <cstddef>
@@ -8,6 +7,8 @@
 #include <limits>
 #include <vector>
 #include <string>
+#include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 

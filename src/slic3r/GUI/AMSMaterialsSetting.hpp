@@ -14,7 +14,6 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/TextInput.hpp"
-#include "Widgets/HyperLink.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
 #include <wx/anybutton.h>
 #include <wx/colour.h>
@@ -194,7 +193,7 @@ protected:
 
     wxPanel *           m_panel_kn;
     wxStaticText*       m_ratio_text;
-    HyperLink *         m_wiki_ctrl;
+    Button *            m_wiki_ctrl;
     wxStaticText*       m_k_param;
     TextInput*          m_input_k_val;
     wxStaticText*       m_n_param;

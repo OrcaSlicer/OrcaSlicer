@@ -42,7 +42,6 @@
 #include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
@@ -51,17 +50,12 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Tab.hpp"
 #include "libslic3r_version.h"
-#include "wxExtensions.hpp"
 #include "PrintHostDialogs.hpp"
-#include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Flashforge.hpp"
 #include "../Utils/UndoRedo.hpp"
-#include "RemovableDriveManager.hpp"
-#include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
 #include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"
@@ -89,7 +83,7 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     m_presets = tab->get_presets();
     const Preset &sel_preset  = m_presets->get_selected_preset();
     std::string suffix = _u8L_CONTEXT(L_CONTEXT("Copy", "PresetName"), "PresetName");
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? _u8L("Untitled") : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
 
     auto input_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -312,7 +306,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                 result = host->test(msg); // using test with special input because I don't want to create the generate_auth_creds func for every printer
 
                 // Prompt user to approve access on the machine.
-                show_info(this, "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again.\n"+msg, "API Key created.");
+                show_info(this, _L("API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again.") + "\n" + msg, _L("API Key created."));
                 
                 
             }

@@ -48,6 +48,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Flow.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
@@ -127,6 +128,9 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 {
     // Perform offset.
     Slic3r::ExPolygons expp = offset_ex(surface->expolygon, float(scale_(this->overlap - 0.5 * this->spacing)));
+    // Orca: Separated infills move the box center onto each body; origin-aligned patterns follow it.
+    const Point shift = this->aligned_to_origin() && ! empty(this->bounding_box) ? this->bounding_box.center() : Point::Zero();
+    translate(expp, -shift);
     // Create the infills for each of the regions.
     Polylines polylines_out;
     for (size_t i = 0; i < expp.size(); ++ i)
@@ -136,6 +140,8 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
             _infill_direction(surface),
             std::move(expp[i]),
             polylines_out);
+    for (Polyline &pl : polylines_out)
+        pl.translate(shift);
     return polylines_out;
 }
 
@@ -264,10 +270,7 @@ void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, Ex
                 return p.length() < scale_(params.config->filter_out_gap_fill.value);
             }), polylines.end());
 
-            ExtrusionEntityCollection gap_fill;
-            variable_width(polylines, erGapFill, params.flow, gap_fill.entities);
-            auto gap = std::move(gap_fill.entities);
-            out->append(gap);
+            variable_width(polylines, erGapFill, params.flow, out->entities);
         }
     }
 }
@@ -1593,13 +1596,18 @@ BoundaryInfillGraph create_boundary_infill_graph(const Polylines &infill_ordered
 // The extended bounding box of the whole object that covers any rotation of every layer.
 BoundingBox Fill::extended_object_bounding_box() const
 {
-    BoundingBox out = bounding_box;
+    // Orca: Extend about the box center, which separated infills move off the origin.
+    const Point c   = this->bounding_box.center();
+    BoundingBox out = this->bounding_box;
+    out.translate(-c.x(), -c.y());
     out.merge(Point(out.min.y(), out.min.x()));
     out.merge(Point(out.max.y(), out.max.x()));
 
     // The bounding box is scaled by sqrt(2.) to ensure that the bounding box
     // covers any possible rotations.
-    return out.scaled(sqrt(2.));
+    out = out.scaled(sqrt(2.));
+    out.translate(c.x(), c.y());
+    return out;
 }
 
 void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Polygon*> &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)

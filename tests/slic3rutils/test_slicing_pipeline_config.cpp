@@ -8,7 +8,6 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
-#include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginConfig.hpp>
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PluginManager.hpp>

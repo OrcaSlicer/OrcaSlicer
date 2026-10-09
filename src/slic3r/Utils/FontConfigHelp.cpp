@@ -13,8 +13,6 @@
 #include <fontconfig/fontconfig.h>
 #include "libslic3r/Utils.hpp"
 
-using namespace Slic3r::GUI;
-
 
 // @Vojta suggest to make static variable global
 // Guard for finalize Font Config

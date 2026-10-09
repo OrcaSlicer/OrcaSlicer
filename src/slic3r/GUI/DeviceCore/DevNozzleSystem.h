@@ -4,7 +4,7 @@
 
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 
 #include "libslic3r/PrintConfig.hpp"
 #include <string>
@@ -195,6 +195,6 @@ namespace Slic3r
    {
    public:
        static void  ParseV1_0(const nlohmann::json& nozzletype_json, const nlohmann::json& diameter_json, DevNozzleSystem* system, std::optional<int> flag_e3d);
-       static void  ParseV2_0(const json& device_json, DevNozzleSystem* system);
+       static void  ParseV2_0(const nlohmann::json& device_json, DevNozzleSystem* system);
    };
 };

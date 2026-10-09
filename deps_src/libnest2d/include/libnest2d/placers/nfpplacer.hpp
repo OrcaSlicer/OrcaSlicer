@@ -89,6 +89,18 @@ struct NfpPConfig {
     bool explore_holes = false;
 
     /**
+     * @brief Keep the final pile on the bin.
+     *
+     * The final alignment centres the pile on the alignment target. A target
+     * near an edge (a belt printer starts its parts at the leading end of the
+     * belt) would push part of a pile that is larger than the room around that
+     * point off the bed; with this set the pile stops at the edge instead, and a
+     * pile that does not fit along an axis is centred on it. Off by default, so
+     * the alignment of every other printer is unchanged.
+     */
+    bool clamp_to_bin = false;
+
+    /**
      * @brief If true, use all CPUs available. Run on a single core otherwise.
      */
     bool parallel = true;
@@ -1113,17 +1125,21 @@ private:
 
         auto d = cb - ci;
 
-        // Keep the final pile inside the bed when a preferred position is near an edge.
-        // std::clamp is undefined when lo > hi (a pile, fixed items included, wider than
-        // the bed), so only clamp an axis whose range is valid.
-        const auto lo_x = getX(bbin.minCorner()) - getX(bb.minCorner());
-        const auto hi_x = getX(bbin.maxCorner()) - getX(bb.maxCorner());
-        if (lo_x <= hi_x)
-            setX(d, std::clamp(getX(d), lo_x, hi_x));
-        const auto lo_y = getY(bbin.minCorner()) - getY(bb.minCorner());
-        const auto hi_y = getY(bbin.maxCorner()) - getY(bb.maxCorner());
-        if (lo_y <= hi_y)
-            setY(d, std::clamp(getY(d), lo_y, hi_y));
+        // Keep the pile on the bin (see Config::clamp_to_bin). The items' boxes carry
+        // their inflation, which is the margin left at the edge.
+        if (config_.clamp_to_bin) {
+            auto on_bin = [](Coord lo, Coord hi, Coord bin_lo, Coord bin_hi, Coord shift) {
+                if (hi - lo >= bin_hi - bin_lo)
+                    return (bin_lo + bin_hi) / 2 - (lo + hi) / 2;
+                if (lo + shift < bin_lo)
+                    shift = bin_lo - lo;
+                if (hi + shift > bin_hi)
+                    shift = bin_hi - hi;
+                return shift;
+            };
+            setX(d, on_bin(getX(bb.minCorner()), getX(bb.maxCorner()), getX(bbin.minCorner()), getX(bbin.maxCorner()), getX(d)));
+            setY(d, on_bin(getY(bb.minCorner()), getY(bb.maxCorner()), getY(bbin.minCorner()), getY(bbin.maxCorner()), getY(d)));
+        }
 
         // BBS make sure the item won't clash with excluded regions
         // do we have wipe tower after arranging?

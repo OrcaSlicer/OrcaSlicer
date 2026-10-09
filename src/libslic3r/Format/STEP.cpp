@@ -1,4 +1,3 @@
-#include "../libslic3r.h"
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
 #include "libslic3r/Exception.hpp"
@@ -55,7 +54,6 @@
 #include "TopoDS.hxx"
 #include "TDataStd_Name.hxx"
 #include "BRepBuilderAPI_Transform.hxx"
-#include "TopExp_Explorer.hxx"
 #include "TopExp_Explorer.hxx"
 #include "BRep_Tool.hxx"
 #include "BRepTools.hxx"

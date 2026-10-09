@@ -15,7 +15,6 @@
 #include "Emboss.hpp"
 #include <optional>
 #include <stdio.h>
-#include <numeric>
 #include <cstdlib>
 #include <boost/nowide/convert.hpp>
 #include <boost/log/trivial.hpp>
@@ -43,6 +42,7 @@
 #include "libslic3r/AABBTreeLines.hpp" // search structure for found close points
 #include "libslic3r/Line.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include <sstream>
 
 // Experimentaly suggested ration of font ascent by multiple fonts
 // to get approx center of normal text line

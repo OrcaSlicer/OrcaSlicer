@@ -9,7 +9,9 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+
+namespace Slic3r { enum class PrintSequence; }
 
 namespace Slic3r {
 

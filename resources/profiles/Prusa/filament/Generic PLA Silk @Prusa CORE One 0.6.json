@@ -29,5 +29,8 @@
 	],
 	"slow_down_layer_time": [
 		"15"
+	],
+	"filament_cooling_final_speed": [
+		"1.5"
 	]
 }

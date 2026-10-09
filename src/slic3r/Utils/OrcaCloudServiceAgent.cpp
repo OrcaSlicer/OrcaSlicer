@@ -61,6 +61,7 @@
 #include <wx/utils.h>
 
 #include "slic3r/plugin/PluginDescriptor.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -81,7 +82,7 @@ using json = nlohmann::json;
 namespace Slic3r {
 
 namespace {
-constexpr const char* ORCA_DEFAULT_API_URL   = "api.orcaslicer.com";
+constexpr const char* ORCA_DEFAULT_API_URL   = "https://api.orcaslicer.com";
 constexpr const char* ORCA_DEFAULT_AUTH_URL  = "https://auth.orcaslicer.com";
 constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://cloud.orcaslicer.com";
 // Orca: This is a public key with no secret, used to identify the client application to the backend.

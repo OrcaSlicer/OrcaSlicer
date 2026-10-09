@@ -1,7 +1,6 @@
 #ifndef slic3r_CoolingBuffer_hpp_
 #define slic3r_CoolingBuffer_hpp_
 
-#include "../libslic3r.h"
 #include "../Point.hpp"
 #include <cstddef>
 #include <map>
@@ -22,7 +21,7 @@ struct PerExtruderAdjustments;
 //
 // The simple it sounds, the actual implementation is significantly more complex.
 // Namely, for a multi-extruder print, each material may require a different cooling logic.
-// For example, some materials may not like to print too slowly, while with some materials 
+// For example, some materials may not like to print too slowly, while with some materials
 // we may slow down significantly.
 //
 class CoolingBuffer {
@@ -64,6 +63,9 @@ private:
     unsigned int                m_current_nozzle;
     //BBS: current fan speed
     int                         m_current_fan_speed;
+    // Belt printers: the extrusion being processed lies in the first-layer band above the
+    // belt (between a ";_BELT_BAND_START" and a ";_BELT_BAND_END"). Kept across layers.
+    bool                        m_belt_band_active = false;
 };
 
 }

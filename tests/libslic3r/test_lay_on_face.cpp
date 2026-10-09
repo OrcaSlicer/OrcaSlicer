@@ -12,6 +12,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/LayOnFace.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/BoundingBox.hpp"
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;

@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include "libslic3r/Polygon.hpp"
 
 namespace marchsq {
 using namespace Slic3r;
@@ -120,8 +121,6 @@ Polylines get_polylines(const ScalarField& sf, const double tolerance = SCALED_E
 } // namespace marchsq
 
 namespace Slic3r {
-
-using namespace std;
 
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,

@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include "libslic3r/clonable_ptr.hpp"
 
 namespace Slic3r {
 

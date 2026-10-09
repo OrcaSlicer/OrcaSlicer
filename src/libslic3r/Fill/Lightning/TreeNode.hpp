@@ -19,6 +19,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "SVG.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
 
 //#define LIGHTNING_TREE_NODE_DEBUG_OUTPUT
 

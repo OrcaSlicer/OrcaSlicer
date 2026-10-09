@@ -1,7 +1,7 @@
 #include "DevUpgrade.h"
 #include "DevUtil.h"
 
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
@@ -12,6 +12,8 @@
 #include "slic3r/GUI/DeviceCore/DevFirmware.h"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/string.h>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
