@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:49-0300\n"
+"POT-Creation-Date: 2026-10-06 15:16-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3402,8 +3402,8 @@ msgstr "Papildomas proceso profilis"
 msgid "Remove parameter"
 msgstr "Pašalinti parametrą"
 
-msgid "to"
-msgstr "į"
+msgid "Range"
+msgstr "Diapazonas"
 
 msgid "Add height range"
 msgstr "Pridėti aukščio ribas"
@@ -5469,9 +5469,6 @@ msgstr "parametro pavadinimas"
 
 msgid "layers"
 msgstr "sluoksniai"
-
-msgid "Range"
-msgstr "Diapazonas"
 
 msgid "Empty string"
 msgstr "Tuščia eilutė"
@@ -8825,8 +8822,9 @@ msgstr ""
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Ar norite sinchronizuoti spausdintuvo informaciją ir automatiškai perjungti profilį?"
 
+# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr ""
+msgstr "Šiame projekte yra skirtuke „Projektavimas“ sukurtas modelis ir jokios kitos geometrijos. Įjunkite \"CAD funkcija (eksperimentinė)\" skiltyje „Parinktys“ ir paleiskite programą iš naujo, kad galėtumėte jį matyti ir redaguoti; išsaugant projektą jis išlaikomas."
 
 msgid "The file does not contain any geometry data."
 msgstr "Faile nėra jokių geometrinių duomenų."
@@ -9876,8 +9874,9 @@ msgstr "Skirtuke „Projektavimas“ rodyti sąryšio jungtį kaip mažą pavir�
 msgid "Auto-close sketch loops"
 msgstr "Automatiškai uždaryti eskizo kontūrus"
 
+# AI Translated
 msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr ""
+msgstr "Eskizo galinius taškus, esančius ne didesniu kaip 0,001 mm atstumu, laikyti viena jungtimi ir kontūrą sujungti. Išjungta: sujungiami tik tiksliai sutampantys galiniai taškai, todėl kontūras su mažyčiu tarpu rodomas kaip atviras, užuot jį uždarius automatiškai. Išsaugoma kartu su kiekvienu modeliu; taikoma modeliams, pradėtiems po pakeitimo."
 
 msgid "Pan"
 msgstr "Slinkimas"
@@ -10297,18 +10296,6 @@ msgstr "Rodyti nepalaikomus profilius"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Rodyti nesuderinamus / nepalaikomus profilius spausdintuvų ir gijų išskleidžiamuosiuose sąrašuose. Šių profilių pasirinkti negalima."
 
-# AI Translated
-msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr "(Eksperimentinė) Naudoti spausdintuvo agentus vietoj spausdinimo serverių"
-
-# AI Translated
-msgid ""
-"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
-"When disabled, OrcaSlicer uses the legacy print-host behavior."
-msgstr ""
-"Nukreipia ne Bambu spausdintuvų spausdinimo užduotis per spausdintuvo papildinių agentus, o ne per klasikinį įkėlimo į spausdinimo serverį srautą.\n"
-"Kai išjungta, OrcaSlicer naudoja senąjį spausdinimo serverio veikimą."
-
 msgid "Experimental Features"
 msgstr "Eksperimentinis"
 
@@ -10321,6 +10308,18 @@ msgid ""
 msgstr ""
 "Bando išsaugoti nudažytas ypatybes (spalvą, siūlę, atramas, šiauštą paviršių ir kt.) pakeitus objekto tinklelio modelį (pvz., po pjovimo, įkėlimo iš naujo, supaprastinimo, taisymo ir kt.)\n"
 "Labai eksperimentinė funkcija! Veikia lėtai ir gali sukurti artefaktų."
+
+# AI Translated
+msgid "Use printer agents instead of print hosts"
+msgstr "Naudoti spausdintuvo agentus vietoj spausdinimo serverių"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Nukreipia ne Bambu spausdintuvų spausdinimo užduotis per spausdintuvo papildinių agentus, o ne per klasikinį įkėlimo į spausdinimo serverį srautą.\n"
+"Kai išjungta, OrcaSlicer naudoja senąjį spausdinimo serverio veikimą."
 
 msgid "Allow Abnormal Storage"
 msgstr "Leisti sutrikusią (neįprastą) laikmeną"
@@ -10487,6 +10486,9 @@ msgstr "Kita sluoksnio gijos seka"
 
 msgid "Please input layer value (>= 2)."
 msgstr "Prašome įvesti sluoksnių skaičių (>=2)."
+
+msgid "to"
+msgstr "į"
 
 msgid "Plate name"
 msgstr "Spausdinimo pagrindo pavadinimas"
@@ -16361,6 +16363,14 @@ msgstr "Simetriškas užpildas pagal Y ašį"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
 msgstr "Jei modelis turi dvi dalis, kurios yra simetriškos Y ašies atžvilgiu, ir norite, kad šios dalys turėtų simetriškas tekstūras, spustelėkite šią parinktį vienoje iš dalių."
+
+# AI Translated
+msgid "Fill pattern tops"
+msgstr "Užpildyti rašto viršutines dalis"
+
+# AI Translated
+msgid "Choose this option if you want to completely fill in the tops of the infill pattern"
+msgstr "Pasirinkite šią parinktį, jei norite visiškai užpildyti užpildo rašto viršutines dalis"
 
 msgid "Infill combination - Max layer height"
 msgstr "Užpildo derinimas – maksimalus sluoksnio aukštis"
@@ -22571,6 +22581,26 @@ msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Gijos modelis nežinomas. Bus naudojamas atsitiktinis gijos profilis."
 
 # AI Translated
+msgid "Hide reference planes and axes"
+msgstr "Slėpti atskaitos plokštumas ir ašis"
+
+# AI Translated
+msgid "Show reference planes and axes"
+msgstr "Rodyti atskaitos plokštumas ir ašis"
+
+# AI Translated
+msgid "Hide the printer bed and its plate grid"
+msgstr "Slėpti spausdintuvo pagrindą ir jo plokštės tinklelį"
+
+# AI Translated
+msgid "Show the printer bed and its plate grid"
+msgstr "Rodyti spausdintuvo pagrindą ir jo plokštės tinklelį"
+
+# AI Translated
+msgid "Click a reference plane or a flat face to sketch on it — Esc cancels"
+msgstr "Spustelėkite atskaitos plokštumą arba plokščią paviršių, kad jame braižytumėte eskizą — Esc – atšaukti"
+
+# AI Translated
 msgid "Construction"
 msgstr "Pagalbinė"
 
@@ -22595,8 +22625,9 @@ msgstr "Apskritimas — spustelėkite centrą, tada spindulį"
 msgid "Arc — click start, end, then a point"
 msgstr "Lankas — spustelėkite pradžią, pabaigą, tada tašką"
 
+# AI Translated
 msgid "Slot — two centerline ends, then the width"
-msgstr ""
+msgstr "Išpjova — du vidurio linijos galai, tada plotis"
 
 # AI Translated
 msgid "Ellipse — center, major end, minor point"
@@ -22670,8 +22701,9 @@ msgstr "Pasaulio ašys rodomos"
 msgid "World axes hidden"
 msgstr "Pasaulio ašys paslėptos"
 
+# AI Translated
 msgid "Axonometric view, fitted"
-msgstr ""
+msgstr "Aksonometrinis vaizdas, pritaikytas"
 
 # AI Translated
 msgid "Bed shown"
@@ -22682,34 +22714,12 @@ msgid "Bed hidden"
 msgstr "Pagrindas paslėptas"
 
 # AI Translated
-msgid "FEATURES"
-msgstr "ELEMENTAI"
+msgid "Reference planes shown"
+msgstr "Atskaitos plokštumos rodomos"
 
 # AI Translated
-msgid "Sketch"
-msgstr "Eskizas"
-
-# AI Translated
-#, c-format, boost-format
-msgid "Sketch plane: %s — pick a tool"
-msgstr "Eskizo plokštuma: %s — pasirinkite įrankį"
-
-# AI Translated
-msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-msgstr "Vaizdo srityje spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
-"Sketch plane: %s.\n"
-"Pick a tool, or press Menu for the list."
-msgstr ""
-"Eskizo plokštuma: %s.\n"
-"Pasirinkite įrankį arba paspauskite „Menu“, kad pamatytumėte sąrašą."
-
-# AI Translated
-msgid "Click a face or a reference plane, then a sketch tool."
-msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį."
+msgid "Reference planes hidden"
+msgstr "Atskaitos plokštumos paslėptos"
 
 # AI Translated
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
@@ -22895,8 +22905,9 @@ msgstr "Ašis"
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr "Atskaitos ašis (du taškai, paviršiaus normalė, cilindro ašis, dvi plokštumos, išilgai briaunos)"
 
+# AI Translated
 msgid "Coordinate system"
-msgstr ""
+msgstr "Koordinačių sistema"
 
 # AI Translated
 msgid "Datum coordinate system (world point, or face + direction edge)"
@@ -22960,8 +22971,9 @@ msgstr "Atspindėjimui reikia kūno — pirmiausia jį pridėkite arba importuok
 msgid "Mate"
 msgstr "Sąryšis"
 
+# AI Translated
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
-msgstr ""
+msgstr "Surinkimas: sulygiuoti dvi koordinačių sistemas (fiksuotas, plokštuminis, sukamasis, slankusis, cilindrinis)"
 
 # AI Translated
 msgid "Boolean (combine bodies)"
@@ -23061,14 +23073,6 @@ msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread
 msgstr "Sriegiui pasirinkite cilindrinį paviršių (angą / išorę) arba apskritą briauną"
 
 # AI Translated
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importuoti STEP (redaguojamas B-rep kietasis kūnas)"
-
-# AI Translated
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importuoti poligoninį tinklą (STL/OBJ) kaip redaguojamą B-rep kietąjį kūną"
-
-# AI Translated
 msgid "Constrain selected sketch"
 msgstr "Apriboti pasirinktą eskizą"
 
@@ -23100,8 +23104,9 @@ msgstr "Spustelėkite pradžią, tada pabaigą — tada nustatykite tikslų ilg�
 msgid "Polyline"
 msgstr "Laužtė"
 
+# AI Translated
 msgid "Click points; click the first point to close the loop, right-click or Enter to end the chain"
-msgstr ""
+msgstr "Spustelėkite taškus; spustelėkite pirmąjį tašką, kad uždarytumėte kontūrą, arba spustelėkite dešiniuoju pelės mygtuku ar paspauskite Enter, kad užbaigtumėte grandinę"
 
 # AI Translated
 msgid "Corner rectangle"
@@ -23191,8 +23196,9 @@ msgstr "Spustelėkite centrą, tada pradžią, tada tašką pabaigos kampui"
 msgid "Slot"
 msgstr "Išpjova"
 
+# AI Translated
 msgid "Click two centerline ends, then a point for the width"
-msgstr ""
+msgstr "Spustelėkite du vidurio linijos galus, tada tašką pločiui nustatyti"
 
 # AI Translated
 msgid "Arc slot"
@@ -23222,8 +23228,9 @@ msgstr "Spustelėkite centrą, didžiosios ašies galą, mažosios ašies tašk�
 msgid "Spline"
 msgstr "Splainas"
 
+# AI Translated
 msgid "Click control points; double-click, right-click or Enter to finish"
-msgstr ""
+msgstr "Spustelėkite valdymo taškus; dukart spustelėkite, spustelėkite dešiniuoju pelės mygtuku arba paspauskite Enter, kad baigtumėte"
 
 # AI Translated
 msgid "Click to place a point"
@@ -23277,15 +23284,17 @@ msgstr "Pasirinkite atspindžio ašies liniją, tada atspindimus objektus; spust
 msgid "Trim"
 msgstr "Apkirpti"
 
+# AI Translated
 msgid "Click a segment to trim it back to its nearest intersection; Esc exits"
-msgstr ""
+msgstr "Spustelėkite atkarpą, kad ją apkirptumėte iki artimiausio susikirtimo; Esc – išeiti"
 
 # AI Translated
 msgid "Extend"
 msgstr "Pratęsti"
 
+# AI Translated
 msgid "Click a line or arc to extend it to the nearest entity; Esc exits"
-msgstr ""
+msgstr "Spustelėkite liniją arba lanką, kad jį pratęstumėte iki artimiausio objekto; Esc – išeiti"
 
 # AI Translated
 msgid "Constrain — add geometric/dimensional relations"
@@ -23470,12 +23479,20 @@ msgid "New Design — clear the feature tree"
 msgstr "Naujas modelis — išvalyti elementų medį"
 
 # AI Translated
+msgid "Import STEP (editable B-rep solid)"
+msgstr "Importuoti STEP (redaguojamas B-rep kietasis kūnas)"
+
+# AI Translated
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr "Importuoti poligoninį tinklą (STL/OBJ) kaip redaguojamą B-rep kietąjį kūną"
+
+# AI Translated
 msgid "Export STEP…"
 msgstr "Eksportuoti STEP…"
 
 # AI Translated
-msgid "Show the printer bed and its plate grid"
-msgstr "Rodyti spausdintuvo pagrindą ir jo plokštės tinklelį"
+msgid "Create a new sketch"
+msgstr "Sukurti naują eskizą"
 
 # AI Translated
 msgid "Place on Face (F) — lay the picked face on the bed"
@@ -23489,20 +23506,25 @@ msgstr "Pjūvio peržiūra — paslėpti dalį modelio, kad matytųsi vidus. Pag
 msgid "Flip Section — show the opposite half"
 msgstr "Apversti pjūvį — rodyti priešingą pusę"
 
+# AI Translated
 msgid "Choose how Commit to Plate sends the bodies"
-msgstr ""
+msgstr "Pasirinkite, kaip „Perduoti į plokštę“ nusiunčia kūnus"
 
+# AI Translated
 msgid "Commit to Plate"
-msgstr ""
+msgstr "Perduoti į plokštę"
 
+# AI Translated
 msgid "All bodies become one object with a part per body, keeping their relative positions"
-msgstr ""
+msgstr "Visi kūnai tampa vienu objektu, kuriame kiekvienas kūnas yra atskira dalis, išlaikant jų tarpusavio padėtį"
 
+# AI Translated
 msgid "Commit to Plate (as bodies)"
-msgstr ""
+msgstr "Perduoti į plokštę (kaip kūnus)"
 
+# AI Translated
 msgid "Each body becomes its own object, placed on its own"
-msgstr ""
+msgstr "Kiekvienas kūnas tampa atskiru objektu, išdėstomu savarankiškai"
 
 # AI Translated
 msgid "Width / X"
@@ -23511,6 +23533,10 @@ msgstr "Plotis / X"
 # AI Translated
 msgid "Height / Y"
 msgstr "Aukštis / Y"
+
+# AI Translated
+msgid "Sketch"
+msgstr "Eskizas"
 
 # AI Translated
 msgid "Distance X"
@@ -23714,8 +23740,9 @@ msgstr "Apskritiminis"
 msgid "Direction"
 msgstr "Kryptis"
 
+# AI Translated
 msgid "Total angle (°)"
-msgstr ""
+msgstr "Bendras kampas (°)"
 
 # AI Translated
 msgid "Boolean"
@@ -24099,11 +24126,13 @@ msgstr "Cilindrinis — ašys kolinearios; laisvas sukimasis + ašinis slydimas"
 msgid "Kind"
 msgstr "Rūšis"
 
+# AI Translated
 msgid "A (fixed)"
-msgstr ""
+msgstr "A (fiksuota)"
 
+# AI Translated
 msgid "B (moves)"
-msgstr ""
+msgstr "B (judama)"
 
 # AI Translated
 msgid "Angle °"
@@ -24140,6 +24169,10 @@ msgstr "(nėra susiejimų)"
 # AI Translated
 msgid "Value"
 msgstr "Reikšmė"
+
+# AI Translated
+msgid "Pick a tool, or press Menu for the list."
+msgstr "Pasirinkite įrankį arba paspauskite „Menu“, kad pamatytumėte sąrašą."
 
 # AI Translated
 msgid "Constraints"
@@ -24180,6 +24213,10 @@ msgid "Show / hide"
 msgstr "Rodyti / slėpti"
 
 # AI Translated
+msgid "Zoom to selection"
+msgstr "Priartinti prie pasirinkimo"
+
+# AI Translated
 msgid "Check interference — find overlapping bodies"
 msgstr "Tikrinti persidengimą — rasti persidengiančius kūnus"
 
@@ -24200,14 +24237,17 @@ msgstr "Pasirinktas kūnas %d — spustelėkite dešiniuoju pelės mygtuku, kad 
 msgid "Variables"
 msgstr "Kintamieji"
 
+# AI Translated
 msgid "Add variable"
-msgstr ""
+msgstr "Pridėti kintamąjį"
 
+# AI Translated
 msgid "Edit variable"
-msgstr ""
+msgstr "Redaguoti kintamąjį"
 
+# AI Translated
 msgid "Delete variable"
-msgstr ""
+msgstr "Ištrinti kintamąjį"
 
 # AI Translated
 msgid "Sketch created — select it, then right-click to Extrude"
@@ -24226,9 +24266,10 @@ msgstr "Eskizas atnaujintas"
 msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
 msgstr "Eskizas sukurtas (valdančiųjų matmenų: %zu) — pasirinkite jį, tada spustelėkite dešiniuoju pelės mygtuku, kad išspaustumėte"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Length %.2f mm, angle %.1f°"
-msgstr ""
+msgstr "Ilgis %.2f mm, kampas %.1f°"
 
 # AI Translated
 msgid "(locked)"
@@ -24249,6 +24290,10 @@ msgstr "Sritis pasirinkta — spustelėkite dešiniuoju pelės mygtuku, kad išs
 # AI Translated
 msgid "Sketch selected — right-click to Extrude, or double-click to edit"
 msgstr "Eskizas pasirinktas — spustelėkite dešiniuoju pelės mygtuku, kad išspaustumėte, arba dukart spustelėkite, kad redaguotumėte"
+
+# AI Translated
+msgid "That face is not flat — click a flat face or a reference plane"
+msgstr "Šis paviršius nėra plokščias — spustelėkite plokščią paviršių arba atskaitos plokštumą"
 
 # AI Translated
 #, c-format, boost-format
@@ -24278,32 +24323,31 @@ msgstr "Kūnas %d: pasirinktas paviršius %d — spustelėkite dešiniuoju pelė
 msgid "Face %d selected — right-click to push/pull it, or click again for the whole body"
 msgstr "Pasirinktas paviršius %d — spustelėkite dešiniuoju pelės mygtuku, kad jį stumtumėte / trauktumėte, arba spustelėkite dar kartą, kad pasirinktumėte visą kūną"
 
+# AI Translated
 #, c-format
 msgid "Body %d: %zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "Body %d: %zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Kūnas %d: pasirinkta %zu briauna — Shift+spustelėjimas prideda arba pašalina vieną, suapvalinimas / nuožula apdoros visas pasirinktas"
+msgstr[1] "Kūnas %d: pasirinktos %zu briaunos — Shift+spustelėjimas prideda arba pašalina vieną, suapvalinimas / nuožula apdoros visas pasirinktas"
+msgstr[2] "Kūnas %d: pasirinkta %zu briaunų — Shift+spustelėjimas prideda arba pašalina vieną, suapvalinimas / nuožula apdoros visas pasirinktas"
 
+# AI Translated
 #, c-format
 msgid "%zu edge selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
 msgid_plural "%zu edges selected — Shift+click adds or removes one, Fillet/Chamfer dresses them all"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#, c-format, boost-format
-msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
-msgstr ""
+msgstr[0] "Pasirinkta %zu briauna — Shift+spustelėjimas prideda arba pašalina vieną, suapvalinimas / nuožula apdoros visas pasirinktas"
+msgstr[1] "Pasirinktos %zu briaunos — Shift+spustelėjimas prideda arba pašalina vieną, suapvalinimas / nuožula apdoros visas pasirinktas"
+msgstr[2] "Pasirinkta %zu briaunų — Shift+spustelėjimas prideda arba pašalina vieną, suapvalinimas / nuožula apdoros visas pasirinktas"
 
 # AI Translated
 #, c-format, boost-format
-msgid "%s plane selected — right-click for the drawing tools"
-msgstr "Pasirinkta %s plokštuma — spustelėkite dešiniuoju pelės mygtuku, kad atvertumėte piešimo įrankius"
+msgid "Body %d: edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Kūnas %d: pasirinkta briauna %d — spustelėkite su Shift, kad pridėtumėte briaunų, arba spustelėkite dar kartą, kad pasirinktumėte visą kūną"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edge %d selected — Shift+click to add edges, or click again for the whole body"
+msgstr "Pasirinkta briauna %d — spustelėkite su Shift, kad pridėtumėte briaunų, arba spustelėkite dar kartą, kad pasirinktumėte visą kūną"
 
 # AI Translated
 #, c-format, boost-format
@@ -24328,8 +24372,9 @@ msgstr "Išeita iš įrankio"
 msgid "Sketch kept — Confirm to commit it, Cancel to discard"
 msgstr "Eskizas išlaikytas — „Patvirtinti“, kad jį išsaugotumėte, „Atšaukti“, kad jo atsisakytumėte"
 
+# AI Translated
 msgid "Select something to delete"
-msgstr ""
+msgstr "Pasirinkite, ką ištrinti"
 
 # AI Translated
 msgid "✗ Conflicting constraints"
@@ -24362,17 +24407,21 @@ msgstr "Redaguojama: Eskizas %d   ·   N = žiūrėti statmenai plokštumai   ·
 msgid "OK — %zu triangles"
 msgstr "Gerai — trikampių: %zu"
 
+# AI Translated
 msgid "Edit the text — Enter applies, Esc keeps it as it was"
-msgstr ""
+msgstr "Redaguokite tekstą — Enter – pritaikyti, Esc – palikti nepakeistą"
 
+# AI Translated
 msgid "Type the text — it appears in the view as you type; Enter inserts, Esc cancels"
-msgstr ""
+msgstr "Įveskite tekstą — jis rodomas vaizde jums rašant; Enter – įterpti, Esc – atšaukti"
 
+# AI Translated
 msgid "Text unchanged"
-msgstr ""
+msgstr "Tekstas nepakeistas"
 
-msgid "Text cancelled"
-msgstr ""
+# AI Translated
+msgid "Text canceled"
+msgstr "Tekstas atšauktas"
 
 # AI Translated
 msgid "Import SVG"
@@ -24398,9 +24447,10 @@ msgstr "Nuskaitomas STEP…"
 msgid "No solids found in STEP"
 msgstr "STEP faile nerasta kietųjų kūnų"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP import failed: %s"
-msgstr ""
+msgstr "STEP importuoti nepavyko: %s"
 
 # AI Translated
 msgid "Rebuilding model…"
@@ -24426,9 +24476,10 @@ msgstr "Poligoninio tinklo failai (*.stl;*.obj)|*.stl;*.obj|Visi failai|*.*"
 msgid "Could not read the STL file"
 msgstr "Nepavyko nuskaityti STL failo"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not read the OBJ file: %s"
-msgstr ""
+msgstr "Nepavyko nuskaityti OBJ failo: %s"
 
 # AI Translated
 msgid "Unsupported mesh format (STL and OBJ are supported)"
@@ -24453,20 +24504,23 @@ msgstr ""
 msgid "Large mesh"
 msgstr "Didelis poligoninis tinklas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh conversion failed: %s"
-msgstr ""
+msgstr "Poligoninio tinklo konvertuoti nepavyko: %s"
 
 # AI Translated
 msgid "Mesh conversion produced no geometry"
 msgstr "Konvertuojant poligoninį tinklą negauta jokios geometrijos"
 
+# AI Translated
 msgid "Mesh"
-msgstr ""
+msgstr "Poligoninis tinklas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mesh import failed: %s"
-msgstr ""
+msgstr "Poligoninio tinklo importuoti nepavyko: %s"
 
 # AI Translated
 #, c-format, boost-format
@@ -24495,17 +24549,19 @@ msgstr " — vilkite, kad nustatytumėte vietą / dydį, tada patvirtinkite"
 msgid "Insert canceled"
 msgstr "Įterpimas atšauktas"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move — Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Vilkite kampą, kad pakeistumėte mastelį, centrą – kad perkeltumėte — baigę paspauskite Enter arba ✓, Esc – atmesti"
 
 # AI Translated
 #, c-format, boost-format
 msgid "Sketch added (plane: %s) — select it, then right-click to Extrude"
 msgstr "Eskizas pridėtas (plokštuma: %s) — pasirinkite jį, tada spustelėkite dešiniuoju pelės mygtuku, kad išspaustumėte"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The model could not be rebuilt: %s"
-msgstr ""
+msgstr "Nepavyko perkurti modelio: %s"
 
 # AI Translated
 msgid "Add a solid (sketch + extrude) first"
@@ -24577,18 +24633,21 @@ msgstr "Pirmiausia pasirinkite eskizą su atvira linija"
 msgid "Add at least one face to delete first"
 msgstr "Pirmiausia pridėkite bent vieną šalinamą paviršių"
 
+# AI Translated
 msgid "Mate needs two coordinate systems — create them first"
-msgstr ""
+msgstr "Sąryšiui reikia dviejų koordinačių sistemų — pirmiausia jas sukurkite"
 
+# AI Translated
 msgid "Mate: A and B must be different coordinate systems"
-msgstr ""
+msgstr "Sąryšis: A ir B turi būti skirtingos koordinačių sistemos"
 
 # AI Translated
 msgid "Mate rejected"
 msgstr "Sąryšis atmestas"
 
+# AI Translated
 msgid "Interference needs at least two bodies"
-msgstr ""
+msgstr "Persidengimo patikrai reikia bent dviejų kūnų"
 
 # AI Translated
 msgid "No interference found"
@@ -24599,37 +24658,44 @@ msgstr "Persidengimų nerasta"
 msgid "Body %d"
 msgstr "Kūnas %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s ↔ %s %.2f mm³"
-msgstr ""
+msgstr "%s ↔ %s %.2f mm³"
 
+# AI Translated
 #, c-format
 msgid "%zu overlapping pair: %s"
 msgid_plural "%zu overlapping pairs: %s"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%zu persidengianti pora: %s"
+msgstr[1] "%zu persidengiančios poros: %s"
+msgstr[2] "%zu persidengiančių porų: %s"
 
+# AI Translated
 msgid "Select a body to measure it"
-msgstr ""
+msgstr "Pasirinkite kūną, kad jį išmatuotumėte"
 
+# AI Translated
 msgid "This body could not be measured"
-msgstr ""
+msgstr "Šio kūno išmatuoti nepavyko"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: sheet body, area %.2f mm², no volume — thicken it to get one"
-msgstr ""
+msgstr "%s: paviršinis kūnas, plotas %.2f mm², tūrio nėra — sustorinkite jį, kad gautumėte tūrį"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: volume %.2f mm³, area %.2f mm²"
-msgstr ""
+msgstr "%s: tūris %.2f mm³, plotas %.2f mm²"
 
 # AI Translated
 msgid "Pattern needs a solid body — add or import one first"
 msgstr "Masyvui reikia kietojo kūno — pirmiausia jį pridėkite arba importuokite"
 
+# AI Translated
 msgid "Boolean needs two bodies — add or import a second one"
-msgstr ""
+msgstr "Loginei operacijai reikia dviejų kūnų — pridėkite arba importuokite antrąjį"
 
 # AI Translated
 msgid "Cut needs a solid body — add or import one first"
@@ -24644,35 +24710,45 @@ msgstr "Pasirinktas paviršius (Kūnas %d)"
 msgid "Picked face"
 msgstr "Pasirinktas paviršius"
 
+# AI Translated
 msgid "the new shape could not be joined to the body"
-msgstr ""
+msgstr "naujos formos nepavyko sujungti su kūnu"
 
+# AI Translated
 msgid "the new shape could not be cut from the body"
-msgstr ""
+msgstr "naujos formos nepavyko išpjauti iš kūno"
 
+# AI Translated
 msgid "the shapes could not be intersected"
-msgstr ""
+msgstr "nepavyko rasti formų sankirtos"
 
+# AI Translated
 msgid "nothing in the history makes a solid yet"
-msgstr ""
+msgstr "istorijoje dar nėra nieko, kas sukurtų kietąjį kūną"
 
+# AI Translated
 msgid "the sketch profile is not a clean closed loop"
-msgstr ""
+msgstr "eskizo profilis nėra taisyklingas uždaras kontūras"
 
+# AI Translated
 msgid "the tool does not touch the body"
-msgstr ""
+msgstr "įrankis neliečia kūno"
 
+# AI Translated
 msgid "an expression uses a variable that does not exist"
-msgstr ""
+msgstr "išraiškoje naudojamas neegzistuojantis kintamasis"
 
+# AI Translated
 msgid "an expression divides by zero"
-msgstr ""
+msgstr "išraiškoje dalijama iš nulio"
 
+# AI Translated
 msgid "two variables are defined in terms of each other"
-msgstr ""
+msgstr "du kintamieji apibrėžti vienas per kitą"
 
+# AI Translated
 msgid "a geometry operation failed"
-msgstr ""
+msgstr "geometrinė operacija nepavyko"
 
 # AI Translated
 #, c-format, boost-format
@@ -24712,15 +24788,17 @@ msgstr "Matmuo — spustelėkite antrąjį tašką"
 msgid "Line — click the start point"
 msgstr "Linija — spustelėkite pradžios tašką"
 
+# AI Translated
 msgid "Line — click the end point; its length and angle can then be typed"
-msgstr ""
+msgstr "Linija — spustelėkite pabaigos tašką; po to galima įvesti jos ilgį ir kampą"
 
 # AI Translated
 msgid "Polyline — click the first point"
 msgstr "Laužtė — spustelėkite pirmąjį tašką"
 
+# AI Translated
 msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click, double-click or Enter ends the chain"
-msgstr ""
+msgstr "Laužtė — spustelėkite kitą tašką  ·  spustelėkite pradžios tašką, kad ją uždarytumėte  ·  dešinysis spustelėjimas, dvigubas spustelėjimas arba Enter užbaigia grandinę"
 
 # AI Translated
 msgid "Rectangle — click one corner"
@@ -24766,8 +24844,9 @@ msgstr "Suapvalintas stačiakampis — spustelėkite, kad nustatytumėte kampo s
 msgid "Circle — click the center"
 msgstr "Apskritimas — spustelėkite centrą"
 
+# AI Translated
 msgid "Circle — click to set the radius; it can then be typed"
-msgstr ""
+msgstr "Apskritimas — spustelėkite, kad nustatytumėte spindulį; po to jį galima įvesti"
 
 # AI Translated
 msgid "Circle (2 points) — click one end of the diameter"
@@ -24893,18 +24972,21 @@ msgstr "Elipsės lankas — spustelėkite, kur lankas baigiasi"
 msgid "Spline — click the first control point"
 msgstr "Splainas — spustelėkite pirmąjį valdymo tašką"
 
+# AI Translated
 msgid "Spline — click the next control point  ·  right-click, double-click or Enter finishes the curve"
-msgstr ""
+msgstr "Splainas — spustelėkite kitą valdymo tašką  ·  dešinysis spustelėjimas, dvigubas spustelėjimas arba Enter užbaigia kreivę"
 
 # AI Translated
 msgid "Point — click to place one; the tool stays armed for more"
 msgstr "Taškas — spustelėkite, kad padėtumėte tašką; įrankis lieka aktyvus kitiems taškams"
 
+# AI Translated
 msgid "Trim — click a segment where it crosses another entity  ·  Esc to exit"
-msgstr ""
+msgstr "Apkirpti — spustelėkite atkarpą ten, kur ji kertasi su kitu objektu  ·  paspauskite Esc, kad išeitumėte"
 
+# AI Translated
 msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  Esc to exit"
-msgstr ""
+msgstr "Pratęsti — spustelėkite liniją arba lanką, kad jį pratęstumėte iki artimiausio objekto  ·  paspauskite Esc, kad išeitumėte"
 
 # AI Translated
 msgid "Fillet — click the first of two lines that meet"
@@ -24914,8 +24996,9 @@ msgstr "Suapvalinimas — spustelėkite pirmąją iš dviejų susikertančių li
 msgid "Fillet — click the second line"
 msgstr "Suapvalinimas — spustelėkite antrąją liniją"
 
+# AI Translated
 msgid "Fillet — drag the arrow, or click the number to type the radius  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Suapvalinimas — vilkite rodyklę arba spustelėkite skaičių, kad įvestumėte spindulį  ·  Enter – pritaikyti  ·  Esc – atšaukti"
 
 # AI Translated
 msgid "Chamfer — click the first of two lines that meet"
@@ -24925,63 +25008,74 @@ msgstr "Nuožula — spustelėkite pirmąją iš dviejų susikertančių linijų
 msgid "Chamfer — click the second line"
 msgstr "Nuožula — spustelėkite antrąją liniją"
 
+# AI Translated
 msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Nuožula — vilkite rodyklę arba spustelėkite skaičių, kad įvestumėte atstumą nuo kampo  ·  Enter – pritaikyti  ·  Esc – atšaukti"
 
+# AI Translated
 msgid "Offset — click a curve; its whole outline is offset"
-msgstr ""
+msgstr "Poslinkis — spustelėkite kreivę; paslenkamas visas jos kontūras"
 
+# AI Translated
 msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  Enter applies  ·  Esc cancels"
-msgstr ""
+msgstr "Poslinkis — vilkite rodyklę į bet kurią pusę arba spustelėkite skaičių, kad įvestumėte atstumą  ·  Enter – pritaikyti  ·  Esc – atšaukti"
 
 # AI Translated
 msgid "Mirror — first click the LINE to mirror about (a construction line works)"
 msgstr "Atspindėti — pirmiausia spustelėkite LINIJĄ, kurios atžvilgiu atspindėti (tinka ir pagalbinė linija)"
 
+# AI Translated
 msgid "Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels"
-msgstr ""
+msgstr "Atspindėti — ašis nustatyta  ·  dabar spustelėkite atspindimus objektus  ·  Esc – atšaukti"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  Enter applies"
-msgstr ""
+msgstr "Atspindėti — ašis nustatyta  ·  atspindima: %d  ·  spustelėkite kitą objektą, kad jį pridėtumėte ar pašalintumėte  ·  Enter – pritaikyti"
 
 # AI Translated
 msgid "Move — click the entities to move"
 msgstr "Perkelti — spustelėkite perkeliamus objektus"
 
+# AI Translated
 msgid "Move — drag the handle, or click the number to type the distance  ·  Enter applies"
-msgstr ""
+msgstr "Perkelti — vilkite rankenėlę arba spustelėkite skaičių, kad įvestumėte atstumą  ·  Enter – pritaikyti"
 
 # AI Translated
 msgid "Rotate — click the entities to rotate"
 msgstr "Pasukti — spustelėkite sukamus objektus"
 
+# AI Translated
 msgid "Rotate — drag the handle, or click the number to type the angle  ·  Enter applies"
-msgstr ""
+msgstr "Pasukti — vilkite rankenėlę arba spustelėkite skaičių, kad įvestumėte kampą  ·  Enter – pritaikyti"
 
 # AI Translated
 msgid "Scale — click the entities to scale"
 msgstr "Mastelis — spustelėkite objektus, kurių mastelį norite keisti"
 
+# AI Translated
 msgid "Scale — drag the handle, or click the number to type the factor  ·  Enter applies"
-msgstr ""
+msgstr "Mastelis — vilkite rankenėlę arba spustelėkite skaičių, kad įvestumėte koeficientą  ·  Enter – pritaikyti"
 
 # AI Translated
 msgid "Array — click the entities to repeat"
 msgstr "Masyvas — spustelėkite kartojamus objektus"
 
+# AI Translated
 msgid "Array — drag the handle to set the step, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Masyvas — vilkite rankenėlę, kad nustatytumėte žingsnį, spustelėkite kiekį, kad jį įvestumėte  ·  Enter – pritaikyti"
 
 # AI Translated
 msgid "Polar array — click the entities to repeat"
 msgstr "Polinis masyvas — spustelėkite kartojamus objektus"
 
+# AI Translated
 msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  Enter applies"
-msgstr ""
+msgstr "Polinis masyvas — vilkite rankenėlę, kad nustatytumėte aprėpties kampą, spustelėkite kiekį, kad jį įvestumėte  ·  Enter – pritaikyti"
 
+# AI Translated
 msgid "Drag a corner to scale, the center to move  ·  Enter or ✓ when done, Esc to discard"
-msgstr ""
+msgstr "Vilkite kampą, kad pakeistumėte mastelį, centrą – kad perkeltumėte  ·  baigę paspauskite Enter arba ✓, Esc – atmesti"
 
 # AI Translated
 msgid "  ·  Esc goes back to Select"
@@ -24991,63 +25085,78 @@ msgstr "  ·  Esc – grįžti į įrankį „Pasirinkti“"
 msgid "  ·  click a constraint badge to remove it"
 msgstr "  ·  spustelėkite apribojimo ženklelį, kad jį pašalintumėte"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — solid body"
-msgstr ""
+msgstr "%s — kietasis kūnas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s — surface body"
-msgstr ""
+msgstr "%s — paviršinis kūnas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Flat face %d of %s"
-msgstr ""
+msgstr "Plokščias paviršius %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cylindrical face %d of %s"
-msgstr ""
+msgstr "Cilindrinis paviršius %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Face %d of %s"
-msgstr ""
+msgstr "Paviršius %d (%s)"
 
+# AI Translated
 #, c-format
 msgid "%zu edge of %s"
 msgid_plural "%zu edges of %s"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%zu briauna (%s)"
+msgstr[1] "%zu briaunos (%s)"
+msgstr[2] "%zu briaunų (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Straight edge %d of %s"
-msgstr ""
+msgstr "Tiesi briauna %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Circular edge %d of %s"
-msgstr ""
+msgstr "Apskrita briauna %d (%s)"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Vertex of %s"
-msgstr ""
+msgstr "Viršūnė (%s)"
 
+# AI Translated
 msgid "Sketch profile"
-msgstr ""
+msgstr "Eskizo profilis"
 
+# AI Translated
 msgid "Sketch — nothing selected"
-msgstr ""
+msgstr "Eskizas — nieko nepasirinkta"
 
+# AI Translated
 msgid "Sketch line"
-msgstr ""
+msgstr "Eskizo linija"
 
+# AI Translated
 msgid "Sketch curve"
-msgstr ""
+msgstr "Eskizo kreivė"
 
+# AI Translated
 msgid "Sketch point"
-msgstr ""
+msgstr "Eskizo taškas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%d sketch entities"
-msgstr ""
+msgstr "Eskizo objektai: %d"
 
 # AI Translated
 msgid "select something first"
@@ -25110,8 +25219,9 @@ msgstr "Plokštuma pridėta — pasirinkite ją kaip eskizo plokštumą"
 msgid "Axis added"
 msgstr "Ašis pridėta"
 
+# AI Translated
 msgid "Coordinate system added"
-msgstr ""
+msgstr "Koordinačių sistema pridėta"
 
 # AI Translated
 msgid "Shell needs a solid body — add or import one first"
@@ -25128,10 +25238,10 @@ msgstr "Nuolydžiui reikia pasirinkto paviršiaus — pirmiausia spustelėkite �
 # AI Translated
 msgid ""
 "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-"or click a reference plane and right-click it to start a sketch."
+"or press Sketch and click a reference plane to start a sketch."
 msgstr ""
 "Kol kas nieko nėra — importuokite STEP failą arba poligoninį tinklą iš įrankių juostos,\n"
-"arba spustelėkite atskaitos plokštumą ir spustelėkite ją dešiniuoju pelės mygtuku, kad pradėtumėte eskizą."
+"arba paspauskite „Eskizas“ ir spustelėkite atskaitos plokštumą, kad pradėtumėte eskizą."
 
 # AI Translated
 msgid "No solid yet — select a sketch and right-click it to Extrude."
@@ -25141,9 +25251,10 @@ msgstr "Kietojo kūno dar nėra — pasirinkite eskizą ir spustelėkite jį de�
 msgid "Could not restore the CAD model from this project"
 msgstr "Nepavyko atkurti CAD modelio iš šio projekto"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr ""
+msgstr "Nepavyko atkurti CAD modelio: %s"
 
 # AI Translated
 #, c-format
@@ -25166,16 +25277,34 @@ msgstr "Pjūvio peržiūra — rodoma viršutinė pusė"
 msgid "Section view — showing the lower half"
 msgstr "Pjūvio peržiūra — rodoma apatinė pusė"
 
+# AI Translated
 msgid "Finding the feature's faces…"
-msgstr ""
+msgstr "Ieškoma elemento paviršių…"
 
 # AI Translated
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Pirmiausia pasirinkite kūną — spustelėkite jį vaizdo srityje arba sąraše „Kūnai“"
+msgid "The model is being rebuilt — zoom again when it finishes"
+msgstr "Modelis perkuriamas — priartinkite dar kartą, kai tai bus baigta"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%s has nothing on show to zoom to"
+msgstr "%s: nėra nieko matomo, ką būtų galima priartinti"
 
 # AI Translated
 msgid "That body has no display mesh yet — recompute first"
 msgstr "Šis kūnas dar neturi rodomo poligoninio tinklo — pirmiausia perskaičiuokite"
+
+# AI Translated
+msgid "Select something to zoom to"
+msgstr "Pasirinkite, ką priartinti"
+
+# AI Translated
+msgid "Finish or cancel what is open first"
+msgstr "Pirmiausia užbaikite arba atšaukite tai, kas atidaryta"
+
+# AI Translated
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr "Pirmiausia pasirinkite kūną — spustelėkite jį vaizdo srityje arba sąraše „Kūnai“"
 
 # AI Translated
 msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
@@ -25202,12 +25331,10 @@ msgstr "Spustelėkite kietojo kūno paviršių, tada paspauskite F"
 msgid "Placed on face — body laid flat on the bed"
 msgstr "Paguldyta ant paviršiaus — kūnas paguldytas ant pagrindo"
 
-msgid "Finish or cancel what is open first"
-msgstr ""
-
+# AI Translated
 #, c-format, boost-format
 msgid "Edit rejected: %s"
-msgstr ""
+msgstr "Pakeitimas atmestas: %s"
 
 # AI Translated
 msgid "Erase all features and bodies and start a new design? This cannot be undone."
@@ -25226,9 +25353,10 @@ msgstr "Šis kūnas neturi elemento, kurį būtų galima ištrinti — naudokite
 msgid "feature %d"
 msgstr "elementas %d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Deleted %s, the feature this body was made from — Ctrl+Z restores it"
-msgstr ""
+msgstr "Ištrintas elementas %s, iš kurio sukurtas šis kūnas — Ctrl+Z jį atkuria"
 
 # AI Translated
 msgid "Select the FEATURE that created this body (or use New Design)"
@@ -25621,12 +25749,14 @@ msgstr "STEP failai (*.step;*.stp)|*.step;*.stp"
 msgid "Exported STEP"
 msgstr "STEP eksportuotas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "STEP export failed: %s"
-msgstr ""
+msgstr "STEP eksportuoti nepavyko: %s"
 
+# AI Translated
 msgid "Commit to Plate (as bodies) — send each body to Prepare as its own object"
-msgstr ""
+msgstr "Perduoti į plokštę (kaip kūnus) — nusiųsti kiekvieną kūną į skirtuką „Paruošimas“ kaip atskirą objektą"
 
 # AI Translated
 msgid "Commit to Plate — send the solid to Prepare"
@@ -25640,20 +25770,37 @@ msgstr "Nėra ką perduoti — pirmiausia pridėkite elementą"
 msgid "All bodies hidden — show one before committing"
 msgstr "Visi kūnai paslėpti — prieš perduodami parodykite bent vieną"
 
+# AI Translated
 #, c-format
 msgid "%zu edge"
 msgid_plural "%zu edges"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%zu briauna"
+msgstr[1] "%zu briaunos"
+msgstr[2] "%zu briaunų"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Centerline E%d"
-msgstr ""
+msgstr "Vidurio linija E%d"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Line E%d"
+msgstr "Linija E%d"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Sketch plane: %s — pick a tool"
+msgstr "Eskizo plokštuma: %s — pasirinkite įrankį"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Sketch plane: %s.\n"
+"Pick a tool, or press Menu for the list."
 msgstr ""
+"Eskizo plokštuma: %s.\n"
+"Pasirinkite įrankį arba paspauskite „Menu“, kad pamatytumėte sąrašą."
 
 # AI Translated
 msgid "Plane ready"
@@ -25663,8 +25810,9 @@ msgstr "Plokštuma paruošta"
 msgid "Axis ready"
 msgstr "Ašis paruošta"
 
+# AI Translated
 msgid "Coordinate system ready"
-msgstr ""
+msgstr "Koordinačių sistema paruošta"
 
 # AI Translated
 msgid "Helix ready"
@@ -25682,9 +25830,10 @@ msgstr "Eskizas paruoštas"
 msgid "Mate ready"
 msgstr "Sąryšis paruoštas"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Invalid: %s"
-msgstr ""
+msgstr "Netinkama: %s"
 
 # AI Translated
 #, c-format
@@ -25770,110 +25919,139 @@ msgstr "Redaguoti kintamąjį"
 msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr "Nepavyko pašalinti kintamojo „%s“ (tikriausiai jis vis dar naudojamas elemento išraiškoje): %s"
 
+# AI Translated
 #, c-format, boost-format
 msgid "\"%s\" is not a value an expression can drive"
-msgstr ""
+msgstr "\"%s\" nėra reikšmė, kurią galima valdyti išraiška"
 
 # AI Translated
 msgid "No binding for that field"
 msgstr "Šiam laukui nėra susiejimo"
 
+# AI Translated
 msgid "The value must be greater than zero"
-msgstr ""
+msgstr "Reikšmė turi būti didesnė už nulį"
 
+# AI Translated
 msgid "The value must not be negative (zero means coincident)"
-msgstr ""
+msgstr "Reikšmė negali būti neigiama (nulis reiškia sutapimą)"
 
+# AI Translated
 msgid "That dimension cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "Šio matmens neįmanoma patenkinti — eskizas per daug apribotas"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-msgstr ""
+msgstr "Ignoruojami apribojimai, kurių negalima taikyti šiai geometrijai (elipsei ar splaino kreivei arba nulinio dydžio apskritimui): %1%"
 
+# AI Translated
 msgid "This profile crosses or folds back on itself at the red mark, so it does not bound one region"
-msgstr ""
+msgstr "Šis profilis ties raudona žyme kertasi arba užsilenkia pats ant savęs, todėl neapriboja vienos srities"
 
 # AI Translated
 #. TRN Design sketch: length of one side of a regular polygon (inline value editor title)
 msgid "Side"
 msgstr "Kraštinė"
 
+# AI Translated
 msgid "Semi-major axis"
-msgstr ""
+msgstr "Didžioji pusašė"
 
+# AI Translated
 msgid "Semi-minor axis"
-msgstr ""
+msgstr "Mažoji pusašė"
 
+# AI Translated
 msgid "The angle must be between 0° and 360°"
-msgstr ""
+msgstr "Kampas turi būti nuo 0° iki 360°"
 
+# AI Translated
 msgid "The semi-major axis cannot be shorter than the semi-minor axis"
-msgstr ""
+msgstr "Didžioji pusašė negali būti trumpesnė už mažąją pusašę"
 
+# AI Translated
 msgid "The corner radius must be less than half the shorter side"
-msgstr ""
+msgstr "Kampo spindulys turi būti mažesnis nei pusė trumpesnės kraštinės"
 
+# AI Translated
 msgid "The slot is too wide for its radius — the width must be less than twice the radius"
-msgstr ""
+msgstr "Išpjova per plati savo spinduliui — plotis turi būti mažesnis nei dvigubas spindulys"
 
+# AI Translated
 #, boost-format
 msgid "%1% cannot be satisfied — the sketch is over-constrained"
-msgstr ""
+msgstr "%1%: šio matmens neįmanoma patenkinti — eskizas per daug apribotas"
 
+# AI Translated
 msgid "Those two lines do not meet at a corner — pick two lines that do"
-msgstr ""
+msgstr "Šios dvi linijos nesusitinka kampe — pasirinkite dvi, kurios susitinka"
 
+# AI Translated
 msgid "The size must be greater than zero"
-msgstr ""
+msgstr "Dydis turi būti didesnis už nulį"
 
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Suapvalinimas: spindulys viršija kraštinės ilgį arba šios dvi linijos nesusitinka kampe"
 
+# AI Translated
 msgid "Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"
-msgstr ""
+msgstr "Nuožula: atstumas viršija kraštinės ilgį arba šios dvi linijos nesusitinka kampe"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-msgstr ""
+msgstr "Pašalinti apribojimai, kuriuos suapvalinimas / nuožula padarė negaliojančiais: %1%"
 
+# AI Translated
 msgid "Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"
-msgstr ""
+msgstr "Poslinkis: elipsė ar splainas neturi tos pačios rūšies lygiagrečios kreivės — pasirinkite linijas, lankus arba apskritimus"
 
+# AI Translated
 msgid "The scale factor must be greater than zero"
-msgstr ""
+msgstr "Mastelio koeficientas turi būti didesnis už nulį"
 
+# AI Translated
 msgid "Copies"
-msgstr ""
+msgstr "Kopijų skaičius"
 
+# AI Translated
 msgid "The number of copies must be a whole number, 2 or more"
-msgstr ""
+msgstr "Kopijų skaičius turi būti sveikasis skaičius, 2 arba daugiau"
 
+# AI Translated
 #, boost-format
 msgid "%1% constraint(s) released by the transform"
-msgstr ""
+msgstr "Transformacijos panaikinti apribojimai: %1%"
 
+# AI Translated
 msgid "The array copies are unconstrained — the solver refused every binding"
-msgstr ""
+msgstr "Masyvo kopijos neapribotos — sprendiklis atmetė visus susiejimus"
 
 # AI Translated
 msgid "right-click or double-click to finish, click start to close"
 msgstr "dešinysis arba dvigubas spustelėjimas – užbaigti, spustelėjimas ant pradžios – uždaryti"
 
+# AI Translated
 msgid "Extend: click a line or an arc that can reach another entity"
-msgstr ""
+msgstr "Pratęsti: spustelėkite liniją arba lanką, galintį pasiekti kitą objektą"
 
+# AI Translated
 msgid "Trim: click a segment where it crosses another entity"
-msgstr ""
+msgstr "Apkirpti: spustelėkite atkarpą ten, kur ji kerta kitą objektą"
 
+# AI Translated
 msgid "Press Enter or ✓ to apply, Esc to discard"
-msgstr ""
+msgstr "Paspauskite Enter arba ✓, kad pritaikytumėte, Esc – atmesti"
 
+# AI Translated
 msgid "No dimension for that entity yet — click a line, a circle, an arc, or two points"
-msgstr ""
+msgstr "Šiam objektui matmuo dar negalimas — spustelėkite liniją, apskritimą, lanką arba du taškus"
 
+# AI Translated
 msgid "Click a second point, or a line to measure the distance to"
-msgstr ""
+msgstr "Spustelėkite antrą tašką arba liniją, iki kurios matuoti atstumą"
 
 # AI Translated
 msgid "Enter a number"
@@ -25909,8 +26087,12 @@ msgid "Sketch"
 msgstr "Eskizas"
 
 # AI Translated
-msgid "Click a face or a reference plane, then pick a drawing tool"
-msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada pasirinkite piešimo įrankį"
+msgid "Select a flat face or a reference plane to sketch on"
+msgstr "Pasirinkite plokščią paviršių arba atskaitos plokštumą, kurioje braižysite eskizą"
+
+# AI Translated
+msgid "Sketch on the selected flat face or plane, or click one next"
+msgstr "Braižyti eskizą pasirinktame plokščiame paviršiuje ar plokštumoje arba spustelėti paviršių ar plokštumą vėliau"
 
 # AI Translated
 msgctxt "Design"
@@ -25932,9 +26114,10 @@ msgctxt "Design"
 msgid "Thicken"
 msgstr "Sustorinimas"
 
+# AI Translated
 msgctxt "Design"
 msgid "Join"
-msgstr ""
+msgstr "Sujungimas"
 
 # AI Translated
 msgid "Fuse the tool body into the target — one solid, no seam"
@@ -25987,16 +26170,14 @@ msgctxt "Design"
 msgid "Thicken Surface"
 msgstr "Paviršiaus sustorinimas"
 
+# AI Translated
 msgid "Thicken Surface needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Paviršiaus sustorinimui reikia paviršinio kūno — pirmiausia jį sukurkite paviršiaus įrankiu"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hole"
 msgstr "Skylė"
-
-msgid "Drill a hole, centerd on a picked face or placed on a plane"
-msgstr ""
 
 # AI Translated
 msgctxt "Design"
@@ -26012,8 +26193,9 @@ msgctxt "Design"
 msgid "Split"
 msgstr "Padalijimas"
 
+# AI Translated
 msgid "Split needs a solid body — add or import one first"
-msgstr ""
+msgstr "Padalijimui reikia kietojo kūno — pirmiausia jį pridėkite arba importuokite"
 
 # AI Translated
 msgid "Split the body along a picked face into two solids"
@@ -26059,8 +26241,9 @@ msgctxt "Design"
 msgid "Surface Offset"
 msgstr "Paviršiaus poslinkis"
 
+# AI Translated
 msgid "Surface Offset needs a surface body — make one with a Surface tool first"
-msgstr ""
+msgstr "Paviršiaus poslinkiui reikia paviršinio kūno — pirmiausia jį sukurkite paviršiaus įrankiu"
 
 # AI Translated
 msgctxt "Design"
@@ -26090,8 +26273,9 @@ msgctxt "Design"
 msgid "Pattern on Curve"
 msgstr "Masyvas išilgai kreivės"
 
+# AI Translated
 msgid "Pattern on Curve needs a body and a curve"
-msgstr ""
+msgstr "Masyvui išilgai kreivės reikia kūno ir kreivės"
 
 # AI Translated
 msgid "Repeat the body along a picked curve"
@@ -26112,8 +26296,9 @@ msgctxt "Design"
 msgid "Align to"
 msgstr "Sulygiuoti su"
 
+# AI Translated
 msgid "Align needs a body — add or import one first"
-msgstr ""
+msgstr "Sulygiavimui reikia kūno — pirmiausia jį pridėkite arba importuokite"
 
 # AI Translated
 msgid "Align the body to a picked face or plane"
@@ -26129,9 +26314,10 @@ msgctxt "Design"
 msgid "Axis"
 msgstr "Ašis"
 
+# AI Translated
 msgctxt "Design"
 msgid "Coordinate system"
-msgstr ""
+msgstr "Koordinačių sistema"
 
 # AI Translated
 msgctxt "Design"
@@ -26147,9 +26333,10 @@ msgstr "Matavimas"
 msgid "Measure between the picked points, edges or faces"
 msgstr "Matuoti atstumą tarp pasirinktų taškų, briaunų ar paviršių"
 
+# AI Translated
 msgctxt "Design"
 msgid "Volume and area"
-msgstr ""
+msgstr "Tūris ir paviršiaus plotas"
 
 # AI Translated
 msgid "Report the volume and surface area of the selected body"
@@ -26191,12 +26378,23 @@ msgctxt "Design"
 msgid "Delete Face"
 msgstr "Pašalinti paviršių"
 
+# AI Translated
 msgctxt "Design"
 msgid "Color"
-msgstr ""
+msgstr "Spalva"
 
+# AI Translated
 msgid "Set the selected body's display color"
-msgstr ""
+msgstr "Nustatyti pasirinkto kūno rodymo spalvą"
+
+# AI Translated
+msgctxt "Design"
+msgid "Zoom to selection"
+msgstr "Priartinti prie pasirinkimo"
+
+# AI Translated
+msgid "Frame the selection in the view, keeping the view direction"
+msgstr "Sutalpinti pasirinkimą vaizde, išlaikant žiūrėjimo kryptį"
 
 # AI Translated
 msgctxt "Design"
@@ -26235,9 +26433,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Stačiakampis pagal kampus"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
-msgstr ""
+msgstr "Stačiakampis nuo centro"
 
 # AI Translated
 msgctxt "Design"
@@ -26249,9 +26448,10 @@ msgctxt "Design"
 msgid "Rounded rectangle"
 msgstr "Suapvalintas stačiakampis"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center circle"
-msgstr ""
+msgstr "Apskritimas nuo centro"
 
 # AI Translated
 msgctxt "Design"
@@ -26273,9 +26473,10 @@ msgctxt "Design"
 msgid "Tangent arc"
 msgstr "Liestinis lankas"
 
+# AI Translated
 msgctxt "Design"
 msgid "Center-point arc"
-msgstr ""
+msgstr "Lankas nuo centro"
 
 # AI Translated
 msgctxt "Design"
@@ -26307,48 +26508,54 @@ msgctxt "Design"
 msgid "Triangle"
 msgstr "Trikampis"
 
+# AI Translated
 msgid "Triangle — click center, then a vertex"
-msgstr ""
+msgstr "Trikampis — spustelėkite centrą, tada viršūnę"
 
 # AI Translated
 msgctxt "Design"
 msgid "Square"
 msgstr "Kvadratas"
 
+# AI Translated
 msgid "Square — click center, then a vertex"
-msgstr ""
+msgstr "Kvadratas — spustelėkite centrą, tada viršūnę"
 
 # AI Translated
 msgctxt "Design"
 msgid "Pentagon"
 msgstr "Penkiakampis"
 
+# AI Translated
 msgid "Pentagon — click center, then a vertex"
-msgstr ""
+msgstr "Penkiakampis — spustelėkite centrą, tada viršūnę"
 
 # AI Translated
 msgctxt "Design"
 msgid "Hexagon"
 msgstr "Šešiakampis"
 
+# AI Translated
 msgid "Hexagon — click center, then a vertex"
-msgstr ""
+msgstr "Šešiakampis — spustelėkite centrą, tada viršūnę"
 
 # AI Translated
 msgctxt "Design"
 msgid "Octagon"
 msgstr "Aštuonkampis"
 
+# AI Translated
 msgid "Octagon — click center, then a vertex"
-msgstr ""
+msgstr "Aštuonkampis — spustelėkite centrą, tada viršūnę"
 
 # AI Translated
 msgctxt "Design"
 msgid "Dodecagon"
 msgstr "Dvylikakampis"
 
+# AI Translated
 msgid "Dodecagon — click center, then a vertex"
-msgstr ""
+msgstr "Dvylikakampis — spustelėkite centrą, tada viršūnę"
 
 # AI Translated
 msgctxt "Design"
@@ -26378,8 +26585,9 @@ msgctxt "Design"
 msgid "Text"
 msgstr "Tekstas"
 
+# AI Translated
 msgid "Type text; it becomes a Text feature on this sketch's plane, editable later"
-msgstr ""
+msgstr "Įveskite tekstą; jis taps elementu „Tekstas“ šio eskizo plokštumoje, kurį vėliau galėsite redaguoti"
 
 # AI Translated
 msgctxt "Design"
@@ -26496,27 +26704,34 @@ msgstr "Kampas / atstumas…"
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr "Įveskite kampą tarp dviejų linijų arba atstumą tarp dviejų pasirinktų objektų"
 
+# AI Translated
 msgid "Type the text to insert"
-msgstr ""
+msgstr "Įveskite įterpiamą tekstą"
 
+# AI Translated
 msgid "Bold"
-msgstr ""
+msgstr "Paryškintas"
 
+# AI Translated
 msgid "Italic"
-msgstr ""
+msgstr "Kursyvas"
 
+# AI Translated
 msgid "This font cannot be used for text — pick another one"
-msgstr ""
+msgstr "Šio šrifto negalima naudoti tekstui — pasirinkite kitą"
 
+# AI Translated
 msgid "Type the text to see its size"
-msgstr ""
+msgstr "Įveskite tekstą, kad pamatytumėte jo dydį"
 
+# AI Translated
 msgid "This font has no outline for this text"
-msgstr ""
+msgstr "Šis šriftas neturi šio teksto kontūro"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
-msgstr ""
+msgstr "Dydis: %.1f × %.1f mm"
 
 # AI Translated
 msgid "Primitive"
@@ -26614,8 +26829,9 @@ msgstr "Profilis"
 msgid "Start new profile (for holes)"
 msgstr "Pradėti naują profilį (skylėms)"
 
+# AI Translated
 msgid "Segments"
-msgstr ""
+msgstr "Segmentai"
 
 # AI Translated
 msgid "Sides"
@@ -26629,20 +26845,23 @@ msgstr "Spustelėkite drobėje, kad pieštumėte"
 msgid "Snap to grid"
 msgstr "Pritraukti prie tinklelio"
 
+# AI Translated
 msgid "Grid step"
-msgstr ""
+msgstr "Tinklelio žingsnis"
 
 # AI Translated
 msgid "Outer"
 msgstr "Išorinis"
 
+# AI Translated
 msgid "closed"
-msgstr ""
+msgstr "uždaras"
 
+# AI Translated
 #. TRN Sketch gizmo profile list: "Outer" or "Hole", profile number, point count, "closed" or nothing
 #, boost-format
 msgid "%1% %2%: %3% points %4%"
-msgstr ""
+msgstr "%1% %2%: %3% tšk. %4%"
 
 # AI Translated
 msgid "XY (Top)"
@@ -26680,8 +26899,9 @@ msgstr[2] "%zu uždarų profilių"
 msgid "Draw a closed profile to enable"
 msgstr "Nubrėžkite uždarą profilį, kad įjungtumėte"
 
+# AI Translated
 msgid "Clear all"
-msgstr ""
+msgstr "Išvalyti viską"
 
 # AI Translated
 msgid "Empty result"
@@ -30795,6 +31015,39 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "(Experimental) Use printer agents instead of print hosts"
+#~ msgstr "(Eksperimentinė) Naudoti spausdintuvo agentus vietoj spausdinimo serverių"
+
+# AI Translated
+#~ msgid "FEATURES"
+#~ msgstr "ELEMENTAI"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+#~ msgstr "Vaizdo srityje spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį"
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then a sketch tool."
+#~ msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada eskizo įrankį."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "%s plane selected — right-click for the drawing tools"
+#~ msgstr "Pasirinkta %s plokštuma — spustelėkite dešiniuoju pelės mygtuku, kad atvertumėte piešimo įrankius"
+
+# AI Translated
+#~ msgid ""
+#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
+#~ "or click a reference plane and right-click it to start a sketch."
+#~ msgstr ""
+#~ "Kol kas nieko nėra — importuokite STEP failą arba poligoninį tinklą iš įrankių juostos,\n"
+#~ "arba spustelėkite atskaitos plokštumą ir spustelėkite ją dešiniuoju pelės mygtuku, kad pradėtumėte eskizą."
+
+# AI Translated
+#~ msgid "Click a face or a reference plane, then pick a drawing tool"
+#~ msgstr "Spustelėkite paviršių arba atskaitos plokštumą, tada pasirinkite piešimo įrankį"
 
 #~ msgid "X"
 #~ msgstr "X"

@@ -89,7 +89,6 @@ using fn_ft_job_get_result    = ft_err(FT_CALL *)(FT_JobHandle *, uint32_t timeo
 using fn_ft_tunnel_start_job  = ft_err(FT_CALL *)(FT_TunnelHandle *, FT_JobHandle *);
 using fn_ft_job_cancel        = ft_err(FT_CALL *)(FT_JobHandle *);
 
-using fn_ft_job_msg_destroy = void(FT_CALL *)(ft_job_msg *);
 using fn_ft_job_set_msg_cb  = ft_err(FT_CALL *)(FT_JobHandle *, void(FT_CALL *)(void *user, ft_job_msg msg), void *user);
 using fn_ft_job_try_get_msg = ft_err(FT_CALL *)(FT_JobHandle *, ft_job_msg *out_msg);
 using fn_ft_job_get_msg     = ft_err(FT_CALL *)(FT_JobHandle *, uint32_t timeout_ms, ft_job_msg *out_msg);

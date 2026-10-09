@@ -6,6 +6,9 @@
 	"setting_id": "B2UB9QUbbjpn12Ka",
 	"filament_id": "OFnO4wnf",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_indx"
+	],
 	"filament_flow_ratio": [
 		"1"
 	],

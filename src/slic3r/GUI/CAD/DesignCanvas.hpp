@@ -3,6 +3,8 @@
 
 #include <vector>
 #include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Color.hpp"
 #include <utility>
 #include <wx/colour.h>
@@ -48,16 +50,26 @@ public:
 
     // Multi-body display: one GLVolume per body, each coloured distinctly (per-body colour).
     // `visible` (optional, indexed by body) hides bodies whose flag is false. `body_meshes` is kept
-    // by address (a stable panel member) and read again whenever the selection changes.
+    // by address (a stable panel member) and read again whenever the selection changes. The
+    // bodies' edge lines are refreshed with them (DesignSketchTool::refresh_body_edges).
     void set_bodies(const std::vector<TriangleMesh>* body_meshes,
                     const std::vector<bool>& visible = {});
-    void clear_mesh();
+    void clear_mesh();   // no bodies: drops their volumes and the tool's edge lines, pick and selection
 
     void set_preview_mesh(const TriangleMesh& mesh);
     void clear_preview();
 
     void fit_view();
     void set_view(const std::string& view_name);
+    // Frame `box` along the current view direction, as the canvas's Fit button frames a selection.
+    // False, the camera left alone, when there is nothing to frame: an undefined box.
+    bool zoom_to_box(BoundingBoxf3 box);
+    // Boxes to hand zoom_to_box: the selection and body faces (see DesignSketchTool).
+    BoundingBoxf3 selection_box() const { return m_sketch_tool.selection_box(); }
+    BoundingBoxf3 faces_box(std::vector<std::pair<int, int>> faces) const
+    {
+        return m_sketch_tool.faces_box(std::move(faces));
+    }
 
     void begin_sketch(const SketchPlane& plane, DesignSketchTool::Mode mode);
     // Re-open a committed entity sketch for full in-canvas editing (load geometry +
@@ -66,7 +78,6 @@ public:
                      const std::vector<SketchEntityConstraintDef>& constraints,
                      const SketchPlane& plane);
     void set_sketch_tool(DesignSketchTool::Mode mode);
-    void set_sketch_plane(const SketchPlane& plane);   // re-plane the live sketch when a reference plane is clicked in 3D
     void set_sketch_construction(bool c);
     // Flip the sketch selection between construction and real geometry; returns the
     // number of entities changed (0 = nothing selected, caller falls back to the mode).
@@ -83,6 +94,8 @@ public:
     void finish_sketch();
     bool is_sketching() const;
     void refresh_bed();   // re-sync the bed to the current printer (call on tab activation)
+    // Centre of the Design bed: the printer bed at its home position, whichever plate is current.
+    Vec2d bed_center() const { return m_bed.build_volume().bed_center(); }
     // The Camera is Plater-owned and shared with Prepare/Preview/Assemble; GLCanvas3D has no
     // per-canvas camera, so every orbit here would otherwise overwrite what the editor tabs
     // show. Exactly one of the two views is live at a time, so entering and leaving are the
@@ -157,7 +170,6 @@ public:
     void begin_move_body(int body, const Vec3d& pivot, const Transform3d& base_xform,
                          double body_radius);
     void clear_move_gizmo();
-    bool moving_body() const;
     void set_on_body_move_changed(std::function<void(int, const Transform3d&)> cb);
     // Visual Fillet/Chamfer radius gizmo: when a solid edge is picked, anchor a radius arrow on
     // it; drag/edit fire the radius callback. Returns false if no edge is currently picked.
@@ -234,6 +246,7 @@ public:
                        std::vector<std::string> labels = {});   // clickable labelled reference planes
     void clear_base_pick();
     void set_on_datum_base_picked(std::function<void(int)> cb);
+    void set_selected_base(std::function<int()> cb);              // the reference plane drawn selected, or -1
     void set_on_sketch_exit(std::function<void()> cb);           // Esc -> exit the tool
     void set_on_sketch_exit_refused(std::function<void()> cb);   // Esc declined: sketch has work
     void set_on_sketch_notice(std::function<void(const std::string&, bool)> cb);   // tool refusals/side effects
@@ -380,7 +393,7 @@ public:
     void repaint_now();
 
 private:
-    void reload(bool keep_view);
+    void reload();
     void swap_camera();   // enter_viewport / leave_viewport, in the one direction they share
 
     // Selected faces are filled by the canvas: each body's selected faces become a volume of their
@@ -415,7 +428,6 @@ private:
     Camera      m_parked_camera;
     bool        m_camera_swapped{false};   // guards a leave without an enter, and the reverse
     Model       m_model;
-    bool        m_first_frame{true};
     int         m_hl_body_target{-1};
     int         m_hl_body_tool{-1};
     bool        m_body_translucent{false};// fillet/chamfer preview → render the body see-through

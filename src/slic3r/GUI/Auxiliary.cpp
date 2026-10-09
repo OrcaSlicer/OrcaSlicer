@@ -69,6 +69,7 @@
 #include <wx/dcmemory.h>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -855,14 +856,14 @@ void AuxiliaryPanel::Split(const std::string &src, const std::string &separator,
     dest.clear();
     index = str.find_first_of(separator, start);
     do {
-        if (index != string::npos) {
+        if (index != std::string::npos) {
             substring = str.substr(start, index - start);
             dest.push_back(substring);
             start = index + separator.size();
             index = str.find(separator, start);
-            if (start == string::npos) break;
+            if (start == std::string::npos) break;
         }
-    } while (index != string::npos);
+    } while (index != std::string::npos);
 
     // the last part
     substring = str.substr(start);

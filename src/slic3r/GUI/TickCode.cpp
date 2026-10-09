@@ -6,6 +6,9 @@
 #include <set>
 
 namespace Slic3r {
+
+using namespace CustomGCode;
+
 namespace GUI {
 std::string TickCodeInfo::get_color_for_tick(TickCode tick, Type type, const int extruder)
 {

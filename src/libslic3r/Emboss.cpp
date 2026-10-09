@@ -15,7 +15,6 @@
 #include "Emboss.hpp"
 #include <optional>
 #include <stdio.h>
-#include <numeric>
 #include <cstdlib>
 #include <boost/nowide/convert.hpp>
 #include <boost/log/trivial.hpp>

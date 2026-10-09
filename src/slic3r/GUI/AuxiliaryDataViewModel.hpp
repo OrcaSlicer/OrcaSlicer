@@ -18,8 +18,6 @@
 class AuxiliaryModelNode;
 WX_DEFINE_ARRAY_PTR(AuxiliaryModelNode*, AuxiliaryModelNodePtrArray);
 
-namespace fs = boost::filesystem;
-
 class AuxiliaryModelNode
 {
 public:

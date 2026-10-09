@@ -1307,7 +1307,7 @@ void CalibrationPresetPage::stripWhiteSpace(std::string& str)
 {
     if (str == "") { return; }
 
-    string::iterator cur_it;
+    std::string::iterator cur_it;
     cur_it = str.begin();
 
     while (cur_it != str.end()) {
@@ -2597,7 +2597,7 @@ void CalibrationPresetPage::update_multi_extruder_filament_combobox(const std::s
     int ams_id_int = 0;
     try {
         if (!ams_id.empty())
-            ams_id_int = stoi(ams_id.c_str());
+            ams_id_int = std::stoi(ams_id.c_str());
 
     } catch (...) {}
 
@@ -2685,7 +2685,7 @@ void CalibrationPresetPage::update_filament_combobox(std::string ams_id)
     int ams_id_int = 0;
     try {
         if (!ams_id.empty())
-            ams_id_int = stoi(ams_id.c_str());
+            ams_id_int = std::stoi(ams_id.c_str());
 
     } catch (...) {}
 

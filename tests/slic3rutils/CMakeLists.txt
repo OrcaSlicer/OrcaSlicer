@@ -34,11 +34,16 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_plugin_json_depth.cpp
     test_shortcuts.cpp
     test_file_url.cpp
     test_user_manager.cpp
     ../fff_print/test_helpers.cpp
     )
+
+if (SLIC3R_CAD)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
+endif ()
 
 if (MSVC)
     target_link_libraries(${_TEST_NAME}_tests Setupapi.lib)

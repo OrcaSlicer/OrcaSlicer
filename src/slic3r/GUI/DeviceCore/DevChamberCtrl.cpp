@@ -1,7 +1,9 @@
 #include "DevChamber.h"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <string>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 

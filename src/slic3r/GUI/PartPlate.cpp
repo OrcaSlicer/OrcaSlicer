@@ -1,4 +1,3 @@
-#include <boost/optional/optional.hpp>
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -60,7 +59,6 @@
 #include <future>
 #include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
@@ -113,9 +111,6 @@
 #include "slic3r/GUI/GLModel.hpp"
 
 class wxFont;
-namespace boost { template <class T> class optional; }
-using boost::optional;
-namespace fs = boost::filesystem;
 
 static const float GROUND_Z = -0.03f;
 static const float GROUND_Z_GRIDLINE = -0.26f;
@@ -3133,7 +3128,7 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 	new_conf.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
 	new_conf.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
 	new_conf.set_key_value("overhang_reverse", new ConfigOptionBool(false));
-	auto applying_keys = global_config->diff(new_conf);
+	const auto applying_keys = global_config->diff(new_conf);
 
 	for (ModelObject* object : obj_ptrs) {
 		ModelConfigObject& config = object->config;
@@ -3142,8 +3137,8 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 			config.set_key_value(opt_key, new_conf.option(opt_key)->clone());
 		}
 
-		applying_keys = config.get().diff(new_conf);
-		for (auto opt_key : applying_keys) {
+		const auto object_keys = config.get().diff(new_conf);
+		for (auto opt_key : object_keys) {
 			config.set_key_value(opt_key, new_conf.option(opt_key)->clone());
 		}
 	}

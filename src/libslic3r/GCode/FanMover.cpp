@@ -27,8 +27,6 @@
 #include "../PrintConfig.hpp"
 #include "../Utils.hpp"
 #include "Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
-#include "libslic3r/libslic3r.h"
 
 #include <boost/log/trivial.hpp>
 #include <string>

@@ -45,6 +45,7 @@ enum class AuditEventCategory {
     Http,
     Socket,
     ProcessCreate,
+    ProcessReplace,
     Threading,
 };
 

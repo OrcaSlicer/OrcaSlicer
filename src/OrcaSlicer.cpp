@@ -23,7 +23,6 @@
 #include <map>
 #include <vector>
 #include "libslic3r/PrintBase.hpp"
-#include "slic3r/Utils/json_diff.hpp"
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <cerrno>
 #include <utility>
@@ -78,11 +77,9 @@
 #include <condition_variable>
 #include <mutex>
 #include <boost/thread.hpp>
-//add json logic
-#include "nlohmann/json.hpp"
-
-using namespace nlohmann;
 #endif
+
+#include "nlohmann/json.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -157,6 +154,7 @@ using namespace nlohmann;
 #include <stdio.h>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 #ifdef __WXGTK__
 #if __has_include(<X11/Xlib.h>)
@@ -1822,6 +1820,8 @@ int CLI::run(int argc, char **argv)
                         old_printable_width = static_cast<int>(old_printable_bbox.size().x());
                         old_printable_depth = static_cast<int>(old_printable_bbox.size().y());
                     }
+                    // A 3mf can carry an empty project_settings.config - the models in
+                    // resources/handy_models do - and opt_float() dereferences without checking.
                     if (config.option<ConfigOptionFloat>("printable_height"))
                         old_printable_height = (int)(config.opt_float("printable_height"));
 
@@ -2507,7 +2507,8 @@ int CLI::run(int argc, char **argv)
                             orig_printable_width = static_cast<int>(orig_printable_bbox.size().x());
                             orig_printable_depth = static_cast<int>(orig_printable_bbox.size().y());
                         }
-                        orig_printable_height = (int)(config.opt_float("printable_height"));
+                        if (config.option<ConfigOptionFloat>("printable_height"))
+                            orig_printable_height = (int)(config.opt_float("printable_height"));
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(":%1%, check printable size: old_printable_width=%2%, orig_printable_width=%3%, old_printable_depth=%4%, orig_printable_depth=%5%, old_printable_height=%6%, orig_printable_height=%7%")
                                     %__LINE__ %old_printable_width %orig_printable_width %old_printable_depth %orig_printable_depth %old_printable_height %orig_printable_height;
                         if ((orig_printable_width > 0) && (orig_printable_depth > 0) && (orig_printable_height > 0))
@@ -3524,7 +3525,7 @@ int CLI::run(int argc, char **argv)
             ConfigOptionStrings *curr_variant_opt = m_print_config.option<ConfigOptionStrings>("filament_extruder_variant");
             if (!curr_variant_opt) {
                 curr_variant_opt = m_print_config.option<ConfigOptionStrings>("filament_extruder_variant", true);
-                std::vector<string>& filament_variants = curr_variant_opt->values;
+                std::vector<std::string>& filament_variants = curr_variant_opt->values;
                 filament_variants.resize(filament_count, get_extruder_variant_string(etDirectDrive, nvtStandard));
             }
             const ConfigOptionStrings *new_variant_opt = dynamic_cast<const ConfigOptionStrings*>(config.option("filament_extruder_variant", true));
@@ -3620,6 +3621,9 @@ int CLI::run(int argc, char **argv)
                 {
                     if (opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "model_id" || opt_key == "dev_model_name" || opt_key == "filament_settings_id")
                         continue;
+                    // rebuilt from every filament after this loop
+                    if (filament_dev_options.find(opt_key) != filament_dev_options.end())
+                        continue;
                     ConfigOption *opt = m_print_config.option(opt_key, true);
                     if (opt == nullptr) {
                         // opt_key does not exist in this ConfigBase and it cannot be created, because it is not defined by this->def().
@@ -3682,6 +3686,14 @@ int CLI::run(int argc, char **argv)
                 BOOST_LOG_TRIVIAL(info) << boost::format("filament %1% new different key size %2%, different_settings %3%")%filament_index %different_keys_set.size() %different_settings[filament_index];
             }
         }
+
+        // The stored values cannot be told apart per filament, so they are kept as they are unless every slot has a config.
+        std::vector<const DynamicPrintConfig *> filament_configs(filament_count, nullptr);
+        for (size_t index = 0; index < load_filaments_config.size(); index++)
+            if (load_filaments_index[index] >= 1 && load_filaments_index[index] <= filament_count)
+                filament_configs[load_filaments_index[index] - 1] = &load_filaments_config[index];
+        if (std::find(filament_configs.begin(), filament_configs.end(), nullptr) == filament_configs.end())
+            set_filament_dev_options(m_print_config, filament_configs);
 
         if (m_print_config.option<ConfigOptionStrings>("filament_extruder_variant")) {
             std::vector<int>& filament_self_indice = m_print_config.option<ConfigOptionInts>("filament_self_index", true)->values;
@@ -4085,6 +4097,8 @@ int CLI::run(int argc, char **argv)
             flush_and_exit(CLI_MIXED_FILAMENT_INVALID);
         }
     }
+    if (filament_count > 0)
+        resize_mixed_filament_metadata(m_print_config, size_t(filament_count), size_t(filament_count));
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 
@@ -4606,7 +4620,8 @@ int CLI::run(int argc, char **argv)
                 BoundingBoxf temp_printable_bbox(temp_printable_area);
                 printer_plate.printable_width = static_cast<int>(temp_printable_bbox.size().x());
                 printer_plate.printable_depth = static_cast<int>(temp_printable_bbox.size().y());
-                printer_plate.printable_height = (int)(config.opt_float("printable_height"));
+                if (config.option<ConfigOptionFloat>("printable_height"))
+                    printer_plate.printable_height = (int)(config.opt_float("printable_height"));
             }
             if (temp_exclude_area.size() >= 4) {
                 printer_plate.exclude_width = (int)(temp_exclude_area[2].x() - temp_exclude_area[0].x());
@@ -6554,7 +6569,7 @@ int CLI::run(int argc, char **argv)
                                                 std::vector<int> result_filaments;
                                                 //result_filaments.reserve(conflict_filaments.size());
                                                 std::set_intersection(conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(),
-                                                    unprintable_filament_vec[index].end(), insert_iterator<vector<int>>(result_filaments, result_filaments.begin()));
+                                                    unprintable_filament_vec[index].end(), std::insert_iterator<std::vector<int>>(result_filaments, result_filaments.begin()));
                                                 conflict_filament_vector = result_filaments;
                                             }
                                         }

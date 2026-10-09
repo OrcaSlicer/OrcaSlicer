@@ -34,7 +34,7 @@
 #include "slic3r/GUI/Widgets/SideMenuPopup.hpp"
 #include <utility>
 #include "libslic3r/libslic3r.h"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <wx/dirdlg.h>
 #include <exception>
@@ -113,7 +113,6 @@
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
-#include "GUI_ObjectList.hpp"
 #include "NotificationManager.hpp"
 #include "MarkdownTip.hpp"
 #include "NetworkTestDialog.hpp"
@@ -154,6 +153,8 @@
 #include <wx/display.h>
 #include <wx/window.h>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -2307,6 +2308,12 @@ wxBoxSizer* MainFrame::create_side_tools()
             m_plater->update(true, true);
 
             bool slice = true;
+
+            // The Slice-plate hover popup is a transient popup that keeps grabbing
+            // the mouse capture while shown. Left behind the modal grouping dialog it
+            // would starve that dialog of mouse events, so close it synchronously first.
+            if (m_filament_group_popup)
+                m_filament_group_popup->Dismiss();
 
             auto curr_plate = m_plater->get_partplate_list().get_curr_plate();
             #ifdef __linux__

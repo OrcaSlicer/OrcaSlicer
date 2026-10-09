@@ -79,7 +79,6 @@
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 
-#include <nlohmann/json.hpp>
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -1752,8 +1751,8 @@ void ElegooPrintHostSendDialog::init() {
     }
 
     {
-        auto radioBoxA = new ::RadioBox(this);
-        auto radioBoxB = new ::RadioBox(this);
+        auto radioBoxA = new RadioBox(this);
+        auto radioBoxB = new RadioBox(this);
         if (m_BedType == BedType::btPC)
             radioBoxB->SetValue(true);
         else

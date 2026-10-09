@@ -11,7 +11,7 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <string>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -28,7 +28,6 @@
 #include <wx/font.h>
 #include <wx/colour.h>
 #include <wx/settings.h>
-#include <wx/sizer.h>
 #include <wx/grid.h>
 #include <wx/dataview.h>
 #include <wx/panel.h>
@@ -36,14 +35,12 @@
 #include <wx/bitmap.h>
 #include <wx/image.h>
 #include <wx/icon.h>
-#include <wx/bmpbuttn.h>
 #include <wx/button.h>
 #include <wx/gbsizer.h>
 #include <wx/statbox.h>
 #include <wx/tglbtn.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/webrequest.h>
 #include <map>
 #include <vector>
@@ -246,7 +243,7 @@ public:
     void                                            create_folder(wxString name = wxEmptyString);
     std::string                                     replaceSpace(std::string s, std::string ts, std::string ns);
     void                                            on_import_file(wxCommandEvent &event);
-    void                                            Reload(wxString aux_path, std::map<std::string, std::vector<json>> paths);
+    void                                            Reload(wxString aux_path, std::map<std::string, std::vector<nlohmann::json>> paths);
 
     void update_all_panel();
     void update_all_cover();

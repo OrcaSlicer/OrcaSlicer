@@ -288,7 +288,6 @@ std::vector<std::string> scan_serial_ports()
 // Class Serial
 
 namespace asio = boost::asio;
-using boost::system::error_code;
 
 Serial::Serial(asio::io_service& io_service) :
 	asio::serial_port(io_service)

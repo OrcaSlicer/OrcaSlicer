@@ -453,7 +453,7 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
                                 const bool menu_bitmap/* = false*/,
                                 const bool resize/* = false*/,
                                 const bool bitmap2/* = false*/,
-                                const vector<std::string>& array_new_color/* = vector<std::string>*/)//used for semi transparent material)
+                                const std::vector<std::string>& array_new_color/* = vector<std::string>*/)//used for semi transparent material)
 {
     static Slic3r::GUI::BitmapCache cache;
 
@@ -501,7 +501,7 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
 
 wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::BitmapCache& cache, wxWindow* win/* = nullptr*/ ,
     const int px_cnt/* = 16*/, const bool grayscale/* = false*/ , const bool resize/* = false*/ ,
-    const vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
+    const std::vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
 {
     unsigned int width = 0;
     // win may be nullptr; see create_scaled_bitmap() above.
