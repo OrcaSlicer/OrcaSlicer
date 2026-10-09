@@ -2158,7 +2158,7 @@ TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisp
     a.edge_smoothing_amount = 0.25f;
     a.auto_connect_islands = false;
     a.tile_enabled         = false;
-    a.tile_method          = TextureTileMethod::Mirror;
+    a.tile_method          = TextureTileMethod::MirroredRepeat;
     a.projection_method    = TextureProjectionMethod::LSCM;
     a.blend_mode           = TextureBlendMode::Subtract;
     a.color_enabled        = true;
@@ -2198,28 +2198,28 @@ TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisp
     const TextureDisplacementLayer &ra = read_layers[0];
     CHECK(ra.name == a.name);
     CHECK(ra.path == a.path);
-    CHECK(ra.depth_mm == Approx(a.depth_mm));
-    CHECK(ra.tiling_scale == Approx(a.tiling_scale));
-    CHECK(ra.rotation_deg == Approx(a.rotation_deg));
+    CHECK_THAT(ra.depth_mm, WithinAbs(a.depth_mm, 1e-6f));
+    CHECK_THAT(ra.tiling_scale, WithinAbs(a.tiling_scale, 1e-6f));
+    CHECK_THAT(ra.rotation_deg, WithinAbs(a.rotation_deg, 1e-6f));
     CHECK(ra.offset.isApprox(a.offset));
     CHECK(ra.invert == a.invert);
-    CHECK(ra.midlevel == Approx(a.midlevel));
-    CHECK(ra.smoothing == Approx(a.smoothing));
+    CHECK_THAT(ra.midlevel, WithinAbs(a.midlevel, 1e-6f));
+    CHECK_THAT(ra.smoothing, WithinAbs(a.smoothing, 1e-6f));
     CHECK(ra.edge_smoothing == a.edge_smoothing);
-    CHECK(ra.edge_smoothing_amount == Approx(a.edge_smoothing_amount));
+    CHECK_THAT(ra.edge_smoothing_amount, WithinAbs(a.edge_smoothing_amount, 1e-6f));
     CHECK(ra.auto_connect_islands == a.auto_connect_islands);
     CHECK(ra.tile_enabled == a.tile_enabled);
     CHECK(ra.tile_method == a.tile_method);
     CHECK(ra.projection_method == a.projection_method);
     CHECK(ra.blend_mode == a.blend_mode);
     CHECK(ra.color_enabled == a.color_enabled);
-    CHECK(ra.lscm_seam_angle_deg == Approx(a.lscm_seam_angle_deg));
-    CHECK(ra.island_padding_mm == Approx(a.island_padding_mm));
+    CHECK_THAT(ra.lscm_seam_angle_deg, WithinAbs(a.lscm_seam_angle_deg, 1e-6f));
+    CHECK_THAT(ra.island_padding_mm, WithinAbs(a.island_padding_mm, 1e-6f));
     CHECK(ra.lscm_seam_edges == a.lscm_seam_edges);
     REQUIRE(ra.islands.size() == a.islands.size());
     CHECK(ra.islands[0].offset.isApprox(a.islands[0].offset));
-    CHECK(ra.islands[0].rotation_deg == Approx(a.islands[0].rotation_deg));
-    CHECK(ra.islands[0].scale == Approx(a.islands[0].scale));
+    CHECK_THAT(ra.islands[0].rotation_deg, WithinAbs(a.islands[0].rotation_deg, 1e-6f));
+    CHECK_THAT(ra.islands[0].scale, WithinAbs(a.islands[0].scale, 1e-6f));
     CHECK(ra.island_groups == a.island_groups);
     REQUIRE(ra.lscm_uv_overrides.size() == 1);
     CHECK(ra.lscm_uv_overrides[0].first == -4);
@@ -2234,7 +2234,7 @@ TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisp
 
     CHECK(read_options.displace_border == options.displace_border);
     CHECK(read_options.smooth_enabled == options.smooth_enabled);
-    CHECK(read_options.smooth_strength == Approx(options.smooth_strength));
+    CHECK_THAT(read_options.smooth_strength, WithinAbs(options.smooth_strength, 1e-6f));
     CHECK(read_options.smooth_iterations == options.smooth_iterations);
     CHECK(read_options.pipeline_v2 == options.pipeline_v2);
     CHECK(read_options.v2_max_triangles_k == options.v2_max_triangles_k);
@@ -2257,13 +2257,13 @@ TEST_CASE("Texture displacement JSON keeps defaults for keys it does not carry",
     const TextureDisplacementOptions defaults;
     CHECK(l.slot == 2);
     CHECK(l.name == "Old");
-    CHECK(l.depth_mm == Approx(0.75f));
+    CHECK_THAT(l.depth_mm, WithinAbs(0.75f, 1e-6f));
     // Everything absent keeps the struct's own default rather than becoming zero.
-    CHECK(l.tiling_scale == Approx(fresh.tiling_scale));
+    CHECK_THAT(l.tiling_scale, WithinAbs(fresh.tiling_scale, 1e-6f));
     CHECK(l.auto_connect_islands == fresh.auto_connect_islands);
     CHECK(l.tile_enabled == fresh.tile_enabled);
     CHECK(l.projection_method == fresh.projection_method);
-    CHECK(l.lscm_seam_angle_deg == Approx(fresh.lscm_seam_angle_deg));
+    CHECK_THAT(l.lscm_seam_angle_deg, WithinAbs(fresh.lscm_seam_angle_deg, 1e-6f));
     CHECK(options.color_mix_mode == defaults.color_mix_mode);
     CHECK(options.pipeline_v2 == defaults.pipeline_v2);
 

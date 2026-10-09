@@ -21,6 +21,7 @@
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r_version.h"
 
 #include "bbs_3mf.hpp"
@@ -32,6 +33,7 @@
 #include <boost/spirit/home/qi/numeric/int.hpp>
 #include <cstdlib>
 #include <cstddef>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/constants.hpp>
 #include <algorithm>
 #include <boost/thread/lock_types.hpp>
