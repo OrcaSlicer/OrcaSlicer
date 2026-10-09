@@ -50,6 +50,11 @@ public:
 
     // A null message means success; row identifies the offending point, or -1.
     const char* read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const;
+    // CSV uses stable column identifiers and locale-independent export. Failed reads/writes
+    // leave the output untouched; line is a physical CSV line, row is a table row (zero-based).
+    const char* read_csv(const std::string& text, Rows& rows, int& line) const;
+    const char* write_csv(const Rows& rows, std::string& text, int& row) const;
+    virtual std::array<const char*, 2> csv_column_names() const { return {"x", "y"}; }
     const char* read_view(const std::array<std::string, 4>& bounds, CurveView& view) const;
     // Translate the viewport as a whole, stopping at its limits without changing scale.
     CurveView panned_view(const CurveView& view, double x_offset, double y_offset) const;
