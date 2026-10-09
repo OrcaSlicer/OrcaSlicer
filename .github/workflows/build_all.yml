@@ -327,6 +327,14 @@ jobs:
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
+    # resources/plugins ships x86_64-only networking .so files. The forced
+    # strip pass above dies on them in the aarch64 image ("Unable to
+    # recognise the architecture"), and they can never load there anyway;
+    # aarch64 users get native libraries from the plugin wheels.
+    - name: Drop x86_64-only networking libraries (aarch64)
+      if: matrix.variant.arch == 'aarch64'
+      run: rm -f resources/plugins/*.so
+      shell: bash
     # flatpak-builder reuses a module from its cache when the definition and
     # sources are unchanged, so a re-run of the same commit would skip the
     # OrcaSlicer module and ship no test asset. A per-run value in that module's
