@@ -1211,8 +1211,8 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
     shader->set_uniform("emission_factor", 0.1f);
     const std::array<std::array<ColorRGBA, 2>, mkCount> colors = { {
         { ColorRGBA(0.1f, 0.1f, 0.1f, 1.f), ColorRGBA::WHITE() },
-        { ColorRGBA(0x74 / 255.f, 0xAC / 255.f, 0xDF / 255.f, 1.f), ColorRGBA::WHITE() },
-        { ColorRGBA::RED(), ColorRGBA::YELLOW() },
+        { ColorRGBA(0x5A / 255.f, 0x9B / 255.f, 0xD4 / 255.f, 1.f), ColorRGBA::WHITE() },
+        { ColorRGBA(0.7f, 0.f, 0.f, 1.f), ColorRGBA::YELLOW() },
     } };
     const auto draw = [&](const Markers& markers, float alpha) {
         for (size_t kind = 0; kind < mkCount; ++kind)
