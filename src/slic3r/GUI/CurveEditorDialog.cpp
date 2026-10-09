@@ -18,6 +18,7 @@
 #include <wx/dcclient.h>
 #include <wx/defs.h>
 #include <wx/dialog.h>
+#include <wx/display.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/grid.h>
@@ -99,9 +100,10 @@ private:
 } // namespace
 
 CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help_text,
-                                     const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model)
+                                     const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model,
+                                     std::string geometry_key)
     : wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-      m_appearance(appearance), m_model(std::move(model))
+      m_appearance(appearance), m_model(std::move(model)), m_geometry_key(std::move(geometry_key))
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -487,6 +489,19 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     fit_in_display(*this, ClientToWindowSize(FromDIP(wxSize(920, 440))));
     layout_content();
     CentreOnParent();
+    if (wxGetApp().window_pos_restore(this, m_geometry_key)) {
+        wxSize size = GetSize();
+        size.IncTo(GetMinSize());
+        SetSize(size);
+        wxGetApp().window_pos_sanitize(this);
+        // Sanitizing can shrink the requested rect below the enforced minimum size.
+        // Move the actual window fully onto the display after that size is enforced.
+        const int display_index = wxDisplay::GetFromWindow(this);
+        const wxRect area = wxDisplay(display_index == wxNOT_FOUND ? 0u : static_cast<unsigned>(display_index)).GetClientArea();
+        const wxRect rect = GetScreenRect();
+        Move(wxPoint(std::clamp(rect.x, area.x, std::max(area.x, area.GetRight() + 1 - rect.width)),
+                     std::clamp(rect.y, area.y, std::max(area.y, area.GetBottom() + 1 - rect.height))));
+    }
 }
 
 CurveEditorDialog::~CurveEditorDialog()
@@ -497,6 +512,8 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->on_move = {};
     m_chart->on_pan = {};
     m_chart->on_zoom = {};
+    // Modal OK/Cancel/Escape hide the window without sending a close event.
+    wxGetApp().window_pos_save(this, m_geometry_key);
 }
 
 void CurveEditorDialog::finish_edit()

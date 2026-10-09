@@ -10,7 +10,6 @@ class SmallAreaInfillFlowCompensationDialog : public CurveEditorDialog
 {
 public:
     SmallAreaInfillFlowCompensationDialog(wxWindow* parent, const std::vector<std::string>& parameters);
-    ~SmallAreaInfillFlowCompensationDialog() override;
 };
 
 } // namespace Slic3r::GUI
