@@ -98,6 +98,9 @@ struct PluginInstallState {
     std::string installed_version;
     std::string plugin_name;
     std::string cloud_uuid;          // empty for local
+    // Set when a cloud plugin was unsubscribed and kept as a local copy. Its installed_version
+    // still records the version fetched from the cloud and must not be replaced by the header.
+    bool converted_from_cloud = false;
 
     PluginPermissions permissions;
 

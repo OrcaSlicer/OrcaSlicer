@@ -1913,6 +1913,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         install_state.installed_from = "local";
         install_state.plugin_name    = local_descriptor.name;
         install_state.cloud_uuid.clear();
+        install_state.converted_from_cloud = true;
         if (install_state.installed_version.empty())
             install_state.installed_version = local_descriptor.version;
         if (!write_install_state(resolved_root, install_state)) {
