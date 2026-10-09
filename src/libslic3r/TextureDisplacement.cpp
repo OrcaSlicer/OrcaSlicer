@@ -5207,6 +5207,8 @@ std::string texture_displacement_layers_to_json(const std::vector<TextureDisplac
     opt["color_mix_enabled"]  = options.color_mix_enabled;
     opt["color_mix_mode"]     = int(options.color_mix_mode);
     opt["color_despeckle"]    = options.color_despeckle;
+    opt["active_slot"]        = options.active_slot;
+    opt["panel_mode"]         = options.panel_mode;
 
     nlohmann::json &arr = root["layers"];
     arr                 = nlohmann::json::array();
@@ -5302,6 +5304,10 @@ bool texture_displacement_layers_from_json(const std::string                    
         int mix_mode = int(out_options.color_mix_mode);
         read_enum(opt, "color_mix_mode", mix_mode);
         out_options.color_mix_mode = ColorMixMode(std::clamp(mix_mode, 0, 2));
+        read(opt, "active_slot", out_options.active_slot);
+        read(opt, "panel_mode", out_options.panel_mode);
+        out_options.active_slot = std::clamp(out_options.active_slot, 0, int(TEXTURE_DISPLACEMENT_MAX_LAYERS) - 1);
+        out_options.panel_mode  = std::clamp(out_options.panel_mode, 0, 1);
     }
 
     std::vector<TextureDisplacementLayer> out_layers;

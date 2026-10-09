@@ -412,12 +412,19 @@ struct TextureDisplacementOptions
     // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
     int          color_despeckle   = 2;
 
+    // Where the panel was left, rather than anything the bake reads. It lives with the volume because
+    // that is what it describes: reopening a project should put the user back on the layer they were
+    // editing, in the mode they were editing it in, not on slot 0 in Standard.
+    int active_slot = 0;
+    int panel_mode  = 0; // 0 Standard, 1 Pro
+
     template<class Archive> void serialize(Archive &ar)
     {
         int mix_mode = int(color_mix_mode);
         ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
            pipeline_v2, v2_refine_mm, v2_regularize, v2_max_triangles_k,
-           v2_relocate, color_mix_enabled, mix_mode, color_despeckle);
+           v2_relocate, v2_flip_edges, color_mix_enabled, mix_mode, color_despeckle,
+           active_slot, panel_mode);
         color_mix_mode = ColorMixMode(mix_mode);
     }
 };

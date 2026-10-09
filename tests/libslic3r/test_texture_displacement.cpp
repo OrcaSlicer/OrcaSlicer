@@ -2187,6 +2187,8 @@ TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisp
     options.v2_max_triangles_k = 250;
     options.color_mix_mode    = ColorMixMode::XYDither;
     options.color_despeckle   = 4;
+    options.active_slot       = 3;
+    options.panel_mode        = 1;
 
     const std::string json = texture_displacement_layers_to_json(layers, options);
 
@@ -2240,6 +2242,9 @@ TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisp
     CHECK(read_options.v2_max_triangles_k == options.v2_max_triangles_k);
     CHECK(read_options.color_mix_mode == options.color_mix_mode);
     CHECK(read_options.color_despeckle == options.color_despeckle);
+    // Where the panel was left comes back with the rest, so a reopened project is on the same layer.
+    CHECK(read_options.active_slot == options.active_slot);
+    CHECK(read_options.panel_mode == options.panel_mode);
 }
 
 TEST_CASE("Texture displacement JSON keeps defaults for keys it does not carry", "[TextureDisplacement]")
@@ -2266,6 +2271,8 @@ TEST_CASE("Texture displacement JSON keeps defaults for keys it does not carry",
     CHECK_THAT(l.lscm_seam_angle_deg, WithinAbs(fresh.lscm_seam_angle_deg, 1e-6f));
     CHECK(options.color_mix_mode == defaults.color_mix_mode);
     CHECK(options.pipeline_v2 == defaults.pipeline_v2);
+    CHECK(options.active_slot == defaults.active_slot);
+    CHECK(options.panel_mode == defaults.panel_mode);
 
     std::vector<TextureDisplacementLayer> unused_layers;
     TextureDisplacementOptions            unused_options;

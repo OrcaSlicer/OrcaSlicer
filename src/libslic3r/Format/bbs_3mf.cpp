@@ -33,7 +33,6 @@
 #include <boost/spirit/home/qi/numeric/int.hpp>
 #include <cstdlib>
 #include <cstddef>
-#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/constants.hpp>
 #include <algorithm>
 #include <boost/thread/lock_types.hpp>
@@ -64,6 +63,7 @@
 #include <ostream>
 #include <sstream>
 #include <set>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <map>
@@ -3346,16 +3346,34 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             add_error("Malformed texture displacement data: " + json_path);
             return;
         }
+        // A layer the archive carries no image for - saved while its texture had not been loaded, or
+        // written by a build that stored only the path - falls back to the file it came from. The
+        // importer copies every texture into the user's own library, so that path resolves on the
+        // machine the project was made on and quietly resolves nowhere else, which is the old
+        // behaviour: settings restored, pixels not.
+        const auto load_image_from_disk = [](TextureDisplacementLayer &layer) {
+            boost::system::error_code ec;
+            if (layer.path.empty() || !boost::filesystem::is_regular_file(layer.path, ec) || ec)
+                return;
+            boost::nowide::ifstream file(layer.path, std::ios::binary);
+            if (!file.good())
+                return;
+            std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            if (!bytes.empty())
+                layer.image_data = std::make_shared<std::vector<unsigned char>>(std::move(bytes));
+        };
+
         for (TextureDisplacementLayer &layer : layers) {
-            if (layer.path_in_3mf.empty())
-                continue;
-            const auto image = m_texture_displacement_files.find(layer.path_in_3mf);
-            if (image == m_texture_displacement_files.end()) {
+            if (!layer.path_in_3mf.empty()) {
+                if (const auto image = m_texture_displacement_files.find(layer.path_in_3mf);
+                    image != m_texture_displacement_files.end()) {
+                    layer.image_data = std::make_shared<std::vector<unsigned char>>(image->second.begin(),
+                                                                                    image->second.end());
+                    continue;
+                }
                 add_error("Missing texture displacement image: " + layer.path_in_3mf);
-                continue;
             }
-            layer.image_data = std::make_shared<std::vector<unsigned char>>(image->second.begin(),
-                                                                            image->second.end());
+            load_image_from_disk(layer);
         }
         volume.texture_displacement_layers  = std::move(layers);
         volume.texture_displacement_options = options;
@@ -8183,12 +8201,10 @@ static void add_texture_displacement(std::stringstream &stream, const ModelVolum
         layer.path_in_3mf.clear();
         if (!layer.image_data || layer.image_data->empty())
             continue;
-        std::string ext = boost::filesystem::path(layer.path).extension().string();
-        boost::to_lower(ext);
-        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg")
-            ext = ".png"; // the library ships PNG; anything unrecognised is stored under a type a reader expects
-        const std::string path = std::string(TEXTURE_DISPLACEMENT_DIR) + id + "_" + std::to_string(layer.slot) + ext;
-        // No deflate: PNG and JPEG are already compressed, so a second pass only costs time.
+        // Always .png: the importer converts whatever the user picked (jpg, bmp, ...) to an 8-bit
+        // greyscale PNG, so image_data is PNG whatever layer.path happens to be named.
+        const std::string path = std::string(TEXTURE_DISPLACEMENT_DIR) + id + "_" + std::to_string(layer.slot) + ".png";
+        // No deflate: a PNG is already compressed, so a second pass only costs time.
         if (mz_zip_writer_add_mem(&archive, path.c_str(), layer.image_data->data(), layer.image_data->size(),
                                   MZ_NO_COMPRESSION))
             layer.path_in_3mf = path;

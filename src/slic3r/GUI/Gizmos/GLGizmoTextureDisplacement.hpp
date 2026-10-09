@@ -206,6 +206,9 @@ private:
     // Standard is active so what Preview shows is always what Bake will do. Returns true if it actually
     // changed something, so the caller can invalidate the preview.
     bool apply_standard_mode_presets(ModelVolume *mv);
+    // Copies the panel's own state (active layer, Standard/Pro) onto the volume, so the project file
+    // can carry it. Cheap and idempotent - called wherever either of the two changes.
+    void store_panel_state();
     // Standard mode's Bake: remesh to an even density, refine where the texture bends, then displace.
     // The order matters and is the whole reason this is one button - a height map can only move
     // existing vertices, so the mesh has to be prepared first, and remeshing after painting would drop
@@ -904,9 +907,12 @@ private:
     PatchUnwrap m_uv_editor_unwrap;
 
     // When set, the panel is a free-floating window the user can drag anywhere (with a title bar to
-    // grab), instead of being pinned to the right of the gizmo toolbar. Persisted across gizmo
-    // open/close within a session, so the choice sticks while working.
+    // grab), instead of being pinned to the right of the gizmo toolbar. Kept in the application
+    // config rather than in the project: it describes the user's window, not the model, so opening
+    // someone else's project must not move their panel.
     bool m_undocked = false;
+    // The config key behind m_undocked.
+    static constexpr const char *UNDOCKED_CONFIG_KEY = "texture_displacement_panel_undocked";
 
     // Smooth scrolling for the panel body (everything between the header and the pinned Bake footer).
     // ImGui jumps a fixed number of lines per wheel notch, which on tall layer cards reads as a hard
