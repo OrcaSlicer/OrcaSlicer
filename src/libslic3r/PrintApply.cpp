@@ -6,6 +6,7 @@
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
 #include "FilamentMixer.hpp"
 #include "Slicing.hpp"
 #include "libslic3r.h"
@@ -186,22 +187,29 @@ struct PrintObjectTrafoAndInstances
 
 // Generate a list of trafos and XY offsets for instances of a ModelObject
 // Orca: Updated to include XYZ filament shrinkage compensation
-static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(const ModelObject &model_object, const Vec3d &shrinkage_compensation)
+static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(const ModelObject &model_object, const Vec3d &shrinkage_compensation, bool force_separate_instances = false)
 {
     std::set<PrintObjectTrafoAndInstances> trafos;
     PrintObjectTrafoAndInstances           trafo;
     //BBS: add useful logs for debug
     int index = 0;
+    int unique_counter = 0;
     for (ModelInstance *model_instance : model_object.instances) {
         if (model_instance->is_printable()) {
             // Orca: Updated with XYZ filament shrinkage compensation
             Geometry::Transformation model_instance_transformation = model_instance->get_transformation();
             trafo.trafo = model_instance_transformation.get_matrix_with_applied_shrinkage_compensation(shrinkage_compensation);
-            
+
             auto shift = Point::new_scale(trafo.trafo.data()[12], trafo.trafo.data()[13]);
             // Reset the XY axes of the transformation.
             trafo.trafo.data()[12] = 0;
             trafo.trafo.data()[13] = 0;
+            // Belt printer global mode: prevent instance grouping so each
+            // copy gets its own PrintObject with independent layer Z values.
+            // Add a tiny unique perturbation to the existing Z (don't replace
+            // it — the Z translation from ensure_on_bed must be preserved).
+            if (force_separate_instances)
+                trafo.trafo.data()[14] += 1e-10 * (++unique_counter);
             // Search or insert a trafo.
             auto it = trafos.emplace(trafo).first;
             const_cast<PrintObjectTrafoAndInstances&>(*it).instances.emplace_back(PrintInstance{ nullptr, model_instance, shift });
@@ -1286,6 +1294,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %changed_keys[i];
         }
     }
+    // On belt printers the support tilt follows the slicing rotation. The GUI keeps the two in
+    // sync, but a CLI or 3MF edit of the rotation alone would otherwise leave supports on a stale tilt.
+    if (const auto *belt_opt = new_full_config.option<ConfigOptionBool>("belt_printer"); belt_opt && belt_opt->value) {
+        const auto *axis_opt  = new_full_config.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
+        const auto *angle_opt = new_full_config.option<ConfigOptionFloat>("belt_slice_rotation_angle");
+        if (axis_opt && angle_opt) {
+            const auto tilt = BeltTransformPipeline::physical_tilt(axis_opt->value, angle_opt->value);
+            new_full_config.set_key_value("build_plate_tilt_x", new ConfigOptionFloat(tilt.tilt_x_deg));
+            new_full_config.set_key_value("build_plate_tilt_y", new ConfigOptionFloat(tilt.tilt_y_deg));
+        }
+    }
     const ConfigOption* enable_support_option = new_full_config.option("enable_support");
     if (enable_support_option && enable_support_option->getBool())
         m_support_used = true;
@@ -1818,11 +1837,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         PrintObjectPtrs print_objects_new;
         print_objects_new.reserve(std::max(m_objects.size(), m_model.objects.size()));
         bool new_objects = false;
+        bool belt_instances_shifted = false;
         // Walk over all new model objects and check, whether there are matching PrintObjects.
         for (ModelObject *model_object : m_model.objects) {
             ModelObjectStatus &model_object_status = const_cast<ModelObjectStatus&>(model_object_status_db.reuse(*model_object));
             // Orca: Updated for XYZ filament shrink compensation
-            model_object_status.print_instances = print_objects_from_model_object(*model_object, this->shrinkage_compensation());
+            // Belt printers: force each instance into its own PrintObject so each
+            // gets independent layer Z values (its bed position is folded into them).
+            bool belt_force_separate = m_config.belt_printer.value;
+            model_object_status.print_instances = print_objects_from_model_object(*model_object, this->shrinkage_compensation(), belt_force_separate);
             std::vector<const PrintObjectStatus*> old;
             old.reserve(print_object_status_db.count(*model_object));
             for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(*model_object))
@@ -1870,6 +1893,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     if (status != PrintBase::APPLY_STATUS_UNCHANGED) {
                         size_t extruder_num = new_full_config.option<ConfigOptionFloats>("nozzle_diameter")->size();
                         update_apply_status(status == PrintBase::APPLY_STATUS_INVALIDATED);
+                        belt_instances_shifted = true;
                     }
 					print_objects_new.emplace_back((*it_old)->print_object);
 					const_cast<PrintObjectStatus*>(*it_old)->status = PrintObjectStatus::Reused;
@@ -1892,6 +1916,13 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 }
 			if (new_objects || deleted_objects)
                 update_apply_status(this->invalidate_steps({ psSkirtBrim, psWipeTower, psGCodeExport }));
+            // A belt brim is clipped against the other objects on the plate (BeltBrim.cpp,
+            // belt_brim_obstacles), and it is rebuilt with its object's support step: an
+            // object that arrived or left changes every other brim owner's brim.
+            if ((new_objects || deleted_objects) && m_config.belt_printer.value)
+                for (PrintObject *object : m_objects)
+                    if (object->has_belt_brim())
+                        update_apply_status(object->invalidate_step(posSupportMaterial));
 			if (new_objects)
 	            update_apply_status(false);
             print_regions_reshuffled = true;
@@ -1904,6 +1935,14 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             if (/*object->config().adaptive_layer_height &&*/ ept_iter != print_diff.end()) {
                 update_apply_status(object->invalidate_step(posSlice));
             }
+        }
+
+        // Belt printer: when any object's instances shifted, re-slice every object.
+        // The global Z offset follows each object's position along the belt, and the
+        // belt brims are clipped against the other objects.
+        if (belt_instances_shifted && m_config.belt_printer.value) {
+            for (PrintObject *object : m_objects)
+                update_apply_status(object->invalidate_step(posSlice));
         }
     }
 

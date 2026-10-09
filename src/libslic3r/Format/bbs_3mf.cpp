@@ -1041,10 +1041,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             void _stop_object_xml_parser(const std::string& msg = std::string())
             {
                 assert(! obj_parse_error);
-                assert(obj_parse_error_message.empty());
                 assert(object_xml_parser != nullptr);
                 obj_parse_error = true;
-                obj_parse_error_message = msg;
+                if (! msg.empty() || obj_parse_error_message.empty())   // a handler may have set the message already
+                    obj_parse_error_message = msg;
                 XML_StopParser(object_xml_parser, false);
             }
 
@@ -3901,11 +3901,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         // appends the vertex coordinates
         // missing values are set equal to ZERO
-        if (m_curr_object)
-            m_curr_object->geometry.vertices.emplace_back(
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+        if (m_curr_object) {
+            const Vec3f v(m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
+                          m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
+                          m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+            // A non-finite coordinate ("nan", "inf") used to be accepted and crashed
+            // qhull in ModelVolume's convex hull while the file was still loading. Refuse the file.
+            if (! v.allFinite()) {
+                _stop_xml_parser("Invalid vertex coordinate: not a finite number");
+                return true;   // the parser is stopped; returning false would overwrite the message
+            }
+            m_curr_object->geometry.vertices.emplace_back(v);
+        }
         return true;
     }
 
@@ -5195,6 +5202,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     }
                 }
 
+                for (const Vec3f &v : sub_object->geometry.vertices)
+                    if (! v.allFinite()) {   // Qhull cannot take a NaN vertex
+                        add_error("invalid (non-finite) vertex in object " + std::to_string(sub_object->id));
+                        return false;
+                    }
                 its.vertices.assign(sub_object->geometry.vertices.begin(), sub_object->geometry.vertices.end());
 
                 // BBS
@@ -5708,11 +5720,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         // appends the vertex coordinates
         // missing values are set equal to ZERO
-        if (current_object)
-            current_object->geometry.vertices.emplace_back(
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+        if (current_object) {
+            const Vec3f v(object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
+                          object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
+                          object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+            // See _BBS_3MF_Importer::_handle_start_vertex: a non-finite coordinate
+            // crashed qhull while the file loaded. The dispatcher stops this parser on `false`.
+            if (! v.allFinite()) {
+                obj_parse_error_message = "Invalid vertex coordinate: not a finite number";
+                return false;
+            }
+            current_object->geometry.vertices.emplace_back(v);
+        }
         return true;
     }
 

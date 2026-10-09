@@ -121,6 +121,7 @@
 // This is the only place where we want to allow that, so define an override macro.
 #define SLIC3R_ALLOW_LIBSLIC3R_I18N_IN_SLIC3R
 #include "libslic3r/I18N.hpp"
+#include "libslic3r/Point.hpp"
 #undef SLIC3R_ALLOW_LIBSLIC3R_I18N_IN_SLIC3R
 #include "slic3r/GUI/I18N.hpp"
 
@@ -171,6 +172,7 @@
 #include <openssl/evp.h>
 
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/InstanceLock.hpp"
@@ -10112,6 +10114,18 @@ bool is_support_filament(int extruder_id, bool strict_check)
     if (support_option == nullptr) return false;
     return support_option->get_at(0);
 };
+
+Vec3d build_plate_tilt_up_direction()
+{
+    const DynamicPrintConfig &cfg    = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const auto               *opt_x  = cfg.option<ConfigOptionFloat>("build_plate_tilt_x");
+    const auto               *opt_y  = cfg.option<ConfigOptionFloat>("build_plate_tilt_y");
+    const double              tilt_x = opt_x != nullptr ? opt_x->value : 0.;
+    const double              tilt_y = opt_y != nullptr ? opt_y->value : 0.;
+    if (tilt_x == 0. && tilt_y == 0.)
+        return Vec3d::UnitZ();
+    return Vec3d(std::tan(Geometry::deg2rad(tilt_y)), std::tan(Geometry::deg2rad(tilt_x)), 1.).normalized();
+}
 
 } // GUI
 } //Slic3r

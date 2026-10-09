@@ -290,7 +290,9 @@ SupportGeneratorLayersPtr generate_raft_base(
         // The object does not have a raft.
         // Calculate the area covered by the brim.
         const BrimType brim_type       = object.config().brim_type;
-        const bool     brim_outer      = brim_type == btOuterOnly || brim_type == btOuterAndInner;
+        // btLeadingEdgeOnly only means anything on a belt printer, where this code path
+        // does not run; elsewhere it degrades to an outer brim (see Brim.cpp).
+        const bool     brim_outer      = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btLeadingEdgeOnly;
         const bool     brim_inner      = brim_type == btInnerOnly || brim_type == btOuterAndInner;
         // BBS: the pattern of raft and brim are the same, thus the brim can be serpated by support raft.
         const auto     brim_object_gap = scaled<float>(object.config().brim_object_gap.value);
@@ -318,7 +320,13 @@ SupportGeneratorLayersPtr generate_raft_base(
 
     // How much to inflate the support columns to be stable. This also applies to the 1st layer, if no raft layers are to be printed.
     const float inflate_factor_fine      = float(scale_((slicing_params.raft_layers() > 1) ? 0.5 : EPSILON));
-    const float inflate_factor_1st_layer = std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
+    // On a belt the first support layer is the leading tip of the support, a sliver
+    // where the belt crosses the layer, not a flange on a flat bed: inflating it
+    // puts lines in the air ahead of the belt crossing (and into the belt behind
+    // it).  The belt brim takes the adhesion role instead.
+    const bool  belt_floor_active        = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
+    const float inflate_factor_1st_layer = belt_floor_active ? 0.f :
+        std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
     SupportGeneratorLayer       *contacts         = top_contacts         .empty() ? nullptr : top_contacts         .front();
     SupportGeneratorLayer       *interfaces       = interface_layers     .empty() ? nullptr : interface_layers     .front();
     SupportGeneratorLayer       *base_interfaces  = base_interface_layers.empty() ? nullptr : base_interface_layers.front();
@@ -1795,7 +1803,14 @@ void generate_support_toolpaths(
                 bool  sheath  = support_params.with_sheath;
                 bool  no_sort = false;
                 bool  done    = false;
-                if (base_layer.layer->bottom_z < EPSILON) {
+                // Belt printers have no flat bed first layer — the belt is the tilted
+                // build surface — so the dense raft_first_layer_density flange must not
+                // fire anywhere, including the layer at z=0 (the belt-surface line).
+                // (belt_floor_shear_factor is non-zero only when belt_printer is on.)
+                // For every other printer type, support z is never negative, so this
+                // matches the original "first layer at z=0" behaviour unchanged.
+                const bool is_belt_printer = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
+                if (! is_belt_printer && base_layer.layer->bottom_z < EPSILON) {
                     // Base flange (the 1st layer).
                     filler = filler_first_layer;
                     filler->angle = Geometry::deg2rad(float(config.support_angle.value + 90.));
@@ -2052,5 +2067,11 @@ sub clip_with_shape {
     }
 }
 */
+
+Vec2d build_plate_tilt_slope(const PrintConfig &print_config)
+{
+    auto slope = [](double tilt_deg) { return std::tan(Geometry::deg2rad(std::clamp(tilt_deg, -89., 89.))); };
+    return { slope(print_config.build_plate_tilt_y.value), slope(print_config.build_plate_tilt_x.value) };
+}
 
 } // namespace Slic3r

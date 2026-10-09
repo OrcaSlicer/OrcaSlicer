@@ -30,6 +30,7 @@
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <vector>
 #include <utility>
@@ -878,6 +879,8 @@ bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);
 // check if the filament for model is in the list
 bool has_filaments(const std::vector<std::string>& model_filaments);
+// Up direction of the edited printer's tilted build plate (+Z when untilted).
+Vec3d build_plate_tilt_up_direction();
 } // namespace GUI
 } // Slic3r
 

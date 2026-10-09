@@ -146,6 +146,13 @@ struct ArrangeParams {
     float nozzle_height = 0;
     float printable_height = 256.0;
     Vec2d align_center{ 0.5,0.5 };
+    // Belt printer: items print in the order they lie along the belt axis, from
+    // its low end unless belt_reversed, and a part's top prints
+    // belt_tilt_slope * height further along it than its base.
+    bool  is_belt         = false;
+    int   belt_axis       = 1;   // 0 = X, 1 = Y
+    bool  belt_reversed   = false;
+    float belt_tilt_slope = 1.f; // cot(belt tilt angle), 0 when the belt is not tilted
 
     ArrangePolygons excluded_regions;   // regions cant't be used
     ArrangePolygons nonprefered_regions; // regions can be used but not prefered

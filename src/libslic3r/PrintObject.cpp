@@ -8,6 +8,8 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
+
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
@@ -18,6 +20,7 @@
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
+#include "Support/SupportCommon.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
 #include "Surface.hpp"
@@ -81,6 +84,7 @@
 #include "Fill/Lightning/Generator.hpp"
 #include "SurfaceCollection.hpp"
 #include "TriangleMesh.hpp"
+#include "BeltBrim.hpp"
 
 namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
@@ -983,7 +987,7 @@ void PrintObject::detect_overhangs_for_lift()
     }
 }
 
-void PrintObject::generate_support_material()
+void PrintObject::generate_support_material(bool with_belt_brim)
 {
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
@@ -1026,8 +1030,28 @@ void PrintObject::generate_support_material()
             this->_generate_support_material();
             m_print->throw_if_canceled();
         }
+        // Belt brim rides here rather than in the brim step because its apron
+        // prologue introduces print_z values below the object's first layer, and
+        // those must exist before ToolOrdering is built at psWipeTower - one step
+        // ahead of psSkirtBrim.  The brim options already invalidate
+        // posSupportMaterial, so this needs no extra invalidation edges.
+        m_belt_brim_pending = true;
+        if (with_belt_brim)
+            this->generate_belt_brim();
         this->set_done(posSupportMaterial);
     }
+}
+
+void PrintObject::generate_belt_brim()
+{
+    if (! m_belt_brim_pending)
+        return;
+    // belt_brim_obstacles() looks up the layers and support layers of every object
+    // on the plate by print_z.  Another object's support step rebuilds those (and
+    // temporarily shifts its layer Z values), so this must not overlap with it.
+    make_belt_brim(*this);
+    m_print->throw_if_canceled();
+    m_belt_brim_pending = false;
 }
 
 void PrintObject::estimate_curled_extrusions()
@@ -1193,7 +1217,10 @@ FillAdaptive::RegionOctrees PrintObject::prepare_adaptive_infill_data(
     indexed_triangle_set mesh = this->model_object()->raw_indexed_triangle_set();
     // Rotate mesh and build octree on it with axis-aligned (standart base) cubes.
     auto to_octree = transform_to_octree().toRotationMatrix();
-    its_transform(mesh, to_octree * this->trafo_centered(), true);
+    // Overhangs below are placed at Layer::bottom_z(), which includes the belt global Z offset.
+    Transform3d object_trafo = this->trafo_sliced();
+    object_trafo.translation().z() += m_belt_global_z_offset;
+    its_transform(mesh, to_octree * object_trafo, true);
 
     // Triangulate internal bridging surfaces.
     std::vector<std::vector<Vec3d>> overhangs(std::max(surfaces_w_layer.size(), size_t(1)));
@@ -1276,6 +1303,16 @@ void PrintObject::clear_layers()
         for (Layer *l : m_layers)
             delete l;
         m_layers.clear();
+        for (Layer *l : m_belt_truncated_layers)
+            delete l;
+        m_belt_truncated_layers.clear();
+        // Fills dropped for plastic saving are owned by the stash while they sit
+        // outside their layer's collection, so they are freed here too. Order
+        // matters only in that these point at layers deleted just above, and we
+        // never dereference the layer -- just the entity.
+        for (const BeltDroppedFill &d : m_belt_dropped_fills)
+            delete d.entity;
+        m_belt_dropped_fills.clear();
     }
 }
 
@@ -1309,6 +1346,75 @@ void PrintObject::clear_support_layers()
             l->cantilevers.clear();
         }
     }
+    // Belt brim is owned by the same step, so it must die with it or an
+    // invalidate-without-rerun would leave stale bands (and stale prologue Zs)
+    // behind.  Unconditional: unlike support layers it is never shared.
+    this->clear_belt_brim();
+}
+
+// Belt brim ------------------------------------------------------------------
+//
+// The tilt test is answered from the print CONFIG, not from SlicingParameters:
+// invalidating posSupportMaterial clears m_slicing_params.valid, and this is
+// queried from Print::process() dispatch, Brim.cpp and the G-code emitter, where
+// a stale zero shear factor would silently drop the brim.  BeltBrim.cpp itself
+// reads the real belt floor through BeltFloorContext, where the parameters are
+// guaranteed current.
+bool PrintObject::has_belt_brim() const
+{
+    if (! m_print->has_tilted_belt())
+        return false;
+    // The purge prism is sacrificial and sits at the plate's edge; its generator sets no_brim, and
+    // this keeps it brimless whatever its config says, so a brim on the parts never blocks purging.
+    if (m_config.belt_purge_tower_object.value)
+        return false;
+    if (m_config.brim_type == btNoBrim)
+        return false;
+    // An inner-only brim has no leading/extra geometry: leading_brim_length and
+    // extra_brim_width both widen the OUTER ring, which btInnerOnly never emits, so it
+    // produces nothing unless brim_width itself is positive.  Every other brim type is
+    // satisfied by any one of the three widths.  Requiring the width here (instead of
+    // "any width") stops has_belt_brim() - and therefore Print::validate() - from
+    // rejecting the prime tower / spiral vase for a brim that would never be drawn.
+    if (m_config.brim_type == btInnerOnly) {
+        if (m_config.brim_width.value <= 0.)
+            return false;
+    } else if (m_config.brim_width.value <= 0. && m_config.leading_brim_length.value <= 0.
+               && m_config.extra_brim_width.value <= 0.) {
+        return false;
+    }
+    return ! this->has_raft();
+}
+
+unsigned int PrintObject::belt_brim_filament() const
+{
+    // 1-based, matching PrintRegion::outer_wall_filament_id and the raw values pushed
+    // into LayerTools::extruders in ToolOrdering::collect_extruders (the whole list is
+    // reindexed to 0-based later).  Lowest positive outer-wall filament over the
+    // printing regions; 1 when none is explicitly set.
+    unsigned int brim_filament = 0;
+    for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
+        const unsigned int f = this->printing_region(i).config().outer_wall_filament_id.value;
+        if (f > 0 && (brim_filament == 0 || f < brim_filament))
+            brim_filament = f;
+    }
+    return brim_filament == 0 ? 1u : brim_filament;
+}
+
+void PrintObject::clear_belt_brim()
+{
+    m_belt_brim_by_layer.clear();
+    m_belt_brim_areas_by_layer.clear();
+    m_belt_brim_prologue.clear();
+}
+
+void PrintObject::set_belt_brim(std::vector<ExtrusionEntityCollection> &&by_layer,
+                                std::vector<ExPolygons>                &&areas,
+                                std::vector<BeltBrimBand>              &&prologue)
+{
+    m_belt_brim_by_layer       = std::move(by_layer);
+    m_belt_brim_areas_by_layer = std::move(areas);
+    m_belt_brim_prologue       = std::move(prologue);
 }
 
 std::shared_ptr<TreeSupportData> PrintObject::alloc_tree_support_preview_cache()
@@ -1351,6 +1457,8 @@ bool PrintObject::invalidate_state_by_config_options(
     bool invalidated = false;
     for (const t_config_option_key &opt_key : opt_keys) {
         if (   opt_key == "brim_width"
+            || opt_key == "leading_brim_length"
+            || opt_key == "extra_brim_width"
             || opt_key == "brim_object_gap"
             || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"
@@ -1375,7 +1483,10 @@ bool PrintObject::invalidate_state_by_config_options(
                 const auto* new_brim_type = new_config.option<ConfigOptionEnum<BrimType>>(opt_key);
                 //BBS: When switch to manual brim, the object must have brim, then re-generate perimeter
                 //to make the wall order of first layer to be outer-first
-                if (old_brim_type->value == btOuterOnly || new_brim_type->value == btOuterOnly)
+                // btLeadingEdgeOnly is printed as an outer brim (Brim.cpp, BeltBrim.cpp), so it
+                // takes part in the same first-layer wall order rule.
+                if (old_brim_type->value == btOuterOnly || new_brim_type->value == btOuterOnly ||
+                    old_brim_type->value == btLeadingEdgeOnly || new_brim_type->value == btLeadingEdgeOnly)
                     steps.emplace_back(posPerimeters);
             }
         } else if (
@@ -1735,7 +1846,8 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
-            || opt_key == "flush_into_support") {
+            || opt_key == "flush_into_support"
+            || opt_key == "belt_purge_tower_object") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
@@ -1765,12 +1877,25 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posSlice) {
-		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
+        // posSimplifySupportPath is listed with posSupportMaterial: invalidate_steps() does not
+        // propagate, so without it a re-slice regenerated the supports but kept the step done,
+        // and the new support paths were exported unsimplified, unlike a fresh slice.
+		// posDetectOverhangsForLift reads the layers' overhang regions, which a re-slice
+		// starts over empty: without it here the step stayed done and the lift logic in
+		// GCode::needs_retraction() had no overhangs to test against until something else
+		// invalidated it.
+		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill, posSimplifySupportPath, posDetectOverhangsForLift });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
+        // The exact belt_floor_z_shift is recomputed when slice() runs again.
+        m_belt_floor_z_shift_cache_valid = false;
     } else if (step == posSupportMaterial) {
         invalidated |= this->invalidate_steps({ posSimplifySupportPath });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+        // SlicingParameters depend on support config (enable_support /
+        // raft_layers / enforce_support_layers feed min/max layer height in
+        // Slicing.cpp), so invalidate them here.  The vertex-scan
+        // belt_floor_z_shift is preserved via m_belt_floor_z_shift_cached.
         m_slicing_params.valid = false;
     }
 
@@ -1791,6 +1916,7 @@ bool PrintObject::invalidate_all_steps()
     bool result = inherited_invalidated || print_invalidated;
 	// Then reset some of the depending values.
 	m_slicing_params.valid = false;
+	m_belt_floor_z_shift_cache_valid = false;
 	return result;
 }
 
@@ -4127,8 +4253,36 @@ void PrintObject::update_slicing_parameters()
 {
     // Orca: updated function call for XYZ shrinkage compensation
     if (!m_slicing_params.valid) {
-          m_slicing_params = SlicingParameters::create_from_config(this->print()->config(), m_config, this->model_object()->max_z(),
+          coordf_t object_height = this->model_object()->max_z();
+          BeltTransformPipeline::BeltFloorParams belt_floor;
+          const auto &pcfg = this->print()->config();
+          if (pcfg.belt_printer.value) {
+              // The box of the mesh in the frame it is sliced in: XY centred and Z as
+              // placed on the bed (trafo_centered()).  raw_bounding_box() has the
+              // instance's Z offset removed, and the belt floor is not invariant to a
+              // Z shift (a point's z and the floor under it move in opposite
+              // directions under the rotation), so an offset box under-estimates the
+              // height by twice the shift and the layers stop part way up the object.
+              BoundingBoxf3     bb;
+              const Transform3d trafo = this->trafo_centered();
+              for (const ModelVolume *v : this->model_object()->volumes)
+                  if (v->is_model_part())
+                      bb.merge(v->mesh().transformed_bounding_box(trafo * v->get_matrix()));
+              auto hr = BeltTransformPipeline::compute_belt_height_and_floor(pcfg, bb, object_height);
+              object_height = hr.object_height;
+              belt_floor    = hr.floor_params;
+          }
+          m_slicing_params = SlicingParameters::create_from_config(pcfg, m_config, object_height,
                                                                    this->object_extruders(), this->print()->shrinkage_compensation());
+          // Populate belt floor parameters into slicing params for support clipping.
+          m_slicing_params.belt_floor_shear_factor = belt_floor.shear_factor;
+          m_slicing_params.belt_floor_from_axis    = belt_floor.from_axis;
+          m_slicing_params.belt_floor_z_shift     = belt_floor.z_shift;
+          // Prefer the vertex-scan z_shift over the bbox approximation when
+          // slice() has already produced one (e.g. this rebuild was triggered
+          // by a support-config change, which doesn't move the belt floor).
+          if (m_belt_floor_z_shift_cache_valid)
+              m_slicing_params.belt_floor_z_shift = m_belt_floor_z_shift_cached;
       }
 }
 
@@ -4169,9 +4323,28 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
     sort_remove_duplicates(object_extruders);
     //FIXME add painting extruders
 
-    if (object_max_z <= 0.f)
-        object_max_z = (float)model_object.raw_bounding_box().size().z();
-    return SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
+    BeltTransformPipeline::BeltFloorParams belt_floor;
+    if (object_max_z <= 0.f) {
+        BoundingBoxf3 bb = model_object.raw_bounding_box();
+        object_max_z = (float)bb.size().z();
+        if (print_config.belt_printer.value) {
+            // Z as placed on the bed, XY around the instance origin: the belt floor
+            // depends on where the box sits in Z (see update_slicing_parameters()).
+            if (! model_object.instances.empty()) {
+                bb = model_object.instance_bounding_box(0, false);
+                const Vec3d off = model_object.instances.front()->get_offset();
+                bb.translate(-off.x(), -off.y(), 0.);
+            }
+            auto hr = BeltTransformPipeline::compute_belt_height_and_floor(print_config, bb, object_max_z);
+            object_max_z = (float)hr.object_height;
+            belt_floor   = hr.floor_params;
+        }
+    }
+    SlicingParameters params = SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
+    params.belt_floor_shear_factor = belt_floor.shear_factor;
+    params.belt_floor_from_axis    = belt_floor.from_axis;
+    params.belt_floor_z_shift     = belt_floor.z_shift;
+    return params;
 }
 
 // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
@@ -4688,9 +4861,58 @@ void PrintObject::_generate_support_material()
         tree_support.generate();
     }
     else {
-        PrintObjectSupportMaterial support_material(this, m_slicing_params);
-        support_material.generate(*this);
+        // The normal generator anchors its layer grid at the slicing frame origin
+        // (SlicingParameters: first layer at first_print_layer_height, raft at
+        // z = 0), so it has to see the object layers in that frame.  On a belt the
+        // object layers carry the global Z offset (PrintObject::slice()), which is
+        // negative for the leading half of the belt: a top contact below z = 0
+        // then turns the intermediate-layer count negative and the generator
+        // allocates layers until memory runs out.  Lift the offset off the object
+        // layers and the belt floor for the duration of the run and put it back
+        // on everything, including the new support layers, afterwards (organic
+        // tree support is shifted the same way below).
+        const double global_z = m_belt_global_z_offset;
+        const bool   unshift  = std::abs(global_z) > EPSILON;
+        auto shift_object_frame = [this, global_z](double sign) {
+            for (Layer *layer : m_layers)
+                layer->print_z += sign * global_z;
+            m_slicing_params.belt_floor_z_shift += sign * global_z;
+        };
+        if (unshift)
+            shift_object_frame(-1.);
+        try {
+            PrintObjectSupportMaterial support_material(this, m_slicing_params);
+            support_material.generate(*this);
+        } catch (...) {
+            if (unshift)
+                shift_object_frame(1.);
+            throw;
+        }
+        if (unshift) {
+            shift_object_frame(1.);
+            for (SupportLayer *sl : m_support_layers)
+                sl->print_z += global_z;
+        }
     }
+    // Global Z offset for support layers:
+    // - Normal support: generated in the object frame above and shifted afterwards.
+    // - Non-organic tree support (slim/strong/hybrid): plan_layer_heights() reads
+    //   from globally-offset object layers, so support layers already have it.
+    // - Organic tree support: generate_tree_support_3D() computes its own Z values
+    //   independently and does NOT inherit the offset — apply it here.
+    // Belt floor polygon clipping for non-organic tree support is done inside
+    // draw_circles() before area_groups and toolpaths are built.
+    if (is_tree(m_config.support_type.value) && std::abs(m_belt_global_z_offset) > EPSILON) {
+        // Resolve effective support style (same logic as SupportParameters).
+        auto style = m_config.support_style.value;
+        if (style == smsDefault)
+            style = smsTreeOrganic;
+        if (style == smsTreeOrganic) {
+            for (SupportLayer *sl : m_support_layers)
+                sl->print_z += m_belt_global_z_offset;
+        }
+    }
+
 }
 
 // BBS
@@ -5040,6 +5262,7 @@ static void project_triangles_to_slabs(ConstLayerPtrsAdaptor layers, const index
 void PrintObject::project_and_append_custom_facets(
         bool seam, EnforcerBlockerType type, std::vector<Polygons>& out, std::vector<std::pair<Vec3f, Vec3f>>* vertical_points) const
 {
+    const Transform3d object_trafo = this->trafo_sliced();
     for (const ModelVolume* mv : this->model_object()->volumes)
         if (mv->is_model_part()) {
             const indexed_triangle_set custom_facets = seam
@@ -5048,12 +5271,12 @@ void PrintObject::project_and_append_custom_facets(
             if (! custom_facets.indices.empty()) {
                 if (seam)
                     project_triangles_to_slabs(this->layers(), custom_facets,
-                        (this->trafo_centered() * mv->get_matrix()).cast<float>(),
+                        (object_trafo * mv->get_matrix()).cast<float>(),
                         seam, out);
                 else {
                     std::vector<Polygons> projected;
                     // Support blockers or enforcers. Project downward facing painted areas upwards to their respective slicing plane.
-                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), this->trafo_centered() * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
+                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), object_trafo * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
                     // Merge these projections with the output, layer by layer.
                     assert(! projected.empty());
                     assert(out.empty() || out.size() == projected.size());
