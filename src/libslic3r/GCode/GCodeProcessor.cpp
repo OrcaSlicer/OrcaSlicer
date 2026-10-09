@@ -7284,10 +7284,12 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     }
 }
 
-void GCodeProcessorResult::ObjectMass::add(const Sum &sum, bool in_part, size_t layer)
+void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, bool in_part, size_t layer)
 {
-    if (in_part)
+    if (in_part) {
         part.add(sum);
+        box.merge(extent);
+    }
     if (printed_up_to_layer.size() <= layer)
         printed_up_to_layer.resize(layer + 1);
     printed_up_to_layer[layer].add(sum);
@@ -7302,25 +7304,33 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
 
     const bool   has_density = size_t(filament_id) < m_result.filament_densities.size() && m_result.filament_densities[filament_id] > 0.f;
     const double mass        = double(volume) * (has_density ? m_result.filament_densities[filament_id] : DEFAULT_FILAMENT_DENSITY);
-    // In the frame of the stored moves, the bead's center half its height below the nozzle.
-    const Vec3d nozzle = 0.5 * Vec3d(m_start_position[X] + m_end_position[X], m_start_position[Y] + m_end_position[Y],
-                                     m_start_position[Z] + m_end_position[Z]) +
-                         Vec3d(m_x_offset, m_y_offset, -m_z_offset) + m_extruder_offsets[filament_id].cast<double>();
-    const GCodeProcessorResult::ObjectMass::Sum sum{ mass, mass * (nozzle - 0.5 * double(m_height) * Vec3d::UnitZ()) };
-    const bool                                  part  = role != erBrim && !is_support(role);
-    const size_t                                layer = std::max<unsigned int>(1, m_layer_id) - 1;
+    // In the frame of the stored moves, the bead's center half its height below the nozzle, from the move's start to its end.
+    const Vec3d half_height = 0.5 * double(m_height) * Vec3d::UnitZ();
+    const Vec3d offset      = Vec3d(m_x_offset, m_y_offset, -m_z_offset) - half_height + m_extruder_offsets[filament_id].cast<double>();
+    const Vec3d start       = Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]) + offset;
+    const Vec3d end         = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]) + offset;
+    // The second moments of a uniform segment.
+    const GCodeProcessorResult::ObjectMass::Sum sum{ mass, double(volume), 0.5 * mass * (start + end),
+                                                     mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)) };
+    // Of the bead's center line and its height, as its width is only estimated. Merged, as a wall along an axis is flat.
+    BoundingBoxf3 extent;
+    extent.merge(start.cwiseMin(end) - half_height);
+    extent.merge(start.cwiseMax(end) + half_height);
+    const bool   part  = role != erBrim && !is_support(role);
+    const size_t layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
-    m_result.plate_mass.add(sum, part, layer);
+    m_result.plate_mass.add(sum, extent, part, layer);
     if (!part || !m_mass_locator)
         return;
-    const auto add = [&sum, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
+    const auto add = [&sum, &extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
         if (index < 0)
             return;
         if (masses.size() <= size_t(index))
             masses.resize(index + 1);
-        masses[index].add(sum, true, layer);
+        masses[index].add(sum, extent, true, layer);
     };
-    const MassLocation location = m_mass_locator(nozzle);
+    // At the nozzle's height, which the layers print at.
+    const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height);
     add(m_result.object_masses, location.object);
     add(m_result.body_masses, location.body);
 }

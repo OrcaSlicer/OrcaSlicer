@@ -2605,6 +2605,8 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
         // Per layer, the body of each island and a locator whose boxes are widened for walls reaching past them.
         std::vector<std::vector<size_t>> bodies;
         std::vector<IslandLocator>       islands;
+        // Per instance, whether its widened box reaches another's, so that the box of an island proves nothing.
+        std::vector<bool> crowded;
     };
     std::vector<Object> objects;
     int                 instances_total = 0;
@@ -2634,7 +2636,7 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
             count = 0;
             bodies.assign(layers.size(), {});
         }
-        Object &o = objects.emplace_back(Object{ object, instances_total, count, bodies_total, {}, std::move(bodies), {} });
+        Object &o = objects.emplace_back(Object{ object, instances_total, count, bodies_total, {}, std::move(bodies), {}, {} });
         instances_total += int(object->instances().size());
         bodies_total += int(count * object->instances().size());
         for (const Layer *layer : layers) {
@@ -2644,6 +2646,24 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
     }
     if (objects.empty())
         return nullptr;
+    std::vector<BoundingBox> boxes;
+    for (const Object &o : objects) {
+        BoundingBox box;
+        for (const IslandLocator &islands : o.islands)
+            for (const BoundingBox &island : islands.boxes())
+                box.merge(island);
+        for (const PrintInstance &instance : o.object->instances()) {
+            BoundingBox &moved = boxes.emplace_back(box);
+            moved.translate(instance.shift);
+        }
+    }
+    for (Object &o : objects)
+        for (size_t instance = 0; instance < o.object->instances().size(); ++instance) {
+            const size_t i = o.first_instance + instance;
+            o.crowded.emplace_back(false);
+            for (size_t j = 0; j < boxes.size() && !o.crowded.back(); ++j)
+                o.crowded.back() = j != i && boxes[i].overlap(boxes[j]);
+        }
 
     struct Hit
     {
@@ -2660,24 +2680,38 @@ static GCodeProcessor::MassLocator mass_locator(const Print &print)
             return GCodeProcessor::MassLocation{ o.first_instance + int(hit.instance),
                                                  o.bodies_count == 0 ? -1 : o.first_body + int(hit.instance * o.bodies_count + o.bodies[hit.layer][hit.island]) };
         };
+        // A point lies on the first layer at or above it, as spiral vase rises through each layer.
         // Extrusions mostly follow each other on one island.
         if (last) {
             const Object &o = objects[last->object];
-            if (std::abs(o.print_zs[last->layer] - point.z()) < z_tolerance &&
-                o.islands[last->layer].holds(last->island, local(last->object, last->instance)))
+            if (point.z() <= o.print_zs[last->layer] + z_tolerance &&
+                (last->layer == 0 || point.z() > o.print_zs[last->layer - 1] + z_tolerance) &&
+                o.islands[last->layer].holds(last->island, local(last->object, last->instance), o.crowded[last->instance]))
                 return location(*last);
         }
+        // Outside the islands of instances crowding each other, the nearest outline.
+        std::optional<Hit> nearest;
+        double             distance = std::numeric_limits<double>::max();
         for (size_t object = 0; object < objects.size(); ++object) {
             const Object &o = objects[object];
             const auto    z = std::lower_bound(o.print_zs.begin(), o.print_zs.end(), point.z() - z_tolerance);
-            if (z == o.print_zs.end() || *z > point.z() + z_tolerance)
+            if (z == o.print_zs.end())
                 continue;
             const size_t layer = size_t(z - o.print_zs.begin());
-            for (size_t instance = 0; instance < o.object->instances().size(); ++instance)
-                if (const int island = o.islands[layer].find(local(object, instance)); island >= 0)
-                    return location({ object, instance, layer, size_t(island) });
+            for (size_t instance = 0; instance < o.object->instances().size(); ++instance) {
+                const auto [island, d] = o.islands[layer].find(local(object, instance), o.crowded[instance]);
+                if (island < 0)
+                    continue;
+                const Hit hit{ object, instance, layer, size_t(island) };
+                if (d == 0. || !o.crowded[instance])
+                    return location(hit);
+                if (d < distance) {
+                    distance = d;
+                    nearest  = hit;
+                }
+            }
         }
-        return {};
+        return nearest ? location(*nearest) : GCodeProcessor::MassLocation{};
     };
 }
 

@@ -138,6 +138,7 @@
 #include <tbb/spin_mutex.h>
 
 #include <boost/functional/hash.hpp>
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -1002,9 +1003,29 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
     }
 }
 
+// The sums a solid adds to a marker.
+static GCodeProcessorResult::ObjectMass::Sum mass_sum(const MassProperties& solid)
+{
+    return { solid.mass, solid.volume, solid.mass * solid.center,
+             solid.mass * (solid.spread.diagonal() + solid.center.cwiseProduct(solid.center)) };
+}
+
+// On screen, of the plates, the objects and the bodies, each smaller than the one before, so that markers at one place
+// still show.
+static constexpr std::array<double, 3> marker_radii{ 9., 7., 5. };
+
+// As the canvas toolbar scales for the display's DPI.
+static double marker_scale(const GLCanvas3D& canvas)
+{
+    double scale = canvas.get_scale();
+#ifdef WIN32
+    scale *= double(get_dpi_for_window(wxGetApp().GetTopWindow())) / double(DPI_DEFAULT);
+#endif // WIN32
+    return scale;
+}
+
 GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const GLCanvas3D& canvas)
 {
-    using Sum = GCodeProcessorResult::ObjectMass::Sum;
     Markers markers;
     if (canvas.get_model() == nullptr)
         return markers;
@@ -1038,9 +1059,11 @@ GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const 
         return density > 0. ? density : double(DEFAULT_FILAMENT_DENSITY);
     };
 
-    Sum                                        plate;
-    std::map<size_t, std::pair<double, Vec3d>> meshes;
-    std::map<size_t, Bodies>                   bodies;
+    // One per plate, of the instances on it.
+    PartPlateList&                   plate_list = wxGetApp().plater()->get_partplate_list();
+    std::map<int, Marker>            plates;
+    std::map<size_t, MassProperties> meshes;
+    std::map<size_t, Bodies>         bodies;
     for (const auto& [obj_idx, instances] : objects) {
         const ModelObject& object = *model_objects[obj_idx];
         // An assembly is sliced, so that its overlapping parts are united and its negative volumes cut away, in the
@@ -1063,7 +1086,7 @@ GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const 
                 negatives.emplace_back(&model_volume.mesh().its, trafo);
             sliced.push_back({ model_volume.id().id, model_volume.is_negative_volume(), model_volume.is_model_part() ? densities.back() : 0., trafo });
         }
-        const std::vector<std::pair<double, Vec3d>>* assembly = nullptr;
+        const std::vector<SolidBody>* assembly = nullptr;
         if (solids.size() > 1 || (!solids.empty() && !negatives.empty())) {
             // Coarser while a part is dragged.
             const size_t slabs  = canvas.is_dragging() ? 100 : 500;
@@ -1075,17 +1098,20 @@ GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const 
         }
 
         for (const auto& [inst_idx, instance] : instances) {
-            Sum sum;
+            // The box of its parts, which the object's size shows.
+            Marker object_marker;
+            for (const GLVolume* volume : instance.volumes)
+                if (object.volumes[volume->volume_idx()]->is_model_part())
+                    object_marker.box.merge(volume->transformed_convex_hull_bounding_box());
             if (assembly != nullptr) {
-                const double       scale = std::abs(instance.trafo.linear().determinant());
-                std::vector<Vec3d> centers;
-                for (const auto& [mass, center] : *assembly)
-                    if (mass > 0.) {
-                        centers.emplace_back(instance.trafo * center);
-                        sum.add({ mass * scale, mass * scale * centers.back() });
+                std::vector<Marker> parts;
+                for (const SolidBody& body : *assembly)
+                    if (body.mass > 0.) {
+                        parts.push_back({ mass_sum(body.transformed(instance.trafo)), body.bounding_box(instance.trafo) });
+                        object_marker.sum.add(parts.back().sum);
                     }
-                if (centers.size() > 1)
-                    append(markers.bodies, std::move(centers));
+                if (parts.size() > 1)
+                    append(markers[mkBody], std::move(parts));
             } else
                 for (const GLVolume* volume : instance.volumes) {
                     // The parts the object info's volume sums.
@@ -1095,59 +1121,63 @@ GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const 
                     const auto [it, inserted] = meshes.try_emplace(model_volume.id().id);
                     if (inserted) {
                         const auto cached = m_meshes.find(it->first);
-                        it->second = cached != m_meshes.end() ? cached->second : its_volume_and_center_of_mass(model_volume.mesh().its);
+                        it->second = cached != m_meshes.end() ? cached->second : its_mass_properties(model_volume.mesh().its);
                     }
-                    const auto& [mesh_volume, mesh_center] = it->second;
-                    const Transform3d world = volume->world_matrix();
-                    const double      mass  = std::abs(mesh_volume * world.linear().determinant()) * density(model_volume);
-                    sum.add({ mass, mass * (world * mesh_center) });
+                    MassProperties part = it->second.transformed(volume->world_matrix());
+                    part.mass *= density(model_volume);
+                    object_marker.sum.add(mass_sum(part));
                 }
-            if (sum.mass > 0.) {
-                markers.objects.emplace_back(sum.moment / sum.mass);
-                plate.add(sum);
+            if (object_marker.sum.mass > 0.) {
+                if (const int plate = plate_list.find_instance(obj_idx, inst_idx); plate >= 0) {
+                    plates[plate].sum.add(object_marker.sum);
+                    plates[plate].box.merge(object_marker.box);
+                }
+                markers[mkObject].emplace_back(std::move(object_marker));
             }
         }
     }
     m_meshes = std::move(meshes);
     m_bodies = std::move(bodies);
-    if (plate.mass > 0.)
-        markers.plate.emplace_back(plate.moment / plate.mass);
+    for (auto& [plate, marker] : plates)
+        markers[mkPlate].emplace_back(std::move(marker));
     return markers;
 }
 
 void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
 {
+    m_drawn = {};
+    const bool preview = canvas.m_canvas_type == ECanvasType::CanvasPreview;
     // The other gizmos work on the surface the marker would cover.
     const GLGizmosManager::EType gizmo = canvas.get_gizmos_manager().get_current_type();
-    if (!wxGetApp().show_center_of_mass() ||
+    if (!wxGetApp().show_center_of_mass() || canvas.m_design_canvas ||
+        !(canvas.m_canvas_type == ECanvasType::CanvasView3D || (preview && canvas.m_render_preview)) ||
         (gizmo != GLGizmosManager::Undefined && gizmo != GLGizmosManager::Move && gizmo != GLGizmosManager::Rotate &&
          gizmo != GLGizmosManager::Scale && gizmo != GLGizmosManager::Flatten))
         return;
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    if (shader == nullptr)
+        return;
 
     // Preview adds markers for what is printed up to the top layer shown.
-    Markers    parts;
-    Markers    printed;
-    const bool preview = canvas.get_canvas_type() == ECanvasType::CanvasPreview;
     if (preview) {
         const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
-        const size_t       top_layer    = gcode_viewer.get_layers_z_range()[1];
-        const auto add = [top_layer](const GCodeProcessorResult::ObjectMass& mass, std::vector<Vec3d>& part, std::vector<Vec3d>& up_to_layer) {
+        m_top_layer                     = gcode_viewer.get_layers_z_range()[1];
+        const auto add = [this](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
             if (mass.part.mass > 0.)
-                part.emplace_back(mass.part.moment / mass.part.mass);
+                m_drawn[0][kind].push_back({ mass.part, mass.box });
             if (!mass.printed_up_to_layer.empty())
-                if (const auto& sum = mass.printed_up_to_layer[std::min(top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
-                    up_to_layer.emplace_back(sum.moment / sum.mass);
+                if (const Sum& sum = mass.printed_up_to_layer[std::min(m_top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
+                    m_drawn[1][kind].push_back({ sum, mass.box });
         };
-        add(gcode_viewer.get_plate_mass(), parts.plate, printed.plate);
+        add(gcode_viewer.get_plate_mass(), mkPlate);
         for (const GCodeProcessorResult::ObjectMass& object : gcode_viewer.get_object_masses())
-            add(object, parts.objects, printed.objects);
+            add(object, mkObject);
         for (const GCodeProcessorResult::ObjectMass& body : gcode_viewer.get_body_masses())
-            add(body, parts.bodies, printed.bodies);
+            add(body, mkBody);
     } else
-        parts = model_markers(canvas);
-
-    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
-    if ((parts.plate.empty() && printed.plate.empty()) || shader == nullptr)
+        m_drawn[0] = model_markers(canvas);
+    if (std::all_of(m_drawn.begin(), m_drawn.end(),
+                    [](const Markers& markers) { return std::all_of(markers.begin(), markers.end(), [](const auto& kind) { return kind.empty(); }); }))
         return;
 
     if (!m_octants[0].is_initialized()) {
@@ -1167,12 +1197,9 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             m_octants[i].init_from(std::move(octants[i]));
     }
 
-    float scale = canvas.get_scale();
-#ifdef WIN32
-    scale *= float(get_dpi_for_window(wxGetApp().GetTopWindow())) / float(DPI_DEFAULT);
-#endif // WIN32
     const Camera&      camera      = wxGetApp().plater()->get_camera();
     const Transform3d& view_matrix = camera.get_view_matrix();
+    const double       scale       = marker_scale(canvas) * camera.get_inv_zoom();
 
     // Seen through the object it lies in; culling keeps the sphere's far half behind its near one.
     glsafe(::glDisable(GL_DEPTH_TEST));
@@ -1181,25 +1208,18 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
     shader->set_uniform("view_normal_matrix", (Matrix3d)view_matrix.matrix().block(0, 0, 3, 3));
     shader->set_uniform("emission_factor", 0.1f);
+    const std::array<std::array<ColorRGBA, 2>, mkCount> colors = { {
+        { ColorRGBA(0.1f, 0.1f, 0.1f, 1.f), ColorRGBA::WHITE() },
+        { ColorRGBA(0x74 / 255.f, 0xAC / 255.f, 0xDF / 255.f, 1.f), ColorRGBA::WHITE() },
+        { ColorRGBA::RED(), ColorRGBA::YELLOW() },
+    } };
     const auto draw = [&](const Markers& markers, float alpha) {
-        struct Kind
-        {
-            const std::vector<Vec3d>& centers;
-            std::array<ColorRGBA, 2>  colors;
-            // On screen, each smaller than the one before, so that markers at one place still show.
-            double radius;
-        };
-        const std::array<Kind, 3> kinds = { {
-            { markers.plate, { ColorRGBA(0.1f, 0.1f, 0.1f, 1.f), ColorRGBA::WHITE() }, 9. },
-            { markers.objects, { ColorRGBA(0x74 / 255.f, 0xAC / 255.f, 0xDF / 255.f, 1.f), ColorRGBA::WHITE() }, 7. },
-            { markers.bodies, { ColorRGBA::RED(), ColorRGBA::YELLOW() }, 5. },
-        } };
-        for (const Kind& kind : kinds)
-            for (const Vec3d& center : kind.centers) {
-                const double radius = kind.radius * scale * camera.get_inv_zoom();
-                shader->set_uniform("view_model_matrix", view_matrix * Geometry::translation_transform(center) * Geometry::scale_transform(radius));
+        for (size_t kind = 0; kind < mkCount; ++kind)
+            for (const Marker& marker : markers[kind]) {
+                shader->set_uniform("view_model_matrix", view_matrix * Geometry::translation_transform(marker.center()) *
+                                                             Geometry::scale_transform(marker_radii[kind] * scale));
                 for (size_t i = 0; i < m_octants.size(); ++i) {
-                    ColorRGBA color = kind.colors[i];
+                    ColorRGBA color = colors[kind][i];
                     color.a(alpha);
                     m_octants[i].set_color(color);
                     m_octants[i].render();
@@ -1207,10 +1227,91 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             }
     };
     // Preview fades the finished parts' markers under those of what is printed so far.
-    draw(parts, preview ? 0.4f : 1.f);
-    draw(printed, 1.f);
+    draw(m_drawn[0], preview ? 0.4f : 1.f);
+    draw(m_drawn[1], 1.f);
     shader->stop_using();
     glsafe(::glEnable(GL_DEPTH_TEST));
+}
+
+bool GLCanvas3D::CenterOfMass::on_left_down(GLCanvas3D& canvas, const Vec2d& mouse)
+{
+    const bool    shown  = m_picked.has_value();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const double  scale  = marker_scale(canvas) * camera.get_inv_zoom();
+    m_picked.reset();
+    // In the order they cover each other: what is printed so far over the finished print, smaller kinds over larger ones.
+    for (size_t set = m_drawn.size(); set-- > 0 && !m_picked;)
+        for (size_t kind = mkCount; kind-- > 0 && !m_picked;)
+            for (size_t index = 0; index < m_drawn[set][kind].size(); ++index) {
+                const Vec3d              center = m_drawn[set][kind][index].center();
+                const std::vector<Vec3d> ends   = { center, center + marker_radii[kind] * scale * camera.get_dir_right() };
+                const Points             screen = CameraUtils::project(camera, ends);
+                if ((screen[0].cast<double>() - mouse).norm() <= (screen[1] - screen[0]).cast<double>().norm()) {
+                    m_picked = Pick{ set, kind, index, m_drawn[set][kind].size() };
+                    break;
+                }
+            }
+    if (shown || m_picked)
+        canvas._set_overlay_as_dirty();
+    return m_picked.has_value();
+}
+
+void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
+{
+    if (!m_picked)
+        return;
+    const Pick&                pick    = *m_picked;
+    const std::vector<Marker>& markers = m_drawn[pick.set][pick.kind];
+    // Gone with the markers, or with what it stood for.
+    if (markers.size() != pick.count) {
+        m_picked.reset();
+        return;
+    }
+    const Marker& marker = markers[pick.index];
+    const Sum&    sum    = marker.sum;
+    const Vec3d   center = marker.center();
+    // About the axes through the center, from how far the mass spreads along the two others.
+    const Vec3d spread  = (sum.second / sum.mass - center.cwiseProduct(center)).cwiseMax(0.);
+    const Vec3d inertia = sum.mass * Vec3d(spread.y() + spread.z(), spread.x() + spread.z(), spread.x() + spread.y());
+
+    // Beside the marker.
+    const Point   screen = CameraUtils::project(wxGetApp().plater()->get_camera(), center);
+    ImGuiWrapper& imgui  = *wxGetApp().imgui();
+    imgui.set_next_window_pos(float(screen.x() + 2. * marker_radii[pick.kind] * marker_scale(canvas)), float(screen.y()), ImGuiCond_Always, 0.f, 0.5f);
+    const std::array<std::string, mkCount> titles = { _u8L("Plate center of mass"), _u8L("Object center of mass"), _u8L("Body center of mass") };
+    bool open = true;
+    imgui.begin(titles[pick.kind] + "##center_of_mass", &open,
+                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+    if (ImGui::IsWindowAppearing())
+        imgui.set_requires_extra_frame();
+    if (canvas.get_canvas_type() == ECanvasType::CanvasPreview)
+        imgui.text(pick.set == 0 ? _u8L("Finished print") : (boost::format(_u8L("Printed up to layer %1%")) % (m_top_layer + 1)).str());
+    // Masses are in mg, volumes in mm³.
+    const auto xyz = [](const Vec3d& v, const char* format, const std::string& unit) {
+        return (boost::format(format) % v.x() % v.y() % v.z()).str() + " " + unit;
+    };
+    if (ImGui::BeginTable("##center_of_mass_details", 2)) {
+        const auto row = [](const std::string& label, const std::string& value) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, label);
+            ImGui::TableSetColumnIndex(1);
+            ImGuiWrapper::text(value);
+        };
+        row(_u8L("Weight"), (boost::format("%.2f g") % (sum.mass / 1000.)).str());
+        row(_u8L("Volume"), (boost::format(u8"%.2f cm³") % (sum.volume / 1000.)).str());
+        if (marker.box.defined) {
+            row(_u8L("Center in bounding box"), xyz(center - marker.box.min, "X: %.2f, Y: %.2f, Z: %.2f", _u8L("mm")));
+            row(_u8L("Bounding box size"), xyz(marker.box.size(), "X: %.2f, Y: %.2f, Z: %.2f", _u8L("mm")));
+        }
+        row(_u8L("Moment of inertia"), xyz(inertia / 1000., "X: %.0f, Y: %.0f, Z: %.0f", u8"g·mm²"));
+        ImGui::EndTable();
+    }
+    imgui.end();
+    if (!open) {
+        m_picked.reset();
+        canvas._set_overlay_as_dirty();
+    }
 }
 
 void GLCanvas3D::Tooltip::set_text(const std::string& text)
@@ -2734,8 +2835,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     }
 
     // After the occlusion pass, which would shade it as the surface behind it.
-    if (!m_design_canvas && (m_canvas_type == ECanvasType::CanvasView3D || (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)))
-        m_center_of_mass.render(*this);
+    m_center_of_mass.render(*this);
 
     if (_is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
@@ -4727,6 +4827,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // A gizmo that acts on a click or a drag may not request a frame itself.
         if (!evt.Moving())
             m_dirty = true;
+        return;
+    }
+
+    // A click on a center of mass marker shows its details instead of selecting.
+    if (evt.LeftDown() && !mouse_in_layer_editing && m_center_of_mass.on_left_down(*this, pos.cast<double>())) {
+        m_mouse.ignore_left_up = true;
         return;
     }
 
@@ -9580,6 +9686,7 @@ void GLCanvas3D::_render_overlays()
             }*/
     }
     m_labels.render(sorted_instances);
+    m_center_of_mass.render_details(*this);
 
     _render_3d_navigator();
 

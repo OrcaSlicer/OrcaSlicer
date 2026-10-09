@@ -3,6 +3,8 @@
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
+#include "TriangleMesh.hpp"
 #include "libslic3r.h"
 
 #include <admesh/stl.h>
@@ -25,10 +27,12 @@ class IslandLocator
 public:
     // The islands must outlive the locator. Their boxes are widened by the margin, for points reaching past an outline.
     IslandLocator(const ExPolygons &islands, coord_t margin);
-    // Whether the island holds the point, or its box does where no other box reaches.
-    bool holds(size_t island, const Point &point) const;
-    // The island holding the point, else the nearest one whose box holds it, or -1.
-    int find(const Point &point) const;
+    // Whether the island holds the point, or its box does where no other box reaches unless strict.
+    bool holds(size_t island, const Point &point, bool strict = false) const;
+    // The island holding the point as above, else the nearest one whose box holds it, with the squared distance to it; -1
+    // for none.
+    std::pair<int, double> find(const Point &point, bool strict = false) const;
+    const std::vector<BoundingBox> &boxes() const { return m_boxes; }
 
 private:
     const ExPolygons        *m_islands;
@@ -38,9 +42,20 @@ private:
 
 using MeshInPlace = std::pair<const indexed_triangle_set *, Transform3d>;
 
-// Mass and center of mass of each connected body of the union of the solids less the negatives, sliced into slabs,
-// each solid weighing its density. Where solids overlap, the later one counts, as slicing prints it.
-std::vector<std::pair<double, Vec3d>> solid_bodies(const std::vector<MeshInPlace> &solids, const std::vector<double> &densities,
-                                                   const std::vector<MeshInPlace> &negatives, size_t slabs);
+// A connected body of solids, with its outline seen from above as a convex hull and the height it spans.
+struct SolidBody : MassProperties
+{
+    Polygon hull;
+    double  z_min{ 0. };
+    double  z_max{ 0. };
+
+    // Its box once transformed, tight for a transformation that rotates about z only.
+    BoundingBoxf3 bounding_box(const Transform3d &trafo) const;
+};
+
+// Each connected body of the union of the solids less the negatives, sliced into slabs, each solid weighing its density.
+// Where solids overlap, the later one counts, as slicing prints it.
+std::vector<SolidBody> solid_bodies(const std::vector<MeshInPlace> &solids, const std::vector<double> &densities,
+                                    const std::vector<MeshInPlace> &negatives, size_t slabs);
 
 } // namespace Slic3r

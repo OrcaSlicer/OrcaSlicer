@@ -4,8 +4,10 @@
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
+#include "Geometry/ConvexHull.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
+#include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "libslic3r.h"
 
@@ -103,44 +105,81 @@ IslandLocator::IslandLocator(const ExPolygons &islands, coord_t margin) : m_isla
                 m_alone[order[a]] = m_alone[order[b]] = false;
 }
 
-bool IslandLocator::holds(size_t island, const Point &point) const
+bool IslandLocator::holds(size_t island, const Point &point, bool strict) const
 {
-    return m_boxes[island].contains(point) && (m_alone[island] || (*m_islands)[island].contains(point));
+    return m_boxes[island].contains(point) && ((m_alone[island] && !strict) || (*m_islands)[island].contains(point));
 }
 
-int IslandLocator::find(const Point &point) const
+std::pair<int, double> IslandLocator::find(const Point &point, bool strict) const
 {
     int    nearest  = -1;
     double distance = std::numeric_limits<double>::max();
     for (size_t i = 0; i < m_boxes.size(); ++i)
         if (m_boxes[i].contains(point)) {
-            if (m_alone[i] || (*m_islands)[i].contains(point))
-                return int(i);
+            if ((m_alone[i] && !strict) || (*m_islands)[i].contains(point))
+                return { int(i), 0. };
             if (const double d = ((*m_islands)[i].point_projection(point) - point).cast<double>().squaredNorm(); d < distance) {
                 distance = d;
                 nearest  = int(i);
             }
         }
-    return nearest;
+    return { nearest, distance };
 }
 
-// Twice the signed area of a polygon and six times its area moment, which holes, running clockwise, subtract.
-static void add_area_moments(const Polygon &polygon, double &area2, Vec2d &moment6)
+// The area of polygons and their first and second moments of area, which holes, running clockwise, subtract.
+struct AreaMoments
 {
-    if (polygon.points.size() < 3)
-        return;
-    Vec2d p1 = unscaled(polygon.points.back());
-    for (const Point &p : polygon.points) {
-        const Vec2d  p2 = unscaled(p);
-        const double a  = cross2(p1, p2);
-        area2 += a;
-        moment6 += (p1 + p2) * a;
-        p1 = p2;
+    double area{ 0. };
+    Vec2d  first{ Vec2d::Zero() };
+    // Of x^2, y^2 and xy.
+    Vec3d second{ Vec3d::Zero() };
+
+    void add(const Polygon &polygon)
+    {
+        if (polygon.points.size() < 3)
+            return;
+        Vec2d p1 = unscaled(polygon.points.back());
+        for (const Point &point : polygon.points) {
+            const Vec2d  p2 = unscaled(point);
+            const double a  = cross2(p1, p2);
+            area += a / 2.;
+            first += a / 6. * (p1 + p2);
+            second += a / 12. *
+                      Vec3d(p1.x() * p1.x() + p1.x() * p2.x() + p2.x() * p2.x(), p1.y() * p1.y() + p1.y() * p2.y() + p2.y() * p2.y(),
+                            p1.x() * p1.y() + p2.x() * p2.y() + 0.5 * (p1.x() * p2.y() + p2.x() * p1.y()));
+            p1 = p2;
+        }
     }
+};
+
+// Mass, volume and the first and second moments of mass about the origin.
+struct Moments
+{
+    double   mass{ 0. };
+    double   volume{ 0. };
+    Vec3d    first{ Vec3d::Zero() };
+    Matrix3d second{ Matrix3d::Zero() };
+
+    void add(const Moments &other)
+    {
+        mass += other.mass;
+        volume += other.volume;
+        first += other.first;
+        second += other.second;
+    }
+};
+
+BoundingBoxf3 SolidBody::bounding_box(const Transform3d &trafo) const
+{
+    BoundingBoxf3 box;
+    for (const Point &point : hull.points)
+        for (const double z : { z_min, z_max })
+            box.merge(trafo * Vec3d(unscaled(point.x()), unscaled(point.y()), z));
+    return box;
 }
 
-std::vector<std::pair<double, Vec3d>> solid_bodies(const std::vector<MeshInPlace> &solids, const std::vector<double> &densities,
-                                                   const std::vector<MeshInPlace> &negatives, size_t slabs)
+std::vector<SolidBody> solid_bodies(const std::vector<MeshInPlace> &solids, const std::vector<double> &densities,
+                                    const std::vector<MeshInPlace> &negatives, size_t slabs)
 {
     assert(densities.size() == solids.size());
     double z_min = std::numeric_limits<double>::max();
@@ -175,30 +214,31 @@ std::vector<std::pair<double, Vec3d>> solid_bodies(const std::vector<MeshInPlace
             append(cut[k], std::move(slices_negative[k]));
     }
 
-    // The islands of each slab, and the mass and moment of what each solid prints of them with its density.
-    using Mass = std::pair<double, Vec3d>;
+    // The islands of each slab, and the moments of what each solid prints of them with its density.
     const bool uniform = std::all_of(densities.begin(), densities.end(), [&densities](double d) { return d == densities.front(); });
-    std::vector<ExPolygons>        islands(slabs);
-    std::vector<std::vector<Mass>> masses(slabs);
+    std::vector<ExPolygons>           islands(slabs);
+    std::vector<std::vector<Moments>> moments(slabs);
     tbb::parallel_for(tbb::blocked_range<size_t>(0, slabs), [&](const tbb::blocked_range<size_t> &range) {
         for (size_t k = range.begin(); k < range.end(); ++k) {
             ExPolygons all;
             for (const std::vector<ExPolygons> &solid : slices)
                 append(all, solid[k]);
             islands[k] = diff_ex(union_ex(all), cut[k]);
-            masses[k].assign(islands[k].size(), { 0., Vec3d::Zero() });
-            const auto add = [&](const ExPolygon &region, double density, size_t island) {
-                double area2   = 0.;
-                Vec2d  moment6 = Vec2d::Zero();
-                add_area_moments(region.contour, area2, moment6);
+            moments[k].assign(islands[k].size(), {});
+            const double z   = zs[k];
+            const auto   add = [&](const ExPolygon &region, double density, size_t island) {
+                AreaMoments area;
+                area.add(region.contour);
                 for (const Polygon &hole : region.holes)
-                    add_area_moments(hole, area2, moment6);
-                if (area2 <= 0.)
+                    area.add(hole);
+                if (area.area <= 0.)
                     return;
-                const double mass   = density * 0.5 * area2 * thickness;
-                const Vec2d  center = moment6 / (3. * area2);
-                masses[k][island].first += mass;
-                masses[k][island].second += mass * Vec3d(center.x(), center.y(), zs[k]);
+                // A prism of the slab's thickness.
+                Matrix3d second;
+                second << area.second.x(), area.second.z(), area.first.x() * z, area.second.z(), area.second.y(), area.first.y() * z,
+                    area.first.x() * z, area.first.y() * z, area.area * (z * z + thickness * thickness / 12.);
+                moments[k][island].add({ density * area.area * thickness, area.area * thickness,
+                                         density * thickness * Vec3d(area.first.x(), area.first.y(), area.area * z), density * thickness * second });
             };
             if (uniform) {
                 for (size_t j = 0; j < islands[k].size(); ++j)
@@ -211,7 +251,7 @@ std::vector<std::pair<double, Vec3d>> solid_bodies(const std::vector<MeshInPlace
             for (size_t i = solids.size(); i-- > 0;)
                 if (!slices[i][k].empty()) {
                     for (const ExPolygon &region : diff_ex(slices[i][k], later))
-                        if (const int island = locator.find(region.contour.points.front()); island >= 0)
+                        if (const int island = locator.find(region.contour.points.front()).first; island >= 0)
                             add(region, densities[i], size_t(island));
                     later = union_ex(later, slices[i][k]);
                 }
@@ -224,15 +264,28 @@ std::vector<std::pair<double, Vec3d>> solid_bodies(const std::vector<MeshInPlace
         layers.emplace_back(&layer);
     size_t                                 count  = 0;
     const std::vector<std::vector<size_t>> bodies = connected_bodies(layers, count);
-    std::vector<Mass>                      out(count, { 0., Vec3d::Zero() });
+    std::vector<Moments>                   sums(count);
+    std::vector<Points>                    outlines(count);
+    std::vector<SolidBody>                 out(count);
+    for (SolidBody &body : out) {
+        body.z_min = std::numeric_limits<double>::max();
+        body.z_max = std::numeric_limits<double>::lowest();
+    }
     for (size_t k = 0; k < slabs; ++k)
-        for (size_t j = 0; j < masses[k].size(); ++j) {
-            out[bodies[k][j]].first += masses[k][j].first;
-            out[bodies[k][j]].second += masses[k][j].second;
+        for (size_t j = 0; j < islands[k].size(); ++j) {
+            const size_t body = bodies[k][j];
+            sums[body].add(moments[k][j]);
+            append(outlines[body], islands[k][j].contour.points);
+            out[body].z_min = std::min(out[body].z_min, zs[k] - 0.5 * thickness);
+            out[body].z_max = std::max(out[body].z_max, zs[k] + 0.5 * thickness);
         }
-    for (auto &[mass, center] : out)
-        if (mass > 0.)
-            center /= mass;
+    for (size_t body = 0; body < count; ++body)
+        if (const Moments &sum = sums[body]; sum.mass > 0.) {
+            const Vec3d     center = sum.first / sum.mass;
+            MassProperties &solid  = out[body];
+            solid                  = { sum.mass, sum.volume, center, sum.second / sum.mass - center * center.transpose() };
+            out[body].hull         = Geometry::convex_hull(std::move(outlines[body]));
+        }
     return out;
 }
 

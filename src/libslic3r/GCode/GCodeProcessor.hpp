@@ -3,6 +3,7 @@
 
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ArcFitter.hpp"
@@ -279,16 +280,27 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             struct Sum
             {
                 double mass{ 0. };
+                double volume{ 0. };
                 Vec3d  moment{ Vec3d::Zero() };
-                void   add(const Sum &other) { mass += other.mass; moment += other.moment; }
+                // Of the mass about the origin along each axis, the sums of m x^2, m y^2 and m z^2.
+                Vec3d second{ Vec3d::Zero() };
+
+                void add(const Sum &other)
+                {
+                    mass += other.mass;
+                    volume += other.volume;
+                    moment += other.moment;
+                    second += other.second;
+                }
             };
-            // The parts alone, without brim, raft and supports.
-            Sum part;
+            // The parts alone, without brim, raft and supports, and the box they fill.
+            Sum           part;
+            BoundingBoxf3 box;
             // Everything printed up to each layer id, the plate's with brim, raft and supports.
             std::vector<Sum> printed_up_to_layer;
 
-            // An extrusion on a layer, counted in the parts too when it belongs to them.
-            void add(const Sum &sum, bool in_part, size_t layer);
+            // An extrusion on a layer filling the extent, counted in the parts too when it belongs to them.
+            void add(const Sum &sum, const BoundingBoxf3 &extent, bool in_part, size_t layer);
         };
 
         std::string filename;

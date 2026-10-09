@@ -11,9 +11,13 @@ the project file, and it does not reach plate thumbnails. The choice is kept in 
 
 Three kinds of marker share one shape, a sphere whose octants alternate between two colors:
 
-- the plate, black and white, for everything on it;
+- each plate, black and white, for everything on it;
 - each object instance, light blue and white;
 - each body of an assembly, red and yellow.
+
+A click on a marker opens a box beside it with the weight and volume of what it stands for, where its
+center lies in that thing's bounding box and the size of the box, and its moments of inertia about
+axes through the center parallel to x, y and z.
 
 An assembly is an object of several parts or with negative volumes. Its bodies are the connected
 solids its parts make once united, the bodies the separated infills option centers its infill on
@@ -35,14 +39,16 @@ ends.
 
 ## Prepare: from the meshes
 
-An object of one part takes the volume and center of mass of its mesh, times its density, from
-`its_volume_and_center_of_mass()`, which handles a mesh in a single pass. Each triangle and a fixed
-vertex of the mesh span a tetrahedron whose signed volume is `a · (b × c) / 6`, with `a`, `b`, `c`
-taken relative to that vertex. By the divergence theorem these volumes add up to the volume of a
-closed mesh, and their volume-weighted centroids to its center of mass. Shells facing inward, such
-as a cavity, subtract themselves, and flipping every triangle negates the volume but keeps the
-center. The sums are kept in double precision and relative to a vertex of the mesh rather than the
-origin, which keeps them exact for meshes far from it.
+An object of one part takes the mass properties of its mesh at unit density, times its density, from
+`its_mass_properties()`, which handles a mesh in a single pass. Each triangle and a fixed vertex of
+the mesh span a tetrahedron whose signed volume is `V = a · (b × c) / 6`, with `a`, `b`, `c` taken
+relative to that vertex. By the divergence theorem these volumes add up to the volume of a closed
+mesh, their volume-weighted centroids to its center of mass, and their second moments
+`V (a aᵀ + b bᵀ + c cᵀ + s sᵀ) / 20`, with `s = a + b + c`, to its own. Shells facing inward, such as
+a cavity, subtract themselves, and flipping every triangle changes nothing. The sums are kept in
+double precision and relative to a vertex of the mesh rather than the origin, which keeps them exact
+for meshes far from it. The result keeps the spread of the mass about its center,
+`(x - c)(x - c)ᵀ` averaged over the mass, from which the moments of inertia follow.
 
 The CGAL routines that look alike do not compute this. `CGAL::centroid` weighs tetrahedra by their
 unsigned volume, so it fails on cavities and on any shell that is not star-shaped from the fan's
@@ -52,8 +58,9 @@ gives the same answer, but only after copying every tetrahedron into a vector of
 and takes two and a half times as long.
 
 A mesh's result is in its own coordinates. Each `GLVolume` maps it to the world with its world
-matrix, and weighs it by the volume times the absolute determinant of that matrix: a center of mass
-moves with any affine map, so no mesh is ever transformed. The `GLVolume`'s matrices, rather than the
+matrix `M`, and weighs it by the volume times the absolute determinant of that matrix: a center of
+mass moves with any affine map, and the spread becomes `L S Lᵀ` for the linear part `L` of `M`, so no
+mesh is ever transformed. The `GLVolume`'s matrices, rather than the
 model's, let the markers follow an object while it is dragged, before the model is updated. Results
 are cached by `ModelVolume` id; a `ModelVolume` takes a new id whenever its mesh changes, which is
 the rule `reload_scene()` relies on to rebuild a `GLVolume`'s geometry, so a cached result never
@@ -63,11 +70,15 @@ An assembly's parts overlap or touch, which the mesh formula would count twice, 
 slices them instead, in the object's coordinates. It cuts the height into 500 slabs, 100 while a part
 is dragged, slices every part and negative volume at the middle of each slab, unites the parts and
 cuts the negative volumes away, and links the islands of neighboring slabs that overlap into bodies
-with `connected_bodies()`. Each island adds its area times the slab's thickness and the density at
-its centroid. Where parts of different densities overlap, the later volume of the object counts, as
+with `connected_bodies()`. Each island adds a prism of the slab's thickness at the density: its
+area, and its first and second moments of area, from the same sums over the outline as the area,
+with the slab's height for z. Where parts of different densities overlap, the later volume of the object counts, as
 slicing clips every part by the parts after it; each part then weighs the region it prints, which is
-credited to the island holding it. The object is the sum of its bodies, and the plate the sum of the
-objects. The bodies are cached by `ModelObject` id with the volumes, types, densities and
+credited to the island holding it. Each body also keeps the convex hull of its islands and the height
+they span, whose corners, once transformed, give its bounding box, tight while the instance turns
+about z only. The object is the sum of its bodies, its box that of its parts, as the object's size
+shows it, and each plate the sum of the object instances `PartPlateList::find_instance()` puts on it,
+so that an instance on no plate counts in none. The bodies are cached by `ModelObject` id with the volumes, types, densities and
 transformations they were sliced from.
 
 ## Preview: from the toolpaths
@@ -79,9 +90,11 @@ result. Nothing is stored per move.
 Each extrusion weighs the volume of filament its E extrudes times the density of the filament that
 extrudes it, so a print of several materials weighs each as it is. Flow ratio, line widths, ironing
 and purging into infill all count
-as printed. Its mass sits at the middle of the segment, half the layer height below the nozzle, at
-the center of the bead, in the frame of the stored moves: plate offset added, Z offset removed. Arcs
-are already split into segments by the processor. Walls, infill, top and bottom surfaces, ironing
+as printed. Its mass spreads evenly along the segment the bead's center runs, half the layer height
+below the nozzle, in the frame of the stored moves: plate offset added, Z offset removed. Such a
+segment from `a` to `b` adds `m (a + b) / 2` to the moments and `m (a² + a b + b²) / 3` to the second
+moments along each axis, and its box widened by half the bead's height to the bounding box; not by
+half its width, which the processor only estimates, so that a box runs along the walls' center lines. Arcs are already split into segments by the processor. Walls, infill, top and bottom surfaces, ironing
 and gap fill make the parts. The brim and the support roles, the raft among them, count only in what
 the plate prints. The skirt, the prime tower and custom G-code count nowhere.
 
@@ -94,11 +107,14 @@ Orca writes on and off in every combination, and none of them tells the bodies a
 The locator numbers the object instances and, for each assembly, the bodies of every instance. It
 takes the bodies `PrintObject::prepare_infill()` found for separated infills, or, when that option
 did not need them, links the islands (`Layer::lslices`) of neighboring layers into bodies with the
-same `connected_bodies()`. For each extrusion of a part, it finds the layer printed at its height and
-the island holding it with an `IslandLocator`, the one `solid_bodies()` credits its regions with: by
-the island's box, widened by 1 mm for walls reaching past it, with a polygon test only where boxes
-overlap, and the nearest outline where none holds the point. The island gives both the instance and
-the body. The island found last is tried first, as extrusions mostly follow each other on one
+same `connected_bodies()`. For each extrusion of a part, it finds the first layer printed at or above
+its height, as spiral vase rises through each layer, and the island holding it with an
+`IslandLocator`, the one `solid_bodies()` credits its regions with: by the island's box, widened by
+1 mm for walls reaching past it, with a polygon test only where boxes overlap, and the nearest
+outline where none holds the point. The boxes of one layer's islands say nothing of the other
+instances, so an instance whose widened box reaches another's, as copies placed side by side do,
+tests the outlines alone, and outside them the nearest outline of all such instances wins. The island
+gives both the instance and the body. The island found last is tried first, as extrusions mostly follow each other on one
 island. Brim, raft and supports lie outside the islands, which is why they count in the plate only.
 
 Each mass holds the parts' total and, for each layer id, the running total of what is printed up to
@@ -122,6 +138,25 @@ darken them as the surface behind them, and before FXAA, which smooths their edg
 
 The markers are part of the cached scene, so toggling them, or changing a filament's density while
 they are shown, marks the scene dirty, and moving the layer slider redraws the scene with the solid
-markers where they belong. In Prepare they are hidden
-while any gizmo other than Move, Rotate, Scale and Lay on face is open, since the others work on the
-surface a marker would cover, and a hidden object has no markers.
+markers where they belong. In Prepare they are hidden while any gizmo other than Move, Rotate, Scale
+and Lay on face is open, since the others work on the surface a marker would cover, and a hidden
+object has no markers.
+
+## Details
+
+The markers drawn last are kept, and a left click is tested against them before it selects: each
+center and a point a radius to its right are projected to the screen, and the click hits a marker
+within that distance. The solid markers are tested before the faded ones and the smaller kinds
+before the larger, the order in which they cover each other. A hit opens the details of that marker
+and keeps the click from changing the selection; a click anywhere else closes them. The box is an
+ImGui window beside the marker, redrawn with the overlay from the markers of the last scene, so it
+follows a dragged object, and in Preview the layer slider. It closes when its marker is gone, or when
+the number of markers of its kind changes, as then it may stand for something else.
+
+Each marker carries its sums: mass, volume, first moments and the second moments about the origin
+along each axis, `Σ m x²`, `Σ m y²` and `Σ m z²`, which add up from parts to objects to plates. The
+moment of inertia about the axis through the center parallel to x is then
+`m (σy² + σz²)`, with `σ² = Σ m x² / m - c²` along each axis, and likewise for y and z. Masses are
+kept in mg, volume times density in g/cm³, and shown in g, volumes in cm³ and moments of inertia in
+g·mm². In Preview the box tells the finished print from what is printed up to the layer shown, the
+two weighing differently, and both are placed in the bounding box of the finished parts.
