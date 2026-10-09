@@ -19,7 +19,6 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <utility>
 #include "slic3r/GUI/wxExtensions.hpp"
-#include "slic3r/GUI/Widgets/HyperLink.hpp"
 #include <cstdlib>
 #include <cstdio>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
@@ -48,6 +47,7 @@
 #include <wx/panel.h>
 #include <wx/textctrl.h>
 #include <wx/string.h>
+#include <wx/utils.h>
 #include <wx/valtext.h>
 #include <wx/sizer.h>
 #include <wx/peninfobase.h>
@@ -103,6 +103,14 @@ void AMSMaterialsSetting::create()
 
     m_sizer_button->Add(0, 0, 1, wxEXPAND, 0);
 
+    // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
+    m_wiki_ctrl = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
+    m_wiki_ctrl->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    m_wiki_ctrl->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    m_wiki_ctrl->SetCanFocus(false);
+    m_wiki_ctrl->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
     m_button_confirm = new Button(this, _L("Confirm"));
     m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_ok, this);
@@ -115,8 +123,9 @@ void AMSMaterialsSetting::create()
     m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_close->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_close, this);
 
-    m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
-    m_sizer_button->Add(m_button_reset, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
+    m_sizer_button->Add(m_wiki_ctrl, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
+    m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
+    m_sizer_button->Add(m_button_reset, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
     m_sizer_button->Add(m_button_close, 0, wxALIGN_CENTER, 0);
 
     m_sizer_main->Add(m_panel_normal, 0, wxALL, FromDIP(2));
@@ -340,11 +349,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     m_ratio_text->SetForegroundColour(wxColour(50, 58, 61));
     m_ratio_text->SetFont(Label::Head_14);
 
-    // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
-    wxString link_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
-    m_wiki_ctrl = new HyperLink(parent, _L("Wiki Guide"), link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
-    cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
 
     wxBoxSizer *m_sizer_cali_resutl = new wxBoxSizer(wxHORIZONTAL);
     // pa profile

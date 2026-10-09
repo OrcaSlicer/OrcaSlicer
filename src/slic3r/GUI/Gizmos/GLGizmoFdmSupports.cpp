@@ -552,6 +552,11 @@ void GLGizmoFdmSupports::select_facets_by_angle(float threshold_deg, bool block)
     const ModelObject* mo = m_c->selection_info()->model_object();
     const ModelInstance* mi = mo->instances[selection.get_instance_idx()];
 
+    // Compute gravity direction accounting for build plate tilt
+    const Vec3d up_dir      = build_plate_tilt_up_direction();
+    const bool  has_tilt    = up_dir != Vec3d::UnitZ();
+    const Vec3d gravity_dir = -up_dir;
+
     int mesh_id = -1;
     for (const ModelVolume* mv : mo->volumes) {
         if (! mv->is_model_part())
@@ -560,10 +565,17 @@ void GLGizmoFdmSupports::select_facets_by_angle(float threshold_deg, bool block)
         ++mesh_id;
 
         const Transform3d trafo_matrix = mi->get_matrix_no_offset() * mv->get_matrix_no_offset();
-        Vec3f down  = (trafo_matrix.inverse() * (-Vec3d::UnitZ())).cast<float>().normalized();
-        Vec3f limit = (trafo_matrix.inverse() * Vec3d(std::sin(threshold), 0, -std::cos(threshold))).cast<float>().normalized();
-
-        float dot_limit = limit.dot(down);
+        Vec3f down  = (trafo_matrix.inverse() * gravity_dir).cast<float>().normalized();
+        float dot_limit;
+        if (!has_tilt) {
+            // Exact upstream computation: threshold derived from a tilted limit
+            // vector transformed into mesh space, so non-uniform/mirror/shear
+            // transforms behave identically to upstream.
+            Vec3f limit = (trafo_matrix.inverse() * Vec3d(std::sin(threshold), 0, -std::cos(threshold))).cast<float>().normalized();
+            dot_limit = limit.dot(down);
+        } else {
+            dot_limit = std::cos(threshold);
+        }
 
         // Now calculate dot product of vert_direction and facets' normals.
         int idx = 0;

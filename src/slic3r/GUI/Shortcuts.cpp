@@ -113,6 +113,7 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(GizmoMeasure,      "gizmo_measure",      L("Gizmo measure"),                                        PLATER, { 'U' }),
     SHORTCUT(GizmoAssembly,     "gizmo_assembly",     L("Gizmo assemble"),                                       PLATER, { 'Y' }),
     SHORTCUT(GizmoBrimEars,     "gizmo_brim_ears",    L("Gizmo brim ears"),                                      PLATER, { 'E' }),
+    SHORTCUT(GizmoDisplacement, "gizmo_displacement", L("Gizmo texture displacement painting"),                  PLATER, { 'D' }),
 
     // Sliders
     SHORTCUT(GoToLayer,           "go_to_layer",           L("Jump to layer"),                                   PREVIEW, { 'G', SHIFT }),
@@ -149,6 +150,7 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(ShowWireframe,     "show_wireframe",     L("Show/Hide wireframe"),                                  CANVAS,  { WXK_RETURN, CTRL_SHIFT }),
     SHORTCUT(ToggleGcodeWindow,   "toggle_gcode_window",   L("On/Off G-code window"),                            PREVIEW, { 'C' }),
     SHORTCUT(ToggleOneLayerMode,  "toggle_one_layer_mode", L("On/Off one layer mode of the vertical slider"),    PREVIEW, { 'L' }),
+    SHORTCUT(ToggleBeltRawGcode,  "toggle_belt_raw_gcode", L("Show raw G-code (belt only)"),                     PREVIEW, { 'B' }),
 
     // Application
     SHORTCUT(Preferences,       "preferences",        L("Preferences"),                                          GLOBAL, PREFERENCES_CHORD),

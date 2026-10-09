@@ -80,10 +80,6 @@ private:
     wxBitmap unchecked_hover_bmp;
     wxBitmap global_tag_bmp;
 
-
-    wxStaticText *wiki_link;
-    wxStaticText *video_link;
-
     StaticBox    *m_smart_filament_panel{nullptr};
     wxSizerItem  *m_smart_filament_spacer{nullptr};
     SwitchButton *m_smart_filament_switch{nullptr};

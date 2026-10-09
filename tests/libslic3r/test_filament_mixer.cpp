@@ -65,6 +65,50 @@ TEST_CASE("expand_mixed_filaments replaces mixed slots with their components", "
     }
 }
 
+TEST_CASE("belt purge tower island count ignores virtual mixed slots", "[FilamentMixer][belt]")
+{
+    // Regression for the "extra purge tower" on a belt printer with a mixed
+    // filament (MCTEST5). The belt purge prism is sized as
+    //   n_islands = used_filaments.size() - 1
+    // and GUI::ensure_belt_purge_tower() collected those filaments straight off
+    // the model objects' extruder assignments. A mixed slot is VIRTUAL -- no
+    // nozzle carries it, and ToolOrdering::resolve_mixed_filaments() replaces it
+    // with its components before any G-code is emitted -- so counting it as a
+    // filament of its own provisions one island that can never be reached.
+    //
+    // MCTEST5: five cubes on extruders 1..5, where filament 5 is a 50/50 blend of
+    // filaments 2 and 4. The G-code uses only T0..T3 and reports
+    // "filament used [g] = 53.35, 141.11, 40.84, 107.23, 0.00" -- filament 5
+    // consumes nothing, exactly as a virtual slot should.
+    const std::vector<unsigned char> is_mixed  = {0, 0, 0, 0, 1};
+    const std::vector<std::string>   comp_strs = {"", "", "", "", "2,4"};
+
+    // The set the sizer used to see: slots 0..4 (filaments 1..5).
+    const std::vector<unsigned int> assigned = {0, 1, 2, 3, 4};
+    const auto physical = expand_mixed_filaments(assigned, is_mixed, comp_strs);
+
+    // Slot 4 dissolves into 1 and 3, which are already present.
+    REQUIRE(physical == std::vector<unsigned int>({0, 1, 2, 3}));
+
+    // Four physical filaments => three transitions => three islands, not four.
+    REQUIRE(int(physical.size()) - 1 == 3);
+    REQUIRE(int(assigned.size()) - 1 == 4);   // what it produced before the fix
+
+    SECTION("A mixed slot whose components are otherwise unused still counts them") {
+        // Only the mixed slot is assigned: it must still yield its two components,
+        // i.e. one island, rather than collapsing to zero.
+        const auto only_mixed = expand_mixed_filaments({4}, is_mixed, comp_strs);
+        REQUIRE(only_mixed == std::vector<unsigned int>({1, 3}));
+        REQUIRE(int(only_mixed.size()) - 1 == 1);
+    }
+
+    SECTION("No mixed filaments anywhere leaves the set untouched") {
+        const std::vector<unsigned char> none_mixed = {0, 0, 0, 0, 0};
+        REQUIRE_FALSE(has_any_mixed_filament(none_mixed));
+        REQUIRE(expand_mixed_filaments(assigned, none_mixed, {"", "", "", "", ""}) == assigned);
+    }
+}
+
 TEST_CASE("check_mixed_filament_integrity flags dangling component references", "[FilamentMixer]")
 {
     const std::vector<unsigned char> is_mixed  = {0, 0, 1};

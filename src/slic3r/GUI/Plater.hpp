@@ -383,6 +383,10 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void reload_print();
+    // Belt printers: re-run the G-code preview conversion so the "designed view" toggle
+    // (hotkey B / legend checkbox) takes effect; the back-transform is applied to the
+    void refresh_belt_view();
+    // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -1071,6 +1075,8 @@ private:
     void _calib_pa_pattern_gen_gcode();
     void _calib_pa_tower(const Calib_Params& params);
     void _calib_pa_select_added_objects();
+    void _calib_apply_belt_mode();
+    void _calib_temp_belt_sectioned(const Calib_Params& params, double belt_angle_rad);
 
     void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);
 

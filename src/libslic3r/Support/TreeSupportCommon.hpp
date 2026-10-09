@@ -667,7 +667,22 @@ inline SupportGeneratorLayer& layer_initialize(
     const size_t               layer_idx)
 {
     layer_new.print_z  = layer_z(slicing_params, config, layer_idx);
-    layer_new.bottom_z = layer_idx > 0 ? layer_z(slicing_params, config, layer_idx - 1) : 0;
+    // Layer 0 has no layer below it, so its bottom is the build plate at z = 0 --
+    // true for a flat bed, false for a belt, whose virtual support layers extend
+    // below zero. Taking 0 there made the bottom-most belt layer's height come out
+    // as its own (negative) print_z, which reached Flow::with_height() and threw
+    // FlowErrorNegativeFlow, so tree support could not slice any belt model whose
+    // branches reached down that far.
+    //
+    // Only the negative case is corrected. An earlier version used
+    // min(0, print_z - layer_height), which also fires whenever the initial layer
+    // is THINNER than the regular layer height -- e.g. 0.2 over 0.3, both
+    // independently configurable -- and silently changed flat-bed support layer
+    // heights. Keying on the sign leaves every non-negative print_z on exactly
+    // the previous value of 0.
+    layer_new.bottom_z = layer_idx > 0 ? layer_z(slicing_params, config, layer_idx - 1) : 0.;
+    if (layer_idx == 0 && layer_new.print_z < 0.)
+        layer_new.bottom_z = layer_new.print_z - slicing_params.layer_height;
     layer_new.height   = layer_new.print_z - layer_new.bottom_z;
     return layer_new;
 }

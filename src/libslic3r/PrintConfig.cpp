@@ -3,8 +3,10 @@
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "PrintConfigConstants.hpp"
+#include "BeltTransform.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
+#include "Geometry.hpp"
 #include "FilamentMixer.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
@@ -384,6 +386,27 @@ static t_config_enum_values s_keys_map_SlicingMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SlicingMode)
 
+static t_config_enum_values s_keys_map_BeltRotationAxis {
+    { "none", int(BeltRotationAxis::None) },
+    { "x",    int(BeltRotationAxis::X) },
+    { "y",    int(BeltRotationAxis::Y) },
+    { "z",    int(BeltRotationAxis::Z) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BeltRotationAxis)
+
+static t_config_enum_values s_keys_map_RemapAxis {
+    { "pos_x", int(RemapAxis::PosX) },
+    { "pos_y", int(RemapAxis::PosY) },
+    { "pos_z", int(RemapAxis::PosZ) },
+    { "neg_x", int(RemapAxis::NegX) },
+    { "neg_y", int(RemapAxis::NegY) },
+    { "neg_z", int(RemapAxis::NegZ) },
+    { "rev_x", int(RemapAxis::RevX) },
+    { "rev_y", int(RemapAxis::RevY) },
+    { "rev_z", int(RemapAxis::RevZ) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(RemapAxis)
+
 static t_config_enum_values s_keys_map_SupportMaterialPattern {
     { "rectilinear",        smpRectilinear },
     { "rectilinear-grid",   smpRectilinearGrid },
@@ -500,6 +523,7 @@ static const t_config_enum_values s_keys_map_BrimType = {
     {"auto_brim", btAutoBrim},  // BBS
     {"brim_ears", btEar},     // Orca
     {"painted", btPainted},  // BBS
+    {"leading_edge_only", btLeadingEdgeOnly},  // belt printers
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BrimType)
 
@@ -1945,6 +1969,45 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("leading_brim_length", coFloat);
+    def->label = L("Leading brim length");
+    def->category = L("Support");
+    def->tooltip = L("Belt printers only. Extends the brim AHEAD of the object along the belt, on "
+                     "every downhill-facing edge of its contact area - both the object's first "
+                     "contact with the belt and any island that lands later. This apron is laid "
+                     "onto the belt before the object reaches it, so the leading edge has "
+                     "something already stuck down to hold on to.\n\n"
+                     "Measured on the belt surface, and added on top of Brim width: the brim "
+                     "reaches Brim-object gap + Leading brim length + Brim width ahead of the "
+                     "object. Set Brim-object gap to 0, or the apron will not touch the object it "
+                     "is meant to anchor.\n\n"
+                     "On a tilted belt each layer lays one strip of the brim, so the thickness of "
+                     "the resulting brim sheet is set by flow rather than by layer height. Use "
+                     "Brim flow ratio to tune it.\n\n"
+                     "Set to 0 to disable.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("extra_brim_width", coFloat);
+    def->label = L("Extra brim width");
+    def->category = L("Support");
+    def->tooltip = L("Belt printers only. Widens the brim SIDEWAYS, across the belt, without "
+                     "extending it further ahead of or behind the object. Use it when a part needs "
+                     "more grip along its length than Brim width alone gives.\n\n"
+                     "Measured on the belt surface, and added on top of Brim width: the brim "
+                     "reaches Brim-object gap + Brim width + Extra brim width to either side of "
+                     "the object. To extend the brim ahead of the object instead, use Leading brim "
+                     "length.\n\n"
+                     "Set to 0 to disable.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
     def = this->add("brim_type", coEnum);
     def->label = L("Brim type");
     def->category = L("Support");
@@ -1958,6 +2021,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("inner_only");
     def->enum_values.emplace_back("outer_and_inner");
     def->enum_values.emplace_back("no_brim");
+    def->enum_values.emplace_back("leading_edge_only");
     def->enum_labels.emplace_back(L("Auto"));
     def->enum_labels.emplace_back(L("Mouse ear"));
     def->enum_labels.emplace_back(L("Painted"));
@@ -1965,6 +2029,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back(L("Inner brim only"));
     def->enum_labels.emplace_back(L("Outer and inner brim"));
     def->enum_labels.emplace_back(L("No-brim"));
+    def->enum_labels.emplace_back(L("Leading edge only"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<BrimType>(btAutoBrim));
 
@@ -7271,6 +7336,166 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloatOrPercent(50., true));
 
+    def = this->add("build_plate_tilt_x", coFloat);
+    def->label = L("Build plate tilt X");
+    def->category = L("Support");
+    def->tooltip = L("Tilt angle of the build plate along the X axis. "
+                     "A positive value tilts the plate so the +X side is higher, shifting gravity toward -X and increasing overhangs on the +X side. "
+                     "A negative value tilts the -X side higher. Set to 0 for no X-axis tilt. "
+                     "In belt printer mode, this is automatically synced to the belt angle.");
+    def->sidetext = u8"\u00B0";
+    def->min = -89;
+    def->max = 89;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("build_plate_tilt_y", coFloat);
+    def->label = L("Build plate tilt Y");
+    def->category = L("Support");
+    def->tooltip = L("Tilt angle of the build plate along the Y axis. "
+                     "A positive value tilts the plate so the +Y side is higher, shifting gravity toward -Y and increasing overhangs on the +Y side. "
+                     "A negative value tilts the -Y side higher. Set to 0 for no Y-axis tilt.");
+    def->sidetext = u8"\u00B0";
+    def->min = -89;
+    def->max = 89;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("belt_printer", coBool);
+    def->label = L("Enable belt printing");
+    def->category = L("Printable space");
+    def->tooltip = L("Enable belt printer mode. Belt printers use a conveyor belt as the build surface, "
+                     "tilted at an angle (typically 45 degrees). The slicer will rotate the slicing plane "
+                     "and transform G-code coordinates for the tilted build surface.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("belt_printer_infinite_y", coBool);
+    def->label = L("Infinite Y axis");
+    def->category = L("Printable space");
+    def->tooltip = L("Enable infinite Y axis for belt printers. "
+                     "When enabled, the Y axis build volume limit is effectively removed, "
+                     "allowing objects of any length to be printed along the belt direction.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    // Mesh rotation applied before slicing — the sole mesh-side belt transform AND
+    // the single source of truth for the physical belt tilt (bed rendering, support
+    // gravity tilt and bed-exclusion projection all derive their angle from this).
+    def = this->add("belt_slice_rotation", coEnum);
+    def->label = L("Belt tilt axis");
+    def->category = L("Printable space");
+    def->tooltip = L("Axis the mesh is rotated about before slicing. This is the belt "
+                     "printer's tilt: an isometric (no distortion) rotation that also "
+                     "drives bed rendering and support gravity tilt, and that the g-code "
+                     "back-transform inverts before the machine-frame shear/scale and remap. "
+                     "X is the typical gantry tilt (belt travels along Y).");
+    def->enum_keys_map = &ConfigOptionEnum<BeltRotationAxis>::get_enum_values();
+    def->enum_values  = {"none", "x", "y", "z"};
+    def->enum_labels  = {L("None"), L("X"), L("Y"), L("Z")};
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<BeltRotationAxis>(BeltRotationAxis::X));
+
+    def = this->add("belt_slice_rotation_angle", coFloat);
+    def->label = L("Belt tilt angle");
+    def->category = L("Printable space");
+    def->tooltip = L("Tilt angle of the belt surface, in degrees. Most belt printers use "
+                     "45°. Positive values rotate counter-clockwise looking down the "
+                     "positive tilt axis; the magnitude is also the physical belt tilt "
+                     "used for bed rendering and support gravity.");
+    def->sidetext = L("°");
+    def->min = -180.;
+    def->max = 180.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(45.));
+
+    def = this->add("belt_frame_tilt_decouple", coBool);
+    def->label = L("Decouple machine-frame tilt");
+    def->category = L("Printable space");
+    def->tooltip = L("Expert override: set the machine-frame (g-code shear/scale) tilt angle "
+                     "independently of the pre-slice rotation angle. When disabled, the "
+                     "machine-frame transform is derived from the belt tilt angle, so a single "
+                     "angle drives both stages. Enable only to compensate for a machine whose "
+                     "physical gantry tilt differs from the slicing rotation.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("belt_frame_tilt_angle", coFloat);
+    def->label = L("Machine-frame tilt angle");
+    def->category = L("Printable space");
+    def->tooltip = L("Tilt angle (degrees) used to derive the machine-frame shear (cot) and "
+                     "scale (1/|sin|) applied to G-code. Only used when 'Decouple machine-frame "
+                     "tilt' is enabled; otherwise the belt tilt angle is used.");
+    def->sidetext = L("°");
+    def->min = -89.9;
+    def->max = 89.9;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(45.));
+
+    // G-code axis remap with sign. Each field is its own row in the settings tab.  The
+    // labels and tooltips are literals in L() so they are extracted for translation.
+    auto add_belt_remap = [this](const char *key, const std::string &label, const std::string &tooltip,
+                                  RemapAxis default_axis, ConfigOptionMode mode) {
+        auto def = this->add(key, coEnum);
+        def->label = label;
+        def->category = L("Printable space");
+        def->tooltip = tooltip;
+        def->enum_keys_map = &ConfigOptionEnum<RemapAxis>::get_enum_values();
+        def->enum_values  = {"pos_x", "pos_y", "pos_z", "neg_x", "neg_y", "neg_z", "rev_x", "rev_y", "rev_z"};
+        def->enum_labels  = {L("+X"), L("+Y"), L("+Z"), L("-X"), L("-Y"), L("-Z"), L("Rev X"), L("Rev Y"), L("Rev Z")};
+        def->mode = mode;  // Visibility may also be gated by toggle_line in Tab.cpp
+        def->set_default_value(new ConfigOptionEnum<RemapAxis>(default_axis));
+    };
+    add_belt_remap("gcode_remap_x", L("G-code remap X"),
+                   L("Which slicing axis maps to machine X in G-code output. Applied AFTER slicing, during G-code generation."),
+                   RemapAxis::PosX, comDevelop);
+    add_belt_remap("gcode_remap_y", L("G-code remap Y"),
+                   L("Which slicing axis maps to machine Y in G-code output. Applied AFTER slicing, during G-code generation."),
+                   RemapAxis::PosY, comDevelop);
+    add_belt_remap("gcode_remap_z", L("G-code remap Z"),
+                   L("Which slicing axis maps to machine Z in G-code output. Applied AFTER slicing, during G-code generation."),
+                   RemapAxis::PosZ, comDevelop);
+
+    // The machine-frame G-code transform (shear + scale) is no longer configured
+    // by per-axis keys: it is derived from the belt tilt (belt_slice_rotation axis
+    // + angle, or belt_frame_tilt_angle when decoupled) in MachineFrameTransform.
+
+    // Belt support floor debug controls
+    def = this->add("belt_support_floor_offset", coFloat);
+    def->label = L("Support Floor Z offset");
+    def->category = L("Printable space");
+    def->tooltip = L("Shifts the computed belt floor up or down (mm). Negative values lower the floor, allowing more supports to survive. Use this to diagnose belt floor formula issues.");
+    def->sidetext = L("mm");
+    def->min = -500;
+    def->max = 500;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("enable_belt_purge_tower", coBool);
+    def->label = L("Enable belt purge tower");
+    def->category = L("Multimaterial");
+    def->tooltip = L("Belt-printer replacement for the wipe/prime tower. When enabled on a belt "
+                     "printer, a purge prism is automatically generated next to the printed parts "
+                     "and filament-change purging is routed into it (the classic wipe tower cannot "
+                     "be used on belt printers because its G-code bypasses the belt transform). "
+                     "Only available on belt printers.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("belt_purge_tower_width", coFloat);
+    def->label = L("Belt purge tower width");
+    def->category = L("Printable space");
+    def->tooltip = L("Width (machine X, across the belt) of the purge prism that is automatically "
+                     "generated on belt printers when the belt purge tower is enabled and multiple "
+                     "filaments are used. Filament-change purging is routed into this prism's "
+                     "extrusions instead of a classic wipe tower. Its height is computed "
+                     "automatically from the worst-case purge volume per layer: a wider prism "
+                     "results in a shorter one.");
+    def->sidetext = L("mm");
+    def->min = 1.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(35.));
+
     def = this->add("tree_support_branch_angle", coFloat);
     def->label = L("Tree support branch angle");
     def->category = L("Support");
@@ -7922,6 +8147,16 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This object will be used to purge the nozzle after a filament change to save filament and decrease the print time. "
         "Colors of the objects will be mixed as a result. "
         "It will not take effect unless the prime tower is enabled.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Internal marker (not shown in any settings tab): identifies the auto-generated
+    // belt purge prism so it can be updated/removed by the auto-manager and aligned
+    // to the object layer grid by the backend. Persisted to 3mf like any per-object key.
+    def = this->add("belt_purge_tower_object", coBool);
+    def->category = L("Flush options");
+    def->label = L("Belt purge tower object");
+    def->tooltip = L("Marks the auto-generated belt purge prism. Managed automatically; do not set manually.");
+    def->mode = comDevelop;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("wipe_tower_bridging", coFloat);
@@ -9408,6 +9643,13 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "smooth_coefficient", "overhang_totally_speed", "silent_mode",
         "overhang_speed_classic",
         "anisotropic_surfaces", // superseded by top_surface_fill_order / bottom_surface_fill_order
+        // Belt printer keys retired before the first release: the global-mode and
+        // back-transform switches are presumed on, and the pre-slice axis remap, the
+        // support Z offset mode, the support floor mode (always on) and the first-layer
+        // plane evaluator were removed.
+        "belt_slice_rotation_global", "preslice_remap_x", "preslice_remap_y", "preslice_remap_z", "preslice_remap_global",
+        "belt_support_z_offset_mode", "first_layer_plane", "first_layer_plane_offset",
+        "belt_preslice_global", "gcode_back_transform", "belt_support_floor_mode", "first_layer_plane_thickness",
     };
 
     if (ignore.find(opt_key) != ignore.end()) {
@@ -13135,10 +13377,22 @@ Polygons get_bed_excluded_area(const PrintConfig& cfg)
 {
     const Pointfs exclude_area_points = cfg.bed_exclude_area.values;
 
+    // Belt printer: project exclusion zone points from the belt surface to machine-frame XY.
+    // On the belt surface Z=0, so the in-plane axis foreshortens by cos(tilt).  The tilt
+    // axis decides which bed axis foreshortens: tilt about X (belt along Y) scales Y,
+    // tilt about Y (belt along X) scales X.  Derived from belt_slice_rotation.
+    const bool is_belt = cfg.belt_printer.value;
+    const auto tilt    = BeltTransformPipeline::physical_tilt(
+        cfg.belt_slice_rotation.value, cfg.belt_slice_rotation_angle.value);
+    const double cos_x = is_belt ? std::cos(Geometry::deg2rad(tilt.tilt_x_deg)) : 1.0; // foreshortens Y
+    const double cos_y = is_belt ? std::cos(Geometry::deg2rad(tilt.tilt_y_deg)) : 1.0; // foreshortens X
+
     Polygon exclude_poly;
     for (int i = 0; i < exclude_area_points.size(); i++) {
         auto pt = exclude_area_points[i];
-        exclude_poly.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
+        double x = is_belt ? pt.x() * cos_y : pt.x();
+        double y = is_belt ? pt.y() * cos_x : pt.y();
+        exclude_poly.points.emplace_back(scale_(x), scale_(y));
     }
 
     exclude_poly.make_counter_clockwise();

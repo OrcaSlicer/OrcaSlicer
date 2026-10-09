@@ -2616,6 +2616,9 @@ void GCodeProcessorResult::reset() {
     long_retraction_when_cut = false;
     timelapse_warning_code = 0;
     printable_height = 0.0f;
+    machine_frame_transform_active = false;
+    belt_tilt_angle = 0.f;
+    belt_z_origin   = 0.f;
     settings_ids.reset();
     filaments_count = 0;
     backtrace_enabled = false;
@@ -2852,6 +2855,32 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
         return ps;
     };
 
+    // Belt-printer post-gcode shear/scale/post_remap is applied as the final
+    // step of BeltKinematics::to_machine, so MoveVertex.position is
+    // in the printer's machine frame.  Undo it here so the XY area check
+    // operates in the build-volume frame that printable_area is defined in
+    // (the height checks below are skipped on belt printers).  For non-belt printers
+    // (is_active() == false) apply_inverse is identity and behaviour is
+    // unchanged from before.
+    const bool machine_frame_active = m_machine_frame_transform.is_active();
+    auto compare_pos = [&](const GCodeProcessorResult::MoveVertex &move) -> Vec3d {
+        Vec3d pos = move.position.cast<double>();
+        if (!machine_frame_active)
+            return pos;
+        Vec3d extruder_off = Vec3d::Zero();
+        if (size_t(move.extruder_id) < m_extruder_offsets.size())
+            extruder_off = m_extruder_offsets[move.extruder_id].cast<double>();
+        // Strip plate + extruder offsets to recover the raw machine-frame
+        // coordinate that was emitted into the G-code (see store_move_vertex).
+        Vec3d machine(pos.x() - m_x_offset - extruder_off.x(),
+                      pos.y() - m_y_offset - extruder_off.y(),
+                      pos.z() - extruder_off.z() + m_z_offset);
+        Vec3d build = m_machine_frame_transform.apply_inverse(machine);
+        // Re-apply plate offset so the result matches plate_printable_poly,
+        // which is translated by plate_offset below.
+        return Vec3d(build.x() + m_x_offset, build.y() + m_y_offset, build.z());
+    };
+
     struct GCodePosInfo
     {
         Points pos;
@@ -2863,26 +2892,20 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     for (const GCodeProcessorResult::MoveVertex &move : m_result.moves) {
         // sometimes, the start line extrude was outside the edge of plate a little, this is allowed, so do not include into the gcode_path_pos
         if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/) {
+            const Vec3d cp = compare_pos(move);
+            // For belt printers we read Z from the inverse-transformed position
+            // (post-origin-snap, pre-machine-frame).  Otherwise keep the
+            // original print_z source (the slicer's layer-Z comment) so
+            // non-belt behaviour is bit-for-bit unchanged.
+            const float z_for_height = machine_frame_active ? float(cp.z()) : move.print_z;
             if (move.extrusion_role == ExtrusionRole::erCustom) {
-                /*if (move.is_arc_move_with_interpolation_points()) {
-                    for (int i = 0; i < move.interpolation_points.size(); i++) {
-                        gcode_path_pos[move.object_label_id][int(move.extruder_id)].pos_custom.emplace_back(to_2d(move.interpolation_points[i].cast<double>()));
-                    }
-                } else {*/
-                    gcode_path_pos[move.object_label_id][int(move.extruder_id)].pos_custom.emplace_back(to_2d(move.position.cast<double>()));
-                //}
+                gcode_path_pos[move.object_label_id][int(move.extruder_id)].pos_custom.emplace_back(to_2d(cp));
                 gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z_custom =
-                    std::max(gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z_custom, move.print_z);
+                    std::max(gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z_custom, z_for_height);
             } else {
-                /*if (move.is_arc_move_with_interpolation_points()) {
-                    for (int i = 0; i < move.interpolation_points.size(); i++) {
-                        gcode_path_pos[move.object_label_id][int(move.extruder_id)].pos.emplace_back(to_2d(move.interpolation_points[i].cast<double>()));
-                    }
-                } else {*/
-                    gcode_path_pos[move.object_label_id][int(move.extruder_id)].pos.emplace_back(to_2d(move.position.cast<double>()));
-                //}
+                gcode_path_pos[move.object_label_id][int(move.extruder_id)].pos.emplace_back(to_2d(cp));
                 gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z = std::max(gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z,
-                                                                                                   move.print_z);
+                                                                                                   z_for_height);
             }
         }
     }
@@ -2917,7 +2940,12 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     valid = false;
                 }
             }
-            if ( iter->second.max_print_z > plate_printable_height ) { //over height
+            // Belt printers: the Z recorded here grows with belt travel (machine Z with the
+            // frame transform, the slicing-frame Z without it), while printable_height is the
+            // clearance above the belt; the two are not comparable, so the over-height check
+            // is skipped, as the preview's ToolHeightOutside warning already is.
+            // Print::validate() checks the object's height against the clearance.
+            if ( !m_belt_printer && iter->second.max_print_z > plate_printable_height ) { //over height
                 m_result.gcode_check_result.error_code |= (1 << 3);
                 std::pair<int, int> filament_to_object_id;
                 filament_to_object_id.first  = iter->first;
@@ -2958,7 +2986,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     }
 
                 // check printable height
-                if ((extruder_id < printable_heights.size()) && (iter->second.max_print_z > printable_heights[extruder_id])) {
+                if (!m_belt_printer && (extruder_id < printable_heights.size()) && (iter->second.max_print_z > printable_heights[extruder_id])) {
                     m_result.gcode_check_result.error_code |= (1 << 1);
                     std::pair<int, int> filament_to_object_id;
                     filament_to_object_id.first  = iter->first;
@@ -3124,6 +3152,13 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 
     m_result.printable_height = config.printable_height;
 
+    // Belt printer: cache the post-gcode machine-frame transform so the
+    // multi-extruder validator can undo it and compare against build-volume
+    // bounds rather than machine-frame positions.
+    m_machine_frame_transform.init_from_config(config);
+    m_result.machine_frame_transform_active = m_machine_frame_transform.is_active();
+    m_belt_printer = config.belt_printer.value;
+
     auto filament_maps = config.option<ConfigOptionInts>("filament_map");
     if (filament_maps != nullptr) {
         m_filament_maps = filament_maps->values;
@@ -3153,6 +3188,32 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
     m_parser.apply_config(config);
+
+    // Belt printer: remember the file's belt keys for export_config_for_render(). The
+    // config block lists belt_printer for every printer, so a non-belt file loaded while
+    // a belt printer is selected switches the preview's belt view off, and a belt file
+    // loaded on another printer brings its own tilt, remaps and bed along.
+    m_belt_render_config.clear();
+    {
+        const auto *belt = config.option<ConfigOptionBool>("belt_printer");
+        if (belt != nullptr) {
+            static const char *belt_keys[] = {
+                "belt_printer", "belt_slice_rotation", "belt_slice_rotation_angle",
+                "gcode_remap_x", "gcode_remap_y", "gcode_remap_z",
+                "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
+            };
+            for (const char *key : belt_keys)
+                if (const ConfigOption *opt = config.option(key); opt != nullptr)
+                    m_belt_render_config.set_key_value(key, opt->clone());
+            // The Rev remaps mirror inside the build volume, so the designed view needs
+            // the bed the file was sliced for. Only a belt file may override it.
+            static const char *bed_keys[] = { "printable_area", "printable_height" };
+            if (belt->value)
+                for (const char *key : bed_keys)
+                    if (const ConfigOption *opt = config.option(key); opt != nullptr)
+                        m_belt_render_config.set_key_value(key, opt->clone());
+        }
+    }
 
     //BBS
     const ConfigOptionFloatsNullable* nozzle_volume = config.option<ConfigOptionFloatsNullable>("nozzle_volume");
@@ -3637,6 +3698,7 @@ void GCodeProcessor::reset()
     m_zero_layer_height = 0.0f;
     m_first_layer_height = 0.0f;
     m_processing_start_custom_gcode = false;
+    m_in_config_block = false;
     m_g1_line_id = 0;
     m_layer_id = 0;
     m_cp_color.reset();
@@ -3677,6 +3739,7 @@ DynamicConfig GCodeProcessor::export_config_for_render() const
     config.set_key_value("filament_is_support", new ConfigOptionBools(m_parser.get_config().filament_is_support.values));
     config.set_key_value("filament_type", new ConfigOptionStrings(m_parser.get_config().filament_type.values));
     config.set_key_value("filament_map", new ConfigOptionInts(m_parser.get_config().filament_map.values));
+    config.apply(m_belt_render_config);
     return config;
 }
 
@@ -4242,6 +4305,34 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         return;
     }
 
+    // ;Z: -- the layer Z tag non-BBL printers write.  Only read on a belt printer,
+    // where the preview labels its layers with it (GCodeViewer::load_as_gcode);
+    // elsewhere print_z stays unset, as it always was, so nothing downstream of
+    // it changes for other printers.
+    if (m_belt_printer && boost::starts_with(comment, "Z:")) {
+        m_print_z = get_z_height(comment);
+        return;
+    }
+
+    if (boost::starts_with(comment, " CONFIG_BLOCK_START")) {
+        m_in_config_block = true;
+        return;
+    }
+    if (boost::starts_with(comment, " CONFIG_BLOCK_END")) {
+        m_in_config_block = false;
+        return;
+    }
+
+    // Belt printer: derive the physical tilt magnitude from the slicing-rotation
+    // angle header comment (used to enable the preview's belt view). Only the belt
+    // header carries it outside the config block; the config block lists the key
+    // for every printer, belt or not.
+    if (!m_in_config_block && boost::starts_with(comment, " belt_slice_rotation_angle = ")) {
+        try {
+            m_result.belt_tilt_angle = std::abs(std::stof(std::string(comment.substr(29))));
+        } catch (...) {}
+        return;
+    }
     // wipe start tag
     if (boost::starts_with(comment, reserved_tag(ETags::Wipe_Start))) {
         m_wiping = true;
@@ -6138,6 +6229,13 @@ void GCodeProcessor::process_G92(const GCodeReader::GCodeLine& line)
     if (line.has_z()) {
         m_origin[Z] = m_end_position[Z] - line.z() * lengths_scale_factor;
         any_found = true;
+        // Belt only: the start G-code's purge-blob advance + G92 Z0 resets leave a constant
+        // machine-Z origin offset here; the designed-view back-transform subtracts it so
+        // toolpaths map to the model's belt coordinate (gcode Z). Gated on belt_tilt_angle
+        // (set from the belt header, parsed before the body) so non-belt G-code processing
+        // is byte-identical — no unconditional work on the shared path.
+        if (m_result.belt_tilt_angle != 0.f)
+            m_result.belt_z_origin = m_origin[Z];
     }
 
     if (line.has_e()) {
@@ -7116,6 +7214,22 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_result.print_statistics.total_travel_distance += m_travel_dist;
     }
 
+    // During the start G-code "prepare" stage the toolhead Z is not yet a real
+    // print height on a normal printer, so it is pinned to the first-layer height
+    // to keep the preview tidy. Belt printers are the exception: there the Z is
+    // written explicitly by the belt kinematics and the designed-view back-transform
+    // couples machine Z into the rendered model Y (the belt tilt mixes the height
+    // and belt-feed axes). Overriding Z therefore back-transforms the last
+    // prepare-stage move (the unretract before the first extrusion) to model
+    // Y ~= 0, and the libvgcode path builder then draws a phantom extrusion
+    // segment from Y ~= 0 to the first real toolpath. Keep the real Z for belt
+    // printers so prepare-stage moves map correctly. Gated on belt_tilt_angle (set
+    // from the G-code header before the body is processed) so non-belt processing
+    // is byte-identical.
+    const float store_z = (m_processing_start_custom_gcode && m_result.belt_tilt_angle == 0.f)
+        ? m_first_layer_height
+        : m_end_position[Z] - m_z_offset;
+
     m_result.moves.push_back({
         m_last_line_id,
         type,
@@ -7123,7 +7237,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         static_cast<unsigned char>(filament_id),
         m_cp_color.current,
         //BBS: add plate's offset to the rendering vertices
-        Vec3f(m_end_position[X] + m_x_offset, m_end_position[Y] + m_y_offset, m_processing_start_custom_gcode ? m_first_layer_height : m_end_position[Z]- m_z_offset) + m_extruder_offsets[filament_id],
+        Vec3f(m_end_position[X] + m_x_offset, m_end_position[Y] + m_y_offset, store_z) + m_extruder_offsets[filament_id],
         static_cast<float>(m_end_position[E] - m_start_position[E]),
         m_feedrate,
         0.0f, // actual feedrate

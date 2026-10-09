@@ -1248,52 +1248,81 @@ bool triangles_overlap(const Tri2 &a, const Tri2 &b, float eps)
 struct NetGrid
 {
     static constexpr int BIG_SPAN = 16;
-    float                cell;
-    float                eps;
-    std::unordered_map<uint64_t, std::vector<Tri2>> cells;
-    std::vector<Tri2>    big;
+    // Each stored triangle keeps its own bounding box. Overlap testing is dominated by rejects - a cell
+    // holds every triangle whose box touches it, and a candidate meets only a couple of them for real -
+    // so paying six floats per entry to answer most of those rejects with four comparisons, instead of a
+    // full triangle intersection, is what makes the net affordable. Measured on a 42k-triangle patch the
+    // grid ran ~19 million candidate pairs per net, nearly all of them misses, and rejecting them this
+    // way took the net from ~175 ms to ~53 ms.
+    //
+    // The box rides inside the entry rather than in a parallel array: splitting them to scan boxes back
+    // to back was tried and came out slower, because each bucket then grows two vectors instead of one.
+    struct Entry
+    {
+        Tri2  tri;
+        Vec2f lo, hi;
+    };
+    float                                           cell;
+    float                                           eps;
+    std::unordered_map<uint64_t, std::vector<Entry>> cells;
+    std::vector<Entry>                              big;
 
     static uint64_t key(int x, int y) { return (uint64_t(uint32_t(x)) << 32) | uint32_t(y); }
-    bool range(const Tri2 &t, int &x0, int &y0, int &x1, int &y1) const
+    static Entry    entry(const Tri2 &t)
     {
-        const Vec2f lo = t[0].cwiseMin(t[1]).cwiseMin(t[2]), hi = t[0].cwiseMax(t[1]).cwiseMax(t[2]);
+        return Entry{ t, t[0].cwiseMin(t[1]).cwiseMin(t[2]), t[0].cwiseMax(t[1]).cwiseMax(t[2]) };
+    }
+    bool range(const Vec2f &lo, const Vec2f &hi, int &x0, int &y0, int &x1, int &y1) const
+    {
         x0 = int(std::floor(lo.x() / cell));
         y0 = int(std::floor(lo.y() / cell));
         x1 = int(std::floor(hi.x() / cell));
         y1 = int(std::floor(hi.y() / cell));
         return x1 - x0 <= BIG_SPAN && y1 - y0 <= BIG_SPAN;
     }
+    // Boxes grown by eps on both sides, to match the tolerance triangles_overlap() itself works to: a
+    // reject here must never discard a pair that test would have called touching.
+    bool boxes_apart(const Entry &a, const Entry &b) const
+    {
+        return a.hi.x() + eps < b.lo.x() || b.hi.x() + eps < a.lo.x() || a.hi.y() + eps < b.lo.y() ||
+               b.hi.y() + eps < a.lo.y();
+    }
+    bool hits(const Entry &q, const std::vector<Entry> &bucket) const
+    {
+        for (const Entry &b : bucket)
+            if (!boxes_apart(q, b) && triangles_overlap(q.tri, b.tri, eps))
+                return true;
+        return false;
+    }
     bool overlaps(const Tri2 &t) const
     {
-        for (const Tri2 &b : big)
-            if (triangles_overlap(t, b, eps))
-                return true;
+        const Entry q = entry(t);
+        if (hits(q, big))
+            return true;
         int x0, y0, x1, y1;
-        if (!range(t, x0, y0, x1, y1)) {
-            for (const auto &[k, tris] : cells)
-                for (const Tri2 &b : tris)
-                    if (triangles_overlap(t, b, eps))
-                        return true;
+        if (!range(q.lo, q.hi, x0, y0, x1, y1)) {
+            for (const auto &[k, bucket] : cells)
+                if (hits(q, bucket))
+                    return true;
             return false;
         }
         for (int x = x0; x <= x1; ++x)
             for (int y = y0; y <= y1; ++y)
-                if (const auto it = cells.find(key(x, y)); it != cells.end())
-                    for (const Tri2 &b : it->second)
-                        if (triangles_overlap(t, b, eps))
-                            return true;
+                if (const auto it = cells.find(key(x, y)); it != cells.end() && hits(q, it->second))
+                    return true;
         return false;
     }
     void insert(const Tri2 &t)
     {
-        int x0, y0, x1, y1;
-        if (!range(t, x0, y0, x1, y1)) {
-            big.push_back(t);
+        const Entry e = entry(t);
+        int         x0, y0, x1, y1;
+        if (!range(e.lo, e.hi, x0, y0, x1, y1)) {
+            big.push_back(e);
             return;
         }
         for (int x = x0; x <= x1; ++x)
             for (int y = y0; y <= y1; ++y)
-                cells[key(x, y)].push_back(t);
+                cells[key(x, y)].push_back(e);
     }
 };
 } // namespace
@@ -1305,11 +1334,20 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
     if (n <= 1)
         return islands;
 
-    // Chart adjacency, with one representative shared edge per adjacent pair.
+    // Chart adjacency, with one representative shared edge per adjacent pair: the fold line the pair is
+    // unfolded about.
+    //
+    // Which edge that is matters, because two charts can touch along more than one run. A chart cut open
+    // to flatten it - a ring opened by segment_into_charts(), say - touches its other half along *both*
+    // sides of the cut. Folding is rigid, so only the run the fold line belongs to comes out matching;
+    // every other run is left mismatched, and a mismatched run is exactly where the texture visibly
+    // jumps. Taking whichever edge the map happened to yield first therefore left the long side broken
+    // about as often as the short one. The fold line is picked from the longest run instead, so what is
+    // left discontinuous is the shortest boundary the pair has.
     const auto edges = build_shared_edges(unwrap);
     struct PairEdge { ChartEdge a, b; };
-    std::map<std::pair<int, int>, PairEdge> pair_edge;
-    std::vector<std::vector<int>>            adj(static_cast<size_t>(n));
+    struct SharedEdge { PairEdge fold; int base_lo = -1, base_hi = -1; float length = 0.f; };
+    std::map<std::pair<int, int>, std::vector<SharedEdge>> pair_shared;
     for (const auto &[base_edge, list] : edges) {
         for (size_t i = 0; i < list.size(); ++i)
             for (size_t j = i + 1; j < list.size(); ++j) {
@@ -1317,12 +1355,48 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
                 if (c1 == c2 || c1 < 0 || c2 < 0 || c1 >= n || c2 >= n)
                     continue;
                 const std::pair<int, int> pk{ std::min(c1, c2), std::max(c1, c2) };
-                if (pair_edge.count(pk))
-                    continue; // keep the first shared edge as the fold line for this pair
-                pair_edge[pk] = (c1 < c2) ? PairEdge{ list[i], list[j] } : PairEdge{ list[j], list[i] };
-                adj[size_t(pk.first)].push_back(pk.second);
-                adj[size_t(pk.second)].push_back(pk.first);
+                SharedEdge se;
+                se.fold    = (c1 < c2) ? PairEdge{ list[i], list[j] } : PairEdge{ list[j], list[i] };
+                se.base_lo = base_edge.first;
+                se.base_hi = base_edge.second;
+                // The unwrap is scaled to true surface area, so a uv distance is a length in mm.
+                se.length = (unwrap.uvs[size_t(se.fold.a.uv_lo)] - unwrap.uvs[size_t(se.fold.a.uv_hi)]).norm();
+                pair_shared[pk].push_back(se);
             }
+    }
+
+    std::map<std::pair<int, int>, PairEdge> pair_edge;
+    std::map<std::pair<int, int>, float>    pair_weight; // length of the run each pair folds across
+    std::vector<std::vector<int>>           adj(static_cast<size_t>(n));
+    for (const auto &[pk, shared] : pair_shared) {
+        // Group the pair's shared edges into runs - edges joined end to end through a base vertex - and
+        // total each run's length.
+        std::unordered_map<int, int> local;
+        for (const SharedEdge &se : shared)
+            for (const int v : { se.base_lo, se.base_hi })
+                local.emplace(v, int(local.size()));
+        UnionFind runs(local.size());
+        for (const SharedEdge &se : shared)
+            runs.unite(local[se.base_lo], local[se.base_hi]);
+
+        std::unordered_map<int, float>  run_length;
+        std::unordered_map<int, size_t> run_first;
+        for (size_t i = 0; i < shared.size(); ++i) {
+            const int root = runs.find(local[shared[i].base_lo]);
+            run_length[root] += shared[i].length;
+            run_first.emplace(root, i);
+        }
+        int   best_root = -1;
+        float best_len  = -1.f;
+        for (const auto &[root, len] : run_length)
+            if (len > best_len) { best_len = len; best_root = root; }
+        if (best_root < 0)
+            continue;
+
+        pair_edge[pk] = shared[run_first[best_root]].fold;
+        pair_weight[pk] = best_len;
+        adj[size_t(pk.first)].push_back(pk.second);
+        adj[size_t(pk.second)].push_back(pk.first);
     }
 
     // Per chart: its vertices, its triangles and its flattened area.
@@ -1378,15 +1452,29 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
             for (const int t : chart_tris[size_t(root)])
                 grid.insert(placed(m, t));
         }
-        std::queue<int> q;
-        q.push(root);
+        // Grown strongest-adjacency-first (Prim, not breadth-first): a chart is folded onto whichever
+        // neighbour it shares the longest boundary with, among everything reachable so far. Order matters
+        // because only the fold a chart is actually reached by comes out matching - every other boundary
+        // it has is left to chance. Taking neighbours in breadth-first order, biggest-area first, let a
+        // far-off branch claim a chart across a short boundary before its true neighbour was reached, and
+        // the long boundary they shared then stayed broken. That is the visible seam next to a hole: a
+        // ring is cut into two halves that share a long boundary, and whichever half was reached first
+        // took the other one along some unrelated edge.
+        using Candidate = std::pair<float, std::pair<int, int>>; // weight, (from, to)
+        std::priority_queue<Candidate>                              q;
+        const auto push_neighbours = [&](int p) {
+            for (const int c : adj[size_t(p)])
+                if (net_of[size_t(c)] < 0 && !chart_tris[size_t(c)].empty()) {
+                    const auto w = pair_weight.find({ std::min(p, c), std::max(p, c) });
+                    q.push({ w == pair_weight.end() ? 0.f : w->second, { p, c } });
+                }
+        };
+        push_neighbours(root);
         while (!q.empty()) {
-            const int p = q.front();
+            const auto [weight, link] = q.top();
             q.pop();
-            std::vector<int> neighbours = adj[size_t(p)];
-            std::stable_sort(neighbours.begin(), neighbours.end(),
-                             [&chart_area](int a, int b) { return chart_area[size_t(a)] > chart_area[size_t(b)]; });
-            for (const int c : neighbours) {
+            const int p = link.first, c = link.second;
+            {
                 if (net_of[size_t(c)] >= 0 || chart_tris[size_t(c)].empty())
                     continue;
                 const auto it = pair_edge.find({ std::min(p, c), std::max(p, c) });
@@ -1417,7 +1505,7 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
                 for (const Tri2 &t : tris)
                     grid.insert(t);
                 net_of[size_t(c)] = net;
-                q.push(c);
+                push_neighbours(c);
             }
         }
     }
@@ -5052,5 +5140,6 @@ indexed_triangle_set cut_mesh_at_steps(const indexed_triangle_set &mesh, const s
     if (out_cut_count) *out_cut_count = cut_count;
     return out;
 }
+
 
 } // namespace Slic3r

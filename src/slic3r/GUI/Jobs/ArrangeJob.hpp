@@ -50,6 +50,7 @@ class ArrangeJob : public Job
     //BBS:prepare the items from current selected partplate
     void prepare_partplate();
     void prepare_wipe_tower();
+    void prepare_belt_regions(int num_plates);
 
     ArrangePolygon prepare_arrange_polygon(void* instance);
 

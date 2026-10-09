@@ -7,6 +7,7 @@
 #include "Print.hpp"
 #include "libslic3r.h"
 #include "GCodeWriter.hpp"
+#include "GCode/BeltKinematics.hpp"
 #include "Layer.hpp"
 #include "Point.hpp"
 #include "PlaceholderParser.hpp"
@@ -40,13 +41,16 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
+#include <optional>
 #include <set>
 #include <string>
 #include <cfloat>
 #include <vector>
 #include <utility>
+#include <cmath>
 #include "BoundingBox.hpp"
 #include "Polyline.hpp"
+#include "BeltBrim.hpp"
 
 namespace Slic3r { class ExtrusionEntityCollection; }
 
@@ -249,8 +253,9 @@ public:
         m_toolchange_count(0),
         m_nominal_z(0.)
         {}
-    ~GCode() = default;
+    virtual ~GCode() = default;
 
+public:
     // throws std::runtime_exception on error,
     // throws CanceledException through print->throw_if_canceled().
     void            do_export(Print* print, const char* path, GCodeProcessorResult* result = nullptr, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
@@ -342,6 +347,13 @@ public:
         const Layer* 		object_layer;
         const SupportLayer* support_layer;
         const PrintObject*  original_object; //BBS: used for shared object logic
+        // Belt printers only: an apron band that prints BELOW the object's first
+        // layer, so it has no object or support layer of its own.  Deliberately
+        // not a Layer, so it cannot leak Layer::id() semantics into initial-layer
+        // temperature, spiral vase, cooling or interpolation logic.  When this is
+        // the only thing set, layer() is null and process_layer() takes its
+        // dedicated brim-only branch.
+        const BeltBrimBand* belt_brim_band { nullptr };
         const Layer* 		layer()   const
         {
             if (object_layer != nullptr)
@@ -371,11 +383,17 @@ public:
                 count++;
             }
 
+            // A brim-only apron band contributes no object/support layer, and
+            // averaging zero terms would yield NaN.  Never folded into the
+            // average, so the non-belt result is bit-identical.
+            if (count == 0 && belt_brim_band != nullptr)
+                return belt_brim_band->print_z;
+
             return sum_z / count;
         }
     };
 
-private:
+protected:
     class GCodeOutputStream {
     public:
         GCodeOutputStream(FILE *f, GCodeProcessor &processor) : f(f), m_processor(processor) {}
@@ -403,9 +421,21 @@ private:
         FILE *f = nullptr;
         GCodeProcessor &m_processor;
     };
+
+    // Virtual hooks for belt printer subclass (BeltGCode).
+    // No-ops in base GCode; overridden in BeltGCode.
+    virtual void init_belt_writer(Print &print) {}
+    virtual void write_belt_header(GCodeOutputStream &file, const Print &print) {}
+    virtual void on_set_origin(const PrintObject *obj, const Point &inst_shift) {}
+    // Arc fitting is suppressed whenever the writer's machine mapping cannot
+    // represent a G2/G3 arc. Belt printers get this through BeltKinematics
+    // rather than through an override of their own.
+    virtual bool should_disable_arc_fitting() const
+        { return ! m_writer.kinematics().supports_arc_moves(); }
+
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
 
-    static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object);
+    static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object, bool skip_empty_first_layer = false);
     static std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> collect_layers_to_print(const Print &print);
 
     std::string generate_skirt(const Print &print,
@@ -425,7 +455,29 @@ private:
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
         size_t instance_id,
-        bool first_layer);
+        bool first_layer,
+        const Layer *object_layer);
+
+    // Belt printers: emit one brim-only apron layer.  These print below the
+    // object's first layer, so there is no object or support layer for the normal
+    // process_layer() machinery to work from.  Kept to the minimum a layer needs -
+    // tool, Z move, extrusions - so that nothing here can perturb the
+    // Layer::id()-based logic the ordinary path relies on.
+    LayerResult process_belt_brim_layer(
+        const Print                     &print,
+        const std::vector<LayerToPrint> &layers,
+        const LayerTools                &layer_tools,
+        const bool                       last_layer,
+        const size_t                     single_object_instance_idx);
+
+    // Emit the apron bands carried by these layers whose brim filament is extruder_id
+    // (0-based).  Called from both the brim-only branch and the ordinary path, since a
+    // band's print_z can coincide with another object's layer on a multi-object belt.
+    std::string emit_belt_brim_bands(
+        const Print                     &print,
+        const std::vector<LayerToPrint> &layers,
+        const size_t                     single_object_instance_idx,
+        const unsigned int               extruder_id);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -629,9 +681,21 @@ private:
     };
 
     // Cache the per-filament island tour to avoid recomputing while the layer's island layout is
-    // unchanged. Key: filament_id. Value: {nodes the tour was computed from, resulting visits}.
-    std::map<unsigned int, std::pair<std::vector<IslandOrderNode>, std::vector<InstanceVisit>>>
-                                        m_ordering_cache;
+    // unchanged. Key: filament_id. Value: the nodes the tour was computed from, the per-instance
+    // island layout (count and whether the trailing catch-all island has anything to print), and
+    // the resulting visits.
+    // The layout is part of the key. Nodes only cover the chainable islands, so two
+    // layers with the same centroids but a different number of islands (thin walls, negative
+    // volumes come and go) matched the cache and the visit's catch-all index -- islands.size() - 1
+    // of the OLD layer -- ran past the new layer's islands (found by fuzzing: segfault in
+    // extrude_perimeters on multi-part objects).
+    struct IslandOrderCacheEntry
+    {
+        std::vector<IslandOrderNode>         nodes;
+        std::vector<std::pair<size_t, bool>> layout;
+        std::vector<InstanceVisit>           visits;
+    };
+    std::map<unsigned int, IslandOrderCacheEntry> m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
 
@@ -768,7 +832,6 @@ private:
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
-
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     
     std::unique_ptr<AdaptivePAProcessor>      m_pa_processor;
@@ -823,6 +886,25 @@ private:
     mutable ConfigIndexCache m_filament_index_cache;
     mutable ConfigIndexCache m_nozzle_index_cache;
 
+    // Belt brim apron layers only.  They have no Layer, so the print_z that
+    // _extrude() needs for the first-layer-plane probe is published here instead.
+    // Scoped by BeltBrimZGuard in process_belt_brim_layer(), never left set.
+    std::optional<coordf_t> m_belt_brim_z;
+    // Belt brim only.  Brim and coincident apron bands are emitted before m_layer
+    // is switched to their object, so belt_height_above_floor() would otherwise
+    // read the previously visited object's belt description -- making a brim's
+    // classification depend on plate visiting order.  Those paths publish the
+    // owner here for the duration of the emission.  Never left set.
+    const PrintObject *m_belt_floor_object{nullptr};
+    struct BeltFloorObjectGuard {
+        const PrintObject *&slot;
+        BeltFloorObjectGuard(const PrintObject *&s, const PrintObject *o) : slot(s) { slot = o; }
+        ~BeltFloorObjectGuard() { slot = nullptr; }
+    };
+
+    // The last extrusion segment was inside the belt's first-layer fan band (see _extrude()).
+    bool m_belt_in_band{false};
+
     std::set<unsigned int>                  m_initial_layer_extruders;
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;
     // BBS
@@ -840,6 +922,46 @@ private:
     // On the first printing layer. This flag triggers first layer speeds.
     //BBS
     bool    on_first_layer() const { return m_layer != nullptr && m_layer->id() == 0 && abs(m_layer->bottom_z()) < EPSILON; }
+    // Per-point first-layer test.  On a belt printer the result depends on the
+    // supplied slicing-frame point (its height above the belt); otherwise we
+    // delegate to the legacy per-layer test.  This is the entry point used by
+    // per-path call sites in _extrude.
+    bool on_first_layer(const Vec3d &point_slicing_mm) const {
+        double h;
+        if (this->belt_height_above_floor(point_slicing_mm, h))
+            return h <= m_config.initial_layer_print_height.value + EPSILON;
+        return on_first_layer();
+    }
+    // "Effective layer index" used to drive layer-count thresholds like
+    // slow_down_layers.  On a belt printer this is the height above the belt in
+    // first_layer_band_mm() units; otherwise it is the legacy slicing layer index.
+    int effective_layer_index_for_point(const Vec3d &point_slicing_mm) const {
+        double h;
+        if (this->belt_height_above_floor(point_slicing_mm, h)) {
+            const double lh = this->first_layer_band_mm();
+            return h <= 0. ? 0 : int(std::floor(h / lh));
+        }
+        return on_first_layer() ? 0 : layer_id();
+    }
+
+    // Band thickness for the *effective layer index*: one first layer height, so
+    // "the first N layers" means the same height above the belt as on a flat bed.
+    double first_layer_band_mm() const {
+        const double band = m_config.initial_layer_print_height.value;
+        return band > 0. ? band : 0.2;
+    }
+
+    // Height of a slicing-frame point above the belt surface, or false when this
+    // is not a belt print.
+    //
+    // The belt surface is known exactly in the slicing frame from the slicing
+    // parameters (belt_floor_shear_factor / _from_axis / _z_shift) -- the same
+    // description the support generator uses, independent of every remap and
+    // back-transform.
+    bool belt_height_above_floor(const Vec3d &point_slicing_mm, double &height_mm) const;
+    // 1 / 0 / -1: the object layer is entirely past the first-layer band above the
+    // belt / reaches into it / the belt surface is not known for it.
+    int  belt_layer_past_first_layer_band(const Layer *object_layer) const;
     int layer_id() const {
         if (m_layer == nullptr)
             return -1;
