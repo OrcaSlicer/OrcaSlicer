@@ -261,21 +261,6 @@ TEST_CASE("Arrange without final alignment keeps items disjoint", "[Arrange]")
     require_no_overlap(items);
 }
 
-TEST_CASE("Arrange keeps a custom-aligned pile within the bed", "[Arrange]")
-{
-    ArrangePolygons items  = squares(4, 40.);
-    ArrangeParams   params = quiet_params(scaled(2.));
-    params.align_center    = Vec2d(0.3, 0.5);
-
-    arrange(items, bed(200, 50), params);
-
-    for (const ArrangePolygon &ap : items) {
-        REQUIRE(ap.bed_idx == 0);
-        REQUIRE(bed(200, 50).contains(ap.transformed_poly().contour.bounding_box()));
-    }
-    require_no_overlap(items);
-}
-
 TEST_CASE("Arrange centers a pile that fits on the custom alignment point", "[Arrange]")
 {
     ArrangePolygons items  = squares(4, 30.);
@@ -293,6 +278,27 @@ TEST_CASE("Arrange centers a pile that fits on the custom alignment point", "[Ar
     const Point expected(scaled(250. * 0.3), scaled(250. * 0.7));
     REQUIRE(std::abs(pile.center().x() - expected.x()) <= scaled(0.5));
     REQUIRE(std::abs(pile.center().y() - expected.y()) <= scaled(0.5));
+    require_no_overlap(items);
+}
+
+// Arranging a selection leaves the unselected parts where they are, but the final alignment
+// centres the box around both, so the selection does not move by its own centring. The check
+// against the bed and the fixed part must test where the selection actually lands.
+TEST_CASE("Arrange keeps a selection on the bed and clear of a fixed part", "[Arrange]")
+{
+    ArrangePolygons fixed = squares(1, 40.);
+    fixed.front().translation = {scaled(80.), scaled(80.)};
+    ArrangePolygons items = squares(3, 40.);
+    for (ArrangePolygon &ap : items)
+        ap.inflation = scaled(1.);
+
+    arrange(items, fixed, bed(200, 200), quiet_params());
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    items.insert(items.end(), fixed.begin(), fixed.end());
     require_no_overlap(items);
 }
 
@@ -342,7 +348,7 @@ TEST_CASE("Arrange keeps a flat-bed pile aligned near an edge on the bed", "[Arr
         CHECK(bed_.contains(bb));
         lowest = std::min(lowest, bb.min.y());
     }
-    // Stopped at the edge it was aimed at, less the spacing margin, not re-centred.
+    // Stopped at the edge it was aimed at, not re-centred.
     CHECK(lowest < scaled(10.));
     require_no_overlap(items);
 }

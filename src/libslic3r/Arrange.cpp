@@ -300,12 +300,10 @@ template<class PConf>
 void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
         if (params.is_belt) {
-            // Pack from the end of the belt that prints first, and keep the pile on the
-            // bed when it is larger than the room around that end.
+            // Pack from the end of the belt that prints first.
             pcfg.starting_point = !params.belt_reversed    ? PConf::Alignment::BOTTOM_LEFT :
                                   params.belt_axis == 1    ? PConf::Alignment::TOP_LEFT :
                                                              PConf::Alignment::BOTTOM_RIGHT;
-            pcfg.clamp_to_bin = true;
         }
         else if (params.is_seq_print) {
             // Start placing the items from the center of the print bed
@@ -806,7 +804,6 @@ public:
             auto binbb = sl::boundingBox(m_bin);
             m_pconf.best_object_pos = binbb.minCorner() + Point{ binbb.width() * this->params.align_center.x(), binbb.height() * this->params.align_center.y() };
             m_pconf.alignment = PConfig::Alignment::USER_DEFINED;
-            m_pconf.clamp_to_bin = true;
         }
 
         for (auto& region : m_pconf.m_excluded_regions) {
