@@ -38879,3 +38879,7 @@ msgstr "Últim factor corrector de flux: ha de ser 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Model buit. No s'aplicarà compensació de flux."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "El límit X depèn del llit de la impressora actual i dels punts del model."
+

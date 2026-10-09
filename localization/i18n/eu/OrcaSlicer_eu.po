@@ -38093,3 +38093,8 @@ msgstr "Azken fluxu-zuzenketa faktorea: 1 behar da."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Eredua hutsik dago. Ez da fluxu-konpentsaziorik egingo."
 
+# AI Translated
+# Needs human review: Check bed-size terminology and natural tooltip wording.
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "X muga uneko inprimagailuaren ohearen eta modeloaren puntuen araberakoa da."
+

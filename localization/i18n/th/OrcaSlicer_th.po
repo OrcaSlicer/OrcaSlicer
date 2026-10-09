@@ -38564,3 +38564,8 @@ msgstr "ตัวคูณแก้ไขการไหลสุดท้าย
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "แบบจำลองว่าง จะไม่ชดเชยการไหล"
 
+# AI Translated
+# Needs human review: Check bed-size terminology and natural tooltip wording.
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "ขีดจำกัด X ขึ้นกับขนาดฐานพิมพ์ของเครื่องพิมพ์ปัจจุบันและจุดในโมเดล"
+

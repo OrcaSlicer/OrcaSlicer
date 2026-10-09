@@ -39007,3 +39007,7 @@ msgstr "Poslední faktor korekce průtoku má být 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Model je prázdný. Průtok se nebude kompenzovat."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Limit X závisí na rozměrech podložky aktuální tiskárny a bodech modelu."
+

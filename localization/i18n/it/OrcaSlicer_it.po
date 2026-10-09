@@ -38581,3 +38581,7 @@ msgstr "Ultimo fattore corr. flusso: deve essere 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modello vuoto. Nessuna compensazione del flusso."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Limite X: misura del piatto della stampante attuale e punti del modello."
+

@@ -634,10 +634,12 @@ void CurveEditorDialog::update_range_tooltips()
     for (int index = 0; index < 4; ++index) {
         const double minimum = index < 2 ? limits.bounds.min_x : limits.bounds.min_y;
         const double maximum = index < 2 ? limits.bounds.max_x : limits.bounds.max_y;
-        const wxString tooltip =
+        wxString tooltip =
             _L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update.") +
             "\n" + wxString::Format(_L("Allowed range: %s to %s."),
                 wxString::FromUTF8(format_number(minimum)), wxString::FromUTF8(format_number(maximum)));
+        if (index < 2)
+            if (const char* message = m_model->x_view_limit_message()) tooltip += "\n" + _L(message);
         m_range_fields[index]->SetToolTip(tooltip);
         m_range_arrows[index]->SetToolTip(tooltip);
     }

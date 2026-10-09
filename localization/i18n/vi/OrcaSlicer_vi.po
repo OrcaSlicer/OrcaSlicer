@@ -39531,3 +39531,7 @@ msgstr "Hệ số hiệu chỉnh lưu lượng cuối phải là 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Mô hình trống. Không áp dụng bù lưu lượng."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Giới hạn X tùy theo cỡ bàn in của máy in hiện tại và các điểm mô hình."
+

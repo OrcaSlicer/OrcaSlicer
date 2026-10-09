@@ -38575,3 +38575,8 @@ msgstr "Paskutinis srauto pataisos daugiklis – 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modelis tuščias. Srautas nebus kompensuojamas."
 
+# AI Translated
+# Needs human review: Check bed-size terminology and natural tooltip wording.
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "X riba priklauso nuo esamo spausdintuvo pagrindo dydžio ir modelio taškų."
+
