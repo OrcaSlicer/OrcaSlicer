@@ -538,7 +538,7 @@ TEST_CASE("Reading numeric visible bounds validates the complete range before ap
     CHECK_FALSE(model.is_modified());
 }
 
-TEST_CASE("Fitting an oversized legacy curve keeps viewport limits without changing model points", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("Fitting an oversized legacy curve includes every point without changing the model", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     const std::vector<std::string> parameters = {"0,-3", "\n100000000,1"};
     FlowModel model(parameters);
@@ -547,12 +547,76 @@ TEST_CASE("Fitting an oversized legacy curve keeps viewport limits without chang
     REQUIRE(model.validate_points(x, y, row) == nullptr);
     const auto view = model.fitted_view(x, y);
     CHECK(model.validate_view(view) == nullptr);
-    CHECK_THAT(view.max_x, WithinAbs(1000.0, 1e-12));
+    CHECK_THAT(view.max_x, WithinAbs(110000000.0, 1e-7));
     CHECK_THAT(view.min_y, WithinAbs(-1.0, 1e-12));
     CHECK(model.parameters() == parameters);
     CHECK_FALSE(model.is_modified());
     CHECK(model.validate_view(model.fitted_view({0, 1e-10}, {0, 1})) == nullptr);
     CHECK(model.validate_view(model.fitted_view({}, {})) == nullptr);
+}
+
+TEST_CASE("The flow editor derives its navigation range from the bed diagonal", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    const double width = GENERATE(180.0, 256.0, 1000.0);
+    const double height = GENERATE(180.0, 250.0, 600.0);
+    const double diagonal = std::hypot(width, height);
+    const std::vector<std::string> parameters = {"0,0", "\n10,1"};
+    FlowModel model(parameters, diagonal);
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(diagonal * 1.1, 1e-10));
+    CHECK(model.validate_view(model.view_limits().bounds) == nullptr);
+    CHECK(model.parameters() == parameters);
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Points beyond the bed diagonal remain visible and valid", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const std::vector<std::string> parameters = {"0,0", "\n1500,1"};
+    FlowModel model(parameters, 300.0);
+    std::vector<double> x, y;
+    int row = -1;
+    REQUIRE(model.read_points(model.rows(), x, y, row) == nullptr);
+    const auto view = model.fitted_view(x, y);
+    CHECK(view.max_x > x.back());
+    CHECK(model.validate_view(view) == nullptr);
+    CHECK(model.parameters() == parameters);
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Longer edited points expand the viewport limits without shrinking the current view", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    FlowModel model({"0,0", "\n10,1"}, 300.0);
+    CurveModel& editor_model = model;
+    const CurveView current = {300, 330, 0, 1};
+    REQUIRE(model.validate_view(current) == nullptr);
+    CHECK(editor_model.expand_view_limits({0, 1500}));
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1650.0, 1e-10));
+    CHECK(model.validate_view(current) == nullptr);
+    CHECK_FALSE(editor_model.expand_view_limits({0, 10}));
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1650.0, 1e-10));
+    CHECK(model.fitted_view({0, 1500}, {0, 1}).max_x > 1500);
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Missing or invalid bed dimensions retain a usable flow editor range", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    const double diagonal = GENERATE(0.0, -300.0, std::numeric_limits<double>::quiet_NaN(),
+                                    std::numeric_limits<double>::infinity());
+    FlowModel model({}, diagonal);
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1000.0, 1e-12));
+    CHECK(model.validate_view(model.fitted_view({}, {})) == nullptr);
+}
+
+TEST_CASE("Invalid lengths do not expand the flow viewport and extreme finite lengths do not overflow it", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    FlowModel model({}, 300.0);
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double infinity = std::numeric_limits<double>::infinity();
+    CHECK_FALSE(model.expand_view_limits({nan, infinity, -infinity, -1, 0}));
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(330.0, 1e-10));
+    CHECK(model.expand_view_limits({std::numeric_limits<double>::max()}));
+    CHECK(std::isfinite(model.view_limits().bounds.max_x));
+    CHECK(model.validate_view(model.view_limits().bounds) == nullptr);
+    CHECK_FALSE(model.is_modified());
 }
 
 TEST_CASE("Flow model changes are reported as one complete preset option", "[SmallAreaInfillFlowCompensation][PresetDiff][Regression]")

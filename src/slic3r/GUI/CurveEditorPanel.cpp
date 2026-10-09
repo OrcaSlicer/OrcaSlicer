@@ -218,6 +218,12 @@ void CurveEditorPanel::select_point(int row)
     Refresh();
 }
 
+void CurveEditorPanel::set_view_limits(const CurveViewLimits& limits)
+{
+    m_view_limits = limits;
+    Refresh();
+}
+
 void CurveEditorPanel::finish_drag()
 {
     m_dragged_point = -1;
