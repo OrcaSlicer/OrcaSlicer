@@ -92,7 +92,7 @@ bool SmallAreaInfillFlowCompensationModel::expand_view_limits(const std::vector<
 
 const char* SmallAreaInfillFlowCompensationModel::x_view_limit_message() const
 {
-    return L("The X limit depends on the current printer's bed size and model points.");
+    return L("The extrusion length limit depends on the current printer's bed size and model points.");
 }
 
 CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
