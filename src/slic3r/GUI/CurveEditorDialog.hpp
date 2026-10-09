@@ -15,6 +15,7 @@ class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
 class wxScrolledWindow;
+class wxSpinButton;
 
 namespace Slic3r::GUI {
 
@@ -45,6 +46,7 @@ private:
     void apply_chart_range();
     void step_chart_range(int field, int direction);
     void sync_chart_range();
+    void update_range_tooltips();
     void layout_content();
     void layout_actions();
 
@@ -58,6 +60,7 @@ private:
     wxPanel* m_actions_panel;
     wxStaticText* m_status;
     TextInput* m_range_fields[4];
+    wxSpinButton* m_range_arrows[4];
     wxStaticText* m_range_status;
     wxRecursionGuardFlag m_layout_depth = 0;
     wxRecursionGuardFlag m_grid_resize_depth = 0;

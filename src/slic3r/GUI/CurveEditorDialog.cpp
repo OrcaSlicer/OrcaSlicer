@@ -196,7 +196,6 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     add_title(_L("Minimum"));
     add_title(_L("Maximum"));
     ranges->AddSpacer(0);
-    const auto view_limits = m_model->view_limits();
     for (int axis = 0; axis < 2; ++axis) {
         auto range_label = new wxStaticText(range_panel, wxID_ANY, axis == 0 ? appearance.x_label : appearance.y_label);
         range_label->SetFont(Label::Body_12);
@@ -220,23 +219,15 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
                 else
                     event.Skip();
             });
-            const double minimum = axis == 0 ? view_limits.bounds.min_x : view_limits.bounds.min_y;
-            const double maximum = axis == 0 ? view_limits.bounds.max_x : view_limits.bounds.max_y;
-            const wxString tooltip =
-                _L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update.") +
-                "\n" + wxString::Format(_L("Allowed range: %s to %s."),
-                    wxString::FromUTF8(format_number(minimum)), wxString::FromUTF8(format_number(maximum)));
-            field->SetToolTip(tooltip);
-
             // Keep the styled input and its raw text: a native double spin control
             // can silently replace invalid text on focus loss before Apply validates it.
             // The native Windows default height is twice the scrollbar height and would stretch the entire row.
             const wxSize arrow_size(FromDIP(18), field_size.y);
             auto* arrows = new wxSpinButton(range_panel, wxID_ANY, wxDefaultPosition, arrow_size, wxSP_VERTICAL);
+            m_range_arrows[index] = arrows;
             arrows->SetMinSize(arrow_size);
             arrows->SetRange(-1, 1);
             arrows->SetValue(0);
-            arrows->SetToolTip(tooltip);
             arrows->Bind(wxEVT_SPIN_UP, [this, index](wxSpinEvent& event) {
                 event.Veto(); // Keep the arrows centred for repeated clicks in either direction.
                 step_chart_range(index, 1);
@@ -256,6 +247,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
             ranges->AddSpacer(0);
     }
 
+    update_range_tooltips();
     auto* apply_range = make_button(range_panel, _L("Apply"));
     apply_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { apply_chart_range(); });
     apply_btn_sizer->Add(apply_range, 1, wxEXPAND);
@@ -576,6 +568,10 @@ bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>&
 
 void CurveEditorDialog::refresh_chart_data(const std::vector<double>& x, const std::vector<double>& y)
 {
+    if (m_model->expand_view_limits(x)) {
+        m_chart->set_view_limits(m_model->view_limits());
+        update_range_tooltips();
+    }
     std::vector<wxString> tooltips;
     for (size_t row = 0; row < x.size(); ++row)
         tooltips.push_back(m_appearance.x_label + ": " + m_grid->GetCellValue(row, 0).Trim().Trim(false) + "\n" +
@@ -630,6 +626,21 @@ void CurveEditorDialog::sync_chart_range()
     }
     // Only a visibility change needs layout; wheel navigation must not resize sibling controls.
     if (m_range_status->Hide()) layout_content();
+}
+
+void CurveEditorDialog::update_range_tooltips()
+{
+    const auto limits = m_model->view_limits();
+    for (int index = 0; index < 4; ++index) {
+        const double minimum = index < 2 ? limits.bounds.min_x : limits.bounds.min_y;
+        const double maximum = index < 2 ? limits.bounds.max_x : limits.bounds.max_y;
+        const wxString tooltip =
+            _L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update.") +
+            "\n" + wxString::Format(_L("Allowed range: %s to %s."),
+                wxString::FromUTF8(format_number(minimum)), wxString::FromUTF8(format_number(maximum)));
+        m_range_fields[index]->SetToolTip(tooltip);
+        m_range_arrows[index]->SetToolTip(tooltip);
+    }
 }
 
 void CurveEditorDialog::fit_chart()
