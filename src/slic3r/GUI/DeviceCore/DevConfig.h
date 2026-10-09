@@ -1,7 +1,7 @@
 #pragma once
 #include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include <wx/string.h>
 
 #include <limits>
@@ -47,14 +47,14 @@ public:
 
 public:
     /*Setters*/
-    void ParseConfig(const json& print_json);
+    void ParseConfig(const nlohmann::json& print_json);
 
-    void ParseChamberConfig(const json& print_json); // chamber
-    void ParsePrintOptionsConfig(const json& print_json); // print options
-    void ParseCalibrationConfig(const json& print_json); //cali
+    void ParseChamberConfig(const nlohmann::json& print_json); // chamber
+    void ParsePrintOptionsConfig(const nlohmann::json& print_json); // print options
+    void ParseCalibrationConfig(const nlohmann::json& print_json); //cali
 
 private:
-    MachineObject* m_obj;
+    [[maybe_unused]] MachineObject* m_obj;
 
     /*configure vals*/
     // chamber

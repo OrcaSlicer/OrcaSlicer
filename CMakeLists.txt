@@ -4,6 +4,10 @@ endif()
 
 cmake_minimum_required(VERSION 3.13)
 
+if(POLICY CMP0177)
+    cmake_policy(SET CMP0177 NEW)
+endif()
+
 
 # The following line used to be in tests/CMakeLists.txt
 # Having it there causes rebuilds of all targets on any CMakeLists.txt change under tests/
@@ -52,12 +56,22 @@ You can do this in Environment Variables settings.
 endif ()
 
 if (APPLE)
-    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 11.3
+    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 12.0 (the lowest Xcode 27 accepts)
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.3" CACHE STRING "Minimum OS X deployment version" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum OS X deployment version" FORCE)
     endif ()
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif ()
+
+# Keep MSVC's default /W3 out of CMAKE_<LANG>_FLAGS so it can be applied to our own
+# targets only. Silencing a bundled target would otherwise override a warning level,
+# which cl reports as D9025 for every file it compiles.
+if (POLICY CMP0092)
+    cmake_policy(SET CMP0092 NEW)
+endif ()
+
+# project() reads this, so set it first.
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/ClangClShowIncludes.cmake")
 
 project(OrcaSlicer)
 
@@ -88,33 +102,6 @@ else ()
     add_compile_definitions("$<$<CONFIG:Release>:WXINSPECTOR_DISABLE>")
 endif ()
 
-find_package(Git)
-if(DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
-    message(STATUS "Specified git commit hash: $ENV{git_commit_hash}")
-    if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-        # Convert the given hash to short hash
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} rev-parse --short "$ENV{git_commit_hash}"
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GIT_COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-    else()
-        # No .git directory (e.g., Flatpak sandbox) — truncate directly
-        string(SUBSTRING "$ENV{git_commit_hash}" 0 7 GIT_COMMIT_HASH)
-    endif()
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-elseif(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-    # Check current Git commit hash
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-endif()
-
 if(DEFINED ENV{SLIC3R_STATIC})
     set(SLIC3R_STATIC_INITIAL $ENV{SLIC3R_STATIC})
 else()
@@ -123,11 +110,15 @@ endif()
 
 option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
+option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT ModelingAlgorithms)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
+option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 1)
+option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
+option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 
 # Python stubgen module
@@ -144,6 +135,7 @@ set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee3
 set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
 set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
 set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
+set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "74e443f8004022dde57a1bd0d10c097830f9ea8feb4ec927db52cd5d805c2f48")
 set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
 
 # Version-scoped cache dir so a version bump invalidates the cached binary.
@@ -182,7 +174,10 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
                 set(ORCA_UV_ARCH "x86_64-unknown-linux-gnu")
             endif()
         elseif(_orca_uv_proc MATCHES "aarch64|arm64|ARM64")
-            if(APPLE)
+            if(WIN32)
+                set(ORCA_UV_ARCH "aarch64-pc-windows-msvc")
+                set(ORCA_UV_EXT "zip")
+            elseif(APPLE)
                 set(ORCA_UV_ARCH "aarch64-apple-darwin")
             else()
                 set(ORCA_UV_ARCH "aarch64-unknown-linux-gnu")
@@ -288,7 +283,14 @@ if (APPLE)
     endif()
     SET(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.orcaslicer.OrcaSlicer")
 
+    # The macOS CI jobs build with Ninja (build_release_macos.sh -x), so the Xcode generator
+    # is not covered. Xcode adds -Wshorten-64-to-32 by default ("Implicit Conversion to 32 Bit
+    # Type"); Ninja/-Wall does not, and under -Werror it fails Xcode builds on code CI accepts.
+    set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_64_TO_32_BIT_CONVERSION "NO")
+
     message(STATUS "Orca: IS_CROSS_COMPILE: ${IS_CROSS_COMPILE}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
 endif ()
 
 # Proposal for C++ unit tests and sandboxes
@@ -319,6 +321,10 @@ if (SLIC3R_GUI)
     add_definitions(-DSLIC3R_GUI)
 endif ()
 
+if (SLIC3R_CAD)
+    add_definitions(-DSLIC3R_CAD)
+endif ()
+
 if(SLIC3R_DESKTOP_INTEGRATION)
     add_definitions(-DSLIC3R_DESKTOP_INTEGRATION)
 endif ()
@@ -335,23 +341,47 @@ if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
     # clang-cl can interpret SYSTEM header paths if -imsvc is used
     set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-imsvc")
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall \
-        -Wno-old-style-cast -Wno-reserved-id-macro -Wno-c++98-compat-pedantic")
 else ()
     set(IS_CLANG_CL FALSE)
 endif ()
 
 if (MSVC)
-    if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
+    # CMP0092 only applies when the cache is created; an existing tree keeps its /W3,
+    # which a silenced bundled target would then override (D9025, once per file).
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+    # /MP only matters for the VS generators, where CMake turns it into the
+    # MultiProcessorCompilation property. Ninja parallelises on its own, and
+    # clang-cl warns "argument unused" if the flag reaches it.
+    if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
+
+    # Parse lambdas the way the standard says, as clang and GCC already do. Without it
+    # MSVC keeps its legacy lambda processor under /std:c++17 and rejects reading a
+    # constexpr constant inside a lambda that does not capture it (C3493), which no
+    # other compiler requires. Implied by /std:c++20 and /permissive-, so it is only
+    # needed while we are on C++17. clang-cl is conforming already and does not take
+    # the flag. Requires VS2019 16.8 or newer.
+    if (NOT IS_CLANG_CL)
+        # cl.exe only warns (D9002) about an unknown /Zc: option, so without this the
+        # flag would be dropped and the first lambda reading a constexpr constant would
+        # fail with C3493 far from the cause.
+        if (MSVC_VERSION LESS 1928)
+            message(FATAL_ERROR "Visual Studio 2019 16.8 (MSVC 19.28) or newer is required; detected MSVC ${MSVC_VERSION}.")
+        endif ()
+        add_compile_options(/Zc:lambda)
+    endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
+    add_compile_options(-bigobj)
     # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
 	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
 	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
-    add_compile_options(-bigobj /Zi /FS)
+    if (SLIC3R_MSVC_PDB)
+        add_compile_options(/Zi /FS)
+    endif ()
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
     add_compile_options(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
@@ -367,6 +397,16 @@ if (MSVC)
 	# helps incremental builds by preventing the double-link restart from TBB
     set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+endif ()
+
+# Without this every object names its build directory and two worktrees never
+# share cache entries. The linker still writes absolute paths into the PDB.
+if (SLIC3R_RELATIVE_DEBUG_PATHS)
+    if (IS_CLANG_CL)
+        add_compile_options(-ffile-compilation-dir=.)
+    else ()
+        message(WARNING "SLIC3R_RELATIVE_DEBUG_PATHS is only implemented for clang-cl")
+    endif ()
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
@@ -523,63 +563,103 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fext-numeric-literals" )
 endif()
 
-if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-    if (NOT MINGW)
+if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+    if (IS_CLANG_CL)
+        # clang-cl reads -Wall as MSVC /Wall, which clang maps to -Weverything. /W4 is
+        # its -Wall -Wextra and, unlike /clang:-Wall, is ordered with the -Wno-* below
+        # instead of after them. The -Wextra-only warnings are dropped again so the set
+        # matches what -Wall gives the GNU/Clang builds.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4" )
+        add_compile_options(-Wno-unused-parameter -Wno-ignored-qualifiers -Wno-missing-field-initializers)
+    elseif (NOT MINGW)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
     endif ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-reorder" )
 
-    # On GCC and Clang, no return from a non-void function is a warning only. Here, we make it an error.
-    add_compile_options(-Werror=return-type)
+    # Every warning is an error unless it appears in one of the two lists below.
+    #   disabled - never wanted. Off everywhere, so it never warns or errors.
+    #   demoted  - wanted, not cleared yet. Still warns, does not error.
 
-    # Since some portions of code are just commented out or put under conditional compilation, there are
-    # a bunch of warning related to unused functions and variables. Suppress those warnings to not pollute
-    # compilers diagnostics output with warnings we not going to look at
-    add_compile_options(-Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-label -Wno-unused-local-typedefs)
+    # Disabled.
+    set(warnings_disabled
+        reorder                  # members initialised in an order we chose
+        sign-compare             # signed/unsigned comparisons throughout
+        misleading-indentation   # false positives on mixed tabs and spaces
+        switch                   # unhandled enum value in a switch
+        unused-function          # commented-out or conditionally compiled code
+        unused-variable          # commented-out or conditionally compiled code
+        unused-but-set-variable  # commented-out or conditionally compiled code
+        unused-label             # commented-out or conditionally compiled code
+        unused-local-typedefs    # commented-out or conditionally compiled code
+    )
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND warnings_disabled deprecated-declarations)  # legacy OpenGL calls
+    endif ()
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0)
+        list(APPEND warnings_disabled ignored-attributes)       # from Eigen headers marked SYSTEM
+    endif ()
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        list(APPEND warnings_disabled unknown-pragmas)          # igl pragmas, GCC bug 66943
+    endif ()
+    foreach (w IN LISTS warnings_disabled)
+        add_compile_options(-Wno-${w})
+    endforeach ()
 
-    # Ignore signed/unsigned comparison warnings
-    add_compile_options(-Wno-sign-compare)
+    # GCC is not built in CI, so don't throw errors CI won't catch.
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-Werror=return-type)
+    else ()
+        # Turn everything else into an error. Dependency headers are exempt because the
+        # SYSTEM include flag (-imsvc on clang-cl, -isystem elsewhere) keeps their
+        # diagnostics out.
+        add_compile_options(-Werror)
+    endif ()
 
-    # The mismatch of tabs and spaces throughout the project can sometimes
-    # cause this warning to appear even though the indentation is fine.
-    # Some includes also cause the warning
-    add_compile_options(-Wno-misleading-indentation)
+    # Demoted. Remove a name once its category is cleared on every compiler.
+    set(warnings_demoted)
+    if (APPLE)
+        list(APPEND warnings_demoted
+            # MacDarkMode.mm makes two calls to AppKit's private titlebarViewController
+            # and one to a wxWidgets category on NSTableColumn whose header is not
+            # imported. Clearing it means declaring the private selectors ourselves, which
+            # needs a macOS build to verify.
+            objc-method-access
+        )
+    endif ()
+    if (WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+        list(APPEND warnings_demoted
+            # About two dozen GetProcAddress casts, most in the vendored dark_mode.hpp,
+            # retype FARPROC to a real signature. The __stdcall typedefs are identical to
+            # FARPROC on x64, so only arm64 reports them. Clearing them is a separate
+            # sweep.
+            cast-function-type-mismatch
+        )
+    endif ()
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND warnings_demoted
+            # enum-constexpr-conversion is a Clang warning that defaults to an error,
+            # present through clang 20 and gone in clang 21.
+            enum-constexpr-conversion
+        )
+    endif ()
 
-    # Disable warning if enum value does not have a corresponding case in switch statement
-    add_compile_options(-Wno-switch)
-
-    # removes LOTS of extraneous Eigen warnings (GCC only supports it since 6.1)
-    # https://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
-    if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0)
-        add_compile_options(-Wno-ignored-attributes) # Tamas: Eigen include dirs are marked as SYSTEM
-    endif()
-
-    # Clang reports legacy OpenGL calls as deprecated. Turn off the warning for now
-    # to reduce the clutter, we know about this one. It should be reenabled after
-    # we finally get rid of the deprecated code.
-    if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-        add_compile_options(-Wno-deprecated-declarations)
-    endif()
-
-    if((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang") AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
-        include(CheckCXXCompilerFlag)
-        check_cxx_compiler_flag(-Wno-error=enum-constexpr-conversion HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
-        if(HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
-            add_compile_options(-Wno-error=enum-constexpr-conversion)
-        endif()
-    endif()
-
-    #GCC generates loads of -Wunknown-pragmas when compiling igl. The fix is not easy due to a bug in gcc, see
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=66943 or
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53431
-    # We will turn the warning of for GCC for now:
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        # GCC generates loads of -Wunknown-pragmas when compiling igl. The fix is not easy due to a bug in gcc, see
-        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=66943 or
-        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53431
-        # We will turn the warning of for GCC for now:
-        add_compile_options(-Wno-unknown-pragmas)
-    endif()
+    # The list mixes names not every compiler has, so add each exception only where the
+    # compiler knows the warning. Probe with the positive -W<name>, which an unknown
+    # warning fails on both compilers (GCC errors, Clang reports unknown-warning-option).
+    # An option that takes a =N argument rejects the bare -W<name>, so fall back to
+    # -W<name>=1 and demote with the trailing =.
+    include(CheckCXXCompilerFlag)
+    foreach (category IN LISTS warnings_demoted)
+        string(MAKE_C_IDENTIFIER "ORCA_HAS_W_${category}" _orca_has_w)
+        check_cxx_compiler_flag("-W${category}" ${_orca_has_w})
+        if (${_orca_has_w})
+            add_compile_options(-Wno-error=${category})
+        else ()
+            check_cxx_compiler_flag("-W${category}=1" ${_orca_has_w}_arg)
+            if (${${_orca_has_w}_arg})
+                add_compile_options(-Wno-error=${category}=)
+            endif ()
+        endif ()
+    endforeach ()
 
     # Compress the debug info with zstd to save space in Flatpak CI builds
     if(FLATPAK)
@@ -587,10 +667,6 @@ if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMP
            ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0))
             add_compile_options(-gz=zstd)
         endif()
-    endif()
-
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=template-id-cdtor" )
     endif()
 
 endif()
@@ -747,7 +823,9 @@ if(SLIC3R_STATIC)
     set(TBB_STATIC 1)
 endif()
 set(TBB_DEBUG 1)
-set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" OR MSVC)
+    set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
+endif()
 find_package(TBB REQUIRED)
 # include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 # add_definitions(${TBB_DEFINITIONS})
@@ -761,6 +839,37 @@ find_package(TBB REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Freetype REQUIRED)
+
+if (SLIC3R_GUI)
+    # LibDataChannel's installed export references its bundled dependencies,
+    # but does not install their CMake targets. Recreate those targets from
+    # the same dependency prefix before loading the LibDataChannel config.
+    if (NOT TARGET Usrsctp::usrsctp)
+        find_library(_ORCA_USRSCTP_LIBRARY NAMES usrsctp
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_USRSCTP_LIBRARY)
+            add_library(Usrsctp::usrsctp UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(Usrsctp::usrsctp PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_USRSCTP_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    if (NOT TARGET LibJuice::LibJuice)
+        find_library(_ORCA_LIBJUICE_LIBRARY NAMES juice
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_LIBJUICE_LIBRARY)
+            add_library(LibJuice::LibJuice UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(LibJuice::LibJuice PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_LIBJUICE_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    find_package(LibDataChannel CONFIG REQUIRED)
+endif()
 
 
 add_library(libcurl INTERFACE)
@@ -975,10 +1084,10 @@ endif ()
 
 find_path(SPNAV_INCLUDE_DIR spnav.h)
 if (SPNAV_INCLUDE_DIR)
-    find_library(SPNAV_LIB NAMES libspnav.a) # Force linking libspnav statically
+    find_library(SPNAV_LIB NAMES libspnav.a spnav)
     if (SPNAV_LIB)
         add_definitions(-DHAVE_SPNAV)
-        message(STATUS "SPNAV library found")
+        message(STATUS "SPNAV library found: ${SPNAV_LIB}")
     else()
         message(STATUS "SPNAV library NOT found, Spacenavd not supported")
     endif()
@@ -1017,77 +1126,158 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${TOP_LEVEL_PROJECT_DIR}/deps/WebView2/lib/win-${_arch}/WebView2Loader.dll
         DESTINATION ${_out_dir})
 
-    file(COPY ${CMAKE_PREFIX_PATH}/bin/occt/TKBO.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKBRep.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKCDF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKernel.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKG2d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKG3d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKGeomAlgo.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKGeomBase.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKHLR.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKLCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKMath.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKMesh.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKPrim.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKService.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKShHealing.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEP.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEP209.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEPAttr.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEPBase.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKTopAlgo.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKV3d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKVCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXDESTEP.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXSBase.dll
+    # Stage the OCCT toolkits libslic3r links (published as OCCT_LIBS), not whatever the
+    # deps prefix happens to hold, and fail the configure if one of them is missing.
+    if (NOT OCCT_LIBS)
+        message(FATAL_ERROR "OCCT_LIBS is not set; libslic3r must be configured first.")
+    endif ()
+    string(TOUPPER "${config}" _config_upper)
+    set(_occt_bin "${OCCT_BIN_DIR_${_config_upper}}")
+    set(_occt_dlls "")
+    set(_occt_staged "")
+    set(_missing_occt "")
+    foreach (_tk IN LISTS OCCT_LIBS)
+        if (EXISTS "${_occt_bin}/${_tk}.dll")
+            list(APPEND _occt_dlls "${_occt_bin}/${_tk}.dll")
+            list(APPEND _occt_staged "${_out_dir}/${_tk}.dll")
+        else ()
+            list(APPEND _missing_occt "${_tk}.dll")
+        endif ()
+    endforeach ()
+    if (_missing_occt)
+        message(FATAL_ERROR
+            "OCCT DLLs missing from ${_occt_bin}/: ${_missing_occt}\n"
+            "Rebuild the dependencies (build_release_vs2022.bat deps) with the same "
+            "SLIC3R_CAD setting as this project.")
+    endif ()
+    file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
+            ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
+            ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
+            ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
+            ${CMAKE_PREFIX_PATH}/bin/avutil-59.dll
          DESTINATION ${_out_dir})
 
-    set(${output_dlls}
+    set(_dll_list
         ${_out_dir}/libgmp-10.dll
         ${_out_dir}/libmpfr-4.dll
         ${_out_dir}/WebView2Loader.dll
 
-        ${_out_dir}/TKBO.dll
-        ${_out_dir}/TKBRep.dll
-        ${_out_dir}/TKCAF.dll
-        ${_out_dir}/TKCDF.dll
-        ${_out_dir}/TKernel.dll
-        ${_out_dir}/TKG2d.dll
-        ${_out_dir}/TKG3d.dll
-        ${_out_dir}/TKGeomAlgo.dll
-        ${_out_dir}/TKGeomBase.dll
-        ${_out_dir}/TKHLR.dll
-        ${_out_dir}/TKLCAF.dll
-        ${_out_dir}/TKMath.dll
-        ${_out_dir}/TKMesh.dll
-        ${_out_dir}/TKPrim.dll
-        ${_out_dir}/TKService.dll
-        ${_out_dir}/TKShHealing.dll
-        ${_out_dir}/TKSTEP.dll
-        ${_out_dir}/TKSTEP209.dll
-        ${_out_dir}/TKSTEPAttr.dll
-        ${_out_dir}/TKSTEPBase.dll
-        ${_out_dir}/TKTopAlgo.dll
-        ${_out_dir}/TKV3d.dll
-        ${_out_dir}/TKVCAF.dll
-        ${_out_dir}/TKXCAF.dll
-        ${_out_dir}/TKXDESTEP.dll
-        ${_out_dir}/TKXSBase.dll
-
         ${_out_dir}/freetype.dll
+        ${_out_dir}/avformat-61.dll
+        ${_out_dir}/avcodec-61.dll
+        ${_out_dir}/swresample-5.dll
+        ${_out_dir}/swscale-8.dll
+        ${_out_dir}/avutil-59.dll
+    )
+    list(APPEND _dll_list ${_occt_staged})
+    set(${output_dlls} ${_dll_list} PARENT_SCOPE)
 
+endfunction()
+
+function(orcaslicer_copy_sos target config postfix output_sos)
+
+    get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    get_target_property(_alt_out_dir ${target} RUNTIME_OUTPUT_DIRECTORY)
+
+    if (_alt_out_dir)
+        set(_out_dir "${_alt_out_dir}")
+    elseif (_is_multi)
+        set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}/${config}")
+    else ()
+        set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
+    endif ()
+
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59.8.100
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5.1.100
+         DESTINATION ${_out_dir})
+
+    set(${output_sos}
+        ${_out_dir}/libavformat.so
+        ${_out_dir}/libavformat.so.61
+        ${_out_dir}/libavformat.so.61.1.100
+        ${_out_dir}/libavcodec.so
+        ${_out_dir}/libavcodec.so.61
+        ${_out_dir}/libavcodec.so.61.3.100
+        ${_out_dir}/libavutil.so
+        ${_out_dir}/libavutil.so.59
+        ${_out_dir}/libavutil.so.59.8.100
+        ${_out_dir}/libswscale.so
+        ${_out_dir}/libswscale.so.8
+        ${_out_dir}/libswscale.so.8.1.100
+        ${_out_dir}/libswresample.so
+        ${_out_dir}/libswresample.so.5
+        ${_out_dir}/libswresample.so.5.1.100
         PARENT_SCOPE
     )
+endfunction()
 
+# Bundled sources set their own warning flags, and a plain -Wall there means /Wall
+# (= -Weverything) under clang-cl. Target options are applied after the ones a target
+# set on itself, so these win. Targets are discovered rather than listed so a newly
+# bundled library needs no maintenance here.
+function(orcaslicer_silence_third_party_warnings _dir)
+    get_property(_subdirs DIRECTORY "${_dir}" PROPERTY SUBDIRECTORIES)
+    foreach (_subdir IN LISTS _subdirs)
+        orcaslicer_silence_third_party_warnings("${_subdir}")
+    endforeach ()
+    get_property(_targets DIRECTORY "${_dir}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach (_target IN LISTS _targets)
+        get_target_property(_type ${_target} TYPE)
+        if (NOT _type STREQUAL "INTERFACE_LIBRARY" AND NOT _type STREQUAL "UTILITY")
+            if (MSVC AND NOT IS_CLANG_CL)
+                # Drop any level the target set for itself, or -w overrides it and cl
+                # reports D9025 once per file.
+                get_target_property(_opts ${_target} COMPILE_OPTIONS)
+                if (_opts)
+                    string(REGEX REPLACE "/W[0-4]|/Wall" "" _opts "${_opts}")
+                    string(REGEX REPLACE ";;+" ";" _opts "${_opts}")
+                    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_opts}")
+                endif ()
+                # CMake maps a level into the VS generator's WarningLevel element, while a
+                # bare -w stays on the command line and trips D9025 there, once per file.
+                target_compile_options(${_target} PRIVATE /W0)
+            else ()
+                target_compile_options(${_target} PRIVATE -w)
+            endif ()
+        endif ()
+    endforeach ()
 endfunction()
 
 
 # libslic3r, OrcaSlicer GUI and the OrcaSlicer executable.
 add_subdirectory(deps_src)
+
+if (NOT SLIC3R_BUNDLED_WARNINGS)
+    orcaslicer_silence_third_party_warnings("${CMAKE_CURRENT_SOURCE_DIR}/deps_src")
+endif ()
+
+# Warning level for the targets added below: our sources, plus glad and libvgcode,
+# which are vendored but live under src/. The deps_src libraries were configured just
+# above. CMP0092 left MSVC without a default level, so it is set here.
+if (NOT SLIC3R_WARNINGS)
+    add_compile_options(-w)
+elseif (MSVC AND NOT IS_CLANG_CL)
+    # /we4715 is C4715, no return from a non-void function, an error on the GNU/Clang
+    # builds under -Werror. MSVC is not in that model, so this stays a single promoted
+    # warning.
+    add_compile_options(/W3 /we4715)
+endif ()
+
 add_subdirectory(src)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 
@@ -1099,6 +1289,10 @@ endif()
 
 if(BUILD_TESTS)
     add_subdirectory(tests)
+    if (NOT SLIC3R_BUNDLED_WARNINGS)
+        # Catch2 is vendored under tests/ and sets its own warning flags too.
+        orcaslicer_silence_third_party_warnings("${CMAKE_CURRENT_SOURCE_DIR}/tests/catch2")
+    endif ()
 endif()
 
 if (NOT WIN32 AND NOT APPLE)
@@ -1114,6 +1308,14 @@ if (WIN32)
     endif()
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
+    # A missing MSVC runtime is an error because an installer without it cannot start on a clean machine.
+    set(_orca_runtime_names ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+    list(TRANSFORM _orca_runtime_names REPLACE "^.*/" "")
+    if (MSVC AND (NOT "msvcp140.dll" IN_LIST _orca_runtime_names OR NOT "vcruntime140.dll" IN_LIST _orca_runtime_names))
+        set(_orca_runtime_error "CMake ${CMAKE_VERSION} did not find msvcp140.dll and vcruntime140.dll for MSVC ${MSVC_VERSION}. Update CMake to a release that supports this Visual Studio.")
+        message(WARNING "${_orca_runtime_error}")
+        install(CODE "message(FATAL_ERROR \"${_orca_runtime_error}\")")
+    endif ()
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
 elseif (SLIC3R_FHS)
     # CMAKE_INSTALL_FULL_DATAROOTDIR: read-only architecture-independent data root (share)
@@ -1141,6 +1343,22 @@ else ()
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
     endif()
+endif ()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavformat.so.61
+    ${LIBDIR_BIN}/libavformat.so.61.1.100
+    ${LIBDIR_BIN}/libavcodec.so.61
+    ${LIBDIR_BIN}/libavcodec.so.61.3.100
+    ${LIBDIR_BIN}/libavutil.so.59
+    ${LIBDIR_BIN}/libavutil.so.59.8.100
+    ${LIBDIR_BIN}/libswresample.so.5
+    ${LIBDIR_BIN}/libswresample.so.5.1.100
+    ${LIBDIR_BIN}/libswscale.so.8
+    ${LIBDIR_BIN}/libswscale.so.8.1.100
+    )
+    install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 endif ()
 
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")

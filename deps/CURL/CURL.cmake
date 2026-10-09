@@ -56,6 +56,18 @@ else()
   set(_curl_static ON)
 endif()
 
+# curl 7.75's configure probes and code rely on C laxness cl allows but clang
+# errors on (implicit function declarations, int* vs u_long* in ioctlsocket),
+# which flips probe results and misconfigures nonblock.c into the AmigaOS
+# IoctlSocket branch. Relax both diagnostics so the probes behave like cl, and
+# pin the camel-case probes off since they only "pass" by implicit declaration.
+set(_curl_c_flags_line "")
+set(_curl_probe_overrides "")
+if (MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
+  set(_curl_c_flags_line "-DCMAKE_C_FLAGS:STRING=-Wno-implicit-function-declaration -Wno-incompatible-pointer-types")
+  set(_curl_probe_overrides -DHAVE_IOCTLSOCKET_CAMEL=0 -DHAVE_IOCTLSOCKET_CAMEL_FIONBIO=0)
+endif ()
+
 orcaslicer_add_cmake_project(CURL
   # GIT_REPOSITORY      https://github.com/curl/curl.git
   # GIT_TAG             curl-7_75_0
@@ -69,6 +81,8 @@ orcaslicer_add_cmake_project(CURL
     -DBUILD_CURL_EXE:BOOL=OFF
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     -DCURL_STATICLIB=${_curl_static}
+    "${_curl_c_flags_line}"
+    ${_curl_probe_overrides}
     ${_curl_platform_flags}
 )
 

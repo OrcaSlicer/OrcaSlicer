@@ -6,6 +6,15 @@
 #include "GizmoObjectManipulation.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include <utility>
+#include <array>
+#include <string>
+#include <wx/event.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
 
 
 namespace Slic3r {
@@ -89,7 +98,7 @@ protected:
     virtual void on_register_raycasters_for_picking() override;
     virtual void on_unregister_raycasters_for_picking() override;
     //BBS: GUI refactor: add object manipulation
-    virtual void on_render_input_window(float x, float y, float bottom_limit);
+    virtual void on_render_input_window(float x, float y, float bottom_limit) override;
 
 private:
     void render_grabbers_connection(unsigned int id_1, unsigned int id_2, const ColorRGBA& color);

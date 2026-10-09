@@ -83,6 +83,10 @@ copy_shared_object_to_dir() {
     src_real="$(readlink -f "$src")"
     dst_name="$(basename "$src_real")"
     mkdir -p "$dst_dir"
+    if [ "$src_real" = "$dst_dir/$dst_name" ]; then
+        # Already bundled; the dependency resolved from the bundle directory.
+        return 0
+    fi
     cp -fL "$src_real" "$dst_dir/$dst_name"
 
     if [ -L "$src" ]; then
@@ -96,16 +100,31 @@ copy_shared_object_to_dir() {
 }
 
 bundle_dependency_closure() {
-    local dst_dir="$1"
+    local dst_dir
+    dst_dir="$(cd -- "$1" && pwd)"
     shift
 
     local -a queue=("$@")
-    local target dep dep_real copied_path
+    local target dep dep_real dep_key copied_path
     declare -A seen=()
+    # Dependencies are resolved with ldd, which only searches the default
+    # loader path. Deps-built shared libraries (e.g. the FFmpeg stack) are not
+    # installed there and carry no RUNPATH of their own, so once copied into
+    # the bundle ldd can no longer resolve one sibling from another
+    # (libavcodec -> libavutil) and reports it as missing. Extend the loader
+    # path with the bundle directory plus the source directories of files
+    # already bundled, so every library that was resolved once keeps resolving
+    # for its own dependencies. The audit script does the same
+    # (scripts/check_appimage_libs.sh).
+    local -a search_dirs=("$dst_dir")
 
-    while [ ${#queue[@]} -gt 0 ]; do
-        target="${queue[0]}"
-        queue=("${queue[@]:1}")
+    # Walked with a read index rather than by reslicing the array: "${queue[@]:1}" rebuilds the whole
+    # queue on every pop, so draining it costs O(n^2). At the ~5k entries this bundle reaches that was
+    # ~22 s of the image build spent copying an array around.
+    local head=0
+    while [ "$head" -lt ${#queue[@]} ]; do
+        target="${queue[$head]}"
+        head=$((head + 1))
 
         if [ ! -e "$target" ] || ! appimage_is_elf_file "$target"; then
             continue
@@ -122,17 +141,24 @@ bundle_dependency_closure() {
                 continue
             fi
 
-            if [ -n "${seen[$dep_real]}" ]; then
+            # Key dedup on the bundled file rather than the source path: once
+            # ldd resolves a library from the bundle directory (via the
+            # LD_LIBRARY_PATH above) its path is a dst_dir path, which differs
+            # from the source path the first resolution returned. Keying on
+            # the source path would re-copy the file onto itself.
+            dep_key="$dst_dir/$(basename "$dep_real")"
+            if [ -n "${seen[$dep_key]}" ]; then
                 continue
             fi
 
-            seen[$dep_real]=1
+            seen[$dep_key]=1
             copy_shared_object_to_dir "$dep" "$dst_dir"
+            search_dirs+=("$(dirname "$dep_real")")
             copied_path="$dst_dir/$(basename "$dep_real")"
             if [ -e "$copied_path" ]; then
                 queue+=("$copied_path")
             fi
-        done < <(appimage_list_direct_dependencies "$target")
+        done < <(LD_LIBRARY_PATH="$(IFS=:; printf '%s' "${search_dirs[*]}")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" appimage_list_direct_dependencies "$target")
     done
 }
 
@@ -277,10 +303,11 @@ else
 fi
 
 has_host_runtime_library() {
-    local lib_name path
+    local lib_name="\$1"
+    local path
 
     if command -v ldconfig >/dev/null 2>&1; then
-        if ldconfig -p 2>/dev/null | grep -Fq " \$lib_name"; then
+        if ldconfig -p 2>/dev/null | grep -Fq "\$lib_name ("; then
             return 0
         fi
     fi

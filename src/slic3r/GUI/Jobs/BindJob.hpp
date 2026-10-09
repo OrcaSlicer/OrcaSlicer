@@ -3,9 +3,13 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <functional>
+#include <string>
+#include <exception>
+#include <wx/event.h>
 #include "Job.hpp"
 
-namespace fs = boost::filesystem;
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
@@ -20,7 +24,6 @@ class BindJob : public Job
     std::string         m_sec_link;
     std::string         m_ssdp_version;
     bool                m_job_finished{ false };
-    int                 m_print_job_completed_id = 0;
     bool                m_improved{false};
 
 public:

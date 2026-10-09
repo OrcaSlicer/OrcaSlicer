@@ -16,10 +16,13 @@
 #ifndef slic3r_PrintConfig_hpp_
 #define slic3r_PrintConfig_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
 #include "Config.hpp"
 #include "Polygon.hpp"
+#include <boost/container_hash/hash.hpp>
+#include <algorithm>
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -27,8 +30,23 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
+#include <set>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
+#include <cstddef>
+#include <cassert>
+#include <cstdint>
+#include <cereal/access.hpp>
+#include <cmath>
+#include <cereal/specialize.hpp>
+#include <stdexcept>
 
 namespace Slic3r {
+
+class DynamicPrintConfig;
 
 enum GCodeFlavor : unsigned char {
     gcfMarlinLegacy, 
@@ -98,7 +116,7 @@ enum class WipeTowerType {
 };
 
 enum PrintHostType {
-    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
+    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
 
 enum AuthorizationType {
@@ -113,34 +131,67 @@ enum InfillPattern : int {
     ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic, ipLightning,
     ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb, ipLateralLattice,
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
-    ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
+    ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
     ipCount,
 };
 
-// Orca: Infill patterns whose alignment origin follows the fill bounding box, so the
-// "separated_infills" option can re-center them per connected body. Patterns evaluated in
-// absolute/global coordinates (Gyroid, TPMS, Honeycomb, CrossHatch, ...) or that are shape-relative
-// (Concentric) ignore that bounding box and are therefore excluded.
+// Orca: Infill patterns that the "separated_infills" option can center on each connected body.
 inline bool is_separable_infill_pattern(InfillPattern pattern)
 {
     switch (pattern) {
+    case ipMonotonic:
+    case ipMonotonicLine:
     case ipRectilinear:
     case ipAlignedRectilinear:
     case ipZigZag:
     case ipCrossZag:
     case ipLockedZag:
+    case ipLine:
     case ipGrid:
     case ipTriangles:
     case ipStars:          // tri-hexagon
     case ipCubic:
     case ipQuarterCubic:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
     case ipLateralHoneycomb:
     case ipLateralLattice:
+    case ipCrossHatch:
+    case ipTpmsD:
+    case ipTpmsFK:
+    case ipGyroid:
     case ipHilbertCurve:
     case ipArchimedeanChords:
     case ipOctagramSpiral:
         return true;
+    default:
+        return false;
+    }
+}
+
+// Orca: Infill patterns laid out by an octree, which each connected body always gets of its own.
+inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == ipAdaptiveCubic || pattern == ipSupportCubic; }
+
+// Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
+// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
+// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+{
+    switch (pattern) {
+    case ipHilbertCurve:
+    case ipOctagramSpiral:
+    case ipLightning:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
+    case ipConcentric:
+    case ipCrossHatch:
+        return true;
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+    case ipCubic:
+        return multiline > 1;
     default:
         return false;
     }
@@ -153,6 +204,10 @@ enum class IroningType {
     AllSolid,
     Count,
 };
+
+// Smallest usable ironing line spacing. Anything tighter yields an unprintable number of lines,
+// and zero stops the fillers from making progress.
+constexpr double IRONING_SPACING_MIN = 0.05;
 
 //BBS
 enum class WallInfillOrder {
@@ -221,9 +276,9 @@ enum class PrintOrder
 
 enum class SlicingMode
 {
-    // Regular, applying ClipperLib::pftNonZero rule when creating ExPolygons.
+    // Regular, applying pftNonZero rule when creating ExPolygons.
     Regular,
-    // Compatible with 3DLabPrint models, applying ClipperLib::pftEvenOdd rule when creating ExPolygons.
+    // Compatible with 3DLabPrint models, applying pftEvenOdd rule when creating ExPolygons.
     EvenOdd,
     // Orienting all contours CCW, thus closing all holes.
     CloseHoles,
@@ -248,7 +303,7 @@ enum LongRectrationLevel
 };
 
 enum SupportMaterialInterfacePattern {
-    smipAuto, smipRectilinear, smipConcentric, smipRectilinearInterlaced, smipGrid
+    smipAuto, smipRectilinear, smipConcentric, smipSpiralInset, smipRectilinearInterlaced, smipGrid
 };
 
 // BBS
@@ -495,8 +550,11 @@ enum NozzleVolumeType {
                      // with more than one sub-nozzle (extruder_max_nozzle_count > 1); matched as Standard for
                      // preset lookup and never emitted in profile variant strings
     nvtTPUHighFlow,  // physical variant, used on H2D/H2DP 0.4 nozzles only
+    // 4 is reserved: E3D High Flow is 5 in BambuStudio's slice_info and device numbering.
+    nvtE3DHighFlow = 5, // physical variant, E3D high-flow hotend on 0.4/0.6 nozzles
+    nvtExtraHighFlow = 6, // Orca: physical variant with no BambuStudio or device counterpart; only profiles name it
     // Integer values are serialized as raw ints in 3mf plate metadata and device MQTT, so they MUST stay stable.
-    nvtMaxNozzleVolumeType = nvtTPUHighFlow
+    nvtMaxNozzleVolumeType = nvtExtraHighFlow
 };
 
 enum FilamentMapMode {
@@ -523,8 +581,19 @@ enum PrimeVolumeMode {
 
 extern std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
 
-// Base slot lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
-// entry matching the given extruder/volume type and id. Returns 0 when no entry matches.
+// The variant index a value is taken from: in a variant list paired with its 1-based extruder or
+// filament ids, the variant with the same variant string and id, else that id's first variant, else -1.
+// variant_id_1based < 0 or empty variant_ids_1based match any id. A list without variant strings has
+// one variant per id, and one with neither variant strings nor ids has a single variant.
+extern int find_variant_index(const std::string& variant, int variant_id_1based, const std::vector<std::string>& variant_list, const std::vector<int>& variant_ids_1based);
+// find_variant_index for every variant of a list paired with its ids, into from_variants/from_ids.
+// A variant past the end of a shorter id list has no id and gets -1.
+extern std::vector<int> map_variant_indices(const std::vector<std::string>& variants, const std::vector<int>& ids,
+                                            const std::vector<std::string>& from_variants, const std::vector<int>& from_ids);
+
+// Variant index lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
+// entry matching the given extruder/volume type and id, as find_variant_index. Returns 0 when the id
+// has no variant.
 extern int get_config_index_base(NozzleVolumeType volume_type, ExtruderType extruder_type, int variant_id_1based, const std::vector<std::string>& variant_list, const std::vector<int>& variant_ids_1based);
 
 static std::set<NozzleVolumeType> get_valid_nozzle_volume_type() {
@@ -534,10 +603,18 @@ static std::set<NozzleVolumeType> get_valid_nozzle_volume_type() {
         // Hybrid is not a physical nozzle variant: presets never define it, so it must not
         // produce a variant string.
         if (t == nvtHybrid) continue;
+        // Skip the reserved gap between nvtTPUHighFlow (3) and nvtE3DHighFlow (5).
+        if (i > nvtTPUHighFlow && i < nvtE3DHighFlow) continue;
         type.insert(t);
     }
     return type;
 }
+
+// The nozzle volume types the given extruder physically provides, as declared by the printer
+// profile's extruder_variant_list. An empty set means the profile could not be read and must be
+// treated as "unknown", not as "none". nvtHybrid is never reported: it describes an extruder
+// holding a mix of nozzles, not a nozzle the profile can offer.
+extern std::set<NozzleVolumeType> get_extruder_supported_nozzle_volume_types(const DynamicPrintConfig &printer_config, int extruder_id);
 
 std::string get_nozzle_volume_type_string(NozzleVolumeType nozzle_volume_type);
 
@@ -675,8 +752,6 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
-class DynamicPrintConfig;
-
 // Defines each and every configuration option of Slic3r, including the properties of the GUI dialogs.
 // Does not store the actual values, but defines default values.
 class PrintConfigDef : public ConfigDef
@@ -722,6 +797,12 @@ class StaticPrintConfig;
 
 // Minimum object distance for arrangement, based on printer technology.
 double min_object_distance(const ConfigBase &cfg);
+
+// Whether any value is set, a nil value included.
+template<bool NULLABLE> bool any_enabled(const ConfigOptionBoolsTempl<NULLABLE> &option)
+{
+    return std::any_of(option.values.begin(), option.values.end(), [](unsigned char enabled) { return enabled != 0; });
+}
 
 // One (extruder type x nozzle volume type) parameter variant a filament prints through, plus a
 // representative physical extruder observed using it. Ordering (and set-dedup identity) covers
@@ -797,6 +878,10 @@ public:
     //BBS
     bool is_using_different_extruders();
     bool support_different_extruders(int& extruder_count) const;
+    // Whether any filament defines more than one variant (filament_extruder_variant longer than
+    // filament_diameter). Its variants then have to be resolved even on a printer with a single
+    // extruder variant, which picks the filament's variant of the same variant string.
+    bool has_multi_variant_filament() const;
     // Counts the config slots of a printer: one per (extruder x nozzle volume type) as described by
     // extruder_nozzle_stats, or simply one per extruder when the stats are absent/mismatched.
     // Fills nozzle_volume_types with each extruder's volume types in ascending enum order.
@@ -842,7 +927,24 @@ extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
 
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride = 1);
+
+// Orca: lays every filament_options_with_variant option out one value per filament variant, as
+// filament_self_index maps the variants to filaments. An option holding one value per filament, or a
+// single value, gives every variant of a filament that filament's value; other lengths are left alone.
+void normalize_filament_values_to_variants(DynamicPrintConfig &config);
+
 extern std::set<std::string> filament_dev_options;
+
+// Orca: a filament_dev_options option holds several values per filament, and how many is up to the
+// filament preset, so one filament's values cannot be replaced in place. This rebuilds each option from
+// filament_configs, one config per filament in slot order, as the filaments' values one after another.
+void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs);
+
+// Orca: sizes the per-slot mixed-colour metadata options to new_slot_count, keeping the first
+// old_slot_count values; an option the config lacks is created.
+void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count);
 
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
@@ -985,40 +1087,51 @@ public: \
         { PrintConfigDef::handle_legacy(opt_key, value); }
 
 #define PRINT_CONFIG_CLASS_ELEMENT_DEFINITION(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem) BOOST_PP_TUPLE_ELEM(1, elem);
-#define PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION2(KEY) cache.opt_add(BOOST_PP_STRINGIZE(KEY), base_ptr, this->KEY);
-#define PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION(r, data, elem) PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION2(BOOST_PP_TUPLE_ELEM(1, elem))
-#define PRINT_CONFIG_CLASS_ELEMENT_HASH(r, data, elem) boost::hash_combine(seed, BOOST_PP_TUPLE_ELEM(1, elem).hash());
-#define PRINT_CONFIG_CLASS_ELEMENT_EQUAL(r, data, elem) if (! (BOOST_PP_TUPLE_ELEM(1, elem) == rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return false;
-#define PRINT_CONFIG_CLASS_ELEMENT_LOWER(r, data, elem) \
-        if (BOOST_PP_TUPLE_ELEM(1, elem) < rhs.BOOST_PP_TUPLE_ELEM(1, elem)) return true; \
-        if (! (BOOST_PP_TUPLE_ELEM(1, elem) == rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return false;
+#define PRINT_CONFIG_CLASS_ELEMENT_VISIT(r, data, elem) if (! f(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), this->BOOST_PP_TUPLE_ELEM(1, elem), rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return;
+#define PRINT_CONFIG_CLASS_ELEMENT_VISIT_SELF(r, data, elem) if (! f(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), self.BOOST_PP_TUPLE_ELEM(1, elem), rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return;
+// Each option list is expanded into the members and again into for_each_option_pair(), which calls
+// f(key, this->option, rhs.option) in declaration order and stops when f returns false. hash(),
+// operator==, operator<, initialize() and apply_to() iterate the options through that visitor.
+#define PRINT_CONFIG_CLASS_COMMON_BODY(CLASS_NAME) \
+    size_t hash() const throw() \
+    { \
+        size_t seed = 0; \
+        this->for_each_option_pair(*this, [&seed](const char*, const auto &a, const auto&) { boost::hash_combine(seed, a.hash()); return true; }); \
+        return seed; \
+    } \
+    bool operator==(const CLASS_NAME &rhs) const throw() \
+    { \
+        bool eq = true; \
+        this->for_each_option_pair(rhs, [&eq](const char*, const auto &a, const auto &b) { eq = (a == b); return eq; }); \
+        return eq; \
+    } \
+    bool operator!=(const CLASS_NAME &rhs) const throw() { return ! (*this == rhs); } \
+    bool operator<(const CLASS_NAME &rhs) const throw() \
+    { \
+        int c = 0; \
+        this->for_each_option_pair(rhs, [&c](const char*, const auto &a, const auto &b) { if (a < b) c = -1; else if (! (a == b)) c = 1; return c == 0; }); \
+        return c < 0; \
+    } \
+protected: \
+    void initialize(StaticCacheBase &cache, const char *base_ptr) \
+    { \
+        this->for_each_option_pair(*this, [&cache, base_ptr](const char *key, const auto &a, const auto&) { cache.opt_add(key, base_ptr, a); return true; }); \
+    }
 
 #define PRINT_CONFIG_CLASS_DEFINE(CLASS_NAME, PARAMETER_DEFINITION_SEQ) \
 class CLASS_NAME : public StaticPrintConfig { \
     STATIC_PRINT_CONFIG_CACHE(CLASS_NAME) \
 public: \
     BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ) \
-    size_t hash() const throw() \
+    template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const { visit_option_pairs(*this, rhs, f); } \
+    /* Defined in PrintConfig.cpp. */ \
+    bool apply_to(ConfigBase &target) const override; \
+    PRINT_CONFIG_CLASS_COMMON_BODY(CLASS_NAME) \
+private: \
+    /* The one expansion of the option list, for a const self and for apply_to()'s mutable target. */ \
+    template<typename Self, typename F> static void visit_option_pairs(Self &self, const CLASS_NAME &rhs, F &&f) \
     { \
-        size_t seed = 0; \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_HASH, _, PARAMETER_DEFINITION_SEQ) \
-        return seed; \
-    } \
-    bool operator==(const CLASS_NAME &rhs) const throw() \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_EQUAL, _, PARAMETER_DEFINITION_SEQ) \
-        return true; \
-    } \
-    bool operator!=(const CLASS_NAME &rhs) const throw() { return ! (*this == rhs); } \
-    bool operator<(const CLASS_NAME &rhs) const throw() \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_LOWER, _, PARAMETER_DEFINITION_SEQ) \
-        return false; \
-    } \
-protected: \
-    void initialize(StaticCacheBase &cache, const char *base_ptr) \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION, _, PARAMETER_DEFINITION_SEQ) \
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_VISIT_SELF, _, PARAMETER_DEFINITION_SEQ) \
     } \
 };
 
@@ -1033,43 +1146,45 @@ protected: \
     if (! (*static_cast<const elem*>(this) == static_cast<const elem&>(rhs))) return false;
 
 // Generic version, with or without new parameters. Don't use this directly.
-#define PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION, PARAMETER_REGISTRATION, PARAMETER_HASHES, PARAMETER_EQUALS) \
+#define PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION, PARAMETER_VISIT) \
 class CLASS_NAME : PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST(CLASSES_PARENTS_TUPLE) { \
     STATIC_PRINT_CONFIG_CACHE_DERIVED(CLASS_NAME) \
     CLASS_NAME() : PRINT_CONFIG_CLASS_DERIVED_INITIALIZER(CLASSES_PARENTS_TUPLE, 0) { assert(s_cache_##CLASS_NAME.initialized()); *this = s_cache_##CLASS_NAME.defaults(); } \
 public: \
     PARAMETER_DEFINITION \
+    template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const { PARAMETER_VISIT } \
+    /* Its parents each apply themselves to a target member by member, so this one keeps the lookup by name. */ \
+    bool apply_to(ConfigBase &/*target*/) const override { return false; } \
     size_t hash() const throw() \
     { \
         size_t seed = 0; \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_DERIVED_HASH, _, BOOST_PP_TUPLE_TO_SEQ(CLASSES_PARENTS_TUPLE)) \
-        PARAMETER_HASHES \
+        this->for_each_option_pair(*this, [&seed](const char*, const auto &a, const auto&) { boost::hash_combine(seed, a.hash()); return true; }); \
         return seed; \
     } \
     bool operator==(const CLASS_NAME &rhs) const throw() \
     { \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_DERIVED_EQUAL, _, BOOST_PP_TUPLE_TO_SEQ(CLASSES_PARENTS_TUPLE)) \
-        PARAMETER_EQUALS \
-        return true; \
+        bool eq = true; \
+        this->for_each_option_pair(rhs, [&eq](const char*, const auto &a, const auto &b) { eq = (a == b); return eq; }); \
+        return eq; \
     } \
     bool operator!=(const CLASS_NAME &rhs) const throw() { return ! (*this == rhs); } \
 protected: \
     CLASS_NAME(int) : PRINT_CONFIG_CLASS_DERIVED_INITIALIZER(CLASSES_PARENTS_TUPLE, 1) {} \
     void initialize(StaticCacheBase &cache, const char* base_ptr) { \
         PRINT_CONFIG_CLASS_DERIVED_INITCACHE(CLASSES_PARENTS_TUPLE) \
-        PARAMETER_REGISTRATION \
+        this->for_each_option_pair(*this, [&cache, base_ptr](const char *key, const auto &a, const auto&) { cache.opt_add(key, base_ptr, a); return true; }); \
     } \
 };
 // Variant without adding new parameters.
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE0(CLASS_NAME, CLASSES_PARENTS_TUPLE) \
-    PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, BOOST_PP_EMPTY(), BOOST_PP_EMPTY(), BOOST_PP_EMPTY(), BOOST_PP_EMPTY())
+    PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, BOOST_PP_EMPTY(), BOOST_PP_EMPTY())
 // Variant with adding new parameters.
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION_SEQ) \
     PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ), \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION, _, PARAMETER_DEFINITION_SEQ), \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_HASH, _, PARAMETER_DEFINITION_SEQ), \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_EQUAL, _, PARAMETER_DEFINITION_SEQ))
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_VISIT, _, PARAMETER_DEFINITION_SEQ))
 
 // This object is mapped to Perl as Slic3r::Config::PrintObject.
 PRINT_CONFIG_CLASS_DEFINE(
@@ -1261,6 +1376,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                bottom_layer_direction))
     ((ConfigOptionString,               solid_infill_rotate_template))
     ((ConfigOptionBool,                 symmetric_infill_y_axis))
+    ((ConfigOptionBool,                 infill_complete_top))
     ((ConfigOptionFloat,                infill_shift_step))
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
@@ -1322,6 +1438,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
+    ((ConfigOptionBool, unsupported_wall_last))
     ((ConfigOptionInt, outer_wall_filament_id))
     ((ConfigOptionInt, inner_wall_filament_id))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
@@ -1360,6 +1477,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 role_based_wipe_speed))
     ((ConfigOptionFloatOrPercent,       wipe_speed))
     ((ConfigOptionBool,                 wipe_on_loops))
+    ((ConfigOptionBool,                 wipe_inward))
+    ((ConfigOptionFloatOrPercent,        wipe_inward_distance))
     ((ConfigOptionBool,                 wipe_before_external_loop))
     ((ConfigOptionEnum<WallInfillOrder>, wall_infill_order))
     ((ConfigOptionBool,                 precise_outer_wall))
@@ -1369,7 +1488,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable,           small_perimeter_threshold))
     ((ConfigOptionFloatsOrPercentsNullable, small_support_perimeter_speed))
     ((ConfigOptionFloatsNullable,           small_support_perimeter_threshold))
-    ((ConfigOptionFloat,                top_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       top_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                bottom_solid_infill_flow_ratio))
     ((ConfigOptionFloatOrPercent,       infill_anchor))
     ((ConfigOptionFloatOrPercent,       infill_anchor_max))
@@ -1512,6 +1631,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_colour))
     ((ConfigOptionStrings,             filament_vendor))
     ((ConfigOptionBools,               filament_is_support))
+    // Mixed-color filament: a virtual slot realized from 2-3 physical filaments.
+    ((ConfigOptionBools,               filament_is_mixed))
+    ((ConfigOptionStrings,             filament_mixed_components))
+    ((ConfigOptionStrings,             filament_mixed_sublayer_ratios))
+    ((ConfigOptionBools,               filament_mixed_gradient))
+    ((ConfigOptionStrings,             filament_mixed_gradient_range))
+    ((ConfigOptionStrings,             filament_mixed_gradient_curve))
+    ((ConfigOptionBools,               filament_mixed_gradient_per_part))
     ((ConfigOptionInts,                filament_printable))
     ((ConfigOptionInts,                filament_extruder_compatibility))
     ((ConfigOptionFloats,              filament_change_length))
@@ -1547,7 +1674,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                gcode_add_line_number))
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
-
+    ((ConfigOptionBool,                gcode_skip_config_block))
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))
     ((ConfigOptionString,              time_lapse_gcode))
@@ -1586,7 +1713,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                manual_filament_change))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
+    ((ConfigOptionString,              toolchange_cyclic_order))
+    ((ConfigOptionBool,                toolchange_cyclic_first_layer))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
+    ((ConfigOptionBool,                wipe_tower_sparse_layers_combination))
     ((ConfigOptionString,              change_filament_gcode))
     ((ConfigOptionString,              change_extrusion_role_gcode))
     ((ConfigOptionString,              process_change_extrusion_role_gcode))
@@ -1660,6 +1790,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                purge_in_prime_tower))
     ((ConfigOptionBool,                enable_filament_ramming))
     ((ConfigOptionBool,                tool_change_on_wipe_tower))
+    ((ConfigOptionBool,                wait_for_temp_on_wipe_tower))
     ((ConfigOptionBool,                support_multi_bed_types))
     ((ConfigOptionBool,                use_3mf))
 
@@ -1746,6 +1877,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBools,              slow_down_for_layer_cooling))
     ((ConfigOptionInts,               close_fan_the_first_x_layers))
     ((ConfigOptionEnum<DraftShield>,  draft_shield))
+    ((ConfigOptionFloat,              extruder_clearance_dist_to_rod))//BBS
     ((ConfigOptionFloat,              extruder_clearance_height_to_rod))//BBs
     ((ConfigOptionFloat,              extruder_clearance_height_to_lid))//BBS
     ((ConfigOptionFloat,              extruder_clearance_radius))
@@ -1811,6 +1943,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               nozzle_temperature_range_low))
     ((ConfigOptionInts,               nozzle_temperature_range_high))
     ((ConfigOptionFloats,             wipe_distance))
+    ((ConfigOptionBool,               enable_mixed_color_sublayer))
     ((ConfigOptionBool,               enable_prime_tower))
     ((ConfigOptionBool,               prime_tower_enable_framework))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic
@@ -2112,11 +2245,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
 #undef STATIC_PRINT_CONFIG_CACHE_BASE
 #undef STATIC_PRINT_CONFIG_CACHE_DERIVED
 #undef PRINT_CONFIG_CLASS_ELEMENT_DEFINITION
-#undef PRINT_CONFIG_CLASS_ELEMENT_EQUAL
-#undef PRINT_CONFIG_CLASS_ELEMENT_LOWER
-#undef PRINT_CONFIG_CLASS_ELEMENT_HASH
-#undef PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION
-#undef PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION2
+#undef PRINT_CONFIG_CLASS_ELEMENT_VISIT
+#undef PRINT_CONFIG_CLASS_ELEMENT_VISIT_SELF
+#undef PRINT_CONFIG_CLASS_COMMON_BODY
 #undef PRINT_CONFIG_CLASS_DEFINE
 #undef PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST
 #undef PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST_ITEM
@@ -2393,7 +2524,58 @@ static void set_flush_volumes_matrix(std::vector<T> &out_matrix, const std::vect
     }
 }
 
+template<class T>
+static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_matrix,
+                                                      const std::vector<T> &flush_multipliers,
+                                                      const std::vector<int> &used_filaments)
+{
+    if (used_filaments.size() < 2 || flush_multipliers.empty())
+        return false;
+
+    if (fv_matrix.size() % flush_multipliers.size() != 0)
+        return false;
+
+    const size_t matrix_len = fv_matrix.size() / flush_multipliers.size();
+    const size_t row_len    = size_t(std::sqrt(double(matrix_len)));
+    if (row_len < 2 || row_len * row_len != matrix_len)
+        return false;
+
+    std::vector<int> filtered_filaments;
+    filtered_filaments.reserve(used_filaments.size());
+    for (int filament_id : used_filaments) {
+        if (filament_id <= 0 || filament_id > int(row_len))
+            continue;
+        if (std::find(filtered_filaments.begin(), filtered_filaments.end(), filament_id) == filtered_filaments.end())
+            filtered_filaments.push_back(filament_id);
+    }
+    if (filtered_filaments.size() < 2)
+        return false;
+
+    for (T multiplier : flush_multipliers) {
+        if (multiplier == 0)
+            return true;
+    }
+
+    for (size_t nozzle_idx = 0; nozzle_idx < flush_multipliers.size(); nozzle_idx++) {
+        const size_t block_offset = nozzle_idx * matrix_len;
+        for (int from_id : filtered_filaments) {
+            for (int to_id : filtered_filaments) {
+                if (from_id == to_id)
+                    continue;
+
+                const size_t matrix_idx = block_offset + size_t(from_id - 1) * row_len + size_t(to_id - 1);
+                if (matrix_idx < fv_matrix.size() && fv_matrix[matrix_idx] == 0)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
+
+double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
 
 } // namespace Slic3r
 
@@ -2412,7 +2594,8 @@ namespace cereal {
             archive(serialization_key_ordinal);
             assert(serialization_key_ordinal > 0);
             auto it = Slic3r::print_config_def.by_serialization_key_ordinal.find(serialization_key_ordinal);
-            assert(it != Slic3r::print_config_def.by_serialization_key_ordinal.end());
+            if (it == Slic3r::print_config_def.by_serialization_key_ordinal.end())
+                throw std::runtime_error("VendorCache: unknown serialization_key_ordinal " + std::to_string(serialization_key_ordinal) + " - cache is stale");
             config.set_key_value(it->second->opt_key, it->second->load_option_from_archive(archive));
         }
     }

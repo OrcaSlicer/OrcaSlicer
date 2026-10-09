@@ -7,7 +7,8 @@
 #include <boost/asio/ip/address.hpp>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
+
+class wxArrayString;
 
 namespace Slic3r {
 
@@ -20,7 +21,7 @@ public:
     ~Obico() override = default;
 
     const char* get_name() const override;
-    virtual bool can_test() const { return true; };
+    virtual bool can_test() const override { return true; };
     bool has_auto_discovery() const override { return false; }
     bool is_cloud() const override { return true; }
     bool get_login_url(wxString& auth_url) const override;
@@ -30,7 +31,7 @@ public:
     wxString                           get_test_failed_msg(wxString& msg) const override;
     virtual bool                       test(wxString& curl_msg) const override;
     bool                               get_printers(wxArrayString& printers) const override;
-    PrintHostPostUploadActions         get_post_upload_actions() const;
+    PrintHostPostUploadActions         get_post_upload_actions() const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
 
 protected:

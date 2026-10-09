@@ -1,17 +1,27 @@
 #include "PluginsConfigDialog.hpp"
 
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
 
+#include <atomic>
+#include <exception>
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/PresetBundle.hpp>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginResolver.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <wx/msgdlg.h>
+#include <wx/busycursor.h>
 
 namespace Slic3r { namespace GUI {
 

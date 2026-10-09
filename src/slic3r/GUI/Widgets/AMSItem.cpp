@@ -1,7 +1,7 @@
 #include "AMSItem.hpp"
 #include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
+#include "../format.hpp"
 #include "../GUI_App.hpp"
 #include "../FilamentBitmapUtils.hpp"
 #include "../Utils/WxFontUtils.hpp"
@@ -12,12 +12,41 @@
 #include "slic3r/GUI/DeviceCore/DevConfig.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/peninfobase.h>
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <algorithm>
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <optional>
+#include <utility>
+#include <cstddef>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/timer.h>
+#include <wx/sizer.h>
 
 #include "CalibUtils.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+
+namespace Slic3r::GUI { struct SimpleEvent; }
 
 
 
@@ -114,7 +143,6 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
                 info.ctype = 0;
                 info.material_colour = AMS_TRAY_DEFAULT_COL;
                 info.material_state = AMSCanType::AMS_CAN_TYPE_THIRDBRAND;
-                wxColour(255, 255, 255);
             }
 
             if (it->second->is_tray_info_ready() && obj->cali_version >= 0) {
@@ -171,7 +199,6 @@ void AMSinfo::parse_ext_info(MachineObject* obj, DevAmsTray tray) {
         info.filament_id = "";
         info.ctype = 0;
         info.material_colour = AMS_TRAY_DEFAULT_COL;
-        wxColour(255, 255, 255);
     }
     info.material_state = AMSCanType::AMS_CAN_TYPE_VIRTUAL;
     if (tray.is_tray_info_ready() && obj->cali_version >= 0) {
@@ -325,7 +352,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, wxString can_id, Ca
     m_can_id = can_id.ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
 AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo info, const wxPoint &pos, const wxSize &size) : AMSrefresh()
@@ -333,7 +360,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo
     m_can_id = wxString::Format("%d", can_id).ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
  AMSrefresh::~AMSrefresh()
@@ -482,7 +509,7 @@ void AMSrefresh::paintEvent(wxPaintEvent &evt)
     dc.DrawText(m_refresh_id, pot);
 }
 
-void AMSrefresh::Update(std::string ams_id, Caninfo info)
+void AMSrefresh::UpdateInfo(std::string ams_id, Caninfo info)
 {
     if (m_ams_id == ams_id && m_info == info)
     {
@@ -607,7 +634,7 @@ void AMSextruderImage::doRender(wxDC &dc)
 }
 
 
-AMSextruderImage::AMSextruderImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos)
+AMSextruderImage::AMSextruderImage(wxWindow *parent, wxWindowID id, std::string file_name, const wxSize& size, const wxPoint &pos)
 {
     wxWindow::Create(parent, id, pos, size);
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
@@ -796,7 +823,7 @@ void SwitcherImage::doRender(wxDC &dc)
     Layout();
 }
 
-SwitcherImage::SwitcherImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos)
+SwitcherImage::SwitcherImage(wxWindow *parent, wxWindowID id, std::string file_name, const wxSize& size, const wxPoint &pos)
 {
     wxWindow::Create(parent, id, pos, size);
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
@@ -872,7 +899,7 @@ void AMSextruder::OnAmsLoading(bool load, int nozzle_id, wxColour col /*= AMS_CO
 }
 
 /*return true if something is updated*/
-bool AMSextruder::updateNozzleNum(int nozzle_num, const string& series_name)
+bool AMSextruder::updateNozzleNum(int nozzle_num, const std::string& series_name)
 {
     if (m_nozzle_num == nozzle_num && m_series_name == series_name) return false;
     m_series_name = series_name;
@@ -945,7 +972,7 @@ AMSLib::AMSLib(wxWindow *parent, std::string ams_idx, Caninfo info, AMSModelOrig
     Bind(wxEVT_LEAVE_WINDOW, &AMSLib::on_leave_window, this);
     Bind(wxEVT_LEFT_DOWN, &AMSLib::on_left_down, this);
 
-    Update(info, ams_idx, false);
+    UpdateInfo(info, ams_idx, false);
 }
 
 AMSLib::~AMSLib()
@@ -1154,9 +1181,9 @@ void AMSLib::render_lite_text(wxDC& dc)
     }
 
     if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY) {
-        auto tsize = dc.GetMultiLineTextExtent(_L("/"));
+        auto tsize = dc.GetMultiLineTextExtent("/");
         auto pot = wxPoint((libsize.x - tsize.x) / 2 + FromDIP(2), (libsize.y - tsize.y) / 2 + FromDIP(3));
-        dc.DrawText(_L("/"), pot);
+        dc.DrawText("/", pot);
     }
 }
 
@@ -1730,7 +1757,7 @@ void AMSLib::on_pass_road(bool pass)
     }
 }
 
-void AMSLib::Update(Caninfo info, std::string ams_idx, bool refresh)
+void AMSLib::UpdateInfo(Caninfo info, std::string ams_idx, bool refresh)
 {
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return;
@@ -1868,7 +1895,7 @@ AMSRoad::AMSRoad(wxWindow *parent, wxWindowID id, Caninfo info, int canindex, in
 
 void AMSRoad::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size) { wxWindow::Create(parent, id, pos, size); }
 
-void AMSRoad::Update(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
+void AMSRoad::UpdateInfo(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
 {
     m_amsinfo = amsinfo;
     m_info     = info;
@@ -2083,9 +2110,6 @@ void AMSRoad::OnPassRoad(std::vector<AMSPassRoadMode> prord_list)
     }
 }
 
-/*
-
-
 /*************************************************
 Description:AMSRoadUpPart
 **************************************************/
@@ -2124,7 +2148,7 @@ void AMSRoadUpPart::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     Refresh();
 }
 
-void AMSRoadUpPart::Update(AMSinfo amsinfo)
+void AMSRoadUpPart::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -2616,7 +2640,7 @@ void AMSPreview::Close()
     Hide();
 }
 
-void AMSPreview::Update(AMSinfo amsinfo)
+void AMSPreview::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo == amsinfo)
     {
@@ -2954,7 +2978,7 @@ AMSHumidity::AMSHumidity(wxWindow* parent, wxWindowID id, AMSinfo info, const wx
         }
         });
 
-    Update(info);
+    UpdateInfo(info);
 }
 
 void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size) {
@@ -2963,7 +2987,7 @@ void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, co
 }
 
 
-void AMSHumidity::Update(AMSinfo amsinfo)
+void AMSHumidity::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -3380,7 +3404,7 @@ void AmsItem::AddLiteCan(Caninfo caninfo, int canindex, wxGridSizer* sizer)
     //m_can_road_list[caninfo.can_id] = m_panel_road;
 }
 
-void AmsItem::Update(AMSinfo info)
+void AmsItem::UpdateInfo(AMSinfo info)
 {
     if (m_info == info)
     {
@@ -3392,7 +3416,7 @@ void AmsItem::Update(AMSinfo info)
 
     if (m_humidity)
     {
-        m_humidity->Update(m_info);
+        m_humidity->UpdateInfo(m_info);
     }
 
     for (int i = 0; i < m_can_count; i++) {
@@ -3401,7 +3425,7 @@ void AmsItem::Update(AMSinfo info)
 
         auto refresh = it->second;
         if (refresh != nullptr){
-            refresh->Update(info.ams_id, info.cans[i]);
+            refresh->UpdateInfo(info.ams_id, info.cans[i]);
             refresh->Show();
         }
     }
@@ -3410,7 +3434,7 @@ void AmsItem::Update(AMSinfo info)
         AMSLib* lib = m_can_lib_list[std::to_string(i)];
         if (lib != nullptr){
             if (i < m_can_count){
-                lib->Update(info.cans[i], info.ams_id);
+                lib->UpdateInfo(info.cans[i], info.ams_id);
                 lib->Show();
             }
             else{
@@ -3419,12 +3443,7 @@ void AmsItem::Update(AMSinfo info)
         }
     }
     if (m_panel_road != nullptr){
-        m_panel_road->Update(m_info);
-    }
-
-    if (true || m_ams_model == AMSModel::GENERIC_AMS) {
-        /*m_panel_road->Update(m_info, info.cans[0]);
-        m_panel_road->Show();*/
+        m_panel_road->UpdateInfo(m_info);
     }
 
     Layout();
@@ -4037,7 +4056,7 @@ void FeedDirectionDialog::OnRadioClicked(wxCommandEvent& evt)
             m_extruderImage->setExtruderUsed("left");
             m_load_extruder_id = 1;
             {
-                SetTitle(wxString::Format(_L("Load %s to ") + _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase)), m_filament_id));
+                SetTitle(format_wxstr(_L("Load %1% to %2%"), m_filament_id, _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase))));
             }
         }
         else if (clicked == m_rightRadio)
@@ -4046,7 +4065,7 @@ void FeedDirectionDialog::OnRadioClicked(wxCommandEvent& evt)
             m_extruderImage->setExtruderUsed("right");
             m_load_extruder_id = 0;
             {
-                SetTitle(wxString::Format(_L("Load %s to ") + _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase)), m_filament_id));
+                SetTitle(format_wxstr(_L("Load %1% to %2%"), m_filament_id, _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase))));
             }
         }
     }
@@ -4106,7 +4125,7 @@ void FeedDirectionDialog::SetExtruderMapping(MachineObject* obj,
         return;
 
     m_filament_id = filamentID;
-    SetTitle(wxString::Format(_L("Load %s to "), filamentID));
+    SetTitle(wxString::Format(_L("Load %s"), filamentID));
 
     std::vector<wxString> extruderMapping(extruderSlots.size());
     for (size_t i = 0; i < extruderSlots.size(); ++i) {

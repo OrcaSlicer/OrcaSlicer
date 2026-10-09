@@ -11,13 +11,14 @@
 #include <regex>
 #include <memory>
 #include <map>
-#include <vector>
+#include <unordered_map>
 #include "AdaptivePAInterpolator.hpp"
 
 namespace Slic3r {
 
 // Forward declaration of GCode class
 class GCode;
+class PrintConfig;
 
 /**
  * @brief Class for processing G-code layers with adaptive pressure advance.
@@ -33,7 +34,7 @@ public:
      *
      * @param gcodegen A reference to the GCode object that generates the G-code.
      */
-    AdaptivePAProcessor(GCode &gcodegen, const std::vector<unsigned int> &tools_used);
+    AdaptivePAProcessor(GCode &gcodegen);
     
     /**
      * @brief Processes a layer of G-code and applies adaptive pressure advance.
@@ -70,28 +71,26 @@ public:
     
 private:
     GCode &m_gcodegen; ///< Reference to the GCode object.
-    std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< Map between Interpolator objects and tool ID's
+    std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< Map between Interpolator objects and filament config indices (null when adaptive PA is off)
     const PrintConfig &m_config; ///< Reference to the print configuration.
     double m_last_predicted_pa; ///< Last predicted pressure advance value.
     double m_max_next_feedrate; ///< Maximum feed rate (speed) for the upcomming island. If no speed is found, the previous island speed is used.
     double m_next_feedrate; ///< First feed rate (speed) for the upcomming island.
     double m_current_feedrate; ///< Current, latest feedrate.
-    int m_last_extruder_id; ///< Last used extruder ID.
+    int m_last_config_index; ///< Filament config index of the last PA_CHANGE tag.
+    bool m_enabled{false}; ///< Whether any filament config index has both PA and adaptive PA on, the only ones that emit PA_CHANGE tags.
 
     std::regex m_pa_change_pattern; ///< Regular expression to detect PA_CHANGE pattern.
     std::regex m_g1_f_pattern; ///< Regular expression to detect G1 F pattern.
     std::smatch m_match; ///< Match results for regular expressions.
 
     /**
-     * @brief Get the PA interpolator attached to the specified tool ID.
+     * @brief Get the PA interpolator attached to the specified filament config index.
      *
-     * This method manually sets the adaptive PA internally held value.
-     * Call this when changing tools or in any other case where the internally assumed last PA value may be incorrect
-     *
-     * @param An integer with the tool ID for which the PA interpolation model is to be returned.
-     * @return The Adaptive PA Interpolator object corresponding to that tool.
+     * @param config_index The filament config index (one per filament and extruder variant) for which the PA interpolation model is to be returned.
+     * @return The Adaptive PA Interpolator object corresponding to that index, or nullptr when adaptive PA is off for it.
      */
-    AdaptivePAInterpolator* getInterpolator(unsigned int tool_id);
+    AdaptivePAInterpolator* getInterpolator(unsigned int config_index);
 };
 
 } // namespace Slic3r

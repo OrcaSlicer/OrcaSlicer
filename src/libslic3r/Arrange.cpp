@@ -1,18 +1,41 @@
 #include "Arrange.hpp"
+#include "ExPolygon.hpp"
+#include "Point.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
+#include "PrintConfig.hpp"
 #include "libslic3r.h"
 
+#include <Eigen/Core>
+#include <boost/geometry/index/parameters.hpp>
+#include <functional>
+#include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <cstddef>
+#include <boost/geometry/algorithms/convert.hpp>
+#include <array>
+#include <boost/geometry/index/predicates.hpp>
+#include <iterator>
+#include <exception>
 #include <libnest2d/backends/libslic3r/geometries.hpp>
+#include "libnest2d/common.hpp"
+#include "libnest2d/geometry_traits_nfp.hpp"
+#include "libnest2d/nester.hpp"
+#include "libnest2d/geometry_traits.hpp"
 #include <libnest2d/optimizers/nlopt/subplex.hpp>
 #include <libnest2d/placers/nfpplacer.hpp>
 #include <libnest2d/selections/firstfit.hpp>
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include <numeric>
-#include <ClipperUtils.hpp>
 
 #include <boost/geometry/index/rtree.hpp>
+#include <utility>
+#include <vector>
+#include <tuple>
+#include <set>
+#include <string>
 
 #if defined(_MSC_VER) && defined(__clang__)
 #define BOOST_NO_CXX17_HDR_STRING_VIEW
@@ -21,6 +44,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/multiprecision/integer.hpp>
 #include <boost/rational.hpp>
+#include "MultiMaterialSegmentation.hpp"
 
 namespace libnest2d {
 #if !defined(_MSC_VER) && defined(__SIZEOF_INT128__) && !defined(__APPLE__)
@@ -55,7 +79,7 @@ namespace Slic3r {
 
 template<class Tout = double, class = FloatingOnly<Tout>, int...EigenArgs>
 inline constexpr Eigen::Matrix<Tout, 2, EigenArgs...> unscaled(
-    const Slic3r::ClipperLib::IntPoint &v) noexcept
+    const Slic3r::Point &v) noexcept
 {
     return Eigen::Matrix<Tout, 2, EigenArgs...>{unscaled<Tout>(v.x()),
                                                 unscaled<Tout>(v.y())};
@@ -69,7 +93,6 @@ using namespace libnest2d;
 using Item         = _Item<ExPolygon>;
 using Box          = _Box<Point>;
 using Circle       = _Circle<Point>;
-using Segment      = _Segment<Point>;
 using MultiPolygon = ExPolygons;
 
 // Summon the spatial indexing facilities from boost
@@ -405,7 +428,7 @@ protected:
         // 2) X distance of item corner to bed corner (low weight)
         // 3) item row occupancy (useful when rotation is enabled)
         // 4）需要允许往屏蔽区域的左边或下边去一点，不然很多物体可能认为摆不进去，实际上我们最后是可以做平移的
-    double dist_for_BOTTOM_LEFT(Box ibb, const ClipperLib::IntPoint& origin_pack)
+    double dist_for_BOTTOM_LEFT(Box ibb, const Slic3r::Point& origin_pack)
     {
         double dist_corner_y = ibb.minCorner().y() - origin_pack.y();
         double dist_corner_x = ibb.minCorner().x() - origin_pack.x();
@@ -421,7 +444,7 @@ protected:
         return bindist;
     }
 
-    double dist_to_bin(const Box& ibb, const ClipperLib::IntPoint& origin_pack, typename Packer::PlacementConfig::Alignment starting_point_alignment)
+    double dist_to_bin(const Box& ibb, const Slic3r::Point& origin_pack, typename Packer::PlacementConfig::Alignment starting_point_alignment)
     {
         double bindist = 0;
         if (starting_point_alignment == PConfig::Alignment::BOTTOM_LEFT)
@@ -439,7 +462,7 @@ protected:
     // as it possibly can be but at the same time, it has to provide
     // reasonable results.
     std::tuple<double /*score*/, Box /*farthest point from bin center*/>
-    objfunc(const Item &item, const ClipperLib::IntPoint &origin_pack)
+    objfunc(const Item &item, const Slic3r::Point &origin_pack)
     {
         const double bin_area = m_bin_area;
         const SpatIndex& spatindex = m_rtree;
@@ -797,7 +820,7 @@ public:
                     }
                 });
 
-        m_pck.unfitIndicator([this](std::string name) {
+        m_pck.unfitIndicator([](std::string name) {
             BOOST_LOG_TRIVIAL(debug) << "arrange progress: " + name;
                 });
 
@@ -1014,7 +1037,12 @@ void _arrange(
 inline Box to_nestbin(const BoundingBox &bb) { return Box{{bb.min(X), bb.min(Y)}, {bb.max(X), bb.max(Y)}};}
 inline Circle to_nestbin(const CircleBed &c) { return Circle({c.center()(0), c.center()(1)}, c.radius()); }
 inline ExPolygon to_nestbin(const Polygon &p) { return ExPolygon{p}; }
-inline Box to_nestbin(const InfiniteBed &bed) { return Box::infinite({bed.center.x(), bed.center.y()}); }
+// libnest2d's infinite box reaches the int64 limit, where Clipper2's double math is no longer exact.
+inline Box to_nestbin(const InfiniteBed &bed)
+{
+    const coord_t r = coord_t(1) << 50;
+    return Box{{bed.center.x() - r, bed.center.y() - r}, {bed.center.x() + r, bed.center.y() + r}};
+}
 
 inline coord_t width(const BoundingBox& box) { return box.max.x() - box.min.x(); }
 inline coord_t height(const BoundingBox& box) { return box.max.y() - box.min.y(); }
@@ -1122,8 +1150,6 @@ void arrange(ArrangePolygons &      arrangables,
              const BedT &           bed,
              const ArrangeParams &  params)
 {
-    namespace clppr = Slic3r::ClipperLib;
-
     std::vector<Item> items, fixeditems;
     items.reserve(arrangables.size());
 

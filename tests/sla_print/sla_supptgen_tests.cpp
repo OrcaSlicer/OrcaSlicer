@@ -1,8 +1,20 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "test_utils.hpp"
 
-#include <libslic3r/ExPolygon.hpp>
+#include <cstddef>
+#include <iterator>
 #include <libslic3r/BoundingBox.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SLA/SpatIndex.hpp"
+#include <limits>
+#include "libslic3r/SLA/SupportPointGenerator.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/SLA/Hollowing.hpp"
 
 #include "sla_test_utils.hpp"
 

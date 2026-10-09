@@ -1,20 +1,34 @@
 #include "FixModelByCgal.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <exception>
+#include <cstddef>
+#include "libslic3r/Exception.hpp"
 #include <limits>
 #include <mutex>
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
+#include <wx/string.h>
 
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/format.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../GUI/I18N.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
 // Orca: This file provides utilities for repairing 3D model meshes using the CGAL library, handling mesh splitting, merging, and boolean operations.
 
@@ -69,6 +83,9 @@ public:
 // Returns false if fixing was canceled. fix_result contains error message if failed.
 bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result, bool keep_painting)
 {
+    // Hold SaveObjectGaurd to prevent backup manager from racing concurrent mesh mutations (use-after-free).
+    SaveObjectGaurd backup_gaurd(model_object);
+
     // Orca: Synchronization primitives for progress updates between worker thread and GUI.
     std::mutex mtx;
     std::condition_variable condition;

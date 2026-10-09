@@ -1,20 +1,31 @@
 #include "3DPrinterOS.hpp"
 
 #include <algorithm>
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include <boost/optional/optional.hpp>
 #include <sstream>
+#include <string>
+#include <system_error>
 #include <exception>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <nlohmann/json.hpp>
 
+#include <wx/arrstr.h>
+#include <wx/gdicmn.h>
+#include <utility>
 #include <wx/progdlg.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/dialog.h>
 #include <wx/radiobut.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -28,9 +39,10 @@
 
 #include "Http.hpp"
 #include <wx/busyinfo.h>
+#include <wx/timer.h>
+#include <wx/utils.h>
 
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace {
@@ -323,7 +335,7 @@ bool C3DPrinterOS::login(wxString& msg) const
     msg.clear();
     std::string token = get_api_auth_token(msg);
     if (token.empty()) {
-        msg = _L("Error. Can't get api token for authorization");
+        msg = _L("Error. Can't get API token for authorization");
         return false;
     }
 
@@ -577,9 +589,10 @@ bool C3DPrinterOS::save_api_session(const std::string &session, const std::strin
     j.put("session", session);
     j.put("email", email);
     try {
-        auto temp_path = m_api_session_file_path + ".tmp";
-        pt::write_json(temp_path, j);
-        boost::filesystem::rename(temp_path, m_api_session_file_path);
+        std::ostringstream json;
+        pt::write_json(json, j);
+        if (const std::error_code ec = write_file_atomically(m_api_session_file_path, json.str()))
+            throw std::system_error(ec);
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to write json to file. Path = "
                                  << m_api_session_file_path
@@ -627,7 +640,7 @@ void C3DPrinterOS::send_form(
             responseTree.put("result", false);
             responseTree.put("message", error);
         })
-        .on_complete([&, this](std::string body, unsigned) {
+        .on_complete([&](std::string body, unsigned) {
             std::stringstream ss(body);
             try {
                 pt::read_json(ss, responseTree);

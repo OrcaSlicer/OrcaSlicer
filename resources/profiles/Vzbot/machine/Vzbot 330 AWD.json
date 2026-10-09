@@ -8,5 +8,5 @@
 	"bed_model": "Vz330SlicerBedModel-cnc.stl",
 	"bed_texture": "VzBot_PS_bed_330.svg",
 	"hotend_model": "Goliath.stl",
-	"default_materials": "Vzbot Generic ABS;Vzbot Generic PLA;Vzbot Generic PLA-CF;Vzbot Generic PETG;Vzbot Generic TPU;Vzbot Generic ASA;Vzbot Generic PC;Vzbot Generic PVA;Vzbot Generic PA;Vzbot Generic PA-CF"
+	"default_materials": "Generic ABS @Vzbot;Generic PLA @Vzbot;Generic PLA-CF @Vzbot;Generic PETG @Vzbot;Generic TPU @Vzbot;Generic ASA @Vzbot;Generic PC @Vzbot;Generic PVA @Vzbot;Generic PA @Vzbot;Generic PA-CF @Vzbot"
 }

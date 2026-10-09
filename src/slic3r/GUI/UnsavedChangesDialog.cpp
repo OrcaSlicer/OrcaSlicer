@@ -1,17 +1,56 @@
 #include "UnsavedChangesDialog.hpp"
 
+#include <cmath>
+#include <boost/algorithm/string/replace.hpp>
+#include <cassert>
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include "slic3r/GUI/Event.hpp"
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include <set>
+#include <iterator>
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 
+#include <wx/colour.h>
+#include <wx/dataview.h>
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/dvrenderers.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/stattext.h>
+#include <wx/dialog.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/settings.h>
 #include <wx/tokenzr.h>
+#include <wx/utils.h>
+#include <wx/variant.h>
+#include <wx/window.h>
+#include <wx/toplevel.h>
 
+#include "CalibUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
 #include "format.hpp"
+#include "ConfigValueFormatter.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
@@ -22,12 +61,8 @@
 #include "MsgDialog.hpp"
 
 #include "PresetComboBoxes.hpp"
-#include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
-
-using boost::optional;
 
 #ifdef __linux__
 #define wxLinux true
@@ -571,14 +606,6 @@ void DiffModel::Clear()
 }
 
 
-static std::string get_pure_opt_key(std::string opt_key)
-{
-    const int pos = opt_key.find("#");
-    if (pos > 0)
-        boost::erase_tail(opt_key, opt_key.size() - pos);
-    return opt_key;
-}
-
 // ----------------------------------------------------------------------------
 //                  DiffViewCtrl
 // ----------------------------------------------------------------------------
@@ -591,6 +618,7 @@ DiffViewCtrl::DiffViewCtrl(wxWindow* parent, wxSize size)
     ),
     m_em_unit(em_unit(parent))
 {
+    SetBackgroundColour(wxColour("#FFFFFF"));
     wxGetApp().UpdateDVCDarkUI(this);
 
     model = new DiffModel(parent);
@@ -865,7 +893,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
     m_action_line = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE, 0);
     m_action_line->SetFont(::Label::Body_13);
-    m_action_line->SetForegroundColour(GREY900);
+    m_action_line->SetForegroundColour(wxColour("#363636"));
     m_action_line->Wrap(-1);
     m_sizer_main->Add(m_action_line, 0, wxLEFT | wxRIGHT, 20);
 
@@ -878,11 +906,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     }
 
     m_panel_tab = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.x, -1), wxTAB_TRAVERSAL);
-    m_panel_tab->SetBackgroundColour(GREY200);
+    m_panel_tab->SetBackgroundColour(wxColour("#D9D9D9"));
     wxBoxSizer *m_sizer_tab = new wxBoxSizer(wxVERTICAL);
 
     m_table_top = new wxPanel(m_panel_tab, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    m_table_top->SetBackgroundColour(wxColour(107, 107, 107));
+    m_table_top->SetBackgroundColour(wxColour("#D9D9D9"));
 
     wxBoxSizer *m_sizer_top = new wxBoxSizer(wxHORIZONTAL);
 
@@ -894,7 +922,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     static_temp_title            = new wxStaticText(m_panel_temp, wxID_ANY, _L("Settings"), wxDefaultPosition, wxDefaultSize, 0);
     static_temp_title->SetFont(::Label::Body_13);
     static_temp_title->Wrap(-1);
-    static_temp_title->SetForegroundColour(*wxWHITE);
+    static_temp_title->SetForegroundColour(wxColour("#363636"));
     top_title_temp_h->Add(static_temp_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
     top_title_temp_v->Add(top_title_temp_h, 1, wxALIGN_CENTER, 0);
     m_panel_temp->SetSizer(top_title_temp_v);
@@ -913,7 +941,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, params ? _L(DevPrinterConfigUtil::get_toolhead_display_name(ucd_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase)) + ": " + get_nozzle_volume_type_name(params->nozzle) : _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
     static_oldv_title->SetFont(::Label::Body_13);
     static_oldv_title->Wrap(-1);
-    static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : *wxWHITE);
+    static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
     top_title_oldv_h->Add(static_oldv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
     top_title_oldv->Add(top_title_oldv_h, 1, wxALIGN_CENTER, 0);
     m_panel_oldv->SetSizer(top_title_oldv);
@@ -933,7 +961,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
                                          wxDefaultPosition, wxDefaultSize, 0);
     static_newv_title->SetFont(::Label::Body_13);
     static_newv_title->Wrap(-1);
-    static_newv_title->SetForegroundColour(params && !params->left_to_right ? wxGetApp().get_label_clr_modified() : *wxWHITE);
+    static_newv_title->SetForegroundColour(params && !params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
 
     top_title_newv_h->Add(static_newv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
 
@@ -950,7 +978,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_tab->Add(m_table_top, 1, 0, 0);
 
     m_scrolledWindow = new wxScrolledWindow(m_panel_tab, wxID_ANY, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE,  wxNO_BORDER|wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(0, 5);
+    m_scrolledWindow->SetScrollRate(0, FromDIP(20));
     m_scrolledWindow->SetBackgroundColour(GREY200);
     m_sizer_bottom = new wxBoxSizer(wxVERTICAL);
     m_sizer_bottom->Add(m_scrolledWindow, 1, wxEXPAND, 0);
@@ -983,8 +1011,14 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
-        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
-        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        auto wiki_url = "https://www.orcaslicer.com/wiki/transfer_discard_changes";
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+        m_sizer_button->Add(wiki_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     }
 
     m_sizer_button->Add(0, 0, 1, 0, 0);
@@ -1212,32 +1246,6 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
     return true;
 }
 
-wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConfig& config, bool is_infill = false, int idx = -1)
-{
-    const ConfigOptionDef& def = config.def()->options.at(opt_key);
-    const std::vector<std::string>& names = def.enum_labels;//ConfigOptionEnum<T>::get_enum_names();
-    int val = 0;
-
-    if (idx >= 0)
-        val = dynamic_cast<const ConfigOptionInts*>(config.option(opt_key))->get_at(idx);
-    else
-        val = config.option(opt_key)->getInt();
-
-    // Each infill doesn't use all list of infill declared in PrintConfig.hpp.
-    // So we should "convert" val to the correct one
-    if (is_infill) {
-        for (auto key_val : *def.enum_keys_map)
-            if (int(key_val.second) == val) {
-                auto it = std::find(def.enum_values.begin(), def.enum_values.end(), key_val.first);
-                if (it == def.enum_values.end())
-                    return "";
-                return from_u8(_utf8(names[it - def.enum_values.begin()]));
-            }
-        return _L("Undefined");
-    }
-    return from_u8(_utf8(names[val]));
-}
-
 // BBS
 #if 0
 static size_t get_id_from_opt_key(std::string opt_key)
@@ -1250,194 +1258,6 @@ static size_t get_id_from_opt_key(std::string opt_key)
     return 0;
 }
 #endif
-
-static wxString get_full_label(std::string opt_key, const DynamicPrintConfig& config)
-{
-    opt_key = get_pure_opt_key(opt_key);
-    auto option = config.option(opt_key);
-
-    if (!option || option->is_nil())
-        return _L("N/A");
-
-    const ConfigOptionDef* opt = config.def()->get(opt_key);
-    return opt->full_label.empty() ? opt->label : opt->full_label;
-}
-
-static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& config)
-{
-    int orig_opt_idx = -1;
-    int opt_idx = -1;
-    int pos = opt_key.find("#");
-    std::string temp_str = opt_key;
-    if (pos > 0) {
-        boost::erase_head(temp_str, pos + 1);
-        orig_opt_idx = static_cast<size_t>(atoi(temp_str.c_str()));
-    }
-    opt_idx = orig_opt_idx >= 0 ? orig_opt_idx : 0;
-    opt_key = get_pure_opt_key(opt_key);
-    auto option = config.option(opt_key);
-    if (!option) {
-        return _L("N/A");
-    }
-    auto opt_vector = dynamic_cast<const ConfigOptionVectorBase *>(option);
-
-    if (option->is_scalar() && config.option(opt_key)->is_nil() ||
-        option->is_vector() && opt_vector && opt_idx >= 0 && opt_idx < opt_vector->size() && opt_vector->is_nil(opt_idx))
-        return _L("N/A");
-
-    wxString out;
-
-    const ConfigOptionDef* opt = config.def()->get(opt_key);
-    bool is_nullable = opt->nullable;
-
-    switch (opt->type) {
-    case coInt:
-        return from_u8((boost::format("%1%") % config.opt_int(opt_key)).str());
-    case coInts: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionIntsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return from_u8((boost::format("%1%") % values->get_at(opt_idx)).str());
-        }
-        else {
-            auto values = config.opt<ConfigOptionInts>(opt_key);
-            if (orig_opt_idx >= 0 && orig_opt_idx < values->size()) {
-                return from_u8((boost::format("%1%") % values->get_at(opt_idx)).str());
-            }
-            else {
-                std::string value_str;
-                for (int i = 0; i < values->size(); i++) {
-                    value_str += std::to_string(values->get_at(i));
-                    if (i != values->size() - 1) {
-                        value_str += ",";
-                    }
-                }
-                return from_u8(value_str);
-            }
-        }
-        return _L("Undefined");
-    }
-    case coBool:
-        return config.opt_bool(opt_key) ? "true" : "false";
-    case coBools: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionBoolsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return values->get_at(opt_idx) ? "true" : "false";
-        }
-        else {
-            auto values = config.opt<ConfigOptionBools>(opt_key);
-            if (opt_idx < values->size())
-                return values->get_at(opt_idx) ? "true" : "false";
-        }
-        return _L("Undefined");
-    }
-    case coPercent:
-        return from_u8((boost::format("%1%%%") % int(config.optptr(opt_key)->getFloat())).str());
-    case coPercents: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionPercentsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
-        }
-        else {
-            auto values = config.opt<ConfigOptionPercents>(opt_key);
-            if (opt_idx < values->size())
-                return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
-        }
-        return _L("Undefined");
-    }
-    case coFloat:
-        return double_to_string(config.opt_float(opt_key));
-    case coFloats: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionFloatsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return double_to_string(values->get_at(opt_idx));
-        }
-        else {
-            auto values = config.opt<ConfigOptionFloats>(opt_key);
-            if (values && opt_idx < values->size())
-                return double_to_string(values->get_at(opt_idx));
-        }
-        return _L("Undefined");
-    }
-    case coString:
-        return from_u8(config.opt_string(opt_key));
-    case coStrings: {
-        const ConfigOptionStrings* strings = config.opt<ConfigOptionStrings>(opt_key);
-        if (strings) {
-            if (opt_key == "compatible_printers" || opt_key == "compatible_prints") {
-                if (strings->empty())
-                    return _L("All");
-                for (size_t id = 0; id < strings->size(); id++)
-                    out += from_u8(strings->get_at(id)) + "\n";
-                out.RemoveLast(1);
-                return out;
-            }
-            if (!strings->empty() && opt_idx < strings->values.size())
-                return from_u8(strings->get_at(opt_idx));
-        }
-        break;
-        }
-    case coFloatOrPercent: {
-        const ConfigOptionFloatOrPercent* opt = config.opt<ConfigOptionFloatOrPercent>(opt_key);
-        if (opt)
-            out = double_to_string(opt->value) + (opt->percent ? "%" : "");
-        return out;
-    }
-    case coEnum: {
-        return get_string_from_enum(opt_key, config,
-            opt_key == "top_surface_pattern" ||
-            opt_key == "bottom_surface_pattern" ||
-            opt_key == "internal_solid_infill_pattern" ||
-            opt_key == "sparse_infill_pattern" ||
-            opt_key == "ironing_pattern" ||
-            opt_key == "support_ironing_pattern" ||
-            opt_key == "support_pattern" ||
-            opt_key == "support_interface_pattern")
-            ;
-    }
-    case coEnums: {
-        return get_string_from_enum(opt_key, config,
-            opt_key == "top_surface_pattern" ||
-            opt_key == "bottom_surface_pattern" ||
-            opt_key == "internal_solid_infill_pattern" ||
-            opt_key == "sparse_infill_pattern" ||
-            opt_key == "ironing_pattern" ||
-            opt_key == "support_ironing_pattern" ||
-            opt_key == "support_pattern" ||
-            opt_key == "support_interface_pattern"
-            , opt_idx);
-    }
-    case coPoint: {
-        Vec2d val = config.opt<ConfigOptionPoint>(opt_key)->value;
-        return from_u8((boost::format("[%1%]") % ConfigOptionPoint(val).serialize()).str());
-    }
-    case coPoints: {
-        //BBS: add bed_exclude_area
-        if (opt_key == "printable_area" || opt_key == "thumbnails") {
-            ConfigOptionPoints points = *config.option<ConfigOptionPoints>(opt_key);
-            //BuildVolume build_volume = {points.values, 0.};
-            return get_thumbnails_string(points.values);
-        }
-        else if (opt_key == "bed_exclude_area") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
-        }
-        else if (opt_key == "head_wrap_detect_zone") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
-        }
-        else if (opt_key == "wrapping_exclude_area") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
-        }
-        Vec2d val = config.opt<ConfigOptionPoints>(opt_key)->get_at(opt_idx);
-        return from_u8((boost::format("[%1%]") % ConfigOptionPoint(val).serialize()).str());
-    }
-    default:
-        break;
-    }
-    return out;
-}
 
 void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header)
 {
@@ -1707,12 +1527,20 @@ std::string UnsavedChangesDialog::subreplace(std::string resource_str, std::stri
 
 void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig * config, int from, int to)
 {
-    Search::OptionsSearcher &searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex &index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     for (const std::string &opt_key : config->keys()) {
         int                   variant_index = -2;
-        const Search::Option &option        = searcher.get_option(opt_key, type, variant_index);
+        Search::Option        option        = index.get_option(opt_key, type, variant_index);
+        if (variant_index == -2) {
+            // Orca: Every transferred setting must remain visible even when it is absent from the search index.
+            const ConfigOptionDef* def = print_config_def.get(opt_key);
+            const std::string label = def ? (def->full_label.empty() ? def->label : def->full_label) : std::string();
+            option.label_local = (label.empty() ? from_u8(opt_key) : _L(label)).ToStdWstring();
+            option.category_local = (def && !def->category.empty() ?
+                Tab::translate_category(from_u8(def->category), type) : _L("Others")).ToStdWstring();
+        }
         auto category = option.category_local;
         auto opt = dynamic_cast<ConfigOptionVectorBase*>(config->option(opt_key));
         std::string           value_from    = opt->vserialize()[from];
@@ -1724,8 +1552,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig * config
 
 void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* presets_)
 {
-    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     // list of the presets with unsaved changes
     std::vector<PresetCollection*> presets_list;
@@ -1739,6 +1567,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
     }
     else
         presets_list.emplace_back(presets_);
+
+    const bool multiple_extruders = wxGetApp().preset_bundle->get_printer_extruder_count() > 1;
 
     // Display a dialog showing the dirty options in a human readable form.
     for (PresetCollection* presets : presets_list)
@@ -1775,29 +1605,41 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
 
         auto variant_key      = Preset::get_iot_type_string(type) + "_extruder_variant";
         auto id_key           = Preset::get_iot_type_string(type) + "_extruder_id";
-        auto extruder_variant = dynamic_cast<ConfigOptionStrings const *>(old_config.option(variant_key));
-        auto extruder_id      = dynamic_cast<ConfigOptionInts const *>(old_config.option(id_key));
+        // Orca: Dirty indices belong to the edited config, which may contain newly added variants.
+        auto extruder_variant = dynamic_cast<ConfigOptionStrings const *>(new_config.option(variant_key));
+        auto extruder_id      = dynamic_cast<ConfigOptionInts const *>(new_config.option(id_key));
 
         for (const std::string& opt_key : dirty_options) {
             int variant_index = -2;
-            const Search::Option &option = searcher.get_option(opt_key, type, variant_index);
-            if (option.opt_key() != opt_key && variant_index < -1) {
+            const Search::Option &option = index.get_option(opt_key, type, variant_index);
+            if (variant_index == -2) {
                 // When founded option isn't the correct one.
                 // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
-                // because of they don't exist in searcher
+                // because of they don't exist in the index
                 continue;
             }
-            auto category = option.category_local;
-            if (variant_index >= 0) {
-                if (printer_options_with_variant_2.count(opt_key.substr(0, opt_key.find_last_of('#'))) > 0)
-                    variant_index /= 2;
-                if (boost::nowide::narrow(category).find("Extruder ") == 0)
-                    category = category.substr(0, 8);
-                if (extruder_id)
-                    category = category + (wxString(" {") + (extruder_id->values[variant_index] == 1 ? _L("Left: ") : _L("Right: "))
-                            + L(extruder_variant->values[variant_index]) + "}");
-                else
-                    category = category + (wxString(" {") + L(extruder_variant->values[variant_index]) + "}");
+            wxString category = option.category_local;
+            wxString label = option.label_local;
+            if (type == Preset::TYPE_PRINTER && variant_index >= 0 &&
+                printer_options_with_variant_2.count(get_pure_opt_key(opt_key)) > 0) {
+                // Orca: silent_mode is obsolete on import, but its option and two-column UI still exist.
+                // Keep mode labels for configs that explicitly enable it; omit them in the default single-mode UI.
+                if (new_config.opt_bool("silent_mode"))
+                    label += " (" + (variant_index % 2 == 0 ? _L("Normal") : _L("Silent")) + ")";
+                variant_index /= 2;
+            }
+            if (variant_index >= 0 && extruder_variant && variant_index < extruder_variant->size()) {
+                // Orca: Match the untranslated category and use the same extruder names as the printer tabs.
+                if (option.category.compare(0, 9, L"Extruder ") == 0)
+                    category = _L("Extruder");
+                wxString variant_label = L(extruder_variant->values[variant_index]);
+                // Orca: An extruder name only disambiguates variants on printers with multiple extruders.
+                if (multiple_extruders && extruder_id && variant_index < extruder_id->size() && extruder_id->values[variant_index] > 0) {
+                    const wxString extruder_name = Tab::translate_category(
+                        wxString::Format("Extruder %d", extruder_id->values[variant_index]), Preset::TYPE_PRINTER);
+                    variant_label = extruder_name + " (" + variant_label + ")";
+                }
+                category = variant_label + ": " + category;
             }
 
             /*m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
@@ -1806,14 +1648,14 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
 
             //PresetItem pi = {opt_key, type, 1983};
             //m_presetitems.push_back()
-            PresetItem pi = {type, opt_key, category, option.group_local, option.label_local, get_string_value(opt_key, old_config), get_string_value(opt_key, new_config)};
+            PresetItem pi = {type, opt_key, category, option.group_local, label, get_string_value(opt_key, old_config), get_string_value(opt_key, new_config)};
             m_presetitems.push_back(pi);
 
         }
     }
 
-    // Revert sort of searcher back
-    searcher.sort_options_by_label();
+    // Revert sort of index back
+    index.sort_options_by_label();
 }
 
 void UnsavedChangesDialog::on_dpi_changed(const wxRect& suggested_rect)
@@ -2162,8 +2004,9 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     assert(wxGetApp().preset_bundle);
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    // show() copies the app's bundle into both before anything is displayed.
+    m_preset_bundle_left  = std::make_unique<PresetBundle>();
+    m_preset_bundle_right = std::make_unique<PresetBundle>();
 
     // Create UI items
 
@@ -2265,8 +2108,8 @@ void DiffPresetDialog::update_bottom_info(wxString bottom_info)
 
 void DiffPresetDialog::update_tree()
 {
-    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     m_tree->Clear();
     wxString bottom_info = "";
@@ -2346,14 +2189,14 @@ void DiffPresetDialog::update_tree()
             wxString right_val = get_string_value(opt_key, right_congig);
 
             const std::string lookup_key = get_pure_opt_key(opt_key);
-            Search::Option option = searcher.get_option(lookup_key, get_full_label(lookup_key, left_config), type);
+            Search::Option option = index.get_option(lookup_key, get_full_label(lookup_key, left_config), type);
             if (get_pure_opt_key(option.opt_key()) != lookup_key)
-                option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
+                option = index.get_option(opt_key, get_full_label(opt_key, left_config), type);
             if (get_pure_opt_key(option.opt_key()) != lookup_key) {
                 // When the found option is not the requested one.
                 // This can happen for dirty_options such as:
                 // "default_print_profile", "printer_model", "printer_settings_id",
-                // because they do not exist in the searcher.
+                // because they do not exist in the index.
                 continue;
             }
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
@@ -2377,8 +2220,8 @@ void DiffPresetDialog::update_tree()
         Refresh();
     }
 
-    // Revert sort of searcher back
-    searcher.sort_options_by_label();
+    // Revert sort of index back
+    index.sort_options_by_label();
 }
 
 void DiffPresetDialog::on_dpi_changed(const wxRect&)

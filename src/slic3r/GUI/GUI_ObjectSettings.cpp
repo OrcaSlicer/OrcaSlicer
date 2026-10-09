@@ -1,22 +1,34 @@
 #include "GUI_ObjectSettings.hpp"
 #include "GUI_ObjectList.hpp"
-#include "GUI_Factories.hpp"
 #include "Tab.hpp"
 #include "MainFrame.hpp"
 
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
-#include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string.hpp>
 
-#include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <memory>
+#include <cstddef>
+#include <wx/dataview.h>
+#include <map>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cassert>
+#include "slic3r/GUI/GUI_ObjectLayers.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
 #include <wx/wupdlock.h>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+namespace Slic3r { class ObjectBase; }
 
 namespace Slic3r
 {
@@ -139,7 +151,7 @@ bool ObjectSettings::update_settings_list()
             optgroup->sidetext_width = 5;
 
             optgroup->m_on_change = [this, config](const t_config_option_key& opt_id, const boost::any& value) {
-                                    this->update_config_values(config);
+                                    this->update_config_values(config, opt_id);
                                     wxGetApp().obj_list()->changed_object(); };
 
             // call back for rescaling of the extracolumn control
@@ -325,7 +337,7 @@ bool ObjectSettings::add_missed_options(ModelConfig* config_to, const DynamicPri
     return is_added;
 }
 
-void ObjectSettings::update_config_values(ModelConfig* config)
+void ObjectSettings::update_config_values(ModelConfig* config, const std::string& changed_opt_key)
 {
     const auto objects_model        = wxGetApp().obj_list()->GetModel();
     const auto item                 = wxGetApp().obj_list()->GetSelection();
@@ -403,6 +415,10 @@ void ObjectSettings::update_config_values(ModelConfig* config)
     }
 
     main_config.apply(config->get(), true);
+
+    if (printer_technology == ptFFF && changed_opt_key == "layer_height")
+        config_manipulation.check_layer_height(&main_config);
+
     printer_technology == ptFFF  ?  config_manipulation.update_print_fff_config(&main_config) :
                                     config_manipulation.update_print_sla_config(&main_config) ;
 

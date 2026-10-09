@@ -116,8 +116,6 @@
 	"deretraction_speed": [
 		"80"
 	],
-	"z_lift_type": "NormalLift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M25",
@@ -125,7 +123,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Chuanying Generic ABS"
+		"Generic ABS @Chuanying"
 	],
 	"default_print_profile": "0.20mm Standard @Chuanying X1",
 	"bed_exclude_area": [

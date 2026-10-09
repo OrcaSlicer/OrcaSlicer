@@ -8,6 +8,19 @@
 #include "Widgets/ComboBox.hpp"
 #include "DragCanvas.hpp"
 #include "libslic3r/ParameterUtils.hpp"
+#include <wx/event.h>
+#include <vector>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/colour.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -62,6 +75,9 @@ public:
     int get_layers_print_seq_choice() { return m_other_layer_print_seq_choice->GetSelection(); };
 
     std::vector<LayerSeqInfo> get_layers_print_seq_infos() { return m_layer_seq_infos; }
+    // Lets callers grey out the sequence choice (e.g. when a mixed filament makes a
+    // user-defined filament order impossible).
+    void enable_seq_choice(bool enable) { m_other_layer_print_seq_choice->Enable(enable); }
 
 protected:
     void append_layer(const LayerSeqInfo* layer_info = nullptr);

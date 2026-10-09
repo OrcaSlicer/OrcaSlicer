@@ -3,6 +3,11 @@
 
 #include <assert.h>
 #include <algorithm>
+#include <boost/container_hash/hash.hpp>
+#include <cctype>
+#include <initializer_list>
+#include <limits>
+#include <cmath>
 #include <map>
 #include <climits>
 #include <cfloat>
@@ -10,10 +15,15 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <optional>
+#include <sstream>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+#include "LocalesUtils.hpp"
 #include "libslic3r.h"
 #include "clonable_ptr.hpp"
 #include "Exception.hpp"
@@ -28,6 +38,9 @@
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
+// The serialize() members below archive ConfigOption hierarchies through
+// cereal::base_class, whose registration machinery lives in polymorphic.hpp.
+#include <cereal/types/polymorphic.hpp>
 
 namespace Slic3r {
     struct FloatOrPercent
@@ -694,7 +707,8 @@ public:
                 }
             } else {
                 // Resize by duplicating the last value.
-                this->values.resize(n, this->values./*back*/front());
+                T v = this->values./*back*/front();
+                this->values.resize(n, v);
             }
         }
     }
@@ -769,8 +783,10 @@ public:
 
         if (this->values.empty())
             this->values.resize(rhs_vec->size());
-        else
-            this->values.resize(rhs_vec->size(), this->values.front());
+        else {
+            T v = this->values.front();
+            this->values.resize(rhs_vec->size(), v);
+        }
 
         assert(default_index.size() == rhs_vec->size());
 
@@ -1003,6 +1019,7 @@ public:
     int                     getInt() const override { return this->value; }
     void                    setInt(int val) override { this->value = val; }
     ConfigOption*           clone()  const override { return new ConfigOptionInt(*this); }
+    using ConfigOptionSingle<int>::operator==;
     bool                    operator==(const ConfigOptionInt &rhs) const throw() { return this->value == rhs.value; }
 
     std::string serialize() const override
@@ -1045,6 +1062,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionIntsTempl(*this); }
     ConfigOptionIntsTempl&  operator= (const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<int>::operator==;
     bool                    operator==(const ConfigOptionIntsTempl &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionIntsTempl &rhs) const throw() { return this->values <  rhs.values; }
     // Could a special "nil" value be stored inside the vector, indicating undefined value?
@@ -1134,6 +1152,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionString(*this); }
     ConfigOptionString&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<std::string>::operator==;
     bool                    operator==(const ConfigOptionString &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionString &rhs) const throw() { return this->value <  rhs.value; }
     bool 					empty() const { return this->value.empty(); }
@@ -1168,6 +1187,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionStrings(*this); }
     ConfigOptionStrings&    operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<std::string>::operator==;
     bool                    operator==(const ConfigOptionStrings &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionStrings &rhs) const throw() { return this->values <  rhs.values; }
     bool					is_nil(size_t) const override { return false; }
@@ -1212,6 +1232,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPercent(*this); }
     ConfigOptionPercent&    operator= (const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionFloat::operator==;
     bool                    operator==(const ConfigOptionPercent &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionPercent &rhs) const throw() { return this->value <  rhs.value; }
 
@@ -1254,6 +1275,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPercentsTempl(*this); }
     ConfigOptionPercentsTempl& operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionFloatsTempl<NULLABLE>::operator==;
     bool                    operator==(const ConfigOptionPercentsTempl &rhs) const throw() { return ConfigOptionFloatsTempl<NULLABLE>::vectors_equal(this->values, rhs.values); }
     bool                    operator< (const ConfigOptionPercentsTempl &rhs) const throw() { return ConfigOptionFloatsTempl<NULLABLE>::vectors_lower(this->values, rhs.values); }
 
@@ -1499,6 +1521,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoint(*this); }
     ConfigOptionPoint&      operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<Vec2d>::operator==;
     bool                    operator==(const ConfigOptionPoint &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionPoint &rhs) const throw() { return this->value <  rhs.value; }
 
@@ -1536,6 +1559,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoints(*this); }
     ConfigOptionPoints&     operator= (const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<Vec2d>::operator==;
     bool                    operator==(const ConfigOptionPoints &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionPoints &rhs) const throw()
         { return std::lexicographical_compare(this->values.begin(), this->values.end(), rhs.values.begin(), rhs.values.end(), [](const auto &l, const auto &r){ return l < r; }); }
@@ -1614,6 +1638,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoint3(*this); }
     ConfigOptionPoint3&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<Vec3d>::operator==;
     bool                    operator==(const ConfigOptionPoint3 &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionPoint3 &rhs) const throw()
         { return this->value.x() < rhs.value.x() || (this->value.x() == rhs.value.x() && (this->value.y() < rhs.value.y() || (this->value.y() == rhs.value.y() && this->value.z() < rhs.value.z()))); }
@@ -1857,6 +1882,7 @@ public:
     bool                    getBool()   const override { return this->value; }
     ConfigOption*           clone()     const override { return new ConfigOptionBool(*this); }
     ConfigOptionBool&       operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<bool>::operator==;
     bool                    operator==(const ConfigOptionBool &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionBool &rhs) const throw() { return int(this->value) < int(rhs.value); }
 
@@ -1908,6 +1934,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionBoolsTempl(*this); }
     ConfigOptionBoolsTempl& operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<unsigned char>::operator==;
     bool                    operator==(const ConfigOptionBoolsTempl &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionBoolsTempl &rhs) const throw() { return this->values <  rhs.values; }
     // Could a special "nil" value be stored inside the vector, indicating undefined value?
@@ -2160,6 +2187,7 @@ public:
     ConfigOptionEnumsGenericTempl& operator= (const ConfigOption* opt) { this->set(opt); return *this; }
     bool                        operator< (const ConfigOptionInts& rhs) const throw() { return this->values < rhs.values; }
 
+    using ConfigOptionInts::operator==;
     bool                        operator==(const ConfigOptionInts& rhs) const
     {
         if (rhs.type() != this->type())
@@ -2273,6 +2301,8 @@ public:
         plugin_picker,
         // Raw JSON string value, edited through a dialog behind a button rather than in the row.
         plugin_config,
+        // PrinterAgentChoice
+        printer_agent_select,
     };
 
 	// Identifier of this option. It is stored here so that it is accessible through the by_serialization_key_ordinal map.
@@ -2682,6 +2712,9 @@ public:
     virtual ConfigOption*           optptr(const t_config_option_key &opt_key, bool create = false) = 0;
     // Collect names of all configuration values maintained by this configuration store.
     virtual t_config_option_keys    keys() const = 0;
+    // Set this config's options on target member by member, when target is of this config's static type or
+    // derives from it, and return true. apply() prefers this to looking every key up by name.
+    virtual bool                    apply_to(ConfigBase &/*target*/) const { return false; }
 
 protected:
     // Verify whether the opt_key has not been obsoleted or renamed.
@@ -2733,7 +2766,8 @@ public:
     // Apply all keys of other ConfigBase defined by this->def() to this ConfigBase.
     // An UnknownOptionException is thrown in case some option keys of other are not defined by this->def(),
     // or this ConfigBase is of a StaticConfig type and it does not support some of the keys, and ignore_nonexistent is not set.
-    void apply(const ConfigBase &other, bool ignore_nonexistent = false) { this->apply_only(other, other.keys(), ignore_nonexistent); }
+    void apply(const ConfigBase &other, bool ignore_nonexistent = false)
+        { if (! other.apply_to(*this)) this->apply_only(other, other.keys(), ignore_nonexistent); }
     // Apply explicitely enumerated keys of other ConfigBase defined by this->def() to this ConfigBase.
     // An UnknownOptionException is thrown in case some option keys are not defined by this->def(),
     // or this ConfigBase is of a StaticConfig type and it does not support some of the keys, and ignore_nonexistent is not set.
@@ -2808,6 +2842,9 @@ public:
 
     //BBS: add json support
     void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    // Same document, written to a stream. Invalid UTF-8 in a string value throws nlohmann's type_error unless
+    // replace_invalid_utf8 is set, which writes U+FFFD instead (for callers such as stdout with no handler).
+    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8 = false) const;
 
     // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
@@ -2980,6 +3017,8 @@ public:
     const double &      opt_float(const t_config_option_key &opt_key, unsigned int idx) const;
     double &            opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx); }
     const double &      opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsNullable *>(this->option(opt_key))->get_at(idx); }
+    FloatOrPercent &    opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx); }
+    const FloatOrPercent & opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(this->option(opt_key))->get_at(idx); }
 
     int&                opt_int(const t_config_option_key &opt_key)                             { return this->option<ConfigOptionInt>(opt_key)->value; }
     int                 opt_int(const t_config_option_key &opt_key) const                       { return dynamic_cast<const ConfigOptionInt*>(this->option(opt_key))->value; }

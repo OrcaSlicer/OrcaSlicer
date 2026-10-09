@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker ABS @U1 base",
 	"from": "system",
 	"setting_id": "xszx4XRGrp88OdP8",
+	"filament_id": "OFJrvXth",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
@@ -21,33 +22,43 @@
 		"2"
 	],
 	"filament_deretraction_speed": [
+		"55",
 		"55"
 	],
 	"filament_max_volumetric_speed": [
+		"31",
 		"31"
 	],
 	"filament_retract_when_changing_layer": [
+		"0",
 		"0"
 	],
 	"filament_retraction_length": [
+		"0.5",
 		"0.5"
 	],
 	"filament_z_hop": [
+		"0",
 		"0"
 	],
 	"filament_retraction_speed": [
+		"55",
 		"55"
 	],
 	"filament_wipe": [
+		"0",
 		"0"
 	],
 	"nozzle_temperature": [
+		"250",
 		"250"
 	],
 	"fan_max_speed": [
+		"50",
 		"50"
 	],
 	"fan_min_speed": [
+		"35",
 		"35"
 	],
 	"slow_down_min_speed": [
@@ -58,5 +69,9 @@
 	],
 	"default_filament_colour": [
 		""
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

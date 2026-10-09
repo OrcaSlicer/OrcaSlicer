@@ -3,12 +3,81 @@
 #include "I18N.hpp"
 
 #include "GUI_App.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/RadioBox.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/MultiTaskManagerPage.hpp"
+#include <map>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <utility>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include <wx/arrstr.h>
+#include <wx/chartype.h>
+#include <wx/layout.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/BitmapCache.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <wx/image.h>
+#include <cstdio>
+#include "slic3r/GUI/Auxiliary.hpp"
+#include <cstddef>
+#include <cstring>
 #include <wx/listimpl.cpp>
+#include <wx/scrolwin.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/tglbtn.h>
+#include <wx/valtext.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/wxcrt.h>
+#include <wx/simplebook.h>
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <boost/filesystem.hpp>
+#include <wx/dcgraph.h>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -277,7 +346,7 @@ SendMultiMachinePage::SendMultiMachinePage(Plater* plater)
 
     m_main_scroll = new ScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     m_main_scroll->SetBackgroundColour(*wxWHITE);
-    m_main_scroll->SetScrollRate(5, 5);
+    m_main_scroll->SetScrollRate(5, FromDIP(20));
 
     m_sizer_body = new wxBoxSizer(wxVERTICAL);
     m_main_page = create_page();
@@ -737,7 +806,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
 
         if (obj && obj->is_online() && !obj->can_abort() && !obj->is_in_upgrading() && it->second->get_state_selected() == 1 && it->second->state_printable <= 2) {
 
-            if (!it->second->is_blocking_printing(obj)) {
+            if (!wxGetApp().is_blocking_printing(obj)) {
                 PrintParams params = request_params(obj);
                 print_params.push_back(params);
             }
@@ -814,13 +883,13 @@ wxBoxSizer* SendMultiMachinePage::create_item_title(wxString title, wxWindow* pa
     wxBoxSizer* m_sizer_title = new wxBoxSizer(wxHORIZONTAL);
 
     auto m_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    m_title->SetForegroundColour(DESIGN_GRAY800_COLOR);
+    m_title->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_title->SetFont(::Label::Head_13);
     m_title->Wrap(-1);
     m_title->SetToolTip(tooltip);
 
     auto m_line = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    m_line->SetBackgroundColour(DESIGN_GRAY400_COLOR);
+    m_line->SetBackgroundColour(SEND_DESIGN_GRAY400_COLOR);
 
     m_sizer_title->Add(m_title, 0, wxALIGN_CENTER | wxALL, 3);
     m_sizer_title->Add(0, 0, 0, wxLEFT, 9);
@@ -843,7 +912,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow*
     m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 8);
 
     auto checkbox_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    checkbox_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     checkbox_title->SetFont(::Label::Body_13);
 
     auto size = checkbox_title->GetTextExtent(title);
@@ -867,12 +936,12 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
 {
     wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
     auto input_title = new wxStaticText(parent, wxID_ANY, str_before);
-    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     input_title->SetFont(::Label::Body_13);
     input_title->SetToolTip(tooltip);
     input_title->Wrap(-1);
 
-    auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, SEND_DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
@@ -880,7 +949,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
     input->GetTextCtrl()->SetValidator(validator);
 
     auto second_title = new wxStaticText(parent, wxID_ANY, str_after, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    second_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     second_title->SetFont(::Label::Body_13);
     second_title->SetToolTip(tooltip);
     second_title->Wrap(-1);
@@ -953,7 +1022,7 @@ void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
                 while (iter != m_material_list.end()) {
                     Material *    item = iter->second;
                     MaterialItem *m    = item->item;
-                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>()); }
+                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), _L("Ext"), 0, std::vector<wxColour>()); }
                     iter++;
                 }
             } else if (rs->m_param_name == "use_ams") {
@@ -1005,7 +1074,7 @@ bool SendMultiMachinePage::get_value_radio(std::string param)
 void SendMultiMachinePage::on_set_finish_mapping(wxCommandEvent& evt)
 {
     auto selection_data = evt.GetString();
-    auto selection_data_arr = wxSplit(selection_data.ToStdString(), '|');
+    auto selection_data_arr = wxSplit(selection_data, '|');
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 
@@ -1337,7 +1406,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_tip_text->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_tip_text->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_tip_text->SetLabel(_L("Please select the devices you would like to manage here (up to 6 devices)"));
-    m_tip_text->SetForegroundColour(DESIGN_GRAY800_COLOR);
+    m_tip_text->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_tip_text->SetFont(::Label::Head_20);
     m_tip_text->Wrap(-1);
 
@@ -1352,7 +1421,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     scroll_macine_list = new wxScrolledWindow(main_page, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(800), FromDIP(300)), wxHSCROLL | wxVSCROLL);
     scroll_macine_list->SetBackgroundColour(*wxWHITE);
-    scroll_macine_list->SetScrollRate(5, 5);
+    scroll_macine_list->SetScrollRate(5, FromDIP(SEND_ITEM_MAX_HEIGHT));
     scroll_macine_list->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(SEND_ITEM_MAX_HEIGHT)));
     scroll_macine_list->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(SEND_ITEM_MAX_HEIGHT)));
 
@@ -1465,10 +1534,10 @@ void SendMultiMachinePage::sync_ams_list()
 
         MaterialItem* item = new MaterialItem(m_main_page, colour_rgb, _L(display_materials[extruder]));
         //item->set_ams_info(wxColour("#CECECE"), "A1", 0, std::vector<wxColour>());
-        item->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>());
+        item->set_ams_info(wxColour("#CECECE"), _L("Ext"), 0, std::vector<wxColour>());
         m_ams_list_sizer->Add(item, 0, wxALL, FromDIP(4));
 
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent& e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent& e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder](wxMouseEvent& e) {
             MaterialHash::iterator iter = m_material_list.begin();
             while (iter != m_material_list.end()) {

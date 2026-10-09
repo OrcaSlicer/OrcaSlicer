@@ -1,13 +1,16 @@
 {
 	"type": "filament",
 	"name": "re3D PC @0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pc",
-	"filament_id": "GFG99",
+	"from": "system",
 	"setting_id": "YVPbVSiVCzjp5ynf",
+	"filament_id": "OFU3QXL7",
+	"instantiation": "true",
 	"filament_settings_id": [
 		"re3D PC @0.8 nozzle"
+	],
+	"filament_type": [
+		"PC"
 	],
 	"compatible_printers": [
 		"re3D Gigabot 4 0.8 nozzle",

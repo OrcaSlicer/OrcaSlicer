@@ -1,5 +1,8 @@
 #include "BoundingBox.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
+#include "libslic3r.h"
+#include <Eigen/Core>
 #include <algorithm>
 #include <assert.h>
 
@@ -8,6 +11,8 @@
 namespace Slic3r {
 
 template BoundingBoxBase<Point, Points>::BoundingBoxBase(const Points &points);
+template void BoundingBoxBase<Point, Points>::construct<0, BoundingBox, Points::const_iterator>(BoundingBox&, Points::const_iterator, Points::const_iterator);
+template void BoundingBoxBase<Point, Points>::construct<1, BoundingBox, Points::const_iterator>(BoundingBox&, Points::const_iterator, Points::const_iterator);
 template BoundingBoxBase<Vec2d>::BoundingBoxBase(const std::vector<Vec2d> &points);
 
 template BoundingBox3Base<Vec3d>::BoundingBox3Base(const std::vector<Vec3d> &points);

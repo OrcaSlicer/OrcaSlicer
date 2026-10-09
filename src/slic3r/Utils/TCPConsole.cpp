@@ -1,14 +1,19 @@
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read_until.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/bind/bind.hpp>
+#include <boost/bind/placeholders.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <cstddef>
+#include <chrono>
+#include <exception>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -16,9 +21,6 @@
 #include "TCPConsole.hpp"
 #include "SerialMessage.hpp"
 #include "SerialMessageType.hpp"
-
-using boost::asio::steady_timer;
-using boost::asio::ip::tcp;
 
 namespace Slic3r {
 namespace Utils {

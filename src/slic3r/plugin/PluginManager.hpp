@@ -1,26 +1,30 @@
 #ifndef slic3r_PluginManager_hpp_
 #define slic3r_PluginManager_hpp_
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <libslic3r/Config.hpp>
+#include <libslic3r/LifecycleEvents.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <pybind11/embed.h>
 
 #include "CloudPluginService.hpp"
-#include "PluginFsUtils.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
@@ -143,6 +147,10 @@ public:
     bool try_get_plugin_descriptor_for_capability(const std::string& capability_name,
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
+    // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
+    // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
+    // no user is logged in yet.
+    std::string get_storage_dir(const std::string& plugin_key) const;
 
     std::vector<std::shared_ptr<PluginCapabilityInterface>> get_plugin_capabilities(
         const std::string& plugin_key = "",                            // "" => all plugins
@@ -154,6 +162,8 @@ public:
     std::shared_ptr<PluginCapabilityInterface> get_plugin_capability(const std::string& capability_name,
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
+
+    bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
@@ -204,6 +214,8 @@ public:
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
 
+    void dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx);
+
 private:
     PluginManager()                                = default;
     PluginManager(const PluginManager&)            = delete;
@@ -251,6 +263,9 @@ private:
 
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
+    void mark_plugin_install_state_disabled(const std::string& plugin_key);
+    // Revoke permissions after a package replacement so the new package must request them again.
+    void revoke_plugin_permissions(const std::string& plugin_key);
 
     bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error);
     bool delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error);

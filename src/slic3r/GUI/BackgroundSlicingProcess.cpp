@@ -4,8 +4,26 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 
+#include <cstddef>
+#include <exception>
+#include "libslic3r/Config.hpp"
+#include <cstdint>
+#include <functional>
 #include <libslic3r/Exception.hpp>
+#include <utility>
+#include <string>
+#include <vector>
+#include <new>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Zipper.hpp"
+#include <mutex>
+#include "libslic3r/PrintBase.hpp"
+#include <ostream>
+#include <memory>
+#include "libslic3r/Polygon.hpp"
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/stdpaths.h>
 
@@ -36,7 +54,15 @@
 #include "I18N.hpp"
 // #include "RemovableDriveManager.hpp"
 
+#include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
+#ifdef _WIN32
+#include <excpt.h>
+#endif
 
 namespace Slic3r {
 
@@ -192,7 +218,7 @@ std::string BackgroundSlicingProcess::output_filepath_for_project(const boost::f
 void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
-    PresetBundle& preset_bundle   = *wxGetApp().preset_bundle;
+    PresetBundle& preset_bundle   = *GUI::wxGetApp().preset_bundle;
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
     // BBS: add the logic to process from an existed gcode file
     if (m_print->finished()) {
@@ -701,7 +727,7 @@ StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjec
     assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+    m_fff_print->is_BBL_printer() = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
     return m_print->validate(warnings, collison_polygons, height_polygons);
 }
 
@@ -848,7 +874,9 @@ void BackgroundSlicingProcess::finalize_gcode()
     case CopyFileResult::SUCCESS: break; // no error
     case CopyFileResult::FAIL_COPY_FILE:
         throw Slic3r::ExportError(GUI::format(
-            _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%"),
+            m_export_path_on_removable_media ?
+                _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%") :
+                _L("Copying of the temporary G-code to the output G-code failed.\nError message: %1%"),
             error_message));
         break;
     case CopyFileResult::FAIL_FILES_DIFFERENT:

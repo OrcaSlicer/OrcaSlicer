@@ -9,7 +9,7 @@
 	"printer_model": "Prusa MK3.5",
 	"printer_variant": "0.8",
 	"default_filament_profile": [
-		"Prusa Generic PLA @MK3.5 0.8"
+		"Generic PLA @Prusa MK3.5 0.8"
 	],
 	"default_print_profile": "0.40mm Standard @MK3.5",
 	"nozzle_diameter": [

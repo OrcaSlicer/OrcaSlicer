@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Tough@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_40",
+	"filament_id": "OFQ40XeN",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

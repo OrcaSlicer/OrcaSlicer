@@ -1,8 +1,10 @@
 #ifndef FILAMENT_GROUP_HOVER_HPP
 #define FILAMENT_GROUP_HOVER_HPP
 
+#include <vector>
 #include <wx/bitmap.h>
 #include <wx/bmpbuttn.h>
+#include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/timer.h>
 #include "libslic3r/PrintConfig.hpp"
@@ -27,6 +29,7 @@ public:
     FilamentGroupPopup(wxWindow *parent);
     void tryPopup(Plater* plater,PartPlate* plate, bool slice_all);
     void tryClose();
+    void Dismiss() override;
 
     FilamentMapMode GetSelectedMode() const { return m_mode; }
 private:
@@ -38,7 +41,6 @@ private:
     void OnLeaveWindow(wxMouseEvent &);
     void OnEnterWindow(wxMouseEvent &);
     void OnTimer(wxTimerEvent &event);
-    void Dismiss();
 
     void CreateBmps();
 
@@ -77,10 +79,6 @@ private:
     wxBitmap checked_hover_bmp;
     wxBitmap unchecked_hover_bmp;
     wxBitmap global_tag_bmp;
-
-
-    wxStaticText *wiki_link;
-    wxStaticText *video_link;
 
     StaticBox    *m_smart_filament_panel{nullptr};
     wxSizerItem  *m_smart_filament_spacer{nullptr};

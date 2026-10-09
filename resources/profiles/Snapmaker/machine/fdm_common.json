@@ -7,7 +7,6 @@
 	"pause_gcode": "M600 ;pause print",
 	"nozzle_type": "hardened_steel",
 	"use_relative_e_distances": "1",
-	"silent_mode": "0",
 	"auxiliary_fan": "0",
 	"remaining_times": "1",
 	"single_extruder_multi_material": "0",
