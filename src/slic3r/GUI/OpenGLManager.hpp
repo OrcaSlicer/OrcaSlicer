@@ -47,6 +47,9 @@ public:
         const std::string& get_vendor() const;
         const std::string& get_renderer() const;
 
+        // False until a GL context has been made current and queried; the getters below detect
+        // on first use, which needs a current context.
+        bool is_detected() const { return m_detected; }
         bool is_core_profile() const { return m_core_profile; }
 
         bool is_mesa() const;

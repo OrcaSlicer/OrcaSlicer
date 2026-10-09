@@ -19318,12 +19318,61 @@ void Plater::send_gcode_finish(wxString name)
     auto out_str = GUI::format(_L("The file %s has been sent to the printer's storage space and can be viewed on the printer."), name);
     p->notification_manager->push_exporting_finished_notification(out_str, "", false);
 }
+namespace {
+
+// export_3mf() assigns archive paths to previously unsaved SVGs. Puts them back, so an export that
+// is not a project save does not change what a later project save writes.
+class SvgArchivePathsRestorer
+{
+public:
+    explicit SvgArchivePathsRestorer(Model& model)
+    {
+        for (ModelObject* object : model.objects)
+            for (ModelVolume* volume : object->volumes)
+                if (volume != nullptr && volume->emboss_shape.has_value() && volume->emboss_shape->svg_file.has_value()) {
+                    std::string* path_in_3mf = &volume->emboss_shape->svg_file->path_in_3mf;
+                    m_paths.emplace_back(path_in_3mf, *path_in_3mf);
+                }
+    }
+    ~SvgArchivePathsRestorer() { restore(); }
+    SvgArchivePathsRestorer(const SvgArchivePathsRestorer&)            = delete;
+    SvgArchivePathsRestorer& operator=(const SvgArchivePathsRestorer&) = delete;
+
+    void restore()
+    {
+        for (const auto& [path_in_3mf, previous_path] : m_paths)
+            *path_in_3mf = previous_path;
+    }
+
+private:
+    std::vector<std::pair<std::string*, std::string>> m_paths;
+};
+
+} // namespace
+
 void Plater::export_core_3mf()
 {
     wxString path = p->get_export_file(FT_3MF);
     if (path.empty()) { return; }
     const std::string path_u8 = into_u8(path);
     export_3mf(path_u8, SaveStrategy::Silence);
+}
+
+bool Plater::export_3mf_copy(const boost::filesystem::path& output_path)
+{
+    Model&                  model = p->model;
+    SvgArchivePathsRestorer svg_paths(model);
+
+    // With no design info, export_3mf() writes the signed-in account's user id as the designer; an
+    // empty one keeps it out. export_3mf() also drops design info without a designer name afterwards.
+    const std::shared_ptr<ModelDesignInfo> design_info = model.design_info;
+    if (design_info == nullptr)
+        model.design_info = std::make_shared<ModelDesignInfo>();
+    ScopeGuard restore_design_info([&model, design_info]() { model.design_info = design_info; });
+
+    // The project save's layout, plus Silence so the project file name stays as it is. Unlike a save
+    // it never adds FullPathSources: a copy is for sharing, and those are paths on this machine.
+    return export_3mf(output_path, SaveStrategy::SplitModel | SaveStrategy::ShareMesh | SaveStrategy::Silence) == 0;
 }
 
 // Export the current project as a "published" 3MF: a pure export that never touches the
@@ -19375,19 +19424,10 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
                                                                 std::string();
     const std::string prev_payload        = had_payload ? model.model_info->metadata_items.at(ORCA_PUBLISHED_CONFIG_TAG) : std::string();
 
-    // export_3mf() assigns archive paths to previously unsaved SVGs. Preserve those fields too,
-    // otherwise a publish changes what a later normal project save writes.
-    std::vector<std::pair<std::string*, std::string>> previous_svg_paths;
-    for (ModelObject* object : model.objects)
-        for (ModelVolume* volume : object->volumes)
-            if (volume != nullptr && volume->emboss_shape.has_value() && volume->emboss_shape->svg_file.has_value()) {
-                std::string* path_in_3mf = &volume->emboss_shape->svg_file->path_in_3mf;
-                previous_svg_paths.emplace_back(path_in_3mf, *path_in_3mf);
-            }
+    SvgArchivePathsRestorer svg_paths(model);
 
     auto restore_temporary_state = [&]() {
-        for (const auto& [path_in_3mf, previous_path] : previous_svg_paths)
-            *path_in_3mf = previous_path;
+        svg_paths.restore();
 
         if (!had_model_info) {
             model.model_info = nullptr;

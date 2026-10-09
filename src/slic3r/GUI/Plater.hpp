@@ -565,6 +565,9 @@ public:
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
+    // Write the project to output_path as a copy: the project's file name, dirty state and model stay
+    // as they are, and the signed-in account is not added as the designer. False when the write fails.
+    bool export_3mf_copy(const boost::filesystem::path& output_path);
     // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
     // pure export that leaves the in-memory project untouched.
     int  export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);

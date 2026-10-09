@@ -133,7 +133,7 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
 {
     py::object host = import_orca_module().attr("host");
 
-    for (const char* function_name : { "preset_bundle", "plater", "model" }) {
+    for (const char* function_name : { "preset_bundle", "plater", "model", "app_info", "selected_printer" }) {
         CAPTURE(function_name);
         try {
             host.attr(function_name)();
@@ -143,6 +143,17 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
             CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
         }
     }
+}
+
+TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[PluginHost][Python]")
+{
+    py::object host = import_orca_module().attr("host");
+
+    CHECK(host.attr("gl_info")().is_none());
+
+    py::object plater_type = host.attr("Plater");
+    CHECK(has_attr(plater_type, "project_path"));
+    CHECK(has_attr(plater_type, "export_3mf_copy"));
 }
 
 TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app initialization", "[PluginHost][Python]")
