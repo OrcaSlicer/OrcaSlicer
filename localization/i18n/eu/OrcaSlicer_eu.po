@@ -38148,3 +38148,14 @@ msgstr "CSV fitxategiak ez du punturik."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Estrusio-luzeraren muga uneko inprimagailuaren ohearen tamainaren eta modeloaren puntuen araberakoa da."
 
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Gehieneko puntu kopurua: %d."
+
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+msgid "The curve contains too many points."
+msgstr "Kurbak puntu gehiegi ditu."
+

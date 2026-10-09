@@ -142,6 +142,7 @@ std::string CurveModel::format_number(double value)
 
 bool CurveModel::insert_point(Rows& rows, int& row) const
 {
+    if (rows.size() >= maximum_point_count()) return false;
     std::vector<double> x, y;
     int error_row;
     if (read_points(rows, x, y, error_row) || x.size() < 2) return false;
@@ -194,6 +195,7 @@ const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line)
             header = true;
             continue;
         }
+        if (candidate.size() >= maximum_point_count()) return L("The curve contains too many points.");
         candidate.push_back(std::move(point));
         line_numbers.push_back(current_line);
     }

@@ -41029,3 +41029,12 @@ msgstr "CSV-filen saknar punkter."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Gränsen för extruderingslängd beror på den aktuella skrivarens bäddstorlek och modellpunkter."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Max. antal punkter: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Kurvan har för många punkter."
+

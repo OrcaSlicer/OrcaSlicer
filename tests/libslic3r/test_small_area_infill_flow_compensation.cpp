@@ -35,6 +35,16 @@ public:
     }
 };
 
+class LimitedPointModel : public FlowModel
+{
+public:
+    explicit LimitedPointModel(size_t limit) : m_limit(limit) {}
+    size_t maximum_point_count() const override { return m_limit; }
+
+private:
+    size_t m_limit;
+};
+
 } // namespace
 
 TEST_CASE("CSV import accepts common numeric spreadsheet formats", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
@@ -436,7 +446,7 @@ TEST_CASE("Point insertion uses a preceding interval when the final interval has
 
 TEST_CASE("Repeated curve point insertion keeps all coordinates strictly increasing", "[SmallAreaInfillFlowCompensation][Regression]")
 {
-    const FlowModel model;
+    const LimitedPointModel model(100);
     CurveModel::Rows rows = {{"0", "0"}, {"0.7229999999999986", "0.2472"}, {"0.7230", "0.5476"}, {"10", "1"}};
     for (int insertion = 0; insertion < 80; ++insertion) {
         int row = 2;
@@ -447,6 +457,62 @@ TEST_CASE("Repeated curve point insertion keeps all coordinates strictly increas
     }
     CHECK(rows.front() == CurveModel::Row{"0", "0"});
     CHECK(rows.back() == CurveModel::Row{"10", "1"});
+}
+
+TEST_CASE("Curve point insertion respects the limit supplied by its model", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    const size_t limit = GENERATE(size_t(3), size_t(7));
+    const LimitedPointModel model(limit);
+    auto rows = model.seed_rows();
+    while (rows.size() < limit) {
+        int row = 1;
+        REQUIRE(model.insert_point(rows, row));
+    }
+    const auto full = rows;
+    int row = 1;
+    CHECK_FALSE(model.insert_point(rows, row));
+    CHECK(rows == full);
+    CHECK(row == 1);
+    rows.erase(rows.begin() + 1);
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(rows.size() == limit);
+}
+
+TEST_CASE("CSV import rejects points beyond the model limit without replacing the curve", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
+{
+    const LimitedPointModel model(3);
+    CurveModel::Rows rows = {{"0", "0"}, {"1", "0.5"}, {"2", "1"}};
+    std::string csv;
+    int row;
+    REQUIRE(model.write_csv(rows, csv, row) == nullptr);
+    CurveModel::Rows imported;
+    int line;
+    REQUIRE(model.read_csv(csv, imported, line) == nullptr);
+    CHECK(imported == rows);
+    const auto original = imported;
+    CHECK(model.read_csv("x,y\n0,0\n1,0.25\n2,0.5\n3,1\n", imported, line) != nullptr);
+    CHECK(line == 5);
+    CHECK(imported == original);
+}
+
+TEST_CASE("Saved flow models above the editing limit remain valid and retain all points", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    FlowModel model;
+    CurveModel::Rows rows;
+    for (size_t point = 0; point <= model.maximum_point_count(); ++point) {
+        rows.emplace_back(CurveModel::format_number(double(point)),
+                          CurveModel::format_number(double(point) / double(model.maximum_point_count())));
+    }
+    model.accept_rows(rows);
+    FlowModel restored(model.parameters());
+    CHECK(restored.rows() == rows);
+    std::vector<double> x, y;
+    int row;
+    REQUIRE(restored.read_points(rows, x, y, row) == nullptr);
+    std::string csv;
+    REQUIRE(restored.write_csv(rows, csv, row) == nullptr);
+    CHECK_FALSE(restored.insert_point(rows, row));
+    CHECK(restored.rows() == rows);
 }
 
 TEST_CASE("A curve with no representable insertion interval remains unchanged", "[SmallAreaInfillFlowCompensation][Regression]")

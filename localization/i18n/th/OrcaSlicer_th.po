@@ -38619,3 +38619,14 @@ msgstr "ไฟล์ CSV ไม่มีจุด"
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "ขีดจำกัดความยาวการอัดรีดขึ้นกับขนาดเตียงของเครื่องพิมพ์ปัจจุบันและจุดในโมเดล"
 
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "จำนวนจุดสูงสุด: %d."
+
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+msgid "The curve contains too many points."
+msgstr "เส้นโค้งมีจุดมากเกินไป."
+

@@ -406,7 +406,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     export_button->SetToolTip(_L("Export the current points to CSV. This does not save changes to the preset."));
     auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_load", 10);
     import_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { import_csv(); });
-    import_button->SetToolTip(_L("Import points from two CSV columns in table order. Comma or semicolon separators are supported."));
+    const wxString point_limit = wxString::Format(_L("Maximum number of points: %d."), int(m_model->maximum_point_count()));
+    import_button->SetToolTip(_L("Import points from two CSV columns in table order. Comma or semicolon separators are supported.") +
+                             "\n" + point_limit);
     csv_actions->Add(export_button, 0, wxALIGN_CENTER_VERTICAL);
     csv_actions->Add(import_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
     table_sizer->Add(csv_actions, 0, wxEXPAND | wxTOP, FromDIP(6));
@@ -416,12 +418,16 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         auto* button = make_action_button(m_actions_panel, label, icon);
         button->Bind(wxEVT_BUTTON, handler);
         actions->Add(button, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+        return button;
     };
-    add_button(_L("Add point"), "param_add", [this](wxCommandEvent&) {
+    m_add_point = add_button(_L("Add point"), "param_add", [this](wxCommandEvent&) {
         finish_edit();
         const int count = m_grid->GetNumberRows();
+        if (size_t(count) >= m_model->maximum_point_count()) return;
         if (count == 0) {
-            load_points(m_model->seed_rows());
+            const auto seeds = m_model->seed_rows();
+            if (seeds.size() > m_model->maximum_point_count()) return;
+            load_points(seeds);
         } else {
             std::vector<double> x, y;
             const bool valid = read_points(x, y) && count > 1;
@@ -438,6 +444,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         }
         update_preview();
     });
+    m_add_point->SetToolTip(point_limit);
     add_button(_L("Remove point"), "param_remove", [this](wxCommandEvent&) {
         finish_edit();
         const int row = m_grid->GetGridCursorRow();
@@ -658,6 +665,7 @@ void CurveEditorDialog::refresh_chart_data(const std::vector<double>& x, const s
 
 void CurveEditorDialog::update_preview()
 {
+    m_add_point->Enable(size_t(m_grid->GetNumberRows()) < m_model->maximum_point_count());
     std::vector<double> x, y;
     if (!read_points(x, y)) {
         x.clear();

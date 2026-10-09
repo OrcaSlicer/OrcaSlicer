@@ -38790,3 +38790,12 @@ msgstr "A CSV-fájlban nincs pont."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Az extrudálási hossz korlátja az aktuális nyomtató ágyának méretétől és a modell pontjaitól függ."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Pontok max. száma: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "A görbe túl sok pontot tartalmaz."
+
