@@ -64,11 +64,14 @@ std::vector<AxisTick> axis_ticks(double minimum, double maximum, int pixels, wxD
                 const wxSize extent = dc.GetTextExtent(label);
                 const double position = (value - minimum) / range * pixels;
                 const int size = horizontal ? extent.x : extent.y;
-                if (position - size / 2.0 < previous_end + gap) {
+                // Keep horizontal labels inside the plot, including at either end.
+                const double start = horizontal ?
+                    std::clamp(position - size / 2.0, 0.0, double(std::max(0, pixels - size))) : position - size / 2.0;
+                if ((horizontal && size > pixels) || start < previous_end + gap) {
                     fits = false;
                     break;
                 }
-                previous_end = position + size / 2.0;
+                previous_end = start + size;
                 ticks.push_back({value, label});
             }
             if (fits)
@@ -79,11 +82,11 @@ std::vector<AxisTick> axis_ticks(double minimum, double maximum, int pixels, wxD
     return {};
 }
 
-int axis_label_width(double minimum, double maximum, double minimum_span, int pixels, wxDC& dc, bool horizontal, int gap)
+int axis_label_width(double minimum, double maximum, double minimum_span, int pixels, wxDC& dc, int gap)
 {
     int width = 0;
     auto measure = [&](double lower, double upper) {
-        for (const auto& tick : axis_ticks(lower, upper, pixels, dc, horizontal, gap))
+        for (const auto& tick : axis_ticks(lower, upper, pixels, dc, false, gap))
             width = std::max(width, dc.GetTextExtent(tick.label).x);
     };
     // Reserve room for the full range and maximum zoom near either limit and zero.
@@ -254,11 +257,11 @@ wxRect CurveEditorPanel::chart_rect() const
     const int height = std::max(1, size.y - top - bottom);
     const auto& bounds = m_view_limits.bounds;
     const int label_width = std::max(dc.GetTextExtent(m_appearance.reference_label).x,
-        axis_label_width(bounds.min_y, bounds.max_y, m_view_limits.minimum_span, height, dc, false, gap));
-    const int x_label_width = axis_label_width(bounds.min_x, bounds.max_x, m_view_limits.minimum_span,
-        std::max(1, size.x), dc, true, gap);
-    const int right = x_label_width / 2 + gap;
-    const int left = std::max(label_width + 2 * gap + FromDIP(4), right);
+        axis_label_width(bounds.min_y, bounds.max_y, m_view_limits.minimum_span, height, dc, gap));
+    // Leave room for a hovered point's marker at the right edge.
+    const int right = gap + FromDIP(2);
+    // Tick length, label spacing and a small outer padding.
+    const int left = label_width + 2 * FromDIP(4) + FromDIP(2);
     return wxRect(left, top, std::max(1, size.x - left - right), height);
 }
 
@@ -299,7 +302,7 @@ void CurveEditorPanel::paint_chart()
     const int left = plot.x, top = plot.y, width = plot.width, height = plot.height;
     if (width <= 0 || height <= 0)
         return;
-    const int gap = FromDIP(8), tick_size = FromDIP(4);
+    const int gap = FromDIP(8), tick_size = FromDIP(4), label_gap = FromDIP(4);
     const int bottom = top + height;
     const bool dark = wxGetApp().dark_mode();
     const wxColour colour("#009688");
@@ -348,7 +351,9 @@ void CurveEditorPanel::paint_chart()
         dc.DrawLine(x, top, x, bottom);
         dc.SetPen(axis_pen);
         dc.DrawLine(x, bottom, x, bottom + tick_size);
-        dc.DrawText(tick.label, x - dc.GetTextExtent(tick.label).x / 2, bottom + tick_size + gap);
+        const int label_width = dc.GetTextExtent(tick.label).x;
+        const int label_x = std::clamp(x - label_width / 2, left, std::max(left, left + width - label_width));
+        dc.DrawText(tick.label, label_x, bottom + tick_size + gap);
     }
     const double reference = m_appearance.reference_y.value_or(0.0);
     const bool reference_visible = m_appearance.reference_y && m_view.min_y <= reference && m_view.max_y >= reference;
@@ -363,7 +368,7 @@ void CurveEditorPanel::paint_chart()
         dc.SetPen(axis_pen);
         dc.DrawLine(left - tick_size, y, left, y);
         const wxSize extent = dc.GetTextExtent(tick.label);
-        dc.DrawText(tick.label, left - tick_size - gap - extent.x, y - extent.y / 2);
+        dc.DrawText(tick.label, left - tick_size - label_gap - extent.x, y - extent.y / 2);
     }
     // Reference lines belong to the model, independently of the automatic tick step.
     if (reference_visible) {
@@ -372,7 +377,7 @@ void CurveEditorPanel::paint_chart()
         dc.SetPen(axis_pen);
         dc.DrawLine(left - tick_size, reference_y, left, reference_y);
         const wxSize reference_size = dc.GetTextExtent(m_appearance.reference_label);
-        dc.DrawText(m_appearance.reference_label, left - tick_size - gap - reference_size.x, reference_y - reference_size.y / 2);
+        dc.DrawText(m_appearance.reference_label, left - tick_size - label_gap - reference_size.x, reference_y - reference_size.y / 2);
     }
     dc.SetPen(wxPen(GetForegroundColour()));
     dc.DrawLine(left, top, left, top + height);
