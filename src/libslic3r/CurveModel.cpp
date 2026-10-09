@@ -4,7 +4,9 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <iomanip>
 #include <istream>
+#include <limits>
 #include <locale>
 #include <sstream>
 #include <string>
@@ -128,6 +130,43 @@ bool CurveModel::read_number(std::string text, double& value)
     if (!(stream >> value) || !std::isfinite(value)) return false;
     stream >> std::ws;
     return stream.eof();
+}
+
+std::string CurveModel::format_number(double value)
+{
+    std::ostringstream stream;
+    stream.imbue(std::locale::classic());
+    stream << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+    return stream.str();
+}
+
+bool CurveModel::insert_point(Rows& rows, int& row) const
+{
+    std::vector<double> x, y;
+    int error_row;
+    if (read_points(rows, x, y, error_row) || x.size() < 2) return false;
+    const int count = int(x.size());
+    const int preferred = std::clamp(row, 1, count - 1);
+    auto midpoint = [](double a, double b) {
+        return std::signbit(a) == std::signbit(b) ? a + (b - a) / 2 : a / 2 + b / 2;
+    };
+    for (int distance = 0; distance < count - 1; ++distance) {
+        for (int position : std::array<int, 2>{preferred + distance, preferred - distance}) {
+            if (position < 1 || position >= count) continue;
+            const double new_x = midpoint(x[position - 1], x[position]);
+            const double new_y = midpoint(y[position - 1], y[position]);
+            auto candidate_x = x;
+            auto candidate_y = y;
+            candidate_x.insert(candidate_x.begin() + position, new_x);
+            candidate_y.insert(candidate_y.begin() + position, new_y);
+            // At floating-point resolution a midpoint can equal a neighbor.
+            if (validate_points(candidate_x, candidate_y, error_row)) continue;
+            rows.insert(rows.begin() + position, {format_number(new_x), format_number(new_y)});
+            row = position;
+            return true;
+        }
+    }
+    return false;
 }
 
 const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line) const
