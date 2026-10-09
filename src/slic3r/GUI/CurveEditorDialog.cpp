@@ -4,11 +4,8 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <iomanip>
 #include <limits>
-#include <locale>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -55,14 +52,6 @@
 
 namespace Slic3r::GUI {
 namespace {
-
-std::string format_number(double value)
-{
-    std::ostringstream stream;
-    stream.imbue(std::locale::classic());
-    stream << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
-    return stream.str();
-}
 
 bool read_number(wxString text, double& value)
 {
@@ -369,9 +358,12 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_grid->SetRowLabelSize(FromDIP(32));
     wxClientDC grid_dc(m_grid);
     grid_dc.SetFont(m_grid->GetLabelFont());
+    // Reserve enough room for full-precision values, including scientific notation.
+    const int number_width = grid_dc.GetTextExtent(wxString::FromUTF8(
+        CurveModel::format_number(std::numeric_limits<double>::lowest()))).x + FromDIP(12);
     const std::array<int, 2> column_widths = {
-        grid_dc.GetTextExtent(appearance.x_label).x + FromDIP(12),
-        grid_dc.GetTextExtent(appearance.y_label).x + FromDIP(12)
+        std::max(number_width, grid_dc.GetTextExtent(appearance.x_label).x + FromDIP(12)),
+        std::max(number_width, grid_dc.GetTextExtent(appearance.y_label).x + FromDIP(12))
     };
     m_grid->SetColSize(0, column_widths[0]);
     m_grid->SetColSize(1, column_widths[1]);
@@ -431,12 +423,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         } else {
             std::vector<double> x, y;
             const bool valid = read_points(x, y) && count > 1;
-            const int row = valid ? std::min(std::max(1, m_grid->GetGridCursorRow() + 1), count - 1) : count;
-            m_grid->InsertRows(row);
+            int row = valid ? std::min(std::max(1, m_grid->GetGridCursorRow() + 1), count - 1) : count;
             if (valid) {
-                m_grid->SetCellValue(row, 0, wxString::FromUTF8(format_number(x[row - 1] + (x[row] - x[row - 1]) / 2)));
-                m_grid->SetCellValue(row, 1, wxString::FromUTF8(format_number(y[row - 1] + (y[row] - y[row - 1]) / 2)));
-            }
+                auto rows = read_rows();
+                if (!m_model->insert_point(rows, row)) return;
+                m_grid->InsertRows(row);
+                m_grid->SetCellValue(row, 0, wxString::FromUTF8(rows[row].first));
+                m_grid->SetCellValue(row, 1, wxString::FromUTF8(rows[row].second));
+            } else m_grid->InsertRows(row);
             m_grid->SetGridCursor(row, 0);
             if (m_table_panel->IsShown()) m_grid->MakeCellVisible(row, 0);
         }
@@ -682,7 +676,7 @@ void CurveEditorDialog::move_point(int row, double proposed_x, double proposed_y
         wxString text = wxString::FromCDouble(value, 4);
         double rounded;
         if (!read_number(text, rounded) || rounded < lower || rounded > upper) {
-            text = wxString::FromUTF8(format_number(value));
+            text = wxString::FromUTF8(CurveModel::format_number(value));
             rounded = value;
         }
         if (rounded != current) {
@@ -701,7 +695,7 @@ void CurveEditorDialog::sync_chart_range()
     const double values[] = {view.min_x, view.max_x, view.min_y, view.max_y};
     for (int i = 0; i < 4; ++i) {
         auto* text = m_range_fields[i]->GetTextCtrl();
-        const wxString value = wxString::FromUTF8(format_number(values[i]));
+        const wxString value = wxString::FromUTF8(CurveModel::format_number(values[i]));
         if (text->GetValue() != value) text->ChangeValue(value);
     }
     // Only a visibility change needs layout; wheel navigation must not resize sibling controls.
@@ -717,7 +711,7 @@ void CurveEditorDialog::update_range_tooltips()
         wxString tooltip =
             _L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update.") +
             "\n" + wxString::Format(_L("Allowed range: %s to %s."),
-                wxString::FromUTF8(format_number(minimum)), wxString::FromUTF8(format_number(maximum)));
+                wxString::FromUTF8(CurveModel::format_number(minimum)), wxString::FromUTF8(CurveModel::format_number(maximum)));
         if (index < 2)
             if (const char* message = m_model->x_view_limit_message()) tooltip += "\n" + _L(message);
         m_range_fields[index]->SetToolTip(tooltip);

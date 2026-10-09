@@ -46,10 +46,14 @@ public:
     // Legacy GUI value format. ConfigOptionStrings handles serialization to files.
     static std::string serialize_parameters(const std::vector<std::string>& parameters);
     static bool read_number(std::string text, double& value);
+    static std::string format_number(double value);
     static bool valid_view(const CurveView& view);
 
     // A null message means success; row identifies the offending point, or -1.
     const char* read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const;
+    // Insert in the requested interval, or the nearest one with room for a valid point.
+    // Leave rows and the requested position unchanged when no interval can be split.
+    bool insert_point(Rows& rows, int& row) const;
     // CSV uses stable column identifiers and locale-independent export. Failed reads/writes
     // leave the output untouched; line is a physical CSV line, row is a table row (zero-based).
     const char* read_csv(const std::string& text, Rows& rows, int& line) const;
