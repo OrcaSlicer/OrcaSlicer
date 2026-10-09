@@ -293,14 +293,12 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                     second += other.second;
                 }
             };
-            // The parts alone, without brim, raft and supports, and the box they fill.
-            Sum           part;
-            BoundingBoxf3 box;
-            // Everything printed up to each layer id, the plate's with brim, raft and supports.
+            // Everything printed up to each layer id, the plate's with brim, raft and supports, and the box it fills.
             std::vector<Sum> printed_up_to_layer;
+            BoundingBoxf3    box;
 
-            // An extrusion on a layer filling the extent, counted in the parts too when it belongs to them.
-            void add(const Sum &sum, const BoundingBoxf3 &extent, bool in_part, size_t layer);
+            Sum  total() const { return printed_up_to_layer.empty() ? Sum{} : printed_up_to_layer.back(); }
+            void add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer);
         };
 
         std::string filename;

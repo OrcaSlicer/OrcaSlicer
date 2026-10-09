@@ -333,8 +333,6 @@ TEST_CASE("The plate's center of mass takes every extrusion of G-code without a 
     CHECK(result.object_masses.empty());
     CHECK(result.body_masses.empty());
     const GCodeProcessorResult::ObjectMass &plate = result.plate_mass;
-    CHECK_THAT((center_of(plate.part) - weighted_center({ { 1., a_wall_0 }, { 2., b_wall }, { 1., a_wall_1 } })).norm(),
-               Catch::Matchers::WithinAbs(0., 1e-5));
     REQUIRE(plate.printed_up_to_layer.size() == 2);
     CHECK_THAT((center_of(plate.printed_up_to_layer.front()) -
                 weighted_center({ { 1., a_brim }, { 1., a_support }, { 1., a_wall_0 }, { 2., b_wall } })).norm(),
@@ -343,15 +341,17 @@ TEST_CASE("The plate's center of mass takes every extrusion of G-code without a 
                 weighted_center({ { 1., a_brim }, { 1., a_support }, { 1., a_wall_0 }, { 2., b_wall }, { 1., a_wall_1 } })).norm(),
                Catch::Matchers::WithinAbs(0., 1e-5));
 
-    // The walls weigh their volume at the default density and spread along their moves: x from 10 to 20 twice and
-    // from 50 to 60 with twice the filament, y at 10 and 50, z at the beads' centers 0.1 and 0.3.
-    CHECK_THAT(plate.part.mass / plate.part.volume, Catch::Matchers::WithinRel(double(DEFAULT_FILAMENT_DENSITY), 1e-6));
-    const Vec3d second = plate.part.second / plate.part.mass;
-    CHECK_THAT(second.x(), Catch::Matchers::WithinRel((2. * 700. / 3. + 2. * 9100. / 3.) / 4., 1e-6));
-    CHECK_THAT(second.y(), Catch::Matchers::WithinRel((2. * 100. + 2. * 2500.) / 4., 1e-6));
-    CHECK_THAT(second.z(), Catch::Matchers::WithinRel((0.01 + 2. * 0.01 + 0.09) / 4., 1e-5));
-    // Their beads' center lines, from the first layer's bottom to the second's top.
-    CHECK_THAT((plate.box.min - Vec3d(10., 10., 0.)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
+    // Each bead weighs its volume at the default density and spreads along its move, (a^2 + ab + b^2) / 3 for one from
+    // a to b: the brim from x 8 to 12 at y 8, the support at x 10 from y 20 to 30, A's walls from x 10 to 20 at y 10 and
+    // B's from x 50 to 60 at y 50 with twice the filament, all at z 0.1 but A's second wall at 0.3.
+    const GCodeProcessorResult::ObjectMass::Sum total = plate.total();
+    CHECK_THAT(total.mass / total.volume, Catch::Matchers::WithinRel(double(DEFAULT_FILAMENT_DENSITY), 1e-6));
+    const Vec3d second = total.second / total.mass;
+    CHECK_THAT(second.x(), Catch::Matchers::WithinRel((304. / 3. + 100. + 2. * 700. / 3. + 2. * 9100. / 3.) / 6., 1e-6));
+    CHECK_THAT(second.y(), Catch::Matchers::WithinRel((64. + 1900. / 3. + 2. * 100. + 2. * 2500.) / 6., 1e-6));
+    CHECK_THAT(second.z(), Catch::Matchers::WithinRel((5. * 0.01 + 0.09) / 6., 1e-5));
+    // The beads' center lines, brim and support included, from the first layer's bottom to the second's top.
+    CHECK_THAT((plate.box.min - Vec3d(8., 8., 0.)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
     CHECK_THAT((plate.box.max - Vec3d(60., 50., 0.4)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
 }
 
@@ -376,14 +376,13 @@ TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers 
         for (size_t instance = 0; instance < object->instances.size(); ++instance) {
             const Vec3d center = object->instance_bounding_box(instance).center();
             const auto  mass   = std::min_element(result.object_masses.begin(), result.object_masses.end(), [&center](const auto &l, const auto &r) {
-                return (center_of(l.part) - center).squaredNorm() < (center_of(r.part) - center).squaredNorm();
+                return (center_of(l.total()) - center).squaredNorm() < (center_of(r.total()) - center).squaredNorm();
             });
             // Off the center only by the infill's alignment and the top and bottom shells.
-            const Vec3d part = center_of(mass->part);
+            const Vec3d part = center_of(mass->total());
             CHECK_THAT(part.x(), Catch::Matchers::WithinAbs(center.x(), 0.5));
             CHECK_THAT(part.y(), Catch::Matchers::WithinAbs(center.y(), 0.5));
             CHECK_THAT(part.z(), Catch::Matchers::WithinAbs(center.z(), 1.));
-            CHECK_THAT(mass->printed_up_to_layer.back().mass, Catch::Matchers::WithinRel(mass->part.mass, 1e-9));
             // The outer walls' center lines run half a line inside the cube's sides, of copies touching each other too.
             const BoundingBoxf3 box = object->instance_bounding_box(instance);
             for (int axis = 0; axis < 3; ++axis) {
@@ -391,9 +390,12 @@ TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers 
                 CHECK_THAT(mass->box.max[axis], Catch::Matchers::WithinAbs(box.max[axis], 0.3));
             }
         }
-    const GCodeProcessorResult::ObjectMass &plate = result.plate_mass;
-    CHECK(plate.printed_up_to_layer.back().mass > plate.part.mass);
-    CHECK(center_of(plate.printed_up_to_layer.back()).z() < center_of(plate.part).z());
+    GCodeProcessorResult::ObjectMass::Sum objects;
+    for (const GCodeProcessorResult::ObjectMass &object : result.object_masses)
+        objects.add(object.total());
+    const GCodeProcessorResult::ObjectMass::Sum plate = result.plate_mass.total();
+    CHECK(plate.mass > objects.mass);
+    CHECK(center_of(plate).z() < center_of(objects).z());
 }
 
 TEST_CASE("A spiral vase cube counts all its extrusions, rising through each layer", "[GCodeProcessor]")
@@ -408,7 +410,7 @@ TEST_CASE("A spiral vase cube counts all its extrusions, rising through each lay
     Test::gcode(print, &result);
 
     REQUIRE(result.object_masses.size() == 1);
-    CHECK_THAT(result.object_masses.front().part.mass, Catch::Matchers::WithinRel(result.plate_mass.part.mass, 1e-6));
+    CHECK_THAT(result.object_masses.front().total().mass, Catch::Matchers::WithinRel(result.plate_mass.total().mass, 1e-6));
 }
 
 TEST_CASE("Each separate part of an assembly gets its center of mass, overlapping parts one", "[GCodeProcessor]")
@@ -442,9 +444,9 @@ TEST_CASE("Each separate part of an assembly gets its center of mass, overlappin
     for (const ModelVolume *volume : object.volumes) {
         const Vec3d center = volume->mesh().transformed_bounding_box(object.instances.front()->get_matrix() * volume->get_matrix()).center();
         const auto  body   = std::min_element(result.body_masses.begin(), result.body_masses.end(), [&center](const auto &l, const auto &r) {
-            return (center_of(l.part) - center).squaredNorm() < (center_of(r.part) - center).squaredNorm();
+            return (center_of(l.total()) - center).squaredNorm() < (center_of(r.total()) - center).squaredNorm();
         });
-        const Vec3d part = center_of(body->part);
+        const Vec3d part = center_of(body->total());
         CHECK_THAT(part.x(), Catch::Matchers::WithinAbs(center.x(), 0.5));
         CHECK_THAT(part.y(), Catch::Matchers::WithinAbs(center.y(), 0.5));
         CHECK_THAT(part.z(), Catch::Matchers::WithinAbs(center.z(), 1.));
@@ -467,13 +469,13 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     for (const ModelObject *object : model.objects) {
         const Vec3d center = object->instance_bounding_box(0).center();
         masses.emplace_back(&*std::min_element(result.object_masses.begin(), result.object_masses.end(), [&center](const auto &l, const auto &r) {
-            return (center_of(l.part) - center).squaredNorm() < (center_of(r.part) - center).squaredNorm();
+            return (center_of(l.total()) - center).squaredNorm() < (center_of(r.total()) - center).squaredNorm();
         }));
     }
-    CHECK_THAT(masses[1]->part.mass / masses[0]->part.mass, Catch::Matchers::WithinRel(3., 0.02));
+    CHECK_THAT(masses[1]->total().mass / masses[0]->total().mass, Catch::Matchers::WithinRel(3., 0.02));
     // The plate's center lies three quarters of the way to the dense cube.
-    const Vec3d plate = center_of(result.plate_mass.part);
-    const Vec3d light = center_of(masses[0]->part);
-    const Vec3d dense = center_of(masses[1]->part);
+    const Vec3d plate = center_of(result.plate_mass.total());
+    const Vec3d light = center_of(masses[0]->total());
+    const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
 }

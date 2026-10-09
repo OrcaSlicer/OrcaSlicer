@@ -33,9 +33,10 @@ the plater's own config holds the values of the filament edited last only. Previ
 what will be printed, so its markers come from the toolpaths, whose mass depends on walls, infill
 and flow as well. There the solid markers are for what is printed up to the top layer the layer
 slider shows: for the plate with brim, raft and supports, where the weight rests at that point of
-the print; for an object or a body, its own extrusions. Each has a faded twin for the finished
-parts alone, without brim, raft and supports, so the slider shows the weight moving toward where it
-ends.
+the print; for an object or a body, its own extrusions. Each has a faded twin for the same at the
+end of the print, so the slider shows the weight moving toward where it ends, and at the top layer
+the two meet. In Prepare the plate has the model alone, as brim, raft and supports exist only once
+sliced.
 
 ## Prepare: from the meshes
 
@@ -117,8 +118,8 @@ tests the outlines alone, and outside them the nearest outline of all such insta
 gives both the instance and the body. The island found last is tried first, as extrusions mostly follow each other on one
 island. Brim, raft and supports lie outside the islands, which is why they count in the plate only.
 
-Each mass holds the parts' total and, for each layer id, the running total of what is printed up to
-that layer, so the solid marker for any slider position is a single lookup. The layer ids are those
+Each mass holds, for each layer id, the running total of what is printed up to that layer, the last
+of which is the faded marker's, so the solid marker for any slider position is a single lookup. The layer ids are those
 the moves carry, which are also the layers of libvgcode and of the slider; in a print by object they
 follow the order of printing, so the solid markers show the objects printed so far as they are.
 
@@ -159,4 +160,5 @@ moment of inertia about the axis through the center parallel to x is then
 `m (σy² + σz²)`, with `σ² = Σ m x² / m - c²` along each axis, and likewise for y and z. Masses are
 kept in mg, volume times density in g/cm³, and shown in g, volumes in cm³ and moments of inertia in
 g·mm². In Preview the box tells the finished print from what is printed up to the layer shown, the
-two weighing differently, and both are placed in the bounding box of the finished parts.
+two weighing differently, and both are placed in the bounding box of everything the marker holds
+by the end.

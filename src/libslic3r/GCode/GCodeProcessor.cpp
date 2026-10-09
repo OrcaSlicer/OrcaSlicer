@@ -7284,12 +7284,9 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     }
 }
 
-void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, bool in_part, size_t layer)
+void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer)
 {
-    if (in_part) {
-        part.add(sum);
-        box.merge(extent);
-    }
+    box.merge(extent);
     if (printed_up_to_layer.size() <= layer)
         printed_up_to_layer.resize(layer + 1);
     printed_up_to_layer[layer].add(sum);
@@ -7319,7 +7316,7 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const bool   part  = role != erBrim && !is_support(role);
     const size_t layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
-    m_result.plate_mass.add(sum, extent, part, layer);
+    m_result.plate_mass.add(sum, extent, layer);
     if (!part || !m_mass_locator)
         return;
     const auto add = [&sum, &extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
@@ -7327,7 +7324,7 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
             return;
         if (masses.size() <= size_t(index))
             masses.resize(index + 1);
-        masses[index].add(sum, extent, true, layer);
+        masses[index].add(sum, extent, layer);
     };
     // At the nozzle's height, which the layers print at.
     const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height);

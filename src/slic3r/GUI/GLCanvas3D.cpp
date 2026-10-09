@@ -1163,8 +1163,8 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
         const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
         m_top_layer                     = gcode_viewer.get_layers_z_range()[1];
         const auto add = [this](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
-            if (mass.part.mass > 0.)
-                m_drawn[0][kind].push_back({ mass.part, mass.box });
+            if (const Sum total = mass.total(); total.mass > 0.)
+                m_drawn[0][kind].push_back({ total, mass.box });
             if (!mass.printed_up_to_layer.empty())
                 if (const Sum& sum = mass.printed_up_to_layer[std::min(m_top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
                     m_drawn[1][kind].push_back({ sum, mass.box });
