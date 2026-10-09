@@ -2,10 +2,21 @@
 #define slic3r_TaskManager_hpp_
 
 #include "DeviceManager.hpp"
+#include "bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <functional>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <vector>
+#include <map>
+#include <mutex>
+#include <wx/event.h>
 
 
 namespace Slic3r { 

@@ -1,8 +1,6 @@
 #include "PrintJob.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
-#include "libslic3r/MTUtils.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -15,6 +13,33 @@
 
 #include "slic3r/Utils/FileTransferUtils.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "NetworkAgent.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <functional>
+#include <cstddef>
+#include <nlohmann/json.hpp>
+#include <wx/string.h>
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <memory>
+#include <exception>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <algorithm>
+#include <regex>
+#include <tuple>
+#include <boost/chrono/duration.hpp>
+#include "slic3r/GUI/DeviceCore/DevStorage.h"
+#include <wx/event.h>
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -216,7 +241,7 @@ void PrintJob::process(Ctl &ctl)
     params.dev_ip = m_dev_ip;
     params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
     params.use_ssl_for_mqtt  = m_local_use_ssl;
-    params.username = "bblp";
+    params.username = m_agent->default_lan_username();
     params.password = m_access_code;
 
     // check access code and ip address
@@ -310,7 +335,7 @@ void PrintJob::process(Ctl &ctl)
         auto origin_profile_id = model_info->metadata_items.find(BBL_DESIGNER_PROFILE_ID_TAG);
         if (origin_profile_id != model_info->metadata_items.end()) {
             try {
-                params.origin_profile_id    = stoi(origin_profile_id->second.c_str());
+                params.origin_profile_id    = std::stoi(origin_profile_id->second.c_str());
             }
             catch(...) {}
         }

@@ -1,11 +1,41 @@
 #include "CalibrationWizardSavePage.hpp"
+#include "CalibUtils.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevNozzleRack.h"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include <utility>
+#include <unordered_set>
+#include <string>
+#include <algorithm>
+#include <wx/valtext.h>
+#include <wx/arrstr.h>
+#include <map>
+#include <wx/sizer.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
 
 
 namespace Slic3r { namespace GUI {
@@ -38,13 +68,13 @@ static wxString get_default_name(wxString filament_name, CalibMode mode){
     case Slic3r::CalibMode::Calib_PA_Tower:
         break;
     case Slic3r::CalibMode::Calib_Flow_Rate:
-        filament_name += " Flow Rate Calibrated";
+        filament_name = format_wxstr(_L("%1% Flow Rate Calibrated"), filament_name);
         break;
     case Slic3r::CalibMode::Calib_Temp_Tower:
-        filament_name += " Temperature Calibrated";
+        filament_name = format_wxstr(_L("%1% Temperature Calibrated"), filament_name);
         break;
     case Slic3r::CalibMode::Calib_Vol_speed_Tower:
-        filament_name += " Max Vol Speed Calibrated";
+        filament_name = format_wxstr(_L("%1% Max Vol Speed Calibrated"), filament_name);
         break;
     case Slic3r::CalibMode::Calib_VFA_Tower:
         break;
@@ -66,7 +96,7 @@ static wxString get_tray_name_by_tray_id(int tray_id)
 {
     wxString tray_name;
     if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
-        tray_name = "Ext";
+        tray_name = _L("Ext");
     }
     else {
         int  ams_id = tray_id / 4;

@@ -1,14 +1,44 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include <utility>
+#include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
-#include "libslic3r/SVG.hpp"
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
+
+// Clipper may start an output polygon at any of its vertices.
+static Polygon start_at_min(Polygon polygon)
+{
+    std::rotate(polygon.points.begin(), std::min_element(polygon.points.begin(), polygon.points.end()), polygon.points.end());
+    return polygon;
+}
+static Polygons start_at_min(Polygons polygons)
+{
+    for (Polygon &polygon : polygons)
+        polygon = start_at_min(std::move(polygon));
+    return polygons;
+}
+static ExPolygons start_at_min(ExPolygons expolygons)
+{
+    for (ExPolygon &expolygon : expolygons) {
+        expolygon.contour = start_at_min(std::move(expolygon.contour));
+        expolygon.holes   = start_at_min(std::move(expolygon.holes));
+    }
+    return expolygons;
+}
 
 SCENARIO("Various Clipper operations - xs/t/11_clipper.t", "[ClipperUtils]") {
     // CCW oriented contour
@@ -20,25 +50,25 @@ SCENARIO("Various Clipper operations - xs/t/11_clipper.t", "[ClipperUtils]") {
         WHEN("offset") {
             Polygons result = Slic3r::offset(square_with_hole, 5.f);
             THEN("offset matches") {
-                REQUIRE(result == Polygons {
+                REQUIRE(start_at_min(result) == start_at_min(Polygons {
                     { { 205, 205 }, { 95, 205 }, { 95, 95 }, { 205, 95 }, },
-                    { { 155, 145 }, { 145, 145 }, { 145, 155 }, { 155, 155 } } });
+                    { { 155, 145 }, { 145, 145 }, { 145, 155 }, { 155, 155 } } }));
             }
         }
         WHEN("offset_ex") {
             ExPolygons result = Slic3r::offset_ex(square_with_hole, 5.f);
             THEN("offset matches") {
-                REQUIRE(result == ExPolygons { {
+                REQUIRE(start_at_min(result) == start_at_min(ExPolygons { {
                     { { 205, 205 }, { 95, 205 }, { 95, 95 }, { 205, 95 }, },
-                    { { 145, 145 }, { 145, 155 }, { 155, 155 }, { 155, 145 } } } } );
+                    { { 145, 145 }, { 145, 155 }, { 155, 155 }, { 155, 145 } } } }));
             }
         }
         WHEN("offset2_ex") {
             ExPolygons result = Slic3r::offset2_ex({ square_with_hole }, 5.f, -2.f);
             THEN("offset matches") {
-                REQUIRE(result == ExPolygons { {
+                REQUIRE(start_at_min(result) == start_at_min(ExPolygons { {
                     { { 203, 203 }, { 97, 203 }, { 97, 97 }, { 203, 97 } },
-                    { { 143, 143 }, { 143, 157 }, { 157, 157 }, { 157, 143 } } } } );
+                    { { 143, 143 }, { 143, 157 }, { 157, 157 }, { 157, 143 } } } }));
             }
         }
     }
@@ -225,24 +255,7 @@ SCENARIO("Various Clipper operations - t/clipper.t", "[ClipperUtils]") {
     }
 }
 
-template<e_ordering o = e_ordering::OFF, class P, class Tree, class Alloc>
-double polytree_area(const Tree &tree, std::vector<P, Alloc> *out)
-{
-    traverse_pt<o>(tree, out);
-
-    return std::accumulate(out->begin(), out->end(), 0.0,
-                           [](double a, const P &p) { return a + p.area(); });
-}
-
-size_t count_polys(const ExPolygons& expolys)
-{
-    size_t c = 0;
-    for (auto &ep : expolys) c += ep.holes.size() + 1;
-
-    return c;
-}
-
-TEST_CASE("Traversing Clipper PolyTree", "[ClipperUtils]") {
+TEST_CASE("Top level expolygons of an even-odd union", "[ClipperUtils]") {
     // Create a polygon representing unit box
     Polygon unitbox;
     const auto UNIT = coord_t(1. / SCALING_FACTOR);
@@ -266,36 +279,24 @@ TEST_CASE("Traversing Clipper PolyTree", "[ClipperUtils]") {
     Polygon inner_right = inner_left;
     inner_right.translate(UNIT * 10, 0);
 
-    Polygons reference = union_({box_frame, hole_left, hole_right, inner_left, inner_right});
+    ExPolygons reference;
+    for (const Polygon &polygon : union_({box_frame, hole_left, hole_right, inner_left, inner_right}))
+        reference.emplace_back(polygon);
 
-    ClipperLib::PolyTree tree = union_pt(reference);
     double area_sum = box_frame.area() + hole_left.area() +
                       hole_right.area() + inner_left.area() +
                       inner_right.area();
 
     REQUIRE(area_sum > 0);
 
-    SECTION("Traverse into Polygons WITHOUT spatial ordering") {
-        Polygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area(tree.GetFirst(), &output)));
-        REQUIRE(output.size() == reference.size());
-    }
-
-    SECTION("Traverse into ExPolygons WITHOUT spatial ordering") {
-        ExPolygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area(tree.GetFirst(), &output)));
-        REQUIRE(count_polys(output) == reference.size());
-    }
-
-    SECTION("Traverse into Polygons WITH spatial ordering") {
-        Polygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area<e_ordering::ON>(tree.GetFirst(), &output)));
-        REQUIRE(output.size() == reference.size());
-    }
-
-    SECTION("Traverse into ExPolygons WITH spatial ordering") {
-        ExPolygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area<e_ordering::ON>(tree.GetFirst(), &output)));
-        REQUIRE(count_polys(output) == reference.size());
-    }
+    ExPolygons nested;
+    ExPolygons top_level = top_level_expolygons(reference, &nested);
+    auto area = [](const ExPolygons &expolys) {
+        return std::accumulate(expolys.begin(), expolys.end(), 0.0, [](double a, const ExPolygon &e) { return a + e.area(); });
+    };
+    REQUIRE(top_level.size() == 1);
+    REQUIRE(top_level.front().holes.size() == 2);
+    REQUIRE(nested.size() == 2);
+    REQUIRE(area_sum == Catch::Approx(area(top_level) + area(nested)));
+    REQUIRE(top_level_expolygons(reference).size() == 1);
 }

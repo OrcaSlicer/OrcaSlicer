@@ -416,8 +416,8 @@ function favDigitFromEvent(e) {
 
 function resultCountText(total, shown, query) {
     return (query || "").trim() ?
-        T("sd_result_count", "Showing %s actions", shown) :
-        T("sd_result_count_all", "%s actions", total);
+        T("sd_result_count", "Matching actions: %s", shown) :
+        T("sd_result_count_all", "Actions: %s", total);
 }
 
 // Display label for a notebook tab. Trim any stray whitespace; pages added with an empty title
@@ -758,7 +758,7 @@ window.HandleStudio = function (payload) {
         var fid = payload.id;
         if (fid && FAVS.indexOf(fid) !== -1) FAVS.splice(FAVS.indexOf(fid), 1);
         render({ resize: true, keepScroll: true });
-        flashHint(T("sd_favs_full", "Favourites are full (%s max)", (payload.limit || K_FAV_LIMIT)));
+        flashHint(T("sd_favs_full", "Favorites are full (%s max)", (payload.limit || K_FAV_LIMIT)));
     }
 };
 
@@ -821,8 +821,8 @@ function pinSvg(on) {
 function setPinState(pin, on) {
     pin.classList.toggle("on", on);
     pin.innerHTML = pinSvg(on);
-    pin.title = on ? T("sd_unpin_fav", "Unpin from favourites (%s)", shortcutCtrl() + "B") :
-        T("sd_pin_fav", "Pin to favourites (%s)", shortcutCtrl() + "B");
+    pin.title = on ? T("sd_unpin_fav", "Unpin from favorites (%s)", shortcutCtrl() + "B") :
+        T("sd_pin_fav", "Pin to favorites (%s)", shortcutCtrl() + "B");
 }
 
 // ---- render ------------------------------------------------------------------
@@ -858,15 +858,15 @@ function renderFav() {
             badge.textContent = slot;
             // Slot "0" is the 10th favourite (Alt/Option+0).
             var slot_num = slot === "0" ? "10" : slot;
-            badge.title = T("sd_fav_slot", "Favourite %s (%s)", slot_num, shortcutAlt() + slot);
+            badge.title = T("sd_fav_slot", "Favorite %s (%s)", slot_num, shortcutAlt() + slot);
             tile.appendChild(badge);
         }
         // Direct removal: a hover-revealed ✕ in the tile's corner. click() stops propagation so it
         // unpins without activating the action.
         var unpin = document.createElement("button");
         unpin.className = "fav-unpin";
-        unpin.title = T("sd_remove_fav", "Remove from favourites");
-        unpin.setAttribute("aria-label", T("sd_remove_fav", "Remove from favourites"));
+        unpin.title = T("sd_remove_fav", "Remove from favorites");
+        unpin.setAttribute("aria-label", T("sd_remove_fav", "Remove from favorites"));
         unpin.innerHTML = '<svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>';
         unpin.onclick = function (ev) { ev.stopPropagation(); toggleFav(id); };
         tile.appendChild(unpin);
@@ -1170,7 +1170,7 @@ function renderTabList() {
     listEl.className = "dial-list";
     if (countEl) {
         countEl.hidden = false;
-        countEl.textContent = q ? T("sd_tab_match_count", "%s matches", list.length) : T("sd_tab_count", "%s tabs", list.length);
+        countEl.textContent = q ? T("sd_tab_match_count", "Matching tabs: %s", list.length) : T("sd_tab_count", "Tabs: %s", list.length);
     }
     list.forEach(function (t, i) { listEl.appendChild(renderTabRow(t, i)); });
 }

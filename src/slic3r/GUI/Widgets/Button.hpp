@@ -3,6 +3,13 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/string.h>
+#include <wx/checklst.h>
+#include <wx/event.h>
+#include <wx/dc.h>
 #include <wx/tipwin.h>
 #include <wx/colour.h>
 
@@ -27,6 +34,7 @@ enum class ButtonType {
     Parameter, // Font14  Semi-Rounded  For buttons that near parameter boxes
     Icon,      // ------  Semi-Rounded  For buttons that only has icons. icons should be 16x16 and iconSize has to be defined as 16 while
                // creation of button
+    Circle,    // ------  FullyRounded  Same as icon
     Expanded,  // Font14  Semi-Rounded  For full length buttons. ex. buttons in static box
 };
 

@@ -8,8 +8,13 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExPolygon.hpp"
 
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/BoundingBox.hpp"
 #include <tuple>
 #include <array>
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {

@@ -1,13 +1,27 @@
 #include "BBLNetworkPlugin.hpp"
 #include "NetworkAgent.hpp"
 
+#include <mutex>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <boost/filesystem/file_status.hpp>
+#include <set>
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <boost/log/trivial.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include "bambu_networking.hpp"
+#include <string>
+#include <vector>
+#include <utility>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include <cstddef>
+#include <cstring>
+#include <cwchar>
 
 #if !defined(_MSC_VER) && !defined(_WIN32)
 #include <dlfcn.h>
@@ -582,7 +596,8 @@ PrintParams_Legacy BBLNetworkPlugin::as_legacy(PrintParams& param)
 }
 
 // Every PrintParams field except the four the 02.08.01 series added
-// (task_timelapse_use_internal, extruder_cali_manual_mode, svc_context, slicer_uid).
+// (task_timelapse_use_internal, extruder_cali_manual_mode, svc_context, slicer_uid) and the
+// queue_plate_id 02.08.02 appended.
 PrintParams_0203 BBLNetworkPlugin::as_0203(PrintParams& param)
 {
     PrintParams_0203 p;

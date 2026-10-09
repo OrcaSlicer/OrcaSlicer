@@ -15,6 +15,20 @@
 #include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <wx/arrstr.h>
+#include <wx/event.h>
+#include <memory>
+#include <cstddef>
+#include <wx/string.h>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include <vector>
+#include <boost/log/trivial.hpp>
+#include <ostream>
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/any.hpp>
+#include <wx/sizer.h>
 #include <wx/wupdlock.h>
 
 namespace Slic3r

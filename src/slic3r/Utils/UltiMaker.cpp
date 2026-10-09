@@ -1,32 +1,38 @@
 #include "UltiMaker.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <cstdio>
+#include <cassert>
 #include <ctime>
-#include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <utility>
+#include <exception>
+#include <sstream>
+#include <fstream>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
 
 #include <iostream>
 #include <stdio.h>
 #include <string>
-namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace Slic3r {
 

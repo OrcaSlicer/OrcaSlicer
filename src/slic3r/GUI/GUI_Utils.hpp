@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_Utils_hpp_
 #define slic3r_GUI_Utils_hpp_
 
+#include <deque>
+#include <cstddef>
+#include <cmath>
+#include <boost/optional/optional.hpp>
 #include <memory>
 #include <string>
 #include <ostream>
@@ -9,11 +13,14 @@
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <type_traits>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
 #include <wx/gdicmn.h>
+#include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/dcclient.h>
 #include <wx/debug.h>
@@ -23,9 +30,16 @@
 #include <wx/inspector/inspector.h>
 
 #include <chrono>
+#include <wx/version.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
 #include "Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+
+#ifdef __WXGTK__
+#include "wx/gauge.h"
+#endif 
 
 
 class wxCheckBox;
@@ -485,6 +499,7 @@ void set_window_corner_radius(wxWindow* win, int radius);
 #ifdef __WXGTK__
 void RemoveButtonBorder(wxWindow* win);   // for wxButton/wxBitmapToggleButton based controls (SwitchButton, CheckBox)
 void RemoveInputBorder(wxWindow* win);    // for TextCtrl based controls (TextInput, ComboBox, SpinInput..)
+void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor);
 #endif
 
 #if defined(__WXOSX__) || defined(__linux__)

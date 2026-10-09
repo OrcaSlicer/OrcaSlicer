@@ -3,7 +3,14 @@
 
 #include "SLAImportJob.hpp"
 
+#include <vector>
+#include <algorithm>
+#include "libslic3r/Point.hpp"
+#include <string>
 #include <wx/dialog.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/filedlg.h>
 #include <wx/stattext.h>
 #include <wx/combobox.h>
 #include <wx/filename.h>

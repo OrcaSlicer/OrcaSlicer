@@ -3,6 +3,24 @@
 
 #include "CalibrationWizardPage.hpp"
 #include "Widgets/TextInput.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <vector>
+#include <utility>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
 
 namespace Slic3r { namespace GUI {
 

@@ -1,10 +1,16 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "test_helpers.hpp"
 
 #include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;

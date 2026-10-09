@@ -1,6 +1,9 @@
 #include "Lazy.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <chrono>
+#include <memory>
+#include <string>
 #include <wx/app.h>
 #include <wx/utils.h>
 

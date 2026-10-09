@@ -1,7 +1,13 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
 
 using namespace Slic3r;
 

@@ -1,9 +1,8 @@
 #ifndef slic3r_PrincipalComponents2D_hpp_
 #define slic3r_PrincipalComponents2D_hpp_
 
-#include "AABBTreeLines.hpp"
-#include "BoundingBox.hpp"
-#include "libslic3r.h"
+#include "Point.hpp"
+#include <tuple>
 #include <vector>
 #include "Polygon.hpp"
 

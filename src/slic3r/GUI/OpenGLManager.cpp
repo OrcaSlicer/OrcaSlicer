@@ -8,16 +8,31 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Platform.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstdlib>
 #include <glad/gl.h>
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <string>
+#include <ostream>
+#include "libslic3r/Utils.hpp"
+#include <vector>
+#include <sstream>
+#include <utility>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/log.h>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
+#include <wx/version.h>
 
 #include "GUI_Init.hpp"
+#include "slic3r/GUI/GLShadersManager.hpp"
 
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"

@@ -1,12 +1,17 @@
 #include "FontConfigHelp.hpp"
+#include <optional>
+#include <string>
+#include <wx/string.h>
+#include <wx/buffer.h>
+#include <wx/chartype.h>
+#include <wx/font.h>
+#include <cstddef>
 
 #ifdef EXIST_FONT_CONFIG_INCLUDE
 
 #include <wx/filename.h>
 #include <fontconfig/fontconfig.h>
 #include "libslic3r/Utils.hpp"
-
-using namespace Slic3r::GUI;
 
 
 // @Vojta suggest to make static variable global
