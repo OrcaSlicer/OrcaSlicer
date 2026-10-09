@@ -236,7 +236,19 @@ TroubleshootDialog::TroubleshootDialog()
         Fit();
     });
 
-    auto link_wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/troubleshoot_center");
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/troubleshoot_center";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    auto video_btn = new Button(this, "", "toolbar_video_guide", 0, 15);
+    auto video_url = "https://www.youtube.com/watch?v=CFzt8W7OCx0";
+    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    video_btn->SetCanFocus(false);
+    video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
 
     // RIGHT SIZER //////////////////////
 
@@ -367,6 +379,10 @@ TroubleshootDialog::TroubleshootDialog()
     sys_btn_sizer->AddStretchSpacer();
     sys_btn_sizer->Add(sys_copy_btn, 0, wxLEFT | wxRIGHT, FromDIP(5));
 
+    wxBoxSizer *link_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+    link_btn_sizer->Add(wiki_btn);
+    link_btn_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
+
     left_sizer->Add(m_header_logo     , 0, wxEXPAND | wxALIGN_CENTER);
     left_sizer->Add(logo_line         , 0, wxEXPAND       | wxTOP, FromDIP(12));
     left_sizer->Add(version           , 0, wxEXPAND       | wxTOP, FromDIP(6));
@@ -374,8 +390,7 @@ TroubleshootDialog::TroubleshootDialog()
     left_sizer->Add(sys_panel         , 0, wxEXPAND       | wxTOP, FromDIP(15));
     left_sizer->AddStretchSpacer();
     left_sizer->Add(sys_btn_sizer     , 0, wxEXPAND       | wxTOP, FromDIP(15));
-    left_sizer->Add(link_wiki         , 0, wxALIGN_CENTER | wxTOP, FromDIP(15));
-    left_sizer->AddSpacer(FromDIP(5));
+    left_sizer->Add(link_btn_sizer    , 0, wxALIGN_CENTER | wxTOP, FromDIP(15));
     
     wxBoxSizer *right_sizer  = new wxBoxSizer(wxVERTICAL);
 

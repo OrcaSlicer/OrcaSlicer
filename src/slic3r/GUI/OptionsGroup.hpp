@@ -54,7 +54,6 @@ struct Option {
 	Option(const ConfigOptionDef& _opt, t_config_option_key id) :
 		opt(_opt), opt_id(id) {}
 };
-using t_option = std::unique_ptr<Option>;	//!
 
 /// Represents option lines
 class Line : public UndoValueUIManager
