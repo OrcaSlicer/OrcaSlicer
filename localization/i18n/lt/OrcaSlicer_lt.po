@@ -38575,8 +38575,58 @@ msgstr "Paskutinis srauto pataisos daugiklis – 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modelis tuščias. Srautas nebus kompensuojamas."
 
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Import CSV"
+msgstr "CSV importas"
+
 # AI Translated
-# Needs human review: Check bed-size terminology and natural tooltip wording.
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "X riba priklauso nuo esamo spausdintuvo pagrindo dydžio ir modelio taškų."
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Importuoti taškus iš dviejų CSV stulpelių lentelės tvarka. Skirtukai: kablelis arba kabliataškis."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Export CSV"
+msgstr "CSV eksportas"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Eksportuoti taškus į CSV. Profilio pakeitimai neišsaugomi."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "CSV files (*.csv)|*.csv"
+msgstr "CSV failai (*.csv)|*.csv"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Could not read the CSV file."
+msgstr "Nepavyko skaityti CSV."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "CSV eilutė %d: %s"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Could not write the CSV file."
+msgstr "Nepavyko rašyti CSV."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "CSV must contain exactly two columns per line."
+msgstr "Kiekviena CSV eilutė turi turėti du stulpelius."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "The CSV file contains no points."
+msgstr "CSV faile nėra taškų."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Ekstruzijos ilgio riba priklauso nuo dabartinio spausdintuvo stalo dydžio ir modelio taškų."
 

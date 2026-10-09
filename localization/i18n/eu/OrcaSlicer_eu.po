@@ -38093,8 +38093,58 @@ msgstr "Azken fluxu-zuzenketa faktorea: 1 behar da."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Eredua hutsik dago. Ez da fluxu-konpentsaziorik egingo."
 
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Import CSV"
+msgstr "CSV inportatu"
+
 # AI Translated
-# Needs human review: Check bed-size terminology and natural tooltip wording.
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "X muga uneko inprimagailuaren ohearen eta modeloaren puntuen araberakoa da."
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Inportatu puntuak bi CSV zutabetatik taularen ordenan. Bereizleak: koma edo puntu eta koma."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Export CSV"
+msgstr "CSV esportatu"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Esportatu puntuak CSVra. Ez ditu aurrezarpeneko aldaketak gordetzen."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "CSV files (*.csv)|*.csv"
+msgstr "CSV fitxategiak (*.csv)|*.csv"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Could not read the CSV file."
+msgstr "Ezin da CSV fitxategia irakurri."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "CSVko %d. lerroa: %s"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Could not write the CSV file."
+msgstr "Ezin da CSV fitxategia idatzi."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "CSV must contain exactly two columns per line."
+msgstr "CSV lerro bakoitzak bi zutabe izan behar ditu."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "The CSV file contains no points."
+msgstr "CSV fitxategiak ez du punturik."
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Estrusio-luzeraren muga uneko inprimagailuaren ohearen tamainaren eta modeloaren puntuen araberakoa da."
 

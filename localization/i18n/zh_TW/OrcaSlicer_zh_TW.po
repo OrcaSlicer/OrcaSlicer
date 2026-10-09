@@ -39978,7 +39978,47 @@ msgstr "最後一個流量修正係數必須為 1。"
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "模型為空，將不套用流量補償。"
 
+msgid "Import CSV"
+msgstr "匯入 CSV"
+
 # AI Translated
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "X 上限取決於目前印表機的熱床尺寸和模型點。"
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "依表格順序從 CSV 的兩欄匯入點。支援逗號或分號分隔。"
+
+# AI Translated
+msgid "Export CSV"
+msgstr "匯出 CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "將目前的點匯出為 CSV，不儲存預設變更。"
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "CSV 檔案 (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "無法讀取 CSV 檔案。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "CSV 第 %d 行：%s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "無法寫入 CSV 檔案。"
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "CSV 每行必須恰有兩欄。"
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "CSV 檔案中沒有點。"
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "擠出長度上限取決於目前印表機的熱床尺寸和模型點。"
 

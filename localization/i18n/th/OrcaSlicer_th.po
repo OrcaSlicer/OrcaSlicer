@@ -38564,8 +38564,58 @@ msgstr "ตัวคูณแก้ไขการไหลสุดท้าย
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "แบบจำลองว่าง จะไม่ชดเชยการไหล"
 
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Import CSV"
+msgstr "นำเข้า CSV"
+
 # AI Translated
-# Needs human review: Check bed-size terminology and natural tooltip wording.
-msgid "The X limit depends on the current printer's bed size and model points."
-msgstr "ขีดจำกัด X ขึ้นกับขนาดฐานพิมพ์ของเครื่องพิมพ์ปัจจุบันและจุดในโมเดล"
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "นำเข้าจุดจาก CSV สองคอลัมน์ตามลำดับตาราง ใช้จุลภาคหรืออัฒภาคคั่นได้"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Export CSV"
+msgstr "ส่งออก CSV"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "ส่งออกจุดปัจจุบันเป็น CSV โดยไม่บันทึกการเปลี่ยนแปลงในพรีเซ็ต"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "CSV files (*.csv)|*.csv"
+msgstr "ไฟล์ CSV (*.csv)|*.csv"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Could not read the CSV file."
+msgstr "อ่านไฟล์ CSV ไม่ได้"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "CSV บรรทัด %d: %s"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "Could not write the CSV file."
+msgstr "เขียนไฟล์ CSV ไม่ได้"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "CSV must contain exactly two columns per line."
+msgstr "แต่ละบรรทัด CSV ต้องมีสองคอลัมน์"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "The CSV file contains no points."
+msgstr "ไฟล์ CSV ไม่มีจุด"
+
+# AI Translated
+# Needs human review: Check technical wording and concise UI phrasing.
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "ขีดจำกัดความยาวการอัดรีดขึ้นกับขนาดเตียงของเครื่องพิมพ์ปัจจุบันและจุดในโมเดล"
 
