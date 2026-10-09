@@ -171,7 +171,7 @@ public:
     std::string current_nozzle_loc = "";
     wxColour m_colour;
 
-    string m_file_name;
+    std::string m_file_name;
     bool   m_ams_loading{false};
     void   doRender(wxDC &dc);
     ExtruderImage(wxWindow *parent, wxWindowID id, int nozzle_num, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
@@ -244,7 +244,7 @@ protected:
     {
         wxString          local_image_url; //local image path
         std::string       img_url_paths; // oss url path
-        vector<wxPanel *> image_broad;
+        std::vector<wxPanel *> image_broad;
         bool              is_selected;
         bool              is_uploaded; // load
         wxBoxSizer *      image_tb_broad = nullptr;

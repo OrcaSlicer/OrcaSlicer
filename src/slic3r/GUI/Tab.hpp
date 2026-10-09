@@ -331,6 +331,10 @@ public:
     MultiSwitchButton *  m_variant_combo   = nullptr;
     ScalableButton *m_extruder_sync   = nullptr;
 	wxPanel *       m_extruder_sync_box  = nullptr;
+    // Orca: whether m_extruder_switch switches nozzle variants (it then offers sync between them).
+    // The printer tab also enables the switch for printers without variants, to choose the extruder
+    // its Extruder and Motion ability pages edit.
+    bool            m_extruder_switch_variants = false;
     std::vector<NozzleVolumeType> m_actual_nozzle_volumes;
 
 public:
@@ -387,6 +391,13 @@ public:
     void        update_changed_tree_ui();
 	void		update_undo_buttons();
     void        update_extruder_switch_colors();
+    // Whether the variant switch (m_extruder_switch / m_variant_combo) is enabled: on the printer tab for
+    // any multi-extruder printer, on the other tabs when it switches nozzle variants.
+    bool        variant_switch_active() const;
+    // Orca: whether `page` is the printer tab's single "Extruder" page, which edits the extruder selected on the switch.
+    bool        is_printer_extruder_page(const Page* page) const { return m_type == Preset::TYPE_PRINTER && page && page->title() == "Extruder"; }
+    // Shows the variant switch row on pages with options that follow it.
+    void        update_variant_sizer_visibility();
     void        update_all_extruder_options_status();
     void        check_extruder_options_status(int index, bool &sys_extruder, bool &modified_extruder, const std::vector<PageShp>& pages_to_check);
 
@@ -444,7 +455,7 @@ public:
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value);
 
     void            update_wiping_button_visibility();
-	void			activate_option(const std::string& opt_key, const wxString& category);
+	virtual void	activate_option(const std::string& opt_key, const wxString& category);
     void			apply_searcher();
 	void			cache_config_diff(const std::vector<std::string>& selected_options, const DynamicPrintConfig* config = nullptr);
 	void			apply_config_from_cache();
@@ -710,6 +721,25 @@ public:
 	void		cache_extruder_cnt(const DynamicPrintConfig* config = nullptr);
 	bool		apply_extruder_cnt_from_cache();
 	void		refresh_printer_agent_dropdown() const;
+
+	// Orca: a single "Extruder" page for all extruders. Its controls are created once (index 0) and
+	// switch_excluder() re-targets them to the extruder selected on m_extruder_switch.
+	Page*		extruder_page() const;
+	// Config index an "Extruder" page field (e.g. "retraction_length#0") currently edits, -1 if not on that page.
+	int			extruder_page_data_index(const std::string& field_id) const;
+	// Config index of an extruder's per-variant options (Retraction, Z-Hop, ...): its variant column
+	// for the nozzle selected on the switch, or the extruder index on a printer without variants.
+	int			extruder_variant_index(int extruder);
+	// After the config was restored (roll back): follow its extruder count, if it differs.
+	void		sync_extruders_count();
+	// Search jump to "Extruder N" / "key#N": selects extruder N on the switch, then activates the
+	// page's own field on the "Extruder" page.
+	void		activate_option(const std::string& opt_key, const wxString& category) override;
+
+protected:
+	// Orca: values of extruders added by raising the extruder count have no saved / system value to
+	// revert to; the change is shown on "extruders_count", not on each of their parameters.
+	void		update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 };
 
 class TabSLAMaterial : public Tab

@@ -7,9 +7,6 @@
 
 #include "nlohmann/json.hpp"
 
-
-using namespace std;
-
 class json_diff
 {
 private:

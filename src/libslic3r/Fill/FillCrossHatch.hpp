@@ -19,6 +19,7 @@ public:
     Fill *clone() const override { return new FillCrossHatch(*this); };
     ~FillCrossHatch() override {}
     bool is_self_crossing() override { return false; }
+    bool aligned_to_origin() const override { return true; }
 
 protected:
 	void _fill_surface_single(

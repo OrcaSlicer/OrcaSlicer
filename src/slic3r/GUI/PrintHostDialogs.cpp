@@ -79,7 +79,6 @@
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 
-#include <nlohmann/json.hpp>
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"

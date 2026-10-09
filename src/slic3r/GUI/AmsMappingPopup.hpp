@@ -17,7 +17,6 @@
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -30,7 +29,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 
 #include "GUI_Utils.hpp"

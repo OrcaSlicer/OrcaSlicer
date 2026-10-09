@@ -126,7 +126,7 @@ void SendToPrinterDialog::stripWhiteSpace(std::string& str)
 {
     if (str == "") { return; }
 
-    string::iterator cur_it;
+    std::string::iterator cur_it;
     cur_it = str.begin();
 
     while (cur_it != str.end()) {

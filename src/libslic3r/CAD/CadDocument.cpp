@@ -62,6 +62,7 @@
 #include <TopoDS_Face.hxx>
 #include <TopAbs.hxx>
 #include <TopoDS_Shell.hxx>
+#include <TopoDS_Solid.hxx>
 #include <TopoDS_Compound.hxx>      // multi-body: compound of bodies for display/compat
 #include <BRep_Builder.hxx>
 #include <TopAbs_Orientation.hxx>   // outward-normal orientation for face-extrude
@@ -83,7 +84,6 @@
 #include <cmath>
 #include <cctype>
 #include <cstdio>
-#include <functional>
 #include <gp_XY.hxx>
 #include <initializer_list>
 #include <math.h>

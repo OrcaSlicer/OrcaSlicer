@@ -12,6 +12,7 @@
 #include <cstddef>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/colour.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/LabeledStaticBox.hpp"
 #include "slic3r/GUI/Widgets/RadioGroup.hpp"
@@ -25,7 +26,6 @@
 #include <wx/dcgraph.h>
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
 #include <string>
 #include <vector>
 #include <cmath>
@@ -35,6 +35,7 @@
 #include <wx/dialog.h>
 #include <wx/valtext.h>
 #include <wx/tglbtn.h>
+#include <wx/utils.h>
 #include <wx/event.h>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Flow.hpp"
@@ -237,8 +238,15 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/pressure_advance_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -459,8 +467,15 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/temp_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/temp_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -642,8 +657,15 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/volumetric_speed_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/volumetric_speed_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -766,8 +788,15 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/vfa_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/vfa_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1005,8 +1034,15 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/retraction_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/retraction_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1185,8 +1221,15 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/input_shaping_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1384,8 +1427,15 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/input_shaping_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1580,8 +1630,15 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/cornering_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/cornering_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1719,8 +1776,15 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/flow_ratio_calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/flow_ratio_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);

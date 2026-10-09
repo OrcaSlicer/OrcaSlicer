@@ -33,7 +33,7 @@ static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
 // Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
-static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
+static std::unordered_set<std::string> package_dev_id_types {"094", "239", "093", "22E"};
 
 // Orca: HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()
@@ -345,17 +345,17 @@ wxString HMSQuery::query_hms_msg(const std::string& dev_id, const std::string& l
     return _query_hms_msg(dev_id.substr(0, 3), long_error_code, lang_code);
 }
 
-string HMSQuery::get_dev_id_type(const MachineObject* obj) const
+std::string HMSQuery::get_dev_id_type(const MachineObject* obj) const
 {
     if (obj)
     {
         return obj->get_dev_id().substr(0, 3);
     }
 
-    return string();
+    return std::string();
 }
 
-wxString HMSQuery::_query_hms_msg(const string& dev_id_type, const string& long_error_code, const string& lang_code)
+wxString HMSQuery::_query_hms_msg(const std::string& dev_id_type, const std::string& long_error_code, const std::string& lang_code)
 {
     if (long_error_code.empty())
     {
@@ -426,9 +426,9 @@ wxString HMSQuery::_query_hms_msg(const string& dev_id_type, const string& long_
     return wxEmptyString;
 }
 
-bool HMSQuery::_is_internal_error(const string &dev_id_type,
-                                  const string &error_code,
-                                  const string &lang_code)
+bool HMSQuery::_is_internal_error(const std::string &dev_id_type,
+                                  const std::string &error_code,
+                                  const std::string &lang_code)
 {
     init_hms_info(dev_id_type);
     auto iter = m_hms_info_jsons.find(dev_id_type);

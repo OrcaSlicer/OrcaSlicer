@@ -634,7 +634,7 @@ void AMSextruderImage::doRender(wxDC &dc)
 }
 
 
-AMSextruderImage::AMSextruderImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos)
+AMSextruderImage::AMSextruderImage(wxWindow *parent, wxWindowID id, std::string file_name, const wxSize& size, const wxPoint &pos)
 {
     wxWindow::Create(parent, id, pos, size);
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
@@ -823,7 +823,7 @@ void SwitcherImage::doRender(wxDC &dc)
     Layout();
 }
 
-SwitcherImage::SwitcherImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos)
+SwitcherImage::SwitcherImage(wxWindow *parent, wxWindowID id, std::string file_name, const wxSize& size, const wxPoint &pos)
 {
     wxWindow::Create(parent, id, pos, size);
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
@@ -899,7 +899,7 @@ void AMSextruder::OnAmsLoading(bool load, int nozzle_id, wxColour col /*= AMS_CO
 }
 
 /*return true if something is updated*/
-bool AMSextruder::updateNozzleNum(int nozzle_num, const string& series_name)
+bool AMSextruder::updateNozzleNum(int nozzle_num, const std::string& series_name)
 {
     if (m_nozzle_num == nozzle_num && m_series_name == series_name) return false;
     m_series_name = series_name;

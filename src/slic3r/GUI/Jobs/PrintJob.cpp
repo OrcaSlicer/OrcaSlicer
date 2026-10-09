@@ -335,7 +335,7 @@ void PrintJob::process(Ctl &ctl)
         auto origin_profile_id = model_info->metadata_items.find(BBL_DESIGNER_PROFILE_ID_TAG);
         if (origin_profile_id != model_info->metadata_items.end()) {
             try {
-                params.origin_profile_id    = stoi(origin_profile_id->second.c_str());
+                params.origin_profile_id    = std::stoi(origin_profile_id->second.c_str());
             }
             catch(...) {}
         }

@@ -1682,13 +1682,13 @@ int GuideFrame::SaveProfileData()
     return 0;
 }
 
-void StringReplace(string &strBase, string strSrc, string strDes)
+void StringReplace(std::string &strBase, std::string strSrc, std::string strDes)
 {
-    string::size_type pos    = 0;
-    string::size_type srcLen = strSrc.size();
-    string::size_type desLen = strDes.size();
+    std::string::size_type pos    = 0;
+    std::string::size_type srcLen = strSrc.size();
+    std::string::size_type desLen = strDes.size();
     pos                      = strBase.find(strSrc, pos);
-    while ((pos != string::npos)) {
+    while ((pos != std::string::npos)) {
         strBase.replace(pos, srcLen, strDes);
         pos = strBase.find(strSrc, (pos + desLen));
     }
