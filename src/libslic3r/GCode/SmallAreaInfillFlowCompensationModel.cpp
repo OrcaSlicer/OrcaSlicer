@@ -107,6 +107,13 @@ CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
     if (row == last) bounds.min_y = bounds.max_y = 1.0;
     else bounds.max_y = std::min(view.max_y, std::nextafter(y[row + 1], -infinity));
     if (row > 0 && row != last) bounds.min_y = std::max(view.min_y, std::nextafter(y[row - 1], infinity));
+    if (row == 1) {
+        // Keep the first interval outside the zero endpoint tolerance and its
+        // slope finite, including legacy models with negative initial factors.
+        const double gap = std::max(std::numeric_limits<double>::min(),
+            (bounds.max_y - y.front()) / std::numeric_limits<double>::max());
+        bounds.min_x = std::max(bounds.min_x, x.front() + std::nextafter(gap, infinity));
+    }
     return bounds;
 }
 
