@@ -259,9 +259,9 @@ wxRect CurveEditorPanel::chart_rect() const
     const int label_width = std::max(dc.GetTextExtent(m_appearance.reference_label).x,
         axis_label_width(bounds.min_y, bounds.max_y, m_view_limits.minimum_span, height, dc, gap));
     // Leave room for a hovered point's marker at the right edge.
-    const int right = gap + FromDIP(2);
+    const int right = gap;
     // Tick length, label spacing and a small outer padding.
-    const int left = label_width + 2 * FromDIP(4) + FromDIP(2);
+    const int left = label_width + 3 * FromDIP(2);
     return wxRect(left, top, std::max(1, size.x - left - right), height);
 }
 
@@ -302,7 +302,7 @@ void CurveEditorPanel::paint_chart()
     const int left = plot.x, top = plot.y, width = plot.width, height = plot.height;
     if (width <= 0 || height <= 0)
         return;
-    const int gap = FromDIP(8), tick_size = FromDIP(4), label_gap = FromDIP(4);
+    const int gap = FromDIP(8), tick_size = FromDIP(2), label_gap = FromDIP(2);
     const int bottom = top + height;
     const bool dark = wxGetApp().dark_mode();
     const wxColour colour("#009688");
@@ -402,7 +402,7 @@ void CurveEditorPanel::paint_chart()
         if (active) {
             dc.SetBrush(*wxTRANSPARENT_BRUSH);
             dc.SetPen(wxPen(colour, FromDIP(2)));
-            dc.DrawCircle(position, FromDIP(8));
+            dc.DrawCircle(position, FromDIP(6));
         }
     }
     const int tooltip_point = m_dragged_point >= 0 ? m_dragged_point : m_hovered_point;
