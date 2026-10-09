@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <string>
+#include <utility>
 #include <vector>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CurveModel.hpp"
@@ -13,6 +15,8 @@
 namespace Slic3r {
 namespace {
 
+constexpr double minimum_span = 0.001;
+
 bool nearly_equal(double a, double b)
 {
     // Keep the endpoint tolerance of existing compensation models.
@@ -21,6 +25,19 @@ bool nearly_equal(double a, double b)
 }
 
 } // namespace
+
+SmallAreaInfillFlowCompensationModel::SmallAreaInfillFlowCompensationModel(
+    std::vector<std::string> parameters, double bed_diagonal)
+    : CurveModel(std::move(parameters)),
+      m_maximum_x(std::isfinite(bed_diagonal) && bed_diagonal > 0.0 ? minimum_span : 1000.0)
+{
+    std::vector<double> lengths{bed_diagonal};
+    for (const auto& row : rows()) {
+        double length;
+        if (read_number(row.first, length)) lengths.push_back(length);
+    }
+    expand_view_limits(lengths);
+}
 
 const char* SmallAreaInfillFlowCompensationModel::validate_points(
     const std::vector<double>& x, const std::vector<double>& y, int& row) const
@@ -54,7 +71,20 @@ CurveView SmallAreaInfillFlowCompensationModel::fitted_view(
 CurveViewLimits SmallAreaInfillFlowCompensationModel::view_limits() const
 {
     // Limit zooming to useful lengths and factors, without restricting saved model points.
-    return {{0.0, 1000.0, -1.0, 2.0}, 1.0, 0.01, 0.001};
+    return {{0.0, m_maximum_x, -1.0, 2.0}, 1.0, 0.01, minimum_span};
+}
+
+bool SmallAreaInfillFlowCompensationModel::expand_view_limits(const std::vector<double>& x)
+{
+    const double previous = m_maximum_x;
+    for (double length : x) {
+        if (!std::isfinite(length) || length <= 0.0) continue;
+        // The bed diagonal is a navigation reference, not a limit on saved points.
+        // Leave the same 10% headroom used by Reset View, without overflowing.
+        const double maximum = length <= std::numeric_limits<double>::max() / 1.1 ? length * 1.1 : length;
+        m_maximum_x = std::max(m_maximum_x, maximum);
+    }
+    return previous != m_maximum_x;
 }
 
 CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
