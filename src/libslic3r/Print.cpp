@@ -370,6 +370,14 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "spiral_mode") {
             osteps.emplace_back(posSlice);
         } else if (
+               opt_key == "filament_map"
+            || opt_key == "filament_map_mode") {
+            // With a manual map, the object's layer height limits come from the extruder each
+            // filament is mapped to (SlicingParameters::create_from_config), so a remap re-slices.
+            osteps.emplace_back(posSlice);
+            steps.emplace_back(psWipeTower);
+            steps.emplace_back(psSkirtBrim);
+        } else if (
                opt_key == "print_sequence"
             || opt_key == "filament_type"
             || opt_key == "chamber_temperature"
@@ -419,8 +427,6 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "toolchange_cyclic_first_layer"
             || opt_key == "extruder_ams_count"
             || opt_key == "extruder_nozzle_stats"
-            || opt_key == "filament_map_mode"
-            || opt_key == "filament_map"
             || opt_key == "filament_nozzle_map"
             || opt_key == "filament_volume_map"
             || opt_key == "filament_adhesiveness_category"
