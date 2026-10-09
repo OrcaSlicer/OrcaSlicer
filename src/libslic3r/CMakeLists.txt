@@ -85,6 +85,15 @@ set(lisbslic3r_sources
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
+    BeltBrim.cpp
+    BeltBrim.hpp
+    BeltGCode.cpp
+    BeltGCode.hpp
+    BeltPurge.cpp
+    BeltSliceStrategy.cpp
+    BeltSliceStrategy.hpp
+    BeltTransform.cpp
+    BeltTransform.hpp
     Brim.cpp
     BrimEarsPoint.hpp
     Brim.hpp
@@ -232,6 +241,14 @@ set(lisbslic3r_sources
     GCode/AdaptivePAProcessor.hpp
     GCode/AvoidCrossingPerimeters.cpp
     GCode/AvoidCrossingPerimeters.hpp
+    GCode/BeltBackTransform.cpp
+    GCode/BeltBackTransform.hpp
+    GCode/MachineFrameTransform.cpp
+    GCode/MachineFrameTransform.hpp
+    GCode/BeltKinematics.cpp
+    GCode/BeltKinematics.hpp
+    GCode/MachineKinematics.cpp
+    GCode/MachineKinematics.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
@@ -261,8 +278,6 @@ set(lisbslic3r_sources
     GCode/PreciseSeam.cpp
     GCode/PreciseSeam.hpp
     GCode/PreciseSeamInternal.hpp
-    #GCodeSender.cpp
-    #GCodeSender.hpp
     GCode/SmallAreaInfillFlowCompensator.cpp
     GCode/SmallAreaInfillFlowCompensator.hpp
     GCode/SpiralVase.cpp
@@ -447,7 +462,6 @@ set(lisbslic3r_sources
     SLA/SupportTreeBuildsteps.hpp
     SLA/SupportTree.cpp
     SLA/SupportTree.hpp
-    #SLA/SupportTreeIGL.cpp
     SLA/SupportTreeMesher.cpp
     SLA/SupportTreeMesher.hpp
     SlicesToTriangleMesh.cpp
@@ -456,6 +470,8 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
+    Support/BeltFloorContext.cpp
+    Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
@@ -585,10 +601,10 @@ set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE ON CACHE BOOL "" FORCE)
 
 cmake_policy(PUSH)
 cmake_policy(SET CMP0011 NEW)
-# CGAL's config resets policies (cmake_minimum_required ...3.23), so a plain SET
+# CGAL's config resets policies (cmake_minimum_required ...3.31), so a plain SET
 # can't reach it; the default opts its Boost lookup into BoostConfig (CMP0167).
 set(CMAKE_POLICY_DEFAULT_CMP0167 NEW)
-find_package(CGAL REQUIRED)
+find_package(CGAL 6.2 REQUIRED)
 find_package(OpenCV REQUIRED core)
 find_package(assimp REQUIRED)
 unset(CMAKE_POLICY_DEFAULT_CMP0167)

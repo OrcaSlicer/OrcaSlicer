@@ -199,6 +199,10 @@ private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
+    // Belt printers: the view the loaded result was converted for (see load_as_gcode).
+    bool m_last_belt_show_designed{ true };
+    // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
+    std::vector<double> m_belt_layer_zs;
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
@@ -219,6 +223,7 @@ private:
     //BBS: add shell bounding box
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
+    bool  m_machine_frame_transform_active{ false };
     float m_z_offset{ 0.0f };
 
     ConfigOptionMode m_user_mode;
@@ -259,6 +264,11 @@ private:
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
     bool m_is_dark = false;
+
+    bool  m_belt_view_enabled = false;
+    bool  m_belt_show_designed = true;   // Designed (upright, back-transformed) view by default; off shows
+                                         // the raw machine-frame G-code (canvas view menu, hotkey B).
+    float m_belt_angle_deg = 0.f;
 
     libvgcode::Viewer m_viewer;
     // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
@@ -316,10 +326,15 @@ public:
     std::vector<int> get_plater_extruder();
 
     const float                get_max_print_height() const { return m_max_print_height; }
+    bool                       is_machine_frame_transform_active() const { return m_machine_frame_transform_active; }
     const BoundingBoxf3& get_paths_bounding_box() const { return m_paths_bounding_box; }
     const BoundingBoxf3& get_max_bounding_box() const { return m_max_bounding_box; }
     const BoundingBoxf3& get_shell_bounding_box() const { return m_shell_bounding_box; }
     std::vector<double> get_layers_zs() const {
+        // Belt printers: the layer Z the slider labels and the colour-change ticks
+        // use is the layer's print Z (see load_as_gcode), not a toolpath height.
+        if (! m_belt_layer_zs.empty())
+            return m_belt_layer_zs;
         const std::vector<float> zs = m_viewer.get_layers_zs();
         std::vector<double> ret;
         std::transform(zs.begin(), zs.end(), std::back_inserter(ret), [](float z) { return static_cast<double>(z); });
@@ -394,6 +409,11 @@ public:
     float get_legend_height() { return m_legend_height; }
 
     void export_toolpaths_to_obj(const char* filename) const;
+
+    void set_belt_printer(bool enabled, float angle_deg) { m_belt_view_enabled = enabled; m_belt_angle_deg = angle_deg; }
+    bool is_belt_view() const { return m_belt_view_enabled && m_belt_angle_deg > 0.f; }
+    void toggle_belt_show_designed() { if (m_belt_view_enabled) m_belt_show_designed = !m_belt_show_designed; }
+    bool is_belt_show_designed() const { return m_belt_show_designed; }
 
     size_t get_extruders_count() { return m_extruders_count; }
     void push_combo_style();

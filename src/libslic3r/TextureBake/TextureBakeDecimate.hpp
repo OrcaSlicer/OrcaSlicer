@@ -46,6 +46,13 @@ using DecimateProgressFn = std::function<bool(double fraction)>;
 struct DecimateResult
 {
     TriSoup geometry;
+    // One entry per output face, carried from the `face_color` handed in: a colour difference is a
+    // crease, so no collapse ever merges two faces of different colour and every survivor keeps exactly
+    // the colour it came with. Empty when no `face_color` was given.
+    //
+    // This is what lets the caller colour the simplified mesh by *provenance* rather than by sampling it
+    // again: the input colours were masked by the paint on the fine mesh, where that mask is exact.
+    std::vector<int> face_color;
     // The locked faces alone met the target, so it was unreachable without touching preserved
     // geometry.
     bool locked_over_budget = false;

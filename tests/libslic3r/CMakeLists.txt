@@ -3,6 +3,7 @@ get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests.cpp
     test_3mf.cpp
+    test_amf.cpp
     # Round-trip seam metadata and active/dormant volume settings in both formats.
     test_precise_seam_3mf.cpp
     # Pure perimeter extraction is independent of Print/Layer fixtures.
@@ -13,6 +14,7 @@ add_executable(${_TEST_NAME}_tests
     test_arrange.cpp
     test_assemble_list.cpp
     test_bambu_networking.cpp
+    test_belt_brim.cpp
     test_buildvolume.cpp
     test_calib.cpp
     test_clipper_offset.cpp
@@ -36,6 +38,7 @@ add_executable(${_TEST_NAME}_tests
     test_geometry.cpp
     test_multimaterial_segmentation.cpp
     test_placeholder_parser.cpp
+    test_png_read_write.cpp
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp

@@ -1041,10 +1041,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             void _stop_object_xml_parser(const std::string& msg = std::string())
             {
                 assert(! obj_parse_error);
-                assert(obj_parse_error_message.empty());
                 assert(object_xml_parser != nullptr);
                 obj_parse_error = true;
-                obj_parse_error_message = msg;
+                if (! msg.empty() || obj_parse_error_message.empty())   // a handler may have set the message already
+                    obj_parse_error_message = msg;
                 XML_StopParser(object_xml_parser, false);
             }
 
@@ -1395,7 +1395,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         bool _handle_start_relationship(const char** attributes, unsigned int num_attributes);
 
-        void _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
+        bool _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
         bool _generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
         //bool _generate_volumes(ModelObject& object, const Geometry& geometry, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
 
@@ -2117,7 +2117,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                     }
                     std::vector<Component> object_id_list;
-                    _generate_current_object_list(object_id_list, object.first, m_current_objects);
+                    if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                        return false;
 
                     ObjectMetadata::VolumeMetadataList volumes;
                     ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -2216,7 +2217,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
 
             std::vector<Component> object_id_list;
-            _generate_current_object_list(object_id_list, object.first, m_current_objects);
+            if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                return false;
 
             ObjectMetadata::VolumeMetadataList volumes;
             ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -3901,11 +3903,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         // appends the vertex coordinates
         // missing values are set equal to ZERO
-        if (m_curr_object)
-            m_curr_object->geometry.vertices.emplace_back(
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+        if (m_curr_object) {
+            const Vec3f v(m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
+                          m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
+                          m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+            // A non-finite coordinate ("nan", "inf") used to be accepted and crashed
+            // qhull in ModelVolume's convex hull while the file was still loading. Refuse the file.
+            if (! v.allFinite()) {
+                _stop_xml_parser("Invalid vertex coordinate: not a finite number");
+                return true;   // the parser is stopped; returning false would overwrite the message
+            }
+            m_curr_object->geometry.vertices.emplace_back(v);
+        }
         return true;
     }
 
@@ -5064,11 +5073,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
-    void _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
+    bool _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
     {
+        // A cycle in the component graph would expand forever, and an acyclic graph can still expand
+        // exponentially, so bound the number of component references queued. Checking before they are
+        // queued bounds the work list itself, whatever the fan-out. A valid file over the budget is
+        // rejected too, but the budget is way above the component references of any real object.
+        static constexpr size_t max_components = 100000;
+
         std::list<std::pair<Component, Transform3d>> id_list;
         id_list.push_back(std::make_pair(Component(object_id, Transform3d::Identity()), Transform3d::Identity()));
 
+        size_t num_components = 0;
         while (!id_list.empty())
         {
             auto current_item = id_list.front();
@@ -5078,6 +5094,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (current_object != current_objects.end()) {
                 //found one
                 if (!current_object->second.components.empty()) {
+                    num_components += current_object->second.components.size();
+                    if (num_components > max_components) {
+                        add_error("invalid 3mf: cyclic or too many component references");
+                        sub_objects.clear();
+                        return false;
+                    }
                     for (const Component &comp : current_object->second.components) {
                         id_list.push_back(std::pair(comp, current_item.second * comp.transform));
                     }
@@ -5089,6 +5111,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
             }
         }
+        return true;
     }
 
     bool _BBS_3MF_Importer::_generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions)
@@ -5195,6 +5218,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     }
                 }
 
+                for (const Vec3f &v : sub_object->geometry.vertices)
+                    if (! v.allFinite()) {   // Qhull cannot take a NaN vertex
+                        add_error("invalid (non-finite) vertex in object " + std::to_string(sub_object->id));
+                        return false;
+                    }
                 its.vertices.assign(sub_object->geometry.vertices.begin(), sub_object->geometry.vertices.end());
 
                 // BBS
@@ -5708,11 +5736,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         // appends the vertex coordinates
         // missing values are set equal to ZERO
-        if (current_object)
-            current_object->geometry.vertices.emplace_back(
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+        if (current_object) {
+            const Vec3f v(object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
+                          object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
+                          object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+            // See _BBS_3MF_Importer::_handle_start_vertex: a non-finite coordinate
+            // crashed qhull while the file loaded. The dispatcher stops this parser on `false`.
+            if (! v.allFinite()) {
+                obj_parse_error_message = "Invalid vertex coordinate: not a finite number";
+                return false;
+            }
+            current_object->geometry.vertices.emplace_back(v);
+        }
         return true;
     }
 

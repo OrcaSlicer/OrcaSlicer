@@ -17,6 +17,8 @@
 
 #include "libslic3r/libslic3r.h"
 #include "LibVGCodeWrapper.hpp"
+
+#include <limits>
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/CustomGCode.hpp"
@@ -199,9 +201,21 @@ Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode)
 }
 
 GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
-    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer)
+    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
+    const Slic3r::Transform3d* belt_xform)
 {
     GCodeInputData ret;
+
+    // Belt printers: optionally map each vertex DISPLAY position from machine
+    // (G-code) space back to model/Cartesian space using the general belt
+    // back-transform (handles any mesh rotation + shear + axis remap, not just
+    // 45 deg). Only the rendered position is transformed; layer_id, times and
+    // the volumetric/flow math below keep the original machine-space values.
+    auto xform_pos = [belt_xform](const Slic3r::Vec3f& v) -> Vec3 {
+        if (belt_xform != nullptr)
+            return convert(Slic3r::Vec3f((*belt_xform * v.cast<double>()).cast<float>()));
+        return convert(v);
+    };
 
     // collect tool colors
     ret.tools_colors.reserve(str_tool_colors.size());
@@ -218,10 +232,22 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
 
     const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves = result.moves;
     ret.vertices.reserve(2 * moves.size());
+    // libvgcode numbers its layers from the vertices it is given and expects them to
+    // arrive one layer after the other with consecutive ids: a layer without any move
+    // (a belt file can carry layer changes that print nothing) would leave a gap, and
+    // every later vertex would then be folded into the last layer created.  Renumber
+    // the ids consecutively over the moves that exist.
+    uint32_t src_layer_id = std::numeric_limits<uint32_t>::max();
+    uint32_t layer_id     = 0;
     for (size_t i = 1; i < moves.size(); ++i) {
         const Slic3r::GCodeProcessorResult::MoveVertex& curr = moves[i];
         const Slic3r::GCodeProcessorResult::MoveVertex& prev = moves[i - 1];
         const EMoveType curr_type = convert(curr.type);
+        if (curr.layer_id != src_layer_id) {
+            if (src_layer_id != std::numeric_limits<uint32_t>::max())
+                ++ layer_id;
+            src_layer_id = curr.layer_id;
+        }
         const EOptionType option_type = move_type_to_option(curr_type);
         if (option_type == EOptionType::COUNT || option_type == EOptionType::Travels || option_type == EOptionType::Wipes) {
             if (ret.vertices.empty() || prev.type != curr.type || prev.extrusion_role != curr.extrusion_role
@@ -231,17 +257,17 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                 // equal to the current one with the exception of the position, which should match the previous move position,
                 // and the times, which are set to zero
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-                const libvgcode::PathVertex vertex = { convert(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
+                const libvgcode::PathVertex vertex = { xform_pos(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
                     curr.mm3_per_mm, curr.fan_speed, curr.temperature, 0.0f, convert(curr.extrusion_role), curr_type,
-                    static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
+                    static_cast<uint32_t>(curr.gcode_id), layer_id,
                     static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                     /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
                     /* ORCA: Add Acceleration visualization support */ curr.acceleration,
                     /* ORCA: Add Jerk visualization support */ curr.jerk };
 #else
-              const libvgcode::PathVertex vertex = { convert(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
+              const libvgcode::PathVertex vertex = { xform_pos(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
                     curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
-                    static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
+                    static_cast<uint32_t>(curr.gcode_id), layer_id,
                     static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                     /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
                     /* ORCA: Add Acceleration visualization support */ curr.acceleration,
@@ -252,18 +278,18 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         }
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-        const libvgcode::PathVertex vertex = { convert(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
+        const libvgcode::PathVertex vertex = { xform_pos(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
             curr.mm3_per_mm, curr.fan_speed, curr.temperature,
             result.filament_densities[curr.extruder_id] * curr.mm3_per_mm * (curr.position - prev.position).norm(),
-            convert(curr.extrusion_role), curr_type, static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
+            convert(curr.extrusion_role), curr_type, static_cast<uint32_t>(curr.gcode_id), layer_id,
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
             /* ORCA: Add Jerk visualization support */ curr.jerk };
 #else
-        const libvgcode::PathVertex vertex = { convert(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
+        const libvgcode::PathVertex vertex = { xform_pos(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
             curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
-            static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
+            static_cast<uint32_t>(curr.gcode_id), layer_id,
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
@@ -272,6 +298,11 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         ret.vertices.emplace_back(vertex);
     }
     ret.vertices.shrink_to_fit();
+
+    // Note: the belt designed-view anchoring (recovering the per-object placement/
+    // lift translation the linear back-transform cannot) is folded into belt_xform
+    // by the caller (GCodeViewer::load_as_gcode), which anchors onto the upright
+    // model bounding box. Nothing extra to do here.
 
     ret.spiral_vase_mode = result.spiral_vase_mode;
 

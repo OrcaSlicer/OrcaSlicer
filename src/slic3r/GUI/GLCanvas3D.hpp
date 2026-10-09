@@ -183,13 +183,10 @@ wxDECLARE_EVENT(EVT_GLCANVAS_PLATE_NAME_CHANGE, SimpleEvent);
 //BBS: declare EVT_GLCANVAS_PLATE_SELECT
 wxDECLARE_EVENT(EVT_GLCANVAS_PLATE_SELECT, SimpleEvent);
 
-using Vec2dEvent = Event<Vec2d>;
 // _bool_ value is used as a indicator of selection in the 3DScene
 using RBtnEvent = Event<std::pair<Vec2d, bool>>;
 using RBtnPlateEvent = Event<std::pair<Vec2d, int>>;
-template <size_t N> using Vec2dsEvent = ArrayEvent<Vec2d, N>;
 
-using Vec3dEvent = Event<Vec3d>;
 template <size_t N> using Vec3dsEvent = ArrayEvent<Vec3d, N>;
 
 using HeightProfileSmoothEvent = Event<HeightProfileSmoothingParams>;

@@ -12,6 +12,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/GCode/MachineFrameTransform.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -290,6 +291,19 @@ class Print;
         bool support_traditional_timelapse{true};
         float printable_height;
         float z_offset;
+        // Belt printer: physical tilt magnitude (deg) parsed from the slicing-rotation
+        // header comment; used to enable the preview's belt view.
+        float belt_tilt_angle{ 0.f };
+        // Belt printer: machine-Z origin offset (mm) left in m_origin[Z] by the start
+        // G-code (purge-blob belt advance + G92 Z0 resets). Move positions are stored
+        // as gcode_Z + this offset, so the designed-view back-transform must subtract it
+        // to recover the model's belt coordinate.
+        float belt_z_origin{ 0.f };
+        // Belt printer: post-gcode shear/scale/post_remap is configured and
+        // non-identity.  When set, the layer Z values in `moves` are in the
+        // machine frame and should not be compared against `printable_height`
+        // (which lives in the build-volume frame).
+        bool machine_frame_transform_active{ false };
         SettingsIds settings_ids;
         size_t filaments_count;
         bool backtrace_enabled;
@@ -385,6 +399,9 @@ class Print;
             // Keep the SKIPPABLE per-type time on a copied result.
             skippable_part_time = std::forward<Other>(other).skippable_part_time;
             initial_layer_time = std::forward<Other>(other).initial_layer_time;
+            belt_tilt_angle = std::forward<Other>(other).belt_tilt_angle;
+            belt_z_origin = std::forward<Other>(other).belt_z_origin;
+            machine_frame_transform_active = std::forward<Other>(other).machine_frame_transform_active;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = std::forward<Other>(other).time;
 #endif
@@ -1085,6 +1102,10 @@ class Print;
     private:
         CommandProcessor m_command_processor;
         GCodeReader m_parser;
+        // Belt printer: the belt keys of the loaded file's config block (plus the bed they
+        // are relative to), handed to the preview through export_config_for_render() so the
+        // belt view and its back-transform follow the file, not the selected printer.
+        DynamicConfig m_belt_render_config;
         EUnits m_units;
         EPositioningType m_global_positioning_type;
         EPositioningType m_e_local_positioning_type;
@@ -1160,6 +1181,13 @@ class Print;
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
 
+        // Belt-printer post-gcode shear/scale/post_remap. Used by
+        // check_multi_extruder_gcode_valid to undo the machine-frame
+        // transform on move positions so bounds checks operate in the
+        // pre-machine-frame (build-volume) frame.
+        MachineFrameTransform m_machine_frame_transform;
+        bool                  m_belt_printer{ false };
+
         unsigned int m_line_id;
         unsigned int m_last_line_id;
         float m_feedrate; // mm/s
@@ -1189,6 +1217,7 @@ class Print;
         float m_first_layer_height; // mm
         float m_zero_layer_height; // mm
         bool m_processing_start_custom_gcode;
+        bool m_in_config_block;
         unsigned int m_g1_line_id;
         unsigned int m_layer_id;
         CpColor m_cp_color;

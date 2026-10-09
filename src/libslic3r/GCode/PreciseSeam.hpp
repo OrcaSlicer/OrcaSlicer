@@ -22,9 +22,6 @@
 namespace Slic3r {
 namespace PreciseSeam {
 
-// Import EnforcedBlockedSeamPoint from SeamPlacerImpl namespace for convenience
-using SeamPlacerImpl::EnforcedBlockedSeamPoint;
-
 // Geometry and its exterior bounds are prepared together, then treated as read-only.
 struct ModifierRegion {
     ExPolygon polygon;
@@ -137,7 +134,7 @@ SegmentExtraction extract_perimeter_segments(const PreparedPerimeter &prepared, 
 
 // Result of weak modifier segment processing
 struct WeakModifierSegment {
-    EnforcedBlockedSeamPoint type;  // Enforced/Blocked/Neutral
+    SeamPlacerImpl::EnforcedBlockedSeamPoint type;  // Enforced/Blocked/Neutral
     Point left_point;               // Coordinates of left (first) point of segment
     PerimeterPosition left_position; // Position on the source perimeter before insertion/refinement.
     Point right_point;              // Coordinates of right (last) point of segment

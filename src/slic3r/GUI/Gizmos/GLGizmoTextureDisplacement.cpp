@@ -27,6 +27,7 @@
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/TextureLibrary.hpp"
 #include "slic3r/GUI/TextureProjectorFrame.hpp"
 #include "slic3r/GUI/UVEditorCanvas.hpp"
@@ -407,11 +408,48 @@ GLGizmoTextureDisplacement::GLGizmoTextureDisplacement(GLCanvas3D& parent, const
 
 bool GLGizmoTextureDisplacement::on_init()
 {
+    m_shortcut = Shortcut::GizmoDisplacement;
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
+
+
     m_desc["cursor_size"]   = _L("Brush size");
     m_desc["circle"]        = _L("Circle");
     m_desc["sphere"]        = _L("Sphere");
     m_desc["remove_layer"]  = _L("Remove");
     m_desc["bake"]          = _L_CONTEXT("Bake", "Texture Displacement");
+
+
+    m_desc["paint"]            = _L("Paint");
+    m_desc["erase"]            = _L("Erase");
+    m_desc["gap_area"]         = _L("Gap area");
+    m_desc["smart_fill_angle"] = _L("Smart fill angle");
+    m_desc["toggle_wireframe"] = _L("Toggle Wireframe");
+
+    std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
+    std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
+    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L_CONTEXT("Enter", "Keyboard Shortcut"), m_desc["toggle_wireframe"]};
+
+    m_shortcuts_brush = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        toggle_wireframe_shortcut
+    };
+
+    m_shortcuts_bucket_fill = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        toggle_wireframe_shortcut
+    };
+
+    m_shortcuts_gap_fill = {
+        {ctrl + _L("Mouse wheel"), m_desc["gap_area"]},
+        toggle_wireframe_shortcut
+    };
+ 
     return true;
 }
 
@@ -523,7 +561,15 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // volume for a shaded pass that then draws nothing is what made the model vanish - most obviously
     // with zero layers, but equally with a layer that has no texture picked yet.
     const bool use_shaded = m_use_shaded_preview && m_shaded_preview_glmodel.is_initialized() && shaded_preview_ready();
-    const bool use_true_preview = !use_shaded && m_preview_glmodel.is_initialized();
+    // Checker/Distortion are built from the *base* patch and drawn with a polygon offset, which biases
+    // depth values - it does not move the geometry. It therefore cannot win against a surface that
+    // genuinely stands in front, and the displaced preview does exactly that: it rises above the base
+    // surface by the layer's depth. Drawn underneath a UV-check overlay it simply occludes it, which is
+    // why those two modes looked like they did nothing. Leave it out and let the undisplaced volume show
+    // through instead (toggle_model_objects_visibility below) - that one *is* coincident with the
+    // overlay, which is what the offset assumes, and it is the surface whose mapping is being inspected.
+    const bool use_true_preview = !use_shaded && m_uv_check_mode == UVCheckMode::None &&
+                                  m_preview_glmodel.is_initialized();
     // In Checker/Distortion mode the UV-check overlay *is* the surface visualization the user is
     // looking at, so the opaque paint-selection highlight must not be drawn on top of it - same
     // reasoning as skipping it for the shaded preview (see bug #12). Without this the painted area
@@ -551,7 +597,13 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
             render_triangles(selection);
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
         }
-    } else if (show_paint_overlay) {
+    } else {
+        // render_triangles() *is* the model in a painter gizmo (it draws every model-part volume with the
+        // selector's colours), not an overlay on top of one - so it still has to run under a UV-check
+        // overlay, or nothing draws the surface at all and the checker floats alone over an empty scene.
+        // Deliberately without the depth bias the branch above applies: the checker/heatmap is drawn later
+        // with its own -1 offset and has to win against this. Biasing both by the same amount is what made
+        // the painted area cover the checker and is why this call used to be skipped outright.
         render_triangles(selection);
     }
 
@@ -1462,11 +1514,8 @@ void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
         // How the entry prints: its filament, or for a mix the two it interleaves and in what ratio.
         shader->set_uniform(("palette_a" + idx).c_str(), e.a);
         shader->set_uniform(("palette_b" + idx).c_str(), e.b);
-        shader->set_uniform(("palette_num" + idx).c_str(), e.num);
-        shader->set_uniform(("palette_den" + idx).c_str(), e.den);
     }
     // The filaments those indices refer to, and the interleave the shader resolves a mix with - the
-    // same inputs make_mix_resolver() gets, so the preview shows the pattern that prints rather than
     // the mix's smooth average colour. m_palette_filaments is what m_shaded_preview_palette was built from.
     const int filament_count =
         (palette_count > 0) ? int(std::min(m_palette_filaments.size(), size_t(PALETTE_MAX_FILAMENTS))) : 0;
@@ -1475,9 +1524,6 @@ void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
         const ColorRGBA &c = m_palette_filaments[size_t(i)];
         shader->set_uniform(("filament_rgb[" + std::to_string(i) + "]").c_str(), Vec3f(c.r(), c.g(), c.b()));
     }
-    shader->set_uniform("mix_mode", int(mv->texture_displacement_options.color_mix_mode));
-    shader->set_uniform("layer_height", color_band_mm(*mv)); // as color_settings_for()
-    shader->set_uniform("dither_cell", std::max(m_subdivide_color_mm, 0.05f) * 2.f); // as color_settings_for()
     if (color_tex != nullptr) {
         shader->set_uniform("color_tex", 1);
         glsafe(::glActiveTexture(GL_TEXTURE1));
@@ -2022,7 +2068,13 @@ void GLGizmoTextureDisplacement::queue_preview_job()
     // The filament list the result's indices refer to, captured with the job rather than read back
     // when it lands - loading a filament meanwhile must not recolour a preview computed against a
     // different list.
-    const std::vector<ColorRGBA> filaments = m_palette_filaments;
+    // Every extruder, not the palette's physical-only list: the bake writes the filament it resolved
+    // to, and a mix resolves to a *mixed filament slot*, which is an extruder past the physical ones.
+    // Grouping against the shorter list dropped every triangle carrying such a slot out of the mesh
+    // entirely - the relief vanished and left only the few triangles that happened to print in a plain
+    // filament. The palette still has to be built from physical filaments alone (see filament_palette()),
+    // which is why these two are not the same list.
+    const std::vector<ColorRGBA> filaments = wxGetApp().plater()->get_extruders_colors();
 
     m_preview_job_running = true;
     auto &worker = wxGetApp().plater()->get_ui_job_worker();
@@ -4219,19 +4271,44 @@ bool GLGizmoTextureDisplacement::any_layer_colors(const ModelVolume &mv)
     return false;
 }
 
+void GLGizmoTextureDisplacement::bind_mixes_to_filament_slots(std::vector<PaletteEntry> &palette)
+{
+    Sidebar *sidebar = &wxGetApp().plater()->sidebar();
+    if (sidebar == nullptr)
+        return;
+    for (PaletteEntry &e : palette) {
+        if (!e.is_mix())
+            continue;
+        // Components are 1-based in the config; the ratios are percentages summing to 100, which is the
+        // form create_mixed_filament_from_result() normalises from.
+        const int a_pct = int(std::lround(100.0 * double(e.num) / double(e.den)));
+        const int slot  = sidebar->ensure_mixed_filament({ unsigned(e.a + 1), unsigned(e.b + 1) },
+                                                         { a_pct, 100 - a_pct });
+        if (slot >= 0) {
+            e.a = e.b = slot;
+            e.num = e.den = 1;
+        } else {
+            // No room for another slot. Collapse to the component that dominates the blend, which is what
+            // the old per-triangle path did on a surface it could not band anyway.
+            const int dominant = (e.num * 2 >= e.den) ? e.a : e.b;
+            e.a = e.b = dominant;
+            e.num = e.den = 1;
+        }
+    }
+}
+
 TextureColorSettings GLGizmoTextureDisplacement::color_settings_for(const ModelVolume &mv)
 {
     TextureColorSettings out;
     if (!any_layer_colors(mv))
         return out; // nothing is colouring: every colour path stays switched off
     out.palette          = cached_palette();
-    out.palette_pure     = make_palette(m_palette_filaments, /* mixing */ false);
-    out.mix_mode         = mv.texture_displacement_options.color_mix_mode;
+    out.palette_pure     = make_palette(m_palette_filaments, /* mixing */ false, PALETTE_MAX_ENTRIES);
+    // Done here rather than in cached_palette(): this runs when a preview or a bake is queued, off a
+    // user action, while that one is also touched from the render path - and creating filament slots
+    // there would mutate the project mid-frame.
+    bind_mixes_to_filament_slots(out.palette);
     out.despeckle_passes = mv.texture_displacement_options.color_despeckle;
-    out.layer_height     = color_band_mm(mv);
-    // The dither cell is tied to the colour-detail target: a cell much smaller than a facet cannot be
-    // drawn at all, and one much larger stops reading as a blend and starts reading as a check.
-    out.dither_cell_mm   = std::max(m_subdivide_color_mm, 0.05f) * 2.f;
     return out;
 }
 
@@ -4244,10 +4321,15 @@ const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDispl
     const ModelVolume *mv     = texture_volume();
     const bool         mixing = mv != nullptr && mv->texture_displacement_options.color_mix_enabled;
     std::vector<ColorRGBA> filaments = filament_palette();
-    if (m_palette_cache.empty() || filaments != m_palette_filaments || mixing != m_palette_mixing) {
+    // Every mix costs a filament slot once they are bound to one, and the mask can name only so many
+    // states, so the palette has to leave room beside the physical filaments it already counts.
+    const int cap = int(EnforcerBlockerType::ExtruderMax);
+    if (m_palette_cache.empty() || filaments != m_palette_filaments || mixing != m_palette_mixing ||
+        cap != m_palette_cap) {
         m_palette_filaments = std::move(filaments);
         m_palette_mixing    = mixing;
-        m_palette_cache     = make_palette(m_palette_filaments, mixing);
+        m_palette_cap       = cap;
+        m_palette_cache     = make_palette(m_palette_filaments, mixing, cap);
         m_palette_quantizer = make_palette_quantizer(m_palette_cache);
     }
     return m_palette_cache;
@@ -4255,40 +4337,29 @@ const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDispl
 
 std::vector<ColorRGBA> GLGizmoTextureDisplacement::filament_palette()
 {
-    std::vector<ColorRGBA> palette = wxGetApp().plater()->get_extruders_colors();
-    // mmu_segmentation_facets encodes the filament in a 6-bit prefix code and stops at Extruder16.
+    std::vector<ColorRGBA> all = wxGetApp().plater()->get_extruders_colors();
+
+    // Physical filaments only. The mixes this palette produces each become a mixed filament slot of
+    // their own (see bind_mixes_to_filament_slots()), and those slots are extruders too - so taking the
+    // list as it comes meant the next rebuild mixed *them* again, and handed components naming a
+    // virtual slot to a blend that can only name physical ones. That is what left entries reading
+    // "filament 1 plus nothing" and raised "Mixed filament has invalid or mismatched components".
+    const auto *is_mixed = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+    std::vector<ColorRGBA> palette;
+    palette.reserve(all.size());
+    for (size_t i = 0; i < all.size(); ++i)
+        if (is_mixed == nullptr || i >= is_mixed->values.size() || !is_mixed->values[i])
+            palette.push_back(all[i]);
+
+    // A paint mask can only name so many states, and every mix spends one beside these.
     if (palette.size() > size_t(EnforcerBlockerType::ExtruderMax))
         palette.resize(size_t(EnforcerBlockerType::ExtruderMax));
     return palette;
 }
 
-float GLGizmoTextureDisplacement::color_band_mm(const ModelVolume &mv)
-{
-    const float lh   = print_layer_height();
-    const float edge = (mv.texture_displacement_options.v2_refine_mm > 0.f) ? mv.texture_displacement_options.v2_refine_mm
-                                                                           : v2_recommendation(mv).edge_mm;
-    if (edge <= 0.f || lh <= 0.f)
-        return lh;
-    // A refined triangle of edge e stacks in rows about 0.87 * e apart (an equilateral triangle's
-    // height), and a dither needs at least two rows per period to be a dither at all.
-    constexpr float ROW_PER_EDGE = 0.87f;
-    return lh * std::max(1.f, std::ceil(2.f * ROW_PER_EDGE * edge / lh));
-}
-
-float GLGizmoTextureDisplacement::print_layer_height()
-{
-    try {
-        const DynamicPrintConfig &cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        if (const ConfigOptionFloat *opt = cfg.option<ConfigOptionFloat>("layer_height"); opt != nullptr)
-            if (opt->value > 1e-3)
-                return float(opt->value);
-    } catch (...) {
-    }
-    return 0.2f;
-}
 
 std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement::make_palette(
-    const std::vector<ColorRGBA> &filaments, bool mixing)
+    const std::vector<ColorRGBA> &filaments, bool mixing, int max_entries)
 {
     std::vector<PaletteEntry> out;
     const int                 n = int(filaments.size());
@@ -4305,7 +4376,7 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
     const int pairs = n * (n - 1) / 2;
     int       steps = 0;
     for (int s = 5; s >= 1; --s)
-        if (n + pairs * s <= PALETTE_MAX_ENTRIES) {
+        if (n + pairs * s <= max_entries) {
             steps = s;
             break;
         }
@@ -4325,51 +4396,6 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
             }
         }
     return out;
-}
-
-ColorResolveFn GLGizmoTextureDisplacement::make_mix_resolver(const std::vector<PaletteEntry> &palette,
-                                                             ColorMixMode mode, float layer_height,
-                                                             float cell_mm)
-{
-    if (palette.empty())
-        return nullptr;
-    auto        entries = std::make_shared<std::vector<PaletteEntry>>(palette);
-    const float band    = std::max(layer_height, 0.01f);
-    const float cell    = std::max(cell_mm, 0.01f);
-
-    return [entries, mode, band, cell](int index, const Vec3f &pos, const Vec3f &normal) -> int {
-        if (index < 0 || size_t(index) >= entries->size())
-            return -1;
-        const PaletteEntry &e = (*entries)[size_t(index)];
-        if (!e.is_mix())
-            return e.a;
-
-        // Which of the two filaments this point falls on. Both patterns are *ordered*, never random:
-        // the eye blends a regular pattern into a flat colour, and turns a random one into noise.
-        // Auto: bands wherever the surface is steeper than ~45 degrees - consecutive layers alternate
-        // there, which is how a blend prints and reads. On a flat-facing surface a layer is one band
-        // and the only way to interleave is a checkerboard across the surface, which at print scale
-        // reads as a pattern rather than a colour; there the mix falls back to its dominant filament.
-        const bool upright = std::abs(normal.z()) < 0.7f;
-        if (mode == ColorMixMode::Auto && !upright)
-            return e.num * 2 >= e.den ? e.a : e.b;
-        const bool bands = mode == ColorMixMode::ZBands || mode == ColorMixMode::Auto;
-        if (bands) {
-            // One band per print layer. floorf, not a cast, so this stays correct below z = 0.
-            const int slot = int(std::floor(pos.z() / band));
-            const int phase = ((slot % e.den) + e.den) % e.den;
-            return phase < e.num ? e.a : e.b;
-        }
-        // Ordered 4x4 Bayer over the surface, indexed by position so the pattern is stable in space
-        // rather than in triangle order (which would move under any remesh, and read as noise).
-        static const int BAYER[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
-        const int gx = ((int(std::floor(pos.x() / cell)) % 4) + 4) % 4;
-        const int gy = ((int(std::floor(pos.y() / cell)) % 4) + 4) % 4;
-        // A third axis would be ideal, but the two dominant ones are enough for a surface pattern and
-        // keep the cell square on the faces that matter.
-        const float threshold = (float(BAYER[gy * 4 + gx]) + 0.5f) / 16.f;
-        return (float(e.num) / float(e.den)) > threshold ? e.a : e.b;
-    };
 }
 
 ColorQuantizeFn GLGizmoTextureDisplacement::make_palette_quantizer(const std::vector<PaletteEntry> &palette)
@@ -4408,10 +4434,15 @@ ColorQuantizeFn GLGizmoTextureDisplacement::make_palette_quantizer(const std::ve
                             best_pure   = int(i);
                         }
                     }
-                    // A mix is an interleave that only reads as its colour from a distance; up close
-                    // it is stripes. Spend it only where it buys a clearly better match than the nearest
-                    // single filament: ten Delta E is a visible step, less is not worth the stripes.
-                    constexpr float PREFER_PURE_DE = 10.f;
+                    // A mix is an interleave that only reads as its colour from a distance; up close it is
+                    // stripes. So it is spent only where it buys a better match than the nearest single
+                    // filament - but "better" was set at ten Delta E, which is not a visible step, it is a
+                    // different colour. Measured over the whole cube that threshold turned 94% of the
+                    // lookups that wanted a mix back into a pure filament, leaving 38%; along a greyscale
+                    // ramp, the shape a height texture actually traces, it cut 80% to 66%. Two Delta E is
+                    // about where a side-by-side difference stops being arguable, which is the right place
+                    // to start paying for stripes.
+                    constexpr float PREFER_PURE_DE = 2.f;
                     if (best_pure >= 0 && palette[size_t(best)].is_mix() && best_pure_d - best_d < PREFER_PURE_DE)
                         best = best_pure;
                     (*lut)[(size_t(r) * E + size_t(g)) * E + size_t(b)] = uint8_t(best);
@@ -4511,7 +4542,7 @@ TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
             if (params.subdiv_color_edge_mm > 0.f && !palette.empty())
                 color = make_combined_color_sampler(mesh.its, layers, current, make_palette_quantizer(palette));
             // Note the sampler is built on the *quantizer* alone - the refinement follows perceived
-            // colour, never the interleaving that realises a mix (see ColorResolveFn).
+            // colour, never the interleaving that realises a mix - the slicer does that per layer.
             // "Min edge" is a feature-mode control (it is the floor the curvature test refines down
             // to); in plain adaptive mode the target edge length is the only criterion, so the floor
             // must not be allowed to silently override a target the user set below it.
@@ -5313,6 +5344,12 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         return;
     ModelVolume *mv = texture_volume();
 
+    float  scale = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+
     const float approx_height = m_imgui->scaled(24.f);
     y = std::min(y, bottom_limit - approx_height);
 
@@ -5742,14 +5779,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         const int cur_mode = m_use_shaded_preview                               ? 1 :
                              m_uv_check_mode == UVCheckMode::Checker    ? 2 :
                              m_uv_check_mode == UVCheckMode::Distortion ? 3 : 0;
-        int  new_mode  = cur_mode;
-        bool wf_toggle = false;
-        const wxString distortion_na = active == nullptr ? _L("Add a layer first.") :
-                                       active->projection_method != TextureProjectionMethod::LSCM ?
-                                                           _L("Needs the active layer mapped with Unwrap (LSCM).") :
-                                                           wxString();
-        // Distortion over a layer that stopped being an unwrap shows nothing at all, so fall back to Normal.
-        if (cur_mode == 3 && !distortion_na.empty())
+        int  new_mode       = cur_mode;
+        bool wf_toggle      = false;
+        bool open_uv_editor = false;
+        // Checker and Distortion both draw *the unwrap* - the first the texture grid laid over it, the second
+        // its stretch - so they only mean anything for a layer mapped with Unwrap (LSCM). On the default
+        // triplanar mapping (or cylindrical / spherical / from view) they are faded out with the reason in the
+        // tooltip, rather than being offered and then showing nothing.
+        const wxString uv_view_na = active == nullptr ? _L("Add a layer first.") :
+                                    active->projection_method != TextureProjectionMethod::LSCM ?
+                                                        _L("Only for a layer mapped with Unwrap (LSCM) - set the "
+                                                           "active layer's Mapping to Unwrap to use this view.") :
+                                                        wxString();
+        // Either view over a layer that stopped being an unwrap shows nothing at all, so fall back to Normal.
+        if ((cur_mode == 2 || cur_mode == 3) && !uv_view_na.empty())
             new_mode = 0;
 
         const float x0 = ImGui::GetCursorPosX();
@@ -5768,12 +5811,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(703, "texture_displacement_checker.svg", cur_mode == 2, icon_md, _L("Checker"),
                         _L("Checker - a test grid instead of the texture. Where the squares stay square the "
-                           "texture is undistorted; where they stretch, it will too")))
-            new_mode = 2;
+                           "texture is undistorted; where they stretch, it will too. Opens the UV editor if "
+                           "it is closed"),
+                        uv_view_na)) {
+            new_mode       = 2;
+            open_uv_editor = true;
+        }
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(704, "texture_displacement_distortion.svg", cur_mode == 3, icon_md, _L("Distortion"),
-                        _L("Distortion - blue-to-red stretch heatmap over the unwrap"), distortion_na))
-            new_mode = 3;
+                        _L("Distortion - blue-to-red stretch heatmap over the unwrap. Opens the UV editor if "
+                           "it is closed"),
+                        uv_view_na)) {
+            new_mode       = 3;
+            open_uv_editor = true;
+        }
         vsep(icon_md);
         if (icon_toggle(705, "texture_displacement_wireframe.svg", m_wireframe_overlay, icon_md, _L("Wireframe"),
                         _L("Wireframe - overlay the mesh edges; independent of the view above")))
@@ -5788,6 +5839,13 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         hover_tip(_u8L("Rebuilds the preview as soon as anything changes. Turn it off on a heavy model if painting "
                         "or dragging a slider starts to stutter - the preview then waits until you let go."));
 
+        // Both are views of the unwrap, so picking one brings the UV editor up with it - including when that
+        // view is already the active one and only the pane is missing.
+        if (open_uv_editor && !m_show_uv_editor) {
+            m_show_uv_editor = true;
+            if (new_mode == cur_mode)
+                update_uv_editor(); // otherwise apply_view_mode() below does it
+        }
         if (new_mode != cur_mode)
             apply_view_mode(new_mode);
         if (wf_toggle) {
@@ -6069,24 +6127,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                        "of filaments can cover a photo or a gradient. An image of flat colors "
                                        "prints the same either way. Off uses one filament per area."));
                         if (opts.color_mix_enabled) {
-                            slider_label(_L("Mix by"));
-                            const std::string mix_z       = _u8L("Layers");
-                            const std::string mix_xy      = _u8L_CONTEXT("Surface", "Texture Displacement");
-                            const std::string mix_auto    = _u8L("Automatic");
-                            const char       *mix_items[] = { mix_z.c_str(), mix_xy.c_str(), mix_auto.c_str() };
-                            int               mix_mode    = int(opts.color_mix_mode);
-                            ImGui::SetNextItemWidth(-card_pad);
-                            if (scoped_combo("##color_mix_mode", &mix_mode, mix_items, IM_ARRAYSIZE(mix_items))) {
-                                opts.color_mix_mode    = ColorMixMode(mix_mode);
-                                m_preview_params_dirty = true;
-                            }
-                            hover_tip(_u8L("Layers: the two filaments alternate between print layers, which "
-                                           "blends smoothly on upright surfaces but disappears on flat-facing "
-                                           "ones, where a whole layer is a single band.\n"
-                                           "Surface: a fine checkerboard across the surface, which works at "
-                                           "any angle but can read as texture rather than as a blend.\n"
-                                           "Automatic: layers on upright faces; flat-facing faces take the nearer "
-                                           "single filament, since a checkerboard there shows as a pattern."));
                             ImGui::TextDisabled("%s", Slic3r::format(_u8L("%1% printable colors from %2% filaments"),
                                                                      int(cached_palette().size()), int(m_palette_filaments.size())).c_str());
                         }
@@ -6891,18 +6931,34 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
 
         const float button_h = std::round(frame_h * 1.25f);
-        const float third    = std::floor((panel_w - style.ItemSpacing.x) / 3.f);
-        if (busy) {
-            if (ImGui::Button((_u8L("Stop") + "##stop").c_str(), ImVec2(third, button_h)))
-                wxGetApp().plater()->get_ui_job_worker().cancel_all();
-            hover_tip(_u8L("Stops the bake. Whatever it had already finished stays on the model, and can be undone."));
-        } else {
-            if (ImGui::Button((_u8L("Close") + "##close").c_str(), ImVec2(third, button_h)))
-                m_parent.reset_all_gizmos();
-            hover_tip(_u8L("Closes the tool without baking. Your paint, layers and settings stay with the model."));
-        }
+        const float button_w = std::max({
+            ImGui::CalcTextSize(_u8L("Close").c_str()).x,
+            ImGui::CalcTextSize(_u8L("Stop").c_str()).x,
+            ImGui::CalcTextSize(_u8L("Preparing...").c_str()).x,
+            ImGui::CalcTextSize(_u8L("Baking...").c_str()).x,
+        }) + m_imgui->scaled(0.5f);
+        const float row_y  = ImGui::GetCursorPosY();
+        const float icon_h = 21.f * scale;
+        const float row_h  = std::max(icon_h, button_h);
 
+        const std::vector<std::pair<wxString, wxString>> shortcut = 
+            m_tool_type == ToolType::BUCKET_FILL ? m_shortcuts_bucket_fill
+            : m_tool_type == ToolType::SMART_FILL  ? m_shortcuts_bucket_fill 
+            : m_tool_type == ToolType::BRUSH       ? m_shortcuts_brush 
+            : m_tool_type == ToolType::GAP_FILL    ? m_shortcuts_gap_fill 
+            : std::vector<std::pair<wxString, wxString>>{};
+
+        ImGui::SetCursorPosY(row_y + (row_h - icon_h) * .5f); // center vertically
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(int(m_imgui->scaled(.5f)), style.ItemSpacing.y));
+        GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcut, x, y);
         ImGui::SameLine();
+        GLGizmoUtils::render_wiki_guide_button(m_parent, scale, "https://www.orcaslicer.com/wiki/print_prepare/prepare_texture_displacement");
+        ImGui::SameLine();
+        GLGizmoUtils::render_video_guide_button(m_parent, scale, "https://www.youtube.com/watch?v=D7w3tG1kdvE");
+        ImGui::PopStyleVar(1);
+
+        ImGui::SameLine(x0 + panel_w - button_w * 2 - style.ItemSpacing.x);
+
         const bool        can_bake   = !busy && mv != nullptr && mv->is_texture_displacement_painted();
         const std::string bake_label = m_prepare_in_progress ? _u8L("Preparing...") :
                                        m_bake_in_progress    ? _u8L("Baking...") :
@@ -6910,7 +6966,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         GLGizmoUtils::push_orca_button_style();
         m_imgui->push_bold_font();
         m_imgui->disabled_begin(!can_bake);
-        if (ImGui::Button((bake_label + "##bake").c_str(), ImVec2(x0 + panel_w - ImGui::GetCursorPosX(), button_h))) {
+        ImGui::SetCursorPosY(row_y + (row_h - button_h) * .5f); // center vertically
+        if (ImGui::Button((bake_label + "##bake").c_str(), ImVec2(button_w, button_h))) {
             // Standard mode's Bake is the whole pipeline (remesh -> refine -> displace); Pro's is only the
             // displacement, because there the user has already prepared the mesh with the controls above.
             if (pro_mode())
@@ -6934,6 +6991,17 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                       "density and refined where the texture bends first, so the detail has vertices to "
                                       "land on - all in one step."),
                              wrap_w);
+
+        ImGui::SameLine();
+        if (busy) {
+            if (ImGui::Button((_u8L("Stop") + "##stop").c_str(), ImVec2(button_w, button_h)))
+                wxGetApp().plater()->get_ui_job_worker().cancel_all();
+            hover_tip(_u8L("Stops the bake. Whatever it had already finished stays on the model, and can be undone."));
+        } else {
+            if (ImGui::Button((_u8L("Close") + "##close").c_str(), ImVec2(button_w, button_h)))
+                m_parent.reset_all_gizmos();
+            hover_tip(_u8L("Closes the tool without baking. Your paint, layers and settings stay with the model."));
+        }
 
         // What Bake will produce, and which layers it will skip.
         if (mv != nullptr) {

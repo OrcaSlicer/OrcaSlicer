@@ -58,7 +58,7 @@
 #include <CGAL/boost/graph/copy_face_graph.h>
 #include <CGAL/boost/graph/Face_filtered_graph.h>
 // For parameterize_lscm()
-#include <CGAL/Polygon_mesh_processing/border.h>
+#include <CGAL/boost/graph/border.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/detect_features.h>
 #include <CGAL/Surface_mesh_parameterization/Error_code.h>
@@ -145,7 +145,7 @@ void self_union(TriangleMesh& mesh)
 namespace cgal {
 
 namespace CGALProc    = CGAL::Polygon_mesh_processing;
-namespace CGALParams  = CGAL::Polygon_mesh_processing::parameters;
+namespace CGALParams  = CGAL::parameters;
 
 using EpecKernel = CGAL::Exact_predicates_exact_constructions_kernel;
 using EpicKernel = CGAL::Exact_predicates_inexact_constructions_kernel;
@@ -515,7 +515,7 @@ void segment(CGALMesh& src, std::vector<CGALMesh>& dst, double smoothing_alpha =
         typedef boost::graph_traits<_EpicMesh>::halfedge_descriptor      halfedge_descriptor;
         typedef boost::graph_traits<_EpicMesh>::vertex_descriptor        vertex_descriptor;
         std::vector<halfedge_descriptor> border_cycles;
-        CGAL::Polygon_mesh_processing::extract_boundary_cycles(out, std::back_inserter(border_cycles));
+        CGAL::extract_boundary_cycles(out, std::back_inserter(border_cycles));
         for (halfedge_descriptor h : border_cycles)
         {
             std::vector<face_descriptor>  patch_facets;
@@ -705,7 +705,7 @@ bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string
             using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
 
             std::vector<halfedge_descriptor> borders;
-            PMP::extract_boundary_cycles(cgal_mesh, std::back_inserter(borders));
+            CGAL::extract_boundary_cycles(cgal_mesh, std::back_inserter(borders));
 
             for (halfedge_descriptor h : borders) {
                 PMP::triangulate_and_refine_hole(cgal_mesh, h);
@@ -1045,7 +1045,28 @@ void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& b
     // But we can force it to work by spliting the src mesh into disconnected components,
     // and do booleans seperately, then merge all the results.
     indexed_triangle_set all_its;
-    if (boolean_opts == "UNION" || boolean_opts == "A_NOT_B") {
+    if (boolean_opts == "A_NOT_B") {
+        // Each cut can leave the source with several disconnected components, which mcut rejects
+        // in the next dispatch, so re-split after every cut part (e.g. each letter of a text).
+        std::vector<indexed_triangle_set> parts = std::move(src_parts);
+        for (size_t j = 0; j < cut_parts.size(); j++) {
+            auto cut_part = triangle_mesh_to_mcut(cut_parts[j]);
+            std::vector<indexed_triangle_set> next_parts;
+            for (indexed_triangle_set &part : parts) {
+                auto src_part = triangle_mesh_to_mcut(part);
+                if (do_boolean_single(*src_part, *cut_part, boolean_opts)) {
+                    TriangleMesh tri_part = mcut_to_triangle_mesh(*src_part);
+                    std::vector<indexed_triangle_set> pieces = its_split(tri_part.its);
+                    std::move(pieces.begin(), pieces.end(), std::back_inserter(next_parts));
+                } else
+                    next_parts.emplace_back(std::move(part));
+            }
+            parts = std::move(next_parts);
+        }
+        for (const indexed_triangle_set &part : parts)
+            its_merge(all_its, part);
+    }
+    else if (boolean_opts == "UNION") {
         for (size_t i = 0; i < src_parts.size(); i++) {
             auto src_part = triangle_mesh_to_mcut(src_parts[i]);
             for (size_t j = 0; j < cut_parts.size(); j++) {

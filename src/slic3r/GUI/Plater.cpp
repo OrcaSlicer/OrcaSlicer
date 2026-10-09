@@ -210,6 +210,7 @@
 #include "UVEditorCanvas.hpp"
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
+#include "BeltPurgeTower.hpp"
 #include "Camera.hpp"
 #include "Mouse3DController.hpp"
 #include "Tab.hpp"
@@ -266,6 +267,7 @@
 #include <libslic3r/CutUtils.hpp>
 #include <wx/glcanvas.h>    // Needs to be last because reasons :-/
 #include <libslic3r/miniz_extension.hpp>
+#include <math.h>
 #include "WipeTowerDialog.hpp"
 #include "MixedFilamentDialog.hpp"
 #include "TextureImportDialog.hpp"
@@ -935,6 +937,7 @@ struct Sidebar::priv
     StaticLine*       m_text_mixed_title{nullptr};
     ScalableButton*   m_btn_mixed_add{nullptr};
     ScalableButton*   m_btn_mixed_del{nullptr};
+    ScalableButton*   m_btn_mixed_del_all{nullptr};
     wxScrolledWindow* m_mixed_scroll_area{nullptr};       // independent scrollbar for mixed rows
     wxPanel*          m_panel_mixed_content{nullptr};
     wxBoxSizer*       m_sizer_mixed_filaments{nullptr};   // two-column, mirrors sizer_filaments
@@ -1862,27 +1865,22 @@ bool Sidebar::priv::switch_diameter(bool single)
         auto diameter_left = left_extruder->combo_diameter->GetValue();
         auto diameter_right = right_extruder->combo_diameter->GetValue();
         if (diameter_left != diameter_right) {
-            std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
-            auto left_name  = _L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase));
-            auto right_name = _L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase));
-            MessageDialog dlg(this->plater,
-                              _L("The software does not support using different diameter of nozzles for one print. "
-                                 "If the left and right nozzles are inconsistent, we can only proceed with single-head printing. "
-                                 "Please confirm which nozzle you would like to use for this project."),
-                              _L("Switch diameter"), wxYES_NO | wxNO_DEFAULT);
-            dlg.SetButtonLabel(wxID_YES, wxString::Format("%s: %smm", left_name, diameter_left));
-            dlg.SetButtonLabel(wxID_NO, wxString::Format("%s: %smm", right_name, diameter_right));
-            int result = dlg.ShowModal();
-            if (result == wxID_YES)
-                diameter = diameter_left;
-            else if (result == wxID_NO)
-                diameter = diameter_right;
-            else
+            double left_value = 0.0, right_value = 0.0;
+            if (!diameter_left.ToCDouble(&left_value) || !diameter_right.ToCDouble(&right_value))
                 return false;
+
+            Tab* printer_tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+            DynamicPrintConfig new_conf = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+            auto* nozzle_diameter_opt = new_conf.option<ConfigOptionFloats>("nozzle_diameter");
+            if (printer_tab == nullptr || nozzle_diameter_opt == nullptr || nozzle_diameter_opt->size() < 2)
+                return false;
+
+            nozzle_diameter_opt->values[0] = left_value;
+            nozzle_diameter_opt->values[1] = right_value;
+            printer_tab->load_config(new_conf);
+            return true;
         }
-        else {
-            diameter = diameter_left;
-        }
+        diameter = diameter_left;
     }
 
     return switch_diameter_to(diameter);
@@ -1892,15 +1890,20 @@ bool Sidebar::priv::switch_diameter_to(const wxString &diameter)
 {
     // ORCA: Check if the selected diameter matches the current nozzle diameter in the config
     Preset& printer_preset = wxGetApp().preset_bundle->printers.get_edited_preset();
+    auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
+    // ORCA: the left/right combos of a BBL multi-nozzle printer set the nozzles apart without leaving
+    // the preset (see switch_diameter), so there the preset is only kept while every nozzle matches.
+    const bool nozzles_apart = nozzle_diameter && nozzle_diameter->size() > 1 && wxGetApp().preset_bundle->is_bbl_vendor() &&
+        std::any_of(nozzle_diameter->values.begin(), nozzle_diameter->values.end(),
+                    [&diameter](double value) { return get_diameter_string(value) != diameter.ToStdString(); });
     // The combo lists printer variants, and the variant of a mixed-nozzle machine ("0.4+0.6") is no
     // single extruder's diameter, so the preset's own variant answers first.
     const std::string &printer_variant = printer_preset.config.opt_string("printer_variant");
-    if (printer_variant == diameter.ToStdString()) {
+    if (printer_variant == diameter.ToStdString() && !nozzles_apart) {
         return true;
     }
     // A named variant ("0.4 High Flow") shares its diameter with the standard profile, which selecting
     // the plain diameter switches back to, so only a preset naming no variant is kept by its diameter.
-    auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
     if (printer_variant.empty() && nozzle_diameter && nozzle_diameter->size() > 0) {
         auto current_nozzle_dia = get_diameter_string(nozzle_diameter->values[0]);
         // If the selected diameter is the same as current nozzle, don't switch profiles
@@ -3448,6 +3451,11 @@ Sidebar::Sidebar(Plater *parent)
                 delete_mixed_filament_at(mixed_indices.size() - 1);
         });
         title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+
+        p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
+        p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
+        p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
+        title_sizer->Add(p->m_btn_mixed_del_all, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
 
         p->m_btn_mixed_add = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "add_filament");
         p->m_btn_mixed_add->SetToolTip(_L("Add mixed filament"));
@@ -5122,6 +5130,58 @@ static bool create_mixed_filament_from_result(
     return true;
 }
 
+int Sidebar::ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios)
+{
+    if (components.size() < 2 || components.size() != ratios.size())
+        return -1;
+    if (p->combos_filament.size() < 2)
+        return -1;
+
+    // Normalise the way create_mixed_filament_from_result() stores them, so the comparison below sees
+    // the same text the config holds rather than two spellings of one blend.
+    int ratio_sum = 0;
+    for (const int r : ratios)
+        ratio_sum += r;
+    if (ratio_sum <= 0)
+        return -1;
+
+    std::string comp_str, ratio_str;
+    {
+        CNumericLocalesSetter c_locale_setter;
+        for (size_t i = 0; i < components.size(); ++i) {
+            if (i > 0) { comp_str += ","; ratio_str += ","; }
+            comp_str += std::to_string(components[i]);
+            char buf[32];
+            std::snprintf(buf, sizeof(buf), "%.4f", float(ratios[i]) / float(ratio_sum));
+            ratio_str += buf;
+        }
+    }
+
+    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    const auto *is_mixed_opt   = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    const auto *comp_opt       = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    const auto *ratios_opt     = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    if (is_mixed_opt != nullptr && comp_opt != nullptr && ratios_opt != nullptr)
+        for (size_t i = 0; i < is_mixed_opt->values.size(); ++i)
+            if (is_mixed_opt->values[i] && i < comp_opt->values.size() && i < ratios_opt->values.size() &&
+                comp_opt->values[i] == comp_str && ratios_opt->values[i] == ratio_str)
+                return int(i);
+
+    if (wxGetApp().preset_bundle->filament_presets.size() >= size_t(EnforcerBlockerType::ExtruderMax))
+        return -1;
+
+    std::vector<std::string> color_strs, names, types;
+    collect_physical_filament_info(color_strs, names, types);
+
+    MixedFilamentResult result;
+    result.components = components;
+    result.ratios     = ratios;
+    const size_t created_at = wxGetApp().preset_bundle->filament_presets.size();
+    if (!create_mixed_filament_from_result(this, result, color_strs))
+        return -1;
+    return int(created_at);
+}
+
 void Sidebar::add_mixed_filament()
 {
     auto* plater = dynamic_cast<Plater*>(GetParent());
@@ -5297,6 +5357,28 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
     }
+}
+
+void Sidebar::remove_all_mixed_filaments()
+{
+    auto *plater = dynamic_cast<Plater *>(GetParent());
+    if (plater == nullptr)
+        return;
+    const size_t count = plater->mixed_filament_config_indices().size();
+    if (count == 0)
+        return;
+
+    // Worth a confirmation: this drops filament slots the model may be painted with, and anything
+    // painted in one falls back to a plain filament.
+    MessageDialog dlg(this, format_wxstr(_L("Remove all %1% mixed filaments?"), count), _L("Mixed Filament"),
+                      wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION);
+    if (dlg.ShowModal() != wxID_YES)
+        return;
+
+    // Back to front: delete_mixed_filament_at() indexes the list as it stands, so removing from the end
+    // leaves the indices of everything still to go untouched.
+    for (size_t i = count; i-- > 0;)
+        delete_mixed_filament_at(i);
 }
 
 void Sidebar::delete_mixed_filament_at(size_t panel_idx)
@@ -7428,6 +7510,11 @@ struct Plater::priv
     void exit_gizmo();
     void remove(size_t obj_idx);
     bool delete_object_from_model(size_t obj_idx, bool refresh_immediately = true); //BBS
+    // ORCA-Belt: keep the auto-generated belt purge prism in sync with the
+    // config and plate contents (thin wrapper over GUI::ensure_belt_purge_tower
+    // in BeltPurgeTower.cpp). Returns true when the model was mutated.
+    bool ensure_belt_purge_tower();
+    std::vector<BeltPurgeSignature> m_belt_purge_sigs;
     void delete_all_objects_from_model();
     void reset(bool apply_presets_change = false, bool reload_presets = true);
     void center_selection();
@@ -8800,6 +8887,20 @@ void read_binary_stl(const std::string& filename, std::string& model_id, std::st
     return;
 }
 
+// Logs what show_substitutions_info() would list, for loads that don't show the dialog.
+static void log_substitutions(const ConfigSubstitutions& substitutions, const std::string& source)
+{
+    for (const ConfigSubstitution& substitution : substitutions)
+        BOOST_LOG_TRIVIAL(warning) << "Loading " << source << ": " << substitution.opt_def->opt_key << " = \"" << substitution.old_value
+                                   << "\" replaced with \"" << substitution.new_value->serialize() << "\"";
+}
+
+static void log_substitutions(const PresetsConfigSubstitutions& substitutions, const std::string& source)
+{
+    for (const PresetConfigSubstitutions& preset : substitutions)
+        log_substitutions(preset.substitutions, source + " (preset " + preset.preset_name + ")");
+}
+
 // BBS: backup & restore
 std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files,
                                              LoadStrategy strategy,
@@ -9101,7 +9202,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     Semver app_version = *(Semver::parse(SoftFever_VERSION));
                     const wxString load_3mf_title              = _L("Load 3MF");
                     const wxString newer_3mf_title             = _L("Newer 3MF version");
-                    const wxString bambu_project_title         = _L("BambuStudio Project");
                     const wxString msg_unsupported_geometry    = _L("The 3MF is not supported by OrcaSlicer, loading geometry data only.");
                     const wxString msg_old_orca_geometry       = _L("The 3MF file was generated by an old OrcaSlicer version, loading geometry data only.");
                     const wxString msg_older_geometry          = _L("The 3MF file was generated by an older version, loading geometry data only.");
@@ -9112,6 +9212,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                 << boost::format("3MF import message [%1%]: %2% | file: %3%") % into_u8(title) % into_u8(text) % path.string();
                         show_info(q, text, title);
                     };
+                    // Untagged files up to 2.3.2 may also come from OrcaSlicer, which only started tagging its 3MFs after it.
+                    const bool is_bambu_studio_project = en_3mf_file_type == En3mfType::From_BBS && file_version > Semver(2, 3, 2);
                     if (en_3mf_file_type == En3mfType::From_Prusa) {
                         // do not reset the model config
                         load_config = false;
@@ -9171,8 +9273,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
                     else if (en_3mf_file_type == En3mfType::From_BBS) {
                         // No OrcaSlicer tag - check Bambu/Application version
-                        Semver orca_tag_start_version(2, 3, 2);
-                        if (file_version <= orca_tag_start_version) {
+                        if (!is_bambu_studio_project) {
                             // Compatible old version (before OrcaSlicer tagging was introduced after 2.3.2).
                             // Any version prior or equal to 2.3.2 is older than the current one, no version warnings needed.
                             // Still apply migration fixes for known old versions.
@@ -9205,33 +9306,17 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                         } else {
                             // BambuStudio project (version > 2.3.2 without OrcaSlicer tag)
-                            // Report that a BambuStudio project is being imported and compare with SLIC3R_VERSION
-                            Semver slic3r_version = *(Semver::parse(SLIC3R_VERSION));
                             if (load_config && config_loaded.empty()) {
                                 load_config = false;
                                 log_and_show_3mf_info(msg_bambu_geometry, load_3mf_title);
                             }
-                            else if (load_config && (file_version > slic3r_version)) {
-                                // BambuStudio file version is newer than our compatible SLIC3R_VERSION
-                                if (config_substitutions.unrecogized_keys.size() > 0) {
-                                    wxString text  = wxString::Format(_L("The 3MF was created by BambuStudio (version %s), which is newer than the compatible version %s. Found unrecognized settings:"),
-                                                                     file_version.to_string(), slic3r_version.to_string());
-                                    text += "\n";
-                                    wxString context = text;
-                                    wxString append = _L("You should update your software.\n");
-                                    context += "\n\n";
-                                    context += append;
-                                    log_and_show_3mf_info(context, bambu_project_title);
-                                } else {
-                                    wxString text  = wxString::Format(_L("The 3MF was created by BambuStudio (version %s), which is newer than the compatible version %s. Some settings may not be fully compatible."),
-                                                     file_version.to_string(), slic3r_version.to_string());
-                                    text += "\n";
-                                    log_and_show_3mf_info(text, bambu_project_title);
-                                }
-                            } else if (load_config && !published_config.published) {
-                                // BambuStudio version is older or same as our SLIC3R_VERSION
-                                wxString text = _L("The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer.");
-                                log_and_show_3mf_info(text, bambu_project_title);
+                            else if (load_config) {
+                                // Logged, not shown: it is the same for every BambuStudio project and needs no action.
+                                std::string unrecognized;
+                                for (const std::string& key : config_substitutions.unrecogized_keys)
+                                    unrecognized += (unrecognized.empty() ? "" : ", ") + key;
+                                BOOST_LOG_TRIVIAL(info) << "BambuStudio " << file_version.to_string() << " project " << path.string()
+                                                        << ", unrecognized settings: " << (unrecognized.empty() ? "none" : unrecognized);
                             }
                         }
                     }
@@ -9320,7 +9405,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         PresetsConfigSubstitutions preset_substitutions;
                         PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
                         preset_substitutions                     = preset_bundle.load_project_embedded_presets(project_presets, ForwardCompatibilitySubstitutionRule::Enable);
-                        if (!preset_substitutions.empty()) show_substitutions_info(preset_substitutions);
+                        if (is_bambu_studio_project)
+                            log_substitutions(preset_substitutions, path.string());
+                        else if (!preset_substitutions.empty())
+                            show_substitutions_info(preset_substitutions);
                     }
                     if (project_presets.size() > 0) {
                         for (unsigned int i = 0; i < project_presets.size(); i++) { delete project_presets[i]; }
@@ -9358,7 +9446,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             notify_manager->bbl_show_3mf_warn_notification(error_message);
                         }
                     }
-                    if (!config_substitutions.empty()) show_substitutions_info(config_substitutions.substitutions, filename.string());
+                    // BambuStudio projects routinely carry values Orca replaces; log them rather than showing a dialog on every open.
+                    if (is_bambu_studio_project)
+                        log_substitutions(config_substitutions.substitutions, path.string());
+                    else if (!config_substitutions.empty())
+                        show_substitutions_info(config_substitutions.substitutions, filename.string());
 
                     // BBS
                     if (load_model && !load_config) {
@@ -10353,7 +10445,7 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
     // BBS: find an empty cell to put the copied object
     for (auto& instance : new_instances) {
         auto offset = instance->get_offset();
-        auto start_point = this->bed.build_volume().bounding_volume2d().center();
+        auto start_point = this->bed.build_volume().bed_center();
         bool plate_empty = partplate_list.get_curr_plate()->empty();
         Vec3d displacement;
         if (plate_empty)
@@ -11212,6 +11304,16 @@ void Plater::priv::process_validation_warnings(const std::vector<StringObjectExc
 }
 
 
+// ORCA-Belt: the actual implementation lives in BeltPurgeTower.cpp (kept out of
+// this large, frequently-touched file so it stays clear of unrelated upstream
+// changes and carries no regression risk for normal printers). This is a thin
+// wrapper that hands it the model, plates, object list, and cached signature.
+bool Plater::priv::ensure_belt_purge_tower()
+{
+    return GUI::ensure_belt_purge_tower(model, partplate_list, sidebar->obj_list(), m_belt_purge_sigs);
+}
+
+
 // Update background processing thread from the current config and Model.
 // Returns a bitmask of UpdateBackgroundProcessReturnState.
 unsigned int Plater::priv::update_background_process(bool force_validation, bool postpone_error_messages, bool switch_print)
@@ -11222,6 +11324,10 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     // If the update_background_process() was not called by the timer, kill the timer,
     // so the update_restart_background_process() will not be called again in vain.
     background_process_timer.Stop();
+    // ORCA-Belt: sync the auto-managed belt purge prism before the model is
+    // applied to the Print below, so the prism change rides this same apply.
+    if (printer_technology == ptFFF && this->ensure_belt_purge_tower())
+        return_state |= UPDATE_BACKGROUND_PROCESS_REFRESH_SCENE;
     // Update the "out of print bed" state of ModelInstances.
     update_print_volume_state();
     // Apply new config to the possibly running background task.
@@ -14616,6 +14722,7 @@ void Plater::priv::set_bed_shape(const Pointfs       &shape,
     Vec2d shape_position = partplate_list.get_current_shape_position();
     bool new_shape = bed.set_shape(shape, printable_height, extruder_areas, extruder_heights, custom_model, force_as_custom, shape_position);
 
+
     float prev_height_lid, prev_height_rod;
     partplate_list.get_height_limits(prev_height_lid, prev_height_rod);
     double height_to_lid = config->opt_float("extruder_clearance_height_to_lid");
@@ -14969,7 +15076,8 @@ bool Plater::priv::undo_redo_blocked_by_job()
         return false;
     notification_manager->push_notification(NotificationType::CustomNotification,
                                             NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                            _u8L("Cannot undo or redo while an operation is running. Stop it first."));
+                                            _u8L("Cannot undo or redo while an operation is running. Stop the operation, or wait "
+                                                 "for it to finish and then retry."));
     return true;
 }
 
@@ -16317,8 +16425,167 @@ bool Plater::add_model(bool imperial_units, std::string fname)
     return loaded;
 }
 
+// ORCA-Belt: belt-printer handling for the desktop calibration tests.
+//
+// Belt slicing applies a global pre-slice rotation R(angle, axis) to every
+// mesh (see BeltTransform.hpp) so the slicing planes match the tilted gantry.
+// Calibration models are designed for upright slicing: their per-height test
+// bands and XY-plane quality features assume slicer Z is the model's own Z
+// axis. Counter-rotating each calibration object by the inverse rotation in
+// world space cancels the global rotation, so in slicing space the object
+// stands upright exactly as on a flat-bed printer and every test keeps its
+// designed meaning. Physically the object then leans over the belt with its
+// bottom face overhanging, so per-object supports fill the wedge between the
+// bottom face and the belt. The wedge prints entirely below the object's base
+// plane and leaves the test geometry untouched. Manual tree support is used
+// so the deliberate bridge/overhang features of the test models stay
+// unsupported; the wedge under the floating bottom face is built by the
+// belt-floor extension in TreeSupport::generate(), which stacks the floating
+// first-layer footprint down to the belt surface.
+static bool belt_calib_rotation_params(double& angle_rad, Vec3d& axis)
+{
+    const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const auto* belt_opt = printer_config.option<ConfigOptionBool>("belt_printer");
+    if (belt_opt == nullptr || !belt_opt->value)
+        return false;
+    const auto* axis_opt  = printer_config.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
+    const auto* angle_opt = printer_config.option<ConfigOptionFloat>("belt_slice_rotation_angle");
+    if (axis_opt == nullptr || angle_opt == nullptr)
+        return false;
+    switch (axis_opt->value) {
+    case BeltRotationAxis::X: axis = Vec3d::UnitX(); break;
+    case BeltRotationAxis::Y: axis = Vec3d::UnitY(); break;
+    // Z rotation is an in-plane spin and None means no tilt; objects already
+    // slice upright in those cases and need no special handling.
+    default: return false;
+    }
+    angle_rad = -Geometry::deg2rad(angle_opt->value);
+    return std::abs(angle_rad) > EPSILON;
+}
+
+// ORCA-Belt: flip the ringing tower 180° about Z before the belt
+// counter-rotation — its sloped face then leans over the belt and the
+// support wedge gets much smaller.
+static void belt_calib_flip_ringing_tower(Model &model)
+{
+    double angle_rad = 0.;
+    Vec3d  axis      = Vec3d::UnitX();
+    if (belt_calib_rotation_params(angle_rad, axis) && !model.objects.empty())
+        model.objects.front()->rotate(M_PI, Vec3d::UnitZ());
+}
+
+void Plater::_calib_apply_belt_mode()
+{
+    double angle_rad = 0.;
+    Vec3d  axis      = Vec3d::UnitX();
+    if (!belt_calib_rotation_params(angle_rad, axis))
+        return;
+
+    auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    // Spiral vase stays enabled where the tests request it: the support wedge
+    // lies strictly below the object, support layers never spiralize
+    // (spiral_vase_enable requires an object layer), and the spiral/support
+    // exclusivity check only applies to globally enabled supports — the wedge
+    // uses per-object supports.
+    // A skirt would be drawn in the first slicing plane, which lies mostly
+    // above the belt surface.
+    print_config->set_key_value("skirt_loops", new ConfigOptionInt(0));
+
+    const Matrix3d cancel_rotation = Eigen::AngleAxisd(angle_rad, axis).toRotationMatrix();
+    std::vector<size_t> obj_idxs;
+    for (size_t i = 0; i < model().objects.size(); ++i) {
+        ModelObject* obj = model().objects[i];
+        if (obj->instances.size() != 1)
+            continue;
+        obj_idxs.emplace_back(i);
+
+        // Manual tree support: only the floating bottom face gets a support
+        // wedge (via the belt-floor extension in TreeSupport::generate()),
+        // leaving the test features untouched. The style is pinned to hybrid
+        // because the default style resolves to organic, which bypasses the
+        // non-organic generator that hosts the belt-floor extension.
+        obj->config.set_key_value("enable_support", new ConfigOptionBool(true));
+        obj->config.set_key_value("support_type", new ConfigOptionEnum<SupportType>(stTree));
+        obj->config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsTreeHybrid));
+        obj->config.set_key_value("support_on_build_plate_only", new ConfigOptionBool(false));
+        // With the default base pattern, tree support base areas print as
+        // hollow outlines (no infill) — the wedge needs a real pattern.
+        obj->config.set_key_value("support_base_pattern", new ConfigOptionEnum<SupportMaterialPattern>(smpRectilinear));
+
+        // Counter-rotate exactly the way the rotate gizmo would: rotation on
+        // the instance, then a plain drop to the bed. This leaves the object
+        // in the same state shape as any manually rotated object, which the
+        // belt pipeline is known to handle.
+        ModelInstance* inst = obj->instances.front();
+        inst->rotate(cancel_rotation);
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+    }
+
+    // Each object's support wedge extends upstream of it by roughly its own
+    // depth (at 45°), so the tight flat-bed layouts of the multi-part tests
+    // leave wedges intersecting the neighbouring parts. Keep the grid rows of
+    // the test layouts together and open up the space between rows just
+    // enough for the wedge shadow.
+    if (obj_idxs.size() > 1) {
+        std::vector<ModelObject*> sorted_objs;
+        sorted_objs.reserve(obj_idxs.size());
+        for (size_t i : obj_idxs)
+            sorted_objs.emplace_back(model().objects[i]);
+        std::sort(sorted_objs.begin(), sorted_objs.end(), [](const ModelObject* a, const ModelObject* b) {
+            return a->instances.front()->get_offset(Y) < b->instances.front()->get_offset(Y);
+        });
+        std::vector<std::vector<ModelObject*>> rows;
+        double row_y = std::numeric_limits<double>::quiet_NaN();
+        for (ModelObject* o : sorted_objs) {
+            const double oy = o->instances.front()->get_offset(Y);
+            if (rows.empty() || oy - row_y > 1.)
+                rows.emplace_back();
+            rows.back().emplace_back(o);
+            row_y = oy;
+        }
+        const double wedge_factor = std::abs(std::tan(angle_rad));
+        double       cursor       = std::numeric_limits<double>::quiet_NaN();
+        for (std::vector<ModelObject*>& row : rows) {
+            double rmin = std::numeric_limits<double>::max();
+            double rmax = std::numeric_limits<double>::lowest();
+            for (ModelObject* o : row) {
+                const BoundingBoxf3 bb = o->instance_bounding_box(0);
+                rmin = std::min(rmin, bb.min.y());
+                rmax = std::max(rmax, bb.max.y());
+            }
+            if (std::isnan(cursor))
+                cursor = rmin; // the first row anchors the layout
+            const double shift = cursor - rmin;
+            for (ModelObject* o : row) {
+                ModelInstance* inst = o->instances.front();
+                inst->set_offset(Y, inst->get_offset(Y) + shift);
+                o->invalidate_bounding_box();
+            }
+            cursor += (rmax - rmin) * (1. + wedge_factor) + 5.;
+        }
+    }
+
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
+    changed_objects(obj_idxs);
+}
+
 void Plater::calib_pa(const Calib_Params& params)
 {
+    // ORCA-Belt: PA Line / PA Pattern have the belt plumbing in place
+    // (belt kinematics in world-coordinates mode draws them on the belt surface)
+    // but are not validated yet — keep them gated to the PA Tower for now.
+    {
+        double angle_rad = 0.;
+        Vec3d  axis      = Vec3d::UnitX();
+        if (belt_calib_rotation_params(angle_rad, axis) && params.mode != CalibMode::Calib_PA_Tower) {
+            MessageDialog msg_dlg(nullptr, _L("PA Line and PA Pattern tests are not enabled yet on belt printers.\nPlease use the PA Tower method instead."),
+                                  wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+            return;
+        }
+    }
     const auto calib_pa_name = _L("Pressure Advance Test");
     new_project(false, false, calib_pa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
@@ -16647,6 +16914,7 @@ void Plater::_calib_pa_tower(const Calib_Params& params) {
         cut_horizontal(0, 0, new_height, ModelObjectCutAttribute::KeepLower);
     }
 
+    _calib_apply_belt_mode();
     _calib_pa_select_added_objects();
 }
 
@@ -16827,22 +17095,143 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
 
+    _calib_apply_belt_mode();
+
     // Refresh object after scaling
     const std::vector<size_t> object_idx(boost::counting_iterator<size_t>(0), boost::counting_iterator<size_t>(model().objects.size()));
     changed_objects(object_idx);
 }
 
 
+// The belt provini tower (Calib_Params::test_model 1) is one embossed model per
+// temperature range.
+static std::string belt_temp_tower_asset(const Calib_Params &params)
+{
+    const int t_start = (int) lround(params.start);
+    const int t_end   = (int) lround(params.end);
+    return Slic3r::resources_dir() + "/calib/temperature_tower/belt_temp_tower_" +
+           std::to_string(t_start) + "_" + std::to_string(t_end) + ".stl";
+}
+
 void Plater::calib_temp(const Calib_Params& params) {
     constexpr double base_temp_tower_nozzle_diameter = 0.4;
     constexpr double base_temp_tower_block_height = 10.0;
     constexpr int base_temp_tower_temp_step = 5;
 
+    // A belt provini tower exists only for the ranges it was embossed for, and another
+    // range's model would print numbers that do not match its temperatures.  Refuse
+    // before the current project is replaced.
+    if (params.mode == CalibMode::Calib_Temp_Tower && params.test_model >= 1) {
+        const auto &printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (printer_config.has("belt_printer") && printer_config.opt_bool("belt_printer") &&
+            ! boost::filesystem::exists(belt_temp_tower_asset(params))) {
+            MessageDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe),
+                              format_wxstr(_L("No belt temperature tower is available for the range %1% to %2% °C. "
+                                              "Use a range the tower models cover, for example 230 to 190."),
+                                           (int) lround(params.start), (int) lround(params.end)),
+                              _L("Temperature tower"), wxICON_ERROR | wxOK);
+            dlg.ShowModal();
+            return;
+        }
+    }
+
     const auto calib_temp_name = _L("Nozzle temperature test");
     new_project(false, false, calib_temp_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
-    if (params.mode != CalibMode::Calib_Temp_Tower) return;
-    
+    if (params.mode != CalibMode::Calib_Temp_Tower)
+        return;
+
+    // Belt printers build along the conveyor, not vertically — a tall tower cannot
+    // be sliced. Instead lay a row of DISCRETE provini (one per temperature) along
+    // the belt and change temperature in discrete steps via custom per-layer G-code
+    // (M104), injected in the empty gap just before each provino so the nozzle is
+    // settled by the time that provino prints. We deliberately do NOT call
+    // set_calib_params here: its per-layer interpolation (interpolate_value_across_
+    // layers) would overwrite these discrete M104 events.
+    {
+        auto belt_printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (belt_printer_config->has("belt_printer") && belt_printer_config->opt_bool("belt_printer")) {
+            // Belt temperature-tower model selector (Calib_Params::test_model):
+            //   0 = "Standard"  -> Joe's counter-rotated sectioned tower.
+            //   1 = "Overhang"  -> engraved inverted-L provini that stress overhang
+            //                      print-quality at each discrete temperature (below).
+            if (params.test_model < 1) {
+                double belt_angle_rad = 0.; Vec3d belt_axis = Vec3d::UnitX();
+                belt_calib_rotation_params(belt_angle_rad, belt_axis);
+                _calib_temp_belt_sectioned(params, std::abs(belt_angle_rad));
+                return;
+            }
+            constexpr int    TEMP_STEP = 5;        // matches Temp_Calibration_Dlg
+            // Shared geometry contract with the offline asset generator
+            // (resources/calib/temperature_tower/gen_belt_temp_tower.py): provini are
+            // replicated along the belt (designed Y) at this pitch. The slicing plane
+            // is oblique (belt_slice_rotation_angle), so the per-zone advance in the
+            // layer print_z space the custom-gcode matcher uses is PITCH*cos(theta).
+            constexpr double PITCH_Y = 74.718;     // designed-Y pitch == gen PITCH
+            const double angle = belt_printer_config->has("belt_slice_rotation_angle")
+                ? belt_printer_config->opt_float("belt_slice_rotation_angle") : 45.0;
+            const double zone_topz = PITCH_Y * std::cos(angle * M_PI / 180.0);
+            // The custom-gcode matcher attaches each event to a real sliced layer. The
+            // empty inter-provino gap has NO layers, so an event placed there is silently
+            // dropped. Fire it 70 layers ABOVE provino i's start instead — inside the
+            // provino body, past the gap and the overlap with provino i-1's tail, so the
+            // temperature change attaches and applies cleanly. (layer print_z steps by the
+            // process layer height.)
+            auto belt_print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+            const double layer_h = belt_print_config->has("layer_height")
+                ? belt_print_config->opt_float("layer_height") : 0.2;
+            const double into_provino = 70.0 * layer_h;
+
+            const int t_start = (int) lround(params.start);
+            const int t_end   = (int) lround(params.end);
+            std::vector<int> temps;
+            const int tstep = (t_start >= t_end) ? -TEMP_STEP : TEMP_STEP;
+            for (int t = t_start; (tstep < 0) ? (t >= t_end) : (t <= t_end); t += tstep)
+                temps.push_back(t);
+            if (temps.empty()) temps.push_back(t_start);
+
+            const std::string asset = belt_temp_tower_asset(params);
+            if (!boost::filesystem::exists(asset))   // refused above, before new_project()
+                return;
+            if (!add_model(false, asset) || model().objects.empty())
+                return;
+
+            // Place keel-first asset at the belt entry (designed Y = 0) so Z_gcode
+            // starts at 0, centered laterally on the bed, resting on the conveyor.
+            ModelObject* obj = model().objects[0];
+            obj->ensure_on_bed();
+            BoundingBoxf3 obb = obj->bounding_box_exact();
+            auto bed_shape = belt_printer_config->option<ConfigOptionPoints>("printable_area")->values;
+            BoundingBoxf bed_ext = get_extents(bed_shape);
+            obj->translate_instances(Vec3d(bed_ext.center().x() - obb.center().x(), -obb.min.y(), 0.0));
+
+            auto belt_filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
+            belt_filament_config->set_key_value("nozzle_temperature_initial_layer", new ConfigOptionInts(1, temps.front()));
+            belt_filament_config->set_key_value("nozzle_temperature", new ConfigOptionInts(1, temps.front()));
+            obj->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btNoBrim));
+            obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
+            obj->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
+            belt_printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+
+            const int plate_idx = get_partplate_list().get_curr_plate_index();
+            model().curr_plate_index = plate_idx;
+            CustomGCode::Info &cg_info = model().plates_custom_gcodes[plate_idx];
+            cg_info.mode = CustomGCode::Mode::SingleExtruder;
+            cg_info.gcodes.clear();
+            for (size_t i = 1; i < temps.size(); ++i) {
+                const double pz = double(i) * zone_topz + into_provino;   // 70 layers into provino i
+                cg_info.gcodes.push_back(CustomGCode::Item{
+                    pz, CustomGCode::Custom, 1, "",
+                    "M104 S" + std::to_string(temps[i]) + " ; belt temp zone " + std::to_string(temps[i]) });
+            }
+
+            changed_objects({ 0 });
+            wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_dirty();
+            wxGetApp().get_tab(Preset::TYPE_FILAMENT)->reload_config();
+            return;
+        }
+    }
+
     if (!add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc"))
         return;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -16908,6 +17297,107 @@ void Plater::calib_temp(const Calib_Params& params) {
 
 
     changed_objects({ 0 });
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
+    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->reload_config();
+
+    p->background_process.fff_print()->set_calib_params(params);
+}
+
+// ORCA-Belt: sectioned temperature test. Each temperature gets its own block
+// cut out of the temperature tower model, printed in native belt orientation
+// (no counter-rotation, no support wedge) and spaced along the belt so the
+// blocks' layer ranges are disjoint — they print strictly one after another,
+// starting with the start temperature closest to the gantry. The temperature
+// is encoded in the object name ("temp_230") and applied per object by the
+// Calib_Temp_Tower handler at G-code time, replacing the per-layer-band ramp
+// that only makes sense for a monolithic upright tower.
+void Plater::_calib_temp_belt_sectioned(const Calib_Params& params, double belt_angle_rad)
+{
+    constexpr double base_temp_tower_nozzle_diameter = 0.4;
+    constexpr double base_temp_tower_block_height = 10.0;
+    constexpr int base_temp_tower_temp_step = 5;
+
+    auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
+    auto print_config    = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+
+    const long start_temp = lround(params.start);
+    const long end_temp   = lround(params.end);
+    const int  n_blocks   = std::max(1, int((start_temp - end_temp) / base_temp_tower_temp_step) + 1);
+
+    const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
+    size_t nozzle_id = static_cast<size_t>(std::max(params.extruder_id, 0));
+    double nozzle_diameter = base_temp_tower_nozzle_diameter;
+    if (nozzle_diameter_config && !nozzle_diameter_config->values.empty()) {
+        nozzle_id = std::min(nozzle_id, nozzle_diameter_config->values.size() - 1);
+        nozzle_diameter = nozzle_diameter_config->values[nozzle_id];
+    }
+    if (nozzle_diameter <= 0.0)
+        nozzle_diameter = base_temp_tower_nozzle_diameter;
+    const double nozzle_scale = nozzle_diameter / base_temp_tower_nozzle_diameter;
+
+    std::vector<size_t> obj_idxs;
+    for (int i = 0; i < n_blocks; ++i) {
+        const long temp = start_temp - long(i) * base_temp_tower_temp_step;
+        const size_t count_before = model().objects.size();
+        add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc");
+        if (model().objects.size() <= count_before)
+            break; // model failed to load — don't index into an empty list
+        // The cut replaces the object at the END of the list, so re-acquire
+        // the index after every operation.
+        size_t obj_idx = model().objects.size() - 1;
+
+        // Isolate this temperature's block (full-tower coordinates, the same
+        // 500-down-to-temp indexing the monolithic flow cuts with).
+        const double block_bottom = double(lround(double(500 - temp) / base_temp_tower_temp_step)) * base_temp_tower_block_height;
+        auto obj_bb = model().objects[obj_idx]->bounding_box_exact();
+        if (block_bottom + base_temp_tower_block_height < obj_bb.size().z()) {
+            cut_horizontal(obj_idx, 0, block_bottom + base_temp_tower_block_height - EPSILON, ModelObjectCutAttribute::KeepLower);
+            obj_idx = model().objects.size() - 1;
+        }
+        if (block_bottom > 0) {
+            cut_horizontal(obj_idx, 0, block_bottom + EPSILON, ModelObjectCutAttribute::KeepUpper);
+            obj_idx = model().objects.size() - 1;
+        }
+
+        ModelObject* obj = model().objects[obj_idx];
+        if (std::abs(nozzle_scale - 1.0) > EPSILON)
+            obj->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+        obj->name = std::string("temp_") + std::to_string(temp);
+        obj->config.set_key_value("layer_height", new ConfigOptionFloat(nozzle_diameter / 2));
+        obj->config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+        obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
+        obj->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
+        obj->config.set_key_value("precise_z_height", new ConfigOptionBool(false));
+        obj->ensure_on_bed();
+        obj_idxs.emplace_back(obj_idx);
+    }
+
+    // Space the blocks along the belt with strictly increasing layer ranges:
+    // each block must start past the previous block's highest slicing plane,
+    // which trails its far edge by height / tan(angle). Anchor the row near
+    // the gantry so the whole test stays in the plate area.
+    const double cot_a  = 1. / std::max(0.1, std::tan(belt_angle_rad));
+    double       cursor = 20.;
+    for (size_t idx : obj_idxs) {
+        ModelObject*        obj  = model().objects[idx];
+        ModelInstance*      inst = obj->instances.front();
+        const BoundingBoxf3 bb   = obj->instance_bounding_box(0);
+        inst->set_offset(Y, inst->get_offset(Y) + (cursor - bb.min.y()));
+        obj->invalidate_bounding_box();
+        cursor += bb.size().y() + bb.size().z() * cot_a + 5.;
+    }
+
+    printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+    filament_config->set_key_value("nozzle_temperature_initial_layer", new ConfigOptionInts(1, (int)start_temp));
+    filament_config->set_key_value("nozzle_temperature", new ConfigOptionInts(1, (int)start_temp));
+    print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
+    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(nozzle_diameter / 2));
+    print_config->set_key_value("skirt_loops", new ConfigOptionInt(0));
+
+    changed_objects(obj_idxs);
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_dirty();
     wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
@@ -16986,6 +17476,8 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
 
+    _calib_apply_belt_mode();
+
     auto new_params  = params;
     auto mm3_per_mm  = Flow(line_width, layer_height, nozzle_diameter).mm3_per_mm() * filament_config->option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(0);
     new_params.end   = params.end / mm3_per_mm;
@@ -17054,6 +17546,7 @@ void Plater::calib_retraction(const Calib_Params& params)
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
 
+    _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
 
@@ -17133,6 +17626,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_apply_belt_mode();
     // Pass the resolved layer height on (only meaningful when resized). GCode's VFA stepping is layer-based, so
     // it does not require it, but keep it consistent with the geometry.
     Calib_Params calib_params = params;
@@ -17150,6 +17644,8 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
 
     if (!add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc")))
         return;
+    if (params.test_model < 1)
+        belt_calib_flip_ringing_tower(model());
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -17199,6 +17695,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
 
@@ -17212,6 +17709,8 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
 
     if (!add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc")))
         return;
+    if (params.test_model < 1)
+        belt_calib_flip_ringing_tower(model());
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -17260,6 +17759,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
 
@@ -17276,6 +17776,8 @@ void Plater::Calib_Cornering(const Calib_Params& params)
         : (params.test_model == 1 ? "/calib/input_shaping/fast_tower_test.drc" : "/calib/cornering/SCV-V2.drc");
     if (!add_model(false, Slic3r::resources_dir() + cornering_model_path))
         return;
+    if (params.test_model == 0)
+        belt_calib_flip_ringing_tower(model());
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -17325,6 +17827,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
 
@@ -17444,6 +17947,15 @@ void Plater::load_gcode(const wxString& filename)
 
     current_print.set_gcode_file_ready();
 
+    // Belt printer: detect the belt tilt from the loaded G-code header and enable
+    // belt view mode on the GCodeViewer so the "Show designed view" toggle appears.
+    if (current_result->belt_tilt_angle > 0.f) {
+        float angle = current_result->belt_tilt_angle;
+        p->preview->get_canvas3d()->get_gcode_viewer().set_belt_printer(true, angle);
+    } else {
+        p->preview->get_canvas3d()->get_gcode_viewer().set_belt_printer(false, 0.f);
+    }
+
     // show results
     p->preview->reload_print(m_only_gcode);
     //BBS: zoom to bed 0 for gcode preview
@@ -17476,6 +17988,11 @@ void Plater::reload_gcode_from_disk()
 void Plater::reload_print()
 {
     p->preview->reload_print();
+}
+
+void Plater::refresh_belt_view()
+{
+    p->preview->refresh_belt_view();
 }
 
 // BBS
