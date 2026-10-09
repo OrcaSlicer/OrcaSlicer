@@ -2344,7 +2344,7 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
     // Exclude the perimeter connections, which anchoring and extrusion trim differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr, nullptr),
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
                                               shrink(to_polygons(layer.lslices), scale_(3.)));
     REQUIRE_FALSE(anchors.empty());
     double max_distance = 0.;
