@@ -38746,3 +38746,7 @@ msgstr "Utolsó áramláskorrekciós szorzó legyen 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Üres modell. Nincs áramláskompenzáció."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Az X-határt az aktuális nyomtató asztalmérete és a modell pontjai adják."
+

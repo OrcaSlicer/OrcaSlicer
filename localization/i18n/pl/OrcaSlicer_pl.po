@@ -39164,3 +39164,7 @@ msgstr "Ostatni wsp. korekty przepływu musi być 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Model jest pusty. Brak kompensacji przepływu."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Limit X zależy od rozmiaru stołu bieżącej drukarki i punktów modelu."
+

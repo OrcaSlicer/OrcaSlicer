@@ -40985,3 +40985,7 @@ msgstr "Sista flödeskorr. faktorn måste vara 1."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modellen är tom. Ingen flödeskompensation används."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "X-gränsen beror på aktuell skrivares bäddstorlek och modellens punkter."
+

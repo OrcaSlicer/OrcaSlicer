@@ -39210,3 +39210,7 @@ msgstr "Останній коеф. корекції потоку має бути
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Модель порожня. Компенсація потоку не діє."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "Межа X залежить від розміру стола поточного принтера й точок моделі."
+

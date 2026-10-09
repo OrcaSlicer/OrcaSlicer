@@ -39978,3 +39978,7 @@ msgstr "最後一個流量修正係數必須為 1。"
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "模型為空，將不套用流量補償。"
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "X 上限取決於目前印表機的熱床尺寸和模型點。"
+

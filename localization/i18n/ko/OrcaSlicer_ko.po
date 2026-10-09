@@ -39086,3 +39086,7 @@ msgstr "마지막 압출량 보정 계수는 1이어야 합니다."
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "모델이 비어 있습니다. 압출량 보상이 적용되지 않습니다."
 
+# AI Translated
+msgid "The X limit depends on the current printer's bed size and model points."
+msgstr "X 한계는 현재 프린터의 베드 크기와 모델의 점에 따라 결정됩니다."
+
