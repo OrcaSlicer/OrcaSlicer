@@ -45,6 +45,7 @@
 #include <sstream>
 #include <type_traits> // for std::enable_if_t
 #include <typeinfo>    // for typeid
+#include <regex>
 #include <vector>
 #include <utility>
 
@@ -413,6 +414,68 @@ TEST_CASE("A project with a plate id below 1 fails to load", "[3mf][Regression]"
     bool               loaded = true;
     REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
     REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("A project whose components reference themselves fails to load", "[3mf][Regression]")
+{
+    // One self-reference keeps the expansion going without ever reaching a mesh. A thousand also make
+    // each expansion queue a thousand more, so the bound has to hold the work list, not just the loop.
+    const int references = GENERATE(1, 1000);
+    INFO("self-references " << references);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+
+    // Point the component back at the object that holds it, repeated `references` times.
+    REQUIRE(rewrite_3mf_entries(temp.string(), [references](std::string& name, std::string& data) {
+        if (!boost::algorithm::ends_with(name, "3dmodel.model"))
+            return false;
+        std::smatch match;
+        if (!std::regex_search(data, match, std::regex("<object id=\"([0-9]+)\"[^>]*>\\s*<components")))
+            return false;
+        data = std::regex_replace(data, std::regex("objectid=\"[0-9]+\""), "objectid=\"" + match[1].str() + "\"");
+        std::smatch component;
+        if (!std::regex_search(data, component, std::regex("<component [^>]*/>")))
+            return false;
+        std::string repeated;
+        for (int i = 0; i < references; ++i)
+            repeated += component.str();
+        data.replace(component.position(), component.length(), repeated);
+        return true;
+    }));
+
+    ScopedTemporaryDir backup_dir("orca_cycle_dst");
+    Model              model;
+    bool               loaded = true;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("An object loads up to the component reference budget and fails past it", "[3mf][Regression]")
+{
+    // The importer queues at most 100000 component references per object. Every reference besides the
+    // cube's own points at an object the file does not define: it counts toward the budget, then expands
+    // to nothing, so the object stays a single part whatever the count.
+    const auto [references, loads] = GENERATE(table<int, bool>({ { 100000, true }, { 100001, false } }));
+    INFO("component references " << references);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+
+    std::string dangling;
+    for (int i = 1; i < references; ++i)
+        dangling += "<component objectid=\"999999\"/>";
+    REQUIRE(replace_in_3mf_entry(temp.string(), "3dmodel.model", "</components>", dangling + "</components>"));
+
+    ScopedTemporaryDir backup_dir("orca_budget_dst");
+    Model              model;
+    bool               loaded = !loads;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE(loaded == loads);
+    if (loads) {
+        REQUIRE(model.objects.size() == 1);
+        CHECK(model.objects.front()->volumes.size() == 1);
+    }
 }
 
 TEST_CASE("A project with malformed paint data loads without the damaged facet", "[3mf][Regression]")
