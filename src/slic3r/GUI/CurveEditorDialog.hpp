@@ -16,6 +16,7 @@ class wxStaticText;
 class wxTextCtrl;
 class wxScrolledWindow;
 class wxSpinButton;
+class Button;
 
 namespace Slic3r::GUI {
 
@@ -60,6 +61,7 @@ private:
     wxGrid* m_grid;
     wxPanel* m_table_panel;
     wxPanel* m_actions_panel;
+    Button* m_add_point;
     wxStaticText* m_status;
     TextInput* m_range_fields[4];
     wxSpinButton* m_range_arrows[4];

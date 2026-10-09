@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <utility>
@@ -51,8 +52,10 @@ public:
 
     // A null message means success; row identifies the offending point, or -1.
     const char* read_points(const Rows& rows, std::vector<double>& x, std::vector<double>& y, int& row) const;
+    // Limit newly added/imported points without invalidating larger saved models.
+    virtual size_t maximum_point_count() const = 0;
     // Insert in the requested interval, or the nearest one with room for a valid point.
-    // Leave rows and the requested position unchanged when no interval can be split.
+    // Leave rows and the requested position unchanged at the limit or when no interval can be split.
     bool insert_point(Rows& rows, int& row) const;
     // CSV uses stable column identifiers and locale-independent export. Failed reads/writes
     // leave the output untouched; line is a physical CSV line, row is a table row (zero-based).
