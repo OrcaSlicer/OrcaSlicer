@@ -18,6 +18,7 @@
 #include "libslic3r/Point.hpp"
 #include <cmath>
 #include <initializer_list>
+#include <math.h>
 #include <string>
 #include <string_view>
 #include <utility>
