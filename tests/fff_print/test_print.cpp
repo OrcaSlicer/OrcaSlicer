@@ -26,6 +26,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Slicing.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Support/TreeModelVolumes.hpp"
@@ -1544,4 +1545,30 @@ TEST_CASE("The build height check counts the Z shrinkage compensation once", "[P
         CHECK(error.empty());
     else
         CHECK(error.find("because of material shrinkage compensation") != std::string::npos);
+}
+
+TEST_CASE("The build height check counts the raft", "[Print][validate][Regression]")
+{
+    // printable_height is 100 mm; three raft layers lift the object by 0.9 mm.
+    const auto [height, fits] = GENERATE(table<double, bool>({ { 98.8, true }, { 99.8, false } }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "printable_height", 100. },
+        { "raft_layers", 3 },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+
+    Print print;
+    Model model;
+    init_print({ make_cube(20., 20., height) }, print, model, config);
+    const SlicingParameters &slicing_params = print.objects().front()->slicing_parameters();
+    REQUIRE_THAT(slicing_params.object_print_z_min, Catch::Matchers::WithinAbs(0.9, EPSILON));
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (fits)
+        CHECK(error.empty());
+    else
+        CHECK(error.find("maximum build volume height") != std::string::npos);
 }
