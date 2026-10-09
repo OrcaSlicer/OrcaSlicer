@@ -379,10 +379,8 @@ include(Boost/Boost.cmake)
 
 include(Cereal/Cereal.cmake)
 include(Qhull/Qhull.cmake)
-include(GLEW/GLEW.cmake)
 
 include(GLFW/GLFW.cmake)
-include(OpenCSG/OpenCSG.cmake)
 set(SLVS_PKG "")
 if (SLIC3R_CAD)
     include(SLVS/SLVS.cmake)
@@ -478,7 +476,6 @@ set(_dep_list
     dep_Draco
     dep_NLopt
     dep_OpenVDB
-    dep_OpenCSG
     ${SLVS_PKG}
     dep_OpenCV
     dep_Eigen

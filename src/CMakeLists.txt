@@ -189,7 +189,6 @@ else ()
     target_link_libraries(OrcaSlicer ${CMAKE_DL_LIBS} -lstdc++ Threads::Threads pangoft2-1.0)
 endif ()
 
-# Add the Slic3r GUI library, libcurl, OpenGL and GLU libraries.
 if (SLIC3R_GUI)
 #    target_link_libraries(OrcaSlicer ws2_32 uxtheme setupapi libslic3r_gui ${wxWidgets_LIBRARIES})
 target_link_libraries(OrcaSlicer libslic3r_gui wxInspector::wxInspector)
