@@ -1,0 +1,12 @@
+{
+  "type": "machine_model",
+  "name": "FELIX Food Double",
+  "model_id": "felix_food_series",
+  "nozzle_diameter": "0.5;1.0;2.0;3.0;4.0",
+  "machine_tech": "FFF",
+  "family": "FELIX Printers",
+  "bed_model": "FELIX_Food_Series_Buildplate.stl",
+  "bed_texture": "FELIX Food Series build plate texture.svg",
+  "hotend_model": "FELIX Food Extruder.stl",
+  "default_materials": ""
+}

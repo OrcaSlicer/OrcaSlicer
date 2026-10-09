@@ -1,0 +1,21 @@
+{
+  "type": "machine",
+  "name": "fdm_felix_food_double_common",
+  "inherits": "fdm_all_machines_common",
+  "from": "system",
+  "instantiation": "false",
+  "machine_max_speed_x": ["150", "150"],
+  "machine_max_speed_y": ["150", "150"],
+  "machine_max_speed_z": ["10", "10"],
+  "machine_max_speed_e": ["20", "20"],
+  "gcode_flavor": "repetier",
+  "layer_change_gcode": "G92 E0",
+  "use_relative_e_distances": "1",
+  "single_extruder_multi_material": "0",
+  "extruder_offset": ["0x0", "0x0"],
+  "extruder_type": ["Direct Drive", "Direct Drive"],
+  "printable_area": ["0x0", "250x0", "250x195", "0x195"],
+  "printable_height": "150",
+  "machine_start_gcode": "; FELIX Food Twin - OrcaSlicer Start G-code - V1.00\nM280 S1 ; Use 'S0' to turn Ditto off, use 'S1' to turn Ditto on\n{if bed_temperature_initial_layer_single>0}M190 S[bed_temperature_initial_layer_single]\n{endif}{if nozzle_temperature[0]>0}M104 S{nozzle_temperature[0]} T0\nM104 S{nozzle_temperature[0]} T1\n{endif}G28\nG90\nM82\nM107\n; =============== Prime routine ==================\nG1 X10 Y10 Z10 F6000\nM400\nG92 E0\nG1 E{2*retraction_length[0]+retract_restart_extra[0]+0.5} F15\nG92 E0\nG1 X{20+nozzle_diameter[0]*2} Y10 Z{nozzle_diameter[0]*0.5} F{travel_speed*60}\nG1 X{40+nozzle_diameter[0]*2} Y10 E{nozzle_diameter[0]*initial_layer_print_height*20/((filament_diameter[0]/2)*(filament_diameter[0]/2)*3.14159)} F{initial_layer_speed*60}\nG92 E0\n",
+  "machine_end_gcode": "; FELIX Food Twin - OrcaSlicer End G-code - V1.00\nG92 E0\nG1 E-{retraction_length[0]} F{retraction_speed[0]*60}\nG92 E0\nG91\nG1 Z10 F1200\nG90\nG28 X\nG28 Y\nM107\nM84\n"
+}

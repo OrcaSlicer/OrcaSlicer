@@ -1,0 +1,31 @@
+{
+  "type": "machine",
+  "name": "FELIX Food Switch 1.00mm nozzle",
+  "inherits": "fdm_felix_food_switch_common",
+  "from": "system",
+  "instantiation": "true",
+  "printer_model": "FELIX Food Switch",
+  "printer_variant": "1.0",
+  "gcode_flavor": "repetier",
+  "single_extruder_multi_material": "0",
+  "extruder_type": [
+    "Direct Drive",
+    "Direct Drive"
+  ],
+  "nozzle_diameter": [
+    "1.0",
+    "1.0"
+  ],
+  "min_layer_height": [
+    "0.5",
+    "0.5"
+  ],
+  "max_layer_height": [
+    "0.75",
+    "0.75"
+  ],
+  "extruder_offset": [
+    "0x0",
+    "0x0"
+  ]
+}

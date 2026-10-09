@@ -1,0 +1,79 @@
+{
+  "type": "filament",
+  "name": "FORMFUTURA ePLA Brass @ 0.50mm",
+  "inherits": "fdm_filament_pla",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "FELIX Pro 3 0.50mm nozzle",
+    "FELIX Pro L 3.0 0.50mm nozzle",
+    "FELIX Pro XL 3.0 0.50mm nozzle",
+    "FELIX Tec 4 0.50mm nozzle"
+  ],
+  "nozzle_temperature": [
+    "205.0"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "205.0"
+  ],
+  "hot_plate_temp": [
+    "55.0"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "55.0"
+  ],
+  "cool_plate_temp": [
+    "55.0"
+  ],
+  "cool_plate_temp_initial_layer": [
+    "55.0"
+  ],
+  "eng_plate_temp": [
+    "55.0"
+  ],
+  "eng_plate_temp_initial_layer": [
+    "55.0"
+  ],
+  "textured_plate_temp": [
+    "55.0"
+  ],
+  "textured_plate_temp_initial_layer": [
+    "55.0"
+  ],
+  "chamber_temperature": [
+    "28.0"
+  ],
+  "idle_temperature": [
+    "120"
+  ],
+  "filament_retract_length": [
+    "1.0"
+  ],
+  "filament_retract_speed": [
+    "40.0"
+  ],
+  "filament_retraction_speed": [
+    "40.0"
+  ],
+  "filament_retract_restart_extra": [
+    "0.05"
+  ],
+  "filament_flow_ratio": [
+    "1.0"
+  ],
+  "filament_max_volumetric_speed": [
+    "12.0"
+  ],
+  "fan_min_speed": [
+    "100.0"
+  ],
+  "fan_max_speed": [
+    "100.0"
+  ],
+  "filament_density": [
+    "1.22"
+  ],
+  "filament_vendor": [
+    "FORMFUTURA"
+  ]
+}

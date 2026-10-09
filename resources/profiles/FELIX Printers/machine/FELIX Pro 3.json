@@ -1,0 +1,12 @@
+{
+  "type": "machine_model",
+  "name": "FELIX Pro 3",
+  "model_id": "felix_pro_series",
+  "nozzle_diameter": "0.25;0.35;0.5;0.7",
+  "machine_tech": "FFF",
+  "family": "FELIX Printers",
+  "bed_model": "FELIX_Pro_Series_Buildplate.stl",
+  "bed_texture": "FELIX Pro Series build plate texture.svg",
+  "hotend_model": "hotend.stl",
+  "default_materials": ""
+}

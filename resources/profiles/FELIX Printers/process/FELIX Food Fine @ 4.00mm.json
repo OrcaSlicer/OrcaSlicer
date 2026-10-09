@@ -1,0 +1,50 @@
+{
+  "type": "process",
+  "name": "FELIX Food Fine @ 4.00mm",
+  "inherits": "fdm_process_felix_food_common",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "FELIX Food Single 4.00mm nozzle",
+    "FELIX Food Double 4.00mm nozzle",
+    "FELIX Food Switch 4.00mm nozzle"
+  ],
+  "layer_height": "2.0",
+  "initial_layer_print_height": "2.0",
+  "line_width": "4.8",
+  "outer_wall_line_width": "4.8",
+  "inner_wall_line_width": "4.8",
+  "top_surface_line_width": "4.8",
+  "sparse_infill_line_width": "4.8",
+  "internal_solid_infill_line_width": "4.8",
+  "initial_layer_line_width": "4.8",
+  "support_line_width": "4.8",
+  "top_shell_layers": "2",
+  "bottom_shell_layers": "2",
+  "support_top_z_distance": "2.0",
+  "support_bottom_z_distance": "2.0",
+  "inner_wall_speed": [
+    "60.0"
+  ],
+  "sparse_infill_speed": [
+    "60.0"
+  ],
+  "support_speed": [
+    "60.0"
+  ],
+  "outer_wall_speed": [
+    "60.0"
+  ],
+  "internal_solid_infill_speed": [
+    "60.0"
+  ],
+  "top_surface_speed": [
+    "60.0"
+  ],
+  "initial_layer_speed": [
+    "60.0"
+  ],
+  "initial_layer_infill_speed": [
+    "60.0"
+  ]
+}
