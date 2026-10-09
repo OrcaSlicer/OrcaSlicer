@@ -3,6 +3,7 @@
 
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ArcFitter.hpp"
@@ -34,6 +35,9 @@
 namespace Slic3r {
 
 class Print;
+
+// For a filament whose density is not set, in g/cm³.
+inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
 // slice warnings enum strings
 #define NOZZLE_HRC_CHECKER                                          "the_actual_nozzle_hrc_smaller_than_the_required_nozzle_hrc"
@@ -270,9 +274,44 @@ class Print;
             std::vector<std::string> params;    // extra msg info
         };
 
+        // Material extruded for the plate, one object instance or one connected body of it, for their centers of mass.
+        struct ObjectMass
+        {
+            struct Sum
+            {
+                double mass{ 0. };
+                double volume{ 0. };
+                Vec3d  moment{ Vec3d::Zero() };
+                // Of the mass about the origin along each axis, the sums of m x^2, m y^2 and m z^2.
+                Vec3d second{ Vec3d::Zero() };
+
+                void add(const Sum &other)
+                {
+                    mass += other.mass;
+                    volume += other.volume;
+                    moment += other.moment;
+                    second += other.second;
+                }
+            };
+            // Everything printed up to each layer id, the plate's with brim, raft and supports, and the box it fills.
+            std::vector<Sum> printed_up_to_layer;
+            BoundingBoxf3    box;
+            // Of an object, whether it is an assembly.
+            bool assembly{ false };
+
+            Sum  total() const { return printed_up_to_layer.empty() ? Sum{} : printed_up_to_layer.back(); }
+            void add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer);
+        };
+
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        ObjectMass plate_mass;
+        // One per object instance, and one per connected body of the instances of several, when the sliced objects were at hand.
+        std::vector<ObjectMass> object_masses;
+        std::vector<ObjectMass> body_masses;
+        // One per object instance, of its supports and raft.
+        std::vector<ObjectMass> support_masses;
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -360,6 +399,10 @@ class Print;
             filename = std::forward<Other>(other).filename;
             id = std::forward<Other>(other).id;
             moves = std::forward<Other>(other).moves;
+            plate_mass = std::forward<Other>(other).plate_mass;
+            object_masses = std::forward<Other>(other).object_masses;
+            body_masses = std::forward<Other>(other).body_masses;
+            support_masses = std::forward<Other>(other).support_masses;
             lines_ends = std::forward<Other>(other).lines_ends;
             printable_area = std::forward<Other>(other).printable_area;
             bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
@@ -1099,6 +1142,15 @@ class Print;
         };
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
+        // The object instance and the connected body of an instance of several that a point lies in, -1 for none.
+        struct MassLocation
+        {
+            int object{ -1 };
+            int body{ -1 };
+        };
+        // For a support, the object instance only.
+        using MassLocator = std::function<MassLocation(const Vec3d &point, bool support)>;
+
     private:
         CommandProcessor m_command_processor;
         GCodeReader m_parser;
@@ -1126,6 +1178,7 @@ class Print;
         bool m_skippable{false};
         SkipType m_skippable_type{SkipType::stNone};
         int m_object_label_id{-1};
+        MassLocator m_mass_locator;
         float m_print_z{0.0f};
         std::vector<float> m_remaining_volume;
         ExtruderTemps m_filament_nozzle_temp;
@@ -1280,6 +1333,13 @@ class Print;
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
+        // Locates extrusions in the objects and bodies it numbers, those objects listed beforehand.
+        void set_mass_locator(MassLocator locator, std::vector<GCodeProcessorResult::ObjectMass> objects)
+        {
+            m_mass_locator = std::move(locator);
+            m_result.support_masses.assign(objects.size(), {});
+            m_result.object_masses = std::move(objects);
+        }
         // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the
         // per-slot machine-limit resolution can follow the active nozzle. Null is fine (slot 0).
         void initialize_from_context(const std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase>& nozzle_group_result) {
@@ -1534,6 +1594,8 @@ class Print;
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
+        void add_object_mass(int filament_id, float volume);
+        void finalize_object_masses();
 
         void set_extrusion_role(ExtrusionRole role);
         // Resolve the SKIPPABLE_TYPE payload to a SkipType.

@@ -2,6 +2,9 @@
 #define slic3r_GLCanvas3D_hpp_
 
 #include "libslic3r/Point.hpp"
+#include "libslic3r/ConnectedBodies.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <cstdlib>
 #include <imgui.h>
@@ -30,6 +33,7 @@
 #include "Gizmos/GLGizmosManager.hpp"
 #include "GUI_ObjectLayers.hpp"
 #include "GLSelectionRectangle.hpp"
+#include "GLModel.hpp"
 #include "MeshUtils.hpp"
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
@@ -477,6 +481,69 @@ class GLCanvas3D
         void render(const std::vector<const ModelInstance*>& sorted_instances) const;
     };
 
+    class CenterOfMass
+    {
+        using Sum = GCodeProcessorResult::ObjectMass::Sum;
+        enum MarkerKind : size_t { mkPlate, mkObject, mkSupport, mkBody, mkCount };
+        // A marker's mass and the box of what it stands for.
+        struct Marker
+        {
+            Sum           sum;
+            BoundingBoxf3 box;
+            // Of an object, whether it is an assembly.
+            bool assembly{ false };
+
+            Vec3d center() const { return sum.moment / sum.mass; }
+        };
+        // The plates', each object instance's, its supports' and each body of an assembly's.
+        using Markers = std::array<std::vector<Marker>, mkCount>;
+
+        // The marker's two colors of alternating octants.
+        std::array<GLModel, 2> m_octants;
+        // Mass properties at unit density of each ModelVolume's mesh, by ModelVolume id, which a new mesh changes.
+        std::map<size_t, MassProperties> m_meshes;
+        // The connected bodies of each assembly in its own coordinates, by ModelObject id, with the volumes they were sliced from.
+        struct Bodies
+        {
+            struct Volume
+            {
+                size_t      id;
+                bool        negative;
+                double      density;
+                Transform3d trafo;
+
+                bool operator==(const Volume& other) const
+                {
+                    return id == other.id && negative == other.negative && density == other.density && trafo.matrix() == other.trafo.matrix();
+                }
+            };
+            std::vector<Volume>    volumes;
+            size_t                 slabs{ 0 };
+            std::vector<SolidBody> bodies;
+        };
+        std::map<size_t, Bodies> m_bodies;
+        // The markers drawn last: of the finished print and, in Preview, of what is printed up to the top layer shown.
+        std::array<Markers, 2> m_drawn;
+        size_t                 m_top_layer{ 0 };
+        // The marker whose details are shown, with the number of its kind then.
+        struct Pick
+        {
+            size_t set;
+            size_t kind;
+            size_t index;
+            size_t count;
+        };
+        std::optional<Pick> m_picked;
+
+        Markers model_markers(const GLCanvas3D& canvas);
+
+    public:
+        void render(GLCanvas3D& canvas);
+        // Shows the details of the marker under the mouse, else hides them; whether it hit one.
+        bool on_left_down(GLCanvas3D& canvas, const Vec2d& mouse);
+        void render_details(GLCanvas3D& canvas);
+    };
+
     class Tooltip
     {
         std::string m_text;
@@ -733,6 +800,7 @@ private:
     int m_selected_extruder;
 
     Labels m_labels;
+    CenterOfMass m_center_of_mass;
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
     Slope m_slope;

@@ -12,6 +12,7 @@
 
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "ConnectedBodies.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
@@ -747,69 +748,19 @@ void PrintObject::prepare_infill()
     for (Layer *layer : m_layers)
         layer->lslices_separated_component_ids.clear();
     if (needs_separated_components) {
-        const size_t        nl = m_layers.size();
-        std::vector<size_t> offset(nl + 1, 0); // Orca: flat index of the first island of each layer
-        for (size_t i = 0; i < nl; ++ i)
-            offset[i + 1] = offset[i] + m_layers[i]->lslices.size();
-        const size_t nreg = offset[nl];
-        // Orca: Union-find over every (layer, island).
-        std::vector<size_t> parent(nreg);
-        for (size_t i = 0; i < nreg; ++ i) parent[i] = i;
-        auto find = [&parent](size_t x) {
-            while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
-            return x;
-        };
-        auto unite = [&](size_t a, size_t b) { a = find(a); b = find(b); if (a != b) parent[a] = b; };
-        // Orca: Index the smaller of two consecutive layers instead of scanning every
-        // pair of islands. The tree prunes distant boxes on fragmented models; exact
-        // polygon intersections still decide connectivity for the remaining candidates.
-        for (size_t i = 0; i + 1 < nl; ++ i) {
-            m_print->throw_if_canceled();
-            size_t layer_a = i, layer_b = i + 1;
-            if (m_layers[layer_a]->lslices.size() < m_layers[layer_b]->lslices.size())
-                std::swap(layer_a, layer_b);
-            const Layer *la = m_layers[layer_a], *lb = m_layers[layer_b];
-            if (lb->lslices.empty())
-                continue;
-
-            using IslandTree = AABBTreeIndirect::Tree<2, coord_t>;
-            std::vector<AABBTreeIndirect::BoundingBoxWrapper> bboxes;
-            bboxes.reserve(lb->lslices.size());
-            for (size_t b = 0; b < lb->lslices.size(); ++ b)
-                bboxes.emplace_back(b, lb->lslices_bboxes[b]);
-            IslandTree tree;
-            tree.build_modify_input(bboxes);
-            for (size_t a = 0; a < la->lslices.size(); ++ a) {
-                const IslandTree::BoundingBox query(la->lslices_bboxes[a].min, la->lslices_bboxes[a].max);
-                AABBTreeIndirect::traverse(tree,
-                    [&query](const IslandTree::Node &node) { return node.bbox.intersects(query); },
-                    [&](const IslandTree::Node &node) {
-                        const size_t b = node.idx;
-                        // Orca: Tree boxes include an epsilon, so retain the original box
-                        // filter. Already-connected islands cannot change the partition
-                        // and need no further polygon intersection.
-                        if (la->lslices_bboxes[a].overlap(lb->lslices_bboxes[b]) &&
-                            find(offset[layer_a] + a) != find(offset[layer_b] + b) &&
-                            ! intersection_ex(la->lslices[a], lb->lslices[b]).empty())
-                            unite(offset[layer_a] + a, offset[layer_b] + b);
-                        return true;
-                    });
-            }
-        }
-        // Orca: Number the bodies by their first island and merge the bounding boxes of their islands.
-        std::vector<size_t> body_of_root(nreg, size_t(-1));
-        for (size_t i = 0; i < nl; ++ i) {
+        std::vector<const ExPolygons *> islands;
+        islands.reserve(m_layers.size());
+        for (const Layer *layer : m_layers)
+            islands.emplace_back(&layer->lslices);
+        size_t                           bodies = 0;
+        std::vector<std::vector<size_t>> ids    = connected_bodies(islands, bodies, [this]() { m_print->throw_if_canceled(); });
+        // Orca: Merge the bounding boxes of the islands of each body.
+        m_separated_body_bboxes.assign(bodies, BoundingBox());
+        for (size_t i = 0; i < m_layers.size(); ++ i) {
             Layer *layer = m_layers[i];
-            layer->lslices_separated_component_ids.resize(layer->lslices.size());
-            for (size_t a = 0; a < layer->lslices.size(); ++ a) {
-                size_t &body = body_of_root[find(offset[i] + a)];
-                if (body == size_t(-1)) {
-                    body = m_separated_body_bboxes.size();
-                    m_separated_body_bboxes.emplace_back();
-                }
-                m_separated_body_bboxes[body].merge(layer->lslices_bboxes[a]);
-                layer->lslices_separated_component_ids[a] = body;
-            }
+            for (size_t a = 0; a < layer->lslices.size(); ++ a)
+                m_separated_body_bboxes[ids[i][a]].merge(layer->lslices_bboxes[a]);
+            layer->lslices_separated_component_ids = std::move(ids[i]);
         }
     }
 

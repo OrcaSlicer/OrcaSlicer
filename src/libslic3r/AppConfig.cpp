@@ -411,6 +411,9 @@ void AppConfig::set_defaults()
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);
 
+    if (get("show_center_of_mass").empty())
+        set_bool("show_center_of_mass", false);
+
 #ifdef _WIN32
 
 //#ifdef SUPPORT_3D_CONNEXION
