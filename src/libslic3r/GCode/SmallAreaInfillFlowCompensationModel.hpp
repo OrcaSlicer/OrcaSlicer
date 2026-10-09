@@ -15,6 +15,7 @@ public:
     CurveView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const override;
     CurveViewLimits view_limits() const override;
     bool expand_view_limits(const std::vector<double>& x) override;
+    const char* x_view_limit_message() const override;
     CurveView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,
                           const CurveView& view) const override;
     Rows default_rows() const override;
