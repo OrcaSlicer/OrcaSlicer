@@ -9,6 +9,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include "test_helpers.hpp"
@@ -220,4 +221,63 @@ TEST_CASE("Line ends of the exported G-code mark every newline in the file", "[G
     const auto difference = std::mismatch(result.lines_ends.begin(), result.lines_ends.end(), newline_ends.begin());
     INFO("first difference at line " << difference.first - result.lines_ends.begin() + 1);
     CHECK(difference.first == result.lines_ends.end());
+}
+
+TEST_CASE("Reloaded moves name their lines in G-code a script rewrote in place", "[GCodeProcessor]")
+{
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20) }, print, model);
+    GCodeProcessorResult result;
+    const std::string    gcode          = Test::gcode(print, &result);
+    const auto           exported_moves = result.moves;
+
+    // A script that prepends one comment and, writing in text mode on Windows, turns every LF into CRLF.
+    const std::string prepended = ";EDITED\r\n";
+    std::string       edited    = prepended;
+    for (const char c : gcode) {
+        if (c == '\n')
+            edited += '\r';
+        edited += c;
+    }
+    ScopedTemporaryFile temp(".gcode");
+    save_string_file(temp.path(), edited);
+    result.filename = temp.string();
+    print.reload_gcode_moves(&result);
+
+    std::vector<size_t> newline_ends;
+    for (size_t i = edited.find('\n'); i != std::string::npos; i = edited.find('\n', i + 1))
+        newline_ends.push_back(i + 1);
+    CHECK(result.lines_ends == newline_ends);
+
+    // Every move that came from a line now names the same line one further down.
+    REQUIRE(result.moves.size() == exported_moves.size());
+    const auto difference = std::mismatch(exported_moves.begin(), exported_moves.end(), result.moves.begin(),
+                                          [](const auto &exported, const auto &reloaded) {
+                                              return reloaded.gcode_id == (exported.gcode_id == 0 ? 0 : exported.gcode_id + 1);
+                                          });
+    INFO("first difference at move " << difference.first - exported_moves.begin());
+    CHECK(difference.first == exported_moves.end());
+}
+
+TEST_CASE("Rewritten G-code that cannot be re-read keeps the moves and hides the G-code window", "[GCodeProcessor]")
+{
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20) }, print, model);
+    GCodeProcessorResult result;
+    const std::string    gcode          = Test::gcode(print, &result);
+    const auto           exported_moves = result.moves;
+
+    // A script that strips the trailing config block, which the G-code reader needs.
+    const size_t config_block = gcode.find("; CONFIG_BLOCK_START");
+    REQUIRE(config_block != std::string::npos);
+    ScopedTemporaryFile temp(".gcode");
+    save_string_file(temp.path(), gcode.substr(0, config_block));
+    result.filename = temp.string();
+    print.reload_gcode_moves(&result);
+
+    CHECK(result.lines_ends.empty());
+    REQUIRE(result.moves.size() == exported_moves.size());
+    CHECK(result.moves.back().gcode_id == exported_moves.back().gcode_id);
 }

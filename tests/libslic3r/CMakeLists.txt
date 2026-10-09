@@ -35,6 +35,7 @@ add_executable(${_TEST_NAME}_tests
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
+    test_fill_tpms_adaptive.cpp
     test_geometry.cpp
     test_kdtree.cpp
     test_multimaterial_segmentation.cpp
