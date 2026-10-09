@@ -85,9 +85,7 @@ TEST_CASE("Nonlinear flow curves use identical PCHIP interpolation in the previe
 TEST_CASE("Constructing a flow compensator without parsed points remains an error", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     GCodeConfig config;
-    const bool empty_setting = GENERATE(false, true);
-    config.small_area_infill_flow_compensation_model.values =
-        empty_setting ? std::vector<std::string>{} : std::vector<std::string>{"0", " "};
+    config.small_area_infill_flow_compensation_model.values.clear();
     REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), std::invalid_argument);
 }
 
@@ -103,6 +101,16 @@ TEST_CASE("Flow compensation only changes eligible infill roles within the model
     CHECK_THAT(compensator.modify_flow(5.0, extrusion, role), WithinAbs(eligible ? extrusion * 0.6 : extrusion, 1e-12));
     CHECK_THAT(compensator.modify_flow(0.0, extrusion, role), WithinAbs(extrusion, 1e-12));
     CHECK_THAT(compensator.modify_flow(11.0, extrusion, role), WithinAbs(extrusion, 1e-12));
+}
+
+TEST_CASE("The G-code consumer rejects malformed points instead of silently using partial numbers", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    GCodeConfig config;
+    const std::string point = GENERATE(as<std::string>{}, "5junk,0.5", "5,0.5junk", "5", " ", "5,0.5,extra");
+    config.small_area_infill_flow_compensation_model.values = {"0,0", point, "10,1"};
+    REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
+    config.small_area_infill_flow_compensation_model.values = {"0", " "};
+    REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
 }
 
 TEST_CASE("The G-code consumer rejects nonfinite flow model points", "[SmallAreaInfillFlowCompensation]")
