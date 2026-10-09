@@ -3807,9 +3807,9 @@ void PrintObject::bridge_over_infill()
                 // modified below, so build it once per spacing rather than once per candidate. A layer split
                 // into many candidates (e.g. by colour painting) otherwise repeats a layer-wide offset for each.
                 std::map<coord_t, Polylines> boundary_by_spacing;
-                // expansion_area is a clean, non-overlapping set, so uniting it with a bridge or cutting a bridge
-                // out of it only changes the polygons near that bridge. The rest are passed through untouched
-                // instead of being fed to Clipper with the whole layer again for every candidate.
+                // expansion_area is a clean, non-overlapping set, so cutting a bridge out of it only changes the
+                // polygons near that bridge. The rest are passed through untouched instead of being fed to Clipper
+                // with the whole layer again for every candidate.
                 // Not `near`/`far`: the Windows headers still define those as macros, and they expand to
                 // nothing, which turns the declaration below into an empty one.
                 const auto split_near = [](const Polygons &polys, const BoundingBox &bbox, Polygons &rest) {
@@ -3845,22 +3845,18 @@ void PrintObject::bridge_over_infill()
                     if (area_to_be_bridge.empty())
                         continue;
 
-                    Polygons       limiting_area;
-                    const Polygons near_expansion = split_near(expansion_area, get_extents(area_to_be_bridge).inflated(SCALED_EPSILON),
-                                                               limiting_area);
-                    const size_t   num_far        = limiting_area.size();
-                    append(limiting_area, union_(area_to_be_bridge, near_expansion));
+                    // Not split like the cut of expansion_area below: the whole limiting area is grown by 30% of the spacing,
+                    // which merges neighbouring polygons, and any of its boundary can anchor the bridge.
+                    Polygons limiting_area = union_(area_to_be_bridge, expansion_area);
 
                     auto boundary_it = boundary_by_spacing.find(flow.scaled_spacing());
                     if (boundary_it == boundary_by_spacing.end())
                         boundary_it = boundary_by_spacing
-                                          .emplace(flow.scaled_spacing(), to_polylines(expand(total_fill_area, 1.3 * flow.scaled_spacing())))
+                                          .emplace(flow.scaled_spacing(), to_polylines(expand(total_fill_area, 1.3f * flow.scaled_spacing())))
                                           .first;
                     Polylines boundary_plines = boundary_it->second;
                     {
-                        // The sub-unit offset (spacing is in mm) still re-unites touching polygons by the bridge, which the anchors depend on.
-                        Polylines limiting_plines = to_polylines(Polygons(limiting_area.begin(), limiting_area.begin() + num_far));
-                        append(limiting_plines, to_polylines(expand(Polygons(limiting_area.begin() + num_far, limiting_area.end()), 0.3 * flow.spacing())));
+                        Polylines limiting_plines = to_polylines(expand(limiting_area, 0.3f * flow.scaled_spacing()));
                         boundary_plines.insert(boundary_plines.end(), limiting_plines.begin(), limiting_plines.end());
                     }
 
