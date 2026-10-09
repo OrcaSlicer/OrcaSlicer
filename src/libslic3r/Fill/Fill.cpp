@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <assert.h>
+#include <libslic3r/ExtrusionEntity.hpp>
 #include <regex>
 #include <cstdlib>
 #include <cmath>
@@ -7,6 +8,7 @@
 #include <math.h>
 #include <set>
 #include <map>
+#include <libslic3r/ExtrusionEntity.hpp>
 #include <stdio.h>
 #include <memory>
 #include <string>
@@ -1047,6 +1049,8 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.role_speed = region_config.bridge_speed.get_at(layer.get_extruder_id(params.extruder));
                 else if (params.extrusion_role == erInternalBridgeInfill)
                     params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", layer.get_extruder_id(params.extruder));
+                else if (params.extrusion_role == erWaveBridgeInfill)
+                    params.role_speed = region_config.get_abs_value_at("wo_bridge_speed", layer.get_extruder_id(params.extruder));
                 else if (params.extrusion_role == erInternalInfill)
                     params.role_speed = region_config.sparse_infill_speed.get_at(layer.get_extruder_id(params.extruder));
                 else if (params.extrusion_role == erTopSolidInfill)

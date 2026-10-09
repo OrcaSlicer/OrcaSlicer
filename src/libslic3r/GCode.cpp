@@ -8276,6 +8276,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             }
         } else if(path.role() == erInternalBridgeInfill) {
             speed = m_config.internal_bridge_speed.get_at(nozzle).get_abs_value(m_config.bridge_speed.get_at(nozzle));
+        } else if (path.role() == erWaveBridgeInfill) {
+            speed = NOZZLE_CONFIG(wo_bridge_speed);
         } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {
@@ -8762,6 +8764,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    append_role_based_fan_marker(erWaveBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erWaveBridgeInfill);
                 }
 
                 apply_role_based_fan_speed();
@@ -9432,8 +9435,8 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
     if (m_writer.filament() == nullptr)
         return gcode;
 
-    // wipe (if it's enabled for this extruder and we have a stored wipe path and no-zero wipe distance)
-    if (FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON) {
+    // wipe (if it's enabled for this extruder and we have a stored wipe path and no-zero wipe distance and not wave overhang)
+    if (FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON && role != erWaveBridgeInfill) {
         Wipe::RetractionValues wipeRetractions = m_wipe.calculateWipeRetractionLengths(*this, toolchange);
         gcode += toolchange ? m_writer.retract_for_toolchange(true, wipeRetractions.retraction_length_before_wipe) :
                               m_writer.retract(true, wipeRetractions.retraction_length_before_wipe);
