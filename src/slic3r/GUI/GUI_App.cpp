@@ -4263,7 +4263,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         auto access_code = preset.config.opt_string("printhost_apikey");
         // Orca expect non empty access code
         if (access_code.empty()) {
-            access_code = "88888888";
+            access_code = NO_API_KEY_SENTINEL;
         }
 
         existing = m_device_manager->insert_local_device(

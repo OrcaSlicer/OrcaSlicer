@@ -45,6 +45,17 @@ struct PrinterConnectionParams
     std::string ca_file;
 };
 
+// Sentinel stored as a LAN device's access code when the user has not supplied one, so the device
+// stays registered (has_access_right() is !access_code.empty()). It is not a real credential: every
+// printer agent must translate it back to an empty string before using/sending it on the wire.
+inline constexpr const char* NO_API_KEY_SENTINEL = "*_{NO_API_KEY}_*";
+
+// Returns an empty string when `code` is the "no API key" sentinel, otherwise `code` unchanged.
+inline std::string normalize_access_code(const std::string& code)
+{
+    return code == NO_API_KEY_SENTINEL ? std::string() : code;
+}
+
 /**
  * FilamentSyncMode - Modes for filament data synchronization.
  *
