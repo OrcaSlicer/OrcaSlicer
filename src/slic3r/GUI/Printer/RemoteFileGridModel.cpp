@@ -455,7 +455,7 @@ void RemoteFileGridModel::onThumbnailLoaded(std::uint64_t request, const std::st
         wxBitmap bitmap;
         if (result == 0 && !image.empty()) {
             wxMemoryInputStream stream(image.data(), image.size());
-            wxImage decoded(stream, wxBITMAP_TYPE_PNG);
+            wxImage decoded(stream, wxBITMAP_TYPE_ANY);
             if (decoded.IsOk())
                 bitmap = wxBitmap(decoded);
         }
