@@ -562,7 +562,11 @@ TEST_CASE("The flow editor derives its navigation range from the bed diagonal", 
     const double diagonal = std::hypot(width, height);
     const std::vector<std::string> parameters = {"0,0", "\n10,1"};
     FlowModel model(parameters, diagonal);
-    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(diagonal * 1.1, 1e-10));
+    const double maximum = model.view_limits().bounds.max_x;
+    CHECK(maximum >= diagonal);
+    CHECK(maximum <= diagonal * 1.1);
+    const double step = std::pow(10.0, std::floor(std::log10(diagonal * 1.1)) - 1.0);
+    CHECK_THAT(maximum / step, WithinAbs(std::round(maximum / step), 1e-10));
     CHECK(model.validate_view(model.view_limits().bounds) == nullptr);
     CHECK(model.parameters() == parameters);
     CHECK_FALSE(model.is_modified());
@@ -582,6 +586,24 @@ TEST_CASE("Points beyond the bed diagonal remain visible and valid", "[SmallArea
     CHECK_FALSE(model.is_modified());
 }
 
+TEST_CASE("The X navigation limit rounds down to a readable value", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    FlowModel model({}, 7011.89140714452 / 1.1);
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(7000.0, 1e-10));
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Reopening the editor with a different bed recomputes its X limit", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    const std::vector<std::string> parameters = {"0,0", "\n10,1"};
+    FlowModel larger_bed(parameters, std::hypot(500.0, 500.0));
+    FlowModel smaller_bed(parameters, std::hypot(180.0, 180.0));
+    CHECK_THAT(larger_bed.view_limits().bounds.max_x, WithinAbs(770.0, 1e-10));
+    CHECK_THAT(smaller_bed.view_limits().bounds.max_x, WithinAbs(280.0, 1e-10));
+    CHECK(smaller_bed.view_limits().bounds.max_x < larger_bed.view_limits().bounds.max_x);
+    CHECK(smaller_bed.parameters() == parameters);
+}
+
 TEST_CASE("Longer edited points expand the viewport limits without shrinking the current view", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {
     FlowModel model({"0,0", "\n10,1"}, 300.0);
@@ -589,10 +611,10 @@ TEST_CASE("Longer edited points expand the viewport limits without shrinking the
     const CurveView current = {300, 330, 0, 1};
     REQUIRE(model.validate_view(current) == nullptr);
     CHECK(editor_model.expand_view_limits({0, 1500}));
-    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1650.0, 1e-10));
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1600.0, 1e-10));
     CHECK(model.validate_view(current) == nullptr);
     CHECK_FALSE(editor_model.expand_view_limits({0, 10}));
-    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1650.0, 1e-10));
+    CHECK_THAT(model.view_limits().bounds.max_x, WithinAbs(1600.0, 1e-10));
     CHECK(model.fitted_view({0, 1500}, {0, 1}).max_x > 1500);
     CHECK_FALSE(model.is_modified());
 }

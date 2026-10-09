@@ -64,6 +64,7 @@ public:
     // Keep newly edited points reachable without shrinking an existing viewport.
     // Return true when the limits change so the editor can update its controls.
     virtual bool expand_view_limits(const std::vector<double>&) { return false; }
+    virtual const char* x_view_limit_message() const { return nullptr; }
     // Equal bounds lock an axis. Inverted bounds mean no move is possible in this viewport.
     virtual CurveView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,
                                   const CurveView& view) const = 0;

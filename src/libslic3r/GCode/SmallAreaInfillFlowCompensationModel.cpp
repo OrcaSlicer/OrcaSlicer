@@ -80,11 +80,19 @@ bool SmallAreaInfillFlowCompensationModel::expand_view_limits(const std::vector<
     for (double length : x) {
         if (!std::isfinite(length) || length <= 0.0) continue;
         // The bed diagonal is a navigation reference, not a limit on saved points.
-        // Leave the same 10% headroom used by Reset View, without overflowing.
-        const double maximum = length <= std::numeric_limits<double>::max() / 1.1 ? length * 1.1 : length;
+        // Start with the same 10% headroom used by Reset View, without overflowing.
+        double maximum = length <= std::numeric_limits<double>::max() / 1.1 ? length * 1.1 : length;
+        // Round down to two significant digits, while keeping the point reachable.
+        const double step = std::pow(10.0, std::floor(std::log10(maximum)) - 1.0);
+        if (step > 0.0) maximum = std::max(length, std::floor(maximum / step) * step);
         m_maximum_x = std::max(m_maximum_x, maximum);
     }
     return previous != m_maximum_x;
+}
+
+const char* SmallAreaInfillFlowCompensationModel::x_view_limit_message() const
+{
+    return L("The X limit depends on the current printer's bed size and model points.");
 }
 
 CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
