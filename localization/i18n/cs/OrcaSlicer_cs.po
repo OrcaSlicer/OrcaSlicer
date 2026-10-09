@@ -39659,6 +39659,15 @@ msgstr "Soubor CSV neobsahuje body."
 msgid "The extrusion length limit depends on the current printer's bed size and model points."
 msgstr "Limit délky extruze závisí na velikosti podložky aktuální tiskárny a bodech modelu."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Max. počet bodů: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Křivka obsahuje příliš mnoho bodů."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Zobrazit možnosti při importu souboru STEP"
 

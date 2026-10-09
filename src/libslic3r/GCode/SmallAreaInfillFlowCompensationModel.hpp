@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <string>
 #include <vector>
 #include "libslic3r/CurveModel.hpp"
@@ -13,6 +14,7 @@ public:
     explicit SmallAreaInfillFlowCompensationModel(std::vector<std::string> parameters = {}, double bed_diagonal = 0.0);
 
     const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const override;
+    size_t maximum_point_count() const override { return 50; }
     CurveView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const override;
     CurveViewLimits view_limits() const override;
     bool expand_view_limits(const std::vector<double>& x) override;
