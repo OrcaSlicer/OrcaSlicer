@@ -1520,3 +1520,28 @@ TEST_CASE("Belt supports reach the belt under a leading overhang", "[Print][belt
         CHECK(lowest->print_z - floor_under_lowest > -0.2 - EPSILON);
     }
 }
+
+TEST_CASE("The build height check counts the Z shrinkage compensation once", "[Print][validate][Regression]")
+{
+    // printable_height is 100 mm and Z shrinks to 95 %, so the object is sliced 100 / 95 times taller.
+    // 92 mm become about 96.8 mm and fit; 97 mm become about 102.1 mm and only the compensation makes them too tall.
+    const auto [height, fits] = GENERATE(table<double, bool>({ { 92., true }, { 97., false } }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "printable_height", 100. },
+        { "filament_shrinkage_compensation_z", "95%" },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+
+    Print print;
+    Model model;
+    init_print({ make_cube(20., 20., height) }, print, model, config);
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (fits)
+        CHECK(error.empty());
+    else
+        CHECK(error.find("because of material shrinkage compensation") != std::string::npos);
+}

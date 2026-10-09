@@ -2106,7 +2106,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         if (!have_height)
             continue;
 
-        if (shrinkage_compensation_z != 1. && effective_max_z > (this->config().printable_height / shrinkage_compensation_z + EPSILON)) {
+        // The layers of a regular printer already carry the Z shrinkage compensation, the belt height does not.
+        const double compensated_max_z   = belt_printer ? effective_max_z * shrinkage_compensation_z : effective_max_z;
+        const double uncompensated_max_z = belt_printer ? effective_max_z : print_object.slicing_parameters().object_print_z_uncompensated_height();
+        if (shrinkage_compensation_z != 1. && compensated_max_z > this->config().printable_height + EPSILON &&
+            uncompensated_max_z <= this->config().printable_height + EPSILON) {
             // The object exceeds the maximum build volume height because of shrinkage compensation.
             return StringObjectException{
                 Slic3r::format(_u8L("While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."), print_object.model_object()->name),
