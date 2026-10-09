@@ -996,16 +996,46 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 if (is_auto(stype) && config_detect_sharp_tails)
                 {
                     // BBS detect sharp tail
+                    // On a belt, "below" has to include the belt itself and the
+                    // shear-advanced lower layer, or every belt-contact island reads as
+                    // a sharp tail -- which is what the empty-predecessor skip above was
+                    // really masking. effective_lower is exactly that notion of below.
+                    const ExPolygons &tail_lower = belt_ovh_active ? effective_lower : lower_polys;
+                    // Each island is tested only against the lower islands whose box meets its own; overlaps() tries
+                    // every pair, which is quadratic in the island counts of the two layers.
+                    std::vector<BoundingBox> lower_bboxes;
+                    lower_bboxes.reserve(tail_lower.size());
+                    for (const ExPolygon &lower : tail_lower)
+                        lower_bboxes.emplace_back(get_extents(lower));
                     for (const ExPolygon& expoly : curr_polys) {
                         bool  is_sharp_tail = false;
                         // 1. nothing below
-                        // this is a sharp tail region if it's floating and non-ignorable.
-                        // On a belt, "below" has to include the belt itself and the
-                        // shear-advanced lower layer, or every belt-contact island reads as
-                        // a sharp tail -- which is what the empty-predecessor skip above was
-                        // really masking. effective_lower is exactly that notion of below.
-                        const ExPolygons &tail_lower = belt_ovh_active ? effective_lower : lower_polys;
-                        if (!overlaps(offset_ex(expoly, 0.1 * extrusion_width_scaled), tail_lower)) {
+                        // this is a sharp tail region if it's floating and non-ignorable
+                        const ExPolygons  expanded = offset_ex(expoly, 0.1 * extrusion_width_scaled);
+                        const BoundingBox bbox     = get_extents(expanded);
+                        ExPolygons        lower_nearby;
+                        for (size_t i = 0; i < tail_lower.size(); ++i)
+                            if (lower_bboxes[i].overlap(bbox))
+                                lower_nearby.emplace_back(tail_lower[i]);
+                        // As overlaps(expanded, lower_nearby), with each lower island cut to the island's box first:
+                        // below a fine relief the lower layer is a few islands with thousands of holes, and the whole
+                        // of that boundary would otherwise be intersected once per island above.
+                        const auto overlaps_nearby = [&]() {
+                            for (const ExPolygon &a : expanded) {
+                                if (a.empty())
+                                    continue;
+                                const BoundingBox a_bbox = get_extents(a);
+                                for (const ExPolygon &b : lower_nearby) {
+                                    if (b.empty() || !get_extents(b).overlap(a_bbox))
+                                        continue;
+                                    const Polygons b_near = ClipperUtils::clip_clipper_polygons_with_subject_bbox(b, a_bbox.inflated(SCALED_EPSILON));
+                                    if (!intersection_pl(to_polylines(b_near), a).empty() || b.contains(a.contour.points.front()))
+                                        return true;
+                                }
+                            }
+                            return false;
+                        };
+                        if (!overlaps_nearby()) {
                             is_sharp_tail = !offset_ex(expoly, -0.1 * extrusion_width_scaled).empty();
                         }
 
