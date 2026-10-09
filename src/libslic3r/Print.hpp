@@ -501,9 +501,12 @@ public:
     std::vector<std::reference_wrapper<const PrintRegion>> all_regions() const;
     const PrintObjectRegions*   shared_regions() const throw() { return m_shared_regions; }
 
-    bool                        has_support()           const { return m_config.enable_support || m_config.enforce_support_layers > 0; }
-    bool                        has_raft()              const { return m_config.raft_layers > 0; }
-    bool                        has_support_material()  const { return this->has_support() || this->has_raft(); }
+    static bool                 has_support(const PrintObjectConfig &config)          { return config.enable_support || config.enforce_support_layers > 0; }
+    static bool                 has_raft(const PrintObjectConfig &config)             { return config.raft_layers > 0; }
+    static bool                 has_support_material(const PrintObjectConfig &config) { return has_support(config) || has_raft(config); }
+    bool                        has_support()           const { return has_support(m_config); }
+    bool                        has_raft()              const { return has_raft(m_config); }
+    bool                        has_support_material()  const { return has_support_material(m_config); }
     // Checks if the model object is painted using the multi-material painting gizmo.
     bool                        is_mm_painted()         const { return this->model_object()->is_mm_painted(); }
     // Checks if the model object is painted using the fuzzy skin painting gizmo.
@@ -1364,10 +1367,11 @@ public:
     size_t config_index_generation() const { return m_config_index_generation; }
 
     // Orca: Implement prusa's filament shrink compensation approach
+    // Both are decided by apply() from the filaments the model uses, before the PrintObject transformations are built.
     // Returns if all used filaments have same shrinkage compensations.
-     bool has_same_shrinkage_compensations() const;
+    bool has_same_shrinkage_compensations() const { return m_same_shrinkage_compensations; }
     // Returns scaling for each axis representing shrinkage compensations in each axis.
-     Vec3d shrinkage_compensation() const;
+    Vec3d shrinkage_compensation() const { return m_shrinkage_compensation; }
 
     std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
 
@@ -1463,11 +1467,19 @@ private:
             s_slicing_pipeline_hook_fn(*this, object, step);
     }
 
+    static void append_model_object_extruders(const ModelObject &mo, std::vector<unsigned int> &extruders);
+    static bool append_support_extruders(const PrintObjectConfig &config, unsigned int num_extruders, std::vector<unsigned int> &extruders);
+    void        append_tool_change_extruders(std::vector<unsigned int> &extruders) const;
+    void        append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const;
+    void        update_shrinkage_compensation(size_t num_extruders, std::vector<int> &variant_index);
+
     PrintConfig                             m_config;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;
     PrintRegionPtrs                         m_print_regions;
+    bool                                    m_same_shrinkage_compensations { false };
+    Vec3d                                   m_shrinkage_compensation { Vec3d::Ones() };
     
     //SoftFever
     bool m_isBBLPrinter = false;
