@@ -340,7 +340,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
            "Show range: enter exact bounds and press Enter or Apply.\n"
            "Show table: show or hide the point values.\n"
            "Reset View: show the full curve.\n"
-           "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift) + "\n\n" + touchpad_help;
+           "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift) + "\n\n" +
+        _L("Middle mouse button: drag to pan both axes.") + "\n\n" + touchpad_help;
     auto* help_button = make_action_button(m_actions_panel, wxEmptyString, "thermal_question");
     help_button->SetName(_L("Graph controls"));
     help_button->SetToolTip(controls_help);
