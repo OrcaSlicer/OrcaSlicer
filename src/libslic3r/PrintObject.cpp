@@ -1459,7 +1459,13 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "inner_wall_speed"
             || opt_key == "support_speed"
             || opt_key == "internal_solid_infill_speed"
-            || opt_key == "top_surface_speed") {
+            || opt_key == "top_surface_speed"
+            || opt_key == "outer_wall_volumetric_flow"
+            || opt_key == "inner_wall_volumetric_flow"
+            || opt_key == "sparse_infill_volumetric_flow"
+            || opt_key == "internal_solid_infill_volumetric_flow"
+            || opt_key == "top_surface_volumetric_flow"
+            || opt_key == "support_volumetric_flow") {
             // Brim is printed below supports, support invalidates brim and skirt.
             steps.emplace_back(posSupportMaterial);
             if (opt_key == "brim_type") {
@@ -1488,7 +1494,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "seam_gap"
             || opt_key == "role_based_wipe_speed"
             || opt_key == "wipe_on_loops"
-            || opt_key == "wipe_speed") {
+            || opt_key == "wipe_speed"
+            || opt_key == "gap_infill_volumetric_flow") {
             steps.emplace_back(posPerimeters);
         } else if (
             opt_key == "small_area_infill_flow_compensation_model") {
@@ -1797,6 +1804,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "overhang_4_4_speed"
             || opt_key == "bridge_speed"
             || opt_key == "internal_bridge_speed"
+            || opt_key == "support_interface_volumetric_flow"
+            || opt_key == "bridge_volumetric_flow"
+            || opt_key == "internal_bridge_volumetric_flow"
             || opt_key == "outer_wall_speed"
             || opt_key == "small_perimeter_speed"
             || opt_key == "small_perimeter_threshold"

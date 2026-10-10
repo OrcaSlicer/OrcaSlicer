@@ -17217,6 +17217,8 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
         _obj->config.set_key_value("gap_fill_target", new ConfigOptionEnum<GapFillTarget>(GapFillTarget::gftNowhere));
         print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
+        // ORCA: the speeds above are linear, and no calibration mode switches volumetric speeds off here.
+        print_config->set_key_value("enable_volumetric_speeds", new ConfigOptionBool(false));
         // ORCA: request the calibration's special toolpath order (chords first, center spiral
         // last and inside-out) so opposing directions collide into the tactile lip the test
         // reads. The special order only applies while the fill order is Default, so reset the
