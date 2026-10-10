@@ -32398,6 +32398,8 @@ msgstr ""
 msgid "The curve contains too many points."
 msgstr ""
 
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
 msgstr ""
 

@@ -38254,7 +38254,10 @@ msgstr "Максимум точек: %d."
 msgid "The curve contains too many points."
 msgstr "В кривой слишком много точек."
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Тачпад: два пальца перемещают график в обе стороны. Сведение и разведение масштабируют обе оси у курсора."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Тачпад: два пальца перемещают график в обе стороны.\n"
+"Сведение и разведение масштабируют обе оси у курсора."
 

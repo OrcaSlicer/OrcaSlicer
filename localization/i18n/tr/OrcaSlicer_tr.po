@@ -38697,7 +38697,10 @@ msgstr "En fazla nokta: %d."
 msgid "The curve contains too many points."
 msgstr "Eğride çok fazla nokta var."
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Dokunmatik yüzey: iki parmak grafiği her yönde taşır. Kıstırma ve açma, iki ekseni işaretçi çevresinde ölçekler."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Dokunmatik yüzey: iki parmak grafiği her yönde taşır.\n"
+"Kıstırma ve açma, iki ekseni işaretçi çevresinde ölçekler."
 

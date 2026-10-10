@@ -39060,7 +39060,10 @@ msgstr "Max. počet bodů: %d."
 msgid "The curve contains too many points."
 msgstr "Křivka obsahuje příliš mnoho bodů."
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Touchpad: dvěma prsty posuňte graf v obou směrech. Sevřením či roztažením měňte měřítko os u ukazatele."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Touchpad: dvěma prsty posuňte graf v obou směrech.\n"
+"Sevřením či roztažením měňte měřítko os u ukazatele."
 

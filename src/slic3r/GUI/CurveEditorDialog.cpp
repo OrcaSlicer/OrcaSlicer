@@ -299,7 +299,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     });
     const bool touchpad_enabled = wxGetApp().app_config && wxGetApp().app_config->get_bool("curve_editor_touchpad_controls");
     auto* touchpad = make_view_checkbox(_L("Touchpad"), touchpad_enabled, 12);
-    const wxString touchpad_help = _L("Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer.");
+    const wxString touchpad_help = _L("Touchpad: two-finger scroll moves the graph in both directions.\n"
+                                    "Pinch zooms both axes around the pointer.");
     touchpad->SetToolTip(touchpad_help);
     const bool automatic_touchpad = m_chart->has_automatic_touchpad_controls();
     view_actions->GetItem(view_actions->GetItemCount() - 1)->Show(!automatic_touchpad);

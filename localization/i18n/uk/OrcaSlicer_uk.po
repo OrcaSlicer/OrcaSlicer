@@ -39263,7 +39263,10 @@ msgstr "Максимум точок: %d."
 msgid "The curve contains too many points."
 msgstr "Крива містить забагато точок."
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Тачпад: два пальці рухають графік в обох напрямках. Зведення й розведення масштабує обидві осі біля курсора."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Тачпад: два пальці рухають графік в обох напрямках.\n"
+"Зведення й розведення масштабує обидві осі біля курсора."
 
