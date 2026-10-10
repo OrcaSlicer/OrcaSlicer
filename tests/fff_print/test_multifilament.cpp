@@ -315,6 +315,77 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
 
+// FanMover's guard against splitting a G1 inside custom gcode keys off the "; custom gcode
+// start/end" markers GCode::set_extruder() must emit around change_filament_gcode's output. Direct
+// toolchanges and Type2's wipe-tower toolchange (append_tcr2() calls set_extruder()) both go
+// through it; Type1's wipe-tower toolchange (WipeTowerIntegration::append_tcr(), append_tcr2's only
+// sibling caller of change_filament_gcode) needs the same bracketing of its own.
+TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", "[MultiFilament]")
+{
+    const std::string custom_gcode = "; fan full\nM106 P1 S255\nM400 S3\nG1 X77 F5000\nG1 X91 F3000\n";
+
+    // "direct": no prime tower, GCode::set_extruder() runs the toolchange. By-object sequencing
+    // with a per-object filament override is what makes one happen at all without a tower.
+    // "type1": a Type1 prime tower routes the toolchange through WipeTowerIntegration::append_tcr()
+    // instead (append_tcr2, Type2's equivalent, itself calls set_extruder() - so Type2 needs no
+    // separate case here).
+    const std::string path = GENERATE(as<std::string>{}, "direct", "type1");
+    CAPTURE(path);
+
+    std::string gcode_str;
+    if (path == "direct") {
+        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> per_object_overrides = {
+            {}, { { "outer_wall_filament_id", "2" }, { "inner_wall_filament_id", "2" } }
+        };
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "skirt_loops",           0 },
+            { "brim_type",             "no_brim" },
+            { "print_sequence",        "by object" },
+            { "change_filament_gcode", custom_gcode },
+            { "fan_speedup_time",      0.5 },
+            { "fan_kickstart",         0.1 },
+        });
+        gcode_str = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides);
+    } else {
+        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> per_object_overrides = {
+            { { "extruder", "1" } }, { { "extruder", "2" } }
+        };
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "change_filament_gcode", custom_gcode },
+            { "fan_speedup_time",      0.5 },
+            { "fan_kickstart",         0.1 },
+            { "enable_prime_tower",    true },
+            { "wipe_tower_type",       "type1" },
+            { "prime_tower_width",     35 },
+            { "wipe_tower_x",          120 },
+            { "wipe_tower_y",          120 },
+            { "printable_area",        "0x0,200x0,200x200,0x200" },
+            { "skirt_loops",           0 },
+            { "brim_type",             "no_brim" },
+        });
+        gcode_str = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides);
+    }
+
+    // The resolved-settings config footer echoes "change_filament_gcode = ..." with its value
+    // escaped, so drop it before counting or its own copy of "G1 X77 F5000" is miscounted.
+    const size_t footer_start = gcode_str.find("; CONFIG_BLOCK_START");
+    REQUIRE(footer_start != std::string::npos);
+    gcode_str.erase(footer_start);
+
+    auto count_occurrences = [](const std::string &haystack, const std::string &needle) {
+        size_t count = 0, pos = 0;
+        while ((pos = haystack.find(needle, pos)) != std::string::npos) {
+            ++count;
+            pos += needle.size();
+        }
+        return count;
+    };
+    const size_t total_waypoints = count_occurrences(gcode_str, "G1 X77 F5000");
+    const size_t bracketed       = count_occurrences(gcode_str, "M400 S3\nG1 X77 F5000");
+    REQUIRE(total_waypoints > 0);
+    CHECK(bracketed == total_waypoints);
+}
+
 // With wait_for_temp_on_wipe_tower the blocking M109 moves from right after the Tn command to
 // a stop point parked beside the wipe tower (heat-up drool falls next to the tower, not onto
 // its top): tagged with _WAIT_FOR_TEMP_ON_WIPE_TOWER, after the toolchange and before the

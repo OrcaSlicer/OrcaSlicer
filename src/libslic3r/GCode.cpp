@@ -1033,6 +1033,16 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return buf;
     }
 
+    // FanMover only reads "; custom gcode start/end" to avoid splitting a G1 inside custom gcode
+    // when it actually runs - same gate as its own construction in GCode::process_layers. Skip the
+    // markers otherwise so they aren't two dead comment lines on every toolchange.
+    static std::string wrap_custom_gcode_for_fan_mover(const FullPrintConfig &config, const std::string &gcode)
+    {
+        if (config.fan_speedup_time.value == 0 && config.fan_kickstart.value <= 0)
+            return gcode;
+        return "; custom gcode start\n" + gcode + "; custom gcode end\n";
+    }
+
     std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::ToolChangeResult& tcr, int new_filament_id, double z) const
     {
         if (new_filament_id != -1 && new_filament_id != tcr.new_tool)
@@ -1384,6 +1394,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             toolchange_gcode_str = gcodegen.placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &config);
 
             check_add_eol(toolchange_gcode_str);
+            // Type1 wipe tower path (every BBL printer): bracket the same way set_extruder() does,
+            // so FanMover doesn't split a G1 inside this custom gcode either.
+            toolchange_gcode_str = wrap_custom_gcode_for_fan_mover(gcodegen.config(), toolchange_gcode_str);
 
             //BBS
             {
@@ -10883,7 +10896,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         toolchange_gcode_parsed = placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &dyn_config);
         check_add_eol(toolchange_gcode_parsed);
-        gcode += toolchange_gcode_parsed;
+        // toolchange_gcode_parsed is still read below (get_last_z_from_gcode, custom_gcode_changes_tool).
+        gcode += wrap_custom_gcode_for_fan_mover(m_config, toolchange_gcode_parsed);
 
         //BBS
         {
