@@ -102,6 +102,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -1198,12 +1199,49 @@ int CLI::run(int argc, char **argv)
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
             {
                 const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
+                const char* gdk_backend = ::getenv("GDK_BACKEND");
+                // Only when the user did NOT choose a backend: an explicit GDK_BACKEND is a
+                // deliberate override (e.g. re-testing native Wayland after a WSLg update) and
+                // must win, exactly as the comment above promises.
+                if (wayland_env && *wayland_env && (gdk_backend == nullptr || *gdk_backend == '\0')) {
                     BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
                     ::setenv("GDK_BACKEND", "x11", true);
                 }
             }
             #endif
+
+            // WSLg fallback: WSL's compositor is a fork of old Weston, the strictest
+            // xdg-shell implementation around. It terminates the client (Gdk "Error 71
+            // (Protocol error)") on the nested popup windows wx builds for cascading
+            // dropdowns/flyouts, and its Mesa stack cannot provide a hardware EGL context
+            // on native Wayland either (zink "failed to choose pdev"), so the 3D view runs
+            // degraded at best. XWayland is fully functional there and is what WSLg
+            // actually optimizes for. Detect WSL (kernel osrelease carries "microsoft")
+            // on a Wayland session and select the X11 path before GTK initializes.
+            // GDK_BACKEND set by the user still wins: this runs only when it was unset.
+            {
+                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+                const char* gdk_backend = ::getenv("GDK_BACKEND");
+                // Only when the user did NOT choose a backend: an explicit GDK_BACKEND is a
+                // deliberate override (e.g. re-testing native Wayland after a WSLg update) and
+                // must win, exactly as the comment above promises.
+                if (wayland_env && *wayland_env && (gdk_backend == nullptr || *gdk_backend == '\0')) {
+                    bool is_wsl = false;
+                    if (boost::nowide::ifstream osrelease("/proc/sys/kernel/osrelease"); osrelease) {
+                        std::string kernel_release;
+                        std::getline(osrelease, kernel_release);
+                        is_wsl = boost::algorithm::icontains(kernel_release, "microsoft");
+                    }
+                    if (is_wsl) {
+                        BOOST_LOG_TRIVIAL(warning) << "WSL detected on a Wayland session; forcing the X11/XWayland backend "
+                                                      "(WSLg's compositor rejects nested popup windows and lacks native-Wayland EGL).";
+                        ::setenv("GDK_BACKEND", "x11", true);
+                        #if __has_include(<X11/Xlib.h>)
+                        XInitThreads();
+                        #endif
+                    }
+                }
+            }
 
             // WebKit2GTK compositing can fail under XWayland on older
             // WebKit releases. Disable it only when both DISPLAY and
@@ -6576,7 +6614,16 @@ int CLI::run(int argc, char **argv)
                                 }
                             }
 
-                            if (new_extruder_count > 1) {
+                            // Device-resolved mapping (a native protocol, or enable_filament_mapping):
+                            // the printer routes logical tools itself, so leave --filament-map alone
+                            // and skip the CLI-side mapping validation, matching normalize_fdm_1's
+                            // identity-map enforcement.
+                            bool is_device_owned_mapping_protocol = device_resolves_filament_mapping(m_print_config);
+
+                            if (new_extruder_count > 1 && is_device_owned_mapping_protocol) {
+                                BOOST_LOG_TRIVIAL(info) << "device-owned mapping protocol: CLI leaves filament maps to the printer";
+                            }
+                            else if (new_extruder_count > 1) {
                                 std::vector<std::vector<int>> unprintable_filament_vec;
                                 for (const std::set<int>& filamnt_ids : unprintable_filament_ids) {
                                     unprintable_filament_vec.emplace_back(std::vector<int>(filamnt_ids.begin(), filamnt_ids.end()));
@@ -7259,12 +7306,18 @@ int CLI::run(int argc, char **argv)
             if (!nozzle_diameter_str.empty())
                 plate_data->nozzle_diameters = nozzle_diameter_str;
 
+            // parse_filament_info keyed these by the g-code's TOOL number, which is not the
+            // project slot on a plate the printer's T namespace forced to renumber
+            // (FilamentCompaction). Same lookup correction as Plater::export_3mf.
+            Slic3r::GUI::PartPlate* filament_info_plate = partplate_list.get_plate(i);
+            const Print*            filament_info_print = filament_info_plate != nullptr ? filament_info_plate->fff_print() : nullptr;
             for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+                const int slot = filament_info_print != nullptr ? filament_info_print->filament_compaction().project_slot_of_tool(it->id) : it->id;
                 // get_at() on an empty vector option is UB - these can be unpopulated on a from-scratch slice
                 std::string display_filament_type;
-                it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
-                it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(it->id) : "#FFFFFF";
-                it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(it->id) : "";
+                it->type  = m_print_config.get_filament_type(display_filament_type, slot);
+                it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(slot) : "#FFFFFF";
+                it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(slot) : "";
 #ifdef SLIC3R_GUI
                 if (is_bbl_printer)
                     it->filament_id = bbl_agent.from_orca_filament_id(it->filament_id);

@@ -68,6 +68,8 @@ private:
     // Last url passed to load_url(), reloaded after reset_browser().
     wxString m_url;
     wxString m_url_deferred;
+    // Last URL handed to load_url(); guards against redundant re-navigation.
+    wxString m_url_requested;
     std::unique_ptr<PrinterWebViewHandler> m_handler;
     bool m_reset_on_show{false};
 

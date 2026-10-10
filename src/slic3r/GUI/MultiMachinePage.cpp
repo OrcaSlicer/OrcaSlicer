@@ -3,6 +3,7 @@
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <slic3r/GUI/Plater.hpp>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>

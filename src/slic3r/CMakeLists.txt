@@ -279,8 +279,20 @@ set(SLIC3R_GUI_SOURCES
     GUI/CapsuleButton.hpp
     GUI/FilamentMapPanel.cpp
     GUI/FilamentMapPanel.hpp
+    GUI/FilamentMapRowsView.cpp
+    GUI/FilamentMapRowsView.hpp
+    GUI/FilamentMapRowsPanel.cpp
+    GUI/FilamentMapRowsPanel.hpp
     GUI/FilamentMapDialog.cpp
     GUI/FilamentMapDialog.hpp
+    GUI/ActivePrinterSession.cpp
+    GUI/ActivePrinterSession.hpp
+    GUI/FilamentInventoryStore.cpp
+    GUI/FilamentInventoryStore.hpp
+    GUI/FilamentInventoryEditor.cpp
+    GUI/FilamentInventoryEditor.hpp
+    GUI/SlotGridPanel.cpp
+    GUI/SlotGridPanel.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
     GUI/IMEXFilamentPickerPopover.cpp
@@ -469,6 +481,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrinterWebViewHandler.cpp
     GUI/PrinterWebViewHandler.hpp
     GUI/PrinterWebView.hpp
+    GUI/DevicePrintOptionsDialog.cpp
+    GUI/DevicePrintOptionsDialog.hpp
     GUI/PrintHostDialogs.cpp
     GUI/PrintHostDialogs.hpp
     GUI/PrintOptionsDialog.cpp
@@ -783,6 +797,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/QidiPrinterAgent.cpp
     Utils/QidiPrinterAgent.hpp
     Utils/SnapmakerPrinterAgent.cpp
+    Utils/WonderMakerPrinterAgent.cpp
+    Utils/WonderMakerPrinterAgent.hpp
     Utils/SnapmakerPrinterAgent.hpp
     Utils/MoonrakerPrinterAgent.cpp
     Utils/MoonrakerPrinterAgent.hpp

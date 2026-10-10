@@ -378,6 +378,7 @@ static constexpr const char* IMEX_HEAD_FILAMENT_MAP_ATTR = "imex_head_filament_m
 static constexpr const char* FILAMENT_MAP_MODE_ATTR = "filament_map_mode";
 static constexpr const char* FILAMENT_MAP_ATTR = "filament_maps";
 static constexpr const char* FILAMENT_VOL_MAP_ATTR = "filament_volume_maps";
+static constexpr const char* FILAMENT_PHYSICAL_MAP_ATTR = "physical_filament_maps";
 static constexpr const char* LIMIT_FILAMENT_MAP_ATTR = "limit_filament_maps";
 static constexpr const char* GCODE_FILE_ATTR = "gcode_file";
 static constexpr const char* THUMBNAIL_FILE_ATTR = "thumbnail_file";
@@ -2337,8 +2338,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             ++object_idx;
         }
 
-        const ConfigOptionStrings* filament_ids_opt = config.option<ConfigOptionStrings>("filament_settings_id");
-        int max_filament_id = filament_ids_opt ? filament_ids_opt->size() : std::numeric_limits<int>::max();
+        // Bound the per-object extruder id by the filament count, taking whichever of the two
+        // filament-indexed arrays is longer: filament_settings_id is sometimes absent from the
+        // project config (see PresetBundle::load_config_file_config) and filament_colour can
+        // still hold its single-entry default while the settings ids already list every
+        // filament. Only when neither is present is there no bound to apply.
+        int max_filament_id = 0;
+        for (const char* key : { "filament_colour", "filament_settings_id" })
+            if (const ConfigOptionStrings* opt = config.option<ConfigOptionStrings>(key); opt != nullptr)
+                max_filament_id = std::max(max_filament_id, (int) opt->size());
+        if (max_filament_id == 0)
+            max_filament_id = std::numeric_limits<int>::max();
         for (ModelObject* mo : m_model->objects) {
             const ConfigOptionInt* extruder_opt = dynamic_cast<const ConfigOptionInt*>(mo->config.option("extruder"));
             int extruder_id = 0;
@@ -4623,6 +4633,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         }
                     }
                     m_curr_plater->config.set_key_value("filament_volume_map", new ConfigOptionInts(filament_volume_map));
+                }
+            }
+            else if (key == FILAMENT_PHYSICAL_MAP_ATTR) {
+                if (m_curr_plater) {
+                    // Entries are physical-filament ids (0 = unassigned); normalization against
+                    // the project's filament count happens once in
+                    // PartPlateList::load_from_3mf_structure, not here.
+                    m_curr_plater->config.set_key_value("filament_physical_map", new ConfigOptionInts(get_vector_from_string(value)));
                 }
             }
             else if (key == GCODE_FILE_ATTR)
@@ -8333,6 +8351,21 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     for (int i = 0; i < volume_values.size(); ++i) {
                         stream << volume_values[i];
                         if (i != (volume_values.size() - 1))
+                            stream << " ";
+                    }
+                    stream << "\"/>\n";
+                }
+
+                // physical_filament_maps: per project filament, the physical-filament id it
+                // resolves to. Genuine plate/user input (set by the physical-filament matching
+                // dialog), independent of filament_map_mode, so it is written whenever present.
+                ConfigOptionInts* filament_physical_maps_opt = plate_data->config.option<ConfigOptionInts>("filament_physical_map");
+                if (filament_physical_maps_opt != nullptr) {
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FILAMENT_PHYSICAL_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
+                    const std::vector<int>& physical_values = filament_physical_maps_opt->values;
+                    for (int i = 0; i < physical_values.size(); ++i) {
+                        stream << physical_values[i];
+                        if (i != (physical_values.size() - 1))
                             stream << " ";
                     }
                     stream << "\"/>\n";
