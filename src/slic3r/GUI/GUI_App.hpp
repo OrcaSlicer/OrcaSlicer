@@ -428,6 +428,8 @@ public:
 
     bool show_plate_gridlines() const { return app_config->get_bool("show_plate_gridlines"); }
     void toggle_show_plate_gridlines() const { app_config->set_bool("show_plate_gridlines", !show_plate_gridlines()); }
+    bool show_inactive_plates() const { return app_config->get_bool("show_inactive_plates"); }
+    void toggle_show_inactive_plates() const { app_config->set_bool("show_inactive_plates", !show_inactive_plates()); }
 
     bool show_canvas_zoom_button() const { return app_config->get_bool("show_canvas_zoom_button"); }
     void toggle_canvas_zoom_button() const { app_config->set_bool("show_canvas_zoom_button", !show_canvas_zoom_button()); }
