@@ -44,6 +44,18 @@ else()
     if(APPLE)
         set(_conf_cmd export MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET} && ./Configure -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
     else()
+        # A static library that is embedded into a shared object must not export
+        # its symbols. On Linux the running process also loads the system OpenSSL
+        # 3.x (WebKitGTK/gnutls pull in libcrypto.so.3), and CPython's _ssl and
+        # _hashlib are dlopened (RTLD_LOCAL) DSOs that each embed this OpenSSL.
+        # With default visibility their unversioned OpenSSL references are
+        # preempted by that global 3.x copy, mixing the 1.1.1 and 3.x ABIs and
+        # corrupting the heap (ssl.create_default_context() aborts). Hidden
+        # visibility makes each embedded copy self-contained. Linux-only: macOS
+        # binds dylibs with a two-level namespace (no interposition) and ships no
+        # OpenSSL, and Windows has no equivalent flag and no system OpenSSL to
+        # collide with.
+        set(_openssl_extra_cflags -fvisibility=hidden)
         set(_conf_cmd env "CC=${CMAKE_C_COMPILER}" "LDFLAGS=${CMAKE_EXE_LINKER_FLAGS}" "./config")
     endif()
     set(_cross_comp_prefix_line "")
@@ -102,3 +114,20 @@ ExternalProject_Add_Step(dep_OpenSSL install_cmake_files
     COMMAND ${CMAKE_COMMAND} -E copy_directory openssl "${DESTDIR}${CMAKE_INSTALL_LIBDIR}/cmake/openssl"
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
 )
+
+if (NOT WIN32 AND NOT APPLE)
+    # OpenSSL's object rules do not depend on CFLAGS, so reconfiguring it (for
+    # example to add -fvisibility=hidden) relinks the archives from stale
+    # objects instead of recompiling them, and the change silently has no
+    # effect. Drop the objects whenever this recipe changes so the next build
+    # actually recompiles them.
+    ExternalProject_Get_Property(dep_OpenSSL SOURCE_DIR)
+    ExternalProject_Add_Step(dep_OpenSSL clean_objects
+        DEPENDEES configure
+        DEPENDERS build
+        COMMAND make clean
+        WORKING_DIRECTORY "${SOURCE_DIR}"
+        DEPENDS "${CMAKE_CURRENT_LIST_FILE}"
+        COMMENT "OpenSSL: cleaning objects after a recipe change"
+    )
+endif ()

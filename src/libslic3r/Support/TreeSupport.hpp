@@ -460,6 +460,17 @@ private:
     bool  is_slim                            = false;
     bool  with_infill                        = false;
 
+    // Belt printer: compute the belt floor print_z at a given XY position (in slicing coords).
+    // Returns -infinity if belt floor is not active.
+    double belt_floor_print_z(const Point &pos_slicing) const;
+    // Whether a node's whole circle (radius in mm) sits at or below the belt at
+    // print_z.  The belt is a tilted plane, so the circle's leading edge crosses it
+    // |shear| * radius lower than its centre; stopping a node when its centre crosses
+    // would leave that edge floating a radius above the belt.
+    bool belt_node_landed(const Point &pos_slicing, double radius, double print_z) const;
+    // The same for a polygon: every point of it is at or below the belt.
+    bool belt_polygon_landed(const ExPolygon &poly, double print_z) const;
+
 
 
     /*!

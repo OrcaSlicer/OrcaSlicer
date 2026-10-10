@@ -20,7 +20,6 @@
 #include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <wx/sizer.h>
-#include "slic3r/GUI/Widgets/HyperLink.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "libslic3r/CommonDefs.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
@@ -1545,12 +1544,14 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     change_nozzle_tips->SetFont(Label::Body_13);
     change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
-    m_wiki_link = new HyperLink(single_panel, _L("Wiki Guide")); // ORCA
-    m_wiki_link->SetFont(Label::Body_13);
+    m_wiki_link = new Button(single_panel, "", "toolbar_wiki", 0, 15);
+    m_wiki_link->SetToolTip(_L("Wiki Guide"));
+    m_wiki_link->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    m_wiki_link->SetCanFocus(false);
     m_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
 
-    h_tips_sizer->Add(change_nozzle_tips, 0, wxLEFT);
-    h_tips_sizer->Add(m_wiki_link, 0,  wxLEFT, FromDIP(5));
+    h_tips_sizer->Add(m_wiki_link);
+    h_tips_sizer->Add(change_nozzle_tips, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
 
     wxSizer* single_update_nozzle_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_single_update_nozzle_button = new Button(single_panel, _L("Refresh"));
@@ -1656,13 +1657,15 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     multiple_change_nozzle_tips->SetFont(Label::Body_13);
     multiple_change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
-    multiple_wiki_link = new HyperLink(multiple_panel, _L("Wiki Guide")); // ORCA
-    multiple_wiki_link->SetFont(Label::Body_13);
+    multiple_wiki_link = new Button(multiple_panel, "", "toolbar_wiki", 0, 15);
+    multiple_wiki_link->SetToolTip(_L("Wiki Guide"));
+    multiple_wiki_link->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    multiple_wiki_link->SetCanFocus(false);
     multiple_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
 
     wxSizer* multiple_change_tips_sizer = new wxBoxSizer(wxHORIZONTAL);
-    multiple_change_tips_sizer->Add(multiple_change_nozzle_tips, 0, wxLEFT);
-    multiple_change_tips_sizer->Add(multiple_wiki_link, 0, wxLEFT, FromDIP(5));
+    multiple_change_tips_sizer->Add(multiple_wiki_link);
+    multiple_change_tips_sizer->Add(multiple_change_nozzle_tips, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
 
     wxSizer* multiple_update_nozzle_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_multiple_update_nozzle_button = new Button(multiple_panel, _L("Refresh"));

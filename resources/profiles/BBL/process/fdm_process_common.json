@@ -94,7 +94,7 @@
 	"prime_tower_flat_ironing": "0",
 	"raft_layers": "0",
 	"reduce_crossing_wall": "0",
-	"reduce_infill_retraction_mode": "Auto",
+	"reduce_infill_retraction": "1",
 	"resolution": "0.012",
 	"scarf_angle_threshold": "155",
 	"seam_position": "aligned",

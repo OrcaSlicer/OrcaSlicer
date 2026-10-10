@@ -37,6 +37,7 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Fill/FillGyroid.hpp"
+#include "libslic3r/Fill/FillTpmsAdaptive.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -1780,7 +1781,7 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
     // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr, nullptr),
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
                                               shrink(to_polygons(layer.lslices), scale_(3.)));
     REQUIRE_FALSE(anchors.empty());
     double max_distance = 0.;
@@ -1792,8 +1793,9 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     CHECK(unscale<double>(max_distance) <= config.opt_float("resolution"));
 }
 
-// Orca: Slices the meshes as the parts of one object, where they are.
-static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::vector<TriangleMesh> &parts)
+// Orca: Slices the meshes as the parts of one object, where they are, with modifiers of their own config.
+static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::vector<TriangleMesh> &parts,
+                          const std::vector<std::pair<TriangleMesh, DynamicPrintConfig>> &modifiers = {})
 {
     config.set_deserialize_strict({{"layer_height", 0.2},
                                    {"initial_layer_print_height", 0.2},
@@ -1804,6 +1806,8 @@ static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::ve
     Slic3r::Test::init_print({parts.front()}, print, model, config, nullptr, false);
     for (size_t i = 1; i < parts.size(); ++ i)
         model.objects.front()->add_volume(TriangleMesh(parts[i]), ModelVolumeType::MODEL_PART, false);
+    for (const auto &[mesh, modifier_config] : modifiers)
+        model.objects.front()->add_volume(TriangleMesh(mesh), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(modifier_config);
     print.apply(model, config);
     print.process();
     return print;
@@ -1987,4 +1991,365 @@ TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][
     const std::pair<double, double> unmatched = frame_and_pillar_unmatched(config);
     CHECK(unmatched.first < 0.02);
     CHECK(unmatched.second < 0.02);
+}
+
+TEST_CASE("Adaptive infill of a modifier leaves the density of the other regions", "[Fill][Regression]")
+{
+    const std::string pattern = GENERATE("adaptivecubic", "supportcubic");
+    CAPTURE(pattern);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "15%"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0}});
+    TriangleMesh bodies = make_cube(30, 30, 6), second = make_cube(30, 30, 6);
+    second.translate(40, 0, 0);
+    bodies.merge(second);
+    // Orca: A denser modifier over the right half of the second body.
+    TriangleMesh modifier = make_cube(20, 40, 10);
+    modifier.translate(55, -5, -2);
+    DynamicPrintConfig dense = config;
+    dense.set_deserialize_strict({{"sparse_infill_density", "60%"}});
+    Print print, print_sparse, print_dense;
+    slice_parts(print, config, {bodies}, {{modifier, dense}});
+    slice_parts(print_sparse, config, {bodies});
+    slice_parts(print_dense, dense, {bodies});
+
+    // Orca: Bed regions 3 mm inside the walls and the modifier, away from the links along them.
+    auto rect = [](double x0, double y0, double x1, double y1) {
+        return Polygon({Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1), Point::new_scale(x0, y1)});
+    };
+    CHECK(unmatched_between_prints(print, print_sparse, erInternalInfill, {rect(3, 3, 27, 27), rect(43, 3, 52, 27)}) < 0.02);
+    CHECK(unmatched_between_prints(print, print_dense, erInternalInfill, {rect(58, 3, 67, 27)}) < 0.02);
+}
+
+// Length of the sparse infill of the first object over the layers with print_z in [z_min, z_max], inside clip.
+static double sparse_infill_length(const Print &print, coordf_t z_min, coordf_t z_max, const Polygons &clip)
+{
+    Polylines polylines;
+    for (const Layer *layer : print.objects().front()->layers())
+        if (layer->print_z >= z_min && layer->print_z <= z_max)
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erInternalInfill)
+                        entity->collect_polylines(polylines);
+    return unscale<double>(total_length(intersection_pl(polylines, clip)));
+}
+
+static Polygons centered_square(double half)
+{
+    return {Polygon({Point::new_scale(-half, -half), Point::new_scale(half, -half), Point::new_scale(half, half), Point::new_scale(-half, half)})};
+}
+
+TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior density", "[Fill]")
+{
+    // The modes following the distance print more lines than their target where its levels meet: along the shells, or
+    // where the patterns blend.
+    const auto row = GENERATE(table<std::string, std::string, double>({{"tpmsd", "lobes", 0.5},
+                                                                        {"tpmsfk", "lobes", 0.5},
+                                                                        {"gyroid", "lobes", 0.5},
+                                                                        {"gyroid", "stepped_shells", 0.6},
+                                                                        {"tpmsfk", "smooth_blend", 0.6},
+                                                                        {"tpmsd", "distance_warp", 0.5}}));
+    const std::string pattern  = std::get<0>(row);
+    const std::string mode     = std::get<1>(row);
+    const double      max_core = std::get<2>(row);
+    CAPTURE(pattern, mode);
+    // A 60 mm cube in 0.4 mm layers, centered on the origin in XY. Its center is 30 mm from every face.
+    auto slice = [&pattern](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(60)}, print,
+                                            {{"sparse_infill_pattern", pattern},
+                                             {"sparse_infill_density", "25%"},
+                                             {"tpms_adaptive", adaptive},
+                                             {"tpms_interior_density", "5%"},
+                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice(mode, adaptive);
+
+    // The middle of the cube, at most 10 mm from the center: at most 5% + 20% * 10 / 30 = 11.7% dense.
+    const Polygons core = centered_square(10.);
+    // Along the sides at mid height, 24 to 28 mm from the center: at least 5% + 20% * 24 / 30 = 21% dense.
+    const Polygons shell = diff(centered_square(28.), centered_square(24.));
+    const double core_uniform = sparse_infill_length(uniform, 25., 35., core);
+    const double shell_uniform = sparse_infill_length(uniform, 25., 35., shell);
+    REQUIRE(core_uniform > 0.);
+    REQUIRE(shell_uniform > 0.);
+    CHECK(sparse_infill_length(adaptive, 25., 35., core) < max_core * core_uniform);
+    CHECK(sparse_infill_length(adaptive, 25., 35., shell) > 0.75 * shell_uniform);
+}
+
+TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle height", "[Fill]")
+{
+    // A 30 x 30 x 90 mm box in 0.4 mm layers: its center is 45 mm high, the middle of its core, not a column.
+    Print print;
+    Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
+                                        {{"sparse_infill_pattern", "tpmsd"},
+                                         {"sparse_infill_density", "25%"},
+                                         {"tpms_adaptive", "lobes"},
+                                         {"tpms_interior_density", "5%"},
+                                         {"tpms_adaptive_gradient", "linear"},
+                                         {"layer_height", 0.4},
+                                         {"initial_layer_print_height", 0.4}});
+    const Polygons core   = centered_square(5.);
+    const double   middle = sparse_infill_length(print, 40., 50., core);
+    const double   low    = sparse_infill_length(print, 10., 20., core);
+    REQUIRE(low > 0.);
+    CHECK(middle < 0.7 * low);
+}
+
+TEST_CASE("2D adaptive TPMS infill does not change along its axis", "[Fill]")
+{
+    // A box of 30 x 30 mm sections, 90 mm long along the axis, centered on the origin in XY.
+    const std::string mode = GENERATE("normal_x", "normal_z");
+    CAPTURE(mode);
+    const bool   along_x = mode == "normal_x";
+    auto         slice   = [&](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({along_x ? make_cube(90., 30., 30.) : make_cube(30., 30., 90.)}, print,
+                                                         {{"sparse_infill_pattern", "gyroid"},
+                                                          {"sparse_infill_density", "25%"},
+                                                          {"tpms_adaptive", adaptive},
+                                                          {"tpms_interior_density", "5%"},
+                                                          {"tpms_adaptive_gradient", "linear"},
+                                                          {"layer_height", 0.4},
+                                                          {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice(mode, adaptive);
+
+    // The core of the sections near an end and at the middle of the box, at most 5 mm from their center.
+    auto rectangle = [](double x0, double x1) {
+        return Polygons{Polygon({Point::new_scale(x0, -5.), Point::new_scale(x1, -5.), Point::new_scale(x1, 5.), Point::new_scale(x0, 5.)})};
+    };
+    auto core = [&](const Print &print, bool end) {
+        return along_x ? sparse_infill_length(print, 10., 20., rectangle(end ? -40. : -5., end ? -30. : 5.)) :
+                         sparse_infill_length(print, end ? 10. : 40., end ? 20. : 50., centered_square(5.));
+    };
+    const double end    = core(adaptive, true);
+    const double middle = core(adaptive, false);
+    REQUIRE(end > 0.);
+    CHECK(middle > 0.8 * end);
+    CHECK(middle < 1.25 * end);
+    CHECK(middle < 0.7 * core(uniform, false));
+}
+
+TEST_CASE("Adaptive TPMS shells and blend keep the whole deep core of a tall object sparse", "[Fill]")
+{
+    // Distance warp grades it partly along the height, like Lobes, as its warp is centered on the middle.
+    const std::string mode = GENERATE("stepped_shells", "smooth_blend");
+    CAPTURE(mode);
+    // A 30 x 30 x 90 mm box: from 15 to 75 mm high its axis is 15 mm deep, as deep as its center.
+    auto slice = [](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
+                                            {{"sparse_infill_pattern", "tpmsd"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"tpms_adaptive", adaptive},
+                                             {"tpms_interior_density", "5%"},
+                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, distance;
+    slice("disabled", uniform);
+    slice(mode, distance);
+    // At 15 to 25 mm high the axis is as sparse as at the middle, where Lobes grades it towards the bottom.
+    const Polygons core        = centered_square(5.);
+    const double   uniform_low = sparse_infill_length(uniform, 15., 25., core);
+    const double   low         = sparse_infill_length(distance, 15., 25., core);
+    const double   middle      = sparse_infill_length(distance, 40., 50., core);
+    CAPTURE(uniform_low, low, middle);
+    REQUIRE(middle > 0.);
+    CHECK(low < 0.7 * uniform_low);
+    CHECK(low < 1.25 * middle);
+}
+
+TEST_CASE("Adaptive TPMS infill is sparse at the center of both of two united spheres", "[Fill]")
+{
+    // Two spheres of 20 mm, their centers 32 mm apart at 20 mm high: centered on the origin, they are at x = -16 and 16.
+    TriangleMesh spheres = make_sphere(20., 2. * PI / 90.);
+    spheres.translate(-16.f, 0.f, 20.f);
+    TriangleMesh second = make_sphere(20., 2. * PI / 90.);
+    second.translate(16.f, 0.f, 20.f);
+    spheres.merge(second);
+    auto slice = [&spheres](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({TriangleMesh(spheres)}, print,
+                                            {{"sparse_infill_pattern", "gyroid"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"tpms_adaptive", adaptive},
+                                             {"tpms_interior_density", "5%"},
+                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice("lobes", adaptive);
+    // Within 5 mm of either center: at most 5% + 20% * 7.1 / 20 = 12.1% dense, where one center for both
+    // would leave the other sphere at more than 60% of the uniform density.
+    for (const double x : {-16., 16.}) {
+        CAPTURE(x);
+        Polygons core = centered_square(5.);
+        for (Polygon &square : core)
+            square.translate(Point::new_scale(x, 0.));
+        const double core_uniform = sparse_infill_length(uniform, 18., 22., core);
+        REQUIRE(core_uniform > 0.);
+        CHECK(sparse_infill_length(adaptive, 18., 22., core) < 0.45 * core_uniform);
+    }
+}
+
+TEST_CASE("Adaptive TPMS gradients keep the surface density deeper in the order quadratic, linear, exponential", "[Fill]")
+{
+    // With a denser surface, t^2 <= t and the geometric interpolation is below the linear one at every depth.
+    auto length_for = [](const std::string &gradient) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
+                                            {{"sparse_infill_pattern", "tpmsd"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"tpms_adaptive", "lobes"},
+                                             {"tpms_interior_density", "5%"},
+                                             {"tpms_adaptive_gradient", gradient},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+        return sparse_infill_length(print, 0., 40., centered_square(20.));
+    };
+    const double quadratic   = length_for("quadratic");
+    const double linear      = length_for("linear");
+    const double exponential = length_for("exponential");
+    CHECK(quadratic > linear);
+    CHECK(linear > exponential);
+}
+
+TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not apply", "[Fill]")
+{
+    // Adaptive density turned off, or turned on for a pattern that is no TPMS.
+    const auto [pattern, adaptive] = GENERATE(
+        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"gyroid", "disabled"}, {"grid", "lobes"}, {"grid", "stepped_shells"}, {"grid", "smooth_blend"}, {"grid", "distance_warp"}, {"grid", "normal_z"}}));
+    CAPTURE(pattern, adaptive);
+    Print reference, tuned;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
+                                        {{"sparse_infill_pattern", pattern}, {"sparse_infill_density", "20%"}, {"layer_height", 0.2}});
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, tuned,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "20%"},
+                                         {"layer_height", 0.2},
+                                         {"tpms_adaptive", adaptive},
+                                         {"tpms_interior_density", "40%"},
+                                         {"tpms_adaptive_gradient", "exponential"}});
+    const SparseInfillShape expected = sparse_infill_shape(reference);
+    REQUIRE(expected.path_count > 0);
+    CHECK(sparse_infill_shape(tuned).sequence == expected.sequence);
+}
+
+TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]")
+{
+    auto shape_for = [](const std::string &gyroid_optimized) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "gyroid"},
+                                             {"sparse_infill_density", "10%"},
+                                             {"gyroid_optimized", gyroid_optimized},
+                                             {"tpms_adaptive", "lobes"},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+    const SparseInfillShape expected = shape_for("0");
+    REQUIRE(expected.path_count > 0);
+    CHECK(shape_for("1").sequence == expected.sequence);
+}
+
+TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger region of the same object", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK);
+    CAPTURE(pattern);
+    // An 80 x 80 x 40 mm box around both regions, which share its radial field.
+    const ExPolygons box{ExPolygon(Points{Point::new_scale(60., 20.), Point::new_scale(140., 20.), Point::new_scale(140., 100.),
+                                          Point::new_scale(60., 100.)})};
+    std::vector<TpmsRadialField::Slice> slices;
+    for (int i = 0; i < 200; ++i)
+        slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
+    const TpmsRadialField field(slices, get_extents(box), TpmsAdaptiveMode::Lobes, [] {});
+
+    auto circle = [](double radius) {
+        Polygon contour = make_circle_num_segments(scale_(radius), 120);
+        contour.translate(Point::new_scale(100., 60.));
+        return ExPolygon(std::move(contour));
+    };
+    const ExPolygon region = circle(20.);
+    const ExPolygon larger = circle(30.);
+    auto fill = [pattern, &field](const ExPolygon &expolygon, double z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing           = 0.45;
+        filler->angle             = float(M_PI / 7.);
+        filler->z                 = z;
+        filler->tpms_radial_field = &field;
+
+        FillParams params;
+        params.density                = 0.2f;
+        params.tpms_adaptive          = TpmsAdaptiveMode::Lobes;
+        params.tpms_interior_density  = 0.05f;
+        params.tpms_adaptive_gradient = TpmsAdaptiveGradient::Linear;
+        params.layer_height           = 0.2;
+        params.dont_adjust            = true;
+        Surface surface(stInternal, expolygon);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary of the region, where both are clipped and connected the same way.
+    const Polygons inner = shrink(to_polygons(region), scale_(1.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+    // Marching squares simplifies rings that start elsewhere in each region. At 15.325 mm TPMS-FK has a saddle,
+    // whose lines connect one way or the other with the sampling grid.
+    const double tolerance = SPARSE_INFILL_RESOLUTION + 0.01;
+    for (const double z : {5.1, 12.3, 15.325, 20.1, 27.9, 34.7}) {
+        CAPTURE(z);
+        const Polylines paths = fill(region, z);
+        REQUIRE_FALSE(paths.empty());
+        const Polylines reference = fill(larger, z);
+        CHECK(farthest(reference, paths) < tolerance);
+        CHECK(farthest(paths, reference) < tolerance);
+    }
+}
+
+TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")
+{
+    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "gyroid");
+    CAPTURE(pattern);
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(30)}, print,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "25%"},
+                                         {"tpms_adaptive", "lobes"},
+                                         {"tpms_interior_density", "5%"},
+                                         {"layer_height", 0.2},
+                                         {"initial_layer_print_height", 0.2},
+                                         {"resolution", 0.012}});
+
+    const Layer &layer = *print.objects().front()->get_layer(40);
+    Polylines printed;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == erInternalInfill)
+                entity->collect_polylines(printed);
+    REQUIRE_FALSE(printed.empty());
+    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
+
+    // Exclude the perimeter connections, which anchoring and extrusion trim differently.
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
+                                              shrink(to_polygons(layer.lslices), scale_(3.)));
+    REQUIRE_FALSE(anchors.empty());
+    double max_distance = 0.;
+    for (const Polyline &path : anchors)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
+            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
+    CHECK(unscale<double>(max_distance) <= 0.012);
 }

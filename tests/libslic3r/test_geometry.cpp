@@ -3,6 +3,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -757,4 +761,119 @@ TEST_CASE("Convex polygon intersection test prusa polygons", "[Geometry][Rotcali
 
         REQUIRE(res == ref);
     }
+}
+
+namespace {
+// Scale on the local axes, with a mirror on `mirror_axis`, then rotation.
+Transform3d mirrored_transform(const Matrix3d &rotation, const Vec3d &scale, int mirror_axis)
+{
+    Vec3d signed_scale = scale;
+    signed_scale[mirror_axis] = -signed_scale[mirror_axis];
+    Transform3d trafo = Transform3d::Identity();
+    trafo.linear() = rotation * signed_scale.asDiagonal();
+    return trafo;
+}
+
+const std::vector<Matrix3d> &test_rotations()
+{
+    static const std::vector<Matrix3d> rotations = {
+        Matrix3d::Identity(),
+        Eigen::AngleAxisd(0.5 * PI, Vec3d::UnitZ()).toRotationMatrix(),
+        Eigen::AngleAxisd(0.7, Vec3d(1., 2., 3.).normalized()).toRotationMatrix(),
+        Eigen::AngleAxisd(2.5, Vec3d(-1., 0.5, 2.).normalized()).toRotationMatrix(),
+    };
+    return rotations;
+}
+} // namespace
+
+TEST_CASE("Mirrored transformations decompose into a rotation and a diagonal scale", "[Geometry]")
+{
+    const size_t rotation_idx = GENERATE(range(size_t(0), test_rotations().size()));
+    const int    mirror_axis  = GENERATE(0, 1, 2);
+    const Vec3d  scale        = GENERATE(Vec3d(1., 1., 1.), Vec3d(2., 2., 2.), Vec3d(1., 1., 3.), Vec3d(1., 2., 3.));
+    CAPTURE(rotation_idx, mirror_axis, scale.transpose());
+    const Geometry::Transformation trafo(mirrored_transform(test_rotations()[rotation_idx], scale, mirror_axis));
+
+    const Vec3d scaling = trafo.get_scaling_factor();
+    const Vec3d mirror  = trafo.get_mirror();
+    for (int i = 0; i < 3; ++i) {
+        CHECK_THAT(scaling[i], Catch::Matchers::WithinAbs(scale[i], 1e-9));
+        CHECK_THAT(std::abs(mirror[i]), Catch::Matchers::WithinAbs(1., 1e-12));
+    }
+    CHECK_THAT(mirror.prod(), Catch::Matchers::WithinAbs(-1., 1e-12));
+    CHECK_FALSE(trafo.has_skew());
+    const bool uniform = scale.x() == scale.y() && scale.y() == scale.z();
+    CHECK(trafo.is_scaling_uniform() == uniform);
+    const Matrix3d rotation = trafo.get_rotation_matrix().linear();
+    CHECK_THAT(rotation.determinant(), Catch::Matchers::WithinAbs(1., 1e-9));
+    const Matrix3d rebuilt = rotation * trafo.get_scaling_factor_matrix().linear() * trafo.get_mirror_matrix().linear();
+    CHECK(rebuilt.isApprox(trafo.get_matrix().linear(), 1e-9));
+}
+
+TEST_CASE("An unrotated mirror keeps its axis and needs no rotation", "[Geometry]")
+{
+    const int   mirror_axis = GENERATE(0, 1, 2);
+    const Vec3d scale       = GENERATE(Vec3d(1., 1., 1.), Vec3d(1., 2., 3.));
+    CAPTURE(mirror_axis, scale.transpose());
+    const Geometry::Transformation trafo(mirrored_transform(Matrix3d::Identity(), scale, mirror_axis));
+    const Vec3d mirror = trafo.get_mirror();
+    for (int i = 0; i < 3; ++i)
+        CHECK_THAT(mirror[i], Catch::Matchers::WithinAbs(i == mirror_axis ? -1. : 1., 1e-12));
+    CHECK(trafo.get_rotation().isZero(1e-9));
+}
+
+TEST_CASE("A mirrored and rotated transformation at unit scale reports unit scales", "[Geometry]")
+{
+    // Valid mirrored instance transform as stored in a 3MF project.
+    Transform3d matrix = Transform3d::Identity();
+    matrix.linear() << 4.4408921e-16,   0.819152044,    0.573576436,
+                       1.0,            -4.4408921e-16, -1.11022302e-16,
+                      -5.55111512e-17, -0.573576436,    0.819152044;
+    const Geometry::Transformation trafo(matrix);
+    CHECK(trafo.get_scaling_factor().isApprox(Vec3d::Ones(), 1e-8));
+    CHECK(trafo.get_mirror().allFinite());
+    CHECK(trafo.is_scaling_uniform());
+}
+
+TEST_CASE("Scaling one axis of a mirrored transformation keeps the mirror and adds no skew", "[Geometry]")
+{
+    const size_t rotation_idx = GENERATE(range(size_t(0), test_rotations().size()));
+    const int    mirror_axis  = GENERATE(0, 1, 2);
+    const int    scaled_axis  = GENERATE(0, 1, 2);
+    CAPTURE(rotation_idx, mirror_axis, scaled_axis);
+    const Matrix3d &rotation = test_rotations()[rotation_idx];
+    Geometry::Transformation trafo(mirrored_transform(rotation, Vec3d::Ones(), mirror_axis));
+    trafo.set_scaling_factor(Axis(scaled_axis), 2.);
+    Vec3d expected_scale = Vec3d::Ones();
+    expected_scale[scaled_axis] = 2.;
+    CHECK(trafo.get_matrix().linear().isApprox(mirrored_transform(rotation, expected_scale, mirror_axis).linear(), 1e-9));
+    CHECK(trafo.is_left_handed());
+    CHECK_FALSE(trafo.has_skew());
+}
+
+TEST_CASE("Transformations without a mirror decompose as computeRotationScaling() does", "[Geometry]")
+{
+    Transform3d skewed = Transform3d::Identity();
+    skewed.linear() << 1., 0.3, 0.,
+                       0., 1.,  0.,
+                       0., 0.,  2.;
+    const Transform3d matrix = GENERATE_COPY(Transform3d(test_rotations()[2]) * Geometry::scale_transform(Vec3d(1., 2., 3.)),
+                                             Transform3d(test_rotations()[3]) * skewed);
+    Matrix3d rotation;
+    Matrix3d scale;
+    matrix.computeRotationScaling(&rotation, &scale);
+    const Geometry::Transformation trafo(matrix);
+    CHECK(trafo.get_rotation_matrix().linear() == rotation);
+    CHECK(trafo.has_skew() == !scale.isDiagonal());
+}
+
+TEST_CASE("Skew is detected with and without a mirror", "[Geometry]")
+{
+    Transform3d skewed = Transform3d::Identity();
+    skewed.linear() << 1., 0.3, 0.,
+                       0., 1.,  0.,
+                       0., 0.,  1.;
+    const bool mirrored = GENERATE(false, true);
+    const Transform3d matrix = Transform3d(test_rotations()[2]) * skewed * Geometry::scale_transform(Vec3d(mirrored ? -1. : 1., 1., 1.));
+    CHECK(Geometry::Transformation(matrix).has_skew());
 }

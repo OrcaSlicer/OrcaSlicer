@@ -46,7 +46,7 @@ void TextureDisplacementPrepareJob::process(Ctl &ctl)
     // idle loop.
     int last_reported = 1;
     m_result = GLGizmoTextureDisplacement::prepare_mesh(m_input.base_mesh, m_input.masks, m_input.layers,
-                                                        m_input.params, m_input.color.palette,
+                                                        m_input.params, m_input.color,
                                                         [&ctl, &status, &last_reported](int percent) {
                                                             if (ctl.was_canceled())
                                                                 return false;

@@ -9,6 +9,7 @@
 #include <array>
 #include <cereal/specialize.hpp>
 #include <functional>
+#include <utility>
 #include <vector>
 #include "BoundingBox.hpp"
 #include "Line.hpp"
@@ -324,6 +325,20 @@ inline stl_normal its_unnormalized_normal(const indexed_triangle_set &its,
 }
 
 float its_volume(const indexed_triangle_set &its);
+// Mass, volume and center of mass of a solid, and the mean over its mass of (x - center)(x - center)^T, from which its
+// moments of inertia about axes through the center follow.
+struct MassProperties
+{
+    double   mass{ 0. };
+    double   volume{ 0. };
+    Vec3d    center{ Vec3d::Zero() };
+    Matrix3d spread{ Matrix3d::Zero() };
+
+    // Under an affine map, which scales mass and volume by its determinant.
+    MassProperties transformed(const Transform3d &trafo) const;
+};
+// The solid a closed mesh bounds at unit density, whichever way its faces turn; nothing for a zero volume.
+MassProperties its_mass_properties(const indexed_triangle_set &its);
 float its_average_edge_length(const indexed_triangle_set &its);
 
 void its_merge(indexed_triangle_set &A, const indexed_triangle_set &B);

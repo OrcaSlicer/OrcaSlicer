@@ -1,5 +1,5 @@
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "4.0")
-    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
 endif()
 
 #
@@ -24,7 +24,7 @@ endif()
 # therefore, unfortunately, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
 #
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 if (APPLE)
     # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 12.0 (the lowest Xcode 27 accepts)
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
@@ -224,7 +224,7 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
         ${_source_dir_arg}
         ${_gen}
         CMAKE_ARGS
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.10
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_MODULE_PATH:STRING=${PROJECT_SOURCE_DIR}/../cmake/modules
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
@@ -279,7 +279,7 @@ else()
         ${_source_dir_arg}
         ${_gen}
         CMAKE_ARGS
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.10
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
             -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
@@ -379,10 +379,8 @@ include(Boost/Boost.cmake)
 
 include(Cereal/Cereal.cmake)
 include(Qhull/Qhull.cmake)
-include(GLEW/GLEW.cmake)
 
 include(GLFW/GLFW.cmake)
-include(OpenCSG/OpenCSG.cmake)
 set(SLVS_PKG "")
 if (SLIC3R_CAD)
     include(SLVS/SLVS.cmake)
@@ -478,7 +476,6 @@ set(_dep_list
     dep_Draco
     dep_NLopt
     dep_OpenVDB
-    dep_OpenCSG
     ${SLVS_PKG}
     dep_OpenCV
     dep_Eigen

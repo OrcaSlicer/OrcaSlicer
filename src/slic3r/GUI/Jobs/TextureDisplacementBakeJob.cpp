@@ -4,6 +4,7 @@
 #include <functional>
 #include <utility>
 #include <string>
+#include <vector>
 #include "libslic3r/TextureDisplacement.hpp"
 #include <exception>
 #include <cstddef>
@@ -53,9 +54,6 @@ void TextureDisplacementBakeJob::process(Ctl &ctl)
         color_request.quantize = GLGizmoTextureDisplacement::make_palette_quantizer(m_input.color.palette);
         if (!m_input.color.palette_pure.empty())
             color_request.quantize_pure = GLGizmoTextureDisplacement::make_palette_quantizer(m_input.color.palette_pure);
-        color_request.resolve  = GLGizmoTextureDisplacement::make_mix_resolver(
-            m_input.color.palette, m_input.color.mix_mode, m_input.color.layer_height,
-            m_input.color.dither_cell_mm);
         color_request.despeckle_passes = m_input.color.despeckle_passes;
         color_request.out_triangle     = &m_triangle_color;
         if (color_request.quantize)
@@ -117,6 +115,17 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
         if (volume == nullptr)
             return;
 
+        // The filament each palette entry prints in. This is where a mix becomes a mixed filament slot,
+        // and only a mix the bake actually painted with: the preview never creates one, so the project
+        // gains only the slots this result needs. Done before anything below names them - adding a slot
+        // runs ModelVolume::update_extruder_count(), which clamps paint above the old filament count.
+        Sidebar &sidebar = plater->sidebar();
+        const std::vector<int> filament_of = GLGizmoTextureDisplacement::palette_filaments(
+            m_input.color.palette, m_triangle_color, [&sidebar](const PrintableColor &mix) {
+                return sidebar.ensure_mixed_filament({ unsigned(mix.a + 1), unsigned(mix.b + 1) },
+                                                     { mix.a_percent(), 100 - mix.a_percent() });
+            });
+
         volume->set_mesh(std::move(m_result));
         volume->set_new_unique_id();
         volume->calculate_convex_hull();
@@ -132,9 +141,11 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
             const TriangleSelector::TriangleSplittingData &existing = volume->mmu_segmentation_facets.get_data();
             if (!existing.bitstream.empty())
                 selector.deserialize(existing, false);
-            for (size_t i = 0; i < m_triangle_color.size(); ++i)
-                if (m_triangle_color[i] > 0)
-                    selector.set_facet(int(i), EnforcerBlockerType(m_triangle_color[i]));
+            for (size_t i = 0; i < m_triangle_color.size(); ++i) {
+                const size_t entry = size_t(m_triangle_color[i]);
+                if (entry > 0 && entry <= filament_of.size() && filament_of[entry - 1] >= 0)
+                    selector.set_facet(int(i), EnforcerBlockerType(filament_of[entry - 1] + 1));
+            }
             volume->mmu_segmentation_facets.set(selector);
         }
 
