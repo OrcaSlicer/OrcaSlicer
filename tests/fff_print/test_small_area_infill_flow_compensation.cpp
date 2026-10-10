@@ -5,6 +5,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -119,6 +120,33 @@ TEST_CASE("The G-code consumer rejects nonfinite flow model points", "[SmallArea
     const std::string coordinate = GENERATE(as<std::string>{}, "nan", "inf", "-inf");
     config.small_area_infill_flow_compensation_model.values = {"0,0", "\n5," + coordinate, "\n10,1"};
     REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
+}
+
+TEST_CASE("G-code accepts saved flow models above the editor point limit", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    const size_t count = model.maximum_point_count() + 5;
+    CurveModel::Rows rows;
+    for (size_t point = 0; point < count; ++point) {
+        rows.emplace_back(CurveModel::format_number(double(point)),
+                          CurveModel::format_number(0.2 + 0.8 * double(point) / double(count - 1)));
+    }
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = CurveModel::encode_rows(rows, {});
+    SmallAreaInfillFlowCompensator compensator(config);
+    const double length = double(count - 1) / 2;
+    const double extrusion = 3.0;
+    CHECK_THAT(compensator.modify_flow(length, extrusion, erSolidInfill), WithinAbs(extrusion * 0.6, 1e-12));
+}
+
+TEST_CASE("Disabled flow compensation ignores a malformed stored model", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    auto config = flow_config();
+    const double baseline = exported_volume(config);
+    REQUIRE(baseline > 0.0);
+    config.option<ConfigOptionStrings>("small_area_infill_flow_compensation_model")->values =
+        {"garbage", "0,0.5junk", "10,1"};
+    CHECK_THAT(exported_volume(config), WithinAbs(baseline, 1e-9));
 }
 
 TEST_CASE("Inactive flow models leave exported extrusion unchanged", "[SmallAreaInfillFlowCompensation][Regression]")
