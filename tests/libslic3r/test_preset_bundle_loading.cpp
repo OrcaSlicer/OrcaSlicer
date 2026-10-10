@@ -5905,8 +5905,15 @@ nlohmann::json bed_manifest(const std::string &bundle_id)
     return structure;
 }
 
+void set_printer_bed_asset(nlohmann::json &structure, const std::string &option, const std::string &zip_name,
+                           const std::string &printer_entry = "printer/BedPrinter.json")
+{
+    structure["printer_asset"][printer_entry][option] = zip_name;
+}
+
 nlohmann::json pack_bed_zip(const fs::path &zip_file, const fs::path &printer_json, const DynamicPrintConfig &defaults,
-                            const std::string &texture, const std::string &model, const std::string &bundle_id)
+                            const std::string &texture, const std::string &model, const std::string &bundle_id,
+                            bool include_bed_assets = true)
 {
     DynamicPrintConfig config(defaults);
     if (!texture.empty())
@@ -5920,7 +5927,8 @@ nlohmann::json pack_bed_zip(const fs::path &zip_file, const fs::path &printer_js
     REQUIRE(open_zip_writer(&zip, zip_file.string()));
     REQUIRE(mz_zip_writer_add_mem(&zip, "printer/BedPrinter.json", printer_bytes.data(), printer_bytes.size(),
                                   MZ_DEFAULT_COMPRESSION));
-    REQUIRE(append_printer_bed_assets(zip, config, structure));
+    if (include_bed_assets)
+        REQUIRE(append_printer_bed_assets(zip, config, structure, "printer/BedPrinter.json", 0));
     const std::string manifest = structure.dump();
     REQUIRE(mz_zip_writer_add_mem(&zip, BUNDLE_STRUCTURE_JSON_NAME, manifest.data(), manifest.size(),
                                   MZ_DEFAULT_COMPRESSION));
@@ -5929,7 +5937,24 @@ nlohmann::json pack_bed_zip(const fs::path &zip_file, const fs::path &printer_js
     return structure;
 }
 
-const Preset *import_bed(PresetBundle &bundle, const fs::path &zip_file, const fs::path &data_root, int confirm = 1)
+std::vector<std::string> zip_entry_names(const fs::path &zip_file)
+{
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    REQUIRE(open_zip_reader(&zip, zip_file.string()));
+    std::vector<std::string> names;
+    const int n = static_cast<int>(mz_zip_reader_get_num_files(&zip));
+    for (int i = 0; i < n; ++i) {
+        mz_zip_archive_file_stat st;
+        REQUIRE(mz_zip_reader_file_stat(&zip, i, &st));
+        names.emplace_back(st.m_filename);
+    }
+    REQUIRE(close_zip_reader(&zip));
+    return names;
+}
+
+const Preset *import_named_printer(PresetBundle &bundle, const fs::path &zip_file, const fs::path &data_root,
+                                   const std::string &bare_name, int confirm = 1)
 {
     ScopedDataDir scoped(data_root);
     AppConfig config;
@@ -5937,9 +5962,14 @@ const Preset *import_bed(PresetBundle &bundle, const fs::path &zip_file, const f
     bundle.import_presets(files, [confirm](std::string const &) { return confirm; },
                           ForwardCompatibilitySubstitutionRule::Disable, config);
     for (const Preset &preset : bundle.printers.get_presets())
-        if (get_preset_bare_name(preset.name) == "BedPrinter" && !preset.file.empty())
+        if (get_preset_bare_name(preset.name) == bare_name && !preset.file.empty())
             return &preset;
     return nullptr;
+}
+
+const Preset *import_bed(PresetBundle &bundle, const fs::path &zip_file, const fs::path &data_root, int confirm = 1)
+{
+    return import_named_printer(bundle, zip_file, data_root, "BedPrinter", confirm);
 }
 
 struct BedRoots {
@@ -5994,15 +6024,18 @@ TEST_CASE("Printer bundle round trip packs bed texture and model and rewrites bo
         for (int slot = 0; slot < 2; ++slot) {
             if (exists[slot]) {
                 const std::string ext = fs::path(rel[slot] == "*" ? "x.png" : rel[slot]).extension().string();
-                const std::string zip_name = std::string("bed/") + stem[slot] + ext;
-                REQUIRE(structure["printer_asset"][option[slot]] == zip_name);
+                const std::string zip_name = std::string("bed/0/") + stem[slot] + ext;
+                REQUIRE(structure["printer_asset"]["printer/BedPrinter.json"][option[slot]] == zip_name);
                 REQUIRE(fs::path(got[slot]).filename().string() == std::string(stem[slot]) + fs::path(zip_name).extension().string());
-                REQUIRE(fs::path(got[slot]).parent_path().filename() == "bed");
+                REQUIRE(fs::path(got[slot]).parent_path().filename() == "0");
+                REQUIRE(fs::path(got[slot]).parent_path().parent_path().filename() == "bed");
                 REQUIRE(got[slot].find(bundle_id) != std::string::npos);
                 REQUIRE(read_file(got[slot]) == bytes[slot]);
                 REQUIRE(got[slot] != path[slot]);
             } else if (!rel[slot].empty() && rel[slot] != "*") {
-                REQUIRE_FALSE(structure.value("printer_asset", nlohmann::json::object()).contains(option[slot]));
+                REQUIRE_FALSE(structure.value("printer_asset", nlohmann::json::object())
+                                  .value("printer/BedPrinter.json", nlohmann::json::object())
+                                  .contains(option[slot]));
                 REQUIRE(got[slot] == path[slot]);
             } else if (rel[slot].empty()) {
                 REQUIRE(got[slot].empty());
@@ -6101,7 +6134,7 @@ TEST_CASE("Printer bundle asset names that escape the bundle directory are rejec
             const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config,
                                                              bed.src / "BedPrinter.json", "BedPrinter", texture, model);
             nlohmann::json structure = bed_manifest("traverse");
-            structure["printer_asset"]["bed_custom_texture"] = name;
+            set_printer_bed_asset(structure, "bed_custom_texture", name);
             std::vector<std::pair<std::string, std::string>> entries = {
                 {"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()}};
             if (name[0] != '/' && name[0] != '\\')
@@ -6130,7 +6163,7 @@ TEST_CASE("A printer bundle asset that is missing is skipped", "[Preset][Bundle]
         const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
                                                          "BedPrinter", texture, {});
         nlohmann::json structure = bed_manifest("missing-zip");
-        structure["printer_asset"]["bed_custom_texture"] = "bed/texture.png";
+        set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/texture.png");
         const fs::path zip_file = bed.src / "missing.orca_printer";
         write_zip(zip_file, {{"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()}});
         const Preset *saved = import_bed(bed.bundle, zip_file, bed.data_root);
@@ -6149,8 +6182,8 @@ TEST_CASE("A printer bundle asset that is missing is skipped", "[Preset][Bundle]
         const fs::path zip_file = bed.src / "partial.orca_printer";
         const nlohmann::json structure = pack_bed_zip(zip_file, printer_json, bed.bundle.printers.default_preset().config,
                                                       missing, model, "missing-export");
-        REQUIRE_FALSE(structure["printer_asset"].contains("bed_custom_texture"));
-        REQUIRE(structure["printer_asset"]["bed_custom_model"] == "bed/model.stl");
+        REQUIRE_FALSE(structure["printer_asset"]["printer/BedPrinter.json"].contains("bed_custom_texture"));
+        REQUIRE(structure["printer_asset"]["printer/BedPrinter.json"]["bed_custom_model"] == "bed/0/model.stl");
         const Preset *saved = import_bed(bed.bundle, zip_file, bed.data_root);
         REQUIRE(saved != nullptr);
         REQUIRE(saved->config.opt_string("bed_custom_texture") == missing);
@@ -6179,11 +6212,11 @@ TEST_CASE("An inherited printer bundle rewrites bed paths taken from the parent"
     REQUIRE_FALSE(written.contains("bed_custom_texture"));
     REQUIRE_FALSE(written.contains("bed_custom_model"));
     nlohmann::json structure = bed_manifest("inherit-bed");
-    structure["printer_asset"]["bed_custom_texture"] = "bed/texture.png";
-    structure["printer_asset"]["bed_custom_model"] = "bed/model.stl";
+    set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/texture.png");
+    set_printer_bed_asset(structure, "bed_custom_model", "bed/0/model.stl");
     const fs::path zip_file = bed.src / "inherit.orca_printer";
     write_zip(zip_file, {{"printer/BedPrinter.json", read_file(child_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()},
-                         {"bed/texture.png", kTextureBytes}, {"bed/model.stl", kModelBytes}});
+                         {"bed/0/texture.png", kTextureBytes}, {"bed/0/model.stl", kModelBytes}});
     const Preset *saved = import_bed(bed.bundle, zip_file, bed.data_root);
     REQUIRE(saved != nullptr);
     REQUIRE(saved->config.opt_string("bed_custom_texture") != texture);
@@ -6200,11 +6233,11 @@ TEST_CASE("A printer bundle rejects bed assets whose extension the bed dialog do
     const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
                                                      "BedPrinter", {}, {});
     nlohmann::json structure = bed_manifest("bad-ext");
-    structure["printer_asset"]["bed_custom_texture"] = "bed/texture.stl";
-    structure["printer_asset"]["bed_custom_model"] = "bed/model.exe";
+    set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/texture.stl");
+    set_printer_bed_asset(structure, "bed_custom_model", "bed/0/model.exe");
     const fs::path zip_file = bed.src / "bad-ext.orca_printer";
     write_zip(zip_file, {{"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()},
-                         {"bed/texture.stl", kTextureBytes}, {"bed/model.exe", std::string("MZ")}});
+                         {"bed/0/texture.stl", kTextureBytes}, {"bed/0/model.exe", std::string("MZ")}});
     REQUIRE(import_bed(bed.bundle, zip_file, bed.data_root) != nullptr);
     CHECK_FALSE(any_filename_contains(bed.data_root, "model.exe"));
     CHECK_FALSE(any_filename_contains(bed.data_root, "texture.stl"));
@@ -6216,7 +6249,7 @@ TEST_CASE("A manifest asset name that points at a preset does not drop that pres
     const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
                                                      "BedPrinter", {}, {});
     nlohmann::json structure = bed_manifest("name-clash");
-    structure["printer_asset"]["bed_custom_texture"] = "printer/BedPrinter.json";
+    set_printer_bed_asset(structure, "bed_custom_texture", "printer/BedPrinter.json");
     const fs::path zip_file = bed.src / "clash.orca_printer";
     write_zip(zip_file, {{"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()}});
     REQUIRE(import_bed(bed.bundle, zip_file, bed.data_root) != nullptr);
@@ -6237,16 +6270,17 @@ TEST_CASE("A declined printer bundle import leaves existing bed files alone", "[
     const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
                                                      "BedPrinter", {}, {});
     nlohmann::json structure = bed_manifest("keep-bed");
-    structure["printer_asset"]["bed_custom_texture"] = "bed/texture.png";
-    structure["printer_asset"]["bed_custom_model"] = "bed/model.stl";
+    set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/texture.png");
+    set_printer_bed_asset(structure, "bed_custom_model", "bed/0/model.stl");
     const fs::path zip_file = bed.src / "keep.orca_printer";
     write_zip(zip_file, {{"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()},
-                         {"bed/texture.png", kTextureBytes}, {"bed/model.stl", kModelBytes}});
+                         {"bed/0/texture.png", kTextureBytes}, {"bed/0/model.stl", kModelBytes}});
     import_bed(bed.bundle, zip_file, bed.data_root, 0);
     // This import wrote nothing: the existing texture is unchanged and model.stl was not added.
     REQUIRE(fs::exists(kept));
     REQUIRE(read_file(kept) == original);
     CHECK_FALSE(fs::exists(kept.parent_path() / "model.stl"));
+    CHECK_FALSE(fs::exists(kept.parent_path() / "0" / "model.stl"));
 }
 
 TEST_CASE("A declined re-import does not replace bed bytes an earlier import wrote", "[Preset][Bundle]")
@@ -6255,15 +6289,15 @@ TEST_CASE("A declined re-import does not replace bed bytes an earlier import wro
     const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
                                                      "BedPrinter", {}, {});
     nlohmann::json structure = bed_manifest("reimport-no");
-    structure["printer_asset"]["bed_custom_texture"] = "bed/texture.png";
+    set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/texture.png");
     const std::string manifest = structure.dump();
     const std::string printer_bytes = read_file(printer_json);
     const fs::path first_zip = bed.src / "first.orca_printer";
     const fs::path second_zip = bed.src / "second.orca_printer";
     write_zip(first_zip, {{"printer/BedPrinter.json", printer_bytes}, {BUNDLE_STRUCTURE_JSON_NAME, manifest},
-                          {"bed/texture.png", kTextureBytes}});
+                          {"bed/0/texture.png", kTextureBytes}});
     write_zip(second_zip, {{"printer/BedPrinter.json", printer_bytes}, {BUNDLE_STRUCTURE_JSON_NAME, manifest},
-                           {"bed/texture.png", kOtherBytes}});
+                           {"bed/0/texture.png", kOtherBytes}});
     const Preset *saved = import_bed(bed.bundle, first_zip, bed.data_root);
     REQUIRE(saved != nullptr);
     const std::string installed = saved->config.opt_string("bed_custom_texture");
@@ -6271,6 +6305,157 @@ TEST_CASE("A declined re-import does not replace bed bytes an earlier import wro
     import_bed(bed.bundle, second_zip, bed.data_root, 0);
     REQUIRE(fs::exists(installed));
     REQUIRE(read_file(installed) == kTextureBytes);
+}
+
+TEST_CASE("Export with bed assets disabled packs no bed files and writes no printer_asset", "[Preset][Bundle]")
+{
+    BedRoots bed;
+    const std::string texture = (bed.src / "off.png").make_preferred().string();
+    const std::string model = (bed.src / "off.stl").make_preferred().string();
+    write_bytes(texture, kTextureBytes);
+    write_bytes(model, kModelBytes);
+    const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
+                                                     "BedPrinter", texture, model);
+    const fs::path zip_file = bed.src / "off.orca_printer";
+    const nlohmann::json structure = pack_bed_zip(zip_file, printer_json, bed.bundle.printers.default_preset().config,
+                                                  texture, model, "bed-off", false);
+    REQUIRE_FALSE(structure.contains("printer_asset"));
+    for (const std::string &name : zip_entry_names(zip_file))
+        REQUIRE(name.compare(0, 4, "bed/") != 0);
+}
+
+TEST_CASE("Two printers in one bundle keep separate bed folders", "[Preset][Bundle]")
+{
+    BedRoots bed;
+    const std::string tex_a = (bed.src / "a.png").make_preferred().string();
+    const std::string mod_a = (bed.src / "a.stl").make_preferred().string();
+    const std::string tex_b = (bed.src / "b.png").make_preferred().string();
+    const std::string mod_b = (bed.src / "b.stl").make_preferred().string();
+    write_bytes(tex_a, kTextureBytes);
+    write_bytes(mod_a, kModelBytes);
+    write_bytes(tex_b, kOtherBytes);
+    write_bytes(mod_b, std::string("stl\x00other", 9));
+    const fs::path json_a = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "PrinterA.json",
+                                               "PrinterA", tex_a, mod_a);
+    const fs::path json_b = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "PrinterB.json",
+                                               "PrinterB", tex_b, mod_b);
+    nlohmann::json structure = nlohmann::json::object();
+    structure["id"] = "two-printers";
+    structure["bundle_type"] = "printer config bundle";
+    structure["printer_config"] = nlohmann::json::array({"printer/PrinterA.json", "printer/PrinterB.json"});
+    DynamicPrintConfig config_a(bed.bundle.printers.default_preset().config);
+    config_a.option<ConfigOptionString>("bed_custom_texture", true)->value = tex_a;
+    config_a.option<ConfigOptionString>("bed_custom_model", true)->value = mod_a;
+    DynamicPrintConfig config_b(bed.bundle.printers.default_preset().config);
+    config_b.option<ConfigOptionString>("bed_custom_texture", true)->value = tex_b;
+    config_b.option<ConfigOptionString>("bed_custom_model", true)->value = mod_b;
+    const fs::path zip_file = bed.src / "two.orca_printer";
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    const std::string bytes_a = read_file(json_a);
+    const std::string bytes_b = read_file(json_b);
+    REQUIRE(open_zip_writer(&zip, zip_file.string()));
+    REQUIRE(mz_zip_writer_add_mem(&zip, "printer/PrinterA.json", bytes_a.data(), bytes_a.size(), MZ_DEFAULT_COMPRESSION));
+    REQUIRE(mz_zip_writer_add_mem(&zip, "printer/PrinterB.json", bytes_b.data(), bytes_b.size(), MZ_DEFAULT_COMPRESSION));
+    REQUIRE(append_printer_bed_assets(zip, config_a, structure, "printer/PrinterA.json", 0));
+    REQUIRE(append_printer_bed_assets(zip, config_b, structure, "printer/PrinterB.json", 1));
+    const std::string manifest = structure.dump();
+    REQUIRE(mz_zip_writer_add_mem(&zip, BUNDLE_STRUCTURE_JSON_NAME, manifest.data(), manifest.size(),
+                                  MZ_DEFAULT_COMPRESSION));
+    REQUIRE(mz_zip_writer_finalize_archive(&zip));
+    REQUIRE(close_zip_writer(&zip));
+    REQUIRE(structure["printer_asset"]["printer/PrinterA.json"]["bed_custom_texture"] == "bed/0/texture.png");
+    REQUIRE(structure["printer_asset"]["printer/PrinterB.json"]["bed_custom_texture"] == "bed/1/texture.png");
+    ScopedDataDir scoped(bed.data_root);
+    AppConfig app_config;
+    std::vector<std::string> files{zip_file.string()};
+    bed.bundle.import_presets(files, [](std::string const &) { return 1; },
+                              ForwardCompatibilitySubstitutionRule::Disable, app_config);
+    const Preset *saved_a = nullptr;
+    const Preset *saved_b = nullptr;
+    for (const Preset &preset : bed.bundle.printers.get_presets()) {
+        if (preset.file.empty())
+            continue;
+        if (get_preset_bare_name(preset.name) == "PrinterA")
+            saved_a = &preset;
+        if (get_preset_bare_name(preset.name) == "PrinterB")
+            saved_b = &preset;
+    }
+    REQUIRE(saved_a != nullptr);
+    REQUIRE(saved_b != nullptr);
+    const std::string got_tex_a = saved_a->config.opt_string("bed_custom_texture");
+    const std::string got_tex_b = saved_b->config.opt_string("bed_custom_texture");
+    REQUIRE(fs::path(got_tex_a).parent_path().filename() == "0");
+    REQUIRE(fs::path(got_tex_b).parent_path().filename() == "1");
+    REQUIRE(got_tex_a != got_tex_b);
+    REQUIRE(read_file(got_tex_a) == kTextureBytes);
+    REQUIRE(read_file(got_tex_b) == kOtherBytes);
+    REQUIRE(read_file(saved_a->config.opt_string("bed_custom_model")) == kModelBytes);
+    REQUIRE(read_file(saved_b->config.opt_string("bed_custom_model")) == std::string("stl\x00other", 9));
+}
+
+TEST_CASE("A printer_asset entry keyed to a printer not in the zip is ignored", "[Preset][Bundle]")
+{
+    BedRoots bed;
+    const std::string texture = (bed.src / "kept.png").make_preferred().string();
+    write_bytes(texture, kTextureBytes);
+    const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
+                                                     "BedPrinter", texture, {});
+    nlohmann::json structure = bed_manifest("ghost-key");
+    set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/texture.png", "printer/Ghost.json");
+    const fs::path zip_file = bed.src / "ghost.orca_printer";
+    write_zip(zip_file, {{"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()},
+                         {"bed/0/texture.png", kOtherBytes}});
+    const Preset *saved = import_bed(bed.bundle, zip_file, bed.data_root);
+    REQUIRE(saved != nullptr);
+    REQUIRE(saved->config.opt_string("bed_custom_texture") == texture);
+    CHECK_FALSE(any_filename_contains(bed.data_root, "texture.png"));
+}
+
+TEST_CASE("Keyed printer_asset rejects malformed bed paths", "[Preset][Bundle]")
+{
+    const char *bad_names[] = {"bed/texture.png", "bed/x/texture.png", "bed/0/../texture.png", "bed/0/model.png"};
+    const std::string marker = "PWNED-BED-ASSET-MARKER";
+    for (const char *name : bad_names) {
+        DYNAMIC_SECTION("rejects " << name) {
+            BedRoots bed;
+            const std::string texture = (bed.src / "kept.png").make_preferred().string();
+            write_bytes(texture, kTextureBytes);
+            const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config,
+                                                             bed.src / "BedPrinter.json", "BedPrinter", texture, {});
+            nlohmann::json structure = bed_manifest("bad-keyed");
+            set_printer_bed_asset(structure, "bed_custom_texture", name);
+            std::vector<std::pair<std::string, std::string>> entries = {
+                {"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()},
+                {name, marker}};
+            const fs::path zip_file = bed.src / "bad-keyed.orca_printer";
+            write_zip(zip_file, entries);
+            const Preset *saved = import_bed(bed.bundle, zip_file, bed.data_root);
+            REQUIRE(saved != nullptr);
+            REQUIRE(saved->config.opt_string("bed_custom_texture") == texture);
+            if (fs::exists(bed.data_root))
+                for (fs::recursive_directory_iterator it(bed.data_root), end; it != end; ++it)
+                    if (fs::is_regular_file(*it))
+                        CHECK(read_file(*it).find(marker) == std::string::npos);
+        }
+    }
+
+    SECTION("field name does not match file kind") {
+        BedRoots bed;
+        const std::string texture = (bed.src / "kept.png").make_preferred().string();
+        write_bytes(texture, kTextureBytes);
+        const fs::path printer_json = write_printer_json(bed.bundle.printers.default_preset().config, bed.src / "BedPrinter.json",
+                                                         "BedPrinter", texture, {});
+        nlohmann::json structure = bed_manifest("kind-mismatch");
+        set_printer_bed_asset(structure, "bed_custom_texture", "bed/0/model.stl");
+        const fs::path zip_file = bed.src / "kind.orca_printer";
+        write_zip(zip_file, {{"printer/BedPrinter.json", read_file(printer_json)}, {BUNDLE_STRUCTURE_JSON_NAME, structure.dump()},
+                             {"bed/0/model.stl", kModelBytes}});
+        const Preset *saved = import_bed(bed.bundle, zip_file, bed.data_root);
+        REQUIRE(saved != nullptr);
+        REQUIRE(saved->config.opt_string("bed_custom_texture") == texture);
+        CHECK_FALSE(any_filename_contains(bed.data_root, "model.stl"));
+    }
 }
 
 // A project saved before a key joined filament_options_with_variant stores it once per filament,

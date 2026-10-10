@@ -3675,7 +3675,18 @@ ExportConfigsDialog::~ExportConfigsDialog()
 }
 
 void ExportConfigsDialog::on_dpi_changed(const wxRect &suggested_rect) {
+    if (m_include_bed_assets)
+        m_include_bed_assets->Rescale();
     Layout();
+}
+
+void ExportConfigsDialog::update_include_bed_assets_enabled()
+{
+    const bool on = get_curr_radio_type(m_export_type_btns) == m_exprot_type.preset_bundle;
+    if (m_include_bed_assets)
+        m_include_bed_assets->Enable(on);
+    if (m_include_bed_assets_label)
+        m_include_bed_assets_label->Enable(on);
 }
 
 void ExportConfigsDialog::show_export_result(const ExportCase &export_case)
@@ -3820,6 +3831,17 @@ wxBoxSizer *ExportConfigsDialog::create_export_config_item(wxWindow *parent)
     static_export_printer_preset_bundle_text->SetFont(Label::Body_12);
     static_export_printer_preset_bundle_text->SetForegroundColour(wxColour("#6B6B6B"));
     radioBoxSizer->Add(static_export_printer_preset_bundle_text, 0, wxEXPAND | wxLEFT, FromDIP(22));
+    wxBoxSizer *include_bed_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_include_bed_assets = new ::CheckBox(parent);
+    m_include_bed_assets->SetValue(true);
+    include_bed_sizer->Add(m_include_bed_assets, 0, wxALIGN_CENTER_VERTICAL, 0);
+    m_include_bed_assets_label = new wxStaticText(parent, wxID_ANY, _L("Include custom bed texture and model"));
+    m_include_bed_assets_label->SetFont(Label::Body_12);
+    m_include_bed_assets_label->SetForegroundColour(wxColour("#6B6B6B"));
+    include_bed_sizer->Add(m_include_bed_assets_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+    radioBoxSizer->Add(0, 0, 0, wxTOP, FromDIP(6));
+    radioBoxSizer->Add(include_bed_sizer, 0, wxEXPAND | wxLEFT, FromDIP(22));
+    update_include_bed_assets_enabled();
     radioBoxSizer->Add(create_radio_item(m_exprot_type.filament_bundle, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
     wxStaticText *static_export_filament_preset_bundle_text = new wxStaticText(parent, wxID_ANY, _L("User's filament preset set.\nCan be shared with others."),
                                                                                                     wxDefaultPosition, wxDefaultSize);
@@ -3989,9 +4011,10 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
             radiobox_list[i].first->SetValue(false);
         }
     }
+    update_include_bed_assets_enabled();
 }
 
-ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_file(const wxString &path)
+ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_file(const wxString &path, bool include_bed_assets)
 {
     std::string export_path = initial_file_path(path, "");
     if (export_path.empty() || "initial_failed" == export_path) return ExportCase::EXPORT_CANCEL;
@@ -4093,7 +4116,8 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
             bundle_structure["filament_config"] = filament_configs;
             bundle_structure["process_config"]  = process_configs;
 
-            if (!append_printer_bed_assets(zip_archive, printer_preset->config, bundle_structure)) {
+            if (include_bed_assets &&
+                !append_printer_bed_assets(zip_archive, printer_preset->config, bundle_structure, printer_config_file_name, 0)) {
                 mz_zip_writer_end(&zip_archive);
                 return ExportCase::ADD_FILE_FAIL;
             }
@@ -4345,7 +4369,7 @@ wxWindow *ExportConfigsDialog::create_dialog_buttons(wxWindow* parent)
             const wxString curr_radio_type = get_curr_radio_type(m_export_type_btns);
 
             if (curr_radio_type == m_exprot_type.preset_bundle) {
-                export_case = archive_preset_bundle_to_file(path);
+                export_case = archive_preset_bundle_to_file(path, m_include_bed_assets->GetValue());
             } else if (curr_radio_type == m_exprot_type.filament_bundle) {
                 export_case = archive_filament_bundle_to_file(path);
             } else if (curr_radio_type == m_exprot_type.printer_preset) {
