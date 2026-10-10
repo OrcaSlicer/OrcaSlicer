@@ -685,7 +685,12 @@ bool CalibrationPanel::Show(bool show) {
     else {
         m_refresh_timer->Stop();
     }
-    return wxPanel::Show(show);
+    const bool changed = wxPanel::Show(show);
+#ifdef __WXMSW__
+    for (CalibrationWizard* wizard : m_cali_panels)
+        wizard->sync_page_visibility();
+#endif
+    return changed;
 }
 
 void CalibrationPanel::on_printer_clicked(wxMouseEvent& event)

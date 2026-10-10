@@ -40,6 +40,7 @@
 #include "FilamentGroupPopup.hpp"
 #include "LazyPage.hpp"
 #include "IdleScheduler.hpp"
+#include "MSWWindowMoveSync.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -322,6 +323,7 @@ protected:
 
 #ifdef __WXMSW__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
+    MSWWindowMoveSync m_window_move_sync;
 #endif
 
 public:

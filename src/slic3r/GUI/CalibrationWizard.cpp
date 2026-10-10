@@ -37,6 +37,10 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 
+#ifdef __WXMSW__
+#include <wx/msw/wrapwin.h>
+#endif
+
 namespace Slic3r { namespace GUI {
 
 #define CALIBRATION_DEBUG
@@ -47,6 +51,43 @@ wxDEFINE_EVENT(EVT_CALIBRATION_JOB_FINISHED, wxCommandEvent);
 static const wxString NA_STR = _L("N/A");
 static const float MIN_PA_K_VALUE_STEP = 0.001;
 static const int MAX_PA_HISTORY_RESULTS_NUMS = 16;
+
+#ifdef __WXMSW__
+namespace {
+// An owned top-level window is outside the main frame's native child hierarchy.
+// It is never shown; hidden calibration controls retain their state here.
+class CalibrationPageHost : public wxFrame
+{
+public:
+    explicit CalibrationPageHost(wxWindow* owner)
+        : wxFrame(owner, wxID_ANY, wxEmptyString, wxGetTopLevelParent(owner)->GetScreenPosition(),
+                  wxSize(1, 1), wxFRAME_NO_TASKBAR | wxFRAME_TOOL_WINDOW)
+    {}
+
+    bool ShouldPreventAppExit() const override { return false; }
+};
+
+bool reparent_calibration_page(wxWindow* page, wxWindow* parent)
+{
+    if (!page->GetHandle() || !parent->GetHandle())
+        return false;
+    wxWindow* old_parent = page->GetParent();
+    if (old_parent == parent)
+        return true;
+    if (!page->Reparent(parent))
+        return false;
+
+    // wxMSW's Reparent() does not check SetParent's result. Restore wx ownership
+    // if the native operation failed, instead of leaving the two trees different.
+    if (::GetParent(page->GetHandle()) != parent->GetHandle()) {
+        page->Reparent(old_parent);
+        BOOST_LOG_TRIVIAL(error) << "Could not reparent calibration page";
+        return false;
+    }
+    return true;
+}
+} // namespace
+#endif
 
 std::map<int, Preset*> get_cached_selected_filament(MachineObject* obj) {
     std::map<int, Preset*> selected_filament_map;
@@ -156,7 +197,14 @@ CalibrationWizard::CalibrationWizard(wxWindow* parent, CalibMode mode, wxWindowI
 
 CalibrationWizard::~CalibrationWizard()
 {
-    ;
+#ifdef __WXMSW__
+    if (m_inactive_page_host) {
+        // Remove page event handlers while their wizard is still alive. The empty
+        // top-level host follows wxWidgets' deferred destruction rules.
+        m_inactive_page_host->DestroyChildren();
+        m_inactive_page_host->Destroy();
+    }
+#endif
 }
 
 void CalibrationWizard::add_page_step(CalibrationWizardPageStep*& step, std::function<CalibrationWizardPage*()> make)
@@ -165,8 +213,71 @@ void CalibrationWizard::add_page_step(CalibrationWizardPageStep*& step, std::fun
         step = new CalibrationWizardPageStep(make());
         m_all_pages_sizer->Add(step->page, 1, wxEXPAND | wxALL, FromDIP(25));
         step->page->Hide();
+#ifdef __WXMSW__
+        park_page(step->page);
+#endif
     });
 }
+
+#ifdef __WXMSW__
+void CalibrationWizard::sync_page_host_dpi()
+{
+    if (m_inactive_page_host) {
+        // Keep retained controls on the main window's monitor when rescaling or
+        // activating them, without moving this host for each main-frame move.
+        m_inactive_page_host->Move(wxGetTopLevelParent(this)->GetScreenPosition());
+    }
+}
+
+void CalibrationWizard::park_page(CalibrationWizardPage* page)
+{
+    if (page->GetParent() != m_scrolledWindow)
+        return;
+    if (!m_inactive_page_host)
+        m_inactive_page_host = new CalibrationPageHost(this);
+
+    // Changing storage parents must not invoke a page's activation/reset hook.
+    page->wxPanel::Show(false);
+    m_all_pages_sizer->Detach(page);
+    if (!reparent_calibration_page(page, m_inactive_page_host.get()))
+        m_all_pages_sizer->Add(page, 1, wxEXPAND | wxALL, FromDIP(25));
+}
+
+bool CalibrationWizard::attach_page(CalibrationWizardPage* page)
+{
+    if (page->GetParent() == m_scrolledWindow)
+        return true;
+    sync_page_host_dpi();
+    if (!reparent_calibration_page(page, m_scrolledWindow))
+        return false;
+    m_all_pages_sizer->Add(page, 1, wxEXPAND | wxALL, FromDIP(25));
+    page->msw_rescale();
+    return true;
+}
+
+void CalibrationWizard::sync_page_visibility()
+{
+    if (!m_curr_step)
+        return;
+    if (IsShownOnScreen()) {
+        if (attach_page(m_curr_step->page)) {
+            m_curr_step->page->wxPanel::Show(true);
+            m_scrolledWindow->Layout();
+            m_scrolledWindow->FitInside();
+            Layout();
+        }
+    } else {
+        park_page(m_curr_step->page);
+    }
+}
+
+bool CalibrationWizard::Show(bool show)
+{
+    const bool changed = wxPanel::Show(show);
+    sync_page_visibility();
+    return changed;
+}
+#endif
 
 void CalibrationWizard::on_cali_job_finished(wxCommandEvent& event)
 {
@@ -179,8 +290,18 @@ void CalibrationWizard::show_step(CalibrationWizardPageStep* step)
     if (!step)
         return;
 
+#ifdef __WXMSW__
+    // A native failure must leave navigation and the displayed page intact.
+    if (IsShownOnScreen() && !attach_page(step->page))
+        return;
+#endif
+
     if (m_curr_step) {
         m_curr_step->page->Hide();
+#ifdef __WXMSW__
+        if (m_curr_step != step)
+            park_page(m_curr_step->page);
+#endif
     }
 
     m_curr_step = step;
@@ -189,6 +310,9 @@ void CalibrationWizard::show_step(CalibrationWizardPageStep* step)
         m_curr_step->page->Show();
     }
 
+#ifdef __WXMSW__
+    sync_page_visibility();
+#endif
     Layout();
 }
 
@@ -482,6 +606,9 @@ void CalibrationWizard::back_preset_info(MachineObject *obj, bool cali_finish, b
 
 void CalibrationWizard::msw_rescale()
 {
+#ifdef __WXMSW__
+    sync_page_host_dpi();
+#endif
     for (int i = 0; i < m_page_steps.size(); i++) {
         if (m_page_steps[i]->page)
             m_page_steps[i]->page->msw_rescale();

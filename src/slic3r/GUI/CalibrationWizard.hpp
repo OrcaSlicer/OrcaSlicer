@@ -25,6 +25,11 @@
 #include <vector>
 #include "slic3r/GUI/ReleaseNote.hpp"
 
+#ifdef __WXMSW__
+#include <wx/frame.h>
+#include <wx/weakref.h>
+#endif
+
 namespace Slic3r { namespace GUI {
 
 
@@ -69,6 +74,12 @@ public:
 
     void show_step(CalibrationWizardPageStep* step);
 
+#ifdef __WXMSW__
+    bool Show(bool show = true) override;
+    // The outer Calibration tab also changes visibility without showing its children.
+    void sync_page_visibility();
+#endif
+
     virtual void update(MachineObject* obj);
 
     virtual void on_device_connected(MachineObject* obj);
@@ -96,6 +107,13 @@ protected:
 
     // Queues a page as a build step, created hidden and added to the pages sizer.
     void add_page_step(CalibrationWizardPageStep*& step, std::function<CalibrationWizardPage*()> make);
+
+#ifdef __WXMSW__
+    bool attach_page(CalibrationWizardPage* page);
+    void park_page(CalibrationWizardPage* page);
+    void sync_page_host_dpi();
+    wxWeakRef<wxFrame> m_inactive_page_host;
+#endif
 
 protected:
     /* wx widgets*/

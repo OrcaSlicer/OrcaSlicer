@@ -997,6 +997,8 @@ static void AdjustWorkingAreaForAutoHide(const HWND hWnd, MINMAXINFO* mmi)
 WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 {
     HWND hWnd = GetHandle();
+    if (m_window_move_sync.on_message(hWnd, nMsg, lParam))
+        return 0;
     /* When we have a custom titlebar in the window, we don't need the non-client area of a normal window
      * to be painted. In order to achieve this, we handle the "WM_NCCALCSIZE" which is responsible for the
      * size of non-client area of a window and set the return value to 0. Also we have to tell the

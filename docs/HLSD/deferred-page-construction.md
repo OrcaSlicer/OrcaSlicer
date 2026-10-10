@@ -47,6 +47,18 @@ hidden; the window's first show builds the start page. A page that is out of the
 not prebuilt. A panel built while its page is hidden stays hidden, and gets the theming
 the window applied before the panel existed.
 
+### Retained Calibration views on Windows
+
+Calibration retains inactive step views in a hidden, wx-owned top-level host rather
+than under the moving main frame. Hidden native controls still add Windows composition
+work when their ancestor moves. Only the current step of the visible wizard is attached
+to its scrolled window and sizer. Step changes and tab activation restore that parent
+before showing the view; hiding Calibration parks the current steps too. The views,
+their inputs, event bindings and device/job state stay alive, so visiting all steps
+repeatedly does not increase the main frame's retained control tree. The host follows
+the main window's monitor for DPI rescaling and is destroyed with its wizard. Other
+platforms retain the normal child hierarchy.
+
 ### Staged construction: `StagedBuild`
 
 A constructor too big to be one unit builds a skeleton and queues the rest as steps, which
