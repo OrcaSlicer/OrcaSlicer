@@ -4250,7 +4250,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             config.set_key_value("nozzle_diameter_at_nozzle_id", new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(group_result.get())));
             config.set_key_value("nozzle_volume_types", new ConfigOptionStrings(get_nozzle_volume_types_by_nozzle_id(group_result.get())));
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
-            std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
+            std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.get_at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
             file.writeln(filament_start_gcode);
             // Mark the first filament used in print. Multi-nozzle printers (H2C) get ";VT%d H%d" where
             // H = dynamic ? nozzle_id : -1; existing single-nozzle printers keep the bare ";VT%d" so their
