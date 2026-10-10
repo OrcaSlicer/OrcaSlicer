@@ -1475,7 +1475,7 @@ bool PrintObject::invalidate_state_by_config_options(
                 steps.emplace_back(posPerimeters);
             steps.emplace_back(posInfill);
         } else if (opt_key == "top_surface_expansion") {
-            // ORCA: without the expansion the top fill never reaches the space freed by only_one_wall_top, so the
+            // ORCA: without the expansion the top fill never reaches the space freed by top_one_wall_type, so the
             // walls over top surfaces are kept. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
             const auto *old_expansion = old_config.option<ConfigOptionFloat>(opt_key);
             const auto *new_expansion = new_config.option<ConfigOptionFloat>(opt_key);
@@ -1824,10 +1824,10 @@ void PrintObject::detect_surfaces_type()
                         region_config.top_surface_density.value > 0. && ! top.empty()) {
                         const double     d = scale_(top_expansion);
                         const ExPolygons T = union_ex(to_expolygons(top));
-                        // Walls are laid out on spacing, not width; and only_one_wall_top leaves a single wall over
+                        // Walls are laid out on spacing, not width; and top_one_wall_type leaves a single wall over
                         // a top surface, which is exactly the situation handled here.
-                        const int    wall_loops = region_config.only_one_wall_top.value ? std::min(region_config.wall_loops.value, 1)
-                                                                                        : region_config.wall_loops.value;
+                        const int wall_loops    = region_config.top_one_wall_type.value != TopOneWallType::None ?
+                                                      std::min(region_config.wall_loops.value, 1) : region_config.wall_loops.value;
                         const double wall_band  = wall_loops <= 0 ? 0. :
                             double(layerm->flow(frExternalPerimeter).scaled_width()) +
                             double(layerm->flow(frPerimeter).scaled_spacing()) * double(wall_loops - 1);

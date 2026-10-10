@@ -1228,7 +1228,7 @@ static std::vector<std::string> s_Preset_print_options{
     "overhang_3_4_speed",
     "overhang_4_4_speed",
     "initial_layer_infill_speed",
-    "only_one_wall_top",
+    "top_one_wall_type",
     "timelapse_type",
     "wall_generator",
     "wall_transition_length",
