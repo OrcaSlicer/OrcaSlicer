@@ -399,6 +399,7 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
             if (UiRegistry::instance().is_open(new_id))
                 dlg->Destroy();
         } else {
+            dlg->use_normal_window_type();
             dlg->Show();
         }
     });

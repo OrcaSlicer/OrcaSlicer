@@ -13,6 +13,10 @@
 #include <wx/gdicmn.h>
 #include <wx/webview.h>
 
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
+
 namespace Slic3r { namespace GUI {
 
 WebDialog::WebDialog(wxWindow*          parent,
@@ -50,6 +54,17 @@ WebDialog::WebDialog(wxWindow*          parent,
         Bind(wxEVT_WEBVIEW_NAVIGATED, &WebDialog::on_navigated, this, wv->GetId());
     }
     Bind(wxEVT_CLOSE_WINDOW, &WebDialog::on_close_window, this);
+}
+
+void WebDialog::use_normal_window_type()
+{
+#ifdef __WXGTK__
+    // wxGTK types every wxDialog as a dialog, and Mutter offers no maximize for anything but a
+    // normal window. Mutter also stops hiding a normal window from the taskbar, so keep it hidden
+    // as a dialog with a parent is everywhere else.
+    gtk_window_set_type_hint(GTK_WINDOW(m_widget), GDK_WINDOW_TYPE_HINT_NORMAL);
+    gtk_window_set_skip_taskbar_hint(GTK_WINDOW(m_widget), TRUE);
+#endif
 }
 
 void WebDialog::add_user_scripts()
