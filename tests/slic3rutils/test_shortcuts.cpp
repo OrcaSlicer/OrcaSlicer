@@ -225,6 +225,18 @@ TEST_CASE("Lookups are scoped to the context of the key press", "[Shortcuts]")
     CHECK(registry.lookup(ShortcutContext::Painting, c) == Shortcut::PaintToolCircle);
 }
 
+TEST_CASE("Function keys F1-F4 switch tabs from any context", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F1 }) == Shortcut::GoToPrepare);
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F2 }) == Shortcut::GoToPreview);
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F3 }) == Shortcut::GoToDevice);
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F4 }) == Shortcut::GoToProject);
+    // modified function keys are left alone
+    CHECK_FALSE(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F1, wxMOD_SHIFT }).has_value());
+}
+
 TEST_CASE("Stepping shortcuts match with Shift or Ctrl added to their binding", "[Shortcuts]")
 {
     ShortcutRegistry registry;

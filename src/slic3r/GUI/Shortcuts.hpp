@@ -48,7 +48,7 @@ enum class Shortcut : uint8_t {
     // Display
     ShowLabels, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts,
+    Preferences, Search, SwitchView, CollapseSidebar, GoToPrepare, GoToPreview, GoToDevice, GoToProject, ReloadDevicePage, KeyboardShortcuts,
     // Speed Dial
     SpeedDial,
     Count
