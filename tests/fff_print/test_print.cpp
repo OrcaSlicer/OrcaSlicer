@@ -1520,3 +1520,27 @@ TEST_CASE("Belt supports reach the belt under a leading overhang", "[Print][belt
         CHECK(lowest->print_z - floor_under_lowest > -0.2 - EPSILON);
     }
 }
+
+// Orca: Toggling optional preview comments changes only the exported file. Preserve completed
+// slicing work while invalidating the cached G-code so the next export reflects the new setting.
+TEST_CASE("Changing overhang metadata invalidates only G-code export", "[Print][Overhang][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict("gcode_overhangs", "0");
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.process();
+    print.set_gcode_file_ready();
+
+    REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    REQUIRE(print.objects().front()->is_step_done(posPerimeters));
+
+    config.set_deserialize_strict("gcode_overhangs", "1");
+    print.apply(model, config);
+
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    CHECK(print.objects().front()->is_step_done(posPerimeters));
+}
