@@ -2230,9 +2230,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             //FIXME It is quite expensive to generate object layers just to get the print height!
             auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
             if (!layers.empty()) {
-                effective_max_z      = layers.back();
+                // The object layers start above the raft.
+                const double raft_z  = print_object.slicing_parameters().object_print_z_min;
+                effective_max_z      = raft_z + layers.back();
                 last_layer_below_max = layers.size() >= 2 &&
-                    0.5 * (layers[layers.size() - 2] + layers.back()) <= this->config().printable_height + EPSILON;
+                    raft_z + 0.5 * (layers[layers.size() - 2] + layers.back()) <= this->config().printable_height + EPSILON;
                 have_height          = true;
             }
         }
@@ -2240,7 +2242,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         if (!have_height)
             continue;
 
-        if (shrinkage_compensation_z != 1. && effective_max_z > (this->config().printable_height / shrinkage_compensation_z + EPSILON)) {
+        // The layers of a regular printer already carry the Z shrinkage compensation, the belt height does not.
+        const double compensated_max_z   = belt_printer ? effective_max_z * shrinkage_compensation_z : effective_max_z;
+        const double uncompensated_max_z = belt_printer ? effective_max_z : print_object.slicing_parameters().object_print_z_uncompensated_max;
+        if (shrinkage_compensation_z != 1. && compensated_max_z > this->config().printable_height + EPSILON &&
+            uncompensated_max_z <= this->config().printable_height + EPSILON) {
             // The object exceeds the maximum build volume height because of shrinkage compensation.
             return StringObjectException{
                 Slic3r::format(_u8L("While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."), print_object.model_object()->name),
