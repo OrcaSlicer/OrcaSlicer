@@ -455,11 +455,12 @@ jobs:
         # the bounds checks are compiled in, so a stripped exe still catches them.
         find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
         # At runtime the tests read tests/ (TEST_DATA_DIR), scripts/, and under
-        # resources/ the shipped profiles (PROFILES_DIR), the printers/ maps, and
-        # the icon SVGs (NativeCommands icon names are checked against them).
+        # resources/ the shipped profiles (PROFILES_DIR), the printers/ maps, the
+        # info/ data files (the material tables the test bootstrap loads), and the
+        # icon SVGs (NativeCommands icon names are checked against them).
         find "$d" -mindepth 1 -maxdepth 1 -type d \
           ! -name tests ! -name build_flatpak ! -name scripts ! -name resources -exec rm -rf {} +
-        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers ! -name images -exec rm -rf {} +
+        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers ! -name images ! -name info -exec rm -rf {} +
         # Only the SVGs are read; the png/ico/icns/gif assets are ~35MB of dead weight.
         find "$d/resources/images" -mindepth 1 -maxdepth 1 ! -name '*.svg' -exec rm -rf {} + 2>/dev/null || true
         tar -cf flatpak-test-asset.tar flatpak_app "$d"

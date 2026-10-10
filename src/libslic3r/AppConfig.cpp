@@ -540,6 +540,10 @@ void AppConfig::set_defaults()
         set_bool("enable_high_low_temp_mixed_printing", false);
     }
 
+    if (get("enable_incompatible_material_mixed_printing").empty()){
+        set_bool("enable_incompatible_material_mixed_printing", false);
+    }
+
     if (get("remember_print_action").empty()) {
         set_bool("remember_print_action", false);
     }
