@@ -1463,7 +1463,7 @@ int CLI::run(int argc, char **argv)
     //int arrange_option;
     int plate_to_slice = 0, filament_count = 0, duplicate_count = 0, real_duplicate_count = 0, current_extruder_count = 1, new_extruder_count = 1, current_printer_variant_count = 1, current_print_variant_count = 1, new_printer_variant_count = 1;
     bool first_file = true, is_bbl_3mf = false, need_arrange = true, has_thumbnails = false, up_config_to_date = false, normative_check = true, duplicate_single_object = false, use_first_fila_as_default = false, minimum_save = false, enable_timelapse = false;
-    bool allow_rotations = true, skip_modified_gcodes = false, avoid_extrusion_cali_region = false, skip_useless_pick = false, allow_newer_file = false, current_is_multi_extruder = false, new_is_multi_extruder = false, allow_mix_temp = false, enable_wrapping_detect = false;
+    bool allow_rotations = false, skip_modified_gcodes = false, avoid_extrusion_cali_region = false, skip_useless_pick = false, allow_newer_file = false, current_is_multi_extruder = false, new_is_multi_extruder = false, allow_mix_temp = false, enable_wrapping_detect = false;
     Semver file_version;
     std::map<size_t, bool> orients_requirement;
     std::vector<Preset*> project_presets;
@@ -5142,6 +5142,7 @@ int CLI::run(int argc, char **argv)
 
     BOOST_LOG_TRIVIAL(info) << "finished model pre-process commands\n";
     bool oriented_or_arranged = false;
+    bool arranged_without_rotations = false;
     //BBS: add orient and arrange logic here
     for (auto& model : m_models)
     {
@@ -5409,6 +5410,7 @@ int CLI::run(int argc, char **argv)
                 BOOST_LOG_TRIVIAL(info) << boost::format("start plate %1%'s arranging...") % (i + 1);
                 arrangement::arrange(selected, unselected, beds, arrange_cfg);
                 //arrangement::arrange(unprintable, {}, beds, arrange_cfg);
+                arranged_without_rotations |= !arrange_cfg.allow_rotations;
                 BOOST_LOG_TRIVIAL(info) << boost::format("finished plate %1%'s arranging") % (i + 1);
 
                 //step-4: postprocess the bed index and result
@@ -5881,6 +5883,7 @@ int CLI::run(int argc, char **argv)
                 BOOST_LOG_TRIVIAL(info) << boost::format("start %1% th arranging...")%arrange_count;
                 arrangement::arrange(selected, unselected, beds, arrange_cfg);
                 arrangement::arrange(unprintable, {}, beds, arrange_cfg);
+                arranged_without_rotations |= !arrange_cfg.allow_rotations;
                 BOOST_LOG_TRIVIAL(info) << boost::format("finished %1% th arranging...")%arrange_count;
 
                 //Step-4:postprocess by partplate list&&apply the result
@@ -6425,7 +6428,15 @@ int CLI::run(int argc, char **argv)
 
                         if (count == 0) {
                             BOOST_LOG_TRIVIAL(error) << "plate "<< index+1<< ": Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply." << std::endl;
-                            record_exit_reson(outfile_dir, CLI_NO_SUITABLE_OBJECTS, index+1, cli_errors[CLI_NO_SUITABLE_OBJECTS], sliced_info);
+                            std::string no_objects_reason = cli_errors[CLI_NO_SUITABLE_OBJECTS];
+                            if (arranged_without_rotations) {
+                                //ORCA: result.json is only written on Linux, so also print the reason to stderr.
+                                no_objects_reason = "No object is fully inside the print volume. Arrange ran without rotations."
+                                                    " If an object only fits the bed when rotated, pass --allow-rotations."
+                                                    " Otherwise the plate is empty or an object is larger than the printable area or height.";
+                                boost::nowide::cerr << "plate " << index+1 << ": " << no_objects_reason << std::endl;
+                            }
+                            record_exit_reson(outfile_dir, CLI_NO_SUITABLE_OBJECTS, index+1, no_objects_reason, sliced_info);
                             flush_and_exit(CLI_NO_SUITABLE_OBJECTS);
                         }
                         else if ((plate_to_slice != 0) || pre_check) {
