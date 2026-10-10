@@ -142,9 +142,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_chart->set_view(view);
         sync_chart_range();
     };
-    m_chart->on_pan = [this, change_view](double offset, bool vertical) {
+    m_chart->on_pan = [this, change_view](double x_offset, double y_offset) {
         const auto& view = m_chart->view();
-        change_view(m_model->panned_view(view, vertical ? 0.0 : offset, vertical ? offset : 0.0));
+        change_view(m_model->panned_view(view, x_offset, y_offset));
     };
     m_chart->on_zoom = [this, change_view](double steps, bool vertical, double anchor) {
         // Bound the exponent so large wheel events cannot overflow the scale factor.
@@ -301,7 +301,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* touchpad = make_view_checkbox(_L("Touchpad"), touchpad_enabled, 12);
     const wxString touchpad_help = _L("Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer.");
     touchpad->SetToolTip(touchpad_help);
-    m_chart->set_touchpad_controls(touchpad_enabled);
+    const bool automatic_touchpad = m_chart->has_automatic_touchpad_controls();
+    view_actions->GetItem(view_actions->GetItemCount() - 1)->Show(!automatic_touchpad);
+    m_chart->set_touchpad_controls(automatic_touchpad ? false : touchpad_enabled);
     touchpad->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& event) {
         event.Skip();
         m_chart->set_touchpad_controls(event.IsChecked());

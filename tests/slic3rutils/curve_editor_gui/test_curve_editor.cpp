@@ -1,6 +1,7 @@
 #include <catch_amalgamated.hpp>
 
 #include <cmath>
+#include <array>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -10,6 +11,7 @@
 #include <vector>
 #include <wx/app.h>
 #include <wx/event.h>
+#include <wx/evtloop.h>
 #include <wx/file.h>
 #include <wx/filefn.h>
 #include <wx/filename.h>
@@ -18,6 +20,8 @@
 #include <wx/init.h>
 #include <wx/string.h>
 #include <wx/strconv.h>
+#include <wx/stopwatch.h>
+#include <wx/utils.h>
 
 #include "libslic3r/CurveModel.hpp"
 #include "slic3r/GUI/CurveEditorPanel.hpp"
@@ -82,9 +86,13 @@ public:
                                                    model.view_limits());
         panel->SetSize(700, 400);
         reset();
-        panel->on_pan = [this](double value, bool vertical) {
-            pans.push_back({vertical, value, 0});
-            panel->set_view(model.panned_view(panel->view(), vertical ? 0 : value, vertical ? value : 0));
+        panel->on_pan = [this](double dx, double dy) {
+            ++pan_frames;
+            if (dx != 0)
+                pans.push_back({false, dx, 0});
+            if (dy != 0)
+                pans.push_back({true, dy, 0});
+            panel->set_view(model.panned_view(panel->view(), dx, dy));
         };
         panel->on_zoom = [this](double value, bool vertical, double anchor) {
             zooms.push_back({vertical, value, anchor});
@@ -102,8 +110,25 @@ public:
         panel->set_view({20, 40, .2, .8});
         pans.clear();
         zooms.clear();
+        pan_frames = 0;
     }
-    void wheel(int rotation, bool horizontal = false, bool control = false, bool shift = false, wxPoint position = {300, 160})
+    void drain(bool wait_for_pan = false)
+    {
+        // Exercise the real one-shot timer, including its native event dispatch.
+        wxEventLoop loop;
+        wxEventLoopActivator activate(&loop);
+        wxStopWatch elapsed;
+        const int previous_frames = pan_frames;
+        while (elapsed.Time() < (wait_for_pan ? 1000 : 80)) {
+            loop.YieldFor(wxEVT_CATEGORY_ALL);
+            if (wait_for_pan && pan_frames != previous_frames)
+                return;
+            wxMilliSleep(1);
+        }
+        loop.YieldFor(wxEVT_CATEGORY_ALL);
+    }
+    void wheel(
+        int rotation, bool horizontal = false, bool control = false, bool shift = false, wxPoint position = {300, 160}, bool flush = true)
     {
         wxMouseEvent event(wxEVT_MOUSEWHEEL);
         event.m_wheelRotation = rotation;
@@ -113,6 +138,8 @@ public:
         event.SetShiftDown(shift);
         event.SetPosition(position);
         panel->GetEventHandler()->ProcessEvent(event);
+        if (flush && !control)
+            drain(!panel->HasCapture());
     }
     void magnify(double value)
     {
@@ -130,7 +157,7 @@ public:
         event.SetPosition({300, 160});
         panel->GetEventHandler()->ProcessEvent(event);
     }
-    wxPoint middle_point()
+    wxRect plot_rect()
     {
         const auto callback = panel->on_zoom;
         double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
@@ -150,13 +177,21 @@ public:
         };
         wheel(1, false, true, false, {500, 300});
         wheel(1, false, true, true, {500, 300});
-        panel->on_zoom = callback;
-        return {int(std::lround(100 + (.5 - x1) * 400 / (x2 - x1))), int(std::lround(100 + (.5 - y1) * 200 / (y2 - y1)))};
+        panel->on_zoom   = callback;
+        const int width  = int(std::lround(400 / (x2 - x1)));
+        const int height = int(std::lround(200 / (y1 - y2)));
+        return {int(std::lround(100 - x1 * width)), int(std::lround(100 - (1 - y1) * height)), width, height};
+    }
+    wxPoint middle_point()
+    {
+        const auto plot = plot_rect();
+        return plot.GetPosition() + wxPoint(plot.width / 2, plot.height / 2);
     }
     InputModel model;
     std::unique_ptr<wxFrame> frame;
     std::unique_ptr<CurveEditorPanel> panel;
     std::vector<Navigation> pans, zooms;
+    int pan_frames = 0;
 };
 
 } // namespace
@@ -166,14 +201,17 @@ wxIMPLEMENT_APP_NO_MAIN(InputApp);
 TEST_CASE("Mouse navigation retains its axis modifiers when touchpad mode is disabled", "[CurveEditorGUI][RequiresDisplay]")
 {
     Fixture f;
+    CAPTURE(f.panel->has_automatic_touchpad_controls());
     f.wheel(120);
     REQUIRE(f.pans.size() == 1);
     CHECK_FALSE(f.pans[0].vertical);
     CHECK(f.pans[0].value < 0);
+    CHECK_THAT(f.pans[0].value, WithinAbs(-2.0, 1e-12));
     f.wheel(120, false, false, true);
     REQUIRE(f.pans.size() == 2);
     CHECK(f.pans[1].vertical);
     CHECK(f.pans[1].value > 0);
+    CHECK_THAT(f.pans[1].value, WithinAbs(.06, 1e-12));
     f.wheel(120, false, true);
     f.wheel(120, false, true, true);
     REQUIRE(f.zooms.size() == 2);
@@ -197,7 +235,113 @@ TEST_CASE("Touchpad scrolling routes both native axes and preserves fractional m
     CHECK(f.pans[2].value > 0);
 }
 
-TEST_CASE("Vertical touchpad scrolling matches Shift wheel and leaves the horizontal range unchanged",
+TEST_CASE("Paired touchpad axis packets apply one frame with equal screen distances", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    const auto plot   = f.plot_rect();
+    const auto before = f.panel->view();
+    f.wheel(40, true, false, false, {300, 160}, false);
+    f.wheel(40, false, false, false, {300, 160}, false);
+    CHECK(f.pans.empty());
+    f.drain(true);
+    REQUIRE(f.pan_frames == 1);
+    const auto after      = f.panel->view();
+    const double pixels_x = (after.min_x - before.min_x) / (before.max_x - before.min_x) * plot.width;
+    const double pixels_y = (after.min_y - before.min_y) / (before.max_y - before.min_y) * plot.height;
+    CHECK(pixels_x > 0);
+    CHECK_THAT(pixels_x, WithinAbs(pixels_y, 1e-10));
+}
+
+TEST_CASE("Circular touchpad navigation returns to its original view without axis drift", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    const auto before                  = f.panel->view();
+    const std::array<wxPoint, 8> steps = {{{120, 0}, {120, 120}, {0, 120}, {-120, 120}, {-120, 0}, {-120, -120}, {0, -120}, {120, -120}}};
+    for (const auto& step : steps) {
+        f.wheel(step.x, true, false, false, {300, 160}, false);
+        f.wheel(step.y, false, false, false, {300, 160}, false);
+        f.drain(true);
+    }
+    CHECK(f.pan_frames == steps.size());
+    CHECK_THAT(f.panel->view().min_x, WithinAbs(before.min_x, 1e-12));
+    CHECK_THAT(f.panel->view().max_x, WithinAbs(before.max_x, 1e-12));
+    CHECK_THAT(f.panel->view().min_y, WithinAbs(before.min_y, 1e-12));
+    CHECK_THAT(f.panel->view().max_y, WithinAbs(before.max_y, 1e-12));
+}
+
+TEST_CASE("Native pan gestures suppress compatibility wheel packets until the gesture ends", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    wxPanGestureEvent pan;
+    pan.SetGestureStart(true);
+    pan.SetDelta({20, 10});
+    f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.wheel(120, true);
+    REQUIRE(f.pan_frames == 1);
+    REQUIRE(f.pans.size() == 2);
+    CHECK(f.pans[0].value < 0);
+    pan.SetGestureStart(false);
+    pan.SetGestureEnd(true);
+    pan.SetDelta({0, 0});
+    f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.wheel(120, true);
+    CHECK(f.pan_frames == 2);
+    CHECK(f.pans.back().value > 0);
+}
+
+TEST_CASE("Native pinch gestures suppress compatibility zoom packets until the gesture ends",
+          "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    f.pinch(1, true);
+    f.wheel(120, false, true);
+    CHECK(f.zooms.empty());
+    f.pinch(1.1, false, true);
+    REQUIRE(f.zooms.size() == 2);
+    f.wheel(120, false, true);
+    CHECK(f.zooms.size() == 4);
+}
+
+TEST_CASE("Resetting the graph view discards a queued pan", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    f.wheel(120, false, false, false, {300, 160}, false);
+    f.panel->set_view({10, 50, 0, 1});
+    f.drain();
+    CHECK(f.pans.empty());
+    CHECK_THAT(f.panel->view().min_x, WithinAbs(10, 1e-12));
+    CHECK_THAT(f.panel->view().max_y, WithinAbs(1, 1e-12));
+}
+
+TEST_CASE("Zoom applies queued panning before calculating the cursor anchor", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture reference;
+    reference.panel->set_touchpad_controls(true);
+    reference.wheel(40, true);
+    reference.wheel(40);
+    reference.wheel(120, false, true);
+    const auto expected = reference.panel->view();
+
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    f.wheel(40, true, false, false, {300, 160}, false);
+    f.wheel(40, false, false, false, {300, 160}, false);
+    f.wheel(120, false, true);
+    const auto actual = f.panel->view();
+    CHECK(f.pan_frames == 1);
+    CHECK_THAT(actual.min_x, WithinAbs(expected.min_x, 1e-10));
+    CHECK_THAT(actual.max_x, WithinAbs(expected.max_x, 1e-10));
+    CHECK_THAT(actual.min_y, WithinAbs(expected.min_y, 1e-10));
+    CHECK_THAT(actual.max_y, WithinAbs(expected.max_y, 1e-10));
+    f.drain();
+    CHECK(f.pan_frames == 1);
+}
+
+TEST_CASE("Vertical touchpad scrolling follows Shift wheel direction and leaves the horizontal range unchanged",
           "[CurveEditorGUI][RequiresDisplay][Regression]")
 {
     const int rotation = GENERATE(-120, -1, 1, 120);
@@ -213,8 +357,8 @@ TEST_CASE("Vertical touchpad scrolling matches Shift wheel and leaves the horizo
 
     CHECK_THAT(actual.min_x, WithinAbs(before.min_x, 1e-12));
     CHECK_THAT(actual.max_x, WithinAbs(before.max_x, 1e-12));
-    CHECK_THAT(actual.min_y, WithinAbs(expected.min_y, 1e-12));
-    CHECK_THAT(actual.max_y, WithinAbs(expected.max_y, 1e-12));
+    CHECK((actual.min_y - before.min_y) * (expected.min_y - before.min_y) > 0.0);
+    CHECK_THAT(actual.max_y - actual.min_y, WithinAbs(before.max_y - before.min_y, 1e-12));
     CHECK(std::abs(actual.min_y - before.min_y) > 0.0);
 }
 
@@ -260,7 +404,7 @@ TEST_CASE("Native zoom gestures apply cumulative factors once and reset between 
     CHECK_THAT(f.zooms[0].value, WithinAbs(1, 1e-12));
 }
 
-TEST_CASE("Invalid gesture values and disabled touchpad mode leave the graph unchanged", "[CurveEditorGUI][RequiresDisplay]")
+TEST_CASE("Invalid gesture values leave the graph unchanged", "[CurveEditorGUI][RequiresDisplay]")
 {
     Fixture f;
     f.panel->set_touchpad_controls(true);
@@ -269,13 +413,7 @@ TEST_CASE("Invalid gesture values and disabled touchpad mode leave the graph unc
     f.pinch(0);
     f.pinch(std::numeric_limits<double>::quiet_NaN());
     CHECK(f.zooms.empty());
-    f.panel->set_touchpad_controls(false);
-    f.magnify(.25);
-    f.pinch(1.2);
-    CHECK(f.zooms.empty());
-    wxPanGestureEvent pan;
-    pan.SetDelta({20, 10});
-    f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.drain();
     CHECK(f.pans.empty());
     CHECK_THAT(f.panel->view().min_x, WithinAbs(20, 1e-12));
 }
@@ -287,11 +425,13 @@ TEST_CASE("Native diagonal panning preserves the scale and moves both coordinate
     wxPanGestureEvent pan;
     pan.SetDelta({20, 10});
     f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.drain(true);
     REQUIRE(f.pans.size() == 2);
     CHECK_FALSE(f.pans[0].vertical);
     CHECK(f.pans[1].vertical);
     CHECK(f.pans[0].value < 0);
     CHECK(f.pans[1].value > 0);
+    CHECK(f.pan_frames == 1);
     CHECK_THAT(f.panel->view().max_x - f.panel->view().min_x, WithinAbs(20, 1e-12));
     CHECK_THAT(f.panel->view().max_y - f.panel->view().min_y, WithinAbs(.6, 1e-12));
 }
@@ -368,6 +508,40 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
     CHECK(moved == -1);
     f.wheel(120);
     CHECK(f.pans.size() == 1);
+}
+
+TEST_CASE("A gesture ending during point dragging does not block later wheel navigation", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const bool zoom_gesture = GENERATE(false, true);
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto position = f.middle_point();
+    wxPanGestureEvent pan;
+    pan.SetGestureStart(true);
+    if (zoom_gesture)
+        f.pinch(1, true);
+    else
+        f.panel->GetEventHandler()->ProcessEvent(pan);
+
+    wxMouseEvent down(wxEVT_LEFT_DOWN);
+    down.SetPosition(position);
+    f.panel->GetEventHandler()->ProcessEvent(down);
+    REQUIRE(f.panel->HasCapture());
+    if (zoom_gesture)
+        f.pinch(1.1, false, true);
+    else {
+        pan.SetGestureStart(false);
+        pan.SetGestureEnd(true);
+        pan.SetDelta({20, 10});
+        f.panel->GetEventHandler()->ProcessEvent(pan);
+    }
+    CHECK(f.zooms.empty());
+    CHECK(f.pans.empty());
+    wxMouseCaptureLostEvent lost;
+    f.panel->GetEventHandler()->ProcessEvent(lost);
+    f.wheel(120);
+    CHECK(f.pan_frames == 1);
 }
 
 TEST_CASE("Alternative wheel modifiers do not navigate the graph", "[CurveEditorGUI][RequiresDisplay]")

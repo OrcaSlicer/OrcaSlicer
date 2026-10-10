@@ -911,6 +911,7 @@ if (APPLE)
             GUI/MacIME.hpp
             GUI/Accessibility/AccessibilityMac.mm
             GUI/Accessibility/AccessibilityMac.h
+            GUI/CurveEditorPanelMac.mm
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()
