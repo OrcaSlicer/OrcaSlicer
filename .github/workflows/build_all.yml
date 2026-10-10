@@ -115,6 +115,17 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+  # macOS runners are scarce, so a pull request builds macOS only once a reviewer
+  # of the "macOS build" environment approves this job.
+  macos_build_approval:
+    name: macOS build approval
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: macOS build
+      deployment: false
+    steps:
+      - run: echo "macOS build approved."
   build_macos_arch:
     strategy:
       fail-fast: false
@@ -122,8 +133,9 @@ jobs:
         arch:
           - arm64
           - x86_64
+    needs: macos_build_approval
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.macos_build_approval.result != 'failure' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
