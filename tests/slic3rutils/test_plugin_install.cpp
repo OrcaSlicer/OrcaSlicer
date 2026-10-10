@@ -164,27 +164,22 @@ TEST_CASE("a local plugin's installed version follows its entry file header", "[
     CHECK(scanned.installed_version == "1.1.0");
 }
 
-TEST_CASE("an unsubscribed cloud plugin keeps its cloud installed version", "[PluginInstall]")
+TEST_CASE("an unsubscribed cloud plugin follows its header version", "[PluginInstall]")
 {
     ScopedDataDir data_dir_guard("unsubscribed-installed-version");
 
     const fs::path plugin_dir = data_dir_guard.dir / "plugin";
     fs::create_directories(plugin_dir);
 
-    // What keep_installed_plugin_as_local leaves behind: origin "local", no cloud uuid, but the
-    // version fetched from the cloud (1.2.0) while the header still says 1.0.0.
+    // What keep_installed_plugin_as_local leaves behind: a normal local package. The sidecar still
+    // holds the version fetched from the cloud (1.2.0), but the header (1.0.0) is the source of truth.
     PluginInstallState state;
-    state.installed_from       = "local";
-    state.installed_version    = "1.2.0";
-    state.converted_from_cloud = true;
+    state.installed_from    = "local";
+    state.installed_version = "1.2.0";
     REQUIRE(write_install_state(plugin_dir, state));
-
-    PluginInstallState persisted;
-    REQUIRE(read_install_state(plugin_dir, persisted));
-    CHECK(persisted.converted_from_cloud);
 
     PluginDescriptor scanned;
     scanned.version = "1.0.0";
     REQUIRE(read_install_state(plugin_dir, scanned));
-    CHECK(scanned.installed_version == "1.2.0");
+    CHECK(scanned.installed_version == "1.0.0");
 }

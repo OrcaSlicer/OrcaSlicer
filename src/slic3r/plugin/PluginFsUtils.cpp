@@ -758,11 +758,7 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     // A local plugin has no cloud copy to diverge from: the entry file's own header is the only
     // source of truth for its version. Trusting the sidecar there would pin the version shown
     // in the UI to whatever it was at first install, even after the file is edited.
-    //
-    // A cloud plugin the user unsubscribed from is also written as "local" with an empty cloud_uuid,
-    // but its installed_version is still the cloud one and its header may lag: it is excluded.
-    const bool is_local_install = state.installed_from == "local" && state.cloud_uuid.empty() &&
-                                  !state.converted_from_cloud;
+    const bool is_local_install = state.installed_from == "local" && state.cloud_uuid.empty();
     if (is_local_install && !entry.version.empty())
         entry.installed_version = entry.version;
     else if (!state.installed_version.empty())
@@ -803,8 +799,6 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             parsed.plugin_name = state["plugin_name"].get<std::string>();
         if (state.contains("cloud_uuid") && state["cloud_uuid"].is_string())
             parsed.cloud_uuid = state["cloud_uuid"].get<std::string>();
-        if (state.contains("converted_from_cloud") && state["converted_from_cloud"].is_boolean())
-            parsed.converted_from_cloud = state["converted_from_cloud"].get<bool>();
 
         if (state.contains("permissions") && state["permissions"].is_object()) {
             const auto& permissions = state["permissions"];
@@ -856,8 +850,6 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     json["enabled"]           = state.enabled;
     if (!state.cloud_uuid.empty())
         json["cloud_uuid"] = state.cloud_uuid;
-    if (state.converted_from_cloud)
-        json["converted_from_cloud"] = true;
 
     json["permissions"] = {
         {"fs_read", state.permissions.fs_read},
@@ -888,8 +880,6 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // during register_capabilities() or by a previous runtime audit prompt.
     read_install_state(plugin_dir, state);
     state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    if (entry.is_cloud_plugin())
-        state.converted_from_cloud = false; // subscribed again: the cloud is the source of truth
     // Prefer the descriptor's recorded installed_version (the version fetched from the cloud
     // at install time, preserved across sidecar re-writes) so a stale manifest/PEP723 header
     // never overwrites the source-of-truth version. Fall back to the manifest version for
