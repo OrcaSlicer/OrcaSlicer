@@ -87,6 +87,17 @@ struct FilamentColor
 
 public:
     size_t ColorCount() const noexcept { return m_colors.size(); }
+    // Preserve catalog endpoint order for display while retaining set-based lookup identity.
+    const std::vector<wxColour>& GetColors() const noexcept { return m_color_list; }
+    void AddColor(const wxColour& color)
+    {
+        if (m_colors.insert(color).second) m_color_list.push_back(color);
+    }
+
+private:
+    std::vector<wxColour> m_color_list;
+
+public:
 
     void EndSet(int ctype)
     {

@@ -96,7 +96,7 @@ void FilamentColorCodeQuery::LoadFromLocal()
                     const auto& fila_color_strs = json_data_item["fila_color"].get<std::vector<wxString>>();
                     for (const auto& color_str : fila_color_strs) {
                         if (color_str.size() > 3) /* Skip the value like "#0"*/{
-                            fila_color.m_colors.emplace(wxColour(color_str));
+                            fila_color.AddColor(wxColour(color_str));
                         }
                     }
                 }

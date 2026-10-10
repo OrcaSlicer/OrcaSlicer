@@ -81,15 +81,23 @@ public:
 class ColorPickerPopup : public PopupWindow
 {
 public:
+    struct ColorItem
+    {
+        std::vector<wxColour> colors;
+        int                   ctype = 2;
+        wxString              name;
+    };
+
     ScalableBitmap m_ts_bitmap_custom;
     wxStaticBitmap* m_ts_stbitmap_custom;
     StaticBox* m_custom_cp;
     wxColourData* m_clrData;
     StaticBox* m_def_color_box;
     wxFlexGridSizer* m_ams_fg_sizer;
+    wxFlexGridSizer* m_other_fg_sizer;
     wxColour m_def_col;
     std::vector<wxColour> m_def_colors;
-    std::vector<wxColour> m_ams_colors;
+    std::vector<ColorItem> m_ams_color_items;
     std::vector<ColorPicker*> m_color_pickers;
     std::vector<ColorPicker*> m_ams_color_pickers;
 
@@ -97,13 +105,20 @@ public:
     ColorPickerPopup(wxWindow* parent);
     ~ColorPickerPopup() {};
     void on_custom_clr_picker(wxMouseEvent& event);
-    void set_ams_colours(std::vector<wxColour> ams);
-    void set_def_colour(wxColour col);
+    void set_ams_colours(const std::vector<ColorItem>& ams);
+    void set_preset_colours(const std::vector<ColorItem>& preset_colors);
+    void set_def_colour(wxColour col, std::vector<wxColour> cols = {}, int ctype = 2);
+    const std::vector<wxColour>& get_selected_colours() const { return m_def_cols; }
+    int get_selected_ctype() const { return m_def_ctype; }
     void paintEvent(wxPaintEvent& evt);
     virtual void OnDismiss() wxOVERRIDE;
     virtual bool ProcessLeftDown(wxMouseEvent& event) wxOVERRIDE;
 
-public:
+private:
+    std::vector<ColorPicker*> m_default_color_pickers;
+    std::vector<ColorPicker*> m_preset_color_pickers;
+    std::vector<wxColour> m_def_cols;
+    int m_def_ctype = 2;
 };
 
 

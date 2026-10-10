@@ -81,6 +81,96 @@ static std::string float_to_string_with_precision(float value, int precision = 3
     return stream.str();
 }
 
+static std::string colour_to_ams_string(const wxColour& color)
+{
+    char col_buf[10];
+    sprintf(col_buf, "%02X%02X%02X%02X", (int)color.Red(), (int)color.Green(), (int)color.Blue(), (int)color.Alpha());
+    return col_buf;
+}
+
+static wxColour mix_colour(const wxColour& left, const wxColour& right, double ratio)
+{
+    ratio = std::max(0.0, std::min(1.0, ratio));
+    auto mix_channel = [ratio](unsigned char l, unsigned char r) {
+        return static_cast<unsigned char>(std::round(l + (r - l) * ratio));
+    };
+    return wxColour(mix_channel(left.Red(), right.Red()),
+                    mix_channel(left.Green(), right.Green()),
+                    mix_channel(left.Blue(), right.Blue()),
+                    mix_channel(left.Alpha(), right.Alpha()));
+}
+
+static std::vector<ColorPickerPopup::ColorItem> collect_ams_color_items(DevFilaSystem* fila_system)
+{
+    std::vector<ColorPickerPopup::ColorItem> items;
+    if (!fila_system) return items;
+
+    for (const auto& ams_pair : fila_system->GetAmsList()) {
+        DevAms* ams = ams_pair.second;
+        if (!ams) continue;
+
+        for (const auto& tray_pair : ams->GetTrays()) {
+            DevAmsTray* tray = tray_pair.second;
+            if (!tray || !tray->is_tray_info_ready()) continue;
+
+            ColorPickerPopup::ColorItem item;
+            for (const std::string& col : tray->cols) {
+                item.colors.emplace_back(DevAmsTray::decode_color(col));
+            }
+            if (item.colors.empty() && !tray->color.empty()) {
+                item.colors.emplace_back(DevAmsTray::decode_color(tray->color));
+            }
+            if (item.colors.empty()) continue;
+
+            item.ctype = item.colors.size() > 1 ? tray->ctype : 2;
+            items.emplace_back(std::move(item));
+        }
+    }
+
+    return items;
+}
+
+static std::vector<ColorPickerPopup::ColorItem> collect_preset_color_items(const std::string& filament_id)
+{
+    std::vector<ColorPickerPopup::ColorItem> items;
+    if (filament_id.empty()) return items;
+
+    auto* clr_query = GUI::wxGetApp().get_filament_color_code_query();
+    if (!clr_query) return items;
+
+    auto* agent = wxGetApp().getAgent();
+    const std::string catalog_id = agent ? agent->from_orca_filament_id(filament_id) : filament_id;
+    FilamentColorCodes* color_codes = clr_query->GetFilaInfoMap(wxString::FromUTF8(catalog_id));
+    if (!color_codes || !color_codes->GetFilamentColor2CodeMap()) return items;
+
+    std::set<std::string> seen;
+    for (const auto& color_pair : *color_codes->GetFilamentColor2CodeMap()) {
+        const FilamentColor& fila_color = color_pair.first;
+        FilamentColorCode* color_code = color_pair.second;
+        if (!color_code || fila_color.GetColors().empty()) continue;
+
+        ColorPickerPopup::ColorItem item;
+        item.ctype = fila_color.ColorCount() < 2 ? 2 :
+            (fila_color.m_color_type == FilamentColor::ColorType::GRADIENT_CLR ? 0 : 1);
+        item.name = color_code->GetFilaColorName();
+
+        std::string key = std::to_string(item.ctype);
+        for (const wxColour& color : fila_color.GetColors()) {
+            item.colors.emplace_back(color);
+            char rgba[9];
+            std::snprintf(rgba, sizeof(rgba), "%02X%02X%02X%02X",
+                static_cast<unsigned>(color.Red()), static_cast<unsigned>(color.Green()),
+                static_cast<unsigned>(color.Blue()), static_cast<unsigned>(color.Alpha()));
+            key += "|" + std::string(rgba);
+        }
+
+        if (item.colors.empty() || !seen.insert(key).second) continue;
+        items.emplace_back(std::move(item));
+    }
+
+    return items;
+}
+
 AMSMaterialsSetting::AMSMaterialsSetting(wxWindow *parent, wxWindowID id)
     : DPIDialog(parent, id, _L("AMS Materials Setting"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
     , m_color_picker_popup(ColorPickerPopup(this))
@@ -718,8 +808,19 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
     nozzle_temp_min.ToLong(&nozzle_temp_min_int);
     nozzle_temp_max.ToLong(&nozzle_temp_max_int);
     wxColour color = m_clr_picker->m_colour;
-    char col_buf[10];
-    sprintf(col_buf, "%02X%02X%02X%02X", (int)color.Red(), (int)color.Green(), (int)color.Blue(), (int)color.Alpha());
+    std::string tray_color = colour_to_ams_string(color);
+    std::vector<std::string> tray_colors;
+    int tray_ctype = 2;
+    // Only firmware advertising fun2[23] receives the manual multi-color fields.
+    if (obj->is_support_filament_manual_multi_color) {
+        for (const wxColour& selected_color : m_clr_picker->m_cols) {
+            tray_colors.emplace_back(colour_to_ams_string(selected_color));
+        }
+        if (tray_colors.empty()) {
+            tray_colors.emplace_back(tray_color);
+        }
+        tray_ctype = tray_colors.size() > 1 ? m_clr_picker->ctype : 2;
+    }
 
     if (ams_filament_id.empty() || nozzle_temp_min.empty() || nozzle_temp_max.empty() || m_filament_type.empty()) {
         BOOST_LOG_TRIVIAL(trace) << "Invalid Setting id";
@@ -738,13 +839,33 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
                             << ", tray_info_idx (filament_id) = " << ams_filament_id
                             << ", setting_id = " << ams_setting_id
                             << ", tray_type = " << m_filament_type
-                            << ", tray_color = " << col_buf
+                            << ", tray_color = " << tray_color
                             << ", nozzle_temp_min = " << nozzle_temp_min_int
                             << ", nozzle_temp_max = " << nozzle_temp_max_int;
 
     // set filament
     if (m_is_third) {
-        obj->command_ams_filament_settings(ams_id, slot_id, ams_filament_id, ams_setting_id, std::string(col_buf), m_filament_type, nozzle_temp_min_int, nozzle_temp_max_int);
+        obj->command_ams_filament_settings(ams_id, slot_id, ams_filament_id, ams_setting_id, tray_color, m_filament_type, nozzle_temp_min_int, nozzle_temp_max_int,
+                                           tray_colors, tray_ctype);
+
+        // Refresh the edited tray immediately while its MQTT acknowledgement is pending.
+        DevAmsTray* tray = nullptr;
+        if (is_virtual_tray()) {
+            for (auto& virtual_tray : obj->vt_slot) {
+                if (virtual_tray.id == std::to_string(ams_id)) {
+                    tray = &virtual_tray;
+                    break;
+                }
+            }
+        } else {
+            tray = obj->GetFilaSystem()->GetAmsTray(std::to_string(ams_id), std::to_string(slot_id));
+        }
+        if (tray) {
+            tray->color = tray_color;
+            tray->cols = tray_colors;
+            tray->ctype = tray_ctype;
+            tray->set_hold_count();
+        }
     }
 
     //reset param
@@ -901,8 +1022,15 @@ void AMSMaterialsSetting::set_ctype(int ctype)
 
 void AMSMaterialsSetting::on_picker_color(wxCommandEvent& event)
 {
-    unsigned int color_num  = event.GetInt();
-    set_color(wxColour(color_num>>24&0xFF, color_num>>16&0xFF, color_num>>8&0xFF, color_num&0xFF));
+    std::vector<wxColour> colors = m_color_picker_popup.get_selected_colours();
+    if (colors.empty()) {
+        unsigned int color_num = event.GetInt();
+        colors.emplace_back(color_num >> 24 & 0xFF, color_num >> 16 & 0xFF, color_num >> 8 & 0xFF, color_num & 0xFF);
+    }
+
+    set_ctype(m_color_picker_popup.get_selected_ctype());
+    set_color(colors.front());
+    set_colors(colors);
 }
 
 void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
@@ -917,14 +1045,12 @@ void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
         }
     }
 
-    std::vector<wxColour> ams_colors;
-    obj->GetFilaSystem()->CollectAmsColors(ams_colors);
-
+    m_color_picker_popup.set_ams_colours(collect_ams_color_items(obj->GetFilaSystem().get()));
+    m_color_picker_popup.set_preset_colours(collect_preset_color_items(ams_filament_id));
+    m_color_picker_popup.set_def_colour(m_clr_picker->m_colour, m_clr_picker->m_cols, m_clr_picker->ctype);
     wxPoint img_pos = m_clr_picker->ClientToScreen(wxPoint(0, 0));
     wxPoint popup_pos(img_pos.x - m_color_picker_popup.GetSize().x - FromDIP(95), img_pos.y - FromDIP(65));
     m_color_picker_popup.Position(popup_pos, wxSize(0, 0));
-    m_color_picker_popup.set_ams_colours(ams_colors);
-    m_color_picker_popup.set_def_colour(m_clr_picker->m_colour);
     m_color_picker_popup.Popup();
 }
 
@@ -1608,7 +1734,46 @@ void ColorPicker::doRender(wxDC& dc)
     auto radius = m_show_full ? size.x / 2 - FromDIP(1) : size.x / 2;
     if (m_selected) radius -= FromDIP(1);
 
-    if (alpha == 0) {
+    if (m_show_full && m_cols.size() > 1) {
+        if (ctype == 0) {
+            const double center_x = size.x / 2.0;
+            const double center_y = size.y / 2.0;
+            const double draw_radius = radius;
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            for (int x = 0; x < size.x; ++x) {
+                const double dx = x + 0.5 - center_x;
+                if (std::abs(dx) > draw_radius) continue;
+
+                const double half_height = std::sqrt(std::max(0.0, draw_radius * draw_radius - dx * dx));
+                const int top = std::max(0, static_cast<int>(std::ceil(center_y - half_height)));
+                const int bottom = std::min(size.y - 1, static_cast<int>(std::floor(center_y + half_height)));
+                const double pos = size.x > 1 ? static_cast<double>(x) / (size.x - 1) : 0.0;
+                const double scaled = pos * (m_cols.size() - 1);
+                const size_t idx = std::min(static_cast<size_t>(scaled), m_cols.size() - 2);
+                const double ratio = scaled - idx;
+
+                if (top <= bottom) {
+                    dc.SetBrush(wxBrush(mix_colour(m_cols[idx], m_cols[idx + 1], ratio)));
+                    dc.DrawRectangle(x, top, 1, bottom - top + 1);
+                }
+            }
+        }
+        else {
+            float ev_angle = 360.0 / m_cols.size();
+            const float overlap = 2.0f;
+            wxPoint center(size.x / 2, size.y / 2);
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.SetBrush(wxBrush(m_cols.front()));
+            dc.DrawCircle(center.x, center.y, radius);
+            for (int i = 0; i < m_cols.size(); i++) {
+                dc.SetBrush(m_cols[i]);
+                float startAngle = 270.0f + i * ev_angle;
+                float endAngle = startAngle + ev_angle;
+                dc.DrawEllipticArc(center.x - radius, center.y - radius, 2 * radius, 2 * radius, startAngle - overlap, endAngle + overlap);
+            }
+        }
+    }
+    else if (alpha == 0) {
         wxSize bmp_size = m_bitmap_transparent_def.GetBmpSize();
         int center_x = (size.x - bmp_size.x) / 2;
         int center_y = (size.y - bmp_size.y) / 2;
@@ -1650,52 +1815,6 @@ void ColorPicker::doRender(wxDC& dc)
         dc.SetPen(wxPen(wxColour("#6B6B6B")));
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawCircle(size.x / 2, size.y / 2, radius);
-
-        if (m_cols.size() > 1) {
-            if (ctype == 0) {
-                int left = FromDIP(0);
-                float total_width = size.x;
-                int gwidth = std::round(total_width / (m_cols.size() - 1));
-
-                for (int i = 0; i < m_cols.size() - 1; i++) {
-
-                    if ((left + gwidth) > (size.x)) {
-                        gwidth = size.x - left;
-                    }
-
-                    auto rect = wxRect(left, 0, gwidth, size.y);
-                    dc.GradientFillLinear(rect, m_cols[i], m_cols[i + 1], wxEAST);
-                    left += gwidth;
-                }
-                if (wxGetApp().dark_mode()) {
-                    dc.DrawBitmap(m_bitmap_border_dark, wxPoint(0, 0));
-                }
-                else {
-                    dc.DrawBitmap(m_bitmap_border, wxPoint(0, 0));
-                }
-            }
-            else {
-                float ev_angle = 360.0 / m_cols.size();
-                float startAngle = 270.0;
-                float endAngle = 270.0;
-                dc.SetPen(*wxTRANSPARENT_PEN);
-                for (int i = 0; i < m_cols.size(); i++) {
-                    dc.SetBrush(m_cols[i]);
-                    endAngle += ev_angle;
-                    endAngle = endAngle > 360.0 ? endAngle - 360.0 : endAngle;
-                    wxPoint center(size.x / 2, size.y / 2);
-                    dc.DrawEllipticArc(center.x - radius, center.y - radius, 2 * radius, 2 * radius, startAngle, endAngle);
-                    startAngle += ev_angle;
-                    startAngle = startAngle > 360.0 ? startAngle - 360.0 : startAngle;
-                }
-                if (wxGetApp().dark_mode()) {
-                    dc.DrawBitmap(m_bitmap_border_dark, wxPoint(0, 0));
-                }
-                else {
-                    dc.DrawBitmap(m_bitmap_border, wxPoint(0, 0));
-                }
-            }
-        }
     }
 
     if (m_is_empty) {
@@ -1764,19 +1883,21 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     m_ams_fg_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
     //other
-    wxFlexGridSizer* fg_sizer;
-    fg_sizer = new wxFlexGridSizer(0, 8, 0, 0);
-    fg_sizer->SetFlexibleDirection(wxBOTH);
-    fg_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+    m_other_fg_sizer = new wxFlexGridSizer(0, 8, 0, 0);
+    m_other_fg_sizer->SetFlexibleDirection(wxBOTH);
+    m_other_fg_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
 
     for (wxColour col : m_def_colors) {
         auto cp = new ColorPicker(m_def_color_box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
         cp->set_color(col);
+        cp->set_colors({col});
+        cp->ctype = 2;
         cp->set_selected(false);
         cp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(238,238,238)));
         m_color_pickers.push_back(cp);
-        fg_sizer->Add(cp, 0, wxALL, FromDIP(3));
+        m_default_color_pickers.push_back(cp);
+        m_other_fg_sizer->Add(cp, 0, wxALL, FromDIP(3));
         cp->Bind(wxEVT_LEFT_DOWN, [this, cp](auto& e) {
             set_def_colour(cp->m_colour);
 
@@ -1848,7 +1969,7 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     m_sizer_box->Add(m_sizer_ams, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
     m_sizer_box->Add(m_ams_fg_sizer, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
     m_sizer_box->Add(m_sizer_other, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
-    m_sizer_box->Add(fg_sizer, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
+    m_sizer_box->Add(m_other_fg_sizer, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
     m_sizer_box->Add(m_sizer_custom, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
     m_sizer_box->Add(m_custom_cp, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(16));
     m_sizer_box->Add(0, 0, 0, wxTOP, FromDIP(10));
@@ -1859,7 +1980,7 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     m_def_color_box->Fit();
 
     m_sizer_main->Add(m_def_color_box, 0, wxALL | wxEXPAND, 10);
-    SetSizer(m_sizer_main);
+    SetSizerAndFit(m_sizer_main);
     Layout();
     Fit();
 
@@ -1909,13 +2030,15 @@ void ColorPickerPopup::on_custom_clr_picker(wxMouseEvent& event)
     }
 }
 
-void ColorPickerPopup::set_ams_colours(std::vector<wxColour> ams)
+void ColorPickerPopup::set_ams_colours(const std::vector<ColorItem>& ams)
 {
+    m_ams_fg_sizer->Clear(false);
     if (m_ams_color_pickers.size() > 0) {
         for (ColorPicker* col_pick:m_ams_color_pickers) {
 
             std::vector<ColorPicker*>::iterator iter = find(m_color_pickers.begin(), m_color_pickers.end(), col_pick);
             if (iter != m_color_pickers.end()) {
+                col_pick->Hide();
                 col_pick->Destroy();
                 m_color_pickers.erase(iter);
             }
@@ -1925,17 +2048,22 @@ void ColorPickerPopup::set_ams_colours(std::vector<wxColour> ams)
     }
 
 
-    m_ams_colors = ams;
-    for (wxColour col : m_ams_colors) {
+    m_ams_color_items = ams;
+    for (const ColorItem& item : m_ams_color_items) {
+        if (item.colors.empty()) continue;
+
         auto cp = new ColorPicker(m_def_color_box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-        cp->set_color(col);
+        cp->set_color(item.colors.front());
+        cp->set_colors(item.colors);
+        cp->ctype = item.colors.size() > 1 ? item.ctype : 2;
+        cp->set_show_full(true);
         cp->set_selected(false);
         cp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(238,238,238)));
         m_color_pickers.push_back(cp);
         m_ams_color_pickers.push_back(cp);
         m_ams_fg_sizer->Add(cp, 0, wxALL, FromDIP(3));
         cp->Bind(wxEVT_LEFT_DOWN, [this, cp](auto& e) {
-            set_def_colour(cp->m_colour);
+            set_def_colour(cp->m_colour, cp->m_cols, cp->ctype);
 
             wxCommandEvent evt(EVT_SELECTED_COLOR);
             unsigned long g_col = ((cp->m_colour.Red() & 0xff) << 24) + ((cp->m_colour.Green() & 0xff) << 16) + ((cp->m_colour.Blue() & 0xff) << 8) + (cp->m_colour.Alpha() & 0xff);
@@ -1948,9 +2076,68 @@ void ColorPickerPopup::set_ams_colours(std::vector<wxColour> ams)
     Fit();
 }
 
-void ColorPickerPopup::set_def_colour(wxColour col)
+void ColorPickerPopup::set_preset_colours(const std::vector<ColorItem>& preset_colors)
+{
+    m_other_fg_sizer->Clear(false);
+    if (!m_preset_color_pickers.empty()) {
+        for (ColorPicker* col_pick : m_preset_color_pickers) {
+            auto iter = std::find(m_color_pickers.begin(), m_color_pickers.end(), col_pick);
+            if (iter != m_color_pickers.end()) {
+                col_pick->Hide();
+                col_pick->Destroy();
+                m_color_pickers.erase(iter);
+            }
+        }
+        m_preset_color_pickers.clear();
+    }
+
+    for (const ColorItem& item : preset_colors) {
+        if (item.colors.empty()) continue;
+
+        auto cp = new ColorPicker(m_def_color_box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+        cp->set_color(item.colors.front());
+        cp->set_colors(item.colors);
+        cp->ctype = item.colors.size() > 1 ? item.ctype : 2;
+        cp->set_show_full(true);
+        cp->set_selected(false);
+        cp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(238,238,238)));
+        if (!item.name.empty()) {
+            cp->SetToolTip(item.name);
+        }
+
+        m_color_pickers.push_back(cp);
+        m_preset_color_pickers.push_back(cp);
+        cp->Bind(wxEVT_LEFT_DOWN, [this, cp](auto& e) {
+            set_def_colour(cp->m_colour, cp->m_cols, cp->ctype);
+
+            wxCommandEvent evt(EVT_SELECTED_COLOR);
+            unsigned long g_col = ((cp->m_colour.Red() & 0xff) << 24) + ((cp->m_colour.Green() & 0xff) << 16) + ((cp->m_colour.Blue() & 0xff) << 8) + (cp->m_colour.Alpha() & 0xff);
+            evt.SetInt(g_col);
+            wxPostEvent(GetParent(), evt);
+        });
+    }
+
+    const bool show_default_colours = m_preset_color_pickers.empty();
+    for (ColorPicker* cp : m_default_color_pickers) {
+        cp->Show(show_default_colours);
+    }
+    for (ColorPicker* cp : (show_default_colours ? m_default_color_pickers : m_preset_color_pickers)) {
+        m_other_fg_sizer->Add(cp, 0, wxALL, FromDIP(3));
+    }
+
+    m_other_fg_sizer->Layout();
+    Layout();
+    Fit();
+}
+
+void ColorPickerPopup::set_def_colour(wxColour col, std::vector<wxColour> cols, int ctype)
 {
     m_def_col = col;
+    if (cols.empty()) {
+        cols.push_back(col);
+    }
+    m_def_cols = cols;
+    m_def_ctype = m_def_cols.size() > 1 ? ctype : 2;
 
     for (ColorPicker* cp : m_color_pickers) {
         if (cp->m_selected) {
@@ -1959,7 +2146,8 @@ void ColorPickerPopup::set_def_colour(wxColour col)
     }
 
     for (ColorPicker* cp : m_color_pickers) {
-        if (cp->m_colour == m_def_col) {
+        if (!cp->IsShown()) continue;
+        if (cp->ctype == m_def_ctype && cp->m_cols == m_def_cols) {
             cp->set_selected(true);
             break;
         }

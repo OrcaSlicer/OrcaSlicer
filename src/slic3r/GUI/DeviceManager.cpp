@@ -1798,7 +1798,8 @@ int MachineObject::command_ams_calibrate(int ams_id)
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
-int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
+int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type,
+                                                 int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors, int tray_ctype)
 {
     int tag_tray_id = 0;
     int tag_ams_id  = ams_id;
@@ -1827,6 +1828,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
     j["print"]["nozzle_temp_min"]   = nozzle_temp_min;
     j["print"]["nozzle_temp_max"]   = nozzle_temp_max;
     j["print"]["tray_type"]         = tray_type;
+    if (!tray_colors.empty()) {
+        j["print"]["cols"]  = tray_colors;
+        j["print"]["ctype"] = tray_ctype;
+    }
 
     return this->publish_json(j);
 }
@@ -5470,6 +5475,7 @@ void MachineObject::parse_new_info(json print)
         is_support_pa_mode = (get_flag_bits_no_border(fun2, 3) == 1);
         is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
         is_support_check_track_switch_match_slice_printer = get_flag_bits_no_border(fun2, 19) == 1;
+        is_support_filament_manual_multi_color = (get_flag_bits_no_border(fun2, 23) == 1);
 
         if (DevPrinterConfigUtil::support_print_check_firmware_for_tpu_left(printer_type)) {
             m_firmware_support_print_tpu_left = get_flag_bits_no_border(fun2, 7) == 1;

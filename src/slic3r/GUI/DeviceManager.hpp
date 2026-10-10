@@ -672,6 +672,7 @@ public:
     bool is_support_remote_dry = false;
     bool is_support_check_track_switch_match_slice_printer{false};
     bool is_support_pa_mode{false};
+    bool is_support_filament_manual_multi_color{false};
     std::optional<bool> m_firmware_support_print_tpu_left;
 
     bool installed_upgrade_kit{false};
@@ -802,7 +803,7 @@ public:
     int command_ams_switch_filament(bool switch_filament);
     int command_ams_air_print_detect(bool air_print_detect);
     int command_ams_calibrate(int ams_id);
-    int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max);
+    int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors = {}, int tray_ctype = 2);
     int command_ams_select_tray(std::string tray_id);
     int command_ams_refresh_rfid(int ams_id, int slot_id);
     int command_ams_control(std::string action);
