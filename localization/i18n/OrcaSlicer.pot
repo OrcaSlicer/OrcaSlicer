@@ -12077,6 +12077,14 @@ msgid "a perimeter is fully inside a modifier, the modifier was not applied to i
 msgstr ""
 
 #, possible-boost-format
+msgid "Seam Blocked modifier \"%1%\" of \"%2%\" covers an entire perimeter"
+msgstr ""
+
+#, possible-boost-format
+msgid "Seam Blocked modifier \"%1%\" of \"%2%\" (%3% in total) covers an entire perimeter"
+msgstr ""
+
+#, possible-boost-format
 msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
 msgstr ""
 

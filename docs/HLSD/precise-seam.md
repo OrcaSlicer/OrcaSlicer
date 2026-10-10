@@ -82,9 +82,7 @@ there.
   strong point is placed, no later strong modifier and no weak modifier is
   processed for that perimeter.
 - **Weak:** every weak modifier applies. They are applied from the lowest
-  priority to the highest, so the highest one overwrites overlapping zones. A
-  Blocked modifier that fully contains a perimeter is the exception: it is
-  skipped there (see [Full containment](#full-containment)).
+  priority to the highest, so the highest one overwrites overlapping zones.
 
 A strong modifier without a usable segment, even one whose fragments were all
 discarded, passes the turn to the next one.
@@ -232,20 +230,20 @@ begin and end positions on the source contour.
 ### Full containment
 
 A modifier that covers the whole perimeter has no boundaries on it. The policy
-follows seam painting, where painting a whole perimeter green is a meaningful
-choice and forbidding the seam all round is not:
+follows seam painting, where a whole perimeter can be painted in either color:
 
 - **Seam Enforced** types the whole perimeter, like a perimeter painted green all
   round, with subdivision applied as described under [Weak modifiers](#weak-modifiers).
 - **Seam Neutral** types the whole perimeter Neutral, like an unmarked perimeter,
   clearing painting and lower zones.
-- **Seam Blocked** is skipped for the perimeter, with the full-containment
-  warning. The seam cannot avoid the whole perimeter, so the modifier does not
-  override anything below it: lower zones and painting stay in effect.
-- **Seam Center, Left and Right** are skipped with the same warning: there is no
-  intersection to place the point on.
+- **Seam Blocked** types the whole perimeter Blocked, like a perimeter painted
+  red all round, overriding painting and lower zones. If the perimeter stays
+  Blocked after all weak zones, a warning names the modifier, so the user can
+  check it.
+- **Seam Center, Left and Right** are skipped with the full-containment warning:
+  there is no intersection to place the point on.
 
-Enforced and Neutral take part in the usual priority order (see
+Enforced, Neutral and Blocked take part in the usual priority order (see
 [Weak modifiers](#weak-modifiers)).
 
 The perimeter is fully contained when the united intervals cover every source
@@ -311,9 +309,9 @@ into every perimeter that has a strong seam.
 `collect_weak_modifier_segments()` extracts the segments of every weak modifier
 before the polygon is modified, so all positions refer to the same contour. Each
 segment becomes a zone with a type and two boundaries, kept in application
-order, lowest priority first. Full containment of an Enforced or Neutral
-modifier becomes a whole-perimeter zone at its place in that order: it has no
-boundaries and takes part in no insertion or helper step below. The boundaries
+order, lowest priority first. Full containment of a weak modifier becomes a
+whole-perimeter zone at its place in that order: it has no boundaries and takes
+part in no insertion or helper step below. The boundaries
 carry their positions on the source contour; these remain as provenance after
 insertion and are not indices into the modified polygon.
 
@@ -384,9 +382,10 @@ G-code export issues it as one non-critical warning with the ID
 `SlicingPreciseSeamWarning`. It is a single line, "Precise Seam: <causes>. Seam
 placement may differ from expected.", because the export warnings dialog shows
 only the first line of each warning. Repeated warning events replace the
-notification instead of appending to it. Except for the "had no effect" cause,
-the causes name the modifier types involved, as the menu names them, in menu
-order and each type once, for example "(Seam Left, Seam Enforced)".
+notification instead of appending to it. Except for the "covers an entire
+perimeter" and "had no effect" causes, the causes name the modifier types
+involved, as the menu names them, in menu order and each type once, for example
+"(Seam Left, Seam Enforced)".
 The causes are:
 
 - **failed to process some intersections (types):** at least one fragment was
@@ -395,8 +394,16 @@ The causes are:
   a Seam Center, Left or Right modifier had more than one segment on a
   perimeter (see [Strong modifiers](#strong-modifiers)).
 - **a perimeter is fully inside a modifier, the modifier was not applied to it
-  (types):** a Seam Center, Left, Right or Blocked modifier was skipped for a
+  (types):** a Seam Center, Left or Right modifier was skipped for a
   perimeter (see [Full containment](#full-containment)).
+- **Seam Blocked modifier "<name>" of "<object>" covers an entire perimeter:**
+  a Seam Blocked modifier covered a whole perimeter (see
+  [Full containment](#full-containment)). Only perimeters whose candidates are
+  all Blocked after all weak zones contribute to this warning:
+  `apply_weak_modifiers_to_perimeter()` checks the final types and flags every
+  Seam Blocked modifier with a whole-perimeter zone there. Only the first such
+  modifier in print and volume order is named, followed by "(N in total)" when
+  there are several.
 - **modifier "<name>" of "<object>" had no effect on the seam (it might not reach
   the centerline of the printed perimeter):** a modifier was evaluated on at
   least one perimeter and never gave a segment, full containment or a discarded
@@ -420,6 +427,8 @@ The log records the following diagnostic markers:
 - `[PreciseSeamNoEffect]` for every modifier of the "had no effect" cause, with
   the object and modifier names. Unlike the user warning, the log lists all of
   them.
+- `[PreciseSeamFullyBlocked]` for every modifier of the "covers an entire
+  perimeter" cause, listed the same way.
 
 Failures and recoveries are counted separately. The first 10 of each per
 `init()` call are logged in detail, in parallel processing order; if a limit is
@@ -563,9 +572,10 @@ last modifier would.
   priorities, weak boundaries that coincide or share an edge, enforced
   subdivision, whole-perimeter weak zones with painting and priorities, weak
   zones over painting's oversampled candidates, the warning type masks, usage
-  tracking for the "had no effect" warning, volume sorting of strong and weak
-  groups, restoration of strong points after alignment, raft layer indexing and
-  structured slices. End-to-end tests slice a real object with Precise Seam
+  tracking for the "had no effect" and whole-perimeter Blocked warnings, volume
+  sorting of strong and weak groups, restoration of strong points after
+  alignment, raft layer indexing and structured slices. End-to-end tests slice
+  a real object with Precise Seam
   volumes and check the outer wall starts in the exported G-code: every strong
   mode under several seam positions and with a raft, Enforced and Blocked zones,
   a modifier with a hole, and the user warning.

@@ -673,7 +673,7 @@ static void refine_at_vertex(
     }
 }
 
-// Records one extraction for the warnings: the type of a modifier with a discarded fragment, and the
+// Records one extraction for the warnings: the type of a modifier with a discarded fragment, the
 // evaluated/reached flags for "had no effect" (a discarded fragment counts as reached, a contact not).
 static void record_extraction(PreciseSeamWarnings *warnings, const ModelVolume *modifier,
                               const SegmentExtraction &extracted)
@@ -953,16 +953,12 @@ std::vector<WeakModifierSegment> collect_weak_modifier_segments(
         const SegmentExtraction extracted = extract_perimeter_segments(prepared, it->second[layer_id], modifier_volume->type(), context);
         record_extraction(warnings, modifier_volume, extracted);
         const auto type = convert_weak_modifier_type(modifier_volume->type());
-        // Full containment works like seam painting: Enforced and Neutral type the whole perimeter;
-        // Blocked is skipped with a warning, since the seam cannot avoid the whole perimeter.
+        // Full containment works like seam painting all round: the whole perimeter takes the type.
+        // A perimeter left whole Blocked also gets a warning (see apply_weak_modifiers_to_perimeter()).
         if (extracted.full_containment) {
-            if (type == EnforcedBlockedSeamPoint::Blocked) {
-                if (warnings)
-                    PreciseSeamWarnings::mark(warnings->full_containment, modifier_volume->type());
-                continue;
-            }
             WeakModifierSegment whole{type, Point(), PerimeterPosition{0, 0.}, Point(), PerimeterPosition{0, 0.}};
             whole.whole_perimeter = true;
+            whole.modifier = modifier_volume;
             result.push_back(whole);
             continue;
         }
@@ -979,7 +975,8 @@ void apply_weak_modifiers_to_perimeter(
     const std::vector<WeakModifierSegment> &weak_segments,
     PrintObjectSeamData::LayerSeams &result,
     const SeamPlacerImpl::Perimeter &perimeter,
-    bool &some_point_enforced)
+    bool &some_point_enforced,
+    PreciseSeamWarnings *warnings)
 {
     // Get z-coordinate for unscaling boundary points
     const float z_coord = result.points[perimeter.start_index].position.z();
@@ -1028,6 +1025,21 @@ void apply_weak_modifiers_to_perimeter(
         if (segment.type == EnforcedBlockedSeamPoint::Enforced) {
             some_point_enforced = true;
         }
+    }
+
+    // Warn only about the final typing: a higher-priority zone may unblock part of a whole Blocked one.
+    if (warnings == nullptr)
+        return;
+    for (size_t i = perimeter.start_index; i < perimeter.end_index; ++i)
+        if (result.points[i].type != EnforcedBlockedSeamPoint::Blocked)
+            return;
+    for (const WeakModifierSegment &segment : weak_segments) {
+        if (!segment.whole_perimeter || segment.type != EnforcedBlockedSeamPoint::Blocked)
+            continue;
+        const auto usage = warnings->modifier_usage.find(segment.modifier);
+        // Load before store: most calls find the flag already set, so shared cache lines stay clean.
+        if (usage != warnings->modifier_usage.end() && !usage->second.fully_blocked.load(std::memory_order_relaxed))
+            usage->second.fully_blocked.store(true, std::memory_order_relaxed);
     }
 }
 
