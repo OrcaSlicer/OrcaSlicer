@@ -39584,7 +39584,10 @@ msgstr "Số điểm tối đa: %d."
 msgid "The curve contains too many points."
 msgstr "Đường cong có quá nhiều điểm."
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Bàn di chuột: hai ngón tay cuộn đồ thị hai hướng. Chụm hoặc mở ngón tay thu phóng cả hai trục quanh con trỏ."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Bàn di chuột: hai ngón tay cuộn đồ thị hai hướng.\n"
+"Chụm hoặc mở ngón tay thu phóng cả hai trục quanh con trỏ."
 

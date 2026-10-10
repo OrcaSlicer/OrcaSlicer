@@ -40028,7 +40028,10 @@ msgstr "最大点数：%d。"
 msgid "The curve contains too many points."
 msgstr "曲線の点が多すぎます。"
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "タッチパッド：2本指でグラフを上下左右に移動。ピンチでポインターを中心に両軸を拡大・縮小します。"
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"タッチパッド：2本指でグラフを上下左右に移動。\n"
+"ピンチでポインターを中心に両軸を拡大・縮小します。"
 

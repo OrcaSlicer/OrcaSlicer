@@ -38630,8 +38630,10 @@ msgstr "จำนวนจุดสูงสุด: %d."
 msgid "The curve contains too many points."
 msgstr "เส้นโค้งมีจุดมากเกินไป."
 
-# AI Translated
-# Needs human review: Check point terminology and concise UI phrasing.
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "ทัชแพด: เลื่อนสองนิ้วเพื่อเลื่อนกราฟทั้งสองทิศทาง จีบหรือกางนิ้วเพื่อซูมทั้งสองแกนรอบตัวชี้"
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"ทัชแพด: เลื่อนสองนิ้วเพื่อเลื่อนกราฟทั้งสองทิศทาง\n"
+"จีบหรือกางนิ้วเพื่อซูมทั้งสองแกนรอบตัวชี้"
 

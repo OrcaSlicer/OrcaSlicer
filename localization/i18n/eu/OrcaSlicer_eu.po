@@ -38159,8 +38159,10 @@ msgstr "Gehieneko puntu kopurua: %d."
 msgid "The curve contains too many points."
 msgstr "Kurbak puntu gehiegi ditu."
 
-# AI Translated
-# Needs human review: Check point terminology and concise UI phrasing.
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Touchpad: bi hatzek grafikoa bi norabideetan mugitzen dute. Atximurkak bi ardatzak zoomatzen ditu erakuslean."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Touchpad: bi hatzek grafikoa bi norabideetan mugitzen dute.\n"
+"Atximurkak bi ardatzak zoomatzen ditu erakuslean."
 
