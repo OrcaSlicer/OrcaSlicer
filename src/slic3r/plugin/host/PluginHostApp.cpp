@@ -175,15 +175,6 @@ void host_bindings::register_app(py::module_& host)
         return current_plater()->model();
     }, py::return_value_policy::reference);
     host.def("preset_bundle", &current_preset_bundle, py::return_value_policy::reference);
-    // UI language of the running app ("en_US", "ru_RU", ...), so plugins can
-    // localize their own dialogs. The app config file that stores this value
-    // is deny-listed by the audit hook (it sits next to cloud secrets), so a
-    // read-only accessor is the supported way to get just the language.
-    host.def("app_language", []() -> std::string {
-        if (wxTheApp == nullptr)
-            throw std::runtime_error("OrcaSlicer application is not initialized");
-        return GUI::into_u8(GUI::wxGetApp().current_language_code_safe());
-    });
     host.def("app_info", &app_info,
              "The running app: version, build, mode, language, app_config_version (the version that wrote the app config "
              "before this run, empty when there was none), stealth_mode, is_signed_in (Orca Cloud), is_bambu_signed_in (Bambu Cloud), network_plugin_version (empty "
