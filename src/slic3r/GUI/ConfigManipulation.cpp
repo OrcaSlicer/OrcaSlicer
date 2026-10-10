@@ -1197,7 +1197,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_line(el, has_set_other_flow_ratios);
 
     bool has_overhang_speed = config->opt_bool_nullable("enable_overhang_speed", variant_index);
-    for (auto el : {"overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed"})
+    for (auto el : {"overhang_0_4_speed", "overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed"})
         toggle_line(el, has_overhang_speed, variant_index);
 
     toggle_line("slowdown_for_curled_perimeters", has_overhang_speed, variant_index);

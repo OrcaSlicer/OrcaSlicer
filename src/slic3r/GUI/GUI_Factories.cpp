@@ -186,13 +186,14 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"top_surface_speed", "", 4},
        {"internal_solid_infill_speed", "", 5},
        {"enable_overhang_speed", "", 6},
-       {"overhang_1_4_speed", "", 7},
-       {"overhang_2_4_speed", "", 8},
-       {"overhang_3_4_speed", "", 9},
-       {"overhang_4_4_speed", "", 10},
-       {"bridge_speed", "", 11},
-       {"gap_infill_speed", "", 12},
-       {"internal_bridge_speed", "", 13}}}};
+       {"overhang_0_4_speed", "", 7},
+       {"overhang_1_4_speed", "", 8},
+       {"overhang_2_4_speed", "", 9},
+       {"overhang_3_4_speed", "", 10},
+       {"overhang_4_4_speed", "", 11},
+       {"bridge_speed", "", 12},
+       {"gap_infill_speed", "", 13},
+       {"internal_bridge_speed", "", 14}}}};
 
 std::vector<std::string> SettingsFactory::get_options(const bool is_part)
 {

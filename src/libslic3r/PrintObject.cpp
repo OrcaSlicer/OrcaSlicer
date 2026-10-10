@@ -1791,6 +1791,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "seam_slope_inner_walls"
             || opt_key == "support_speed"
             || opt_key == "support_interface_speed"
+            || opt_key == "overhang_0_4_speed"
             || opt_key == "overhang_1_4_speed"
             || opt_key == "overhang_2_4_speed"
             || opt_key == "overhang_3_4_speed"

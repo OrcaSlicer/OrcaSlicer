@@ -1341,6 +1341,7 @@ static std::vector<std::string> s_Preset_print_options{
     "support_bottom_interface_spacing",
     "enable_overhang_speed",
     "slowdown_for_curled_perimeters",
+    "overhang_0_4_speed",
     "overhang_1_4_speed",
     "overhang_2_4_speed",
     "overhang_3_4_speed",

@@ -61,7 +61,8 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                                                               // fan switches on; negative when the fan does not depend on overlap.
                                                               float                                   fan_overlap_threshold = -1.0f,
                                                               // Returns an input point's signed distance if already known, else nullptr.
-                                                              const KNOWN_DISTANCES&                  known_distance = KNOWN_DISTANCES{})
+                                                              const KNOWN_DISTANCES&                  known_distance = KNOWN_DISTANCES{},
+                                                              bool                                    preserve_speedups = false)
 {
     bool   looped     = input_points.front() == input_points.back();
     std::function<size_t(size_t,size_t)> get_prev_index = [](size_t idx, size_t count) {
@@ -174,16 +175,16 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     // reads as supported along its whole length. Probe the interior, keep the samples the endpoint interpolation fails to predict, 
     // and bisect either side of each one, so a span that is only partly unsupported gets points where its support actually changes 
     // instead of one reading being spread across all of it.
-    // Skipped where there is nothing to find: min_distance <= 0 when no overhang can slow this path down, and
-    // fan_overlap_threshold < 0 when no overhang switches the fan on. It also needs distance_to_speed to tell which of
-    // the points it could add would change the G-code.
-    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && distance_to_speed && (min_distance > 0 || fan_overlap_threshold >= 0.f)) {
+    // Probe when the path can slow down, speed up or switch the fan. The speed callback tells
+    // which samples would change the G-code.
+    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && distance_to_speed && (min_distance > 0 || fan_overlap_threshold >= 0.f || preserve_speedups)) {
         // Probe at least this densely before treating matching samples as evidence that a span is uniform. The
         // segmentation pass below only splits lines of 2mm or more, and every pass here drops points closer
         // together than min_spacing, so finer discovery would not produce a more precise transition.
         const double max_probe_spacing = std::max(2., 4. * min_spacing);
         // A backstop for that length test, which on a non-finite length would never be met.
         constexpr int max_bisection_depth = 10;
+        const float supported_speed = distance_to_speed(0.f);
 
         // Part of a segment still to bisect: its positions along the segment and bisections left.
         struct Subspan { double t0, t1; int depth; };
@@ -231,15 +232,11 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                     const bool  at_end    = i + 1 == interior.size();      // And nothing follows the last sample but the segment's end
                     const float before    = at_start ? curr.distance : interior[kept - 1].second;
                     const float after     = at_end ? next.distance : interior[i + 1].second;
-                    // A sample is worth a point in the path only where it prints differently, in speed or fan state,
-                    // from the points either side of it. Differing from one of the segment's own ends is not enough on
-                    // its own where the sample is not the slower or cooled of the two: the segmentation pass below
-                    // already confines the slowdown and cooling at an end, at a distance taken from how far out that
-                    // end is rather than from wherever bisection happened to stop, and a point here would leave the
-                    // span beside the end too short for that pass to run at all. Support an end cannot account for,
-                    // where the interior is the slower or cooled of the two, is exactly what this pass is here to find.
-                    const bool worth_before = !same_speed_and_fan(sample, before) && (!at_start || slower_or_cooled(sample, before));
-                    const bool worth_after  = !same_speed_and_fan(sample, after) && (!at_end || slower_or_cooled(sample, after));
+                    // Retain interior slowdowns, fan switches and speed-ups. Supported samples
+                    // between slow corners still rely on the endpoint segmentation below.
+                    const bool speedup = preserve_speedups && distance_to_speed(sample) > supported_speed + 1.f;
+                    const bool worth_before = !same_speed_and_fan(sample, before) && (!at_start || slower_or_cooled(sample, before) || speedup);
+                    const bool worth_after  = !same_speed_and_fan(sample, after) && (!at_end || slower_or_cooled(sample, after) || speedup);
                     if (worth_before || worth_after)
                         interior[kept++] = interior[i];
                 }
@@ -281,9 +278,11 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                 // slower or cooled compared with a supported point (overhang distance 0). Deciding on how the end
                 // prints, rather than on its overhang distance against min_distance, also catches an end whose overhang
                 // distance is exactly where the slowdown begins, such as an outline crossing at half a line width.
+                // Speed-up transitions also need cuts to separate faster spans from supported ones.
                 // Without distance_to_speed, split every line over 4mm.
                 const bool split_line = distance_to_speed ?
-                    line_len >= 2.f && (slower_or_cooled(curr.distance, 0.f) || slower_or_cooled(next.distance, 0.f)) :
+                    line_len >= 2.f && (slower_or_cooled(curr.distance, 0.f) || slower_or_cooled(next.distance, 0.f) ||
+                        (preserve_speedups && !same_speed_and_fan(curr.distance, next.distance))) :
                     line_len > 4.0f;
                 if (split_line) {
                     // Each end's piece is that end's overhang distance plus 1.5 line widths (3 * boundary_offset) long:
@@ -543,10 +542,12 @@ public:
                                                            const ConfigOptionFloatsOrPercents &speeds,
                                                            float                               ext_perimeter_speed,
                                                            float                               original_speed,
-                                                           bool								   slowdown_for_curled_edges,
+                                                           bool                                slowdown_for_curled_edges,
                                                            // Overlap at or below which the overhang fan switches on; negative when the fan
                                                            // does not depend on overlap.
-                                                           float                               fan_overlap_threshold = -1.0f)
+                                                           float                               fan_overlap_threshold = -1.0f,
+                                                           // Volumetric limit in mm/s; zero preserves the legacy path-speed limit.
+                                                           float                               max_speed = 0.f)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
         std::vector<std::pair<float, float>> speed_sections;
@@ -573,31 +574,42 @@ public:
                 last_section = section;
             }
         }
+
+        if (max_speed <= 0.f)
+            max_speed = original_speed;
+        const auto is_speedup = [&](size_t i) {
+            // At 100% the last point is bridge speed, unless curled-edge slowdown extends the 87% target.
+            return max_speed > original_speed && speed_sections[i].second > ext_perimeter_speed &&
+                   (i + 1 < speed_sections.size() || slowdown_for_curled_edges);
+        };
+        bool has_speedup = false;
+        for (size_t i = 0; i < speed_sections.size() && !has_speedup; ++i)
+            has_speedup = is_speedup(i);
         
-        // Orca: Find the smallest overhang distance where speed adjustments begin
-        float smallest_distance_with_lower_speed = std::numeric_limits<float>::infinity(); // Initialize to a large value
-        bool found = false;
-        for (const auto& section : speed_sections) {
-            if (section.second <= original_speed) {
-                if (section.first < smallest_distance_with_lower_speed) {
-                    smallest_distance_with_lower_speed = section.first;
-                    found = true;
-                }
-            }
+        // Keep the legacy slowdown threshold; speed-up ramps start at the preceding control point.
+        const bool starts_at_supported_boundary = speed_sections.front().first <= EPSILON;
+        const float supported_distance_tolerance = starts_at_supported_boundary ? path.width * 0.001f : 0.f;
+        float speed_change_distance = -1.f;
+        for (size_t i = starts_at_supported_boundary ? 1 : 0; i < speed_sections.size(); ++i) {
+            const auto &section = speed_sections[i];
+            const bool speedup = is_speedup(i) && section.second > original_speed + 1.f;
+            if (section.second > original_speed && !speedup)
+                continue;
+            const bool interpolate = i > 0 && (speedup || (starts_at_supported_boundary && section.second < original_speed - 1.f));
+            speed_change_distance = interpolate ?
+                std::max(speed_sections[i - 1].first, supported_distance_tolerance) : section.first;
+            break;
         }
 
-        // If no overhang distance slows this path down, -1 turns interior sampling off unless the overhang fan can switch.
-        // Lines are only split where an end prints slower or cooled, so here only a fan switch splits them.
-        if (!found)
-            smallest_distance_with_lower_speed=-1.f;
-
-        // Orca: Pass to the point properties estimator the smallest ovehang distance that triggers a slowdown (smallest_distance_with_lower_speed)
-        auto calculate_speed = [&speed_sections, &original_speed](float distance) {
+        auto calculate_speed = [&](float distance) {
             float final_speed;
-            if (distance <= speed_sections.front().first) {
+            float speed_limit = original_speed;
+            if (distance <= speed_sections.front().first + supported_distance_tolerance) {
                 final_speed = original_speed;
             } else if (distance >= speed_sections.back().first) {
                 final_speed = speed_sections.back().second;
+                if (is_speedup(speed_sections.size() - 1))
+                    speed_limit = max_speed;
             } else {
                 size_t section_idx = 0;
                 while (distance > speed_sections[section_idx + 1].first) {
@@ -606,17 +618,23 @@ public:
                 float t = (distance - speed_sections[section_idx].first) /
                           (speed_sections[section_idx + 1].first - speed_sections[section_idx].first);
                 t           = std::clamp(t, 0.0f, 1.0f);
-                final_speed = (1.0f - t) * speed_sections[section_idx].second + t * speed_sections[section_idx + 1].second;
+                float from_speed = speed_sections[section_idx].second;
+                float to_speed = speed_sections[section_idx + 1].second;
+                const bool from_speedup = is_speedup(section_idx);
+                const bool to_speedup = is_speedup(section_idx + 1);
+                if (from_speedup || to_speedup) {
+                    // Only the adjacent speed-up ramp uses adjusted endpoints. Elsewhere keep the
+                    // legacy clamp AFTER interpolation, including on small or slowed-down perimeters.
+                    if (!from_speedup)
+                        from_speed = std::min(from_speed, original_speed);
+                    if (!to_speedup)
+                        to_speed = std::min(to_speed, original_speed);
+                    speed_limit = max_speed;
+                }
+                final_speed = (1.0f - t) * from_speed + t * to_speed;
             }
-            return round(final_speed);
-        };
-
-        // ORCA: The speed sections are built from ext_perimeter_speed, which can be above the speed this path prints at
-        // (original_speed, e.g. held down by resonance avoidance). Every segment is capped at original_speed below, so
-        // overhang distances whose speeds differ only above it print the same and must not count as a speed change when
-        // the path is split.
-        auto effective_speed = [&calculate_speed, original_speed](float distance) {
-            return std::min(calculate_speed(distance), original_speed);
+            const float rounded_speed = std::round(final_speed);
+            return std::min(rounded_speed, std::min(speed_limit, max_speed));
         };
 
         // Precomputed distances hold only if they were measured against the layer prev_layer_boundaries is built from.
@@ -633,10 +651,12 @@ public:
             return it == known->end() ? nullptr : &it->second;
         };
 
+        // Compare actual feedrates after path and volumetric limits; the fan threshold
+        // independently retains cooling transitions. Reuse cached input distances.
         std::vector<ExtendedPoint<3>> extended_points =
             estimate_points_properties<true, true, true, true, false>(path.polyline.points, prev_boundaries, path.width, -1,
-                                                               smallest_distance_with_lower_speed, effective_speed, fan_overlap_threshold,
-                                                               known_distance);
+                                                               speed_change_distance, calculate_speed, fan_overlap_threshold,
+                                                               known_distance, has_speedup);
         const auto width_inv = 1.0f / path.width;
         std::vector<ProcessedPoint> processed_points;
         processed_points.reserve(extended_points.size());
@@ -696,12 +716,10 @@ public:
             }	
 
             float extrusion_speed = std::min(calculate_speed(curr.distance), calculate_speed(next.distance));
-            // ORCA: Clamp resulting speed to lowest of calculated speed based on the overhang values and the current speed
-            // Fixes bug where resulting overhang speed is higher than the current speed due to (for example) volumetric flow limits.
-            extrusion_speed = std::min(extrusion_speed, original_speed);
             
-            if(slowdown_for_curled_edges) {
-                float curled_speed = calculate_speed(artificial_distance_to_curled_lines);
+            if(slowdown_for_curled_edges && artificial_distance_to_curled_lines > 0.0f) {
+                // Only a detected curl may cancel a speed-up; its own reading must never accelerate the path.
+                float curled_speed = std::min(calculate_speed(artificial_distance_to_curled_lines), original_speed);
             	extrusion_speed       = std::min(curled_speed, extrusion_speed); // adjust extrusion speed based on what is smallest - the calculated overhang speed or the artificial curled speed
             }
             

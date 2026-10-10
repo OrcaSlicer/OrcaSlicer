@@ -1922,12 +1922,35 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable{ false });
 
+    def = this->add("overhang_0_4_speed", coFloatsOrPercents);
+    def->label = "<10%";
+    def->category = L("Speed");
+    def->full_label = "<10%";
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, "
+                     "speed is linearly interpolated from the actual wall speed to this value. "
+                     "For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. "
+                     "A value of 0 disables this initial interpolation. "
+                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
+                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
+    def->sidetext = L("mm/s or %");
+    def->ratio_over = "outer_wall_speed";
+    def->min = 0;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
+
     def = this->add("overhang_1_4_speed", coFloatsOrPercents);
     def->label = "10%";
     def->category = L("Speed");
     def->full_label = "10%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 10% and 25% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, "
+                     "speed is linearly interpolated from the preceding control point to this value. "
+                     "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
+                     "Adjacent targets can still change the speed between control points. "
+                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
+                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -1939,8 +1962,13 @@ void PrintConfigDef::init_fff_params()
     def->label = "25%";
     def->category = L("Speed");
     def->full_label = "25%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 25% and 50% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, "
+                     "speed is linearly interpolated from the preceding control point to this value. "
+                     "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
+                     "Adjacent targets can still change the speed between control points. "
+                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
+                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -1952,8 +1980,13 @@ void PrintConfigDef::init_fff_params()
     def->label = "50%";
     def->category = L("Speed");
     def->full_label = "50%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 50% and 75% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, "
+                     "speed is linearly interpolated from the preceding control point to this value. "
+                     "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
+                     "Adjacent targets can still change the speed between control points. "
+                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
+                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -1965,8 +1998,16 @@ void PrintConfigDef::init_fff_params()
     def->label = "75%";
     def->category = L("Speed");
     def->full_label = "75%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 75% and 100% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, "
+                     "speed is linearly interpolated from the preceding control point to this value. "
+                     "With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% "
+                     "to the external bridge speed at 100%; the bridge target is limited to the original path speed. "
+                     "With it enabled, this value is used throughout the 87% to 100% range. "
+                     "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
+                     "Adjacent targets can still change the speed between control points. "
+                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
+                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -9992,6 +10033,7 @@ std::set<std::string> print_options_with_variant = {
     "internal_solid_infill_speed",
     "top_surface_speed",
     "enable_overhang_speed", //coBools
+    "overhang_0_4_speed",
     "overhang_1_4_speed",
     "overhang_2_4_speed",
     "overhang_3_4_speed",
