@@ -50,6 +50,16 @@ struct DevFilamentDryingPreset;
 class DevAmsTray
 {
 public:
+    // BambuStudio: bits[5-7] of the tray's MQTT "state" field.
+    enum class RemainFetchStatus : int
+    {
+        Done         = 0,
+        Refreshing   = 1,
+        CloudTimeout = 2,
+        CloudNoData  = 3,
+        Initializing = 4,
+    };
+
     DevAmsTray(std::string tray_id)
     {
         is_bbl = false;
@@ -85,6 +95,8 @@ public:
     bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
+    int             remain_g = -1;      // accurate remaining weight in grams; -1 means not provided by firmware
+    RemainFetchStatus remain_fetch_status = RemainFetchStatus::Done;
 
 public:
     // operators
@@ -112,6 +124,13 @@ public:
     static wxColour decode_color(const std::string& color);
 
     std::optional<DevFilamentDryingPreset> get_ams_drying_preset() const;
+
+    // Prefers the accurate per-gram value reported by firmware (remain_g) over the coarse
+    // weight * remain% estimate; nullopt when neither is available.
+    std::optional<int> get_filament_remain_weight() const;
+
+    // Tolerance for comparing remaining weight against filament usage (CheckWarningFilamentRemain).
+    static double get_fila_remain_tolerance() { return 0.05; } // +- 5%
 };
 
 /**
@@ -181,6 +200,13 @@ public:
         On = 1,
     };
 
+    // BambuStudio: bits[30-31] of the AMS "info" field.
+    enum class RemainEstimateVersion : int
+    {
+        Legacy   = 0, // coarse weight * remain% estimate
+        Accurate = 1, // O1D U4 precise (load-cell) estimate
+    };
+
     enum class CannotDryReason : int
     {
         TaskOccupied = 0,
@@ -248,8 +274,11 @@ public:
     // temperature and humidity
     float GetCurrentTemperature() const { return m_current_temperature; }
 
-    bool  SupportHumidity() const { return (m_ams_type == AMS) || (m_ams_type == N3F) || (m_ams_type == N3S);}
+    // AMS reports humidity as a 1-5 dot level; N3F/N3S report it as an exact percentage.
+    bool  SupportHumidityLevel() const { return m_ams_type == AMS; }
     int   GetHumidityLevel() const { return m_humidity_level; }
+
+    bool  SupportHumidityPercent() const { return (m_ams_type == N3F) || (m_ams_type == N3S); }
     int   GetHumidityPercent() const { return m_humidity_percent; }
 
     bool  SupportDrying() const { return m_ams_type == DevAmsType::N3F || m_ams_type == DevAmsType::N3S; }
@@ -265,6 +294,8 @@ public:
     std::optional<DrySettings> GetDrySettings() const { return m_dry_settings; };
 
     bool AmsIsDrying();
+
+    RemainEstimateVersion GetRemainEstimateVersion() const { return m_remain_estimate_version; }
 
 private:
     AmsType       m_ams_type = AmsType::AMS;
@@ -294,6 +325,7 @@ private:
     std::optional<DryFanStatus> m_dry_fan2_status;
     std::optional<std::vector<CannotDryReason>> m_dry_cannot_reasons;
     std::optional<DrySettings> m_dry_settings;
+    RemainEstimateVersion m_remain_estimate_version = RemainEstimateVersion::Legacy;
 };
 
 /**
@@ -351,9 +383,14 @@ public:
     // Map a linear tray index -> {ams_id, slot_id}. Includes the two virtual (external-spool) trays,
     // N3S single-slot units, and the A2L/N9 AMS-Lite-mixed layout (trays 24-27).
     std::map<int, DevAmsSlotId> GetTrayIndexMap();
+    int         GetTrayIdByAmsSlotId(int ams_id, int slot_id);
+    std::string GetTrayNameByTrayId(int tray_id);
 
     // extruder
     int  GetExtruderIdByAmsId(const std::string& ams_id) const;
+
+    // Which extruder this AMS is feeding right now (vs. GetExtruderIdByAmsId's static binding).
+    std::optional<int> GetCurrentExtruderIdByAmsId(const std::string& ams_id) const;
 
     // nozzle: untranslated flow-type string of the extruder bound to this ams (for blacklist matching)
     std::string GetNozzleFlowStringByAmsId(const std::string& ams_id) const;
