@@ -1038,6 +1038,7 @@ if (APPLE)
             GUI/Mcp/ScreenCapture_mac.mm
             GUI/Accessibility/AccessibilityMac.mm
             GUI/Accessibility/AccessibilityMac.h
+            GUI/CurveEditorPanelMac.mm
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()
