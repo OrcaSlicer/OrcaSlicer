@@ -1086,6 +1086,12 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         else if (param == SETTING_OPENGL_SCENE_CACHE) {
             if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
         }
+        else if (param == "auto_reload_on_source_change") {
+            // Apply immediately: start/stop watching the currently loaded objects' source
+            // files rather than waiting for the next unrelated object-list change.
+            if (Plater* plater = wxGetApp().plater())
+                plater->object_list_changed();
+        }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
             if (enabled) wxGetApp().on_stealth_mode_enter();
@@ -1876,6 +1882,29 @@ void PreferencesDialog::create_items()
 
     auto item_remember_print_action = create_item_checkbox(_L("Remember last print action"), _L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."), "remember_print_action");
     g_sizer->Add(item_remember_print_action);
+
+    auto item_auto_reload_confirm_paint_loss = create_item_checkbox(
+        _L("Ask before a reload discards painted features"),
+        _L("A reload that might remove painted supports, seam, color or fuzzy skin asks first, whether it's "
+           "triggered manually (\"Reload from disk\"/\"Reload all from disk\") or automatically by the option below. "
+           "Disable this, or use the confirmation dialog's own \"Reload without warning\" option, to reload such "
+           "objects without asking, discarding the painted areas silently if they aren't preserved."),
+        "auto_reload_confirm_paint_loss");
+    g_sizer->Add(item_auto_reload_confirm_paint_loss);
+
+    auto item_auto_reload_source = create_item_checkbox(
+        _L("Reload objects when their source file changes"),
+        _L("If enabled, OrcaSlicer will automatically reload objects from disk when the file they were imported from changes on disk, e.g. after re-exporting from CAD software. "
+           "\"Auto slice after changes\" does not cover this, it only reacts to print/printer setting changes -- see \"Also slice after auto-reloading a model\", below, for that."),
+        "auto_reload_on_source_change");
+    g_sizer->Add(item_auto_reload_source);
+
+    auto item_auto_slice_after_reload = create_item_checkbox(
+        _L("Also slice after auto-reloading a model"),
+        _L("If enabled, OrcaSlicer will also slice the plate(s) containing the reloaded objects after an automatic reload triggered by the option above, and switch to Preview, "
+           "as clicking \"Slice\" would."),
+        "auto_slice_after_reload");
+    g_sizer->Add(item_auto_slice_after_reload);
 
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);

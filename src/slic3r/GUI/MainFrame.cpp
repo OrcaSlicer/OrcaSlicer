@@ -4282,6 +4282,18 @@ void MainFrame::request_select_tab(const wxString& id)
     wxQueueEvent(this, evt);
 }
 
+bool MainFrame::slice_current_plate()
+{
+    wxGetApp().plater()->update(true, true);
+    m_slice_enable = get_enable_slice_status();
+    m_slice_btn->Enable(m_slice_enable);
+    if (m_slice_enable) {
+        wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+        this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
+    }
+    return m_slice_enable;
+}
+
 int MainFrame::get_calibration_curr_tab() {
     if (CalibrationPanel* calibration = CalibrationPanel::if_built())
         return calibration->get_tabpanel()->GetSelection();

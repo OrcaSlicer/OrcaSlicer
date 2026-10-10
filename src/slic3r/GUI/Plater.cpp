@@ -240,6 +240,7 @@
 #include "RemovableDriveManager.hpp"
 #include "InstanceCheck.hpp"
 #include "NotificationManager.hpp"
+#include "SourceFileWatcher.hpp"
 #include "PresetComboBoxes.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/MultiNozzleSync.hpp"           // NozzleOption, tryPopUpMultiNozzleDialog, setExtruderNozzleCount
@@ -7220,6 +7221,24 @@ struct Plater::priv
     std::string m_broken_shown_sig;
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
+    // Plates still queued for the current auto-slice-after-reload sequence. See
+    // maybe_auto_slice_after_reload().
+    std::vector<int> plates_pending_slice_after_reload;
+    void slice_after_reload();
+    // True from the moment slice_after_reload() posts MainFrame::slice_current_plate()'s
+    // EVT_GLTOOLBAR_SLICE_PLATE event until the next slice completion. background_process.running()
+    // and m_is_slicing don't flip true until that posted event is actually processed, so without
+    // this a second reload landing in that narrow window would see both as still false and start a
+    // second, overlapping auto-slice. Cleared unconditionally at the top of on_process_completed(),
+    // which bounds its lifetime to that window regardless of which slice ends up completing first.
+    bool m_slice_after_reload_starting {false};
+    // Set when maybe_auto_slice_after_reload() cancels the running job itself to restart it, so
+    // on_process_completed() can tell that cancel from the user pressing Cancel (which drops the queue).
+    bool m_auto_slice_restart_pending {false};
+    // True from "Slice all" starting until its sequence completes, is cancelled or fails. Unlike
+    // m_slice_all, which is left set afterwards, it is only true while a multi-plate slice is live.
+    bool m_slice_all_active {false};
+    void clear_auto_slice_queue();
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
     //BBS: m_slice_all in .gcode.3mf file case, set true when slice all
@@ -7271,6 +7290,15 @@ struct Plater::priv
 
     wxTimer                     background_process_timer;
     wxTimer                     auto_reslice_timer;
+    SourceFileWatcher           source_file_watcher;
+
+    // Schedules refresh_source_file_watches() for the next idle, once however many times it is
+    // requested before then: resolving every volume's source stats the filesystem on the UI thread.
+    void update_source_file_watches();
+    void refresh_source_file_watches();
+    bool m_source_file_watch_refresh_pending {false};
+    void on_source_files_changed(const std::set<std::string>& changed_files);
+    void maybe_auto_slice_after_reload(const std::set<int>& touched_objects);
 
     std::string                 label_btn_export;
     std::string                 label_btn_send;
@@ -7573,6 +7601,21 @@ struct Plater::priv
     void replace_with_stl();
     void replace_all_with_stl();
     void reload_all_from_disk();
+    // Reloads only the ModelVolumes whose resolved source path is in changed_files, instead of
+    // reload_all_from_disk()'s select-everything: the watcher knows exactly which files changed,
+    // so there's no reason to re-import every other object's unrelated source on every event.
+    // touched_objects, if given, collects the object indices of every volume this call matched --
+    // best-effort (there's no per-volume success signal to filter on without retries), used only
+    // to decide which plate(s) maybe_auto_slice_after_reload() should consider.
+    void reload_source_files(const std::set<std::string>& changed_files, std::set<int>* touched_objects = nullptr);
+    struct SourcedVolume { int obj_idx; int vol_idx; std::string path; };
+    // Every volume with a recorded source file reload_from_disk() would actually reload -- the
+    // same filter reload_from_disk() itself applies to its selection (see reloadable_volumes()
+    // near reload_from_disk() below) -- with that file's resolved path. Keeping the two filters in
+    // sync matters: this is what decides which files the watcher tracks at all, so a volume this
+    // excludes never triggers a reload, and a volume this includes but reload_from_disk() would
+    // itself drop just wastes a watch rather than reporting a bogus touched_objects entry.
+    std::vector<SourcedVolume> sourced_volumes() const;
 
     //BBS: add no_slice option
     void set_current_panel(wxPanel* panel, bool no_slice = true);
@@ -7928,6 +7971,10 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             evt.Skip();
         }
     });
+    this->source_file_watcher.set_on_changed([this](const std::set<std::string>& changed_files) { this->on_source_files_changed(changed_files); });
+    // A context menu being tracked runs a nested event loop like a modal dialog, which the watcher
+    // detects by itself.
+    this->source_file_watcher.set_is_ui_blocked([this]() { return this->q->m_tracking_popup_menu; });
 
     update();
 
@@ -10676,6 +10723,140 @@ void Plater::priv::object_list_changed()
     wxGetApp().params_panel()->notify_object_config_changed();
 
     q->mark_plate_toolbar_image_dirty();
+
+    update_source_file_watches();
+}
+
+std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
+{
+    std::vector<SourcedVolume> result;
+    // A volume loaded from a 3MF without a recorded source_file gets that project file itself as
+    // its source. Watching it would reload the project into itself on every save.
+    const boost::filesystem::path project_file = into_path(get_project_filename(".3mf")).lexically_normal();
+    for (int obj_idx = 0; obj_idx < int(model.objects.size()); ++obj_idx) {
+        const ModelObject* object = model.objects[obj_idx];
+        for (int vol_idx = 0; vol_idx < int(object->volumes.size()); ++vol_idx) {
+            const ModelVolume* volume = object->volumes[vol_idx];
+            const std::string& input_file = volume->source.input_file;
+            // Same filter as reloadable_volumes() (below), which reload_from_disk() itself applies
+            // to its selection -- otherwise this can watch/select a volume that reload_from_disk()
+            // silently drops, so its stamp gets advanced as if it had actually been reloaded.
+            if (input_file.empty() || volume->source.is_from_builtin_objects || fs::path(input_file).extension().string().empty())
+                continue;
+            std::string path = SourceFileWatcher::resolve_source_file_path(input_file, object->input_file);
+            if (!project_file.empty() && boost::filesystem::path(path).lexically_normal() == project_file)
+                continue;
+            result.push_back({obj_idx, vol_idx, std::move(path)});
+        }
+    }
+    return result;
+}
+
+void Plater::priv::update_source_file_watches()
+{
+    if (m_source_file_watch_refresh_pending)
+        return;
+    m_source_file_watch_refresh_pending = true;
+    q->CallAfter([this]() {
+        m_source_file_watch_refresh_pending = false;
+        refresh_source_file_watches();
+    });
+}
+
+// Keeps the file-system watcher in sync with the distinct set of source files currently
+// referenced by the model.
+void Plater::priv::refresh_source_file_watches()
+{
+    if (!wxGetApp().app_config->get_bool("auto_reload_on_source_change")) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": watching 0 source file(s) for changes (auto-reload disabled)";
+        source_file_watcher.clear();
+        return;
+    }
+
+    std::set<std::string> current_files;
+    for (const SourcedVolume& sv : sourced_volumes())
+        current_files.insert(sv.path);
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": watching " << current_files.size() << " source file(s) for changes";
+    source_file_watcher.set_watched_files(std::move(current_files));
+}
+
+// Called once the watcher confirms one or more tracked source files actually changed on disk.
+// Unattended: this reload runs the exact same reload_from_disk() a manual "Reload from disk"
+// click would, dialogs included -- there's no separate silent/notification path for the watcher
+// to take (see docs/HLSD/auto-reload.md for why: the watcher only reports a file once it has
+// settled, so there's no in-flux state to hide dialogs from).
+void Plater::priv::on_source_files_changed(const std::set<std::string>& changed_files)
+{
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": source file(s) changed on disk, reloading";
+    std::set<int> touched_objects;
+    // reload_from_disk() (called from within this) rearms the watch itself now, unconditionally
+    // -- see its own comment -- so there's nothing left to do here for that.
+    this->reload_source_files(changed_files, &touched_objects);
+    // touched_objects only ever contains objects reload_source_files() actually matched to a
+    // changed file, so this only fires for a plate that really could have changed.
+    if (!touched_objects.empty())
+        this->maybe_auto_slice_after_reload(touched_objects);
+}
+
+// Distinct from "Auto slice after changes" (auto_slice_after_change), which only reacts to
+// print/printer *setting* changes via Plater::on_config_change() -- nothing calls it after a
+// model/geometry reload, so it never fires for the auto-reload watcher no matter how it's
+// configured. This is the model-change counterpart, scoped specifically to the watcher's own
+// reload rather than to reload_all_from_disk() in general: the manual "Reload from disk" menu
+// item has a deliberate "don't slice" contract that a global hook would silently violate.
+//
+// Only the plate(s) that actually contain a touched object are queued -- not the plate that
+// happens to be showing (a reload can affect an off-screen plate) and not every plate on the
+// project (auto-arrange can spread one object's instances across plates, but most reloads
+// touch just one).
+void Plater::priv::maybe_auto_slice_after_reload(const std::set<int>& touched_objects)
+{
+    if (!wxGetApp().app_config->get_bool("auto_slice_after_reload"))
+        return;
+
+    std::set<int> affected_plates;
+    for (int obj_idx : touched_objects) {
+        if (obj_idx < 0 || obj_idx >= int(model.objects.size()))
+            continue;
+        int instance_count = int(model.objects[obj_idx]->instances.size());
+        for (int inst_idx = 0; inst_idx < instance_count; ++inst_idx) {
+            int plate_idx = partplate_list.find_instance(obj_idx, inst_idx);
+            if (plate_idx >= 0)
+                affected_plates.insert(plate_idx);
+        }
+    }
+    if (affected_plates.empty())
+        return;
+
+    if (m_slice_all_active && (background_process.running() || m_is_slicing || m_slice_after_reload_starting)) {
+        // Cancelling would abort the user's whole multi-plate "Slice all", not just one plate.
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Slice all is running, not auto-slicing the reloaded plate(s)";
+        return;
+    }
+
+    // Merge, so plates still queued from an earlier reload aren't dropped.
+    for (int plate_idx : affected_plates)
+        if (std::find(plates_pending_slice_after_reload.begin(), plates_pending_slice_after_reload.end(), plate_idx) ==
+            plates_pending_slice_after_reload.end())
+            plates_pending_slice_after_reload.push_back(plate_idx);
+
+    if (background_process.running() || m_is_slicing || m_slice_after_reload_starting) {
+        // A previous job is still in flight. If it is for one of the affected plates, its result
+        // is stale: cancel it and start on the queued plates once the cancellation completes (see
+        // on_process_completed()), instead of slicing directly, since
+        // MainFrame::get_enable_slice_status() would see a slice as still "in progress" and
+        // silently skip this request. A job for any other plate (or an export) is left alone; the
+        // queue is drained when it completes.
+        const int busy_plate = background_process.empty() ? partplate_list.get_curr_plate_index()
+                                                           : background_process.get_current_plate()->get_index();
+        if (affected_plates.count(busy_plate) && !background_process.is_export_scheduled()) {
+            m_auto_slice_restart_pending = true;
+            background_process.stop();
+        }
+    } else {
+        slice_after_reload();
+    }
 }
 
 void Plater::priv::select_curr_plate_all()
@@ -10792,6 +10973,8 @@ void Plater::priv::delete_all_objects_from_model()
 
     //BBS: update partplate
     partplate_list.clear();
+    clear_auto_slice_queue();
+    m_slice_all_active = false;
 
     model.clear_objects();
     update();
@@ -10846,6 +11029,8 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
 
     //BBS: clear the partplate list's object before object cleared
     partplate_list.reinit();
+    clear_auto_slice_queue();
+    m_slice_all_active = false;
     partplate_list.update_slice_context_to_current_plate(background_process);
     preview->update_gcode_result(partplate_list.get_current_slice_result());
 
@@ -11810,6 +11995,9 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
 
     sla::reproject_points_and_holes(old_model_object);
 
+    // The volume's source is now the replacement file.
+    update_source_file_watches();
+
     return true;
 }
 
@@ -12025,6 +12213,94 @@ void Plater::priv::reload_from_disk()
     selected_volumes.erase(std::unique(selected_volumes.begin(), selected_volumes.end(), [](const std::pair<int, int> &v1, const std::pair<int, int> &v2) {
         return (v1.first == v2.first) && (v1.second == v2.second);
         }), selected_volumes.end());
+
+    // Orca: a reload replaces the volume's mesh outright; painted supports/seam/color/fuzzy skin
+    // is triangle-indexed, so it's simply gone unless `keep_painting` remaps it onto the new mesh
+    // (best-effort, see docs/HLSD/auto-reload.md). A source file changing is the user's own doing
+    // (they re-exported it), so treat it the same as them clicking "Reload from disk" themselves:
+    // honor it. The one exception is paint, because it's real, always-accurately-known data whose
+    // loss is worth a chance to back out of. The same `auto_reload_confirm_paint_loss` preference
+    // gates this for both a manual "Reload from disk"/"Reload all from disk" and the watcher --
+    // the risk is the same either way, so it isn't an auto-reload-specific setting (off by default,
+    // so a manual reload behaves as it always has). The dialog's own "Reload without warning"
+    // checkbox turns the preference off from right there, for whichever kind of reload the user
+    // hit it from. Declining only drops the
+    // painted volumes from this reload, not the whole batch -- one selection (manual or the
+    // watcher's own) can cover several unrelated volumes that happen to share a source file (e.g.
+    // clones, one of them painted), and protecting the painted one shouldn't also hold back a
+    // change to the others just because they were reloaded in the same batch.
+    {
+        std::vector<std::pair<int, int>> painted_volumes;
+        for (const auto &sv : selected_volumes)
+            if (model.objects[sv.first]->volumes[sv.second]->is_any_painted())
+                painted_volumes.push_back(sv);
+
+        if (!painted_volumes.empty() && wxGetApp().app_config->get_bool("auto_reload_confirm_paint_loss")) {
+            wxString message = _L("The following have painted supports, seam, color or fuzzy skin that this reload "
+                                   "might discard:") + "\n";
+            for (const auto &sv : painted_volumes) {
+                const ModelVolume *volume = model.objects[sv.first]->volumes[sv.second];
+                message += "  " + from_u8(volume->name.empty() ? model.objects[sv.first]->name : volume->name) + "\n";
+            }
+            message += _L("Continue reloading from disk?");
+            int result;
+            // TEST-ONLY hook for a headless verification script: never exposed via Preferences,
+            // and inert unless ORCA_TEST_HOOKS_DIR is explicitly exported, so it can't fire in a
+            // real user's session. The answer is read from a file (not the env var itself)
+            // because a script needs to change the answer between phases without restarting the
+            // process an env var would require.
+            const char *test_hooks_dir = std::getenv("ORCA_TEST_HOOKS_DIR");
+            std::string test_answer;
+            if (test_hooks_dir) {
+                std::ifstream ifs((fs::path(test_hooks_dir) / "paint_loss_answer").string());
+                if (ifs)
+                    std::getline(ifs, test_answer);
+            }
+            if (!test_answer.empty()) {
+                bool answer_yes = boost::algorithm::iequals(test_answer, "yes");
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": paint-loss dialog auto-answered "
+                                         << (answer_yes ? "yes" : "no") << " via ORCA_TEST_HOOKS_DIR";
+                result = answer_yes ? wxID_YES : wxID_NO;
+            } else {
+                MessageDialog dlg(q, message, _L("Reload from disk"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                dlg.show_dsa_button(_L("Reload without warning"));
+                result = dlg.ShowModal();
+                if (dlg.get_checkbox_state())
+                    wxGetApp().app_config->set_bool("auto_reload_confirm_paint_loss", false);
+            }
+            if (result != wxID_YES) {
+                selected_volumes.erase(std::remove_if(selected_volumes.begin(), selected_volumes.end(),
+                    [&painted_volumes](const std::pair<int, int> &sv) {
+                        return std::find(painted_volumes.begin(), painted_volumes.end(), sv) != painted_volumes.end();
+                    }), selected_volumes.end());
+                for (const auto &sv : painted_volumes)
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": skipping reload, declined in the paint-loss prompt: object "
+                                             << sv.first << " volume " << sv.second;
+                if (selected_volumes.empty()) {
+                    // Nothing left to reload, but the watch still needs the rearm at the end of
+                    // this function: the declined file may have been renamed into place.
+                    source_file_watcher.forget_watched_files();
+                    update_source_file_watches();
+                    return;
+                }
+            }
+        }
+    }
+
+    // Close any open gizmo before the meshes are replaced: the paint gizmos keep per-triangle
+    // selectors for the old mesh and only rebuild them when the object id or volume count
+    // changes, neither of which a reload does.
+    view3D->get_canvas3d()->get_gizmos_manager().reset_all_states();
+
+    // Every volume id of the objects being reloaded, so the log below can pick out the volumes
+    // that were actually replaced: a replacement gets a fresh id.
+    std::set<int>      reload_object_idxs;
+    std::set<ObjectID> volume_ids_before_reload;
+    for (const auto &sv : selected_volumes)
+        reload_object_idxs.insert(sv.first);
+    for (int obj_idx : reload_object_idxs)
+        for (const ModelVolume *mv : model.objects[obj_idx]->volumes)
+            volume_ids_before_reload.insert(mv->id());
 #else
     Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
 
@@ -12118,6 +12394,22 @@ void Plater::priv::reload_from_disk()
             missing_input_paths.push_back(volume->name);
     }
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
+
+    // Rearm the source-file watches on every way out of here, manual or automatic, including
+    // cancelling the locate-file dialog below: a locate-missing-file prompt or a replace can
+    // repoint a volume's source entirely, and even an in-place reload of the same path can leave a
+    // rename-into-place's file-level watch bound to the old inode, which the regular
+    // object_list_changed() refresh would skip re-arming since the path set itself looks
+    // unchanged. forget_watched_files() forces a full rebuild regardless.
+    struct RearmSourceFileWatches
+    {
+        Plater::priv& p;
+        ~RearmSourceFileWatches()
+        {
+            p.source_file_watcher.forget_watched_files();
+            p.update_source_file_watches();
+        }
+    } rearm_source_file_watches{*this};
 
     std::sort(missing_input_paths.begin(), missing_input_paths.end());
     missing_input_paths.erase(std::unique(missing_input_paths.begin(), missing_input_paths.end()), missing_input_paths.end());
@@ -12221,10 +12513,15 @@ void Plater::priv::reload_from_disk()
                 sidebar->obj_list()->reload_all_plates();
             }
         }
-        catch (std::exception&)
+        catch (std::exception& ex)
         {
-            // error while loading
-            return;
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to load " << path << ": " << ex.what();
+            // Folded into fail_list so this reaches the same end-of-batch dialog as an
+            // unmatched-volume failure below, instead of being reported nowhere. Move on to the
+            // next path instead of abandoning every remaining, unrelated path in this batch on
+            // one file's failure.
+            fail_list.push_back(from_u8(path) + ": " + from_u8(ex.what()));
+            continue;
         }
 
 #if ENABLE_RELOAD_FROM_DISK_REWORK
@@ -12444,6 +12741,25 @@ void Plater::priv::reload_from_disk()
         dlg.ShowModal();
     }
 
+    // Headless-testability: log the size of every volume that was actually replaced, keyed by its
+    // source path rather than internal object/volume index -- a script watching the log knows which
+    // file it wrote, not which index OrcaSlicer assigned it -- so it can confirm "did it grow to N
+    // mm" without a human looking at the viewport. A volume whose file failed to load, or was
+    // declined in the paint prompt above, keeps its id and is not logged. See
+    // scripts/test_auto_reload_simple_headless.py's module docstring.
+    for (int obj_idx : reload_object_idxs) {
+        if (obj_idx >= int(model.objects.size()))
+            continue;
+        for (const ModelVolume *volume : model.objects[obj_idx]->volumes) {
+            if (volume_ids_before_reload.count(volume->id()))
+                continue;
+            const Vec3d size = volume->mesh().transformed_bounding_box(volume->get_matrix()).size();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reloaded " << volume->source.input_file
+                                     << ", bounding box size = " << size.x() << " x " << size.y()
+                                     << " x " << size.z() << " mm";
+        }
+    }
+
     // update 3D scene
     update();
 
@@ -12472,6 +12788,100 @@ void Plater::priv::reload_all_from_disk()
     selection.clear();
     for (unsigned int idx : curr_idxs) {
         selection.add(idx, false);
+    }
+}
+
+void Plater::priv::reload_source_files(const std::set<std::string>& changed_files, std::set<int>* touched_objects)
+{
+    if (changed_files.empty())
+        return;
+
+    Selection& selection = get_selection();
+
+    // Remember the selection by what is selected, not by scene index: reload_from_disk() rebuilds
+    // the reloaded volumes and moves them to the end of their object's volume list, so the old
+    // indices would select different volumes afterwards. Objects themselves keep their indices.
+    const Selection::EMode saved_mode = selection.get_mode();
+    std::set<std::pair<int, int>>           selected_instances; // (object, instance)
+    std::set<std::tuple<int, int, ObjectID>> selected_volumes;   // (object, instance, volume id)
+    std::map<int, std::set<ObjectID>>       volume_ids_before;  // every volume id of an object with a selected volume
+    for (unsigned int idx : selection.get_volume_idxs()) {
+        const GLVolume* v = selection.get_volume(idx);
+        const int obj_idx = v->object_idx();
+        if (obj_idx < 0 || obj_idx >= int(model.objects.size()))
+            continue;
+        if (saved_mode == Selection::Instance) {
+            selected_instances.insert({obj_idx, v->instance_idx()});
+        } else if (v->volume_idx() >= 0 && v->volume_idx() < int(model.objects[obj_idx]->volumes.size())) {
+            selected_volumes.insert({obj_idx, v->instance_idx(), model.objects[obj_idx]->volumes[v->volume_idx()]->id()});
+            std::set<ObjectID>& ids = volume_ids_before[obj_idx];
+            for (const ModelVolume* mv : model.objects[obj_idx]->volumes)
+                ids.insert(mv->id());
+        }
+    }
+
+    // reload_from_disk() operates on the current selection, same as reload_all_from_disk(); build
+    // one covering exactly the volumes whose resolved source is one of changed_files instead of
+    // select_all()'s everything. Any one instance's GLVolume is enough to select a volume:
+    // reload_from_disk() edits the shared ModelObject/ModelVolume directly, so it applies across
+    // every instance regardless of which one's GLVolume triggered the selection.
+    selection.clear();
+    std::vector<SourcedVolume> matched;
+    for (const SourcedVolume& sv : sourced_volumes()) {
+        if (changed_files.find(sv.path) != changed_files.end()) {
+            selection.add_volume(sv.obj_idx, sv.vol_idx, 0, false);
+            matched.push_back(sv);
+        }
+    }
+
+    // A reload replaces a volume with a new one that has a fresh id, so an object whose volume ids
+    // are unchanged afterwards was not reloaded (the paint prompt was declined, or the file failed
+    // to load) and must not trigger an auto-slice.
+    auto volume_ids = [this](int obj_idx) {
+        std::set<ObjectID> ids;
+        for (const ModelVolume* mv : model.objects[obj_idx]->volumes)
+            ids.insert(mv->id());
+        return ids;
+    };
+    std::map<int, std::set<ObjectID>> ids_before_reload;
+    for (const SourcedVolume& sv : matched)
+        ids_before_reload.emplace(sv.obj_idx, volume_ids(sv.obj_idx));
+
+    if (!matched.empty())
+        reload_from_disk();
+
+    if (touched_objects)
+        for (const auto& [obj_idx, ids_before] : ids_before_reload)
+            if (obj_idx < int(model.objects.size()) && volume_ids(obj_idx) != ids_before)
+                touched_objects->insert(obj_idx);
+
+    // restore previous selection
+    Plater::SuppressSnapshots suppress(q);
+    selection.clear();
+    if (saved_mode == Selection::Instance) {
+        for (const auto& [obj_idx, inst_idx] : selected_instances)
+            if (obj_idx < int(model.objects.size()) && inst_idx >= 0 && inst_idx < int(model.objects[obj_idx]->instances.size()))
+                selection.add_instance(obj_idx, inst_idx, false);
+    } else {
+        for (const auto& [obj_idx, ids_before] : volume_ids_before) {
+            if (obj_idx >= int(model.objects.size()))
+                continue;
+            const ModelObject* mo = model.objects[obj_idx];
+            const std::set<ObjectID> ids_now = volume_ids(obj_idx);
+            for (int inst_idx = 0; inst_idx < int(mo->instances.size()); ++inst_idx) {
+                // A selected volume that no longer exists was reloaded: select its replacement(s),
+                // the volumes the object did not have before.
+                bool reloaded = false;
+                for (const auto& [o, i, id] : selected_volumes)
+                    if (o == obj_idx && i == inst_idx && !ids_now.count(id))
+                        reloaded = true;
+                for (int vol_idx = 0; vol_idx < int(mo->volumes.size()); ++vol_idx) {
+                    const ObjectID id = mo->volumes[vol_idx]->id();
+                    if (selected_volumes.count({obj_idx, inst_idx, id}) || (reloaded && !ids_before.count(id)))
+                        selection.add_volume(obj_idx, vol_idx, inst_idx, false);
+                }
+            }
+        }
     }
 }
 
@@ -13259,10 +13669,65 @@ bool Plater::priv::warnings_dialog()
 
 }
 
+// Drops the queued auto-slice plates and the in-flight bookkeeping. The queue holds plate indices,
+// so it is only valid until plates are deleted, reordered or the project is replaced.
+void Plater::priv::clear_auto_slice_queue()
+{
+    plates_pending_slice_after_reload.clear();
+    m_slice_after_reload_starting = false;
+    m_auto_slice_restart_pending  = false;
+}
+
 //BBS: add project slice logic
+// Pops plates off plates_pending_slice_after_reload until one actually starts slicing (a plate
+// that can't be sliced, e.g. its object no longer fits the bed, is skipped, since no completion
+// event would ever step past it). Called directly by maybe_auto_slice_after_reload() to kick the
+// sequence off, and again from on_process_completed() after each queued plate's slice completes,
+// to step to the next one. Once the queue drains, the view is simply left on whichever plate was
+// sliced last -- the same thing "Slice all" already does, and consistent with it, rather than
+// trying to restore wherever the view was before the sequence started.
+void Plater::priv::slice_after_reload()
+{
+    while (!plates_pending_slice_after_reload.empty()) {
+        int plate_idx = plates_pending_slice_after_reload.front();
+        plates_pending_slice_after_reload.erase(plates_pending_slice_after_reload.begin());
+        if (q->select_plate(plate_idx) != 0) {
+            // The queued index no longer resolves to the intended plate (deleted or the plate
+            // list was renumbered since this entry was queued) -- skip this stale entry rather
+            // than falling through and force-slicing whatever plate happens to be selected now.
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": queued plate " << plate_idx << " could not be selected, skipping it";
+            continue;
+        }
+
+        // reload_from_disk() ends with its own update() call, which only *schedules* the
+        // model-changed invalidation via a 500ms debounce timer (schedule_background_process())
+        // rather than applying it right away. Checking the slice-enable state immediately
+        // afterward races that timer: about half the time it hasn't fired yet, so
+        // is_slice_result_valid() still reads stale "already sliced" and the slice is skipped.
+        // Force this plate's slice result invalid directly instead of waiting on it.
+        partplate_list.get_curr_plate()->update_slice_result_valid_state(false);
+        // Jumps to Preview, same as a manually clicked "Slice": the user opted into both auto-reload
+        // and auto-slice, so the export that triggered this is exactly as deliberate a request to see
+        // the sliced result as clicking "Slice" themselves. This is also what keeps the tab bar in
+        // sync with the view -- it's what drives m_tabpanel->SelectPageByName() in
+        // MainFrame::slice_current_plate(); calling select_view_3D() here directly instead would
+        // switch the 3D view's content to Preview while leaving the tab bar reading "Prepare".
+        if (wxGetApp().mainframe->slice_current_plate()) {
+            // slice_current_plate() only posts the slice-start event; background_process.running()
+            // and m_is_slicing don't flip true until it's actually processed. Held until the next
+            // completion event so a reload landing in that window doesn't see both as still false.
+            m_slice_after_reload_starting = true;
+            return;
+        }
+    }
+}
+
 void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 {
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
+    // Whatever slice this completion is for, the posted-but-not-yet-processed window
+    // slice_after_reload() guards against is over by now.
+    m_slice_after_reload_starting = false;
     //BBS:ignore cancel event for some special case
     if (m_ignore_event)
     {
@@ -13270,6 +13735,8 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": ignore this event %1%") % evt.status();
         return;
     }
+    const bool cancelled_by_auto_slice = m_auto_slice_restart_pending;
+    m_auto_slice_restart_pending = false;
     //BBS: add project slice logic
     bool is_finished = !m_slice_all || (m_cur_slice_plate == (partplate_list.get_plate_count() - 1));
 
@@ -13336,6 +13803,10 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", cancel event, status: %1%") % evt.status();
         this->notification_manager->set_slicing_progress_canceled(_u8L("Slicing Canceled"));
         is_finished = true;
+        // The user cancelled: don't go on to slice the queued plates. A cancel issued by
+        // maybe_auto_slice_after_reload() itself, to restart a stale slice, keeps the queue.
+        if (!cancelled_by_auto_slice)
+            plates_pending_slice_after_reload.clear();
     }
 
     {
@@ -13440,6 +13911,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":finished, reload print soon");
         m_is_slicing = false;
+        m_slice_all_active = false;
         this->preview->reload_print(false);
         q->mark_plate_toolbar_image_dirty();
         q->SetDropTarget(new PlaterDropTarget(*main_frame, *q));
@@ -13465,6 +13937,12 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         auto_reslice_after_cancel = false;
         schedule_auto_reslice_if_needed();
     }
+    // Only drain the auto-reload slice queue once this completion is truly final -- not on a
+    // "Slice all" continuation (is_finished false: more plates still coming via start_next_slice()
+    // above), where calling slice_after_reload() here would race that sequence's own plate
+    // selection and slice-start with an unrelated queued plate.
+    if (!plates_pending_slice_after_reload.empty() && is_finished)
+        slice_after_reload();
 
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", exit.");
 }
@@ -13694,6 +14172,13 @@ void Plater::priv::on_action_slice_plate(SimpleEvent&)
         m_slice_all = false;
         q->reslice();
         q->select_view_3D("Preview");
+        // The slice-start event this was waiting for has now been handled, so
+        // background_process.running()/m_is_slicing reflect reality again, whether or not a slice
+        // actually started.
+        m_slice_after_reload_starting = false;
+        // Nothing started, so no completion event will drain the auto-slice queue.
+        if (!plates_pending_slice_after_reload.empty() && !background_process.running() && !m_is_slicing)
+            slice_after_reload();
     }
 }
 
@@ -13740,6 +14225,7 @@ void Plater::priv::on_action_slice_all(SimpleEvent&)
         Model::setExtruderParams(config, numExtruders);
         Model::setPrintSpeedTable(config, print_config);
         m_slice_all = true;
+        m_slice_all_active = true;
         m_slice_all_only_has_gcode = true;
         m_cur_slice_plate = 0;
         //select plate
@@ -14425,6 +14911,12 @@ void Plater::priv::set_project_filename(const wxString& filename)
 
     if (!m_project_folder.empty() && !q->m_only_gcode)
         wxGetApp().mainframe->add_to_recent_projects(filename);
+
+    // Recompute the source-file watches now that the project file's path is current:
+    // sourced_volumes() leaves the project .3mf itself out of the watch set, but
+    // object_list_changed() -- the usual place that recomputes it -- fires before
+    // set_project_filename() during project load, so it can't know that path yet.
+    update_source_file_watches();
 }
 
 void Plater::priv::init_notification_manager()
@@ -15481,6 +15973,9 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
 
     dirty_state.update_from_undo_redo_stack(m_undo_redo_stack_main.project_modified());
     update_title_dirty_status();
+
+    // Undo/redo can add, remove or restore volumes and with them their source files.
+    update_source_file_watches();
 }
 
 void Plater::priv::update_after_undo_redo(const UndoRedo::Snapshot& snapshot, bool /* temp_snapshot_was_taken */)
@@ -22075,6 +22570,9 @@ void Plater::changed_object(ModelObject &object){
 
     // update print
     p->schedule_background_process();
+
+    // A part added from a file ("Add part") arrives here with its source recorded.
+    p->update_source_file_watches();
         
     // Check outside bed
     get_current_canvas3D()->requires_check_outside_state();
@@ -22122,6 +22620,8 @@ void Plater::changed_objects(const std::vector<size_t>& object_idxs)
 
     // update print
     this->p->schedule_background_process();
+
+    p->update_source_file_watches();
 
     if (!is_loading_project()) {
         for (size_t obj_idx : object_idxs) {
@@ -23267,6 +23767,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     } else if ((action == 7) && (!right_click)) {
         // move plate to the front
         take_snapshot("move plate to the front");
+        p->clear_auto_slice_queue();
         ret = p->partplate_list.move_plate_to_index(plate_index,0);
         p->partplate_list.update_slice_context_to_current_plate(p->background_process);
         p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
@@ -23380,6 +23881,7 @@ int Plater::delete_plate(int plate_index)
         index = p->partplate_list.get_curr_plate_index();
 
     take_snapshot("delete partplate");
+    p->clear_auto_slice_queue();
     ret = p->partplate_list.delete_plate(index);
 
     //BBS: update the current print to the current plate
