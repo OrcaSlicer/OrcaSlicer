@@ -2,6 +2,8 @@
 
 #include "miniz_extension.hpp"
 
+#include <miniz.h>
+
 #include <nlohmann/json_fwd.hpp>
 
 namespace Slic3r {
