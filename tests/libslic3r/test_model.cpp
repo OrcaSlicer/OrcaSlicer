@@ -8,10 +8,13 @@
 #include "libslic3r/Point.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/libslic3r.h"
 
 using namespace Slic3r;
 
