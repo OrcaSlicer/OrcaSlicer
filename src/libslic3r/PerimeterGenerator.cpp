@@ -2990,13 +2990,26 @@ void PerimeterGenerator::process_arachne()
         // collapse too narrow infill areas
         const auto    min_perimeter_infill_spacing = coord_t(solid_infill_spacing * (1. - INSET_OVERLAP_TOLERANCE));
 
-        ExPolygons infill_exp = offset2_ex(
-            not_filled_exp,
-            float(-min_perimeter_infill_spacing / 2.),
-            float(inset + min_perimeter_infill_spacing / 2.));
-        // append infill areas to fill_surfaces
-        if (!top_expolygons.empty()) {
-            infill_exp = union_ex(infill_exp, offset_ex(top_expolygons, double(top_inset)));
+        if (top_expolygons.empty() && this->upper_slices != nullptr) {
+            BoundingBox bbox = get_extents(infill_contour);
+            bbox.offset(SCALED_EPSILON);
+            const Polygons upper_clipped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(*this->upper_slices, bbox);
+            top_expolygons               = diff_ex(infill_contour, upper_clipped);
+        }
+
+        const float half_spacing = float(min_perimeter_infill_spacing) * 0.5f;
+
+        ExPolygons infill_exp;
+        if (!top_expolygons.empty() && !is_topmost_layer && !is_bottom_layer) {
+            // Separate internal/sparse infill from top surfaces and expand each region with its own overlap setting.
+            const ExPolygons internal_contour = diff_ex(not_filled_exp, top_expolygons);
+            const ExPolygons sparse_exp = offset2_ex(internal_contour, -half_spacing, float(inset) + half_spacing);
+            const ExPolygons top_exp    = offset2_ex(top_expolygons, -half_spacing, float(top_inset) + half_spacing);
+            infill_exp                  = union_ex(sparse_exp, top_exp);
+        } else {
+            infill_exp = offset2_ex(not_filled_exp, -half_spacing, float(inset) + half_spacing);
+            if (!top_expolygons.empty())
+                infill_exp = union_ex(infill_exp, offset_ex(top_expolygons, float(top_inset)));
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
