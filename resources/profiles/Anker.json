@@ -1,6 +1,6 @@
 {
 	"name": "Anker",
-	"version": "02.04.00.05",
+	"version": "02.04.00.06",
 	"force_update": "0",
 	"description": "Anker configurations",
 	"machine_model_list": [
@@ -305,6 +305,26 @@
 			"sub_path": "filament/Generic PLA Silk @Anker 0.25 nozzle.json"
 		},
 		{
+			"name": "AnkerMake PLA+ Basic @Anker base",
+			"sub_path": "filament/AnkerMake PLA+ Basic @Anker base.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Glitter @Anker base",
+			"sub_path": "filament/AnkerMake PLA+ Glitter @Anker base.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Matte @Anker base",
+			"sub_path": "filament/AnkerMake PLA+ Matte @Anker base.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Metallic @Anker base",
+			"sub_path": "filament/AnkerMake PLA+ Metallic @Anker base.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Silk @Anker base",
+			"sub_path": "filament/AnkerMake PLA+ Silk @Anker base.json"
+		},
+		{
 			"name": "Generic PLA+ @Anker",
 			"sub_path": "filament/Generic PLA+ @Anker.json"
 		},
@@ -327,6 +347,26 @@
 		{
 			"name": "Generic TPU @Anker",
 			"sub_path": "filament/Generic TPU @Anker.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Basic @Anker",
+			"sub_path": "filament/AnkerMake PLA+ Basic @Anker.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Glitter @Anker",
+			"sub_path": "filament/AnkerMake PLA+ Glitter @Anker.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Matte @Anker",
+			"sub_path": "filament/AnkerMake PLA+ Matte @Anker.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Metallic @Anker",
+			"sub_path": "filament/AnkerMake PLA+ Metallic @Anker.json"
+		},
+		{
+			"name": "AnkerMake PLA+ Silk @Anker",
+			"sub_path": "filament/AnkerMake PLA+ Silk @Anker.json"
 		}
 	],
 	"machine_list": [
