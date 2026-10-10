@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstring>
 #include <functional>
+#include <initializer_list>
 #include <map>
 #include <set>
 #include <wx/colour.h>
