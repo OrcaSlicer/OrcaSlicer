@@ -1,5 +1,6 @@
 #include "WipeTowerEstimate.hpp"
 
+#include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
 #include "WipeTower2.hpp"
 #include "../Config.hpp"
@@ -8,7 +9,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <set>
+#include <vector>
+#include "libslic3r/clonable_ptr.hpp"
 
 namespace Slic3r {
 
@@ -22,6 +26,28 @@ static const ConfigOption *option_of(const ConfigBase &config, const char *key)
         if (const ConfigOptionDef *opt_def = def->get(key); opt_def != nullptr)
             return opt_def->default_value.get();
     return nullptr;
+}
+
+bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int num_objects, bool has_mixed_filament)
+{
+    const auto *ept = config.option<ConfigOptionBool>("enable_prime_tower");
+    if (ept == nullptr || !ept->value)
+        return false;
+    // normalize_fdm_2 only reconsiders the option when the plate uses a filament; below that it
+    // leaves the user's choice alone, and there is no tower to reason about either way.
+    if (used_filaments <= 0)
+        return true;
+
+    const ConfigOption *timelapse = option_of(config, "timelapse_type");
+    const bool smooth_timelapse = timelapse != nullptr && timelapse->getInt() == int(TimelapseType::tlSmooth);
+    const auto *wrapping = config.option<ConfigOptionBool>("enable_wrapping_detection");
+    const bool enable_wrapping = wrapping != nullptr && wrapping->value;
+    if (smooth_timelapse || enable_wrapping)
+        return true;
+
+    const ConfigOption *sequence = option_of(config, "print_sequence");
+    const bool by_object = sequence != nullptr && sequence->getInt() == int(PrintSequence::ByObject);
+    return !((used_filaments == 1 && !has_mixed_filament) || (by_object && num_objects > 1));
 }
 
 WipeTowerType resolve_wipe_tower_type(const ConfigBase &config)

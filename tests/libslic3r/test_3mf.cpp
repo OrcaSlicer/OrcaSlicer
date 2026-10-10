@@ -1,8 +1,14 @@
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
+#include "libslic3r/Utils.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Zipper.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -14,17 +20,35 @@
 
 #include "test_utils.hpp"
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Utils.hpp"
+#include <miniz.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <memory>
+#include <cstdint>
+#include <ios>
 #include <nlohmann/json.hpp>
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <algorithm>
+#include <functional>
 
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <string>
+#include <sstream>
 #include <type_traits> // for std::enable_if_t
 #include <typeinfo>    // for typeid
+#include <regex>
+#include <vector>
+#include <utility>
 
 namespace Catch {
     template <typename T>
@@ -147,6 +171,80 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
     }
 }
 
+SCENARIO("Mirrored instance transforms survive 3mf round trips", "[3mf][Regression]") {
+    const bool bbs_format = GENERATE(false, true);
+
+    GIVEN("an instance with a valid mirrored transform") {
+        Model model;
+        const std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        Transform3d mirrored = Transform3d::Identity();
+        mirrored.linear() <<
+             4.4408921e-16,  0.819152044,  0.573576436,
+             1.0,           -4.4408921e-16, -1.11022302e-16,
+            -5.55111512e-17, -0.573576436,  0.819152044;
+        mirrored.translation() = Vec3d(700.41477, -169.930939, 63.392571);
+        REQUIRE_THAT(mirrored.linear().determinant(), Catch::Matchers::WithinAbs(-1.0, 1e-8));
+        model.objects.front()->instances.front()->set_transformation(Geometry::Transformation(mirrored));
+        const TriangleMesh expected_mesh = model.mesh();
+
+        WHEN("the model is stored and loaded") {
+            ScopedTemporaryDir backup_dir("orca_mirrored_transform");
+            model.set_backup_path(backup_dir.string());
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            if (bbs_format) {
+                StoreParams store_params;
+                store_params.path     = test_file.c_str();
+                store_params.model    = &model;
+                store_params.config   = &config;
+                store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+                REQUIRE(store_bbs_3mf(store_params));
+            } else {
+                REQUIRE(store_3mf(test_file.c_str(), &model, &config, false));
+            }
+
+            Model dst_model;
+            ScopedTemporaryDir loaded_backup_dir("orca_mirrored_transform_loaded");
+            dst_model.set_backup_path(loaded_backup_dir.string());
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs dst_plates;
+            std::vector<Preset*> project_presets;
+            ScopeGuard cleanup([&dst_plates, &project_presets]() {
+                release_PlateData_list(dst_plates);
+                for (Preset *preset : project_presets)
+                    delete preset;
+            });
+            if (bbs_format) {
+                bool is_bbl_3mf = false, is_orca_3mf = false;
+                Semver file_version;
+                REQUIRE(load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                     &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                     LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+            } else {
+                REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
+            }
+
+            THEN("the mirrored transform and world geometry are preserved") {
+                REQUIRE(dst_model.objects.size() == 1);
+                REQUIRE(dst_model.objects.front()->instances.size() == 1);
+                const Transform3d &loaded = dst_model.objects.front()->instances.front()->get_matrix();
+                REQUIRE(loaded.linear().determinant() < 0.0);
+
+                const TriangleMesh loaded_mesh = dst_model.mesh();
+                REQUIRE(loaded_mesh.its.vertices.size() == expected_mesh.its.vertices.size());
+                for (size_t i = 0; i < loaded_mesh.its.vertices.size(); ++i)
+                    REQUIRE(loaded_mesh.its.vertices[i].isApprox(expected_mesh.its.vertices[i], 1e-5f));
+            }
+        }
+    }
+}
+
 // The recipe is an opaque binary blob (CadDocument::serialize_recipe()), so the 3mf backend has
 // to carry it byte-for-byte — no XML/text mangling, embedded NULs intact.
 static std::string make_cad_recipe()
@@ -184,16 +282,13 @@ static bool read_cad_recipe_entry(const std::string& path, std::string& out,
     return found;
 }
 
-// Rewrites the archive at `path` with the recipe entry back under the name it had before the
-// rename, which is what every project saved by an earlier build looks like on disk. Generated
-// rather than checked in because a whole project archive is not frozen evidence the way a bare
-// recipe blob is -- it has to be whatever today's exporter writes, with only the name aged.
-// miniz cannot rename in place and open_zip_writer truncates, so the entries are held across
-// the switch.
-static void rename_cad_recipe_entry_to_legacy(const std::string& path)
+// Rewrites the archive at `path`, letting `edit` change the name or data of each entry; returns
+// whether `edit` reported a change for any of them. miniz cannot edit in place and
+// open_zip_writer truncates, so the entries are held across the switch.
+static bool rewrite_3mf_entries(const std::string& path, const std::function<bool(std::string& name, std::string& data)>& edit)
 {
     std::vector<std::pair<std::string, std::string>> entries;
-    bool renamed = false;
+    bool changed = false;
     {
         mz_zip_archive zip;
         mz_zip_zero_struct(&zip);
@@ -208,22 +303,202 @@ static void rename_cad_recipe_entry_to_legacy(const std::string& path)
             std::string data((size_t) st.m_uncomp_size, '\0');
             if (st.m_uncomp_size > 0)
                 REQUIRE(mz_zip_reader_extract_to_mem(&zip, i, data.data(), data.size(), 0));
-            if (boost::algorithm::iequals(name, CAD_RECIPE_ENTRY)) {
-                name    = LEGACY_CAD_RECIPE_ENTRY;
-                renamed = true;
-            }
+            changed |= edit(name, data);
             entries.emplace_back(std::move(name), std::move(data));
         }
         close_zip_reader(&zip);
     }
-    // Without this the scenario would degrade silently into re-testing the new name if the
-    // exporter's constant ever moved again: every load below would still pass.
-    REQUIRE(renamed);
 
     Zipper out(path);
     for (const auto& e : entries)
         out.add_entry(e.first, e.second.data(), e.second.size());
     out.finalize();
+    return changed;
+}
+
+// Rewrites the archive at `path` with the recipe entry back under the name it had before the
+// rename, which is what every project saved by an earlier build looks like on disk. Generated
+// rather than checked in because a whole project archive is not frozen evidence the way a bare
+// recipe blob is -- it has to be whatever today's exporter writes, with only the name aged.
+static void rename_cad_recipe_entry_to_legacy(const std::string& path)
+{
+    const bool renamed = rewrite_3mf_entries(path, [](std::string& name, std::string&) {
+        if (!boost::algorithm::iequals(name, CAD_RECIPE_ENTRY))
+            return false;
+        name = LEGACY_CAD_RECIPE_ENTRY;
+        return true;
+    });
+    // Without this the scenario would degrade silently into re-testing the new name if the
+    // exporter's constant ever moved again: every load below would still pass.
+    REQUIRE(renamed);
+}
+
+// Replaces the first occurrence of `from` in any entry whose name ends with `suffix`.
+static bool replace_in_3mf_entry(const std::string& path, const std::string& suffix, const std::string& from, const std::string& to)
+{
+    bool replaced = false;
+    rewrite_3mf_entries(path, [&](std::string& name, std::string& data) {
+        if (replaced || !boost::algorithm::ends_with(name, suffix))
+            return false;
+        if (const size_t pos = data.find(from); pos != std::string::npos) {
+            data.replace(pos, from.size(), to);
+            replaced = true;
+        }
+        return replaced;
+    });
+    return replaced;
+}
+
+// Stores a one-plate project holding a cube whose first two facets are painted Extruder2 and
+// Extruder3, which the exporter writes as paint_color="8" and paint_color="0C".
+static void store_painted_cube(const std::string& path)
+{
+    Model        model;
+    ModelObject* object = model.add_object();
+    ModelVolume* volume = object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    {
+        TriangleSelector selector(volume->mesh());
+        selector.set_facet(0, EnforcerBlockerType::Extruder2);
+        selector.set_facet(1, EnforcerBlockerType::Extruder3);
+        REQUIRE(volume->mmu_segmentation_facets.set(selector));
+    }
+    ScopedTemporaryDir backup_dir("orca_paint_src");
+    model.set_backup_path(backup_dir.string());
+
+    DynamicPrintConfig cfg;
+    PlateData          plate;
+    plate.plate_index = 0;
+    StoreParams sp;
+    sp.path     = path.c_str();
+    sp.model    = &model;
+    sp.config   = &cfg;
+    sp.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    sp.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(sp));
+}
+
+// Loads `path` through the BBS importer into `model`, releasing the plates it returns. The
+// importer stages metadata through `backup_dir`, which has to outlive the model.
+static bool load_project(const std::string& path, Model& model, const ScopedTemporaryDir& backup_dir)
+{
+    model.set_backup_path(backup_dir.string());
+    DynamicPrintConfig        config;
+    ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+    PlateDataPtrs             plates;
+    std::vector<Preset*>      project_presets;
+    bool   is_bbl_3mf = false, is_orca_3mf = false;
+    Semver file_version;
+    const bool loaded = load_bbs_3mf(path.c_str(), &config, &ctxt, &model, &plates, &project_presets, &is_bbl_3mf,
+                                     &is_orca_3mf, &file_version, nullptr, LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+    release_PlateData_list(plates);
+    return loaded;
+}
+
+TEST_CASE("A project with a plate id below 1 fails to load", "[3mf][Regression]")
+{
+    const int plate_id = GENERATE(0, -1);
+    INFO("plater_id " << plate_id);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+    {
+        ScopedTemporaryDir backup_dir("orca_plate_dst");
+        Model              model;
+        REQUIRE(load_project(temp.string(), model, backup_dir));
+    }
+
+    REQUIRE(replace_in_3mf_entry(temp.string(), "model_settings.config", "key=\"plater_id\" value=\"1\"",
+                                 "key=\"plater_id\" value=\"" + std::to_string(plate_id) + "\""));
+    ScopedTemporaryDir backup_dir("orca_plate_dst");
+    Model              model;
+    bool               loaded = true;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("A project whose components reference themselves fails to load", "[3mf][Regression]")
+{
+    // One self-reference keeps the expansion going without ever reaching a mesh. A thousand also make
+    // each expansion queue a thousand more, so the bound has to hold the work list, not just the loop.
+    const int references = GENERATE(1, 1000);
+    INFO("self-references " << references);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+
+    // Point the component back at the object that holds it, repeated `references` times.
+    REQUIRE(rewrite_3mf_entries(temp.string(), [references](std::string& name, std::string& data) {
+        if (!boost::algorithm::ends_with(name, "3dmodel.model"))
+            return false;
+        std::smatch match;
+        if (!std::regex_search(data, match, std::regex("<object id=\"([0-9]+)\"[^>]*>\\s*<components")))
+            return false;
+        data = std::regex_replace(data, std::regex("objectid=\"[0-9]+\""), "objectid=\"" + match[1].str() + "\"");
+        std::smatch component;
+        if (!std::regex_search(data, component, std::regex("<component [^>]*/>")))
+            return false;
+        std::string repeated;
+        for (int i = 0; i < references; ++i)
+            repeated += component.str();
+        data.replace(component.position(), component.length(), repeated);
+        return true;
+    }));
+
+    ScopedTemporaryDir backup_dir("orca_cycle_dst");
+    Model              model;
+    bool               loaded = true;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("An object loads up to the component reference budget and fails past it", "[3mf][Regression]")
+{
+    // The importer queues at most 100000 component references per object. Every reference besides the
+    // cube's own points at an object the file does not define: it counts toward the budget, then expands
+    // to nothing, so the object stays a single part whatever the count.
+    const auto [references, loads] = GENERATE(table<int, bool>({ { 100000, true }, { 100001, false } }));
+    INFO("component references " << references);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+
+    std::string dangling;
+    for (int i = 1; i < references; ++i)
+        dangling += "<component objectid=\"999999\"/>";
+    REQUIRE(replace_in_3mf_entry(temp.string(), "3dmodel.model", "</components>", dangling + "</components>"));
+
+    ScopedTemporaryDir backup_dir("orca_budget_dst");
+    Model              model;
+    bool               loaded = !loads;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE(loaded == loads);
+    if (loads) {
+        REQUIRE(model.objects.size() == 1);
+        CHECK(model.objects.front()->volumes.size() == 1);
+    }
+}
+
+TEST_CASE("A project with malformed paint data loads without the damaged facet", "[3mf][Regression]")
+{
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+    // Split codes with no children behind them: the stream runs out mid-tree.
+    REQUIRE(replace_in_3mf_entry(temp.string(), ".model", "paint_color=\"8\"", "paint_color=\"FFFFFFFFFFFFFFFF3\""));
+
+    ScopedTemporaryDir backup_dir("orca_paint_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    const ModelVolume& volume = *model.objects.front()->volumes.front();
+    const auto&        data   = volume.mmu_segmentation_facets.get_data();
+    REQUIRE_FALSE(data.used_states[size_t(EnforcerBlockerType::Extruder2)]);
+    REQUIRE(data.used_states[size_t(EnforcerBlockerType::Extruder3)]);
+
+    TriangleSelector selector(volume.mesh());
+    REQUIRE_NOTHROW(selector.deserialize(data));
+    REQUIRE(selector.num_facets(EnforcerBlockerType::Extruder2) == 0);
+    REQUIRE(selector.num_facets(EnforcerBlockerType::Extruder3) == 1);
 }
 
 // The recipe lives only in the BBS-native backend, because that is the only one that runs:
@@ -732,6 +1007,237 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
             release_PlateData_list(dst_plates);
         }
         delete plate;
+    }
+}
+
+SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filament map)", "[3mf][IMEX]") {
+    // Regression guard for the class of bug where per-plate state silently drops through
+    // save/load (the variant-truncation bug was the precipitating example; IMEX plate state
+    // rides the same XML metadata path and is equally vulnerable).
+    //
+    // The mode name is user-typed free text, so the values below deliberately carry every
+    // character class that is special inside an XML attribute value:
+    //   &  and <  must be escaped or the document is not well formed and the project will
+    //             not load at all,
+    //   "         must be escaped or it terminates the attribute early,
+    //   tab       must be written as a numeric character reference, because XML normalizes
+    //             literal whitespace in attribute values on read and the mode would be
+    //             silently renamed,
+    //   '  and >  are legal raw inside a double-quoted value and must survive untouched.
+    // The head filament map value is machine generated in practice; it is given hostile
+    // content here only to pin the escaping of the sibling attribute, so this asserts the
+    // XML transport, not the map grammar (the loader stores the string verbatim).
+    //
+    // BBS exporter scaffolds a backup dir under temporary_dir() for the project config file;
+    // point it at a writable location for the test process.
+    set_temporary_dir(boost::filesystem::temp_directory_path().string());
+
+    const std::string hostile_mode = "PLA & ABS <hot> \"2x\"\tcopy's mode";
+    const std::string hostile_hfm  = "1:2,2:3 & <\"\tx>";
+
+    GIVEN("A Model with a single object on plate 0 and IMEX plate state set") {
+        Model src_model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &src_model));
+        src_model.add_default_instances();
+
+        DynamicPrintConfig src_config;
+
+        PlateDataPtrs src_plates;
+        auto *plate0 = new PlateData();
+        plate0->plate_index = 0;
+        plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString(hostile_mode));
+        plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString(hostile_hfm));
+        src_plates.push_back(plate0);
+
+        WHEN("the model is saved to BBS 3MF and loaded back") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/imex_roundtrip.3mf";
+
+            StoreParams store_params;
+            store_params.path            = test_file.c_str();
+            store_params.model           = &src_model;
+            store_params.plate_data_list = src_plates;
+            store_params.config          = &src_config;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            PlateDataPtrs dst_plates;
+            std::vector<Preset*> dst_presets;
+            bool is_bbl = false;
+            bool is_orca = false;
+            Semver file_version;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model,
+                                       &dst_plates, &dst_presets, &is_bbl, &is_orca, &file_version);
+            boost::filesystem::remove(test_file);
+
+            THEN("load succeeds") {
+                REQUIRE(loaded);
+            }
+            THEN("the loaded plate list has the same number of plates") {
+                REQUIRE(dst_plates.size() == src_plates.size());
+            }
+            THEN("imex_parallel_mode round-trips byte for byte, XML metacharacters included") {
+                REQUIRE(dst_plates.size() >= 1);
+                auto *mode_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_parallel_mode");
+                REQUIRE(mode_opt != nullptr);
+                REQUIRE(mode_opt->value == hostile_mode);
+            }
+            THEN("imex_head_filament_map round-trips byte for byte, XML metacharacters included") {
+                REQUIRE(dst_plates.size() >= 1);
+                auto *hfm_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_head_filament_map");
+                REQUIRE(hfm_opt != nullptr);
+                REQUIRE(hfm_opt->value == hostile_hfm);
+            }
+
+            release_PlateData_list(dst_plates);
+        }
+
+        release_PlateData_list(src_plates);
+    }
+}
+
+SCENARIO("BBS 3MF round-trips distinct IMEX state across multiple plates", "[3mf][IMEX]") {
+    // Guards against a plate-indexing regression where IMEX metadata lands on the wrong
+    // plate or bleeds across plates on reload. Each plate carries distinct mode + head-
+    // filament-map values; the reload must reproduce them in the same order.
+    set_temporary_dir(boost::filesystem::temp_directory_path().string());
+
+    GIVEN("A Model with two plates each carrying different IMEX state") {
+        Model src_model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &src_model));
+        src_model.add_default_instances();
+
+        DynamicPrintConfig src_config;
+
+        PlateDataPtrs src_plates;
+        auto *plate0 = new PlateData();
+        plate0->plate_index = 0;
+        plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString("copy_mode"));
+        plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString("1:2"));
+        src_plates.push_back(plate0);
+
+        auto *plate1 = new PlateData();
+        plate1->plate_index = 1;
+        plate1->config.set_key_value("imex_parallel_mode",     new ConfigOptionString("mirror_mode"));
+        plate1->config.set_key_value("imex_head_filament_map", new ConfigOptionString("2:4,3:5"));
+        src_plates.push_back(plate1);
+
+        WHEN("the model is saved to BBS 3MF and loaded back") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/imex_multiplate_roundtrip.3mf";
+
+            StoreParams store_params;
+            store_params.path            = test_file.c_str();
+            store_params.model           = &src_model;
+            store_params.plate_data_list = src_plates;
+            store_params.config          = &src_config;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            PlateDataPtrs dst_plates;
+            std::vector<Preset*> dst_presets;
+            bool is_bbl = false;
+            bool is_orca = false;
+            Semver file_version;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model,
+                                       &dst_plates, &dst_presets, &is_bbl, &is_orca, &file_version);
+            boost::filesystem::remove(test_file);
+
+            THEN("load succeeds and both plates are returned") {
+                REQUIRE(loaded);
+                REQUIRE(dst_plates.size() == 2);
+            }
+            THEN("plate 0 retains its own IMEX state (copy_mode, 1:2) and does not inherit plate 1's") {
+                REQUIRE(dst_plates.size() == 2);
+                auto *mode = dst_plates[0]->config.option<ConfigOptionString>("imex_parallel_mode");
+                auto *hfm  = dst_plates[0]->config.option<ConfigOptionString>("imex_head_filament_map");
+                REQUIRE(mode != nullptr);
+                REQUIRE(hfm  != nullptr);
+                REQUIRE(mode->value == "copy_mode");
+                REQUIRE(hfm->value  == "1:2");
+            }
+            THEN("plate 1 retains its own IMEX state (mirror_mode, 2:4,3:5) and does not inherit plate 0's") {
+                REQUIRE(dst_plates.size() == 2);
+                auto *mode = dst_plates[1]->config.option<ConfigOptionString>("imex_parallel_mode");
+                auto *hfm  = dst_plates[1]->config.option<ConfigOptionString>("imex_head_filament_map");
+                REQUIRE(mode != nullptr);
+                REQUIRE(hfm  != nullptr);
+                REQUIRE(mode->value == "mirror_mode");
+                REQUIRE(hfm->value  == "2:4,3:5");
+            }
+
+            release_PlateData_list(dst_plates);
+        }
+
+        release_PlateData_list(src_plates);
+    }
+}
+
+SCENARIO("BBS 3MF does not emit IMEX metadata when plate is in primary mode", "[3mf][IMEX]") {
+    // The serialization guard short-circuits when the mode is empty or "primary", so loading
+    // a plate that was saved in primary mode must not leave a stale imex_parallel_mode option
+    // on the plate's config. If this regressed, we'd see ghost "primary" strings appearing on
+    // plates that had no IMEX state at all.
+    set_temporary_dir(boost::filesystem::temp_directory_path().string());
+
+    GIVEN("A Model with plate 0 in primary mode and an empty head-filament map") {
+        Model src_model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &src_model));
+        src_model.add_default_instances();
+
+        DynamicPrintConfig src_config;
+        PlateDataPtrs src_plates;
+        auto *plate0 = new PlateData();
+        plate0->plate_index = 0;
+        plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString("primary"));
+        plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString(""));
+        src_plates.push_back(plate0);
+
+        WHEN("the model is saved to BBS 3MF and loaded back") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/imex_primary_roundtrip.3mf";
+
+            StoreParams store_params;
+            store_params.path            = test_file.c_str();
+            store_params.model           = &src_model;
+            store_params.plate_data_list = src_plates;
+            store_params.config          = &src_config;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            PlateDataPtrs dst_plates;
+            std::vector<Preset*> dst_presets;
+            bool is_bbl = false;
+            bool is_orca = false;
+            Semver file_version;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model,
+                                       &dst_plates, &dst_presets, &is_bbl, &is_orca, &file_version);
+            boost::filesystem::remove(test_file);
+
+            THEN("load succeeds") {
+                REQUIRE(loaded);
+            }
+            THEN("the loaded plate has no imex_parallel_mode option set (primary is not serialized)") {
+                REQUIRE(dst_plates.size() >= 1);
+                auto *mode_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_parallel_mode");
+                REQUIRE(mode_opt == nullptr);
+            }
+            THEN("the loaded plate has no imex_head_filament_map option set (empty is not serialized)") {
+                REQUIRE(dst_plates.size() >= 1);
+                auto *hfm_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_head_filament_map");
+                REQUIRE(hfm_opt == nullptr);
+            }
+
+            release_PlateData_list(dst_plates);
+        }
+
+        release_PlateData_list(src_plates);
     }
 }
 
@@ -1461,3 +1967,79 @@ SCENARIO("bbs_3mf_is_published detects only genuinely published 3MFs", "[3mf]") 
     }
 }
 
+// Writes a single-entry zip whose central directory carries a zip64 record declaring an
+// uncompressed size beyond what the 32-bit expat buffer API can take, while the deflated
+// payload inflates to only ~64 KiB. Built by hand because miniz never writes a size that
+// disagrees with the data.
+static void write_zip_with_oversized_entry(const std::string& path, const std::string& entry)
+{
+    const std::string xml = "<?xml version=\"1.0\"?><!--" + std::string(65536, 'A') + "--><a/>";
+    size_t comp_len = 0;
+    void*  comp     = tdefl_compress_mem_to_heap(xml.data(), xml.size(), &comp_len, TDEFL_DEFAULT_MAX_PROBES);
+    REQUIRE(comp != nullptr);
+    const std::string deflated(static_cast<const char*>(comp), comp_len);
+    mz_free(comp);
+    const uint32_t crc = static_cast<uint32_t>(mz_crc32(MZ_CRC32_INIT, reinterpret_cast<const unsigned char*>(xml.data()), xml.size()));
+    const uint64_t claimed_size = (uint64_t(1) << 32) + 16;
+
+    std::string out;
+    auto put = [&out](uint64_t v, int bytes) {
+        for (int i = 0; i < bytes; ++i)
+            out.push_back(static_cast<char>((v >> (8 * i)) & 0xFF));
+    };
+    // local file header, with the true sizes
+    put(0x04034b50, 4); put(45, 2); put(0, 2); put(8, 2); put(0, 2); put(0, 2);
+    put(crc, 4); put(deflated.size(), 4); put(xml.size(), 4); put(entry.size(), 2); put(0, 2);
+    out += entry + deflated;
+    // central directory header, sizes deferred to the zip64 extra field
+    const size_t cd_offset = out.size();
+    put(0x02014b50, 4); put(45, 2); put(45, 2); put(0, 2); put(8, 2); put(0, 2); put(0, 2);
+    put(crc, 4); put(0xFFFFFFFF, 4); put(0xFFFFFFFF, 4); put(entry.size(), 2); put(20, 2);
+    put(0, 2); put(0, 2); put(0, 2); put(0, 4); put(0, 4);
+    out += entry;
+    put(0x0001, 2); put(16, 2); put(claimed_size, 8); put(deflated.size(), 8);
+    const size_t cd_size = out.size() - cd_offset;
+    // end of central directory
+    put(0x06054b50, 4); put(0, 2); put(0, 2); put(1, 2); put(1, 2);
+    put(cd_size, 4); put(cd_offset, 4); put(0, 2);
+
+    boost::nowide::ofstream f(path, std::ios::binary);
+    REQUIRE(f.good());
+    f.write(out.data(), static_cast<std::streamsize>(out.size()));
+    REQUIRE(f.good());
+}
+
+TEST_CASE("3MF XML entries declaring more than an int can hold fail to load", "[3mf]") {
+    ScopedTemporaryFile temp(".3mf");
+    const std::string   path = temp.string();
+
+    SECTION("BBS importer") {
+        write_zip_with_oversized_entry(path, "_rels/.rels");
+        Model                     model;
+        DynamicPrintConfig        config;
+        ConfigSubstitutionContext ctxt{ForwardCompatibilitySubstitutionRule::Enable};
+        PlateDataPtrs             plates;
+        std::vector<Preset*>      project_presets;
+        bool                      is_bbl_3mf = false, is_orca_3mf = false;
+        Semver                    file_version;
+        bool                      loaded = true;
+        REQUIRE_NOTHROW(loaded = load_bbs_3mf(path.c_str(), &config, &ctxt, &model, &plates, &project_presets, &is_bbl_3mf,
+                                              &is_orca_3mf, &file_version, nullptr, LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+        CHECK_FALSE(loaded);
+        release_PlateData_list(plates);
+    }
+    SECTION("PrusaSlicer importer") {
+        write_zip_with_oversized_entry(path, "Metadata/Slic3r_PE_model.config");
+        Model                     model;
+        DynamicPrintConfig        config;
+        ConfigSubstitutionContext ctxt{ForwardCompatibilitySubstitutionRule::Disable};
+        bool                      loaded = true;
+        REQUIRE_NOTHROW(loaded = load_3mf(path.c_str(), config, ctxt, &model, false));
+        CHECK_FALSE(loaded);
+    }
+    SECTION("PrusaSlicer fingerprint probe") {
+        write_zip_with_oversized_entry(path, "3D/3dmodel.model");
+        PrusaFileParser parser;
+        CHECK_FALSE(parser.check_3mf_from_prusa(path));
+    }
+}

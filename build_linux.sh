@@ -8,9 +8,10 @@ SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
 pushd "${SCRIPT_PATH}" > /dev/null
 
 function usage() {
-    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
+    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-J N][-p][-r][-s][-t][-u][-l][-L]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
+    echo "   -J N: build up to N dependencies at a time, each still using -j jobs (default: 1)"
     echo "   -b: build in Debug mode"
     echo "   -c: force a clean build"
     echo "   -C: enable ANSI-colored compile output (GNU/Clang only)"
@@ -36,12 +37,13 @@ function usage() {
 }
 
 SLIC3R_PRECOMPILED_HEADERS="ON"
+DEPS_PARALLEL=""
 
 unset name
 BUILD_DIR=build
 BUILD_CONFIG=Release
 FORWARDED_ARGS=()
-while getopts ":1j:bcCdDeFghiprstulL" opt ; do
+while getopts ":1j:J:bcCdDeFghiprstulL" opt ; do
   case ${opt} in
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
@@ -50,6 +52,10 @@ while getopts ":1j:bcCdDeFghiprstulL" opt ; do
     j )
         export CMAKE_BUILD_PARALLEL_LEVEL=$OPTARG
         FORWARDED_ARGS+=("-j" "$OPTARG")
+        ;;
+    J )
+        DEPS_PARALLEL=$OPTARG
+        FORWARDED_ARGS+=("-J" "$OPTARG")
         ;;
     b )
         BUILD_DIR=build-dbg
@@ -132,6 +138,11 @@ fi
 
 if [[ -n "${CLEAN_DOCKER_IMAGE}" ]] && [[ -z "${USE_DOCKER}" ]] ; then
     echo "Error: -F requires -g."
+    exit 1
+fi
+
+if [[ -n "${DEPS_PARALLEL}" ]] && ! [[ "${DEPS_PARALLEL}" =~ ^[1-9][0-9]*$ ]] ; then
+    echo "Error: -J expects a positive integer."
     exit 1
 fi
 
@@ -537,7 +548,29 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
     fi
 
     print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
-    print_and_run cmake --build deps/$BUILD_DIR -j1
+    # The top-level build runs one dependency at a time by default, which keeps the console
+    # output readable and lets that dependency's own build use all of CMAKE_BUILD_PARALLEL_LEVEL.
+    # -J raises the top level instead, and -j still applies in full to every dependency, so the
+    # worst case is -J times -j compile jobs at once. Ninja has no job server to share a pool
+    # across the nested builds, so that ceiling is not enforced anywhere: pick -J to suit the RAM.
+    DEPS_JOBS=1
+    if [[ -n "${DEPS_PARALLEL}" ]] ; then
+        DEPS_JOBS=${DEPS_PARALLEL}
+        SAVED_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL-}
+        export CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)}
+        echo "Building up to ${DEPS_JOBS} dependencies at a time, ${CMAKE_BUILD_PARALLEL_LEVEL} jobs each: up to $(( DEPS_JOBS * CMAKE_BUILD_PARALLEL_LEVEL )) compile jobs at once."
+    fi
+
+    print_and_run cmake --build deps/$BUILD_DIR -j"${DEPS_JOBS}"
+
+    if [[ -n "${DEPS_PARALLEL}" ]] ; then
+        # Give the whole -j back to the OrcaSlicer build below.
+        if [[ -n "${SAVED_PARALLEL_LEVEL}" ]] ; then
+            export CMAKE_BUILD_PARALLEL_LEVEL=${SAVED_PARALLEL_LEVEL}
+        else
+            unset CMAKE_BUILD_PARALLEL_LEVEL
+        fi
+    fi
 fi
 
 if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then

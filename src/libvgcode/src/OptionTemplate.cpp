@@ -6,6 +6,9 @@
 #include "OpenGLUtils.hpp"
 #include "Utils.hpp"
 
+#include <cstdint>
+#include "../include/Types.hpp"
+#include <cstddef>
 #include <vector>
 #include <algorithm>
 #include <cmath>

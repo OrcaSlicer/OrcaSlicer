@@ -4,12 +4,34 @@
 #include "slic3r/GUI/Shortcuts.hpp"
 //BBS: GUI refactor
 #include "slic3r/GUI/Plater.hpp"
-#include "libslic3r/AppConfig.hpp"
 
 
+#include <cassert>
+#include <array>
+#include <cmath>
 #include <glad/gl.h>
 
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <utility>
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <wx/intl.h>
+#include "libslic3r/Model.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
 namespace GUI {

@@ -1,13 +1,29 @@
 #ifndef slic3r_Utils_hpp_
 #define slic3r_Utils_hpp_
 
+#include <cstddef>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cstdint>
+#include <cstdio>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <algorithm>
 #include <iomanip>
+#include <limits>
 #include <locale>
 #include <set>
+#include <string>
+#include <sstream>
+#include <stdexcept>
 #include <utility>
 #include <functional>
 #include <type_traits>
 #include <system_error>
+#include <initializer_list>
+#include <string_view>
 #include <regex>
 
 #include <boost/system/error_code.hpp>
@@ -17,6 +33,7 @@
 #include "boost/date_time/posix_time/ptime.hpp"
 
 #include <openssl/md5.h>
+#include <vector>
 
 #include "libslic3r.h"
 #include "Semver.hpp"
@@ -224,6 +241,21 @@ extern std::vector<std::string> split_string(const std::string &str, char delimi
 // On Windows, the file explorer (or anti-virus or whatever else) often locks the file
 // for a short while, so the file may not be movable. Retry while we see recoverable errors.
 extern std::error_code rename_file(const std::string &from, const std::string &to);
+// Write `chunks`, in order, to `path` through a temporary file beside it that is
+// then renamed over the target, so a concurrent reader sees the old or the new
+// file, never a partial one. The temporary is removed on failure and an existing
+// target keeps its permissions. Text mode unless `binary`, so Windows writes CRLF
+// as the streams this replaces did. A target that is not a regular file (a
+// device or pipe) is written in place, since replacing it would change what it
+// is, and so is an existing target beside which no temporary can be created or
+// whose replace the filesystem refuses; a symlink is followed and the file it
+// names is replaced. On Windows a reader holding the
+// target open without sharing its deletion, which the C runtime does not, makes
+// the replace fall back to the in-place write too, so an unlocked reader there
+// can still see a partial file.
+extern std::error_code write_file_atomically(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary = false);
+inline std::error_code write_file_atomically(const std::string &path, const std::string &content, bool binary = false)
+	{ return write_file_atomically(path, { std::string_view(content) }, binary); }
 
 enum CopyFileResult {
 	SUCCESS = 0,
@@ -256,10 +288,27 @@ extern bool is_gallery_file(const std::string& path, char const* type);
 extern bool is_shapes_dir(const std::string& dir);
 //BBS: add json support
 extern bool is_json_file(const std::string& path);
-// True if rel_path is relative, has no ".." component and, joined to root, still resolves inside it.
+// True if rel_path is relative, has no ".." component or embedded NUL and, joined to root, still resolves inside it.
 // Both '/' and '\\' are treated as separators on every platform, so an archive rejected on one OS
 // is rejected on all of them.
 extern bool is_path_within_root(const std::string &rel_path, const boost::filesystem::path &root);
+// True if a symlink stored at link_rel_path (relative to root) with this target stays inside root: the target
+// must be relative, and joined to the link's directory it must pass is_path_within_root.
+extern bool is_symlink_target_within_root(const std::string &link_rel_path, const std::string &target, const boost::filesystem::path &root);
+// True if path names an entry strictly inside root: it must be spelled with root as its prefix,
+// and must still resolve inside root once symlinks are followed.
+extern bool is_absolute_path_within_root(const boost::filesystem::path &path, const boost::filesystem::path &root);
+// True if a file with this name is of a type that the desktop opens as plain content, so it cannot run code.
+// Anything unknown is not safe.
+extern bool is_safe_to_open_file_name(const std::string &file_name);
+
+// Case-insensitive compare against a fixed ASCII keyword, without boost::iequals, whose
+// std::locale() takes a lock the whole process shares in the MSVC runtime.
+inline bool ascii_iequals(std::string_view a, std::string_view b)
+{
+    auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [&lower](char x, char y) { return lower(x) == lower(y); });
+}
 
 // Orca: custom protocal support utils
 inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "orcaslicer://open"); }
@@ -285,6 +334,21 @@ inline std::string sanitize_filename(const std::string &filename){
     const std::regex special_chars("[/\\\\:*?\"<>|]");
     return std::regex_replace(filename, special_chars, "_");
 }
+// Reduce an untrusted, possibly path-qualified name to a single sanitized file name.
+// Returns an empty string when nothing usable remains.
+inline std::string sanitize_file_basename(const std::string &name){
+    const size_t sep = name.find_last_of("/\\");
+    const std::string base = sanitize_filename(sep == std::string::npos ? name : name.substr(sep + 1));
+    // Names made only of dots and spaces refer to the folder or its parent, or are stripped to nothing on Windows.
+    return base.find_first_not_of(". ") == std::string::npos ? std::string() : base;
+}
+// Marker file a download of this process writes to before it is renamed to filename.
+boost::filesystem::path download_marker_path(const boost::filesystem::path &dest_folder, const std::string &filename);
+// Finds a sanitized variant of filename, "name(N).ext" if needed, that neither an entry of dest_folder
+// nor the download marker of another download uses. The marker at ignored_marker does not count.
+// Returns true and the name in result, or false and the last name tried.
+bool find_unused_filename(const boost::filesystem::path &dest_folder, const std::string &filename,
+                          const boost::filesystem::path &ignored_marker, std::string &result);
 // File path / name / extension splitting utilities, working with UTF-8,
 // to be published to Perl.
 namespace PerlUtils {

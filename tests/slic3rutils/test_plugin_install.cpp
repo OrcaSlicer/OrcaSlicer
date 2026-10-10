@@ -1,10 +1,15 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
-#include <libslic3r/Utils.hpp>
+#include <ios>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "plugin_test_utils.hpp"
 
 #include <boost/filesystem.hpp>
@@ -117,6 +122,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     state.permissions.network_http  = {"https://api.example.com"};
     state.permissions.network_socket = {"192.168.45.6:443"};
     state.permissions.process        = {"/usr/bin/curl"};
+    state.permissions.threading      = {"thread"};
     REQUIRE(write_install_state(plugin_dir, state));
 
     // Permission data is persisted in the same sidecar as the installation metadata.
@@ -127,6 +133,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     CHECK(persisted.permissions.network_http == state.permissions.network_http);
     CHECK(persisted.permissions.network_socket == state.permissions.network_socket);
     CHECK(persisted.permissions.process == state.permissions.process);
+    CHECK(persisted.permissions.threading == state.permissions.threading);
 
     // Reading the sidecar back onto a freshly-scanned descriptor (whose header version is still
     // 1.0.0) must surface the cloud-installed 1.2.0. This is what lets update_cloud_metadata compare
@@ -136,4 +143,44 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     scanned.version = "1.0.0"; // as parsed from the unchanged PEP723 header
     read_install_state(plugin_dir, scanned);
     CHECK(scanned.installed_version == "1.2.0");
+}
+
+TEST_CASE("a local plugin's installed version follows its entry file header", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("local-installed-version");
+
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    // Sidecar written when the local plugin was first installed at 1.0.0.
+    PluginInstallState state;
+    state.installed_from    = "local";
+    state.installed_version = "1.0.0";
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    // The user then edited the plugin file: the freshly scanned header says 1.1.0.
+    PluginDescriptor scanned;
+    scanned.version = "1.1.0";
+    REQUIRE(read_install_state(plugin_dir, scanned));
+    CHECK(scanned.installed_version == "1.1.0");
+}
+
+TEST_CASE("an unsubscribed cloud plugin follows its header version", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("unsubscribed-installed-version");
+
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    // What keep_installed_plugin_as_local leaves behind: a normal local package. The sidecar still
+    // holds the version fetched from the cloud (1.2.0), but the header (1.0.0) is the source of truth.
+    PluginInstallState state;
+    state.installed_from    = "local";
+    state.installed_version = "1.2.0";
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    PluginDescriptor scanned;
+    scanned.version = "1.0.0";
+    REQUIRE(read_install_state(plugin_dir, scanned));
+    CHECK(scanned.installed_version == "1.0.0");
 }

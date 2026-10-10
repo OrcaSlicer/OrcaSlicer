@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 
 #include <wx/event.h>

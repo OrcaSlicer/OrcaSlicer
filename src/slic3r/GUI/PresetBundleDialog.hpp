@@ -5,17 +5,21 @@
 #include "GUI_Utils.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include <atomic>
 #include <boost/thread/detail/thread.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <memory>
 #include <slic3r/GUI/GUI.hpp>
 #include <string>
 #include <unordered_map>
+#include <wx/chartype.h>
 #include <wx/dataview.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/language.h>
 #include <wx/string.h>
 #include <wx/fswatcher.h>
+#include <wx/toplevel.h>
 namespace Slic3r { namespace GUI {
 
 #define DESIGN_GRAY900_COLOR wxColour("#363636") // Label color

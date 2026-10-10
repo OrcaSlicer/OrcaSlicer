@@ -1,8 +1,22 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <atomic>
+#include <boost/optional/optional.hpp>
+#include <chrono>
+#include <cstdint>
+#include <cstddef>
 #include <functional>
+#include <map>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Semver.hpp"
 #include <memory>
+#include <set>
+#include "slic3r/GUI/GLShader.hpp"
 #include <string>
 #include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
@@ -10,21 +24,27 @@
 #include "OpenGLManager.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "libslic3r/Point.hpp"
 
+#include <vector>
+#include <utility>
 #include <wx/app.h>
 #include <wx/colour.h>
+#include <wx/event.h>
 #include <wx/font.h>
+#include <wx/strconv.h>
+#include <wx/setup.h>
+#include <wx/intl.h>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/snglinst.h>
 #include <wx/msgdlg.h>
-
-#include <mutex>
-#include <stack>
 
 //#define BBL_HAS_FIRST_PAGE          1
 #define STUDIO_INACTIVE_TIMEOUT     15*60*1000
@@ -248,6 +268,7 @@ private:
     bool            m_app_conf_exists{ false };
     EAppMode        m_app_mode{ EAppMode::Editor };
     bool            m_is_recreating_gui{ false };
+    std::chrono::steady_clock::time_point m_last_input{ std::chrono::steady_clock::now() };
 #ifdef __linux__
     bool            m_opengl_initialized{ false };
 #endif
@@ -352,6 +373,7 @@ public:
     std::string     get_local_models_path();
     bool            OnInit() override;
     int             OnExit() override;
+    void            CleanUp() override;
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
 #ifdef SLIC3R_CAD
@@ -371,6 +393,7 @@ public:
     EAppMode get_app_mode() const { return m_app_mode; }
     Slic3r::DeviceManager* getDeviceManager() { return m_device_manager; }
     bool                   is_blocking_printing(MachineObject *obj_ = nullptr);
+    bool                   is_blocking_printing(MachineObject *obj_, const std::string& source_model);
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
@@ -378,7 +401,7 @@ public:
     // Reconcile the live printer agent with the stored preset selection.
     void switch_printer_agent();
 
-    std::string resolve_printer_agent_id(const std::string& stored_id);
+    std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
     // then, all resolve and canonical would just be ORCA<->""
     std::string canonical_printer_agent_id(const std::string& picked_id);
@@ -387,6 +410,11 @@ public:
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
     bool is_gcode_viewer() const { return m_app_mode == EAppMode::GCodeViewer; }
     bool is_recreating_gui() const { return m_is_recreating_gui; }
+    // Milliseconds since the last mouse or keyboard event the app processed, or main window resize.
+    int  input_idle_ms() const;
+    int  FilterEvent(wxEvent& event) override;
+    // The Preferences "Default page" choice, stored as its index: 0 Home, 1 Prepare.
+    bool starts_on_prepare() const;
     std::string logo_name() const { return is_editor() ? "OrcaSlicer" : "OrcaSlicer-gcodeviewer"; }
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
@@ -407,6 +435,9 @@ public:
 
     bool show_outline() const { return app_config->get_bool("show_outline"); }
     void toggle_show_outline() const { app_config->set_bool("show_outline", !show_outline()); }
+
+    bool show_center_of_mass() const { return app_config->get_bool("show_center_of_mass"); }
+    void toggle_show_center_of_mass() const { app_config->set_bool("show_center_of_mass", !show_center_of_mass()); }
 
     wxString get_inf_dialog_contect () {return m_info_dialog_content;};
 
@@ -504,7 +535,7 @@ public:
     bool            check_login(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            get_login_info(const std::string& provider = ORCA_CLOUD_PROVIDER);
     bool            is_user_login(const std::string& provider = ORCA_CLOUD_PROVIDER);
-    const std::string& get_printer_cloud_provider() const;
+    std::string      get_printer_cloud_provider() const;
 
     void            request_user_login(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            request_user_handle(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -852,6 +883,8 @@ bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);
 // check if the filament for model is in the list
 bool has_filaments(const std::vector<std::string>& model_filaments);
+// Up direction of the edited printer's tilted build plate (+Z when untilted).
+Vec3d build_plate_tilt_up_direction();
 } // namespace GUI
 } // Slic3r
 

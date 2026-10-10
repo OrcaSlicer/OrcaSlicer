@@ -1,5 +1,5 @@
 #include "../ClipperUtils.hpp"
-// #include "../ClipperZUtils.hpp"
+#include "../ClipperZUtils.hpp"
 #include "../ExtrusionEntityCollection.hpp"
 #include "../Layer.hpp"
 #include "../Print.hpp"
@@ -7,18 +7,33 @@
 #include "../MutablePolygon.hpp"
 #include "../Geometry.hpp"
 #include "../Point.hpp"
-#include "clipper/clipper_z.hpp"
 
 #include <cmath>
 #include <boost/container/static_vector.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <math.h>
+#include <initializer_list>
 #include <tbb/parallel_for.h>
+#include <utility>
+#include <vector>
+#include <unordered_map>
 
 #include "SupportCommon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Utils.hpp"
 
 // #define SLIC3R_DEBUG
 
@@ -32,6 +47,11 @@
 #endif
 
 #include <cassert>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 namespace Slic3r {
 
@@ -39,9 +59,9 @@ namespace Slic3r {
 //FIXME this should be dependent on the nozzle diameter!
 #define SUPPORT_MATERIAL_MARGIN 1.5
 
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 1.5
-#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
+#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 // Convert some of the intermediate layers into top/bottom interface layers as well as base interface layers.
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(
@@ -270,7 +290,9 @@ SupportGeneratorLayersPtr generate_raft_base(
         // The object does not have a raft.
         // Calculate the area covered by the brim.
         const BrimType brim_type       = object.config().brim_type;
-        const bool     brim_outer      = brim_type == btOuterOnly || brim_type == btOuterAndInner;
+        // btLeadingEdgeOnly only means anything on a belt printer, where this code path
+        // does not run; elsewhere it degrades to an outer brim (see Brim.cpp).
+        const bool     brim_outer      = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btLeadingEdgeOnly;
         const bool     brim_inner      = brim_type == btInnerOnly || brim_type == btOuterAndInner;
         // BBS: the pattern of raft and brim are the same, thus the brim can be serpated by support raft.
         const auto     brim_object_gap = scaled<float>(object.config().brim_object_gap.value);
@@ -280,13 +302,13 @@ SupportGeneratorLayersPtr generate_raft_base(
                 polygons_append(brim, offset(ex, brim_object_gap));
             else {
                 if (brim_outer)
-                    polygons_append(brim, offset(ex.contour, brim_object_gap, ClipperLib::jtRound, float(scale_(0.1))));
+                    polygons_append(brim, offset(ex.contour, brim_object_gap, jtRound, float(scale_(0.1))));
                 else
                     brim.emplace_back(ex.contour);
                 if (brim_inner) {
                     Polygons holes = ex.holes;
                     polygons_reverse(holes);
-                    holes = shrink(holes, brim_object_gap, ClipperLib::jtRound, float(scale_(0.1)));
+                    holes = shrink(holes, brim_object_gap, jtRound, float(scale_(0.1)));
                     polygons_reverse(holes);
                     polygons_append(brim, std::move(holes));
                 } else
@@ -298,7 +320,13 @@ SupportGeneratorLayersPtr generate_raft_base(
 
     // How much to inflate the support columns to be stable. This also applies to the 1st layer, if no raft layers are to be printed.
     const float inflate_factor_fine      = float(scale_((slicing_params.raft_layers() > 1) ? 0.5 : EPSILON));
-    const float inflate_factor_1st_layer = std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
+    // On a belt the first support layer is the leading tip of the support, a sliver
+    // where the belt crosses the layer, not a flange on a flat bed: inflating it
+    // puts lines in the air ahead of the belt crossing (and into the belt behind
+    // it).  The belt brim takes the adhesion role instead.
+    const bool  belt_floor_active        = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
+    const float inflate_factor_1st_layer = belt_floor_active ? 0.f :
+        std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
     SupportGeneratorLayer       *contacts         = top_contacts         .empty() ? nullptr : top_contacts         .front();
     SupportGeneratorLayer       *interfaces       = interface_layers     .empty() ? nullptr : interface_layers     .front();
     SupportGeneratorLayer       *base_interfaces  = base_interface_layers.empty() ? nullptr : base_interface_layers.front();
@@ -493,32 +521,25 @@ void tree_supports_generate_paths(
     // Offset expolygon inside, returns number of expolygons collected (0 or 1).
     // Vertices of output paths are marked with Z = source contour index of the expoly.
     // Vertices at the intersection of source contours are marked with Z = -1.
-    auto shrink_expolygon_with_contour_idx = [](const Slic3r::ExPolygon &expoly, const float delta, ClipperLib::JoinType joinType, double miterLimit, ClipperLib_Z::Paths &out) -> int
+    auto shrink_expolygon_with_contour_idx = [](const Slic3r::ExPolygon &expoly, const float delta, JoinType joinType, double miterLimit, ClipperZUtils::ZPaths &out) -> int
     {
         assert(delta > 0);
-        auto append_paths_with_z = [](ClipperLib::Paths &src, coord_t contour_idx, ClipperLib_Z::Paths &dst) {
+        auto append_paths_with_z = [](const Polygons &src, coord_t contour_idx, ClipperZUtils::ZPaths &dst) {
             dst.reserve(next_highest_power_of_2(dst.size() + src.size()));
-            for (const ClipperLib::Path &contour : src) {
-                ClipperLib_Z::Path tmp;
-                tmp.reserve(contour.size());
-                for (const Point &p : contour)
-                    tmp.emplace_back(p.x(), p.y(), contour_idx);
-                dst.emplace_back(std::move(tmp));
-            }
+            for (const Polygon &contour : src)
+                dst.emplace_back(ClipperZUtils::to_zpath(contour.points, contour_idx));
+        };
+        // Oriented CCW, the sign of d alone decides between growing and shrinking.
+        auto offset_ccw = [joinType, miterLimit](Polygon polygon, float d) {
+            if (! polygon.is_counter_clockwise())
+                polygon.reverse();
+            return offset(polygon, d, joinType, miterLimit);
         };
 
         // 1) Offset the outer contour.
-        ClipperLib_Z::Paths contours;
+        ClipperZUtils::ZPaths contours;
         {
-            ClipperLib::ClipperOffset co;
-            if (joinType == jtRound)
-                co.ArcTolerance = miterLimit;
-            else
-                co.MiterLimit = miterLimit;
-            co.ShortestEdgeLength = double(delta * 0.005);
-            co.AddPath(expoly.contour.points, joinType, ClipperLib::etClosedPolygon);
-            ClipperLib::Paths contours_raw;
-            co.Execute(contours_raw, - delta);
+            Polygons contours_raw = offset_ccw(expoly.contour, - delta);
             if (contours_raw.empty())
                 // No need to try to offset the holes.
                 return 0;
@@ -530,24 +551,9 @@ void tree_supports_generate_paths(
             append(out, std::move(contours));
         } else {
             // 2) Offset the holes one by one, collect the offsetted holes.
-            ClipperLib_Z::Paths holes;
-            {
-                for (const Polygon &hole : expoly.holes) {
-                    ClipperLib::ClipperOffset co;
-                    if (joinType == jtRound)
-                        co.ArcTolerance = miterLimit;
-                    else
-                        co.MiterLimit = miterLimit;
-                    co.ShortestEdgeLength = double(delta * 0.005);
-                    co.AddPath(hole.points, joinType, ClipperLib::etClosedPolygon);
-                    ClipperLib::Paths out2;
-                    // Execute reorients the contours so that the outer most contour has a positive area. Thus the output
-                    // contours will be CCW oriented even though the input paths are CW oriented.
-                    // Offset is applied after contour reorientation, thus the signum of the offset value is reversed.
-                    co.Execute(out2, delta);
-                    append_paths_with_z(out2, 1 + (&hole - expoly.holes.data()), holes);
-                }
-            }
+            ClipperZUtils::ZPaths holes;
+            for (const Polygon &hole : expoly.holes)
+                append_paths_with_z(offset_ccw(hole, delta), 1 + (&hole - expoly.holes.data()), holes);
 
             // 3) Subtract holes from the contours.
             if (holes.empty()) {
@@ -556,16 +562,11 @@ void tree_supports_generate_paths(
             } else {
                 // Negative offset. There is a chance, that the offsetted hole intersects the outer contour.
                 // Subtract the offsetted holes from the offsetted contours.
-                ClipperLib_Z::Clipper clipper;
-                clipper.ZFillFunction([](const ClipperLib_Z::IntPoint &e1bot, const ClipperLib_Z::IntPoint &e1top, const ClipperLib_Z::IntPoint &e2bot, const ClipperLib_Z::IntPoint &e2top, ClipperLib_Z::IntPoint &pt) {
-                        //pt.z() = std::max(std::max(e1bot.z(), e1top.z()), std::max(e2bot.z(), e2top.z()));
+                ClipperZUtils::ZPaths output = ClipperZUtils::clip_zpaths(ctDifference, contours, false, holes,
+                    [](const ClipperZUtils::ZPoint &, const ClipperZUtils::ZPoint &, const ClipperZUtils::ZPoint &, const ClipperZUtils::ZPoint &, ClipperZUtils::ZPoint &pt) {
                         // Just mark the intersection.
                         pt.z() = -1;
                     });
-                clipper.AddPaths(contours, ClipperLib_Z::ptSubject, true);
-                clipper.AddPaths(holes,    ClipperLib_Z::ptClip,    true);
-                ClipperLib_Z::Paths output;
-                clipper.Execute(ClipperLib_Z::ctDifference, output, ClipperLib_Z::pftNonZero, ClipperLib_Z::pftNonZero);
                 if (! output.empty()) {
                     append(out, std::move(output));
                 } else {
@@ -582,7 +583,7 @@ void tree_supports_generate_paths(
     // Clip the sheath path to avoid the extruder to get exactly on the first point of the loop.
     const double clip_length = spacing * 0.15;
     const double anchor_length = spacing * 6.;
-    ClipperLib_Z::Paths anchor_candidates;
+    ClipperZUtils::ZPaths anchor_candidates;
     for (ExPolygon& expoly : closing_ex(polygons, float(SCALED_EPSILON), float(SCALED_EPSILON + 0.5 * flow.scaled_width()))) {
         std::unique_ptr<ExtrusionEntityCollection> eec;
         ExPolygons                                 regions_to_draw_inner_wall{expoly};
@@ -608,10 +609,10 @@ void tree_supports_generate_paths(
             // First genrate a 2nd perimeter loop as a source for anchor candidates.
             // The anchor candidate points are annotated with an index of the source contour or with -1 if on intersection.
             anchor_candidates.clear();
-            shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), DefaultJoinType, 1.2, anchor_candidates);
+            shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), jtMiter, 1.2, anchor_candidates);
             // Orient all contours CW.
             for (auto &path : anchor_candidates)
-                if (ClipperLib_Z::Area(path) > 0) std::reverse(path.begin(), path.end());
+                if (ClipperZUtils::area(path) > 0) std::reverse(path.begin(), path.end());
 
             // Draw the perimeters.
             Polylines polylines;
@@ -628,13 +629,13 @@ void tree_supports_generate_paths(
                 pl.clip_end(clip_length);
                 if (pl.size() < 2) continue;
                 // Find the foot of the seam point on anchor_candidates. Only pick an anchor point that was created by offsetting the source contour.
-                ClipperLib_Z::Path *closest_contour = nullptr;
-                Vec2d               closest_point;
-                int                 closest_point_idx = -1;
-                double              closest_point_t   = 0.;
-                double              d2min             = std::numeric_limits<double>::max();
-                Vec2d               seam_pt           = pl.back().cast<double>();
-                for (ClipperLib_Z::Path &path : anchor_candidates)
+                ClipperZUtils::ZPath *closest_contour = nullptr;
+                Vec2d                 closest_point;
+                int                   closest_point_idx = -1;
+                double                closest_point_t   = 0.;
+                double                d2min             = std::numeric_limits<double>::max();
+                Vec2d                 seam_pt           = pl.back().cast<double>();
+                for (ClipperZUtils::ZPath &path : anchor_candidates)
                     for (int i = 0; i < int(path.size()); ++i) {
                         int j = next_idx_modulo(i, path);
                         if (path[i].z() == idx_loop || path[j].z() == idx_loop) {
@@ -662,14 +663,14 @@ void tree_supports_generate_paths(
                     // Try to cut an anchor from the closest_contour.
                     // Both closest_contour and pl are CW oriented.
                     pl.points.emplace_back(closest_point.cast<coord_t>());
-                    const ClipperLib_Z::Path &path             = *closest_contour;
-                    double                    remaining_length = anchor_length - (seam_pt - closest_point).norm();
-                    int                       i                = closest_point_idx;
-                    int                       j                = next_idx_modulo(i, *closest_contour);
-                    Vec2d                     pi(path[i].x(), path[i].y());
-                    Vec2d                     pj(path[j].x(), path[j].y());
-                    Vec2d                     v = pj - pi;
-                    double                    l = v.norm();
+                    const ClipperZUtils::ZPath &path             = *closest_contour;
+                    double                      remaining_length = anchor_length - (seam_pt - closest_point).norm();
+                    int                         i                = closest_point_idx;
+                    int                         j                = next_idx_modulo(i, *closest_contour);
+                    Vec2d                       pi(path[i].x(), path[i].y());
+                    Vec2d                       pj(path[j].x(), path[j].y());
+                    Vec2d                       v = pj - pi;
+                    double                      l = v.norm();
                     if (remaining_length < (1. - closest_point_t) * l) {
                         // Just trim the current line.
                         pl.points.emplace_back((closest_point + v * (remaining_length / l)).cast<coord_t>());
@@ -1802,7 +1803,14 @@ void generate_support_toolpaths(
                 bool  sheath  = support_params.with_sheath;
                 bool  no_sort = false;
                 bool  done    = false;
-                if (base_layer.layer->bottom_z < EPSILON) {
+                // Belt printers have no flat bed first layer — the belt is the tilted
+                // build surface — so the dense raft_first_layer_density flange must not
+                // fire anywhere, including the layer at z=0 (the belt-surface line).
+                // (belt_floor_shear_factor is non-zero only when belt_printer is on.)
+                // For every other printer type, support z is never negative, so this
+                // matches the original "first layer at z=0" behaviour unchanged.
+                const bool is_belt_printer = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
+                if (! is_belt_printer && base_layer.layer->bottom_z < EPSILON) {
                     // Base flange (the 1st layer).
                     filler = filler_first_layer;
                     filler->angle = Geometry::deg2rad(float(config.support_angle.value + 90.));
@@ -2059,5 +2067,11 @@ sub clip_with_shape {
     }
 }
 */
+
+Vec2d build_plate_tilt_slope(const PrintConfig &print_config)
+{
+    auto slope = [](double tilt_deg) { return std::tan(Geometry::deg2rad(std::clamp(tilt_deg, -89., 89.))); };
+    return { slope(print_config.build_plate_tilt_y.value), slope(print_config.build_plate_tilt_x.value) };
+}
 
 } // namespace Slic3r

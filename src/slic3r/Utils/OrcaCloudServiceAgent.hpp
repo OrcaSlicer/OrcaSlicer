@@ -1,8 +1,12 @@
 #ifndef __ORCA_CLOUD_SERVICE_AGENT_HPP__
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
+#include "CloudProvider.hpp"
+#include "ICameraSignalingChannel.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
 #include <cstdlib>
+#include "libslic3r/ProjectTask.hpp"
 #include <string>
 #include <map>
 #include <mutex>
@@ -12,6 +16,7 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -89,6 +94,7 @@ struct SyncPullResponse {
 struct SyncPushResult {
     bool success;
     int http_code;
+    int conflict_code;
     long long new_updated_time;
     ProfileUpsert server_version;
     bool server_deleted;
@@ -200,6 +206,10 @@ public:
     int connect_server() override;
     bool is_server_connected() override;
     int refresh_connection() override;
+    // Cancels a health check started by refresh_connection() and waits for it; later
+    // refresh_connection() calls do nothing. Call it before tearing down what the server-connected
+    // and HTTP-error callbacks reach.
+    void stop_health_check();
     bool is_refresh_running() const { return refresh_running.load(); }
     int start_subscribe(std::string module) override;
     int stop_subscribe(std::string module) override;
@@ -241,6 +251,7 @@ public:
     // ICloudServiceAgent Interface Implementation - Model Mall & Publishing
     // ========================================================================
     int get_camera_url(std::string dev_id, std::function<void(std::string)> callback) override;
+    // std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id) override;
     int get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback) override;
     int start_publish(PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out) override;
     int get_model_publish_url(std::string* url) override;
@@ -324,7 +335,7 @@ public:
 
     void persist_user_secret(const std::string& secret);
     bool load_user_secret(std::string& out_secret);
-    void clear_user_secret();
+    void clear_user_secret(bool all_backends = false);
 
     // Token refresh helpers
     bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
@@ -342,7 +353,7 @@ public:
                           bool persist = true);
     // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
-    void clear_session();
+    void clear_session(bool all_backends = false);
 
     static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
 
@@ -385,6 +396,10 @@ private:
     bool decode_jwt_expiry(const std::string& token, std::chrono::system_clock::time_point& out_tp);
     bool should_refresh_locked(std::chrono::seconds skew) const;
 
+    // Server reachability probe shared by connect_server() and refresh_connection(); returns
+    // false without reporting anything once `cancel` is set.
+    bool run_health_check(const std::atomic_bool* cancel);
+
     // Callback invocation
     void invoke_server_connected_callback(int return_code, int reason_code);
     void invoke_http_error_callback(unsigned http_code, const std::string& http_body);
@@ -411,6 +426,11 @@ private:
     // Member variables - auth state
     PkceBundle pkce_bundle;
     std::string secret_fallback_path;
+    // Set once this process has read a secret from the store or written one. Unless the user logs
+    // out explicitly, clear_user_secret() only touches the store while it is set, so a logged-out
+    // instance (the GUI polls the login status every 2 s) makes no keychain calls and cannot wipe
+    // a login another instance saved.
+    std::atomic_bool secret_stored{false};
     SessionHandler session_handler;
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
@@ -442,6 +462,9 @@ private:
     mutable std::recursive_mutex state_mutex;
     std::thread refresh_thread;
     std::atomic_bool refresh_running{false};
+    std::thread health_check_thread;
+    std::atomic_bool health_check_running{false};
+    std::atomic_bool health_check_stopped{false};
 };
 
 } // namespace Slic3r

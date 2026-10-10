@@ -2,7 +2,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
+#include <string>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include "slic3r/Utils/OrcaPrinterAgent.hpp"

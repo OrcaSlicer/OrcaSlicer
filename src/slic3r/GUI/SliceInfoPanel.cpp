@@ -1,10 +1,30 @@
 #include "SliceInfoPanel.hpp"
 
+#include <array>
 #include <boost/log/trivial.hpp>
-#include "I18N.hpp"
-#include "Widgets/Label.hpp"
+#include <wx/object.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/colour.h>
+#include <string>
+#include <cstddef>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include <wx/string.h>
+#include <wx/popupwin.h>
+#include <wx/scrolwin.h>
+#include <wx/event.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/gdicmn.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/panel.h>
+#include <wx/anybutton.h>
+#include <wx/webrequest.h>
 #include "libslic3r/Utils.hpp"
-#include "GUI_App.hpp"//for  ICON_SIZE (wxSize(FromDIP(16), FromDIP(16)))
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

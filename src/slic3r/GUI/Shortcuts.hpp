@@ -3,6 +3,7 @@
 #include "KeyChord.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -37,7 +38,7 @@ enum class Shortcut : uint8_t {
     MoveSelectionLeft, MoveSelectionRight, MoveSelectionUp, MoveSelectionDown, RotateSelectionLeft, RotateSelectionRight,
     // Gizmos
     GizmoMove, GizmoRotate, GizmoScale, GizmoFlatten, GizmoCut, GizmoMeshBoolean, GizmoFdmSupports, GizmoSeam, GizmoFuzzySkin,
-    GizmoMmuSegmentation, GizmoEmboss, GizmoMeasure, GizmoAssembly, GizmoBrimEars,
+    GizmoMmuSegmentation, GizmoEmboss, GizmoMeasure, GizmoAssembly, GizmoBrimEars, GizmoDisplacement,
     // Sliders
     GoToLayer, LayerSliderUp, LayerSliderDown, MovesSliderLeft, MovesSliderRight, MovesSliderStart, MovesSliderEnd,
     // Painting tools
@@ -45,9 +46,11 @@ enum class Shortcut : uint8_t {
     // Camera
     ViewDefault, ViewTop, ViewBottom, ViewFront, ViewRear, ViewLeft, ViewRight, ViewPlate, ZoomIn, ZoomOut, Mouse3DSettings,
     // Display
-    ShowLabels, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode,
+    ShowLabels, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, SpeedDial, ReloadDevicePage, KeyboardShortcuts,
+    Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts,
+    // Speed Dial
+    SpeedDial,
     Count
 };
 
@@ -66,7 +69,7 @@ struct ShortcutInfo
 
 // Headings of the shortcuts dialog, in listing order.
 enum class ShortcutSection : uint8_t {
-    Project, SlicingAndPrinting, Selection, Editing, Objects, Placement, Gizmos, Sliders, PaintingTools, Camera, Display, Application,
+    Project, SlicingAndPrinting, Selection, Editing, Objects, Placement, Gizmos, Sliders, PaintingTools, Camera, Display, Application, SpeedDial,
     Count
 };
 

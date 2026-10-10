@@ -1,13 +1,26 @@
 #ifndef PLATERWORKER_HPP
 #define PLATERWORKER_HPP
 
+#include <future>
+#include <functional>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <ios>
 #include <map>
 #include <chrono>
 
 #include "Worker.hpp"
 #include "BusyCursorJob.hpp"
 
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <wx/app.h>
+#include <wx/event.h>
+
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {

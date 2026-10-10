@@ -1,12 +1,25 @@
 #include "ZipperArchiveImport.hpp"
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/algorithm/string.hpp>
+#include <miniz.h>
+#include <string>
+#include <cstddef>
+#include <sstream>
+#include <vector>
+#include <cstdint>
+#include <utility>
+#include <functional>
 
 namespace Slic3r {
 

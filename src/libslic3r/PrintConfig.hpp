@@ -16,10 +16,13 @@
 #ifndef slic3r_PrintConfig_hpp_
 #define slic3r_PrintConfig_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
 #include "Config.hpp"
 #include "Polygon.hpp"
+#include <boost/container_hash/hash.hpp>
+#include <algorithm>
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -27,8 +30,23 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
+#include <set>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
+#include <cstddef>
+#include <cassert>
+#include <cstdint>
+#include <cereal/access.hpp>
+#include <cmath>
+#include <cereal/specialize.hpp>
+#include <stdexcept>
 
 namespace Slic3r {
+
+class DynamicPrintConfig;
 
 enum GCodeFlavor : unsigned char {
     gcfMarlinLegacy, 
@@ -118,25 +136,31 @@ enum InfillPattern : int {
     ipCount,
 };
 
-// Orca: Infill patterns whose alignment origin follows the fill bounding box, so the
-// "separated_infills" option can re-center them per connected body. Patterns evaluated in
-// absolute/global coordinates (Gyroid, TPMS, Honeycomb, CrossHatch, ...) or that are shape-relative
-// (Concentric) ignore that bounding box and are therefore excluded.
+// Orca: Infill patterns that the "separated_infills" option can center on each connected body.
 inline bool is_separable_infill_pattern(InfillPattern pattern)
 {
     switch (pattern) {
+    case ipMonotonic:
+    case ipMonotonicLine:
     case ipRectilinear:
     case ipAlignedRectilinear:
     case ipZigZag:
     case ipCrossZag:
     case ipLockedZag:
+    case ipLine:
     case ipGrid:
     case ipTriangles:
     case ipStars:          // tri-hexagon
     case ipCubic:
     case ipQuarterCubic:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
     case ipLateralHoneycomb:
     case ipLateralLattice:
+    case ipCrossHatch:
+    case ipTpmsD:
+    case ipTpmsFK:
+    case ipGyroid:
     case ipHilbertCurve:
     case ipArchimedeanChords:
     case ipOctagramSpiral:
@@ -145,6 +169,11 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
         return false;
     }
 }
+
+// Orca: Infill patterns laid out by an octree, which each connected body always gets of its own.
+inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == ipAdaptiveCubic || pattern == ipSupportCubic; }
+// Orca: Infill patterns graded by the "tpms_adaptive" option.
+inline bool is_tpms_adaptive_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
 
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
@@ -163,6 +192,7 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     case ipGrid:
     case ipTriangles:
     case ipStars:
+    case ipCubic:
         return multiline > 1;
     default:
         return false;
@@ -176,6 +206,10 @@ enum class IroningType {
     AllSolid,
     Count,
 };
+
+// Smallest usable ironing line spacing. Anything tighter yields an unprintable number of lines,
+// and zero stops the fillers from making progress.
+constexpr double IRONING_SPACING_MIN = 0.05;
 
 //BBS
 enum class WallInfillOrder {
@@ -216,6 +250,26 @@ enum class WallDirection
     Count,
 };
 
+// IMEX: physical bed corner where tool T0 sits. Determines how tool indices
+// map to bed zones (front = lower Y near operator, rear = higher Y).
+enum class ImexToolLayout {
+    FrontLeft,
+    FrontRight,
+    RearLeft,
+    RearRight,
+    Count,
+};
+
+// IMEX: color theme for the bed-zone visualization. Colorblind-friendly variants
+// are provided for users with color-vision differences.
+enum class ImexVizTheme {
+    Standard,
+    Deuteranopia,
+    Tritanopia,
+    HighContrast,
+    Count,
+};
+
 // Orca: print order of surface fill loops/fragments for center-based fill patterns
 // (Concentric, Archimedean Chords, Octagram Spiral).
 enum class SurfaceFillOrder {
@@ -223,6 +277,26 @@ enum class SurfaceFillOrder {
     Outward,
     Inward,
     Count,
+};
+
+// Orca: what the adaptive TPMS density follows: the 3D shape of the object, or its 2D sections normal to an axis.
+enum class TpmsAdaptiveMode {
+    Disabled,
+    DistanceWarp,
+    SmoothBlend,
+    SteppedShells,
+    Lobes,
+    NormalZ,
+    NormalY,
+    NormalX,
+    Count,
+};
+
+// Orca: how the adaptive TPMS density changes from the object surface to its deepest point.
+enum class TpmsAdaptiveGradient {
+    Linear,
+    Quadratic,
+    Exponential,
 };
 
 //BBS
@@ -244,12 +318,31 @@ enum class PrintOrder
 
 enum class SlicingMode
 {
-    // Regular, applying ClipperLib::pftNonZero rule when creating ExPolygons.
+    // Regular, applying pftNonZero rule when creating ExPolygons.
     Regular,
-    // Compatible with 3DLabPrint models, applying ClipperLib::pftEvenOdd rule when creating ExPolygons.
+    // Compatible with 3DLabPrint models, applying pftEvenOdd rule when creating ExPolygons.
     EvenOdd,
     // Orienting all contours CCW, thus closing all holes.
     CloseHoles,
+};
+
+// Axis around which the mesh is rotated before slicing, when
+// `belt_slice_rotation` is set.  None disables the rotation stage.  This is the
+// single "belt tilt" axis: it drives both the pre-slice mesh rotation and the
+// post-slice machine-frame transform (shear + scale derived from the tilt angle).
+enum class BeltRotationAxis
+{
+    None = 0,
+    X    = 1,
+    Y    = 2,
+    Z    = 3,
+};
+
+enum class RemapAxis
+{
+    PosX = 0, PosY = 1, PosZ = 2,
+    NegX = 3, NegY = 4, NegZ = 5,
+    RevX = 6, RevY = 7, RevZ = 8,  // Reversed: max - pos
 };
 
 enum SupportMaterialPattern {
@@ -359,6 +452,10 @@ enum BrimType {
     btInnerOnly,
     btOuterAndInner,
     btNoBrim,
+    // Belt printers: brim only where the part first touches the belt, nothing after
+    // that.  Appended last so no existing value shifts.  On a non-belt printer this
+    // has no meaning and behaves as btOuterOnly.
+    btLeadingEdgeOnly,
 };
 
 enum TimelapseType : int {
@@ -525,8 +622,11 @@ enum NozzleVolumeType {
                      // with more than one sub-nozzle (extruder_max_nozzle_count > 1); matched as Standard for
                      // preset lookup and never emitted in profile variant strings
     nvtTPUHighFlow,  // physical variant, used on H2D/H2DP 0.4 nozzles only
+    // 4 is reserved: E3D High Flow is 5 in BambuStudio's slice_info and device numbering.
+    nvtE3DHighFlow = 5, // physical variant, E3D high-flow hotend on 0.4/0.6 nozzles
+    nvtExtraHighFlow = 6, // Orca: physical variant with no BambuStudio or device counterpart; only profiles name it
     // Integer values are serialized as raw ints in 3mf plate metadata and device MQTT, so they MUST stay stable.
-    nvtMaxNozzleVolumeType = nvtTPUHighFlow
+    nvtMaxNozzleVolumeType = nvtExtraHighFlow
 };
 
 enum FilamentMapMode {
@@ -553,8 +653,19 @@ enum PrimeVolumeMode {
 
 extern std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
 
-// Base slot lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
-// entry matching the given extruder/volume type and id. Returns 0 when no entry matches.
+// The variant index a value is taken from: in a variant list paired with its 1-based extruder or
+// filament ids, the variant with the same variant string and id, else that id's first variant, else -1.
+// variant_id_1based < 0 or empty variant_ids_1based match any id. A list without variant strings has
+// one variant per id, and one with neither variant strings nor ids has a single variant.
+extern int find_variant_index(const std::string& variant, int variant_id_1based, const std::vector<std::string>& variant_list, const std::vector<int>& variant_ids_1based);
+// find_variant_index for every variant of a list paired with its ids, into from_variants/from_ids.
+// A variant past the end of a shorter id list has no id and gets -1.
+extern std::vector<int> map_variant_indices(const std::vector<std::string>& variants, const std::vector<int>& ids,
+                                            const std::vector<std::string>& from_variants, const std::vector<int>& from_ids);
+
+// Variant index lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
+// entry matching the given extruder/volume type and id, as find_variant_index. Returns 0 when the id
+// has no variant.
 extern int get_config_index_base(NozzleVolumeType volume_type, ExtruderType extruder_type, int variant_id_1based, const std::vector<std::string>& variant_list, const std::vector<int>& variant_ids_1based);
 
 static std::set<NozzleVolumeType> get_valid_nozzle_volume_type() {
@@ -564,10 +675,18 @@ static std::set<NozzleVolumeType> get_valid_nozzle_volume_type() {
         // Hybrid is not a physical nozzle variant: presets never define it, so it must not
         // produce a variant string.
         if (t == nvtHybrid) continue;
+        // Skip the reserved gap between nvtTPUHighFlow (3) and nvtE3DHighFlow (5).
+        if (i > nvtTPUHighFlow && i < nvtE3DHighFlow) continue;
         type.insert(t);
     }
     return type;
 }
+
+// The nozzle volume types the given extruder physically provides, as declared by the printer
+// profile's extruder_variant_list. An empty set means the profile could not be read and must be
+// treated as "unknown", not as "none". nvtHybrid is never reported: it describes an extruder
+// holding a mix of nozzles, not a nozzle the profile can offer.
+extern std::set<NozzleVolumeType> get_extruder_supported_nozzle_volume_types(const DynamicPrintConfig &printer_config, int extruder_id);
 
 std::string get_nozzle_volume_type_string(NozzleVolumeType nozzle_volume_type);
 
@@ -677,6 +796,8 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
@@ -702,10 +823,10 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TpmsAdaptiveMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TpmsAdaptiveGradient)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
-
-class DynamicPrintConfig;
 
 // Defines each and every configuration option of Slic3r, including the properties of the GUI dialogs.
 // Does not store the actual values, but defines default values.
@@ -752,6 +873,12 @@ class StaticPrintConfig;
 
 // Minimum object distance for arrangement, based on printer technology.
 double min_object_distance(const ConfigBase &cfg);
+
+// Whether any value is set, a nil value included.
+template<bool NULLABLE> bool any_enabled(const ConfigOptionBoolsTempl<NULLABLE> &option)
+{
+    return std::any_of(option.values.begin(), option.values.end(), [](unsigned char enabled) { return enabled != 0; });
+}
 
 // One (extruder type x nozzle volume type) parameter variant a filament prints through, plus a
 // representative physical extruder observed using it. Ordering (and set-dedup identity) covers
@@ -827,6 +954,10 @@ public:
     //BBS
     bool is_using_different_extruders();
     bool support_different_extruders(int& extruder_count) const;
+    // Whether any filament defines more than one variant (filament_extruder_variant longer than
+    // filament_diameter). Its variants then have to be resolved even on a printer with a single
+    // extruder variant, which picks the filament's variant of the same variant string.
+    bool has_multi_variant_filament() const;
     // Counts the config slots of a printer: one per (extruder x nozzle volume type) as described by
     // extruder_nozzle_stats, or simply one per extruder when the stats are absent/mismatched.
     // Fills nozzle_volume_types with each extruder's volume types in ascending enum order.
@@ -875,7 +1006,21 @@ extern std::set<std::string> empty_options;
 void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
                           const std::vector<int> &variant_index, int stride = 1);
 
+// Orca: lays every filament_options_with_variant option out one value per filament variant, as
+// filament_self_index maps the variants to filaments. An option holding one value per filament, or a
+// single value, gives every variant of a filament that filament's value; other lengths are left alone.
+void normalize_filament_values_to_variants(DynamicPrintConfig &config);
+
 extern std::set<std::string> filament_dev_options;
+
+// Orca: a filament_dev_options option holds several values per filament, and how many is up to the
+// filament preset, so one filament's values cannot be replaced in place. This rebuilds each option from
+// filament_configs, one config per filament in slot order, as the filaments' values one after another.
+void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs);
+
+// Orca: sizes the per-slot mixed-colour metadata options to new_slot_count, keeping the first
+// old_slot_count values; an option the config lacks is created.
+void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count);
 
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
@@ -1019,9 +1164,10 @@ public: \
 
 #define PRINT_CONFIG_CLASS_ELEMENT_DEFINITION(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem) BOOST_PP_TUPLE_ELEM(1, elem);
 #define PRINT_CONFIG_CLASS_ELEMENT_VISIT(r, data, elem) if (! f(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), this->BOOST_PP_TUPLE_ELEM(1, elem), rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return;
+#define PRINT_CONFIG_CLASS_ELEMENT_VISIT_SELF(r, data, elem) if (! f(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), self.BOOST_PP_TUPLE_ELEM(1, elem), rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return;
 // Each option list is expanded into the members and again into for_each_option_pair(), which calls
 // f(key, this->option, rhs.option) in declaration order and stops when f returns false. hash(),
-// operator==, operator< and initialize() iterate the options through that visitor.
+// operator==, operator<, initialize() and apply_to() iterate the options through that visitor.
 #define PRINT_CONFIG_CLASS_COMMON_BODY(CLASS_NAME) \
     size_t hash() const throw() \
     { \
@@ -1053,11 +1199,16 @@ class CLASS_NAME : public StaticPrintConfig { \
     STATIC_PRINT_CONFIG_CACHE(CLASS_NAME) \
 public: \
     BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ) \
-    template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_VISIT, _, PARAMETER_DEFINITION_SEQ) \
-    } \
+    template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const { visit_option_pairs(*this, rhs, f); } \
+    /* Defined in PrintConfig.cpp. */ \
+    bool apply_to(ConfigBase &target) const override; \
     PRINT_CONFIG_CLASS_COMMON_BODY(CLASS_NAME) \
+private: \
+    /* The one expansion of the option list, for a const self and for apply_to()'s mutable target. */ \
+    template<typename Self, typename F> static void visit_option_pairs(Self &self, const CLASS_NAME &rhs, F &&f) \
+    { \
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_VISIT_SELF, _, PARAMETER_DEFINITION_SEQ) \
+    } \
 };
 
 #define PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST_ITEM(r, data, i, elem) BOOST_PP_COMMA_IF(i) public elem
@@ -1078,6 +1229,8 @@ class CLASS_NAME : PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST(CLASSES_PARENTS_TUPLE) 
 public: \
     PARAMETER_DEFINITION \
     template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const { PARAMETER_VISIT } \
+    /* Its parents each apply themselves to a target member by member, so this one keeps the lookup by name. */ \
+    bool apply_to(ConfigBase &/*target*/) const override { return false; } \
     size_t hash() const throw() \
     { \
         size_t seed = 0; \
@@ -1118,6 +1271,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
+    ((ConfigOptionFloat,               leading_brim_length))
+    ((ConfigOptionFloat,               extra_brim_width))
     ((ConfigOptionFloat,               brim_ears_detection_length))
     ((ConfigOptionFloat,               brim_ears_max_angle))
     ((ConfigOptionBool,                brim_ears_outer_only))
@@ -1201,6 +1356,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // BBS
     ((ConfigOptionBool,                flush_into_infill))
     ((ConfigOptionBool,                flush_into_support))
+    // Marker for the auto-generated belt purge prism; identifies the object to
+    // the auto-manager (GUI) and the layer-grid alignment step (backend).
+    ((ConfigOptionBool,                belt_purge_tower_object))
     // BBS
     ((ConfigOptionFloat,              tree_support_branch_distance))
     ((ConfigOptionFloat,              tree_support_tip_diameter))
@@ -1265,6 +1423,13 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
+
+    // IDEX/IQEX parallel print mode (per-print selection, stores mode name or "primary")
+    ((ConfigOptionString,              imex_parallel_mode))
+    // Per-plate head→filament override for MMU-equipped printers.
+    // Serialized as compact "phys:slot,phys:slot" (1-based filament slots, matches UI).
+    // Empty string means "use first_filament_for_physical_head defaults everywhere".
+    ((ConfigOptionString,              imex_head_filament_map))
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1299,6 +1464,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                bottom_layer_direction))
     ((ConfigOptionString,               solid_infill_rotate_template))
     ((ConfigOptionBool,                 symmetric_infill_y_axis))
+    ((ConfigOptionBool,                 infill_complete_top))
     ((ConfigOptionFloat,                infill_shift_step))
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
@@ -1342,6 +1508,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
+    ((ConfigOptionEnum<TpmsAdaptiveMode>, tpms_adaptive))
+    ((ConfigOptionPercent,              tpms_interior_density))
+    ((ConfigOptionEnum<TpmsAdaptiveGradient>, tpms_adaptive_gradient))
     ((ConfigOptionBool,                 gyroid_optimized))
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
@@ -1410,7 +1579,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable,           small_perimeter_threshold))
     ((ConfigOptionFloatsOrPercentsNullable, small_support_perimeter_speed))
     ((ConfigOptionFloatsNullable,           small_support_perimeter_threshold))
-    ((ConfigOptionFloat,                top_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       top_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                bottom_solid_infill_flow_ratio))
     ((ConfigOptionFloatOrPercent,       infill_anchor))
     ((ConfigOptionFloatOrPercent,       infill_anchor_max))
@@ -1633,11 +1802,25 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
+    // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
+    ((ConfigOptionBool,                is_imex))
+    ((ConfigOptionBool,                imex_firmware_managed_zones))
+    ((ConfigOptionInt,                 imex_gantry_count))
+    ((ConfigOptionInt,                 imex_tools_per_gantry))
+    ((ConfigOptionFloat,               imex_nozzle_clearance_x))
+    ((ConfigOptionFloat,               imex_nozzle_clearance_y))
+    ((ConfigOptionFloat,               imex_carriage_margin))
+    ((ConfigOptionEnum<ImexToolLayout>, imex_tool_layout))
+    ((ConfigOptionEnum<ImexVizTheme>,  imex_viz_theme))
+    ((ConfigOptionStrings,             imex_mode_names))
+    ((ConfigOptionStrings,             imex_mode_active_tools))
+    ((ConfigOptionStrings,             imex_mode_gcodes))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionString,              toolchange_cyclic_order))
     ((ConfigOptionBool,                toolchange_cyclic_first_layer))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
+    ((ConfigOptionBool,                wipe_tower_sparse_layers_combination))
     ((ConfigOptionString,              change_filament_gcode))
     ((ConfigOptionString,              change_extrusion_role_gcode))
     ((ConfigOptionString,              process_change_extrusion_role_gcode))
@@ -1756,6 +1939,33 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     PrintConfig,
     (MachineEnvelopeConfig, GCodeConfig),
 
+    // Build plate tilt for off-axis gravity support generation (printer-level setting).
+    ((ConfigOptionFloat,               build_plate_tilt_x))
+    ((ConfigOptionFloat,               build_plate_tilt_y))
+    // Belt printer settings (printer-level).
+    ((ConfigOptionBool,                belt_printer))
+    ((ConfigOptionBool,                belt_printer_infinite_y))
+    // Mesh rotation applied before slicing — the single source of truth for the
+    // physical belt tilt.  Its angle + axis drive bed rendering, support gravity
+    // tilt, the bed-exclusion projection, AND the post-slice machine-frame
+    // transform (shear + scale, derived from the tilt angle; see
+    // MachineFrameTransform).  Isometric (no distortion) on the mesh side; the
+    // g-code back-transform inverts the rotation before the machine-frame stage.
+    ((ConfigOptionEnum<BeltRotationAxis>, belt_slice_rotation))
+    ((ConfigOptionFloat,                  belt_slice_rotation_angle))
+    // Expert override: decouple the machine-frame tilt angle from the pre-slice
+    // rotation angle.  When disabled, the machine frame uses belt_slice_rotation_angle.
+    ((ConfigOptionBool,                   belt_frame_tilt_decouple))
+    ((ConfigOptionFloat,                  belt_frame_tilt_angle))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_x))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_y))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_z))
+    ((ConfigOptionFloat,                          belt_support_floor_offset))
+    // Width (machine X, across the belt) of the auto-generated belt purge prism.
+    ((ConfigOptionFloat,                          belt_purge_tower_width))
+    // Belt-printer-only "type" of purge tower: enables the auto-generated belt
+    // purge prism (the belt replacement for the classic wipe/prime tower).
+    ((ConfigOptionBool,                           enable_belt_purge_tower))
     //BBS
     ((ConfigOptionInts,               additional_cooling_fan_speed))
     ((ConfigOptionInts,               close_additional_fan_first_x_layers))
@@ -2167,6 +2377,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
 #undef STATIC_PRINT_CONFIG_CACHE_DERIVED
 #undef PRINT_CONFIG_CLASS_ELEMENT_DEFINITION
 #undef PRINT_CONFIG_CLASS_ELEMENT_VISIT
+#undef PRINT_CONFIG_CLASS_ELEMENT_VISIT_SELF
 #undef PRINT_CONFIG_CLASS_COMMON_BODY
 #undef PRINT_CONFIG_CLASS_DEFINE
 #undef PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST
@@ -2494,6 +2705,8 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
+
+double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
 
 } // namespace Slic3r
 

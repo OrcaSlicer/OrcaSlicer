@@ -23,7 +23,13 @@ appimage_is_host_library() {
 }
 
 appimage_is_elf_file() {
-    file -b "$1" 2>/dev/null | grep -q '^ELF '
+    # Read the four-byte ELF magic rather than asking file(1): this runs once per candidate, and an
+    # AppDir holds thousands of them (the bundled Python runtime alone is ~5k files, none of them
+    # ELF). Two processes per call made this ~14 s of a ~95 s image build on its own.
+    local magic
+    [[ -f "$1" && -r "$1" ]] || return 1
+    IFS= read -r -n 4 -d '' magic < "$1" 2>/dev/null
+    [[ $magic == $'\177ELF' ]]
 }
 
 appimage_list_direct_dependencies() {

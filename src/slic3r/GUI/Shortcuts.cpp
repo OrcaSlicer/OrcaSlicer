@@ -4,8 +4,16 @@
 #include "libslic3r/AppConfig.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <array>
+#include <cstddef>
 #include <map>
+#include "slic3r/GUI/KeyChord.hpp"
+#include <optional>
+#include <string>
 #include <utility>
+#include <wx/accel.h>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 
@@ -105,6 +113,7 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(GizmoMeasure,      "gizmo_measure",      L("Gizmo measure"),                                        PLATER, { 'U' }),
     SHORTCUT(GizmoAssembly,     "gizmo_assembly",     L("Gizmo assemble"),                                       PLATER, { 'Y' }),
     SHORTCUT(GizmoBrimEars,     "gizmo_brim_ears",    L("Gizmo brim ears"),                                      PLATER, { 'E' }),
+    SHORTCUT(GizmoDisplacement, "gizmo_displacement", L("Gizmo texture displacement painting"),                  PLATER, { 'D' }),
 
     // Sliders
     SHORTCUT(GoToLayer,           "go_to_layer",           L("Jump to layer"),                                   PREVIEW, { 'G', SHIFT }),
@@ -141,15 +150,18 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(ShowWireframe,     "show_wireframe",     L("Show/Hide wireframe"),                                  CANVAS,  { WXK_RETURN, CTRL_SHIFT }),
     SHORTCUT(ToggleGcodeWindow,   "toggle_gcode_window",   L("On/Off G-code window"),                            PREVIEW, { 'C' }),
     SHORTCUT(ToggleOneLayerMode,  "toggle_one_layer_mode", L("On/Off one layer mode of the vertical slider"),    PREVIEW, { 'L' }),
+    SHORTCUT(ToggleBeltRawGcode,  "toggle_belt_raw_gcode", L("Show raw G-code (belt only)"),                     PREVIEW, { 'B' }),
 
     // Application
     SHORTCUT(Preferences,       "preferences",        L("Preferences"),                                          GLOBAL, PREFERENCES_CHORD),
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
     SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, { WXK_TAB }),
     SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          CANVAS, { WXK_TAB, SHIFT }),
-    SHORTCUT(SpeedDial,         "speed_dial",         L("Open the speed dial"),                              GLOBAL, { WXK_SPACE }),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
     SHORTCUT(KeyboardShortcuts, "keyboard_shortcuts", L("Show keyboard shortcuts list"),                         CANVAS, { '?' }),
+
+    // Speed Dial
+    SHORTCUT(SpeedDial,         "speed_dial",         L("Open the Speed Dial"),                                  GLOBAL, { WXK_SPACE }),
 }};
 
 #undef SHORTCUT
@@ -177,6 +189,7 @@ constexpr std::array<SectionInfo, size_t(ShortcutSection::Count)> section_table 
     { Shortcut::ViewDefault,     L("Camera") },
     { Shortcut::ShowLabels,      L("Display") },
     { Shortcut::Preferences,     L("Application") },
+    { Shortcut::SpeedDial,       L("Speed Dial") },
 }};
 
 constexpr bool sections_follow_table_order()

@@ -1,9 +1,21 @@
 #include "ModelArrange.hpp"
 
+#include <cstddef>
+#include <algorithm>
+#include <iterator>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Geometry/ConvexHull.hpp>
 #include <libslic3r/Print.hpp>
-#include "MTUtils.hpp"
+#include "Arrange.hpp"
+#include <utility>
+#include "Config.hpp"
+#include <set>
+#include <string>
+#include "Point.hpp"
+#include "PrintConfig.hpp"
+#include "BoundingBox.hpp"
+#include "ExPolygon.hpp"
+#include "Polygon.hpp"
 
 namespace Slic3r {
 

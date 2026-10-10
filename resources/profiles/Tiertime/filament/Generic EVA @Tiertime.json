@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic EVA @Tiertime",
-	"inherits": "fdm_filament_eva",
 	"renamed_from": "Tiertime Generic EVA",
+	"inherits": "fdm_filament_eva",
 	"from": "system",
 	"setting_id": "NTY4MeZtxt16HNAV",
 	"filament_id": "OFCD8qiU",

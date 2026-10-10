@@ -2,13 +2,18 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <vector>
 
 #include "ExtrusionLine.hpp"
 #include "../../VariableWidth.hpp"
+#include "libslic3r/ClipperZUtils.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
-#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -287,9 +292,9 @@ double ExtrusionLine::area() const
 } // namespace Slic3r::Arachne
 
 namespace Slic3r {
-void extrusion_paths_append(ExtrusionPaths &dst, const ClipperLib_Z::Paths &extrusion_paths, const ExtrusionRole role, const Flow &flow)
+void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow)
 {
-    for (const ClipperLib_Z::Path &extrusion_path : extrusion_paths) {
+    for (const ClipperZUtils::ZPath &extrusion_path : extrusion_paths) {
         ThickPolyline thick_polyline = Arachne::to_thick_polyline(extrusion_path);
         Slic3r::append(dst, thick_polyline_to_multi_path(thick_polyline, role, flow, scaled<float>(0.05), float(SCALED_EPSILON)).paths);
     }

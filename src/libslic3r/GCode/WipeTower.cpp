@@ -1,16 +1,40 @@
 #include "WipeTower.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
 #include <iostream>
+#include <map>
+#include <string>
+#include <utility>
+#include <limits>
+#include <math.h>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include "libslic3r/Circle.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "GCodeProcessor.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "libslic3r/Line.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "Triangulation.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r
@@ -47,6 +71,48 @@ std::vector<float> compute_compacted_wipe_tower_z(const std::vector<std::vector<
         tower_z[i] = last;
     }
     return tower_z;
+}
+
+bool wipe_tower_sparse_layers_combined(const PrintConfig &config)
+{
+    return config.wipe_tower_sparse_layers_combination.value && ! wipe_tower_sparse_layers_skipped(config) &&
+           config.timelapse_type.value != TimelapseType::tlSmooth && ! config.enable_wrapping_detection.value;
+}
+
+bool wipe_tower_layer_is_combined_away(const std::vector<WipeTower::ToolChangeResult> &layer_tool_changes)
+{
+    return ! layer_tool_changes.empty() && layer_tool_changes.front().combined_away;
+}
+
+std::vector<char> combine_sparse_wipe_tower_layers(std::vector<float>       &layer_height,
+                                                   const std::vector<char>  &layer_is_sparse,
+                                                   const std::vector<float> &max_layer_height,
+                                                   size_t                    first_layer_idx)
+{
+    assert(layer_is_sparse.size() == layer_height.size() && max_layer_height.size() == layer_height.size());
+    std::vector<char> combined_away(layer_height.size(), 0);
+    float             pending_height = 0.f; // what the layers folded away so far add up to
+    for (size_t i = 0; i < layer_height.size(); ++i) {
+        // A toolchange has to purge at its own z, so it neither folds away nor takes over the run
+        // below it - and a run always flushes on its own last layer, so nothing is ever pending here.
+        if (! layer_is_sparse[i] || i <= first_layer_idx) {
+            pending_height = 0.f;
+            continue;
+        }
+        const float merged = pending_height + layer_height[i];
+        // Hand the run on only if the next layer can swallow the whole thing; a layer already past
+        // the cap is left alone rather than shrunk.
+        const bool next_takes_it = i + 1 < layer_height.size() && layer_is_sparse[i + 1] &&
+                                   merged + layer_height[i + 1] <= max_layer_height[i + 1] + float(EPSILON);
+        if (next_takes_it) {
+            combined_away[i] = 1;
+            pending_height   = merged;
+        } else {
+            layer_height[i] = merged;
+            pending_height  = 0.f;
+        }
+    }
+    return combined_away;
 }
 
 inline float align_round(float value, float base)
@@ -1406,6 +1472,10 @@ public:
     void set_multi_nozzle_group_result(const MultiNozzleUtils::LayeredNozzleGroupResult *multi_nozzle_group_result) { m_multi_nozzle_group_result = multi_nozzle_group_result; }
     void set_physical_extruder_map(const std::vector<int> &physical_extruder_map) { m_physical_extruder_map = physical_extruder_map; }
 
+    // physical_extruder_map defaults to the single element {0} and is only widened to one entry
+    // per extruder on IMEX printers, so indexing it by tool is out of range on any other
+    // multi-extruder machine. Fall back to the tool's own index, matching the bounds-checked
+    // form GCodeProcessor uses for the same map.
 private:
     std::string set_normal_acceleration() {
         std::vector<unsigned int> accelerations = m_is_first_layer ? m_first_layer_normal_accelerations : m_normal_accelerations;
@@ -1904,6 +1974,7 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     //m_bridging(float(config.wipe_tower_bridging)),
     m_bridging(10.f),
     m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(config)),
+    m_sparse_layers_combined(wipe_tower_sparse_layers_combined(config)),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_current_tool(initial_tool),
@@ -2027,6 +2098,16 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].filament_area = float((M_PI/4.f) * pow(config.filament_diameter.get_at(idx), 2)); // all extruders are assumed to have the same filament diameter at this point
     float nozzle_diameter = float(config.nozzle_diameter.get_at(idx));
     m_filpar[idx].nozzle_diameter = nozzle_diameter; // to be used in future with (non-single) multiextruder MM
+
+    // Orca: max_layer_height is per nozzle, so read it through the filament->nozzle map rather than
+    // by filament id. Zero means three quarters of the nozzle diameter, as in Slicing.cpp.
+    {
+        const std::vector<int> &filament_map = config.filament_map.values; // 1 based nozzle indices
+        const size_t nozzle_idx = idx < filament_map.size() && filament_map[idx] > 0 ? size_t(filament_map[idx] - 1) : 0;
+        const float  max_layer_height = float(config.max_layer_height.get_at(nozzle_idx));
+        m_filpar[idx].max_layer_height = max_layer_height > 0.f ? max_layer_height
+                                                                : 0.75f * float(config.nozzle_diameter.get_at(nozzle_idx));
+    }
 
     float max_vol_speed = float(config.filament_max_volumetric_speed.get_at(idx));
     if (max_vol_speed!= 0.f)
@@ -3001,7 +3082,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer(bool extrude_perimeter, bool
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (! m_sparse_layers_skipped || toolchanges_on_layer)
+    if (layer_is_printed(toolchanges_on_layer))
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
@@ -3898,7 +3979,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (!m_sparse_layers_skipped || toolchanges_on_layer)
+    if (layer_is_printed(toolchanges_on_layer))
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
@@ -4008,7 +4089,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block(const WipeTowerBlock &block,
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (!m_sparse_layers_skipped || toolchanges_on_layer)
+    if (layer_is_printed(toolchanges_on_layer))
         if (filament_id < m_used_filament_length.size())
             m_used_filament_length[filament_id] += writer.get_and_reset_used_filament_length();
 
@@ -4125,7 +4206,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (!m_sparse_layers_skipped || toolchanges_on_layer)
+    if (layer_is_printed(toolchanges_on_layer))
         if (filament_id < m_used_filament_length.size())
             m_used_filament_length[filament_id] += writer.get_and_reset_used_filament_length();
 
@@ -4668,6 +4749,15 @@ void WipeTower::calc_block_infill_gap()
      m_extra_spacing = 1.f;
 }
 
+// A folded layer is generated like any other but thrown away by the emitter, so its extrusions must
+// not be charged to the filament used.
+bool WipeTower::layer_is_printed(bool toolchanges_on_layer) const
+{
+    if (m_layer_info != m_plan.end() && m_layer_info->combined_away)
+        return false;
+    return ! m_sparse_layers_skipped || toolchanges_on_layer;
+}
+
 void WipeTower::plan_tower_new()
 {
     if (m_wipe_tower_brim_width < 0) m_wipe_tower_brim_width = get_auto_brim_by_height(m_wipe_tower_height);
@@ -4820,6 +4910,9 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
     if (m_plan.empty())
         return;
     //m_extra_spacing = 1.f;
+    // Before planning: the layer heights this rewrites feed the extrusion flow of every later pass.
+    if (m_sparse_layers_combined)
+        combine_sparse_wipe_tower_plan(m_plan, m_filpar, m_first_layer_idx, m_current_tool);
     m_wipe_tower_height = m_plan.back().z;//real wipe_tower_height
     plan_tower_new();
     m_layer_info = m_plan.begin();
@@ -5014,6 +5107,9 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         if (only_generate_wall && !timelapse_wall.gcode.empty()) {
             layer_result.insert(layer_result.begin(), std::move(timelapse_wall));
         }
+        if (layer.combined_away)
+            for (WipeTower::ToolChangeResult &tcr : layer_result)
+                tcr.combined_away = true;
         result.emplace_back(std::move(layer_result));
     }
     assert(m_outer_wall.size() == m_plan.size());
@@ -5179,7 +5275,7 @@ WipeTower::ToolChangeResult WipeTower::only_generate_out_wall(bool is_new_mode)
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (!m_sparse_layers_skipped || toolchanges_on_layer)
+    if (layer_is_printed(toolchanges_on_layer))
         if (m_current_tool < m_used_filament_length.size()) m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
     return construct_tcr(writer, false, old_tool, true, false, 0.f, false);

@@ -9,6 +9,7 @@
 		"80"
 	],
 	"fan_min_speed": [
+		"50",
 		"50"
 	],
 	"filament_long_retractions_when_cut": [

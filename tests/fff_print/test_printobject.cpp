@@ -1,5 +1,11 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Layer.hpp"
@@ -10,12 +16,28 @@
 #include "test_helpers.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <iterator>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include <map>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -490,12 +512,13 @@ TEST_CASE("Separated infill keeps fragmented and nested bodies independent", "[P
     print.process();
     const PrintObject &object = *print.objects().front();
     REQUIRE(object.layer_count() > 1);
+    CHECK(object.separated_body_bboxes().size() == grid_size * grid_size + 2);
     for (const Layer *layer : object.layers()) {
         REQUIRE(layer->lslices.size() == grid_size * grid_size + 2);
-        REQUIRE(layer->lslices_separated_component_bboxes.size() == layer->lslices.size());
+        REQUIRE(layer->lslices_separated_component_ids.size() == layer->lslices.size());
         size_t holes = 0;
         for (size_t i = 0; i < layer->lslices.size(); ++ i) {
-            const BoundingBox &body = layer->lslices_separated_component_bboxes[i];
+            const BoundingBox &body = object.separated_body_bboxes()[layer->lslices_separated_component_ids[i]];
             const BoundingBox &island = layer->lslices_bboxes[i];
             CHECK(body.min == island.min);
             CHECK(body.max == island.max);
@@ -552,6 +575,7 @@ TEST_CASE("Body centering survives islands merging and splitting between layers"
     REQUIRE(object.get_layer(1)->lslices.size() == 3);
     REQUIRE(object.get_layer(2)->lslices.size() == 3);
     REQUIRE(object.get_layer(4)->lslices.size() == 5);
+    CHECK(object.separated_body_bboxes().size() == 2);
 
     BoundingBox isolated_bbox = object.get_layer(0)->lslices_bboxes.front();
     for (const BoundingBox &bbox : object.get_layer(0)->lslices_bboxes)
@@ -563,10 +587,10 @@ TEST_CASE("Body centering survives islands merging and splitting between layers"
             if (bbox.min.x() < isolated_bbox.min.x())
                 connected_bbox.merge(bbox);
     for (const Layer *layer : object.layers()) {
-        REQUIRE(layer->lslices_separated_component_bboxes.size() == layer->lslices.size());
+        REQUIRE(layer->lslices_separated_component_ids.size() == layer->lslices.size());
         for (size_t i = 0; i < layer->lslices.size(); ++ i) {
             const BoundingBox &expected = layer->lslices_bboxes[i].min.x() < isolated_bbox.min.x() ? connected_bbox : isolated_bbox;
-            const BoundingBox &actual = layer->lslices_separated_component_bboxes[i];
+            const BoundingBox &actual = object.separated_body_bboxes()[layer->lslices_separated_component_ids[i]];
             CHECK(actual.min == expected.min);
             CHECK(actual.max == expected.max);
         }

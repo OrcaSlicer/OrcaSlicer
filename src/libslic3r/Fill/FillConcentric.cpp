@@ -5,8 +5,22 @@
 #include "Arachne/WallToolPaths.hpp"
 
 #include "FillConcentric.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <cassert>
 #include <libslic3r/ShortestPath.hpp>
+#include <utility>
+#include <vector>
+#include "libslic3r/ExtrusionEntity.hpp"
 
 namespace Slic3r {
 
@@ -22,6 +36,9 @@ void FillConcentric::_fill_surface_single(
     
     coord_t min_spacing = scale_(this->spacing) * params.multiline;
     coord_t distance = coord_t(min_spacing / params.density);
+    // A non-positive step never shrinks the region, so the inset loop below would not end.
+    if (min_spacing <= 0 || distance <= 0)
+        return;
     
     if (params.density > 0.9999f && !params.dont_adjust) {
         distance = this->_adjust_solid_spacing(bounding_box.size()(0), distance);
@@ -108,6 +125,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
     // no rotation is supported for this infill pattern
     Point   bbox_size = expolygon.contour.bounding_box().size();
     coord_t min_spacing = scaled<coord_t>(this->spacing);
+    if (min_spacing <= 0)
+        return;
 
     if (params.density > 0.9999f && !params.dont_adjust) {
         coord_t                loops_count = std::max(bbox_size.x(), bbox_size.y()) / min_spacing + 1;

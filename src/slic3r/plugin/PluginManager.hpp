@@ -1,9 +1,11 @@
 #ifndef slic3r_PluginManager_hpp_
 #define slic3r_PluginManager_hpp_
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -13,9 +15,11 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <pybind11/embed.h>

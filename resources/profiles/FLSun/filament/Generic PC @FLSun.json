@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @FLSun",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "FLSun Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "Ok08F2LxNjxor6ph",
 	"filament_id": "OFLakOUI",

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_template_nextruder_pet_hf",
+	"from": "system",
+	"instantiation": "false",
+	"filament_ramming_parameters": [
+		"250 100 42.4194 42.4194| 0.05 42.4387 0.45 42.4387 0.95 42.4387 1.45 42.4387 1.95 42.4387 2.45 42.4387 2.95 42.4387 3.45 42.4387 3.95 42.4387 4.45 42.4387 4.95 42.4387"
+	]
+}
