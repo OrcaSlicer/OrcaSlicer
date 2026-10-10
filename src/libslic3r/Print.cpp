@@ -149,6 +149,8 @@ void Print::clear()
     m_print_regions.clear();
     m_model.clear_objects();
     m_statistics_by_extruder_count.clear();
+    m_same_shrinkage_compensations = false;
+    m_shrinkage_compensation = Vec3d::Ones();
 }
 
 bool Print::has_tpu_filament() const
@@ -584,30 +586,34 @@ std::vector<unsigned int> Print::object_extruders() const
 		for (const PrintRegion &region : object->all_regions())
         	region.collect_object_printing_extruders(*this, extruders);
 
-    for (const PrintObject* object : m_objects) {
-        const ModelObject* mo = object->model_object();
-        for (const ModelVolume* mv : mo->volumes) {
-            std::vector<int> volume_extruders = mv->get_extruders();
-            for (int extruder : volume_extruders) {
-                assert(extruder > 0);
-                extruders.push_back(extruder - 1);
-            }
-        }
-
-        // layer range
-        for (auto layer_range : mo->layer_config_ranges) {
-            if (layer_range.second.has("extruder")) {
-                //BBS: actually when user doesn't change filament by height range(value is default 0), height range should not save key "extruder".
-                //Don't know why height range always save key "extruder" because of no change(should only save difference)...
-                //Add protection here to avoid overflow
-                auto value = layer_range.second.option("extruder")->getInt();
-                if (value > 0)
-                    extruders.push_back(value - 1);
-            }
-        }
-    }
+    for (const PrintObject* object : m_objects)
+        append_model_object_extruders(*object->model_object(), extruders);
     sort_remove_duplicates(extruders);
     return extruders;
+}
+
+// Appends 0-based indices of the filaments assigned to the volumes of model_object (painting included) and to its height ranges.
+void Print::append_model_object_extruders(const ModelObject &mo, std::vector<unsigned int> &extruders)
+{
+    for (const ModelVolume* mv : mo.volumes) {
+        std::vector<int> volume_extruders = mv->get_extruders();
+        for (int extruder : volume_extruders) {
+            assert(extruder > 0);
+            extruders.push_back(extruder - 1);
+        }
+    }
+
+    // layer range
+    for (auto layer_range : mo.layer_config_ranges) {
+        if (layer_range.second.has("extruder")) {
+            //BBS: actually when user doesn't change filament by height range(value is default 0), height range should not save key "extruder".
+            //Don't know why height range always save key "extruder" because of no change(should only save difference)...
+            //Add protection here to avoid overflow
+            auto value = layer_range.second.option("extruder")->getInt();
+            if (value > 0)
+                extruders.push_back(value - 1);
+        }
+    }
 }
 
 // returns 0-based indices of used extruders
@@ -619,22 +625,8 @@ std::vector<unsigned int> Print::support_material_extruders() const
     auto num_extruders = (unsigned int)m_config.filament_diameter.size();
 
     for (PrintObject *object : m_objects) {
-        if (object->has_support_material()) {
-        	assert(object->config().support_filament >= 0);
-            if (object->config().support_filament == 0)
-                support_uses_current_extruder = true;
-            else {
-            	unsigned int i = (unsigned int)object->config().support_filament - 1;
-                extruders.emplace_back((i >= num_extruders) ? 0 : i);
-            }
-        	assert(object->config().support_interface_filament >= 0);
-            if (object->config().support_interface_filament == 0)
-                support_uses_current_extruder = true;
-            else {
-            	unsigned int i = (unsigned int)object->config().support_interface_filament - 1;
-                extruders.emplace_back((i >= num_extruders) ? 0 : i);
-            }
-        }
+        if (object->has_support_material() && append_support_extruders(object->config(), num_extruders, extruders))
+            support_uses_current_extruder = true;
     }
 
     if (support_uses_current_extruder)
@@ -645,31 +637,61 @@ std::vector<unsigned int> Print::support_material_extruders() const
     return extruders;
 }
 
+// Appends 0-based indices of the support and support interface filaments of an object printing support material.
+// Returns true if support or support interface is printed with the filament of the object.
+bool Print::append_support_extruders(const PrintObjectConfig &config, unsigned int num_extruders, std::vector<unsigned int> &extruders)
+{
+    bool uses_current_extruder = false;
+    assert(config.support_filament >= 0);
+    if (config.support_filament == 0)
+        uses_current_extruder = true;
+    else {
+        unsigned int i = (unsigned int)config.support_filament - 1;
+        extruders.emplace_back((i >= num_extruders) ? 0 : i);
+    }
+    assert(config.support_interface_filament >= 0);
+    if (config.support_interface_filament == 0)
+        uses_current_extruder = true;
+    else {
+        unsigned int i = (unsigned int)config.support_interface_filament - 1;
+        extruders.emplace_back((i >= num_extruders) ? 0 : i);
+    }
+    return uses_current_extruder;
+}
+
 // returns 0-based indices of used extruders
 std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {
     std::vector<unsigned int> extruders = this->object_extruders();
     append(extruders, this->support_material_extruders());
 
-    if (conside_custom_gcode) {
-        //BBS
-        int num_extruders = m_config.filament_colour.size();
-        if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
-            for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
-                if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
-                    extruders.push_back((unsigned int)(item.extruder - 1));
-            }
+    if (conside_custom_gcode)
+        this->append_tool_change_extruders(extruders);
+    this->append_wipe_tower_extruder(extruders);
+    sort_remove_duplicates(extruders);
+    return extruders;
+}
+
+// Appends 0-based indices of the filaments the tool changes of the current plate switch to.
+void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) const
+{
+    //BBS
+    int num_extruders = m_config.filament_colour.size();
+    if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
+        for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
+            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
+                extruders.push_back((unsigned int)(item.extruder - 1));
         }
     }
+}
 
+void Print::append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const
+{
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
     if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
         assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament <= int(config().filament_diameter.size()));
         extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
-
-    sort_remove_duplicates(extruders);
-    return extruders;
 }
 
 unsigned int Print::num_object_instances() const
@@ -5629,44 +5651,6 @@ std::string PrintStatistics::finalize_output_path(const std::string &path_in) co
         final_path = path_in;
     }
     return final_path;
-}
-
-// Orca: Implement prusa's filament shrink compensation approach
-// Returns if all used filaments have same shrinkage compensations.
- bool Print::has_same_shrinkage_compensations() const {
-     const std::vector<unsigned int> extruders = this->extruders();
-     if (extruders.empty())
-         return false;
-
-     const double filament_shrinkage_compensation_xy = m_config.filament_shrink.get_at(extruders.front());
-     const double filament_shrinkage_compensation_z  = m_config.filament_shrinkage_compensation_z.get_at(extruders.front());
-
-     for (unsigned int extruder : extruders) {
-         if (filament_shrinkage_compensation_xy != m_config.filament_shrink.get_at(extruder) ||
-             filament_shrinkage_compensation_z  != m_config.filament_shrinkage_compensation_z.get_at(extruder)) {
-             return false;
-         }
-     }
-
-     return true;
- }
-
-// Orca: Implement prusa's filament shrink compensation approach, but amended so 100% from the user is the equivalent to 0 in orca.
- // Returns scaling for each axis representing shrinkage compensations in each axis.
-Vec3d Print::shrinkage_compensation() const
-{
-    if (!this->has_same_shrinkage_compensations())
-        return Vec3d::Ones();
-
-    const unsigned int first_extruder = this->extruders().front();
-
-    const double xy_shrinkage_percent = m_config.filament_shrink.get_at(first_extruder);
-    const double z_shrinkage_percent  = m_config.filament_shrinkage_compensation_z.get_at(first_extruder);
-
-    const double xy_compensation = 100.0 / xy_shrinkage_percent;
-    const double z_compensation  = 100.0 / z_shrinkage_percent;
-
-    return { xy_compensation, xy_compensation, z_compensation };
 }
 
 const std::string PrintStatistics::FilamentUsedG     = "filament used [g]";

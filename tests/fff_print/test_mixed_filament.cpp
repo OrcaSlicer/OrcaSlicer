@@ -11,9 +11,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include "test_helpers.hpp"
 
@@ -332,4 +337,73 @@ TEST_CASE("Print::validate warns when a gradient mixed filament is used without 
         init_print(std::vector<TriangleMesh>{cube(20)}, print, model, config, &overrides);
         CHECK(count_opt(print, "enable_mixed_color_sublayer") == 0);
     }
+}
+
+TEST_CASE("Filament shrinkage compensation compares the physical filaments of a mixed slot", "[MixedFilament][Print][Regression]")
+{
+    // The mixed slot 3 blends filament 1 (90 %) and filament 2 (100 %); its own 90 % does not count.
+    DynamicPrintConfig config = mixed_config(false);
+    config.set_deserialize_strict({
+        { "filament_shrink", "90%,100%,90%" },
+        { "xy_contour_compensation", 0. },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+
+    Print print;
+    init_and_process_print({ cube(20.) }, print, config);
+
+    const PrintObject &object = *print.objects().front();
+    const BoundingBox extents = get_extents(object.get_layer(int(object.layer_count() / 2))->lslices);
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(20., 0.01));
+    std::vector<StringObjectException> warnings;
+    CHECK(print.validate(&warnings).string.empty());
+    CHECK(std::any_of(warnings.begin(), warnings.end(), [](const StringObjectException &w) {
+        return w.string.find("Filament shrinkage will not be used") != std::string::npos;
+    }));
+}
+
+TEST_CASE("Filament shrinkage compensation counts the wipe tower filament next to a mixed slot", "[MixedFilament][Print][Regression]")
+{
+    // The object prints only with the mixed slot 4 of filaments 1 and 2 (both 90 %). The wipe tower filament 3 (100 %)
+    // may be flushed into the object, so the compensation is off.
+    DynamicPrintConfig config = multifilament_config(4);
+    config.set_deserialize_strict({
+        {"filament_is_mixed",               "0,0,0,1"},
+        {"filament_mixed_components",       ";;;1,2"},
+        {"filament_mixed_sublayer_ratios",  ";;;0.5,0.5"},
+        {"filament_mixed_gradient",         "0,0,0,0"},
+        {"filament_mixed_gradient_range",   ";;;"},
+        {"filament_mixed_gradient_curve",   ";;;"},
+        {"filament_mixed_gradient_per_part","0,0,0,0"},
+        {"outer_wall_filament_id",          "4"},
+        {"inner_wall_filament_id",          "4"},
+        {"sparse_infill_filament_id",       "4"},
+        {"internal_solid_filament_id",      "4"},
+        {"top_surface_filament_id",         "4"},
+        {"bottom_surface_filament_id",      "4"},
+        {"enable_prime_tower",              "1"},
+        {"wipe_tower_filament",             "3"},
+        {"prime_tower_width",               "35"},
+        {"wipe_tower_x",                    "50"}, // inside the 200x200 test bed
+        {"wipe_tower_y",                    "50"},
+        {"filament_shrink",                 "90%,90%,100%,90%"},
+        {"xy_contour_compensation",         "0"},
+        {"layer_change_gcode",              "G92 E0\n"}, // validate() relative-E reset
+    });
+
+    // The object itself is on the mixed slot too, so no other filament is assigned.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> object_overrides { { { "extruder", 4 } } };
+    Print print;
+    Model model;
+    init_print({ cube(20.) }, print, model, config, &object_overrides);
+    print.process();
+
+    const PrintObject &object = *print.objects().front();
+    const BoundingBox extents = get_extents(object.get_layer(int(object.layer_count() / 2))->lslices);
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(20., 0.01));
+    std::vector<StringObjectException> warnings;
+    CHECK(print.validate(&warnings).string.empty());
+    CHECK(std::any_of(warnings.begin(), warnings.end(), [](const StringObjectException &w) {
+        return w.string.find("Filament shrinkage will not be used") != std::string::npos;
+    }));
 }
