@@ -39526,6 +39526,10 @@ msgstr "Màxim de punts: %d."
 msgid "The curve contains too many points."
 msgstr "La corba té massa punts."
 
+# AI Translated
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "Ratolí tàctil: mou el gràfic amb dos dits. Pessiga per canviar el zoom dels dos eixos al voltant del punter."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Mostra opcions en importar fitxers STEP"
 
