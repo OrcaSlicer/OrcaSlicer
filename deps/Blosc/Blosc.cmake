@@ -1,48 +1,33 @@
-if(BUILD_SHARED_LIBS)
-    set(_build_shared ON)
-    set(_build_static OFF)
-else()
-    set(_build_shared OFF)
-    set(_build_static ON)
+if (EMSCRIPTEN)
+    set(_extra_cmake_args --use-port=zlib)
+else ()
+    set(DEP_Blosc_DEPENDS ZLIB zstd)
+endif ()
+
+# Common CMake arguments for Blosc
+set(_blosc_cmake_args
+        -DCMAKE_C_FLAGS="-std=gnu17"
+        -DCMAKE_CXX_FLAGS="-std=gnu++17"
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DBUILD_SHARED=${_build_shared}
+        -DBUILD_STATIC=${_build_static}
+        -DBUILD_TESTS=OFF
+        -DBUILD_BENCHMARKS=OFF
+        -DPREFER_EXTERNAL_ZLIB=ON
+        -DPREFER_EXTERNAL_ZSTD=ON
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.10
+)
+
+# Platform-specific arguments
+if(APPLE)
+    # SSE2 support is dropped in Clang of newer Xcode (16.3+) versions
+    list(APPEND _blosc_cmake_args -DDEACTIVATE_SSE2=ON)
 endif()
 
-if(IS_CROSS_COMPILE AND APPLE)
-    orcaslicer_add_cmake_project(Blosc
-        #URL https://github.com/Blosc/c-blosc/archive/refs/tags/v1.17.0.zip
-        #URL_HASH SHA256=7463a1df566704f212263312717ab2c36b45d45cba6cd0dccebf91b2cc4b4da9
-        URL https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
-        URL_HASH SHA256=dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
-        DEPENDS ${ZLIB_PKG}
-        # Patching upstream does not work this way with git version 2.28 installed on mac worker
-        # PATCH_COMMAND  ${GIT_EXECUTABLE} apply --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/blosc-mods.patch
+orcaslicer_add_cmake_project(Blosc
+        URL https://github.com/Blosc/c-blosc/archive/refs/tags/v1.21.6.zip
+        URL_HASH SHA256=1919c97d55023c04aa8771ea8235b63e9da3c22e3d2a68340b33710d19c2a2eb
+        EMSCRIPTEN_EXCLUDED OFF
         CMAKE_ARGS
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-            -DBUILD_SHARED=${_build_shared} 
-            -DBUILD_STATIC=${_build_static}
-            -DBUILD_TESTS=OFF 
-            -DBUILD_BENCHMARKS=OFF 
-            -DPREFER_EXTERNAL_ZLIB=ON
-            -DDEACTIVATE_SSE2=ON
-            -DDEACTIVATE_AVX2=ON
-    )
-else()
-    orcaslicer_add_cmake_project(Blosc
-        #URL https://github.com/Blosc/c-blosc/archive/refs/tags/v1.17.0.zip
-        #URL_HASH SHA256=7463a1df566704f212263312717ab2c36b45d45cba6cd0dccebf91b2cc4b4da9
-        URL https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
-        URL_HASH SHA256=dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
-        DEPENDS ${ZLIB_PKG}
-        # Patching upstream does not work this way with git version 2.28 installed on mac worker
-        # PATCH_COMMAND  ${GIT_EXECUTABLE} apply --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/blosc-mods.patch
-        CMAKE_ARGS
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-            -DBUILD_SHARED=${_build_shared} 
-            -DBUILD_STATIC=${_build_static}
-            -DBUILD_TESTS=OFF 
-            -DBUILD_BENCHMARKS=OFF 
-            -DPREFER_EXTERNAL_ZLIB=ON
-    )
-endif()
-if (MSVC)
-    add_debug_dep(dep_Blosc)
-endif ()
+        ${_blosc_cmake_args}
+)
