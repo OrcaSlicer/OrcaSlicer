@@ -303,6 +303,25 @@ namespace AABBTreeLines {
         return intersections;
     }
 
+    template <typename LineType, typename TreeType, typename Visitor>
+    inline bool visit_line_ids_intersecting_line_bbox(const TreeType& tree,
+        const LineType& line,
+        Visitor visitor)
+    {
+        if (tree.empty())
+            return true;
+
+        auto line_bb = typename TreeType::BoundingBox(line.a, line.a);
+        line_bb.extend(line.b);
+
+        bool completed = true;
+        AABBTreeIndirect::traverse(tree, AABBTreeIndirect::intersecting(line_bb), [&visitor, &completed](const auto& node) {
+            completed = visitor(node.idx);
+            return completed;
+        });
+        return completed;
+    }
+
     template <typename LineType>
     class LinesDistancer {
     public:
@@ -321,7 +340,7 @@ namespace AABBTreeLines {
         }
 
         explicit LinesDistancer(std::vector<LineType>&& lines)
-            : lines(lines)
+            : lines(std::move(lines))
         {
             tree = AABBTreeLines::build_aabb_tree_over_indexed_lines(this->lines);
         }
@@ -332,17 +351,24 @@ namespace AABBTreeLines {
         int outside(const Vec<LineType::Dim, Scalar>& point) const { return point_outside_closed_contours(lines, tree, point); }
 
         // negative sign means inside
-        template<bool SIGNED_DISTANCE>
-        std::tuple<Floating, size_t, Vec<LineType::Dim, Floating>> distance_from_lines_extra(const Vec<LineType::Dim, Scalar>& point) const
+        std::tuple<Floating, size_t, Vec<LineType::Dim, Floating>> squared_distance_from_lines_extra(const Vec<LineType::Dim, Scalar>& point) const
         {
             size_t nearest_line_index_out = size_t(-1);
             Vec<LineType::Dim, Floating> nearest_point_out      = Vec<LineType::Dim, Floating>::Zero();
             Vec<LineType::Dim, Floating> p                      = point.template cast<Floating>();
-            auto distance = AABBTreeLines::squared_distance_to_indexed_lines(lines, tree, p, nearest_line_index_out, nearest_point_out);
+            Floating distance = AABBTreeLines::squared_distance_to_indexed_lines(lines, tree, p, nearest_line_index_out, nearest_point_out);
 
-            if (distance < 0) {
-                return { std::numeric_limits<Floating>::infinity(), nearest_line_index_out, nearest_point_out };
-            }
+            if (distance < 0)
+                distance = std::numeric_limits<Floating>::infinity();
+
+            return { distance, nearest_line_index_out, nearest_point_out };
+        }
+
+        template<bool SIGNED_DISTANCE>
+        std::tuple<Floating, size_t, Vec<LineType::Dim, Floating>> distance_from_lines_extra(const Vec<LineType::Dim, Scalar>& point) const
+        {
+            auto [distance, nearest_line_index_out, nearest_point_out] = squared_distance_from_lines_extra(point);
+
             distance = sqrt(distance);
 
             if (SIGNED_DISTANCE) {
@@ -350,6 +376,12 @@ namespace AABBTreeLines {
             }
 
             return { distance, nearest_line_index_out, nearest_point_out };
+        }
+
+        Floating squared_distance_from_lines(const Vec<LineType::Dim, typename LineType::Scalar>& point) const
+        {
+            auto [dist, idx, np] = squared_distance_from_lines_extra(point);
+            return dist;
         }
 
         template<bool SIGNED_DISTANCE> Floating distance_from_lines(const Vec<LineType::Dim, typename LineType::Scalar>& point) const
@@ -366,6 +398,11 @@ namespace AABBTreeLines {
         template<bool sorted> std::vector<std::pair<Vec<LineType::Dim, Scalar>, size_t>> intersections_with_line(const LineType& line) const
         {
             return get_intersections_with_line<sorted, Vec<LineType::Dim, Scalar>>(lines, tree, line);
+        }
+
+        template <typename Visitor> bool visit_line_ids_intersecting_line_bbox(const LineType& line, Visitor visitor) const
+        {
+            return AABBTreeLines::visit_line_ids_intersecting_line_bbox(tree, line, visitor);
         }
 
         const LineType& get_line(size_t line_idx) const { return lines[line_idx]; }
