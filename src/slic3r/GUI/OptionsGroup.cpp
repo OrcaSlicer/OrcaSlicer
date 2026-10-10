@@ -1080,11 +1080,15 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
     const ConfigOptionDef* opt = config.def()->get(opt_key);
 
     if (opt->nullable) {
+        const auto *values = dynamic_cast<const ConfigOptionVectorBase*>(config.option(opt_key));
+        if (values && idx >= values->size())
+            idx = 0; // Same fallback as ConfigOptionVector::get_at().
+        const bool is_nil = !values || values->size() == 0 ||
+            (opt_index < 0 ? values->is_nil() : values->is_nil(idx));
         switch (opt->type) {
         case coPercents:
         case coFloats: {
-            if (opt_index < 0 ? config.option(opt_key)->is_nil() :
-                                dynamic_cast<ConfigOptionVectorBase const*>(config.option(opt_key))->is_nil(opt_index))
+            if (is_nil)
                 ret = _(L("N/A"));
             else {
                 double val = opt->type == coFloats ? config.option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx) :
@@ -1094,8 +1098,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             break;
         }
         case coFloatsOrPercents: {
-            if (opt_index < 0 ? config.option(opt_key)->is_nil() :
-                                dynamic_cast<ConfigOptionVectorBase const*>(config.option(opt_key))->is_nil(opt_index))
+            if (is_nil)
                 ret = _(L("N/A"));
             else {
                 const auto& value = config.option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx);
@@ -1107,9 +1110,9 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             }
             break;
         }
-        case coBools: ret = config.option<ConfigOptionBoolsNullable>(opt_key)->values[idx]; break;
-        case coInts: ret = config.option<ConfigOptionIntsNullable>(opt_key)->get_at(idx); break;
-        case coEnums: ret = config.option<ConfigOptionEnumsGenericNullable>(opt_key)->get_at(idx); break;
+        case coBools: ret = is_nil ? ConfigOptionBoolsNullable::nil_value() : config.option<ConfigOptionBoolsNullable>(opt_key)->values[idx]; break;
+        case coInts: ret = is_nil ? ConfigOptionIntsNullable::nil_value() : config.option<ConfigOptionIntsNullable>(opt_key)->get_at(idx); break;
+        case coEnums: ret = is_nil ? ConfigOptionEnumsGenericNullable::nil_value() : config.option<ConfigOptionEnumsGenericNullable>(opt_key)->get_at(idx); break;
         default: break;
         }
         return ret;
@@ -1237,10 +1240,15 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
     const ConfigOptionDef* opt = config.def()->get(opt_key);
 
     if (opt->nullable) {
+        const auto *values = dynamic_cast<const ConfigOptionVectorBase*>(config.option(opt_key));
+        if (values && idx >= values->size())
+            idx = 0;
+        const bool is_nil = !values || values->size() == 0 ||
+            (opt_index < 0 ? values->is_nil() : values->is_nil(idx));
         switch (opt->type) {
         case coPercents:
         case coFloats: {
-            if (config.option(opt_key)->is_nil())
+            if (is_nil)
                 ret = ConfigOptionFloatsNullable::nil_value();
             else {
                 double val = opt->type == coFloats ? config.option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx) :
@@ -1249,7 +1257,7 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
             }
         } break;
         case coFloatsOrPercents: {
-            if (config.option(opt_key)->is_nil())
+            if (is_nil)
                 ret = ConfigOptionFloatsOrPercentsNullable::nil_value();
             else {
                 const auto& value   = config.option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx);
@@ -1261,8 +1269,8 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
             }
             break;
         }
-        case coBools: ret = config.option<ConfigOptionBoolsNullable>(opt_key)->values[idx]; break;
-        case coInts: ret = config.option<ConfigOptionIntsNullable>(opt_key)->get_at(idx); break;
+        case coBools: ret = is_nil ? ConfigOptionBoolsNullable::nil_value() : config.option<ConfigOptionBoolsNullable>(opt_key)->values[idx]; break;
+        case coInts: ret = is_nil ? ConfigOptionIntsNullable::nil_value() : config.option<ConfigOptionIntsNullable>(opt_key)->get_at(idx); break;
         default: break;
         }
         return ret;

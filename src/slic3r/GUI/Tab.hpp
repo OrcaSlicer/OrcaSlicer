@@ -641,6 +641,7 @@ private:
 	void 			update_volumetric_flow_preset_hints();
     // The variant index the variant switch shows, 0 without one.
     unsigned int    selected_variant_index() const;
+    int             process_variant_index(unsigned int filament_variant_index) const;
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
 
