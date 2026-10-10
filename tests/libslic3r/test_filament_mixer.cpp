@@ -4,6 +4,7 @@
 #include "libslic3r/Config.hpp"
 #include <string>
 #include <cstdlib>
+#include <utility>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>

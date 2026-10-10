@@ -3,7 +3,10 @@
 // loaded (the material tables). Without it the tests would silently run on the built-in fallback tables.
 // Compiled into each test binary through the test_slic3r_bootstrap interface library.
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_test_run_info.hpp>
+#include <catch2/interfaces/catch_interfaces_reporter.hpp>
+#include <catch2/reporters/catch_reporter_event_listener.hpp>
+#include <catch2/reporters/catch_reporter_registrars.hpp>
 
 #include "libslic3r/MaterialType.hpp"
 #include "libslic3r/PrintConfig.hpp"
