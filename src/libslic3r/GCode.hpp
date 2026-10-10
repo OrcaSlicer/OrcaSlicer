@@ -1003,6 +1003,7 @@ protected:
         size_t                                                  num_objects,
         size_t                                                  num_islands);
 
+    friend class OozePrevention;
     friend class Wipe;
     friend class WipeTowerIntegration;
     friend class PressureEqualizer;
