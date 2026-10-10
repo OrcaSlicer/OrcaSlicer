@@ -252,6 +252,24 @@ SCENARIO("Config ini load/save interface", "[Config]") {
     }
 }
 
+TEST_CASE("A percentage bridge line width is checked against the nozzle its limit uses", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.2, 0.6};
+
+    // 100% of any nozzle fits that nozzle.
+    config.set_deserialize_strict("bridge_line_width", "100%");
+    CHECK(config.validate().count("bridge_line_width") == 0);
+
+    // Over 100% is still refused.
+    config.set_deserialize_strict("bridge_line_width", "150%");
+    CHECK(config.validate().count("bridge_line_width") == 1);
+
+    // An absolute width keeps its limit: the smallest nozzle.
+    config.set_deserialize_strict("bridge_line_width", "0.6");
+    CHECK(config.validate().count("bridge_line_width") == 1);
+}
+
 TEST_CASE("Flush-volume warning predicate respects used filament transitions", "[Config][Regression]")
 {
     const std::vector<double> multipliers = {1.0};
