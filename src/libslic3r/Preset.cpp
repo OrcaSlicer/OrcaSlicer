@@ -1180,6 +1180,7 @@ static std::vector<std::string> s_Preset_print_options{
     "wall_sequence",
     "is_infill_first",
     "sparse_infill_density",
+    "seamless_modifier_boundary",
     "fill_multiline",
     "tpms_adaptive",
     "tpms_interior_density",
