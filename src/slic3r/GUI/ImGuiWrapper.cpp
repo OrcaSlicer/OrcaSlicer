@@ -384,6 +384,7 @@ ImGuiWrapper::~ImGuiWrapper()
 {
     //destroy_fonts_texture();
     destroy_font();
+    destroy_svg_textures();
     ImGui::DestroyContext();
 }
 
@@ -565,6 +566,12 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
     return ret;
 }
 
+// SVG icons rasterized into GL textures, keyed on file name, size and recolor. Cleared as a whole
+// from new_frame() once it grows past MAX_SVG_TEXTURES, which is safe there: the previous frame has
+// been rendered and the frame about to be recorded asks for every icon it draws again.
+static std::map<std::string, ImTextureID> s_svg_textures;
+static const size_t MAX_SVG_TEXTURES = 256;
+
 void ImGuiWrapper::new_frame()
 {
     if (m_new_frame_open) {
@@ -574,6 +581,11 @@ void ImGuiWrapper::new_frame()
     if (m_font_texture == 0) {
         init_font(true);
     }
+
+    // Recolored icons accumulate one texture per color the session has shown; drop them before
+    // anything references them again. This frame recreates the handful it actually draws.
+    if (s_svg_textures.size() > MAX_SVG_TEXTURES)
+        destroy_svg_textures();
 
     ImGuiIO& io = ImGui::GetIO();
 
@@ -1827,8 +1839,7 @@ bool menu_item_with_icon(const char *label, const char *shortcut, ImVec2 icon_si
             if (icon_color != 0)
                 ImGui::RenderFrame(icon_pos, icon_pos + icon_size, icon_color);
             else {
-                static ImTextureID transparent;
-                IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/transparent.svg", icon_size.x, icon_size.y, transparent);
+                ImTextureID transparent = ImGuiWrapper::svg_texture(Slic3r::resources_dir() + "/images/transparent.svg", icon_size.x, icon_size.y);
                 window->DrawList->AddImage(transparent, icon_pos, icon_pos + icon_size, { 0,0 }, { 1,1 }, ImGui::GetColorU32(ImVec4(1.f, 1.f, 1.f, 1.f)));
             }
         }
@@ -3408,6 +3419,36 @@ bool ImGuiWrapper::display_initialized() const
     return io.DisplaySize.x >= 0.0f && io.DisplaySize.y >= 0.0f;
 }
 
+ImTextureID ImGuiWrapper::svg_texture(const std::string& filename, unsigned width, unsigned height, const char* hex_color)
+{
+    std::string key = filename + "|" + std::to_string(width) + "x" + std::to_string(height);
+    if (hex_color != nullptr)
+        key += std::string("|") + hex_color;
+
+    const auto it = s_svg_textures.find(key);
+    if (it != s_svg_textures.end())
+        return it->second;
+
+    ImTextureID texture_id = nullptr;
+    const bool loaded = (hex_color != nullptr) ?
+        BitmapCache::load_from_svg_file_change_color(filename, width, height, texture_id, hex_color) :
+        IMTexture::load_from_svg_file(filename, width, height, texture_id);
+    if (!loaded)
+        return nullptr;
+
+    s_svg_textures.emplace(std::move(key), texture_id);
+    return texture_id;
+}
+
+void ImGuiWrapper::destroy_svg_textures()
+{
+    for (const auto& texture : s_svg_textures) {
+        GLuint texture_id = (GLuint)(intptr_t)texture.second;
+        glsafe(::glDeleteTextures(1, &texture_id));
+    }
+    s_svg_textures.clear();
+}
+
 void ImGuiWrapper::destroy_font()
 {
     if (m_font_texture != 0) {
@@ -3487,7 +3528,6 @@ void ImGuiWrapper::filament_group(const std::string& filament_type, const char* 
     //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     std::string id = std::to_string(static_cast<unsigned int> (filament_id + 1));
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    static ImTextureID transparent;
     ImVec2             text_size = ImGui::CalcTextSize(filament_type.c_str());
     // BBS image sizing based on text width (DPI scaling)
     float         img_width = ImGui::CalcTextSize("ABC").x;
@@ -3500,7 +3540,7 @@ void ImGuiWrapper::filament_group(const std::string& filament_type, const char* 
     if (rgba[3] == 0x00) {
         svg_path = "/images/outlined_rect_transparent.svg";
     }
-    BitmapCache::load_from_svg_file_change_color(Slic3r::resources_dir() + svg_path, img_size.x, img_size.y, transparent, hex_color);
+    ImTextureID transparent = svg_texture(Slic3r::resources_dir() + svg_path, img_size.x, img_size.y, hex_color);
     ImGui::BeginGroup();
     {
         ImVec2 cursor_pos = ImGui::GetCursorScreenPos();

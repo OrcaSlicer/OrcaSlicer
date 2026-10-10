@@ -3806,7 +3806,8 @@ void GLCanvas3D::load_sla_preview()
 
 void GLCanvas3D::bind_event_handlers()
 {
-    if (m_canvas != nullptr) {
+    // Every view switch binds, so binding twice would run each handler twice per event.
+    if (m_canvas != nullptr && !m_event_handlers_bound) {
         m_canvas->Bind(wxEVT_SIZE, &GLCanvas3D::on_size, this);
         m_canvas->Bind(wxEVT_IDLE, &GLCanvas3D::on_idle, this);
         m_canvas->Bind(wxEVT_CHAR, &GLCanvas3D::on_char, this);
@@ -3816,9 +3817,9 @@ void GLCanvas3D::bind_event_handlers()
         m_canvas->Bind(wxEVT_TIMER, &GLCanvas3D::on_timer, this);
         m_canvas->Bind(EVT_GLCANVAS_RENDER_TIMER, &GLCanvas3D::on_render_timer, this);
         m_toolbar_highlighter.set_timer_owner(m_canvas, 0);
-        m_canvas->Bind(EVT_GLCANVAS_TOOLBAR_HIGHLIGHTER_TIMER, [this](wxTimerEvent&) { m_toolbar_highlighter.blink(); });
+        m_canvas->Bind(EVT_GLCANVAS_TOOLBAR_HIGHLIGHTER_TIMER, &GLCanvas3D::on_toolbar_highlighter_timer, this);
         m_gizmo_highlighter.set_timer_owner(m_canvas, 0);
-        m_canvas->Bind(EVT_GLCANVAS_GIZMO_HIGHLIGHTER_TIMER, [this](wxTimerEvent&) { m_gizmo_highlighter.blink(); });
+        m_canvas->Bind(EVT_GLCANVAS_GIZMO_HIGHLIGHTER_TIMER, &GLCanvas3D::on_gizmo_highlighter_timer, this);
         m_canvas->Bind(wxEVT_LEFT_DOWN, &GLCanvas3D::on_mouse, this);
         m_canvas->Bind(wxEVT_LEFT_UP, &GLCanvas3D::on_mouse, this);
         m_canvas->Bind(wxEVT_MIDDLE_DOWN, &GLCanvas3D::on_mouse, this);
@@ -3833,14 +3834,7 @@ void GLCanvas3D::bind_event_handlers()
         m_canvas->Bind(wxEVT_RIGHT_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Bind(wxEVT_PAINT, &GLCanvas3D::on_paint, this);
         m_canvas->Bind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
-        m_canvas->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& evt) {
-                // The key-up that would commit a keyboard edit goes to whatever took the focus.
-                if (m_selection_edit.kind != SelectionEdit::None)
-                    finish_selection_edit();
-                ImGui::SetWindowFocus(nullptr);
-                render();
-                evt.Skip();
-            });
+        m_canvas->Bind(wxEVT_KILL_FOCUS, &GLCanvas3D::on_kill_focus, this);
         m_event_handlers_bound = true;
 
         m_canvas->Bind(wxEVT_GESTURE_PAN, &GLCanvas3D::on_gesture, this);
@@ -3878,6 +3872,9 @@ void GLCanvas3D::unbind_event_handlers()
         m_canvas->Unbind(wxEVT_RIGHT_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Unbind(wxEVT_PAINT, &GLCanvas3D::on_paint, this);
         m_canvas->Unbind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
+        m_canvas->Unbind(wxEVT_KILL_FOCUS, &GLCanvas3D::on_kill_focus, this);
+        m_canvas->Unbind(EVT_GLCANVAS_TOOLBAR_HIGHLIGHTER_TIMER, &GLCanvas3D::on_toolbar_highlighter_timer, this);
+        m_canvas->Unbind(EVT_GLCANVAS_GIZMO_HIGHLIGHTER_TIMER, &GLCanvas3D::on_gizmo_highlighter_timer, this);
         m_event_handlers_bound = false;
 
         m_canvas->Unbind(wxEVT_GESTURE_PAN, &GLCanvas3D::on_gesture, this);
@@ -5422,6 +5419,26 @@ void GLCanvas3D::on_set_focus(wxFocusEvent& evt)
     _refresh_if_shown_on_screen();
     m_tooltip_enabled = true;
     m_is_touchpad_navigation = wxGetApp().app_config->get_bool("camera_navigation_style");
+}
+
+void GLCanvas3D::on_kill_focus(wxFocusEvent& evt)
+{
+    // The key-up that would commit a keyboard edit goes to whatever took the focus.
+    if (m_selection_edit.kind != SelectionEdit::None)
+        finish_selection_edit();
+    ImGui::SetWindowFocus(nullptr);
+    render();
+    evt.Skip();
+}
+
+void GLCanvas3D::on_toolbar_highlighter_timer(wxTimerEvent& evt)
+{
+    m_toolbar_highlighter.blink();
+}
+
+void GLCanvas3D::on_gizmo_highlighter_timer(wxTimerEvent& evt)
+{
+    m_gizmo_highlighter.blink();
 }
 
 bool GLCanvas3D::clicked_button_matches_action(const wxMouseEvent& evt, const MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const

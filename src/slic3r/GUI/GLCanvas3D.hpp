@@ -1278,6 +1278,9 @@ public:
     void on_gesture(wxGestureEvent& evt);
     void on_paint(wxPaintEvent& evt);
     void on_set_focus(wxFocusEvent& evt);
+    void on_kill_focus(wxFocusEvent& evt);
+    void on_toolbar_highlighter_timer(wxTimerEvent& evt);
+    void on_gizmo_highlighter_timer(wxTimerEvent& evt);
     void force_set_focus();
 
     enum class MouseButton { None, Left, Middle, Right };
