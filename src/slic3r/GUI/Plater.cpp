@@ -10318,8 +10318,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                      "Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; "
                      "it is kept when the project is saved.")
                 : _L("The file does not contain any geometry data.");
-            MessageDialog msg(wxGetApp().mainframe, text, _L("Warning"), wxYES | wxICON_WARNING);
-            if (msg.ShowModal() == wxID_YES) {}
+            MessageDialog msg(wxGetApp().mainframe, text, _L("Warning"), wxOK | wxICON_WARNING);
+            msg.ShowModal();
         }
     }
     q->schedule_background_process(true);
