@@ -4130,7 +4130,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         bool checkbox = true,
         float checkbox_pos = 0.f, // ORCA use calculated value for eye icon. Aligned to "Display" header or end of combo box
         bool visible = true,
-        std::function<void()> callback = nullptr)
+        std::function<void()> callback = nullptr,
+        std::function<void()> on_right_click = nullptr)
     {
         // render icon
         ImVec2 pos = ImVec2(ImGui::GetCursorScreenPos().x + window_padding * 3, ImGui::GetCursorScreenPos().y);
@@ -4178,8 +4179,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             bool b_menu_item = ImGui::BBLMenuItem(("##" + columns_offsets[0].first).c_str(), nullptr, false, true, max_height);
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(3);
-            if (b_menu_item)
+            // Left-click (normal toggle)
+            if (b_menu_item && callback) {
                 callback();
+            }
+            // Right-click (solo / isolate)
+            if (on_right_click && ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                on_right_click();
+            }
             if (checkbox) {
                 // ORCA replace checkboxes with eye icon
                 // Use calculated position from argument. this method has predictable result compared to alingning button using window width
@@ -4234,22 +4241,75 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
     };
 
-    auto append_headers = [&imgui, window_padding, this](const std::vector<std::pair<std::string, float>>& title_offsets) {
-        for (size_t i = 0; i < title_offsets.size(); i++) {
-            if (title_offsets[i].first == _u8L("Display")) { // ORCA Hide Display header
-                ImGui::SameLine(title_offsets[i].second);
-                ImGui::Dummy({16.f * m_scale, 1}); // 16(icon_size)
+auto append_headers = [&imgui, window_padding, curr_view_type, this](const std::vector<std::pair<std::string, float>>& title_offsets, bool show_master_eye = false) {
+        const std::string display_label = _u8L("Display");
+        const std::string options_label = _u8L("Options");
+
+        // Hoisted — fixed for the entire call, no reason to recompute per iteration.
+        const bool is_options_section = !title_offsets.empty() && title_offsets[0].first == options_label;
+
+        const bool is_travels_only_view = curr_view_type == libvgcode::EViewType::Speed ||
+                                          curr_view_type == libvgcode::EViewType::ActualSpeed ||
+                                          curr_view_type == libvgcode::EViewType::Acceleration ||
+                                          curr_view_type == libvgcode::EViewType::Jerk;
+
+        for (const auto& [label, offset] : title_offsets) {
+            ImGui::SameLine(offset);
+
+            if (label != display_label) {
+                imgui.bold_text(label);
                 continue;
             }
-            ImGui::SameLine(title_offsets[i].second);
-            imgui.bold_text(title_offsets[i].first);
+
+            if (!show_master_eye) {
+                ImGui::Dummy({16.f * m_scale, 1.f});
+                continue;
+            }
+
+            // Compute aggregate visibility for the eye icon state.
+            bool all_visible = false;
+            if (is_options_section) {
+                const auto section_options = is_travels_only_view ? std::vector<libvgcode::EOptionType>{libvgcode::EOptionType::Travels} : m_viewer.get_options();
+                all_visible                = std::all_of(section_options.begin(), section_options.end(), [this](libvgcode::EOptionType o) { 
+                                            return m_viewer.is_option_visible(o); 
+                                            });
+            } else {
+                // Line Type: both roles and options must all be visible.
+                const auto roles = m_viewer.get_extrusion_roles();
+                const auto opts  = m_viewer.get_options();
+                all_visible      = std::all_of(roles.begin(), roles.end(), [this](libvgcode::EGCodeExtrusionRole r) { return m_viewer.is_extrusion_role_visible(r); }) &&
+                                   std::all_of(opts.begin(), opts.end(), [this](libvgcode::EOptionType o) { 
+                                   return m_viewer.is_option_visible(o); 
+                                   });
+            }
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+
+            const std::string btn_id = "##master_eye_" + title_offsets[0].first;
+            if (ImGui::InvisibleButton(btn_id.c_str(), ImVec2(16.f * m_scale, ImGui::GetTextLineHeight()))) {
+                if (is_options_section) {
+                    // Deferred: only allocate on actual click, not every frame.
+                    const auto section_options = is_travels_only_view ? std::vector<libvgcode::EOptionType>{libvgcode::EOptionType::Travels} : m_viewer.get_options();
+                    for (libvgcode::EOptionType opt : section_options) {
+                        if (m_viewer.is_option_visible(opt) == all_visible)
+                            m_viewer.toggle_option_visibility(opt);
+                    }
+                } else {
+                    m_viewer.set_all_extrusion_roles_visibility(!all_visible);
+                    m_viewer.set_all_options_visibility(!all_visible);
+                }
+                update_moves_slider();
+            }
+
+            ImGui::GetWindowDrawList()->AddText(ImGui::GetItemRectMin(), ImGui::GetColorU32(ImGuiCol_Text), into_u8(all_visible ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
+            ImGui::PopStyleVar(2);
         }
-        // Ensure right padding
+
         ImGui::SameLine();
-        ImGui::Dummy({window_padding, 1});
+        ImGui::Dummy({window_padding, 1.f});
         ImGui::Separator();
     };
-
     auto max_width = [](const std::vector<std::string>& items, const std::string& title, float extra_size = 0.0f) {
         float ret = ImGui::CalcTextSize(title.c_str()).x;
         for (const std::string& item : items) {
@@ -4378,6 +4438,36 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         std::pair<double, double> ret = { koef * volume / (PI * sqr(0.5 * m_filament_diameters[extruder_id])),
                                           volume * m_filament_densities[extruder_id] * 0.001 };
         return ret;
+    };
+
+    auto isolate_extrusion_role = [this](libvgcode::EGCodeExtrusionRole target_role) {
+        // Hide all options (Travel, Seams, Retractions, etc.)
+        m_viewer.set_all_options_visibility(false);
+
+        // Turn all extrusion roles OFF except the target one
+        const auto roles = m_viewer.get_extrusion_roles();
+        for (auto role : roles) {
+            bool target_state = (role == target_role);
+            if (m_viewer.is_extrusion_role_visible(role) != target_state) {
+                m_viewer.toggle_extrusion_role_visibility(role);
+            }
+        }
+        update_moves_slider();
+    };
+
+    auto isolate_option = [this](libvgcode::EOptionType target_option) {
+        // Hide all extrusion roles
+        m_viewer.set_all_extrusion_roles_visibility(false);
+
+        // Turn all options OFF except the target one
+        const auto options = m_viewer.get_options();
+        for (auto option : options) {
+            bool target_state = (option == target_option);
+            if (m_viewer.is_option_visible(option) != target_state) {
+                m_viewer.toggle_option_visibility(option);
+            }
+        }
+        update_moves_slider();
     };
 
     //BBS display Color Scheme
@@ -4615,7 +4705,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         // ORCA use % symbol for percentage and use "Usage" for "Used filaments"
         offsets = calculate_offsets({ {_u8L("Line Type"), labels}, {_u8L("Time"), times}, {"%", percents}, {"", used_filaments_length}, {"", used_filaments_weight}, {_u8L("Display"), {""}}}, icon_size);
         percents.pop_back();
-        append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}});
+        append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}}, true);
         break;
     }
     case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
@@ -4714,7 +4804,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     default: { break; }
     }
 
-    auto append_option_item = [this, append_item, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance](libvgcode::EOptionType type, std::vector<float> offsets) {
+    auto append_option_item = [this, append_item, isolate_option, current_time_mode, total_estimated_time, &format_compact_count,
+                               &format_percent, &format_distance](libvgcode::EOptionType type, std::vector<float> offsets) {
         const bool full_layout = offsets.size() > 4;
         auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance, full_layout](libvgcode::EOptionType option_type) -> std::array<std::string, 4> {
             libvgcode::EMoveType move_type;
@@ -4749,7 +4840,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             return { time_text, percent_text, distance_text, count_text };
         };
 
-        auto append_option_item_with_type = [this, offsets, append_item, full_layout](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
+        auto append_option_item_with_type = [this, offsets, append_item, isolate_option, full_layout](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
             const std::string& time_text, const std::string& percent_text, const std::string& distance_text, const std::string& count_text) {
             std::vector<std::pair<std::string, float>> columns_offsets;
             columns_offsets.push_back({ label , offsets[0] });
@@ -4764,6 +4855,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
+                },
+                [isolate_option, type]() { 
+                    isolate_option(type); 
                 });
         };
         const bool visible = m_viewer.is_option_visible(type);
@@ -4821,6 +4915,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 true, offsets.back(), visible, [this, role]() {
                     m_viewer.toggle_extrusion_role_visibility(role);
                     update_moves_slider();
+                },
+                [isolate_extrusion_role, role]() { 
+                    isolate_extrusion_role(role); 
                 });
         }
 
@@ -4840,6 +4937,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item]() {
                         m_viewer.toggle_option_visibility(item);
                         update_moves_slider();
+                    },
+                    [isolate_option, item]() { 
+                        isolate_option(item); 
                     });
             }
         }
@@ -4853,7 +4953,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]}, }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4870,7 +4971,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4887,7 +4989,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4903,7 +5006,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -5613,7 +5717,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { ""}}, { _u8L("Display"), {""}} }, icon_size);
         offsets[1] = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         for (auto item : m_viewer.get_options())
             append_option_item(item, offsets);
     }
