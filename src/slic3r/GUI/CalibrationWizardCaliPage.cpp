@@ -413,7 +413,7 @@ void CalibrationCaliPage::update_subtask(MachineObject* obj)
             }
             // update printing stage
 
-            m_printing_panel->update_left_time(obj->mc_left_time);
+            m_printing_panel->update_left_time(obj->mc_left_time, obj->is_printing_finished());
             if (obj->subtask_) {
                 m_printing_panel->update_stage_value(obj->get_curr_stage(), obj->subtask_->task_progress);
                 m_printing_panel->update_progress_percent(wxString::Format("%d", obj->subtask_->task_progress), "%");

@@ -2622,6 +2622,7 @@ void MachineObject::reset()
     m_plate_index = -1;
     device_cert_installed = false;
     clear_auto_nozzle_mapping();// reset nozzle mapping
+    m_printTaskInfo.reset();
 
     // reset print_json
     json empty_j;
@@ -3172,6 +3173,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
         if (j.contains("print")) {
             json jj = j["print"];
+            m_printTaskInfo.parse(jj);
             int sequence_id = 0;
             if (jj.contains("sequence_id")) {
                 if (jj["sequence_id"].is_string()) {

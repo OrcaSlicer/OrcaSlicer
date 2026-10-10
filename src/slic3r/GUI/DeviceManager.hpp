@@ -29,6 +29,7 @@
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFirmware.h"
+#include "DeviceCore/DevPrintTaskInfo.h"
 #include "DeviceCore/DevCalib.h" // Orca: adopt DeviceCore split (defines DevCalib, CalibStatus, ManualPaCaliMethod)
 #include "DeviceErrorDialog.hpp"
 
@@ -142,6 +143,9 @@ private:
     DevCalib*                   m_calib{ nullptr };
     DevStatus*                  m_status{ nullptr };
     std::shared_ptr<DevUpgrade> m_upgrade;
+
+    /* Print task information (pause schedule reported by the printer) */
+    DevPrintTaskInfo m_printTaskInfo;
 
     /*Ctrl*/
     DevCtrl* m_ctrl;
@@ -445,6 +449,8 @@ public:
     void store_version_info(const DevFirmwareVersionInfo& info);
 
     /* printing */
+    const DevPrintTaskInfo &getPrintTaskInfo() const { return m_printTaskInfo; }
+
     std::string print_type;
     //float   nozzle { 0.0f };        // default is 0.0f as initial value
     bool    is_220V_voltage { false };
