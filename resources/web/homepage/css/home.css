@@ -567,10 +567,12 @@ body
 
 #MenuArea
 {
-	height: 140px;
 	display: flex;
 	align-items: center;
-	flex: 0 0 140px;
+	flex-wrap: wrap;
+	row-gap: 16px;
+	flex: 0 0 auto;
+	min-height: 140px;
 }
 
 .MenuItem
@@ -610,6 +612,126 @@ body
 	color: #A8A8A8;
 }
 
+#cali_menu_trigger .MenuIcon img
+{
+	filter: invert(1);
+}
+
+
+/*-----Calibration test picker (opens from the calibration tile)-----*/
+#cali_context_menu
+{
+	position: absolute;
+	margin: 0px;
+	padding: 8px;
+	border: 0px;
+	min-width: 420px;
+	max-width: 460px;
+	border: 1px solid #D7D7D7;
+	border-radius: 8px;
+	color: #323A3D;
+	background-color: #fff;
+	display: none;
+	z-index: 2;
+}
+
+.CaliMenuTitle
+{
+	padding: 6px 12px 8px 12px;
+	font-weight: 700;
+}
+
+.CaliGroupHeader
+{
+	padding: 4px 12px 4px 38px;
+	color: #737373;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	text-align: left;
+}
+
+.CaliGroupHeaderSep
+{
+	margin-top: 12px;
+	padding-top: 14px;
+	border-top: 1px solid #E2E2E2;
+}
+
+.CaliItem
+{
+	padding: 6px 12px;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	border-radius: 6px;
+}
+
+.CaliItem:hover
+{
+	cursor: pointer;
+	background-color: #E5F0EE; /*ORCA color with %25 opacity*/
+}
+
+.CaliItemIcon
+{
+	margin-right: 8px;
+	width: 18px;
+	min-width: 18px;
+}
+
+.CaliItemIcon img
+{
+	width: 18px;
+	height: 18px;
+	margin-top: 1px;
+}
+
+.CaliItemText
+{
+	flex: 1;
+}
+
+.CaliItemName
+{
+	line-height: 20px;
+	font-weight: 700;
+}
+
+.CaliItemDesc
+{
+	color: #A8A8A8;
+	line-height: 16px;
+}
+
+.CaliItemWhen
+{
+	color: #A8A8A8;
+	line-height: 16px;
+}
+
+.CaliWhenLabel
+{
+	color: #A8A8A8;
+	font-weight: 700;
+}
+
+.CaliMenuFooter
+{
+	margin-top: 12px;
+	padding: 14px 12px 14px 38px;
+	border-top: 1px solid #E2E2E2;
+	color: #009688; /*ORCA color*/
+	cursor: pointer;
+}
+
+.CaliMenuFooter:hover
+{
+	color: #fff;
+	background-color: #009688; /*ORCA color*/
+	border-radius: 6px;
+}
 
 .Content-Title
 {

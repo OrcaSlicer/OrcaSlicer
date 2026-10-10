@@ -18,6 +18,7 @@
 <script type="text/javascript" src="../data/text.js"></script>		
 	
 <script type="text/javascript" src="js/home.js"></script>
+<script type="text/javascript" src="js/home-calibration-button.js"></script>
 </head>
 <body class="ZScrol" onLoad="OnInit()">
 <div id="LeftBoard">
@@ -130,8 +131,99 @@
 				<div class="MenuDesc">3mf</div>
 			</div>
 		</div>		
+		<div class="MenuItem" id="cali_menu_trigger" onClick="OnClickCalibration()">
+			<div class="MenuIcon"><img src="../../images/calib_sf.svg"></div>
+			<div>
+				<div class="trans TextS1" tid="t127">new calibration</div>
+				<div class="MenuDesc trans" tid="t128">tune your printer</div>
+			</div>
+		</div>
 	</div>
-	
+
+		<!-- Two contiguous blocks, per-printer first then per-filament, so results of the same kind stay
+	     together. Inside each block the rows keep the order recommended by
+	     https://www.orcaslicer.com/wiki/guides/calibration_guide
+	     Each row carries its own CalibKind ordinal in onClick, so the grouping is presentational
+	     only and cannot affect dispatch. -->
+	<div id="cali_context_menu">
+		<div class="CaliMenuTitle trans" tid="t129">Recommended order</div>
+		<div class="CaliGroupHeader trans" tid="t151">Per printer</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(5)">
+			<div class="CaliItemIcon"><img src="../../images/param_precision.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t140">Cornering</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t159">corners look rounded or wavy</span></div>
+				<div class="CaliItemDesc trans" tid="t141">Measures speed lost at sharp direction changes.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(6)">
+			<div class="CaliItemIcon"><img src="../../images/param_resonance_avoidance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t142">Input shaping frequency</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t160">once per printer</span></div>
+				<div class="CaliItemDesc trans" tid="t143">Finds the machine's resonant frequency so input shaping can cancel ringing.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(7)">
+			<div class="CaliItemIcon"><img src="../../images/param_resonance_avoidance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t144">Input shaping damping</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t161">after the frequency is set</span></div>
+				<div class="CaliItemDesc trans" tid="t145">Tunes how hard that ringing gets cancelled.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(8)">
+			<div class="CaliItemIcon"><img src="../../images/param_speed.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t146">VFA</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t162">fast prints look rough on the surface</span></div>
+				<div class="CaliItemDesc trans" tid="t147">Measures vertical fine artifacts left by high-speed moves.</div>
+			</div>
+		</div>
+		<div class="CaliGroupHeader CaliGroupHeaderSep trans" tid="t152">Per filament</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(0)">
+			<div class="CaliItemIcon"><img src="../../images/param_temperature.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t130">Temperature</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t154">corners blob or detail is stringy</span></div>
+				<div class="CaliItemDesc trans" tid="t131">Finds the best nozzle temperature for this filament.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(1)">
+			<div class="CaliItemIcon"><img src="../../images/param_volumetric_speed.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t132">Max volumetric speed</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t155">before raising speed limits</span></div>
+				<div class="CaliItemDesc trans" tid="t133">Finds the fastest the hotend can melt without starving.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(2)">
+			<div class="CaliItemIcon"><img src="../../images/param_flow_ratio_and_pressure_advance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t134">Pressure advance</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t156">after changing extruder, filament or temps</span></div>
+				<div class="CaliItemDesc trans" tid="t135">Tunes how far the nozzle moves ahead of its own pressure.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(3)">
+			<div class="CaliItemIcon"><img src="../../images/param_flow_ratio_and_pressure_advance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t136">Flow ratio</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t157">for thin or inconsistent extrusion</span></div>
+				<div class="CaliItemDesc trans" tid="t137">Measures how much material really lands on the build plate.</div>
+			</div>
+		</div>
+		<div class="CaliItem" onClick="OnSelectCalibrationTest(4)">
+			<div class="CaliItemIcon"><img src="../../images/param_retraction.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName trans" tid="t138">Retraction</div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel trans" tid="t153">When:</span> <span class="CaliWhenText trans" tid="t158">stringing issues</span></div>
+				<div class="CaliItemDesc trans" tid="t139">Finds the shortest retraction that still stops ooze during travel.</div>
+			</div>
+		</div>
+		<div class="CaliMenuFooter trans" tid="t148" onClick="OnClickCalibrationGuide()">calibration guide</div>
+	</div>
+
 	<div id="DebugText"></div>	
 	<div id="RecentFileArea">
 		<div id="RecentTitleBlock">

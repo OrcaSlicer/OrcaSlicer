@@ -115,6 +115,7 @@
 #include "GUI_Factories.hpp"
 #include "NotificationManager.hpp"
 #include "MarkdownTip.hpp"
+#include "NativeCommands.hpp"
 #include "NetworkTestDialog.hpp"
 #include "SceneBenchmark.hpp"
 #include "ConfigWizard.hpp"
@@ -3572,62 +3573,6 @@ void MainFrame::init_menubar_as_editor()
     top_menu->AppendSeparator();
     m_topbar->AddDropDownSubMenu(helpMenu, _L("Help"));
 
-    // SoftFever calibrations
-
-    // Temperature
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Temperature"), _L("Temperature Calibration"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::Temperature); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // Max Volumetric Speed
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Max flowrate"), _L("Max flowrate"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::MaxVolumetric); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // Pressure Advance
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Pressure advance"), _L("Pressure advance"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::PressureAdvance); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // Flow rate (Wizard Dialog)
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // Retraction
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction"), _L("Retraction"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::Retraction); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // Cornering
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Cornering"), _L("Cornering calibration"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::Cornering); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // Input Shaping (with submenu)
-    auto input_shaping_menu = new wxMenu();
-    append_menu_item(
-        input_shaping_menu, wxID_ANY, _L("Input Shaping Frequency"), _L("Input Shaping Frequency"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingFreq); },
-        "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(
-        input_shaping_menu, wxID_ANY, _L("Input Shaping Damping/zeta factor"), _L("Input Shaping Damping/zeta factor"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingDamp); },
-        "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    m_topbar->GetCalibMenu()->AppendSubMenu(input_shaping_menu, _L("Input Shaping"));
-
-    // VFA
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("VFA"), _L("VFA"),
-        [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    // help
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"), [](wxCommandEvent &)
-                     { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr, [this]()
-                     {return m_plater->is_view3D_shown();; }, this);
-
 #else
     // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
     fileMenu->AppendSeparator();
@@ -4597,6 +4542,8 @@ void MainFrame::technology_changed()
 // Call while the Prepare (3D) panel is shown.
 void MainFrame::run_calibration(CalibKind calib_kind)
 {
+    ensure_3d_view(m_plater);
+
     switch (calib_kind) {
     case CalibKind::Temperature: {
         if (!m_temp_calib_dlg)
