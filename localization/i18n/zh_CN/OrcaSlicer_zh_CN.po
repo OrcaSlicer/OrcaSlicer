@@ -39473,3 +39473,7 @@ msgstr ""
 "触控板：双指滚动可上下左右移动图表。\n"
 "捏合或张开双指可围绕指针缩放两轴。"
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "鼠标中键：拖动以平移两轴。"
+

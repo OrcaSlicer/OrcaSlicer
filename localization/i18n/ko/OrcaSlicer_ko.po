@@ -39146,3 +39146,7 @@ msgstr ""
 "터치패드: 두 손가락으로 그래프를 상하좌우로 이동합니다.\n"
 "핀치로 포인터 중심의 두 축을 확대·축소합니다."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "마우스 가운데 버튼: 드래그로 두 축을 이동합니다."
+

@@ -37826,3 +37826,7 @@ msgstr ""
 "Pavé tactile : deux doigts déplacent le graphe.\n"
 "Pincez pour zoomer les deux axes autour du pointeur."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Bouton du milieu : glissez sur les 2 axes."
+

@@ -40035,3 +40035,7 @@ msgstr ""
 "タッチパッド：2本指でグラフを上下左右に移動。\n"
 "ピンチでポインターを中心に両軸を拡大・縮小します。"
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "マウスの中ボタン：ドラッグで両軸を移動。"
+

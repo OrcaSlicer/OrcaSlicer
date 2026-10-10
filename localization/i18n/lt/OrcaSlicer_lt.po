@@ -38648,3 +38648,8 @@ msgstr ""
 "Jutiklinis kilimėlis: dviem pirštais slinkite grafiką.\n"
 "Glaudžiant ar skėčiant keičiasi ašių mastelis ties žymekliu."
 
+# AI Translated
+# Needs human review: confirm natural wording for middle-button graph panning.
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Vidurinis mygtukas: vilkite abi ašis."
+

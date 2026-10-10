@@ -38637,3 +38637,8 @@ msgstr ""
 "ทัชแพด: เลื่อนสองนิ้วเพื่อเลื่อนกราฟทั้งสองทิศทาง\n"
 "จีบหรือกางนิ้วเพื่อซูมทั้งสองแกนรอบตัวชี้"
 
+# AI Translated
+# Needs human review: confirm natural wording for middle-button graph panning.
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "ปุ่มเมาส์กลาง: ลากเพื่อเลื่อนทั้งสองแกน"
+

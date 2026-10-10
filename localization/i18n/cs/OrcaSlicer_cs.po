@@ -39067,3 +39067,7 @@ msgstr ""
 "Touchpad: dvěma prsty posuňte graf v obou směrech.\n"
 "Sevřením či roztažením měňte měřítko os u ukazatele."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Prostřední tlačítko: tažením posuňte osy."
+

@@ -38392,3 +38392,7 @@ msgstr ""
 "Touchpad: Zwei Finger verschieben den Graphen.\n"
 "Spreizen oder Zusammenziehen zoomt beide Achsen am Zeiger."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Mitteltaste: Ziehen bewegt beide Achsen."
+
